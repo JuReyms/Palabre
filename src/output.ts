@@ -64,7 +64,7 @@ export function renderDebateMarkdown(
 
 function renderFileList(files: DebateOptions["files"]): string[] {
   if (files.length === 0) {
-    return ["Aucun fichier injecte explicitement."];
+    return ["Aucun contexte fichier injecte."];
   }
 
   return files.map((file) => `- \`${file.path}\` (${file.sizeBytes} bytes)`);

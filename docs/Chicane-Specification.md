@@ -122,7 +122,7 @@ chicane run --preset codex-claude --topic "Critique le MVP" --no-summary
 
 Chicane doit distinguer le workspace courant et le contexte explicitement injecté. Les agents CLI sont lancés depuis le dossier courant et peuvent éventuellement inspecter le workspace selon leurs propres capacités et permissions. Ollama, en revanche, ne lit pas le filesystem : il ne reçoit que le sujet, les instructions, les rôles, les fichiers explicitement passés et l'historique textuel transmis par Chicane.
 
-Si un agent Ollama participe sans fichiers passés via `--files`, Chicane doit afficher un warning visible pour éviter que l'utilisateur pense qu'Ollama inspecte le projet.
+Si un agent Ollama participe sans contexte fourni via `--files` ou `--context`, Chicane doit afficher un warning visible pour éviter que l'utilisateur pense qu'Ollama inspecte le projet.
 
 Le support explicite minimal est `--files`, qui injecte une sélection contrôlée de fichiers texte dans le prompt de tous les agents :
 
@@ -130,7 +130,14 @@ Le support explicite minimal est `--files`, qui injecte une sélection contrôl�
 chicane run --topic "Critique le MVP" --files README.md src/adapters/cli.ts
 ```
 
-Le support plus large `--context .` viendra plus tard. Cette évolution devra gérer les limites de taille, les fichiers ignorés, les formats binaires et la synthèse automatique des gros fichiers.
+Le support plus large `--context` construit un contexte projet borné à partir de fichiers ou dossiers :
+
+```bash
+chicane run --topic "Critique le MVP" --context src docs
+chicane run --preset codex-claude --topic "Preview contexte" --context . --show-prompt
+```
+
+`--context` respecte les limites de taille du contexte, ignore les dossiers techniques courants (`.git`, `node_modules`, `dist`, etc.), applique les règles simples du `.gitignore` racine, garde seulement les extensions texte connues et affiche des warnings pour les fichiers ignorés. Cette première version ne fait pas encore de synthèse automatique des gros fichiers.
 
 ## 4. MVP
 
@@ -142,6 +149,7 @@ Le premier jalon doit rester volontairement étroit :
 * Adapter CLI minimal, puis remplacement par PTY robuste.
 * Orchestration tour par tour avec limite de tours.
 * Injection explicite de fichiers texte via `--files`.
+* Selection bornee de contexte projet via `--context`.
 * Presets de paires d'agents via `--preset`.
 * Overrides de modèles via `--model-a` et `--model-b`, sans catalogue de modèles côté Chicane.
 * Preview du prompt via `--show-prompt`.

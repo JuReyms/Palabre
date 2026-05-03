@@ -188,7 +188,7 @@ Erreurs connues classees :
 
 Le moteur actuel alterne simplement entre deux agents pendant `turns` tours :
 
-1. Render du prompt avec le sujet, les fichiers explicites et l'historique.
+1. Render du prompt avec le sujet, les fichiers de contexte et l'historique.
 2. Appel de l'agent courant.
 3. Ajout du message au transcript.
 4. Passage a l'autre agent.
@@ -211,31 +211,45 @@ Options :
 - `--summary-model <model>` : modele brut transmis a l'agent de synthese.
 - `--no-summary` : desactive la phase de synthese.
 
-Le prompt de synthese est un mode dedie dans `formatAgentPrompt` (`mode: "summary"`). Il recoit le sujet, les fichiers explicites et tout le transcript.
+Le prompt de synthese est un mode dedie dans `formatAgentPrompt` (`mode: "summary"`). Il recoit le sujet, les fichiers de contexte et tout le transcript.
 
 ## Contexte projet
 
-Le MVP fournit `--files` pour injecter explicitement des fichiers texte dans le prompt. Il ne fournit pas encore `--context`.
+Le MVP fournit deux entrees de contexte :
+
+- `--files <paths...>` : fichiers texte explicites, mode strict.
+- `--context <paths...>` : fichiers ou dossiers texte, mode tolerant avec warnings.
 
 Important :
 
 - Les agents `cli` sont executes depuis le dossier courant. Codex, Claude ou Gemini peuvent donc inspecter le workspace si leur CLI le permet.
 - Ce comportement appartient aux CLIs externes, pas au contrat Chicane.
-- L'adapter `ollama` ne lit jamais le filesystem directement. Il ne voit que le prompt, les fichiers passes par `--files` et le transcript fournis par Chicane.
-- Si aucun fichier n'est passe a `--files`, Ollama ne voit pas le contenu du projet.
-- L'orchestrateur affiche un warning visible quand un agent Ollama participe sans fichiers explicites.
+- L'adapter `ollama` ne lit jamais le filesystem directement. Il ne voit que le prompt, les fichiers retenus par `--files` ou `--context`, et le transcript fournis par Chicane.
+- Si aucun contexte n'est fourni a Chicane, Ollama ne voit pas le contenu du projet.
+- L'orchestrateur affiche un warning visible quand un agent Ollama participe sans contexte fourni.
 
-Limites `--files` actuelles :
+Comportement `--files` :
 
 - 64 KiB max par fichier.
 - 192 KiB max au total.
-- fichiers binaires refuses.
-- dossiers refuses.
+- fichiers binaires refuses avec erreur.
+- dossiers refuses avec erreur.
+
+Comportement `--context` :
+
+- Accepte des fichiers et dossiers.
+- Parcourt les dossiers recursivement.
+- Ignore par defaut `.git`, `.gitignore`, `.tmp`, `.pnpm-store`, `node_modules` et `dist`.
+- Applique les regles simples du `.gitignore` racine : lignes vides/commentaires ignores, negations non supportees, glob `*` basique.
+- Garde seulement les extensions texte connues.
+- Ignore les fichiers binaires, trop gros ou au-dela de la limite totale avec warning.
+
+Le code vit dans `src/context.ts`. Garder `--files` strict pour les workflows reproductibles, et garder `--context` best-effort pour l'exploration.
 
 Evolution prevue :
 
-- `--context <dir>` pour construire un contexte projet borne.
-- limites de taille, exclusions et resume automatique pour eviter de saturer le contexte.
+- Resume automatique ou selection plus intelligente pour eviter de saturer le contexte.
+- Support plus complet des patterns `.gitignore` si le besoin devient reel.
 
 ## Modeles
 
@@ -289,10 +303,11 @@ Combinaisons validees localement :
 - `gemini --prompt - ↔ ollama`
 - `codex exec ↔ claude --print`
 - `--show-prompt` avec `--files`
+- `--show-prompt` avec `--context docs`
 - synthese finale avec agent B
 - `--no-summary`
 - erreurs adapter `empty-output`, `non-zero-exit`, `model-unavailable`
-- warning Ollama sans `--files`
+- warning Ollama sans contexte
 - rendu console pretty et `--plain`
 
 Ces tests ont confirme que le mode batch est deja exploitable avant l'adapter PTY.

@@ -2,7 +2,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { configExists, DEFAULT_CONFIG_PATH, loadConfig, writeExampleConfig } from "./config.js";
-import { loadProjectFiles } from "./context.js";
+import { loadProjectInputs } from "./context.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
 import { formatAgentPrompt } from "./prompt.js";
 import { listPresetNames, resolvePreset } from "./presets.js";
@@ -50,7 +50,10 @@ async function main(): Promise<void> {
 
   const config = await loadConfig(configPath);
   const topic = String(parsed.flags.topic ?? "").trim();
-  const files = await loadProjectFiles(getStringListFlag(parsed.flags.files));
+  const context = await loadProjectInputs(
+    getStringListFlag(parsed.flags.files),
+    getStringListFlag(parsed.flags.context)
+  );
   const presetName = optionalString(parsed.flags.preset);
   const preset = presetName ? resolvePreset(presetName) : undefined;
 
@@ -63,7 +66,7 @@ async function main(): Promise<void> {
     agentA: String(parsed.flags["agent-a"] ?? preset?.agentA ?? config.defaults?.agentA ?? "codex"),
     agentB: String(parsed.flags["agent-b"] ?? preset?.agentB ?? config.defaults?.agentB ?? "ollama-local"),
     turns: Number(parsed.flags.turns ?? config.defaults?.turns ?? 4),
-    files,
+    files: context.files,
     modelA: optionalString(parsed.flags["model-a"]),
     modelB: optionalString(parsed.flags["model-b"]),
     pullModels: Boolean(parsed.flags["pull-models"]),
@@ -74,11 +77,13 @@ async function main(): Promise<void> {
   };
 
   if (parsed.flags["show-prompt"]) {
+    printContextWarnings(context.warnings);
     printPromptPreview(config, options);
     return;
   }
 
   const renderer = createConsoleRenderer(options.plainOutput);
+  context.warnings.forEach((warning) => renderer.warning(warning));
   const result = await runDebate(config, options, renderer);
   const outputPath = await writeDebateMarkdown(config.outputDir ?? ".", result.options, result.messages, result.summary);
 
@@ -142,7 +147,7 @@ function parseArgs(args: string[]): ParsedArgs {
     if (value.startsWith("--")) {
       const key = value.slice(2);
 
-      if (key === "files") {
+      if (key === "files" || key === "context") {
         const values: string[] = [];
 
         while (args[index + 1] && !args[index + 1].startsWith("--")) {
@@ -188,6 +193,12 @@ function getStringListFlag(value: string | string[] | boolean | undefined): stri
   return [];
 }
 
+function printContextWarnings(warnings: string[]): void {
+  for (const warning of warnings) {
+    process.stderr.write(`Warning: ${warning}\n`);
+  }
+}
+
 function printHelp(): void {
   console.log(`
 Chicane
@@ -214,6 +225,7 @@ Options:
   --no-summary         Desactive la synthese finale
   --turns <number>     Nombre total de tours
   --files <paths...>   Fichiers texte a injecter explicitement dans le contexte
+  --context <paths...> Scanne fichiers/dossiers texte en respectant les limites de contexte
   --show-prompt        Affiche le prompt du premier tour sans appeler d'agent
   --plain              Utilise le rendu console simple sans habillage TUI
 `);

@@ -14,6 +14,7 @@ Le projet contient un premier MVP technique :
 - Adapter Ollama via HTTP local.
 - Orchestration ping-pong avec limite de tours.
 - Injection explicite de fichiers texte via `--files`.
+- Selection bornee de contexte projet via `--context`.
 - Rendu console pretty, avec fallback `--plain`.
 - Export `.debate.md`.
 
@@ -142,7 +143,7 @@ Equivalent dans la config agent :
 Pour inspecter le prompt du premier tour sans appeler d'agent :
 
 ```bash
-pnpm start -- run --preset codex-claude --topic "Preview" --files README.md --show-prompt
+pnpm start -- run --preset codex-claude --topic "Preview" --context src docs --show-prompt
 ```
 
 Par defaut, Chicane produit une synthese finale avec l'agent B. Tu peux choisir un autre agent, un modele specifique, ou desactiver la synthese :
@@ -165,24 +166,46 @@ La session genere un fichier `.debate.md` dans le dossier configure par `outputD
 
 ## Contexte projet
 
-Chicane peut injecter explicitement des fichiers texte dans les prompts avec `--files` :
+Chicane distingue deux modes de contexte :
+
+- `--files` : selection explicite et stricte de fichiers texte.
+- `--context` : scan tolerant de fichiers ou dossiers texte avec exclusions et warnings.
+
+`--files` est utile quand tu sais exactement quels fichiers doivent etre envoyes :
 
 ```bash
 pnpm start -- run --topic "Critique le MVP batch" --files README.md src/adapters/cli.ts --agent-a claude --agent-b ollama-local --turns 2
 ```
 
-Ces fichiers sont envoyes a tous les agents, y compris Ollama. Ils sont aussi listes dans l'export `.debate.md`.
+Si un chemin `--files` pointe vers un dossier, un fichier binaire ou un fichier trop gros, Chicane arrete la commande avec une erreur claire.
+
+`--context` est utile pour donner une vue projet plus large sans tout envoyer aveuglement :
+
+```bash
+pnpm start -- run --preset codex-ollama --topic "Critique l'architecture" --context src docs --turns 2
+pnpm start -- run --preset codex-claude --topic "Preview contexte" --context . --show-prompt
+```
+
+Le scan `--context` :
+
+- parcourt recursivement les dossiers passes ;
+- ignore par defaut `.git`, `.gitignore`, `.tmp`, `.pnpm-store`, `node_modules` et `dist` ;
+- applique les regles simples de `.gitignore` du projet ;
+- garde seulement les extensions texte connues (`.ts`, `.md`, `.json`, `.yaml`, etc.) ;
+- ignore les fichiers binaires, trop gros ou au-dela de la limite totale avec un warning.
+
+Les fichiers retenus, qu'ils viennent de `--files` ou de `--context`, sont envoyes a tous les agents, y compris Ollama. Ils sont aussi listes dans l'export `.debate.md`.
 
 Les agents CLI sont lances depuis le dossier courant. Selon leur propre fonctionnement et leurs permissions, Codex, Claude ou Gemini peuvent donc inspecter le workspace par leurs outils internes. Ce comportement depend de chaque CLI et ne doit pas etre considere comme un contrat garanti par Chicane.
 
-Ollama ne lit pas le filesystem par lui-meme. L'adapter Ollama recoit uniquement le prompt construit par Chicane : sujet, role, instructions, fichiers passes par `--files` et historique du debat. Si aucun fichier n'est passe, Ollama ne voit pas le contenu du projet.
+Ollama ne lit pas le filesystem par lui-meme. L'adapter Ollama recoit uniquement le prompt construit par Chicane : sujet, role, instructions, fichiers retenus par `--files` ou `--context`, et historique du debat. Si aucun contexte n'est passe, Ollama ne voit pas le contenu du projet.
 
 Limites actuelles :
 
 - chaque fichier est limite a 64 KiB ;
 - le contexte total est limite a 192 KiB ;
-- les dossiers et fichiers binaires sont refuses ;
-- `--context .` n'est pas encore implemente.
+- les fichiers binaires sont refuses avec `--files` et ignores avec warning via `--context` ;
+- le support `.gitignore` reste volontairement simple pour le MVP.
 
 ## Scripts
 
@@ -204,6 +227,7 @@ Tests effectues sur Windows :
 - `gemini --prompt - ↔ ollama` : OK.
 - `codex exec ↔ claude --print` : OK.
 - `--show-prompt` avec `--files` : OK.
+- `--show-prompt` avec `--context docs` : OK.
 - synthese finale avec agent B : OK.
 - `--no-summary` : OK.
 - rendu console pretty et `--plain` : OK.
@@ -219,13 +243,13 @@ Reglages importants observes :
 
 - L'adapter CLI actuel est volontairement minimal. Il marche mieux avec des commandes non interactives ou des CLIs qui acceptent un prompt via `stdin`.
 - Les adapters exposent un contrat (`capabilities` et `guarantees`) pour documenter timeout, sortie vide, stderr, exit code, model override, filesystem et streaming.
-- `--files` est explicite et borne ; il n'y a pas encore de selection automatique de contexte projet.
+- `--files` est explicite et strict ; `--context` scanne des dossiers texte de facon bornee et best-effort.
 - `--show-prompt` affiche le prompt exact du premier tour seulement. Les tours suivants dependent du transcript reel.
 - `--model-a` et `--model-b` transmettent une string brute aux adapters ; Chicane ne maintient pas de catalogue de modeles.
 - L'adapter Ollama detecte les modeles installes via `/api/tags` quand `validateModel` est actif.
 - L'adapter Ollama peut telecharger un modele manquant via `/api/pull` seulement si `--pull-models` ou `autoPullModel` est actif.
 - L'adapter Ollama decharge les autres modeles charges via `/api/ps` puis `keep_alive: 0` quand `unloadOtherModels` est actif.
-- Chicane affiche un warning si Ollama participe sans `--files`, car Ollama ne lit pas le filesystem.
+- Chicane affiche un warning si Ollama participe sans contexte fourni, car Ollama ne lit pas le filesystem.
 - La synthese finale est activee par defaut et utilise l'agent B, sauf `--summary-agent` ou `--no-summary`.
 - Le rendu console pretty est volontairement leger. Le split-view, le scrolling interactif et l'input humain arriveront avec le vrai TUI.
 - Une sortie CLI vide est consideree comme une erreur, sauf si `allowEmptyOutput` est active explicitement.

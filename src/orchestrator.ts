@@ -23,7 +23,7 @@ export async function runDebate(
     throw new Error(`Agent inconnu: ${options.agentB}`);
   }
 
-  warnIfOllamaHasNoExplicitFiles(options, [
+  warnIfOllamaHasNoContext(options, [
     [options.agentA, agentAConfig],
     [options.agentB, agentBConfig]
   ], renderer);
@@ -75,7 +75,7 @@ export async function runDebate(
   };
 }
 
-function warnIfOllamaHasNoExplicitFiles(
+function warnIfOllamaHasNoContext(
   options: DebateOptions,
   agents: Array<[string, AgentConfig]>,
   renderer?: DebateRenderer
@@ -93,7 +93,9 @@ function warnIfOllamaHasNoExplicitFiles(
     return;
   }
 
-  renderer?.warning(`${ollamaAgents.join(", ")} ne lit pas le filesystem. Ajoute --files pour fournir un contexte projet explicite.`);
+  renderer?.warning(
+    `${ollamaAgents.join(", ")} ne lit pas le filesystem. Ajoute --files ou --context pour fournir un contexte projet.`
+  );
 }
 
 async function generateSummary(
