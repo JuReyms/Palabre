@@ -1,0 +1,68 @@
+{
+  "outputDir": ".",
+  "defaults": {
+    "agentA": "codex",
+    "agentB": "ollama-local",
+    "turns": 4
+  },
+  "agents": {
+    "codex": {
+      "type": "cli",
+      "command": "codex",
+      "args": [
+        "exec",
+        "--skip-git-repo-check",
+        "--color",
+        "never",
+        "--sandbox",
+        "read-only",
+        "-"
+      ],
+      "promptMode": "stdin",
+      "shell": true,
+      "role": "implementer",
+      "tier": "primary"
+    },
+    "claude": {
+      "type": "cli",
+      "command": "claude.exe",
+      "args": [
+        "--print",
+        "--output-format",
+        "text",
+        "--no-session-persistence"
+      ],
+      "promptMode": "stdin",
+      "shell": false,
+      "role": "reviewer",
+      "tier": "primary"
+    },
+    "gemini": {
+      "type": "cli",
+      "command": "gemini",
+      "args": [
+        "--output-format",
+        "text",
+        "--approval-mode",
+        "plan",
+        "--skip-trust",
+        "--prompt",
+        "-"
+      ],
+      "promptMode": "stdin",
+      "shell": true,
+      "role": "reviewer",
+      "tier": "primary"
+    },
+    "ollama-local": {
+      "type": "ollama",
+      "baseUrl": "http://localhost:11434",
+      "model": "nemotron-3-nano:4b",
+      "role": "critic",
+      "tier": "local",
+      "temperature": 0.2,
+      "validateModel": true,
+      "unloadOtherModels": true
+    }
+  }
+}

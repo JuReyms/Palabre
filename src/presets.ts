@@ -1,0 +1,69 @@
+export interface AgentPairPreset {
+  agentA: string;
+  agentB: string;
+}
+
+const presets: Record<string, AgentPairPreset> = {
+  "codex-claude": {
+    agentA: "codex",
+    agentB: "claude"
+  },
+  "claude-codex": {
+    agentA: "claude",
+    agentB: "codex"
+  },
+  "codex-ollama": {
+    agentA: "codex",
+    agentB: "ollama-local"
+  },
+  "ollama-codex": {
+    agentA: "ollama-local",
+    agentB: "codex"
+  },
+  "claude-ollama": {
+    agentA: "claude",
+    agentB: "ollama-local"
+  },
+  "ollama-claude": {
+    agentA: "ollama-local",
+    agentB: "claude"
+  },
+  "gemini-ollama": {
+    agentA: "gemini",
+    agentB: "ollama-local"
+  },
+  "ollama-gemini": {
+    agentA: "ollama-local",
+    agentB: "gemini"
+  },
+  "codex-gemini": {
+    agentA: "codex",
+    agentB: "gemini"
+  },
+  "gemini-codex": {
+    agentA: "gemini",
+    agentB: "codex"
+  },
+  "claude-gemini": {
+    agentA: "claude",
+    agentB: "gemini"
+  },
+  "gemini-claude": {
+    agentA: "gemini",
+    agentB: "claude"
+  }
+};
+
+export function resolvePreset(name: string): AgentPairPreset {
+  const preset = presets[name];
+
+  if (!preset) {
+    throw new Error(`Preset inconnu: ${name}. Presets disponibles: ${Object.keys(presets).join(", ")}`);
+  }
+
+  return preset;
+}
+
+export function listPresetNames(): string[] {
+  return Object.keys(presets);
+}
