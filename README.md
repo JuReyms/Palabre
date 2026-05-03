@@ -265,4 +265,7 @@ Reglages importants observes :
 ## Documentation projet
 
 - Spec produit : [docs/Chicane-Specification.md](./docs/Chicane-Specification.md)
+- Demarrage rapide : [docs/guide/getting-started.md](./docs/guide/getting-started.md)
+- Configuration : [docs/guide/configuration.md](./docs/guide/configuration.md)
+- Lancer un debat : [docs/guide/running-a-debate.md](./docs/guide/running-a-debate.md)
 - Guide agents/contributeurs : [AGENTS.md](./AGENTS.md)

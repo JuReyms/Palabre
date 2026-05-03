@@ -25,6 +25,8 @@ pnpm start -- init
 
 Cette commande crée un fichier `chicane.config.json` dans le dossier courant si il n'existe pas encore. Tu peux ensuite l'éditer pour y déclarer tes agents.
 
+Pendant l'initialisation, Chicane détecte `codex`, `claude`, `gemini` et l'API locale Ollama. Quand une paire fiable est trouvée, elle devient le défaut de la config générée.
+
 ## Premier débat
 
 ```bash
@@ -32,6 +34,26 @@ pnpm start -- run --preset codex-claude --topic "Comment structurer l'auth d'une
 ```
 
 Chicane va faire débattre Codex et Claude sur ce sujet pendant 4 tours (par défaut), puis générer une synthèse finale. La session est exportée dans un fichier `.debate.md`.
+
+Pour donner du contexte projet sans choisir les fichiers un par un :
+
+```bash
+pnpm start -- run --preset codex-claude --topic "Critique cette architecture" --context src docs --turns 2
+```
+
+`--context` scanne les fichiers texte, respecte les exclusions courantes et affiche des avertissements pour les fichiers ignorés.
+
+## Installation globale locale
+
+Depuis le repo :
+
+```bash
+pnpm build
+pnpm link --global
+chicane --version
+```
+
+Tu peux ensuite lancer `chicane` depuis un autre projet.
 
 ## Vérifier l'installation
 

@@ -59,7 +59,9 @@ pnpm start -- run --preset codex-ollama --model-b nemotron-3-nano:4b --pull-mode
 
 ---
 
-## Injecter des fichiers de contexte
+## Injecter du contexte projet
+
+### Fichiers explicites
 
 ```bash
 pnpm start -- run --topic "Critique le batch adapter" --files README.md src/adapters/cli.ts --agent-a claude --agent-b ollama-local
@@ -67,7 +69,15 @@ pnpm start -- run --topic "Critique le batch adapter" --files README.md src/adap
 
 Les fichiers sont envoyés à tous les agents. Limites actuelles : 64 KiB par fichier, 192 KiB au total. Les dossiers et fichiers binaires sont refusés.
 
-> Si Ollama participe sans `--files`, Chicane affiche un avertissement : Ollama ne lit pas le filesystem, il ne verra que le sujet et le transcript.
+### Scan borné
+
+```bash
+pnpm start -- run --preset codex-ollama --topic "Critique l'architecture" --context src docs --turns 2
+```
+
+`--context` accepte des fichiers et dossiers, scanne récursivement les fichiers texte, respecte les exclusions courantes et affiche des avertissements pour les fichiers ignorés.
+
+> Si Ollama participe sans `--files` ni `--context`, Chicane affiche un avertissement : Ollama ne lit pas le filesystem, il ne verra que le sujet et le transcript.
 
 ---
 
@@ -77,6 +87,7 @@ Pour voir le prompt exact du premier tour sans lancer le débat :
 
 ```bash
 pnpm start -- run --preset codex-claude --topic "Preview" --files README.md --show-prompt
+pnpm start -- run --preset codex-claude --topic "Preview" --context src docs --show-prompt
 ```
 
 ---
@@ -100,7 +111,7 @@ pnpm start -- run --preset codex-claude --topic "Sujet" --no-summary
 
 ## Rendu console
 
-Le rendu par défaut est un affichage coloré avec en-têtes et séparateurs. Pour un rendu brut compatible avec les logs :
+Le rendu par défaut est un affichage coloré avec en-têtes, séparateurs et état "agent en cours" pendant les générations. Pour un rendu brut compatible avec les logs :
 
 ```bash
 pnpm start -- run --preset codex-claude --topic "Sujet" --plain

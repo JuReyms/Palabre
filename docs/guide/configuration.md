@@ -2,15 +2,17 @@
 
 La configuration de Chicane se fait dans `chicane.config.json` à la racine de ton projet.
 
+`chicane init` génère ce fichier et détecte les outils disponibles localement. La config garde les blocs agents connus pour rester facile à éditer, mais les `defaults` utilisent une paire détectée quand c'est possible.
+
 ## Structure générale
 
 ```json
 {
+  "outputDir": ".",
   "defaults": {
     "agentA": "codex",
     "agentB": "ollama-local",
-    "turns": 4,
-    "outputDir": "."
+    "turns": 4
   },
   "agents": { }
 }
@@ -23,6 +25,11 @@ La configuration de Chicane se fait dans `chicane.config.json` à la racine de t
 | `agentA` | Agent qui ouvre le débat | — |
 | `agentB` | Agent qui répond en second | — |
 | `turns` | Nombre de tours d'échange | `4` |
+
+### Racine
+
+| Champ | Description | Valeur par défaut |
+|-------|-------------|-------------------|
 | `outputDir` | Dossier de destination du `.debate.md` | `.` |
 
 ---
@@ -95,7 +102,7 @@ Pour les modèles locaux exposés par Ollama :
 | `unloadOtherModels` | Décharge les autres modèles chargés avant de lancer |
 | `keepAlive` | Durée de maintien du modèle en mémoire après génération |
 
-> Ollama ne lit jamais le filesystem. Si tu veux lui fournir du contexte projet, utilise `--files`.
+> Ollama ne lit jamais le filesystem. Si tu veux lui fournir du contexte projet, utilise `--files` ou `--context`.
 
 ---
 
