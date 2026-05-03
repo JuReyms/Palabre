@@ -1,6 +1,7 @@
 import { access, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ChicaneConfig } from "./types.js";
+import type { ToolDiscovery } from "./discovery.js";
 
 export const DEFAULT_CONFIG_PATH = "chicane.config.json";
 
@@ -88,6 +89,68 @@ export async function configExists(configPath = DEFAULT_CONFIG_PATH): Promise<bo
   }
 }
 
-export async function writeExampleConfig(configPath = DEFAULT_CONFIG_PATH): Promise<void> {
-  await writeFile(path.resolve(configPath), `${JSON.stringify(exampleConfig, null, 2)}\n`, "utf8");
+export function createConfigFromDiscovery(discovery: ToolDiscovery): ChicaneConfig {
+  const config = cloneConfig(exampleConfig);
+  const pair = chooseDefaultPair(discovery);
+
+  config.agents.codex = {
+    ...config.agents.codex,
+    ...(discovery.codex.available ? { command: discovery.codex.command } : {})
+  };
+  config.agents.claude = {
+    ...config.agents.claude,
+    ...(discovery.claude.available ? { command: discovery.claude.command } : {})
+  };
+  config.agents.gemini = {
+    ...config.agents.gemini,
+    ...(discovery.gemini.available ? { command: discovery.gemini.command } : {})
+  };
+
+  config.defaults = {
+    ...config.defaults,
+    ...(pair ? { agentA: pair[0], agentB: pair[1] } : {})
+  };
+
+  return config;
+}
+
+export async function writeExampleConfig(
+  configPath = DEFAULT_CONFIG_PATH,
+  config: ChicaneConfig = exampleConfig
+): Promise<void> {
+  await writeFile(path.resolve(configPath), `${JSON.stringify(config, null, 2)}\n`, "utf8");
+}
+
+function chooseDefaultPair(discovery: ToolDiscovery): [string, string] | undefined {
+  if (discovery.codex.available && discovery.claude.available) {
+    return ["codex", "claude"];
+  }
+
+  if (discovery.codex.available && discovery.ollama.available) {
+    return ["codex", "ollama-local"];
+  }
+
+  if (discovery.claude.available && discovery.ollama.available) {
+    return ["claude", "ollama-local"];
+  }
+
+  if (discovery.gemini.available && discovery.ollama.available) {
+    return ["gemini", "ollama-local"];
+  }
+
+  const cliAgents = [
+    discovery.codex.available ? "codex" : undefined,
+    discovery.claude.available ? "claude" : undefined,
+    discovery.gemini.available ? "gemini" : undefined
+  ].filter((agent): agent is string => Boolean(agent));
+
+  if (cliAgents.length >= 2) {
+    return [cliAgents[0], cliAgents[1]];
+  }
+
+  return undefined;
+}
+
+function cloneConfig(config: ChicaneConfig): ChicaneConfig {
+  return JSON.parse(JSON.stringify(config)) as ChicaneConfig;
 }

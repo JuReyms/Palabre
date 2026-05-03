@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { configExists, DEFAULT_CONFIG_PATH, loadConfig, writeExampleConfig } from "./config.js";
+import { configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, loadConfig, writeExampleConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
+import { discoverLocalTools } from "./discovery.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
 import { formatAgentPrompt } from "./prompt.js";
 import { listPresetNames, resolvePreset } from "./presets.js";
@@ -35,8 +36,11 @@ async function main(): Promise<void> {
       return;
     }
 
-    await writeExampleConfig(DEFAULT_CONFIG_PATH);
+    const discovery = await discoverLocalTools();
+    const config = createConfigFromDiscovery(discovery);
+    await writeExampleConfig(DEFAULT_CONFIG_PATH, config);
     console.log(`${DEFAULT_CONFIG_PATH} cree.`);
+    printInitDiscovery(discovery, config);
     return;
   }
 
@@ -197,6 +201,37 @@ function printContextWarnings(warnings: string[]): void {
   for (const warning of warnings) {
     process.stderr.write(`Warning: ${warning}\n`);
   }
+}
+
+function printInitDiscovery(
+  discovery: Awaited<ReturnType<typeof discoverLocalTools>>,
+  config: Awaited<ReturnType<typeof loadConfig>>
+): void {
+  console.log("");
+  console.log("Detection locale:");
+  console.log(`- Codex CLI: ${formatCommandDetection(discovery.codex)}`);
+  console.log(`- Claude CLI: ${formatCommandDetection(discovery.claude)}`);
+  console.log(`- Gemini CLI: ${formatCommandDetection(discovery.gemini)}`);
+  console.log(`- Ollama API: ${formatOllamaDetection(discovery.ollama)}`);
+  console.log("");
+  console.log(`Defaults: ${config.defaults?.agentA ?? "codex"} <-> ${config.defaults?.agentB ?? "ollama-local"}`);
+}
+
+function formatCommandDetection(detection: Awaited<ReturnType<typeof discoverLocalTools>>["codex"]): string {
+  return detection.available
+    ? `detecte (${detection.command})`
+    : "non detecte";
+}
+
+function formatOllamaDetection(detection: Awaited<ReturnType<typeof discoverLocalTools>>["ollama"]): string {
+  if (!detection.available) {
+    return detection.commandAvailable
+      ? `serveur non joignable (${detection.baseUrl})`
+      : "non detecte";
+  }
+
+  const modelCount = detection.models.length;
+  return `detectee (${modelCount} modele${modelCount > 1 ? "s" : ""})`;
 }
 
 function printHelp(): void {

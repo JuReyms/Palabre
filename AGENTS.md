@@ -32,6 +32,7 @@ pnpm start -- -v
 ```text
 src/index.ts              CLI entrypoint
 src/config.ts             Chargement et generation de config
+src/discovery.ts          Detection locale des CLIs et d'Ollama pendant init
 src/types.ts              Contrats partages
 src/prompt.ts             Rendu des prompts agent
 src/orchestrator.ts       Boucle de debat ping-pong
@@ -114,6 +115,18 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 - Eviter les dependances UI tant que l'orchestration n'est pas stable.
 - Exporter chaque session en `.debate.md`.
 - Ne pas supposer que Claude/Codex ont une API stable : les CLIs interactives doivent etre isolees derriere un adapter.
+
+## Init et discovery
+
+`chicane init` utilise `src/discovery.ts` pour detecter :
+
+- `codex`
+- `claude.exe` puis `claude` sur Windows, `claude` ailleurs
+- `gemini`
+- `ollama`
+- l'API Ollama locale via `GET http://localhost:11434/api/tags`
+
+La config generee conserve les blocs agents connus pour rester editable, mais ajuste `defaults.agentA` et `defaults.agentB` avec une paire detectee quand c'est possible. Si aucune paire fiable n'est detectee, les defaults d'exemple restent en place.
 
 ## Adapter CLI actuel
 
@@ -304,6 +317,7 @@ Combinaisons validees localement :
 - `codex exec ↔ claude --print`
 - `--show-prompt` avec `--files`
 - `--show-prompt` avec `--context docs`
+- `init` dans un dossier temporaire pour verifier la detection locale
 - synthese finale avec agent B
 - `--no-summary`
 - erreurs adapter `empty-output`, `non-zero-exit`, `model-unavailable`

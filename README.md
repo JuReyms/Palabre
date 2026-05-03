@@ -41,7 +41,7 @@ pnpm build
 pnpm start -- init
 ```
 
-Cette commande cree `chicane.config.json` si le fichier n'existe pas encore. Le fichier d'exemple versionne est [chicane.config.example.json](./chicane.config.example.json).
+Cette commande cree `chicane.config.json` si le fichier n'existe pas encore. Pendant l'init, Chicane detecte `codex`, `claude`, `gemini` et l'API locale Ollama, puis choisit une paire par defaut detectee quand c'est possible. Le fichier d'exemple versionne est [chicane.config.example.json](./chicane.config.example.json).
 
 Extrait de configuration :
 
@@ -228,6 +228,7 @@ Tests effectues sur Windows :
 - `codex exec ↔ claude --print` : OK.
 - `--show-prompt` avec `--files` : OK.
 - `--show-prompt` avec `--context docs` : OK.
+- `init` avec detection locale des agents : OK.
 - synthese finale avec agent B : OK.
 - `--no-summary` : OK.
 - rendu console pretty et `--plain` : OK.
@@ -242,6 +243,7 @@ Reglages importants observes :
 ## Limites connues
 
 - L'adapter CLI actuel est volontairement minimal. Il marche mieux avec des commandes non interactives ou des CLIs qui acceptent un prompt via `stdin`.
+- `chicane init` detecte les outils locaux et ajuste seulement les defaults ; les blocs agents exemples restent dans la config pour faciliter l'edition.
 - Les adapters exposent un contrat (`capabilities` et `guarantees`) pour documenter timeout, sortie vide, stderr, exit code, model override, filesystem et streaming.
 - `--files` est explicite et strict ; `--context` scanne des dossiers texte de facon bornee et best-effort.
 - `--show-prompt` affiche le prompt exact du premier tour seulement. Les tours suivants dependent du transcript reel.
