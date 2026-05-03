@@ -41,7 +41,10 @@ src/renderers/console.ts  Rendu console pretty/plain
 src/adapters/index.ts     Factory d'adapters
 src/adapters/cli.ts       Adapter CLI minimal
 src/adapters/ollama.ts    Adapter Ollama HTTP
-docs/                     Specifications produit
+docs/roadmap.md           Roadmap projet maintenue
+docs/notes.md             Notes personnelles du mainteneur
+docs/guide/               Guides utilisateur
+docs/archive/             Documents historiques
 ```
 
 ## Concepts
@@ -345,6 +348,33 @@ Combinaisons validees localement :
 - rendu console pretty et `--plain`
 
 Ces tests ont confirme que le mode batch est deja exploitable avant l'adapter PTY.
+
+## Documentation
+
+La documentation doit rester a jour dans le meme changement que le code. Avant de finaliser une modification, verifier les fichiers concernes :
+
+- `README.md` pour l'etat du MVP, les commandes principales, les limites connues et les liens de documentation.
+- `AGENTS.md` pour les decisions d'architecture, les workflows contributeur et les consignes de maintenance.
+- `docs/guide/*.md` pour les guides utilisateur.
+- `docs/roadmap.md` pour les travaux faits, en cours et prevus.
+
+`docs/notes.md` est reserve aux idees personnelles du mainteneur. Ne pas l'utiliser comme roadmap projet.
+
+Les documents obsoletes ou historiques doivent etre deplaces dans `docs/archive/` plutot que supprimes brutalement quand ils gardent une valeur de contexte.
+
+## JSDoc
+
+Mettre en place et maintenir des JSDoc sur les API internes qui servent de contrat entre modules :
+
+- types et interfaces exportes dans `src/types.ts` ;
+- fonctions d'orchestration ;
+- adapters ;
+- chargement de config ;
+- discovery ;
+- gestion du contexte ;
+- update.
+
+Les commentaires doivent expliquer le contrat, les invariants et les limites utiles. Eviter les commentaires qui paraphrasent simplement le code.
 
 ## Style de contribution
 
