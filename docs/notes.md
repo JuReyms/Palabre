@@ -14,8 +14,11 @@ Ce fichier est reserve aux idees personnelles du mainteneur.
 
 ## Observation  
 
+### Context et files
 - Verifier si JSDOC est bon sur les fichiers modifié.
 
+
+### Erreur de limite d'utilisation de Codex
 - Quand notre session codex a atteint sa limite, le message d'erreur n'est pas  clair. Exemple :
 
 ```
@@ -63,3 +66,14 @@ ERROR: You've hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/
 Suggestion: Lis stderr ci-dessus, puis ajuste args, permissions, modele ou authentification de la CLI.
 
 ```
+
+Il faudrait aussi verifier pour gemini et claude.
+
+
+### Commande de lancement
+- Pour lancer un débat, c'est domage de devoir spécifier la commande ``--preset`` et ``--topic``.
+Exemple : 
+`` chicane --preset claude-gemini --topic "quel jour sommes nous ?" --turns 4`` 
+
+Si on peut simplifier : 
+`` chicane claude-gemini "quel jour sommes nous ?" --t 4``
