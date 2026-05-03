@@ -16,6 +16,7 @@ Le projet contient un premier MVP technique :
 - Injection explicite de fichiers texte via `--files`.
 - Selection bornee de contexte projet via `--context`.
 - Rendu console pretty, avec fallback `--plain`.
+- Etat vivant pendant qu'un agent genere sa reponse.
 - Export `.debate.md`.
 
 Le preset CLI actuel vise les modes non interactifs : `codex exec` et `claude --print`. Le prochain gros chantier reste l'adapter PTY robuste pour les vraies sessions interactives.
@@ -154,7 +155,7 @@ pnpm start -- run --preset codex-claude --topic "Critique le MVP" --summary-agen
 pnpm start -- run --preset codex-claude --topic "Critique le MVP" --no-summary
 ```
 
-Le rendu console est un premier TUI leger : en-tete, separateurs, tours et synthese lisibles. Pour revenir au rendu brut :
+Le rendu console est un premier TUI leger : en-tete, separateurs, tours, synthese lisible et etat "agent en cours" pendant les generations longues. Pour revenir au rendu brut :
 
 ```bash
 pnpm start -- run --preset codex-claude --topic "Critique le MVP" --plain
@@ -229,6 +230,7 @@ Tests effectues sur Windows :
 - `--show-prompt` avec `--files` : OK.
 - `--show-prompt` avec `--context docs` : OK.
 - `init` avec detection locale des agents : OK.
+- etat "agent en cours" pendant les generations : OK.
 - synthese finale avec agent B : OK.
 - `--no-summary` : OK.
 - rendu console pretty et `--plain` : OK.
@@ -253,7 +255,7 @@ Reglages importants observes :
 - L'adapter Ollama decharge les autres modeles charges via `/api/ps` puis `keep_alive: 0` quand `unloadOtherModels` est actif.
 - Chicane affiche un warning si Ollama participe sans contexte fourni, car Ollama ne lit pas le filesystem.
 - La synthese finale est activee par defaut et utilise l'agent B, sauf `--summary-agent` ou `--no-summary`.
-- Le rendu console pretty est volontairement leger. Le split-view, le scrolling interactif et l'input humain arriveront avec le vrai TUI.
+- Le rendu console pretty est volontairement leger. Il affiche deja l'agent en cours, mais le split-view, le scrolling interactif et l'input humain arriveront avec le vrai TUI.
 - Une sortie CLI vide est consideree comme une erreur, sauf si `allowEmptyOutput` est active explicitement.
 - `idleTimeoutMs` doit etre utilise avec prudence : les CLIs IA peuvent rester silencieuses pendant la generation.
 - Les CLIs interactives auront besoin d'un vrai PTY, probablement via `node-pty`.

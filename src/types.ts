@@ -149,6 +149,8 @@ export interface DebateRenderer {
   start(options: DebateOptions): void;
   warning(message: string): void;
   turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void;
+  thinkingStart(agent: string, role: AgentRole): void;
+  thinkingEnd(): void;
   message(content: string): void;
   summaryStart(agent: string, role: AgentRole): void;
   done(outputPath: string): void;

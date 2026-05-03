@@ -1,13 +1,21 @@
 import type { AgentRole, DebateOptions, DebateRenderer } from "../types.js";
 
 const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
+const supportsInteractiveOutput = Boolean(process.stdout.isTTY);
 
 export function createConsoleRenderer(plain: boolean): DebateRenderer {
-  return plain ? new PlainConsoleRenderer() : new PrettyConsoleRenderer(supportsColor);
+  return plain ? new PlainConsoleRenderer() : new PrettyConsoleRenderer(supportsColor, supportsInteractiveOutput);
 }
 
 class PrettyConsoleRenderer implements DebateRenderer {
-  constructor(private readonly color: boolean) {}
+  private spinner?: ReturnType<typeof setInterval>;
+  private spinnerFrame = 0;
+  private readonly frames = ["-", "\\", "|", "/"];
+
+  constructor(
+    private readonly color: boolean,
+    private readonly interactive: boolean
+  ) {}
 
   start(options: DebateOptions): void {
     const title = "Chicane";
@@ -33,6 +41,37 @@ class PrettyConsoleRenderer implements DebateRenderer {
       this.dim("─".repeat(60)),
       ""
     ].join("\n"));
+  }
+
+  thinkingStart(agent: string, role: AgentRole): void {
+    this.thinkingEnd();
+
+    const text = `${agent} (${role}) reflechit`;
+
+    if (!this.interactive) {
+      process.stdout.write(`${this.dim(`${text}...`)}\n`);
+      return;
+    }
+
+    const render = () => {
+      const frame = this.frames[this.spinnerFrame % this.frames.length];
+      this.spinnerFrame += 1;
+      process.stdout.write(`\r${this.c("cyan", frame)} ${this.dim(`${text}...`)}`);
+    };
+
+    render();
+    this.spinner = setInterval(render, 120);
+  }
+
+  thinkingEnd(): void {
+    if (this.spinner) {
+      clearInterval(this.spinner);
+      this.spinner = undefined;
+    }
+
+    if (this.interactive) {
+      process.stdout.write("\r\u001b[2K");
+    }
   }
 
   message(content: string): void {
@@ -73,6 +112,10 @@ class PlainConsoleRenderer implements DebateRenderer {
   turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void {
     process.stdout.write(`\n[${turn}/${totalTurns}] ${agent} (${role})...\n`);
   }
+
+  thinkingStart(_agent: string, _role: AgentRole): void {}
+
+  thinkingEnd(): void {}
 
   message(content: string): void {
     process.stdout.write(`${content.trim()}\n`);

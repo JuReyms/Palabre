@@ -289,6 +289,7 @@ Si une CLI utilise un nom d'option different, ajouter `modelArg` dans la config 
 
 - `PrettyConsoleRenderer` : en-tete, separateurs, tours, synthese, couleurs ANSI si TTY.
 - `PlainConsoleRenderer` : rendu historique compatible logs.
+- Etat "agent en cours" pendant les appels longs en rendu pretty.
 
 Le flag `--plain` force le rendu simple. `NO_COLOR` desactive les couleurs sans changer la structure.
 
@@ -318,6 +319,7 @@ Combinaisons validees localement :
 - `--show-prompt` avec `--files`
 - `--show-prompt` avec `--context docs`
 - `init` dans un dossier temporaire pour verifier la detection locale
+- etat "agent en cours" en rendu pretty
 - synthese finale avec agent B
 - `--no-summary`
 - erreurs adapter `empty-output`, `non-zero-exit`, `model-unavailable`

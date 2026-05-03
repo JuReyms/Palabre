@@ -43,6 +43,7 @@ export async function runDebate(
     const turn = index + 1;
 
     renderer?.turnStart(turn, options.turns, current.name, current.role);
+    renderer?.thinkingStart(current.name, current.role);
 
     const response = await current.generate({
       topic: options.topic,
@@ -51,7 +52,7 @@ export async function runDebate(
       peerName: peer.name,
       files: options.files,
       transcript: messages
-    });
+    }).finally(() => renderer?.thinkingEnd());
 
     const message: DebateMessage = {
       agent: current.name,
@@ -115,6 +116,7 @@ async function generateSummary(
   const summaryAgent = createAgent(summaryAgentName, summaryConfig);
 
   renderer?.summaryStart(summaryAgent.name, summaryAgent.role);
+  renderer?.thinkingStart(summaryAgent.name, summaryAgent.role);
 
   const response = await summaryAgent.generate({
     topic: options.topic,
@@ -124,7 +126,7 @@ async function generateSummary(
     mode: "summary",
     files: options.files,
     transcript: messages
-  });
+  }).finally(() => renderer?.thinkingEnd());
 
   const summary: DebateSummary = {
     agent: summaryAgent.name,

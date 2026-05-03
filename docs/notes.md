@@ -31,7 +31,8 @@
 Statut :
 
 - Fait : detection locale pendant `init`, resume des outils et defaults adaptes quand une paire est detectee.
-- Prochaine etape P0 : afficher un spinner ou un etat vivant pendant qu'un agent repond.
+- Fait : etat vivant pendant qu'un agent repond en rendu pretty.
+- Prochaine etape P0 : tester l'installation globale via `pnpm link --global`.
 
 ### P1 - Transparence pendant les debats
 
