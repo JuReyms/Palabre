@@ -9,7 +9,7 @@ export const exampleConfig: ChicaneConfig = {
   outputDir: ".",
   defaults: {
     agentA: "codex",
-    agentB: "ollama-local",
+    agentB: "claude",
     turns: 4
   },
   agents: {

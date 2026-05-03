@@ -1,5 +1,11 @@
 # Notes sur Chicane
 
+## Retours de test
+
+- Transcript observe : `chicane-2026-05-03T21-22-47-903Z.debate.md`.
+- Decision produit : le defaut doit favoriser `codex <-> claude`; Ollama reste disponible via presets et configuration pour les power users.
+- Verification demandee : garder la documentation a jour avec les comportements reels du CLI.
+
 ## 1. A faire
 
 - Detecter si les IA sont déja installé (Gemini, Claude et Codex) lors de l'init.
@@ -27,12 +33,14 @@
 - Afficher un resume clair des outils detectes et manquants.
 - Generer une config dont les defaults utilisent une paire detectee quand c'est possible.
 - Afficher un etat "agent en cours" pendant les appels longs, avant le vrai TUI.
+- Fournir `chicane update` pour rester a jour sans memoriser les commandes pnpm/git.
 
 Statut :
 
 - Fait : detection locale pendant `init`, resume des outils et defaults adaptes quand une paire est detectee.
 - Fait : etat vivant pendant qu'un agent repond en rendu pretty.
-- Prochaine etape P0 : tester l'installation globale via `pnpm link --global`.
+- Fait : installation globale via `pnpm link --global`.
+- Fait : `chicane update` en mode instructions, avec `--apply` pour les checkouts git.
 
 ### P1 - Transparence pendant les debats
 

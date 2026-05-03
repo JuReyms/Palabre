@@ -11,7 +11,7 @@ La configuration de Chicane se fait dans `chicane.config.json` à la racine de t
   "outputDir": ".",
   "defaults": {
     "agentA": "codex",
-    "agentB": "ollama-local",
+    "agentB": "claude",
     "turns": 4
   },
   "agents": { }

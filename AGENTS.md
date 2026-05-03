@@ -128,6 +128,23 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 
 La config generee conserve les blocs agents connus pour rester editable, mais ajuste `defaults.agentA` et `defaults.agentB` avec une paire detectee quand c'est possible. Si aucune paire fiable n'est detectee, les defaults d'exemple restent en place.
 
+Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` quand disponible. Ollama reste configure et accessible via presets, mais il est plutot destine aux power users ou aux roles locaux (`critic`, `scout`, `summarizer`).
+
+## Update
+
+`chicane update` affiche les etapes de mise a jour adaptees au mode d'installation.
+
+Depuis un checkout git, `chicane update --apply` execute :
+
+```bash
+git pull --ff-only
+pnpm install
+pnpm build
+pnpm link --global
+```
+
+Pour une installation package, la commande affiche les commandes `pnpm add --global chicane@latest` ou `npm install --global chicane@latest`. Garder ce mode explicite : une mise a jour peut toucher le reseau, le store global pnpm et le lien global.
+
 ## Adapter CLI actuel
 
 `src/adapters/cli.ts` est volontairement minimal. Il sert d'abord les modes batch des CLIs :
@@ -319,6 +336,7 @@ Combinaisons validees localement :
 - `--show-prompt` avec `--files`
 - `--show-prompt` avec `--context docs`
 - `init` dans un dossier temporaire pour verifier la detection locale
+- `update` en mode instructions
 - etat "agent en cours" en rendu pretty
 - synthese finale avec agent B
 - `--no-summary`

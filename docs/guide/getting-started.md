@@ -55,6 +55,18 @@ chicane --version
 
 Tu peux ensuite lancer `chicane` depuis un autre projet.
 
+Pour afficher les etapes de mise a jour :
+
+```bash
+chicane update
+```
+
+Si Chicane est installe depuis ce repo git, tu peux aussi appliquer la mise a jour :
+
+```bash
+chicane update --apply
+```
+
 ## Vérifier l'installation
 
 ```bash

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, loadConfig, writeExampleConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
 import { discoverLocalTools } from "./discovery.js";
@@ -10,6 +11,7 @@ import { listPresetNames, resolvePreset } from "./presets.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
+import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./update.js";
 import type { DebateOptions } from "./types.js";
 
 interface ParsedArgs {
@@ -27,6 +29,19 @@ async function main(): Promise<void> {
 
   if (parsed.command === "help" || parsed.flags.help) {
     printHelp();
+    return;
+  }
+
+  if (parsed.command === "update") {
+    const info = await getUpdateInfo(await getPackageVersion());
+
+    if (parsed.flags.apply) {
+      await applySourceUpdate(info);
+      console.log("Chicane est a jour.");
+      return;
+    }
+
+    console.log(formatUpdateInstructions(info));
     return;
   }
 
@@ -68,7 +83,7 @@ async function main(): Promise<void> {
   const options: DebateOptions = {
     topic,
     agentA: String(parsed.flags["agent-a"] ?? preset?.agentA ?? config.defaults?.agentA ?? "codex"),
-    agentB: String(parsed.flags["agent-b"] ?? preset?.agentB ?? config.defaults?.agentB ?? "ollama-local"),
+    agentB: String(parsed.flags["agent-b"] ?? preset?.agentB ?? config.defaults?.agentB ?? "claude"),
     turns: Number(parsed.flags.turns ?? config.defaults?.turns ?? 4),
     files: context.files,
     modelA: optionalString(parsed.flags["model-a"]),
@@ -178,7 +193,7 @@ function parseArgs(args: string[]): ParsedArgs {
 }
 
 async function getPackageVersion(): Promise<string> {
-  const packageJsonPath = path.resolve("package.json");
+  const packageJsonPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "package.json");
   const raw = await readFile(packageJsonPath, "utf8");
   const packageJson = JSON.parse(raw) as { version?: string };
 
@@ -240,7 +255,8 @@ Chicane
 
 Commandes:
   chicane init
-  chicane run --topic "Sujet" [--agent-a codex] [--agent-b ollama-local] [--turns 4]
+  chicane update [--apply]
+  chicane run --topic "Sujet" [--agent-a codex] [--agent-b claude] [--turns 4]
   chicane help
   chicane version
 
@@ -263,6 +279,7 @@ Options:
   --context <paths...> Scanne fichiers/dossiers texte en respectant les limites de contexte
   --show-prompt        Affiche le prompt du premier tour sans appeler d'agent
   --plain              Utilise le rendu console simple sans habillage TUI
+  --apply              Execute les etapes de chicane update pour un checkout git
 `);
 }
 

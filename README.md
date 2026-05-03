@@ -50,7 +50,7 @@ Extrait de configuration :
 {
   "defaults": {
     "agentA": "codex",
-    "agentB": "ollama-local",
+    "agentB": "claude",
     "turns": 4
   },
   "agents": {
@@ -100,7 +100,7 @@ Ollama est pense par defaut comme `critic`, `scout` ou `summarizer`, car les mac
 ## Lancer un debat
 
 ```bash
-pnpm start -- run --topic "Refacto de l'auth Nuxt" --agent-a codex --agent-b ollama-local --turns 4
+pnpm start -- run --topic "Refacto de l'auth Nuxt" --agent-a codex --agent-b claude --turns 4
 ```
 
 Autres exemples :
@@ -146,6 +146,15 @@ Pour inspecter le prompt du premier tour sans appeler d'agent :
 ```bash
 pnpm start -- run --preset codex-claude --topic "Preview" --context src docs --show-prompt
 ```
+
+Pour mettre a jour une installation locale :
+
+```bash
+chicane update
+chicane update --apply
+```
+
+`chicane update` affiche les etapes adaptees. `--apply` les execute seulement si Chicane est installe depuis un checkout git.
 
 Par defaut, Chicane produit une synthese finale avec l'agent B. Tu peux choisir un autre agent, un modele specifique, ou desactiver la synthese :
 
@@ -230,6 +239,7 @@ Tests effectues sur Windows :
 - `--show-prompt` avec `--files` : OK.
 - `--show-prompt` avec `--context docs` : OK.
 - `init` avec detection locale des agents : OK.
+- `update` en mode instructions : OK.
 - etat "agent en cours" pendant les generations : OK.
 - synthese finale avec agent B : OK.
 - `--no-summary` : OK.
