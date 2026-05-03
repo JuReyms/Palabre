@@ -90,9 +90,43 @@ export interface AgentResponse {
   raw?: string;
 }
 
+export interface AdapterCapabilities {
+  mode: "batch" | "http" | "pty";
+  supportsModelOverride: boolean;
+  supportsFilesystemAccess: boolean;
+  supportsStreaming: boolean;
+  supportsProcessExitCode: boolean;
+  supportsStderr: boolean;
+}
+
+export interface AdapterContract {
+  name: string;
+  kind: AgentConfig["type"];
+  capabilities: AdapterCapabilities;
+  guarantees: {
+    rejectsEmptyOutput: boolean;
+    rejectsNonZeroExit: boolean;
+    rejectsTimeout: boolean;
+    returnsRawOutput: boolean;
+  };
+}
+
+export type AdapterFailureKind =
+  | "command-not-found"
+  | "spawn-failed"
+  | "timeout"
+  | "idle-timeout"
+  | "empty-output"
+  | "non-zero-exit"
+  | "model-unavailable"
+  | "model-pull-failed"
+  | "http-error"
+  | "unknown";
+
 export interface AgentAdapter {
   name: string;
   role: AgentRole;
+  contract: AdapterContract;
   generate(prompt: AgentPrompt): Promise<AgentResponse>;
 }
 

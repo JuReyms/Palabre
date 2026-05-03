@@ -15,6 +15,7 @@ Un outil "meta-CLI" qui permet de faire débattre deux intelligences artificiell
     * `cli-pty` pour Claude CLI, Codex CLI ou tout autre outil interactif installé localement.
     * `ollama` pour les modèles locaux exposés par l'API HTTP locale d'Ollama.
     * `api` plus tard si l'utilisateur veut connecter des APIs directes.
+* **Contrat adapter :** Chaque adapter expose ses capacités (`batch`, `http`, `pty`, model override, filesystem, streaming, stderr, exit code) et ses garanties (timeout, sortie vide, exit code non nul, raw output). Les erreurs connues sont classées avec un type stable afin que la TUI ou l'extension VS Code puissent afficher des messages actionnables.
 * **Moteur d'orchestration :** Un script qui gère le tour de rôle (Ping-Pong).
     1. Récupère la sortie de l'IA A.
     2. Nettoie le texte (suppression des artefacts CLI).
@@ -108,6 +109,8 @@ chicane run --preset codex-claude --topic "Critique le MVP" --no-summary
 ### Contexte projet
 
 Chicane doit distinguer le workspace courant et le contexte explicitement injecté. Les agents CLI sont lancés depuis le dossier courant et peuvent éventuellement inspecter le workspace selon leurs propres capacités et permissions. Ollama, en revanche, ne lit pas le filesystem : il ne reçoit que le sujet, les instructions, les rôles, les fichiers explicitement passés et l'historique textuel transmis par Chicane.
+
+Si un agent Ollama participe sans fichiers passés via `--files`, Chicane doit afficher un warning visible pour éviter que l'utilisateur pense qu'Ollama inspecte le projet.
 
 Le support explicite minimal est `--files`, qui injecte une sélection contrôlée de fichiers texte dans le prompt de tous les agents :
 

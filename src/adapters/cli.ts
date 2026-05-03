@@ -1,15 +1,35 @@
 import { spawn } from "node:child_process";
+import { AdapterError } from "../errors.js";
 import { formatAgentPrompt } from "../prompt.js";
-import type { AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
+import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
 
 export class CliAdapter implements AgentAdapter {
   readonly role;
+  readonly contract: AdapterContract;
 
   constructor(
     readonly name: string,
     private readonly config: CliAgentConfig
   ) {
     this.role = config.role;
+    this.contract = {
+      name,
+      kind: "cli",
+      capabilities: {
+        mode: "batch",
+        supportsModelOverride: true,
+        supportsFilesystemAccess: true,
+        supportsStreaming: false,
+        supportsProcessExitCode: true,
+        supportsStderr: true
+      },
+      guarantees: {
+        rejectsEmptyOutput: !config.allowEmptyOutput,
+        rejectsNonZeroExit: true,
+        rejectsTimeout: true,
+        returnsRawOutput: true
+      }
+    };
   }
 
   async generate(prompt: AgentPrompt): Promise<AgentResponse> {
@@ -47,7 +67,9 @@ export class CliAdapter implements AgentAdapter {
 
         if (!content && !this.config.allowEmptyOutput) {
           const detail = stderr.trim() ? ` Stderr: ${stderr.trim()}` : "";
-          reject(new Error(`${this.name} produced empty output.${detail}`));
+          reject(new AdapterError("empty-output", this.name, `${this.name} produced empty output.${detail}`, {
+            stderr: stderr.trim()
+          }));
           return;
         }
 
@@ -59,7 +81,9 @@ export class CliAdapter implements AgentAdapter {
 
       hardTimer = setTimeout(() => {
         child.kill();
-        finish(new Error(`${this.name} timed out after ${this.config.timeoutMs ?? 180_000}ms`));
+        finish(new AdapterError("timeout", this.name, `${this.name} timed out after ${this.config.timeoutMs ?? 180_000}ms`, {
+          timeoutMs: this.config.timeoutMs ?? 180_000
+        }));
       }, this.config.timeoutMs ?? 180_000);
 
       const bumpIdleTimer = () => {
@@ -67,7 +91,12 @@ export class CliAdapter implements AgentAdapter {
         if (idleTimer) clearTimeout(idleTimer);
         idleTimer = setTimeout(() => {
           child.kill();
-          finish();
+          finish(new AdapterError(
+            "idle-timeout",
+            this.name,
+            `${this.name} stopped producing output for ${this.config.idleTimeoutMs}ms`,
+            { idleTimeoutMs: this.config.idleTimeoutMs }
+          ));
         }, this.config.idleTimeoutMs);
       };
 
@@ -83,10 +112,19 @@ export class CliAdapter implements AgentAdapter {
         bumpIdleTimer();
       });
 
-      child.on("error", finish);
+      child.on("error", (error: NodeJS.ErrnoException) => {
+        const kind = error.code === "ENOENT" ? "command-not-found" : "spawn-failed";
+        finish(new AdapterError(kind, this.name, `${this.name} failed to start command "${this.config.command}": ${error.message}`, {
+          code: error.code,
+          command: this.config.command
+        }));
+      });
       child.on("close", (code) => {
         if (code && code !== 0 && !stdout.trim()) {
-          finish(new Error(`${this.name} exited with code ${code}: ${stderr.trim()}`));
+          finish(new AdapterError("non-zero-exit", this.name, `${this.name} exited with code ${code}: ${stderr.trim()}`, {
+            exitCode: code,
+            stderr: stderr.trim()
+          }));
           return;
         }
 

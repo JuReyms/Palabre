@@ -208,12 +208,14 @@ Reglages importants observes :
 ## Limites connues
 
 - L'adapter CLI actuel est volontairement minimal. Il marche mieux avec des commandes non interactives ou des CLIs qui acceptent un prompt via `stdin`.
+- Les adapters exposent un contrat (`capabilities` et `guarantees`) pour documenter timeout, sortie vide, stderr, exit code, model override, filesystem et streaming.
 - `--files` est explicite et borne ; il n'y a pas encore de selection automatique de contexte projet.
 - `--show-prompt` affiche le prompt exact du premier tour seulement. Les tours suivants dependent du transcript reel.
 - `--model-a` et `--model-b` transmettent une string brute aux adapters ; Chicane ne maintient pas de catalogue de modeles.
 - L'adapter Ollama detecte les modeles installes via `/api/tags` quand `validateModel` est actif.
 - L'adapter Ollama peut telecharger un modele manquant via `/api/pull` seulement si `--pull-models` ou `autoPullModel` est actif.
 - L'adapter Ollama decharge les autres modeles charges via `/api/ps` puis `keep_alive: 0` quand `unloadOtherModels` est actif.
+- Chicane affiche un warning si Ollama participe sans `--files`, car Ollama ne lit pas le filesystem.
 - La synthese finale est activee par defaut et utilise l'agent B, sauf `--summary-agent` ou `--no-summary`.
 - Une sortie CLI vide est consideree comme une erreur, sauf si `allowEmptyOutput` est active explicitement.
 - `idleTimeoutMs` doit etre utilise avec prudence : les CLIs IA peuvent rester silencieuses pendant la generation.

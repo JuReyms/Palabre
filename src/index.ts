@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { configExists, DEFAULT_CONFIG_PATH, loadConfig, writeExampleConfig } from "./config.js";
 import { loadProjectFiles } from "./context.js";
+import { AdapterError, formatAdapterError } from "./errors.js";
 import { formatAgentPrompt } from "./prompt.js";
 import { listPresetNames, resolvePreset } from "./presets.js";
 import { runDebate } from "./orchestrator.js";
@@ -215,7 +216,9 @@ Options:
 }
 
 main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = error instanceof AdapterError
+    ? formatAdapterError(error)
+    : error instanceof Error ? error.message : String(error);
   console.error(`Erreur: ${message}`);
   process.exitCode = 1;
 });

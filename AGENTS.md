@@ -70,6 +70,13 @@ Types envisages :
 - `cli-pty` : adapter robuste pour les CLIs interactives.
 - `api` : adapter HTTP direct pour les utilisateurs qui veulent connecter une API payante.
 
+Chaque adapter expose aussi un `contract` :
+
+- `capabilities` : mode (`batch`, `http`, `pty`), support du model override, acces filesystem, streaming, exit code, stderr.
+- `guarantees` : rejet des sorties vides, des timeouts, des exit codes non nuls, retour du raw output.
+
+L'orchestrateur doit s'appuyer sur ce contrat plutot que sur des exceptions implicites par adapter. Les erreurs connues doivent utiliser `AdapterError` avec un `kind` stable.
+
 ### Preset
 
 Un preset choisit une paire d'agents. Il ne choisit pas les modeles :
@@ -129,6 +136,15 @@ Il supporte :
 
 `idleTimeoutMs` doit rester optionnel pour les CLIs IA en mode batch. Certains modeles peuvent rester silencieux longtemps avant d'ecrire leur reponse ; dans ce cas, le timeout dur `timeoutMs` est le garde-fou principal.
 
+Erreurs connues classees :
+
+- `command-not-found`
+- `spawn-failed`
+- `timeout`
+- `idle-timeout`
+- `empty-output`
+- `non-zero-exit`
+
 Il ne supporte pas encore :
 
 - sessions interactives persistantes ;
@@ -159,6 +175,13 @@ Options Ollama supportees :
 - `keepAlive` : transmis a Ollama sous forme `keep_alive`.
 
 Par defaut local, preferer un modele leger comme `nemotron-3-nano:4b` pour les tests. Eviter les gros modeles dans les tests automatises ou repetes.
+
+Erreurs connues classees :
+
+- `model-unavailable`
+- `model-pull-failed`
+- `http-error`
+- `empty-output`
 
 ## Orchestration
 
@@ -199,6 +222,7 @@ Important :
 - Ce comportement appartient aux CLIs externes, pas au contrat Chicane.
 - L'adapter `ollama` ne lit jamais le filesystem directement. Il ne voit que le prompt, les fichiers passes par `--files` et le transcript fournis par Chicane.
 - Si aucun fichier n'est passe a `--files`, Ollama ne voit pas le contenu du projet.
+- L'orchestrateur affiche un warning visible quand un agent Ollama participe sans fichiers explicites.
 
 Limites `--files` actuelles :
 
@@ -255,6 +279,8 @@ Combinaisons validees localement :
 - `--show-prompt` avec `--files`
 - synthese finale avec agent B
 - `--no-summary`
+- erreurs adapter `empty-output`, `non-zero-exit`, `model-unavailable`
+- warning Ollama sans `--files`
 
 Ces tests ont confirme que le mode batch est deja exploitable avant l'adapter PTY.
 

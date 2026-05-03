@@ -19,6 +19,11 @@ export async function runDebate(config: ChicaneConfig, options: DebateOptions): 
     throw new Error(`Agent inconnu: ${options.agentB}`);
   }
 
+  warnIfOllamaHasNoExplicitFiles(options, [
+    [options.agentA, agentAConfig],
+    [options.agentB, agentBConfig]
+  ]);
+
   const agents = [
     createAgent(options.agentA, agentAConfig),
     createAgent(options.agentB, agentBConfig)
@@ -62,6 +67,26 @@ export async function runDebate(config: ChicaneConfig, options: DebateOptions): 
     messages,
     summary
   };
+}
+
+function warnIfOllamaHasNoExplicitFiles(options: DebateOptions, agents: Array<[string, AgentConfig]>): void {
+  if (options.files.length > 0) {
+    return;
+  }
+
+  const ollamaAgents = agents
+    .filter(([, config]) => config.type === "ollama")
+    .map(([name]) => name)
+    .filter((name, index, names) => names.indexOf(name) === index);
+
+  if (ollamaAgents.length === 0) {
+    return;
+  }
+
+  process.stderr.write(
+    `Warning: ${ollamaAgents.join(", ")} ne lit pas le filesystem. ` +
+    "Ajoute --files pour fournir un contexte projet explicite.\n"
+  );
 }
 
 async function generateSummary(

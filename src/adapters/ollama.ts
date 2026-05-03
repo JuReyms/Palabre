@@ -1,5 +1,6 @@
+import { AdapterError } from "../errors.js";
 import { formatAgentPrompt } from "../prompt.js";
-import type { AgentAdapter, AgentPrompt, AgentResponse, OllamaAgentConfig } from "../types.js";
+import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, OllamaAgentConfig } from "../types.js";
 
 interface OllamaChatResponse {
   message?: {
@@ -29,12 +30,31 @@ interface OllamaPullResponse {
 
 export class OllamaAdapter implements AgentAdapter {
   readonly role;
+  readonly contract: AdapterContract;
 
   constructor(
     readonly name: string,
     private readonly config: OllamaAgentConfig
   ) {
     this.role = config.role;
+    this.contract = {
+      name,
+      kind: "ollama",
+      capabilities: {
+        mode: "http",
+        supportsModelOverride: true,
+        supportsFilesystemAccess: false,
+        supportsStreaming: false,
+        supportsProcessExitCode: false,
+        supportsStderr: false
+      },
+      guarantees: {
+        rejectsEmptyOutput: true,
+        rejectsNonZeroExit: false,
+        rejectsTimeout: true,
+        returnsRawOutput: false
+      }
+    };
   }
 
   async generate(prompt: AgentPrompt): Promise<AgentResponse> {
@@ -83,13 +103,15 @@ export class OllamaAdapter implements AgentAdapter {
       const data = (await response.json()) as OllamaChatResponse;
 
       if (!response.ok || data.error) {
-        throw new Error(data.error ?? `Ollama HTTP ${response.status}`);
+        throw new AdapterError("http-error", this.name, data.error ?? `Ollama HTTP ${response.status}`, {
+          status: response.status
+        });
       }
 
       const content = data.message?.content?.trim() ?? "";
 
       if (!content) {
-        throw new Error(`${this.name} produced empty output.`);
+        throw new AdapterError("empty-output", this.name, `${this.name} produced empty output.`);
       }
 
       return {
@@ -109,9 +131,12 @@ export class OllamaAdapter implements AgentAdapter {
 
     if (!this.config.autoPullModel) {
       const models = await this.listAvailableModels(baseUrl);
-      throw new Error(
+      throw new AdapterError(
+        "model-unavailable",
+        this.name,
         `Modele Ollama indisponible: ${this.config.model}. Modeles detectes: ${models.join(", ") || "aucun"}. ` +
-        "Utilise --pull-models ou autoPullModel: true pour autoriser le telechargement."
+        "Utilise --pull-models ou autoPullModel: true pour autoriser le telechargement.",
+        { model: this.config.model, availableModels: models }
       );
     }
 
@@ -119,7 +144,7 @@ export class OllamaAdapter implements AgentAdapter {
     await this.pullModel(baseUrl);
 
     if (!(await this.isModelAvailable(baseUrl))) {
-      throw new Error(`Le modele Ollama ${this.config.model} reste indisponible apres telechargement.`);
+      throw new AdapterError("model-pull-failed", this.name, `Le modele Ollama ${this.config.model} reste indisponible apres telechargement.`);
     }
   }
 
@@ -143,7 +168,9 @@ export class OllamaAdapter implements AgentAdapter {
     const response = await fetch(`${baseUrl}/api/tags`, { signal });
 
     if (!response.ok) {
-      throw new Error(`Ollama HTTP ${response.status} pendant la detection des modeles`);
+      throw new AdapterError("http-error", this.name, `Ollama HTTP ${response.status} pendant la detection des modeles`, {
+        status: response.status
+      });
     }
 
     const data = (await response.json()) as OllamaTagsResponse;
@@ -172,11 +199,13 @@ export class OllamaAdapter implements AgentAdapter {
       const data = (await response.json()) as OllamaPullResponse;
 
       if (!response.ok || data.error) {
-        throw new Error(data.error ?? `Ollama HTTP ${response.status}`);
+        throw new AdapterError("model-pull-failed", this.name, data.error ?? `Ollama HTTP ${response.status}`, {
+          status: response.status
+        });
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Echec du telechargement Ollama ${this.config.model}: ${message}`);
+      throw new AdapterError("model-pull-failed", this.name, `Echec du telechargement Ollama ${this.config.model}: ${message}`);
     } finally {
       clearTimeout(timeout);
     }
@@ -197,7 +226,9 @@ export class OllamaAdapter implements AgentAdapter {
     const response = await fetch(`${baseUrl}/api/ps`, { signal });
 
     if (!response.ok) {
-      throw new Error(`Ollama HTTP ${response.status} pendant la detection des modeles charges`);
+      throw new AdapterError("http-error", this.name, `Ollama HTTP ${response.status} pendant la detection des modeles charges`, {
+        status: response.status
+      });
     }
 
     const data = (await response.json()) as OllamaRunningModelsResponse;
@@ -226,7 +257,10 @@ async function unloadModel(baseUrl: string, model: string, signal: AbortSignal):
   });
 
   if (!response.ok) {
-    throw new Error(`Impossible de decharger le modele Ollama ${model}: HTTP ${response.status}`);
+    throw new AdapterError("http-error", "ollama", `Impossible de decharger le modele Ollama ${model}: HTTP ${response.status}`, {
+      status: response.status,
+      model
+    });
   }
 }
 
