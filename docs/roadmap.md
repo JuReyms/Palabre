@@ -15,8 +15,10 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Dechargement des autres modeles Ollama via `/api/ps` et `keep_alive: 0`.
 - Contexte explicite via `--files`.
 - Contexte projet borne via `--context`.
+- Contexte de session explicite dans les prompts : date locale, fuseau horaire, dossier courant et debut de session.
 - Preview de prompt via `--show-prompt`.
 - Synthese finale configurable via `--summary-agent`, `--summary-model` et `--no-summary`.
+- Arret anticipe sur accord clair, desactivable avec `--no-early-stop`.
 - Rendu console pretty/plain avec etat "agent en cours".
 - Export `.debate.md`.
 - Installation globale locale testee avec `pnpm link --global`.

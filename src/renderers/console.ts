@@ -34,6 +34,10 @@ class PrettyConsoleRenderer implements DebateRenderer {
     process.stderr.write(`${this.c("yellow", "Warning:")} ${message}\n`);
   }
 
+  notice(message: string): void {
+    process.stdout.write(`${this.c("green", "Info:")} ${message}\n`);
+  }
+
   turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void {
     process.stdout.write([
       "",
@@ -107,6 +111,10 @@ class PlainConsoleRenderer implements DebateRenderer {
 
   warning(message: string): void {
     process.stderr.write(`Warning: ${message}\n`);
+  }
+
+  notice(message: string): void {
+    process.stdout.write(`Info: ${message}\n`);
   }
 
   turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void {

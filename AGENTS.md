@@ -225,7 +225,8 @@ Le moteur actuel alterne simplement entre deux agents pendant `turns` tours :
 2. Appel de l'agent courant.
 3. Ajout du message au transcript.
 4. Passage a l'autre agent.
-5. Export Markdown final.
+5. Arret anticipe optionnel si un accord clair est detecte apres un tour complet.
+6. Export Markdown final.
 
 Les futures evolutions possibles :
 
@@ -233,6 +234,12 @@ Les futures evolutions possibles :
 - criteres d'arret ;
 - modes a trois agents ;
 - budgets de tours par role.
+
+### Arret anticipe
+
+Par defaut, `--turns` est une limite haute. `runDebate` peut arreter le debat apres un tour complet quand le dernier message contient un signal d'accord explicite, par exemple `accord complet`, `aucun desaccord`, `rien a trancher` ou `rien a ajouter`.
+
+Le flag `--no-early-stop` force tous les tours demandes. Garder cette heuristique prudente : elle ne doit pas remplacer une vraie evaluation semantique tant que le MVP reste simple.
 
 ### Synthese finale
 
@@ -245,6 +252,18 @@ Options :
 - `--no-summary` : desactive la phase de synthese.
 
 Le prompt de synthese est un mode dedie dans `formatAgentPrompt` (`mode: "summary"`). Il recoit le sujet, les fichiers de contexte et tout le transcript.
+
+### Contexte de session
+
+Chaque prompt recoit un bloc `Contexte de session Chicane` construit au lancement :
+
+- source explicite : fourni par Chicane et visible par tous les agents ;
+- date locale ;
+- fuseau horaire ;
+- dossier courant ;
+- horodatage de debut de session.
+
+Ce contexte doit rester petit et factuel. Il sert a eviter que les agents comparent des contextes implicites differents, par exemple sur la date, le fuseau horaire ou le dossier courant.
 
 ## Contexte projet
 
@@ -338,6 +357,8 @@ Combinaisons validees localement :
 - `codex exec ↔ claude --print`
 - `--show-prompt` avec `--files`
 - `--show-prompt` avec `--context docs`
+- contexte de session visible dans `--show-prompt`
+- arret anticipe sur accord clair
 - `init` dans un dossier temporaire pour verifier la detection locale
 - `update` en mode instructions
 - etat "agent en cours" en rendu pretty

@@ -2,25 +2,35 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { DebateMessage, DebateOptions, DebateSummary } from "./types.js";
 
+/**
+ * Écrit le débat au format Markdown dans `outputDir`.
+ * Crée le répertoire si absent. Retourne le chemin absolu du fichier créé.
+ */
 export async function writeDebateMarkdown(
   outputDir: string,
   options: DebateOptions,
   messages: DebateMessage[],
-  summary?: DebateSummary
+  summary?: DebateSummary,
+  stopReason?: string
 ): Promise<string> {
   const safeDate = new Date().toISOString().replace(/[:.]/g, "-");
   const filePath = path.resolve(outputDir, `chicane-${safeDate}.debate.md`);
 
   await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, renderDebateMarkdown(options, messages, summary), "utf8");
+  await writeFile(filePath, renderDebateMarkdown(options, messages, summary, stopReason), "utf8");
 
   return filePath;
 }
 
+/**
+ * Produit la représentation Markdown complète du débat.
+ * Fonction pure : aucun effet de bord sur le filesystem.
+ */
 export function renderDebateMarkdown(
   options: DebateOptions,
   messages: DebateMessage[],
-  summary?: DebateSummary
+  summary?: DebateSummary,
+  stopReason?: string
 ): string {
   const lines = [
     "# Chicane Debate",
@@ -31,6 +41,12 @@ export function renderDebateMarkdown(
     `**Auto-pull Ollama:** ${options.pullModels ? "yes" : "no"}`,
     `**Synthese:** ${options.summaryEnabled ? options.summaryAgent ?? options.agentB : "disabled"}`,
     `**Tours:** ${options.turns}`,
+    `**Tours joues:** ${messages.length}`,
+    `**Arret anticipe:** ${stopReason ?? "no"}`,
+    `**Date locale:** ${options.session.localDate}`,
+    `**Fuseau horaire:** ${options.session.timeZone}`,
+    `**Dossier courant:** ${options.session.cwd}`,
+    `**Session demarree a:** ${options.session.startedAt}`,
     "",
     "## Contexte",
     "",

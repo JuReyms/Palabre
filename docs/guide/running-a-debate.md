@@ -40,6 +40,14 @@ Presets disponibles : `codex-claude`, `claude-codex`, `codex-ollama`, `claude-ol
 pnpm start -- run --preset codex-claude --topic "Sujet" --turns 6
 ```
 
+`--turns` est une limite haute. Si les agents expriment clairement un accord complet apres un tour complet, Chicane peut s'arreter avant la limite.
+
+Pour forcer exactement le nombre de tours demande :
+
+```bash
+pnpm start -- run --preset codex-claude --topic "Sujet" --turns 6 --no-early-stop
+```
+
 ---
 
 ## Choisir un modèle à la volée
@@ -90,6 +98,15 @@ pnpm start -- run --preset codex-claude --topic "Preview" --files README.md --sh
 pnpm start -- run --preset codex-claude --topic "Preview" --context src docs --show-prompt
 ```
 
+Le prompt inclut toujours un contexte de session fourni par Chicane :
+
+- date locale ;
+- fuseau horaire ;
+- dossier courant ;
+- horodatage de début de session.
+
+Ce bloc est visible par tous les agents du débat.
+
 ---
 
 ## Synthèse finale
@@ -124,3 +141,5 @@ Les couleurs sont automatiquement désactivées si la variable d'environnement `
 ## Export
 
 Chaque session génère un fichier `.debate.md` dans le dossier défini par `outputDir` dans ta config (par défaut : le dossier courant).
+
+L'export inclut aussi la date locale, le fuseau horaire, le dossier courant, l'horodatage de debut de session, le nombre de tours joues et la raison d'un eventuel arret anticipe.

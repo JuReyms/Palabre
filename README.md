@@ -13,8 +13,10 @@ Le projet contient un premier MVP technique :
 - Adapter CLI minimal via `child_process`.
 - Adapter Ollama via HTTP local.
 - Orchestration ping-pong avec limite de tours.
+- Arret anticipe si les agents expriment clairement un accord complet.
 - Injection explicite de fichiers texte via `--files`.
 - Selection bornee de contexte projet via `--context`.
+- Contexte de session explicite dans tous les prompts : date locale, fuseau horaire et dossier courant.
 - Rendu console pretty, avec fallback `--plain`.
 - Etat vivant pendant qu'un agent genere sa reponse.
 - Export `.debate.md`.
@@ -174,6 +176,12 @@ Les couleurs sont automatiquement desactivees si `NO_COLOR` est defini.
 
 La session genere un fichier `.debate.md` dans le dossier configure par `outputDir`.
 
+`--turns` est une limite haute. Par defaut, Chicane peut s'arreter avant la limite apres un tour complet si le dernier agent exprime clairement un accord complet (`rien a trancher`, `accord complet`, `aucun desaccord`, etc.). Pour forcer tous les tours :
+
+```bash
+pnpm start -- run --topic "Sujet" --turns 4 --no-early-stop
+```
+
 ## Contexte projet
 
 Chicane distingue deux modes de contexte :
@@ -205,6 +213,15 @@ Le scan `--context` :
 - ignore les fichiers binaires, trop gros ou au-dela de la limite totale avec un warning.
 
 Les fichiers retenus, qu'ils viennent de `--files` ou de `--context`, sont envoyes a tous les agents, y compris Ollama. Ils sont aussi listes dans l'export `.debate.md`.
+
+Chicane injecte aussi un contexte de session minimal dans tous les prompts :
+
+- date locale ;
+- fuseau horaire ;
+- dossier courant ;
+- horodatage de debut de session.
+
+Ce contexte est fourni par Chicane et visible par tous les agents du debat. Il evite que Codex, Claude, Gemini ou Ollama se contredisent sur des informations implicites comme la date ou le fuseau horaire.
 
 Les agents CLI sont lances depuis le dossier courant. Selon leur propre fonctionnement et leurs permissions, Codex, Claude ou Gemini peuvent donc inspecter le workspace par leurs outils internes. Ce comportement depend de chaque CLI et ne doit pas etre considere comme un contrat garanti par Chicane.
 
@@ -238,6 +255,8 @@ Tests effectues sur Windows :
 - `codex exec ↔ claude --print` : OK.
 - `--show-prompt` avec `--files` : OK.
 - `--show-prompt` avec `--context docs` : OK.
+- contexte de session visible dans `--show-prompt` : OK.
+- arret anticipe sur accord clair : OK.
 - `init` avec detection locale des agents : OK.
 - `update` en mode instructions : OK.
 - etat "agent en cours" pendant les generations : OK.
@@ -259,6 +278,7 @@ Reglages importants observes :
 - Les adapters exposent un contrat (`capabilities` et `guarantees`) pour documenter timeout, sortie vide, stderr, exit code, model override, filesystem et streaming.
 - `--files` est explicite et strict ; `--context` scanne des dossiers texte de facon bornee et best-effort.
 - `--show-prompt` affiche le prompt exact du premier tour seulement. Les tours suivants dependent du transcript reel.
+- `--turns` est une limite haute quand l'arret anticipe est actif ; `--no-early-stop` force tous les tours demandes.
 - `--model-a` et `--model-b` transmettent une string brute aux adapters ; Chicane ne maintient pas de catalogue de modeles.
 - L'adapter Ollama detecte les modeles installes via `/api/tags` quand `validateModel` est actif.
 - L'adapter Ollama peut telecharger un modele manquant via `/api/pull` seulement si `--pull-models` ou `autoPullModel` est actif.

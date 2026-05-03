@@ -1,5 +1,9 @@
 import type { AgentPrompt, DebateMessage, ProjectFileContext } from "./types.js";
 
+/**
+ * Formate le prompt complet transmis à l'adapter.
+ * Dispatche vers le format de synthèse si `input.mode === "summary"`, sinon construit le prompt de débat standard.
+ */
 export function formatAgentPrompt(input: AgentPrompt): string {
   if (input.mode === "summary") {
     return formatSummaryPrompt(input);
@@ -12,6 +16,13 @@ export function formatAgentPrompt(input: AgentPrompt): string {
     "",
     `Tu es ${input.selfName}. Tu reponds au tour ${input.turn}.`,
     `Ton interlocuteur est ${input.peerName}.`,
+    "",
+    "Contexte de session Chicane:",
+    "- Source: fourni par Chicane et visible par tous les agents de ce debat.",
+    `- Date locale: ${input.session.localDate}`,
+    `- Fuseau horaire: ${input.session.timeZone}`,
+    `- Dossier courant: ${input.session.cwd}`,
+    `- Session demarree a: ${input.session.startedAt}`,
     "",
     "Objectif:",
     "- Apporte une reponse utile, concrete et courte.",
@@ -30,6 +41,7 @@ export function formatAgentPrompt(input: AgentPrompt): string {
     .join("\n");
 }
 
+/** Formate le prompt de synthèse finale. Impose un format structuré : Consensus / Désaccords / Actions. */
 function formatSummaryPrompt(input: AgentPrompt): string {
   const transcript = formatTranscript(input.transcript);
 
@@ -37,6 +49,13 @@ function formatSummaryPrompt(input: AgentPrompt): string {
     `Sujet: ${input.topic}`,
     "",
     `Tu es ${input.selfName}. Tu produis la synthese finale du debat.`,
+    "",
+    "Contexte de session Chicane:",
+    "- Source: fourni par Chicane et visible par tous les agents de ce debat.",
+    `- Date locale: ${input.session.localDate}`,
+    `- Fuseau horaire: ${input.session.timeZone}`,
+    `- Dossier courant: ${input.session.cwd}`,
+    `- Session demarree a: ${input.session.startedAt}`,
     "",
     "Objectif:",
     "- Resume le consensus en points concrets.",
@@ -63,6 +82,7 @@ function formatSummaryPrompt(input: AgentPrompt): string {
     .join("\n");
 }
 
+/** Formate les fichiers projet en blocs de code annotés pour l'injection dans le prompt. */
 function formatFileContext(files: ProjectFileContext[]): string {
   return files
     .map((file) => {
@@ -76,6 +96,7 @@ function formatFileContext(files: ProjectFileContext[]): string {
     .join("\n\n");
 }
 
+/** Formate le transcript en sections lisibles. Retourne une chaîne vide si aucun message. */
 export function formatTranscript(messages: DebateMessage[]): string {
   return messages
     .map((message) => {

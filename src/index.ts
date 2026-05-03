@@ -12,6 +12,7 @@ import { createConsoleRenderer } from "./renderers/console.js";
 import { runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./update.js";
+import { createSessionContext } from "./session.js";
 import type { DebateOptions } from "./types.js";
 
 interface ParsedArgs {
@@ -85,6 +86,7 @@ async function main(): Promise<void> {
     agentA: String(parsed.flags["agent-a"] ?? preset?.agentA ?? config.defaults?.agentA ?? "codex"),
     agentB: String(parsed.flags["agent-b"] ?? preset?.agentB ?? config.defaults?.agentB ?? "claude"),
     turns: Number(parsed.flags.turns ?? config.defaults?.turns ?? 4),
+    session: createSessionContext(),
     files: context.files,
     modelA: optionalString(parsed.flags["model-a"]),
     modelB: optionalString(parsed.flags["model-b"]),
@@ -92,6 +94,7 @@ async function main(): Promise<void> {
     summaryAgent: optionalString(parsed.flags["summary-agent"]),
     summaryModel: optionalString(parsed.flags["summary-model"]),
     summaryEnabled: !parsed.flags["no-summary"],
+    earlyStopOnAgreement: !parsed.flags["no-early-stop"],
     plainOutput: Boolean(parsed.flags.plain)
   };
 
@@ -104,7 +107,13 @@ async function main(): Promise<void> {
   const renderer = createConsoleRenderer(options.plainOutput);
   context.warnings.forEach((warning) => renderer.warning(warning));
   const result = await runDebate(config, options, renderer);
-  const outputPath = await writeDebateMarkdown(config.outputDir ?? ".", result.options, result.messages, result.summary);
+  const outputPath = await writeDebateMarkdown(
+    config.outputDir ?? ".",
+    result.options,
+    result.messages,
+    result.summary,
+    result.stopReason
+  );
 
   renderer.done(outputPath);
 }
@@ -121,6 +130,7 @@ function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, opti
     turn: 1,
     selfName: options.agentA,
     peerName: options.agentB,
+    session: options.session,
     files: options.files,
     transcript: []
   });
@@ -274,6 +284,7 @@ Options:
   --summary-agent <n>  Agent utilise pour produire la synthese finale (defaut: agent B)
   --summary-model <m>  Modele brut transmis a l'agent de synthese
   --no-summary         Desactive la synthese finale
+  --no-early-stop      Desactive l'arret anticipe si les agents sont clairement d'accord
   --turns <number>     Nombre total de tours
   --files <paths...>   Fichiers texte a injecter explicitement dans le contexte
   --context <paths...> Scanne fichiers/dossiers texte en respectant les limites de contexte
