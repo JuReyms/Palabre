@@ -73,6 +73,7 @@ export interface DebateOptions {
   summaryAgent?: string;
   summaryModel?: string;
   summaryEnabled: boolean;
+  plainOutput: boolean;
 }
 
 export interface AgentPrompt {
@@ -142,4 +143,13 @@ export interface DebateSummary {
   role: AgentRole;
   content: string;
   createdAt: string;
+}
+
+export interface DebateRenderer {
+  start(options: DebateOptions): void;
+  warning(message: string): void;
+  turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void;
+  message(content: string): void;
+  summaryStart(agent: string, role: AgentRole): void;
+  done(outputPath: string): void;
 }

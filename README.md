@@ -14,6 +14,7 @@ Le projet contient un premier MVP technique :
 - Adapter Ollama via HTTP local.
 - Orchestration ping-pong avec limite de tours.
 - Injection explicite de fichiers texte via `--files`.
+- Rendu console pretty, avec fallback `--plain`.
 - Export `.debate.md`.
 
 Le preset CLI actuel vise les modes non interactifs : `codex exec` et `claude --print`. Le prochain gros chantier reste l'adapter PTY robuste pour les vraies sessions interactives.
@@ -152,6 +153,14 @@ pnpm start -- run --preset codex-claude --topic "Critique le MVP" --summary-agen
 pnpm start -- run --preset codex-claude --topic "Critique le MVP" --no-summary
 ```
 
+Le rendu console est un premier TUI leger : en-tete, separateurs, tours et synthese lisibles. Pour revenir au rendu brut :
+
+```bash
+pnpm start -- run --preset codex-claude --topic "Critique le MVP" --plain
+```
+
+Les couleurs sont automatiquement desactivees si `NO_COLOR` est defini.
+
 La session genere un fichier `.debate.md` dans le dossier configure par `outputDir`.
 
 ## Contexte projet
@@ -197,6 +206,7 @@ Tests effectues sur Windows :
 - `--show-prompt` avec `--files` : OK.
 - synthese finale avec agent B : OK.
 - `--no-summary` : OK.
+- rendu console pretty et `--plain` : OK.
 
 Reglages importants observes :
 
@@ -217,6 +227,7 @@ Reglages importants observes :
 - L'adapter Ollama decharge les autres modeles charges via `/api/ps` puis `keep_alive: 0` quand `unloadOtherModels` est actif.
 - Chicane affiche un warning si Ollama participe sans `--files`, car Ollama ne lit pas le filesystem.
 - La synthese finale est activee par defaut et utilise l'agent B, sauf `--summary-agent` ou `--no-summary`.
+- Le rendu console pretty est volontairement leger. Le split-view, le scrolling interactif et l'input humain arriveront avec le vrai TUI.
 - Une sortie CLI vide est consideree comme une erreur, sauf si `allowEmptyOutput` est active explicitement.
 - `idleTimeoutMs` doit etre utilise avec prudence : les CLIs IA peuvent rester silencieuses pendant la generation.
 - Les CLIs interactives auront besoin d'un vrai PTY, probablement via `node-pty`.

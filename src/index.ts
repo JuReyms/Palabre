@@ -6,6 +6,7 @@ import { loadProjectFiles } from "./context.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
 import { formatAgentPrompt } from "./prompt.js";
 import { listPresetNames, resolvePreset } from "./presets.js";
+import { createConsoleRenderer } from "./renderers/console.js";
 import { runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import type { DebateOptions } from "./types.js";
@@ -68,7 +69,8 @@ async function main(): Promise<void> {
     pullModels: Boolean(parsed.flags["pull-models"]),
     summaryAgent: optionalString(parsed.flags["summary-agent"]),
     summaryModel: optionalString(parsed.flags["summary-model"]),
-    summaryEnabled: !parsed.flags["no-summary"]
+    summaryEnabled: !parsed.flags["no-summary"],
+    plainOutput: Boolean(parsed.flags.plain)
   };
 
   if (parsed.flags["show-prompt"]) {
@@ -76,10 +78,11 @@ async function main(): Promise<void> {
     return;
   }
 
-  const result = await runDebate(config, options);
+  const renderer = createConsoleRenderer(options.plainOutput);
+  const result = await runDebate(config, options, renderer);
   const outputPath = await writeDebateMarkdown(config.outputDir ?? ".", result.options, result.messages, result.summary);
 
-  console.log(`\nDebat exporte: ${outputPath}`);
+  renderer.done(outputPath);
 }
 
 function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, options: DebateOptions): void {
@@ -212,6 +215,7 @@ Options:
   --turns <number>     Nombre total de tours
   --files <paths...>   Fichiers texte a injecter explicitement dans le contexte
   --show-prompt        Affiche le prompt du premier tour sans appeler d'agent
+  --plain              Utilise le rendu console simple sans habillage TUI
 `);
 }
 

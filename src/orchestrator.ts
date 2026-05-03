@@ -1,5 +1,5 @@
 import { createAgent } from "./adapters/index.js";
-import type { AgentConfig, ChicaneConfig, DebateMessage, DebateOptions, DebateSummary } from "./types.js";
+import type { AgentConfig, ChicaneConfig, DebateMessage, DebateOptions, DebateRenderer, DebateSummary } from "./types.js";
 
 export interface DebateResult {
   options: DebateOptions;
@@ -7,7 +7,11 @@ export interface DebateResult {
   summary?: DebateSummary;
 }
 
-export async function runDebate(config: ChicaneConfig, options: DebateOptions): Promise<DebateResult> {
+export async function runDebate(
+  config: ChicaneConfig,
+  options: DebateOptions,
+  renderer?: DebateRenderer
+): Promise<DebateResult> {
   const agentAConfig = withRuntimeOverrides(config.agents[options.agentA], options.modelA, options.pullModels);
   const agentBConfig = withRuntimeOverrides(config.agents[options.agentB], options.modelB, options.pullModels);
 
@@ -22,7 +26,9 @@ export async function runDebate(config: ChicaneConfig, options: DebateOptions): 
   warnIfOllamaHasNoExplicitFiles(options, [
     [options.agentA, agentAConfig],
     [options.agentB, agentBConfig]
-  ]);
+  ], renderer);
+
+  renderer?.start(options);
 
   const agents = [
     createAgent(options.agentA, agentAConfig),
@@ -36,7 +42,7 @@ export async function runDebate(config: ChicaneConfig, options: DebateOptions): 
     const peer = agents[(index + 1) % agents.length];
     const turn = index + 1;
 
-    process.stdout.write(`\n[${turn}/${options.turns}] ${current.name} (${current.role})...\n`);
+    renderer?.turnStart(turn, options.turns, current.name, current.role);
 
     const response = await current.generate({
       topic: options.topic,
@@ -55,11 +61,11 @@ export async function runDebate(config: ChicaneConfig, options: DebateOptions): 
     };
 
     messages.push(message);
-    process.stdout.write(`${message.content}\n`);
+    renderer?.message(message.content);
   }
 
   const summary = options.summaryEnabled
-    ? await generateSummary(config, options, messages)
+    ? await generateSummary(config, options, messages, renderer)
     : undefined;
 
   return {
@@ -69,7 +75,11 @@ export async function runDebate(config: ChicaneConfig, options: DebateOptions): 
   };
 }
 
-function warnIfOllamaHasNoExplicitFiles(options: DebateOptions, agents: Array<[string, AgentConfig]>): void {
+function warnIfOllamaHasNoExplicitFiles(
+  options: DebateOptions,
+  agents: Array<[string, AgentConfig]>,
+  renderer?: DebateRenderer
+): void {
   if (options.files.length > 0) {
     return;
   }
@@ -83,16 +93,14 @@ function warnIfOllamaHasNoExplicitFiles(options: DebateOptions, agents: Array<[s
     return;
   }
 
-  process.stderr.write(
-    `Warning: ${ollamaAgents.join(", ")} ne lit pas le filesystem. ` +
-    "Ajoute --files pour fournir un contexte projet explicite.\n"
-  );
+  renderer?.warning(`${ollamaAgents.join(", ")} ne lit pas le filesystem. Ajoute --files pour fournir un contexte projet explicite.`);
 }
 
 async function generateSummary(
   config: ChicaneConfig,
   options: DebateOptions,
-  messages: DebateMessage[]
+  messages: DebateMessage[],
+  renderer?: DebateRenderer
 ): Promise<DebateSummary> {
   const summaryAgentName = options.summaryAgent ?? options.agentB;
   const summaryModel = options.summaryModel ?? modelForAgent(options, summaryAgentName);
@@ -104,7 +112,7 @@ async function generateSummary(
 
   const summaryAgent = createAgent(summaryAgentName, summaryConfig);
 
-  process.stdout.write(`\n[Synthese] ${summaryAgent.name} (${summaryAgent.role})...\n`);
+  renderer?.summaryStart(summaryAgent.name, summaryAgent.role);
 
   const response = await summaryAgent.generate({
     topic: options.topic,
@@ -123,7 +131,7 @@ async function generateSummary(
     createdAt: new Date().toISOString()
   };
 
-  process.stdout.write(`${summary.content}\n`);
+  renderer?.message(summary.content);
   return summary;
 }
 

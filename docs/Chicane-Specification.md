@@ -52,6 +52,18 @@ Ollama est configuré par défaut comme `scout`, `critic` ou `summarizer`, car l
     * Commandes d'intervention humaine accessibles via des raccourcis clavier (ex: `Ctrl+T` pour trancher).
     * Simple et épuré, inspiré des interfaces de chat modernes.
 
+#### MVP TUI léger
+
+Avant le vrai TUI interactif, Chicane fournit un rendu console amélioré :
+
+* En-tête de session.
+* Séparateurs par tour.
+* Affichage distinct des agents, rôles et synthèse.
+* Couleurs ANSI si le terminal le permet.
+* Option `--plain` pour revenir au rendu brut.
+
+Ce jalon ne couvre pas encore le split-view, le scrolling interactif ou l'intervention humaine pendant le débat.
+
 ### C. L'Extension VS Code (Wrapper)
 * **Rôle :** Interface graphique simplifiée pour lancer le package CLI.
 * **Fonctionnalités :**
@@ -134,7 +146,7 @@ Le premier jalon doit rester volontairement étroit :
 * Overrides de modèles via `--model-a` et `--model-b`, sans catalogue de modèles côté Chicane.
 * Preview du prompt via `--show-prompt`.
 * Synthèse finale via `--summary-agent`, désactivable avec `--no-summary`.
-* Vue cascade simple dans le terminal.
+* Vue cascade simple dans le terminal, désactivable avec `--plain`.
 * Export `.debate.md`.
 * Extension VS Code reportée après stabilisation du CLI.
 

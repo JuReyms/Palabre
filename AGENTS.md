@@ -36,6 +36,7 @@ src/types.ts              Contrats partages
 src/prompt.ts             Rendu des prompts agent
 src/orchestrator.ts       Boucle de debat ping-pong
 src/output.ts             Export Markdown
+src/renderers/console.ts  Rendu console pretty/plain
 src/adapters/index.ts     Factory d'adapters
 src/adapters/cli.ts       Adapter CLI minimal
 src/adapters/ollama.ts    Adapter Ollama HTTP
@@ -255,6 +256,17 @@ Si une CLI utilise un nom d'option different, ajouter `modelArg` dans la config 
 
 `--show-prompt` affiche le prompt exact du premier tour, puis termine sans appeler d'agent. Les tours suivants ne peuvent pas etre connus sans executer le debat, car ils dependent du transcript reel.
 
+## Rendu Console
+
+`src/renderers/console.ts` contient le premier rendu TUI leger :
+
+- `PrettyConsoleRenderer` : en-tete, separateurs, tours, synthese, couleurs ANSI si TTY.
+- `PlainConsoleRenderer` : rendu historique compatible logs.
+
+Le flag `--plain` force le rendu simple. `NO_COLOR` desactive les couleurs sans changer la structure.
+
+Ce n'est pas encore le vrai TUI interactif : pas de split-view, pas de scrolling controle, pas d'input humain pendant le debat.
+
 ## Tests et verification
 
 Avant de livrer une modification :
@@ -281,6 +293,7 @@ Combinaisons validees localement :
 - `--no-summary`
 - erreurs adapter `empty-output`, `non-zero-exit`, `model-unavailable`
 - warning Ollama sans `--files`
+- rendu console pretty et `--plain`
 
 Ces tests ont confirme que le mode batch est deja exploitable avant l'adapter PTY.
 
