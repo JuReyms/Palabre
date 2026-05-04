@@ -327,11 +327,12 @@ Si une CLI utilise un nom d'option different, ajouter `modelArg` dans la config 
 Le parser accepte deux formes equivalentes pour lancer un debat :
 
 ```bash
-chicane run --preset claude-gemini --topic "quel jour sommes nous ?" --turns 4
-chicane claude-gemini "quel jour sommes nous ?" --t 4
+chicane run --preset claude-gemini --subject "quel jour sommes nous ?" --turns 4
+chicane claude-gemini "quel jour sommes nous ?" -t 4
+chicane -s "quel jour sommes nous ?" -t 2
 ```
 
-Si le premier argument positionnel est un preset connu, il devient `--preset`. Le positionnel suivant devient `--topic`. Si le premier argument n'est pas un preset ni une commande (`init`, `update`, `help`, etc.), il devient directement le sujet.
+`--subject` est le nom long recommande pour le sujet. `-s` est l'alias court, et `--topic` reste accepte pour compatibilite. Si le premier argument positionnel est un preset connu, il devient `--preset`. Le positionnel suivant devient le sujet. Si le premier argument n'est pas un preset ni une commande (`init`, `update`, `help`, etc.), il devient directement le sujet.
 
 ## Rendu Console
 
@@ -370,7 +371,8 @@ Combinaisons validees localement :
 - `--show-prompt` avec `--context docs`
 - contexte de session visible dans `--show-prompt`
 - arret anticipe sur accord clair
-- syntaxe courte `chicane preset "topic" --t 4`
+- syntaxe courte `chicane preset "sujet" -t 4`
+- alias sujet `chicane -s "sujet" -t 2`
 - `init` dans un dossier temporaire pour verifier la detection locale
 - `update` en mode instructions
 - etat "agent en cours" en rendu pretty

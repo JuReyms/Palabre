@@ -69,7 +69,7 @@ async function main(): Promise<void> {
   }
 
   const config = await loadConfig(configPath);
-  const topic = String(parsed.flags.topic ?? "").trim();
+  const topic = optionalString(parsed.flags.topic) ?? "";
   const context = await loadProjectInputs(
     getStringListFlag(parsed.flags.files),
     getStringListFlag(parsed.flags.context)
@@ -78,7 +78,7 @@ async function main(): Promise<void> {
   const preset = presetName ? resolvePreset(presetName) : undefined;
 
   if (!topic) {
-    throw new Error("Le parametre --topic est requis.");
+    throw new Error("Le parametre --topic/--subject est requis.");
   }
 
   const options: DebateOptions = {
@@ -185,13 +185,38 @@ function parseArgs(args: string[]): ParsedArgs {
       continue;
     }
 
+    if (value === "-s") {
+      const next = args[index + 1];
+
+      if (!next || next.startsWith("-")) {
+        throw new Error("L'option -s attend une valeur.");
+      }
+
+      flags.topic = next;
+      index += 1;
+      continue;
+    }
+
+    if (value === "-t") {
+      const next = args[index + 1];
+
+      if (!next || next.startsWith("-")) {
+        throw new Error("L'option -t attend une valeur.");
+      }
+
+      flags.turns = next;
+      index += 1;
+      continue;
+    }
+
     if (value.startsWith("--")) {
-      const key = normalizeFlagName(value.slice(2));
+      const rawKey = value.slice(2);
+      const key = normalizeFlagName(rawKey);
 
       if (key === "files" || key === "context") {
         const values: string[] = [];
 
-        while (args[index + 1] && !args[index + 1].startsWith("--")) {
+        while (args[index + 1] && !args[index + 1].startsWith("-")) {
           values.push(args[index + 1]);
           index += 1;
         }
@@ -202,7 +227,11 @@ function parseArgs(args: string[]): ParsedArgs {
 
       const next = args[index + 1];
 
-      if (!next || next.startsWith("--")) {
+      if (!next || next.startsWith("-")) {
+        if (requiresFlagValue(key)) {
+          throw new Error(`L'option --${rawKey} attend une valeur.`);
+        }
+
         flags[key] = true;
       } else {
         flags[key] = next;
@@ -244,10 +273,27 @@ function applyRunPositionals(
 
 function normalizeFlagName(value: string): string {
   const aliases: Record<string, string> = {
+    s: "topic",
+    subject: "topic",
     t: "turns"
   };
 
   return aliases[value] ?? value;
+}
+
+function requiresFlagValue(value: string): boolean {
+  return new Set([
+    "agent-a",
+    "agent-b",
+    "config",
+    "model-a",
+    "model-b",
+    "preset",
+    "summary-agent",
+    "summary-model",
+    "topic",
+    "turns"
+  ]).has(value);
 }
 
 async function getPackageVersion(): Promise<string> {
@@ -314,8 +360,9 @@ Chicane
 Commandes:
   chicane init
   chicane update [--apply]
-  chicane run --topic "Sujet" [--agent-a codex] [--agent-b claude] [--turns 4]
-  chicane claude-gemini "Sujet" --t 4
+  chicane run --subject "Sujet" [--agent-a codex] [--agent-b claude] [--turns 4]
+  chicane claude-gemini "Sujet" -t 4
+  chicane -s "Sujet" -t 2
   chicane help
   chicane version
 
@@ -323,7 +370,8 @@ Options:
   -h, --help           Affiche cette aide
   -v, --version        Affiche la version
   --config <path>      Chemin vers chicane.config.json
-  --topic <text>       Sujet du debat
+  -s, --subject <text> Sujet du debat
+  --topic <text>       Alias compatible de --subject
   --agent-a <name>     Premier agent
   --agent-b <name>     Second agent
   --preset <name>      Preset de paire d'agents (${listPresetNames().join(", ")})
@@ -335,7 +383,7 @@ Options:
   --no-summary         Desactive la synthese finale
   --no-early-stop      Desactive l'arret anticipe si les agents sont clairement d'accord
   --turns <number>     Nombre total de tours
-  --t <number>         Alias court de --turns
+  -t, --t <number>     Alias court de --turns
   --files <paths...>   Fichiers texte a injecter explicitement dans le contexte
   --context <paths...> Scanne fichiers/dossiers texte en respectant les limites de contexte
   --show-prompt        Affiche le prompt du premier tour sans appeler d'agent

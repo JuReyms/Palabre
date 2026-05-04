@@ -102,41 +102,44 @@ Ollama est pense par defaut comme `critic`, `scout` ou `summarizer`, car les mac
 ## Lancer un debat
 
 ```bash
-pnpm start -- run --topic "Refacto de l'auth Nuxt" --agent-a codex --agent-b claude --turns 4
+pnpm start -- run --subject "Refacto de l'auth Nuxt" --agent-a codex --agent-b claude --turns 4
 ```
 
 Autres exemples :
 
 ```bash
-pnpm start -- run --topic "Comparer deux strategies de cache" --agent-a claude --agent-b codex
-pnpm start -- run --topic "Critique rapide du plan de migration" --agent-a codex --agent-b ollama-local --turns 2
+pnpm start -- run --subject "Comparer deux strategies de cache" --agent-a claude --agent-b codex
+pnpm start -- run --subject "Critique rapide du plan de migration" --agent-a codex --agent-b ollama-local --turns 2
 ```
 
 Presets disponibles :
 
 ```bash
-pnpm start -- run --preset codex-claude --topic "Debattez du prochain jalon"
-pnpm start -- run --preset claude-ollama --topic "Critique le MVP batch"
-pnpm start -- run --preset gemini-ollama --topic "Gemini est-il un bon reviewer ?"
+pnpm start -- run --preset codex-claude --subject "Debattez du prochain jalon"
+pnpm start -- run --preset claude-ollama --subject "Critique le MVP batch"
+pnpm start -- run --preset gemini-ollama --subject "Gemini est-il un bon reviewer ?"
 ```
 
 Syntaxe courte equivalente :
 
 ```bash
-chicane claude-gemini "quel jour sommes nous ?" --t 4
+chicane claude-gemini "quel jour sommes nous ?" -t 4
+chicane -s "Critique rapide du MVP" -t 2
 ```
+
+`--subject` est le nom long recommande pour le sujet. `-s` est son alias court, et `--topic` reste accepte pour compatibilite.
 
 Un preset choisit seulement les deux agents. Il ne change pas les modeles par defaut configures dans les CLIs. Pour demander un modele explicitement, Chicane transmet la string brute sans valider ni lister les modeles :
 
 ```bash
-pnpm start -- run --preset codex-claude --model-a 5.5 --model-b opus --topic "Compare les approches"
-pnpm start -- run --preset codex-ollama --model-b gemma4:e4b --topic "Critique locale plus profonde"
+pnpm start -- run --preset codex-claude --model-a 5.5 --model-b opus --subject "Compare les approches"
+pnpm start -- run --preset codex-ollama --model-b gemma4:e4b --subject "Critique locale plus profonde"
 ```
 
 Pour Ollama, Chicane valide par defaut que le modele est installe localement. Il ne telecharge rien sans accord explicite. Pour autoriser un telechargement Ollama si le modele manque :
 
 ```bash
-pnpm start -- run --preset codex-ollama --model-b nemotron-3-nano:4b --pull-models --topic "Critique locale"
+pnpm start -- run --preset codex-ollama --model-b nemotron-3-nano:4b --pull-models --subject "Critique locale"
 ```
 
 Equivalent dans la config agent :
@@ -152,7 +155,7 @@ Equivalent dans la config agent :
 Pour inspecter le prompt du premier tour sans appeler d'agent :
 
 ```bash
-pnpm start -- run --preset codex-claude --topic "Preview" --context src docs --show-prompt
+pnpm start -- run --preset codex-claude --subject "Preview" --context src docs --show-prompt
 ```
 
 Pour mettre a jour une installation locale :
@@ -167,15 +170,15 @@ chicane update --apply
 Par defaut, Chicane produit une synthese finale avec l'agent B. Tu peux choisir un autre agent, un modele specifique, ou desactiver la synthese :
 
 ```bash
-pnpm start -- run --preset codex-claude --topic "Critique le MVP" --summary-agent claude
-pnpm start -- run --preset codex-claude --topic "Critique le MVP" --summary-agent ollama-local --summary-model nemotron-3-nano:4b
-pnpm start -- run --preset codex-claude --topic "Critique le MVP" --no-summary
+pnpm start -- run --preset codex-claude --subject "Critique le MVP" --summary-agent claude
+pnpm start -- run --preset codex-claude --subject "Critique le MVP" --summary-agent ollama-local --summary-model nemotron-3-nano:4b
+pnpm start -- run --preset codex-claude --subject "Critique le MVP" --no-summary
 ```
 
 Le rendu console est un premier TUI leger : en-tete, separateurs, tours, synthese lisible et etat "agent en cours" pendant les generations longues. Pour revenir au rendu brut :
 
 ```bash
-pnpm start -- run --preset codex-claude --topic "Critique le MVP" --plain
+pnpm start -- run --preset codex-claude --subject "Critique le MVP" --plain
 ```
 
 Les couleurs sont automatiquement desactivees si `NO_COLOR` est defini.
@@ -185,7 +188,7 @@ La session genere un fichier `.debate.md` dans le dossier configure par `outputD
 `--turns` est une limite haute. Par defaut, Chicane peut s'arreter avant la limite apres un tour complet si le dernier agent exprime clairement un accord complet (`rien a trancher`, `accord complet`, `aucun desaccord`, etc.). Pour forcer tous les tours :
 
 ```bash
-pnpm start -- run --topic "Sujet" --turns 4 --no-early-stop
+pnpm start -- run --subject "Sujet" --turns 4 --no-early-stop
 ```
 
 ## Contexte projet
@@ -198,7 +201,7 @@ Chicane distingue deux modes de contexte :
 `--files` est utile quand tu sais exactement quels fichiers doivent etre envoyes :
 
 ```bash
-pnpm start -- run --topic "Critique le MVP batch" --files README.md src/adapters/cli.ts --agent-a claude --agent-b ollama-local --turns 2
+pnpm start -- run --subject "Critique le MVP batch" --files README.md src/adapters/cli.ts --agent-a claude --agent-b ollama-local --turns 2
 ```
 
 Si un chemin `--files` pointe vers un dossier, un fichier binaire ou un fichier trop gros, Chicane arrete la commande avec une erreur claire.
@@ -206,8 +209,8 @@ Si un chemin `--files` pointe vers un dossier, un fichier binaire ou un fichier 
 `--context` est utile pour donner une vue projet plus large sans tout envoyer aveuglement :
 
 ```bash
-pnpm start -- run --preset codex-ollama --topic "Critique l'architecture" --context src docs --turns 2
-pnpm start -- run --preset codex-claude --topic "Preview contexte" --context . --show-prompt
+pnpm start -- run --preset codex-ollama --subject "Critique l'architecture" --context src docs --turns 2
+pnpm start -- run --preset codex-claude --subject "Preview contexte" --context . --show-prompt
 ```
 
 Le scan `--context` :
@@ -263,7 +266,7 @@ Tests effectues sur Windows :
 - `--show-prompt` avec `--context docs` : OK.
 - contexte de session visible dans `--show-prompt` : OK.
 - arret anticipe sur accord clair : OK.
-- syntaxe courte `chicane preset "topic" --t 4` : OK.
+- syntaxe courte `chicane preset "sujet" -t 4` et `chicane -s "sujet" -t 2` : OK.
 - `init` avec detection locale des agents : OK.
 - `update` en mode instructions : OK.
 - etat "agent en cours" pendant les generations : OK.

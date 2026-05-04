@@ -23,7 +23,7 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Export `.debate.md`.
 - Installation globale locale testee avec `pnpm link --global`.
 - Commande `chicane update` avec instructions et `--apply` pour checkout git.
-- Syntaxe courte de lancement : `chicane preset "sujet" --t 4`.
+- Syntaxe courte de lancement : `chicane preset "sujet" -t 4` et `chicane -s "sujet" -t 2`.
 - Guides utilisateur versionnes dans `docs/guide/`.
 
 ## P0 - Stabilisation CLI

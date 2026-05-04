@@ -30,7 +30,7 @@ Pendant l'initialisation, Chicane détecte `codex`, `claude`, `gemini` et l'API 
 ## Premier débat
 
 ```bash
-pnpm start -- run --preset codex-claude --topic "Comment structurer l'auth d'une app Nuxt ?"
+pnpm start -- run --preset codex-claude --subject "Comment structurer l'auth d'une app Nuxt ?"
 ```
 
 Chicane va faire débattre Codex et Claude sur ce sujet pendant 4 tours (par défaut), puis générer une synthèse finale. La session est exportée dans un fichier `.debate.md`.
@@ -38,7 +38,7 @@ Chicane va faire débattre Codex et Claude sur ce sujet pendant 4 tours (par dé
 Pour donner du contexte projet sans choisir les fichiers un par un :
 
 ```bash
-pnpm start -- run --preset codex-claude --topic "Critique cette architecture" --context src docs --turns 2
+pnpm start -- run --preset codex-claude --subject "Critique cette architecture" --context src docs --turns 2
 ```
 
 `--context` scanne les fichiers texte, respecte les exclusions courantes et affiche des avertissements pour les fichiers ignorés.
@@ -54,6 +54,13 @@ chicane --version
 ```
 
 Tu peux ensuite lancer `chicane` depuis un autre projet.
+
+```bash
+chicane codex-claude "Comment structurer l'auth d'une app Nuxt ?" -t 4
+chicane -s "Critique rapide" -t 2
+```
+
+`--subject` est le nom long recommande pour le sujet. `-s` est son alias court, et `--topic` reste accepte pour compatibilite.
 
 Pour afficher les etapes de mise a jour :
 
