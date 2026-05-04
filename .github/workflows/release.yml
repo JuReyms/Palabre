@@ -1,3 +1,23 @@
+# Publication d'une release GitHub
+#
+# Se déclenche uniquement sur les tags au format vX.Y.Z (ex. v0.1.0, v1.2.3).
+# Ne jamais pousser ce tag à la main : utiliser `pnpm version` qui met à jour
+# package.json, crée le commit de version et le tag en une seule commande.
+#
+# Procédure standard :
+#   pnpm version patch   # ou minor / major selon l'impact
+#   git push && git push --tags
+#
+# Étapes du workflow :
+#   1. Checkout complet (fetch-depth: 0) pour que generate_release_notes
+#      puisse comparer les commits depuis le tag précédent
+#   2. Installation de pnpm et Node.js 24
+#   3. Vérification TypeScript et compilation
+#   4. Empaquetage npm (pnpm pack → tarball .tgz dans dist-pkg/)
+#   5. Création de la release GitHub avec :
+#      - le tarball en pièce jointe (installable via npm/pnpm directement)
+#      - les notes de release générées automatiquement depuis les commits
+
 name: Release
 
 on:
@@ -5,6 +25,8 @@ on:
     tags:
       - 'v*'
 
+# Force les actions GitHub à tourner sur Node.js 24.
+# Voir ci.yml pour le contexte de cette variable.
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -13,11 +35,13 @@ jobs:
     name: Build & publish release
     runs-on: ubuntu-latest
     permissions:
+      # Nécessaire pour créer et écrire la release GitHub
       contents: write
 
     steps:
       - uses: actions/checkout@v4
         with:
+          # Historique complet requis pour la génération des notes de release
           fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
@@ -37,10 +61,13 @@ jobs:
         run: pnpm build
 
       - name: Pack
+        # Produit un tarball chicane-X.Y.Z.tgz dans dist-pkg/
+        # Installable avec : pnpm add --global ./chicane-X.Y.Z.tgz
         run: pnpm pack --out-dir dist-pkg
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: dist-pkg/*.tgz
+          # Génère les notes depuis les commits entre ce tag et le précédent
           generate_release_notes: true

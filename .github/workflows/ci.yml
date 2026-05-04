@@ -1,3 +1,16 @@
+# Intégration continue (CI)
+#
+# Se déclenche sur chaque push vers main et sur chaque pull request.
+# Objectif : détecter au plus tôt les erreurs de types et les régressions de build.
+#
+# Étapes :
+#   1. Checkout du dépôt
+#   2. Installation de pnpm (version lue depuis packageManager dans package.json)
+#   3. Installation de Node.js 24 avec cache pnpm
+#   4. Installation des dépendances (lockfile strict — échoue si pnpm-lock.yaml est désynchronisé)
+#   5. Vérification TypeScript sans émission (tsc --noEmit)
+#   6. Compilation complète (tsc → dist/)
+
 name: CI
 
 on:
@@ -5,6 +18,9 @@ on:
     branches: [main]
   pull_request:
 
+# Force les actions GitHub (checkout, setup-node, pnpm/action-setup) à tourner
+# sur le runtime Node.js 24. Sans ça, elles utilisent Node.js 20 qui sera
+# retiré des runners GitHub le 16 septembre 2026.
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -15,6 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Lit la version de pnpm depuis le champ "packageManager" de package.json
       - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
