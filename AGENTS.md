@@ -435,7 +435,45 @@ git push && git push --tags
 2. verifie les types (`pnpm check`) ;
 3. compile (`pnpm build`) ;
 4. pack un tarball npm (`pnpm pack`) ;
-5. cree une release GitHub avec le tarball en artifact et les notes generees depuis les commits.
+5. cree une release GitHub avec le tarball en artifact et les notes generees depuis les commits ;
+6. pousse `public/version.json` dans le repo `JuReyms/Chicane-app` (branche `dev`), ce qui declenche un rebuild Netlify et met a jour le badge de version sur le site de documentation.
+
+## Sync documentation (Chicane-app)
+
+Le repo CLI est prive. Le site de documentation (`JuReyms/Chicane-app`, Nuxt SSG sur Netlify) recoit les mises a jour via deux workflows GitHub Actions qui poussent directement dans la branche `dev` de Chicane-app. Netlify detecte le push et rebuild automatiquement.
+
+Les deux workflows utilisent le secret `DOCS_REPO_TOKEN` (PAT fine-grained, `Contents = Read and write` sur `JuReyms/Chicane-app` uniquement).
+
+### Workflow sync-docs.yml
+
+Declenche sur tout push dans `docs/guide/**` vers `main`.
+
+Pour chaque fichier source, le workflow :
+
+1. extrait le titre depuis le `# H1` ;
+2. extrait la description depuis le premier paragraphe de texte (160 caracteres max) ;
+3. injecte un frontmatter `title` / `description` ;
+4. copie le fichier dans Chicane-app.
+
+Table de correspondance :
+
+| Source (Chicane CLI) | Destination (Chicane-app) |
+|---|---|
+| `docs/guide/getting-started.md` | `content/1.guide/1.getting-started.md` |
+| `docs/guide/running-a-debate.md` | `content/1.guide/2.running-a-debate.md` |
+| `docs/guide/configuration.md` | `content/2.reference/1.configuration.md` |
+
+Pour ajouter un guide : creer le fichier dans `docs/guide/`, ajouter la ligne dans `FILE_MAP` de `sync-docs.yml`, et creer le fichier de destination vide dans Chicane-app.
+
+### Workflow release.yml (step de sync)
+
+A chaque release, apres la creation de la release GitHub, le workflow ecrit :
+
+```json
+{ "tag_name": "vX.Y.Z" }
+```
+
+dans `public/version.json` de Chicane-app. Le composable `useLatestRelease.ts` de Chicane-app lit ce fichier local au lieu d'appeler l'API GitHub — ce qui permet au repo CLI de rester prive sans impacter l'affichage de la version sur le site.
 
 ### Nommage des versions
 

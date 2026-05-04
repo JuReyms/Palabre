@@ -1,0 +1,86 @@
+name: Sync docs to Chicane-app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/guide/**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Process docs and inject frontmatter
+        run: |
+          python3 - << 'EOF'
+          import os, re
+
+          FILE_MAP = {
+            'docs/guide/getting-started.md':  'content/1.guide/1.getting-started.md',
+            'docs/guide/running-a-debate.md': 'content/1.guide/2.running-a-debate.md',
+            'docs/guide/configuration.md':    'content/2.reference/1.configuration.md',
+          }
+
+          for src, dest in FILE_MAP.items():
+            if not os.path.exists(src):
+              print(f'Skip: {src} not found')
+              continue
+
+            text = open(src, encoding='utf-8').read()
+
+            m = re.match(r'^# (.+)\n', text)
+            title = m.group(1) if m else ''
+            body  = text[m.end():] if m else text
+
+            desc = ''
+            in_code = False
+            for para in body.split('\n\n'):
+              para = para.strip()
+              if para.startswith('```'):
+                in_code = not in_code
+                continue
+              if in_code or para.startswith('#') or not para:
+                continue
+              desc = para.replace('\n', ' ')
+              if len(desc) > 160:
+                desc = desc[:157] + '...'
+              break
+
+            out = f'---\ntitle: {title}\ndescription: {desc}\n---\n\n{body}'
+            path = os.path.join('dist', dest)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            open(path, 'w', encoding='utf-8').write(out)
+            print(f'OK: {src} -> {dest}')
+          EOF
+
+      - name: Clone Chicane-app
+        env:
+          TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
+        run: |
+          git clone https://x-access-token:${TOKEN}@github.com/JuReyms/Chicane-app.git chicane-app
+          cd chicane-app && git checkout dev
+
+      - name: Copy files
+        run: |
+          cp dist/content/1.guide/1.getting-started.md  chicane-app/content/1.guide/1.getting-started.md
+          cp dist/content/1.guide/2.running-a-debate.md chicane-app/content/1.guide/2.running-a-debate.md
+          cp dist/content/2.reference/1.configuration.md chicane-app/content/2.reference/1.configuration.md
+
+      - name: Commit and push
+        working-directory: chicane-app
+        env:
+          TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add content/
+          if git diff --staged --quiet; then
+            echo "No changes to sync"
+          else
+            COMMIT=$(git -C .. rev-parse --short HEAD)
+            git commit -m "sync: docs from Chicane@${COMMIT}"
+            git push origin dev
+          fi
