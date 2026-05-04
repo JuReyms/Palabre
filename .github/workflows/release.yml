@@ -61,13 +61,13 @@ jobs:
         run: pnpm build
 
       - name: Pack
-        # Produit un tarball chicane-X.Y.Z.tgz dans dist-pkg/
+        # Produit un tarball chicane-X.Y.Z.tgz dans le répertoire courant
         # Installable avec : pnpm add --global ./chicane-X.Y.Z.tgz
-        run: pnpm pack --out-dir dist-pkg
+        run: pnpm pack
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist-pkg/*.tgz
+          files: '*.tgz'
           # Génère les notes depuis les commits entre ce tag et le précédent
           generate_release_notes: true
