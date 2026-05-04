@@ -8,11 +8,11 @@ pnpm start -- run --subject "Ton sujet ici"
 
 Les agents et le nombre de tours utilisent les valeurs de `defaults` dans ta config.
 
-Une fois Chicane installe globalement, la syntaxe courte est aussi supportee :
+Une fois Palabre installe globalement, la syntaxe courte est aussi supportee :
 
 ```bash
-chicane "Ton sujet ici"
-chicane -s "Ton sujet ici" -t 2
+palabre "Ton sujet ici"
+palabre -s "Ton sujet ici" -t 2
 ```
 
 `--subject` est le nom long recommande pour le sujet. `-s` est son alias court, et `--topic` reste accepte pour compatibilite.
@@ -40,7 +40,7 @@ pnpm start -- run --preset gemini-ollama --subject "Gemini comme reviewer ?"
 Syntaxe courte equivalente :
 
 ```bash
-chicane claude-gemini "quel jour sommes nous ?" -t 4
+palabre claude-gemini "quel jour sommes nous ?" -t 4
 ```
 
 Presets disponibles : `codex-claude`, `claude-codex`, `codex-ollama`, `claude-ollama`, `gemini-ollama` et leurs variantes inversées.
@@ -53,10 +53,10 @@ Presets disponibles : `codex-claude`, `claude-codex`, `codex-ollama`, `claude-ol
 
 ```bash
 pnpm start -- run --preset codex-claude --subject "Sujet" --turns 6
-chicane codex-claude "Sujet" -t 6
+palabre codex-claude "Sujet" -t 6
 ```
 
-`--turns` est une limite haute. Si les agents expriment clairement un accord complet apres un tour complet, Chicane peut s'arreter avant la limite.
+`--turns` est une limite haute. Si les agents expriment clairement un accord complet apres un tour complet, Palabre peut s'arreter avant la limite.
 
 Pour forcer exactement le nombre de tours demande :
 
@@ -73,7 +73,7 @@ pnpm start -- run --preset codex-claude --model-a 5.5 --model-b opus --subject "
 pnpm start -- run --preset codex-ollama --model-b gemma4:e4b --subject "Critique locale"
 ```
 
-Chicane transmet la valeur brute à l'agent sans validation. Pour Ollama, il vérifie que le modèle est installé si `validateModel` est actif.
+Palabre transmet la valeur brute à l'agent sans validation. Pour Ollama, il vérifie que le modèle est installé si `validateModel` est actif.
 
 Pour autoriser le téléchargement automatique d'un modèle Ollama manquant :
 
@@ -101,7 +101,7 @@ pnpm start -- run --preset codex-ollama --subject "Critique l'architecture" --co
 
 `--context` accepte des fichiers et dossiers, scanne récursivement les fichiers texte, respecte les exclusions courantes et affiche des avertissements pour les fichiers ignorés.
 
-> Si Ollama participe sans `--files` ni `--context`, Chicane affiche un avertissement : Ollama ne lit pas le filesystem, il ne verra que le sujet et le transcript.
+> Si Ollama participe sans `--files` ni `--context`, Palabre affiche un avertissement : Ollama ne lit pas le filesystem, il ne verra que le sujet et le transcript.
 
 ---
 
@@ -114,7 +114,7 @@ pnpm start -- run --preset codex-claude --subject "Preview" --files README.md --
 pnpm start -- run --preset codex-claude --subject "Preview" --context src docs --show-prompt
 ```
 
-Le prompt inclut toujours un contexte de session fourni par Chicane :
+Le prompt inclut toujours un contexte de session fourni par Palabre :
 
 - date locale ;
 - fuseau horaire ;
@@ -127,7 +127,7 @@ Ce bloc est visible par tous les agents du débat.
 
 ## Synthèse finale
 
-Par défaut, Chicane demande à l'agent B de produire une synthèse à la fin du débat.
+Par défaut, Palabre demande à l'agent B de produire une synthèse à la fin du débat.
 
 ```bash
 # Changer l'agent de synthèse
@@ -156,7 +156,7 @@ Les couleurs sont automatiquement désactivées si la variable d'environnement `
 
 ## Erreurs de limites CLI
 
-Si Codex, Claude ou Gemini atteint une limite d'usage, un quota ou un rate limit, Chicane affiche une erreur courte avec la ligne utile de la CLI. Le stderr complet reste dans les détails internes de l'erreur, mais le message console évite de recopier tout le prompt.
+Si Codex, Claude ou Gemini atteint une limite d'usage, un quota ou un rate limit, Palabre affiche une erreur courte avec la ligne utile de la CLI. Le stderr complet reste dans les détails internes de l'erreur, mais le message console évite de recopier tout le prompt.
 
 ---
 
@@ -165,3 +165,4 @@ Si Codex, Claude ou Gemini atteint une limite d'usage, un quota ou un rate limit
 Chaque session génère un fichier `.debate.md` dans le dossier défini par `outputDir` dans ta config (par défaut : le dossier courant).
 
 L'export inclut aussi la date locale, le fuseau horaire, le dossier courant, l'horodatage de debut de session, le nombre de tours joues et la raison d'un eventuel arret anticipe.
+

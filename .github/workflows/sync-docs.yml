@@ -1,4 +1,4 @@
-name: Sync docs to Chicane-app
+name: Sync docs to Palabre-app
 
 on:
   push:
@@ -56,21 +56,21 @@ jobs:
             print(f'OK: {src} -> {dest}')
           EOF
 
-      - name: Clone Chicane-app
+      - name: Clone Palabre-app
         env:
           TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
         run: |
-          git clone https://x-access-token:${TOKEN}@github.com/JuReyms/Chicane-app.git chicane-app
-          cd chicane-app && git checkout dev
+          git clone https://x-access-token:${TOKEN}@github.com/JuReyms/Palabre-app.git palabre-app
+          cd palabre-app && git checkout dev
 
       - name: Copy files
         run: |
-          cp dist/content/1.guide/1.getting-started.md  chicane-app/content/1.guide/1.getting-started.md
-          cp dist/content/1.guide/2.running-a-debate.md chicane-app/content/1.guide/2.running-a-debate.md
-          cp dist/content/2.reference/1.configuration.md chicane-app/content/2.reference/1.configuration.md
+          cp dist/content/1.guide/1.getting-started.md  palabre-app/content/1.guide/1.getting-started.md
+          cp dist/content/1.guide/2.running-a-debate.md palabre-app/content/1.guide/2.running-a-debate.md
+          cp dist/content/2.reference/1.configuration.md palabre-app/content/2.reference/1.configuration.md
 
       - name: Commit and push
-        working-directory: chicane-app
+        working-directory: palabre-app
         env:
           TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
         run: |
@@ -81,6 +81,7 @@ jobs:
             echo "No changes to sync"
           else
             COMMIT=$(git -C .. rev-parse --short HEAD)
-            git commit -m "sync: docs from Chicane@${COMMIT}"
+            git commit -m "sync: docs from Palabre@${COMMIT}"
             git push origin dev
           fi
+

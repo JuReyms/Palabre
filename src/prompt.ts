@@ -17,8 +17,8 @@ export function formatAgentPrompt(input: AgentPrompt): string {
     `Tu es ${input.selfName}. Tu reponds au tour ${input.turn}.`,
     `Ton interlocuteur est ${input.peerName}.`,
     "",
-    "Contexte de session Chicane:",
-    "- Source: fourni par Chicane et visible par tous les agents de ce debat.",
+    "Contexte de session PALABRE:",
+    "- Source: fourni par PALABRE et visible par tous les agents de ce debat.",
     `- Date locale: ${input.session.localDate}`,
     `- Fuseau horaire: ${input.session.timeZone}`,
     `- Dossier courant: ${input.session.cwd}`,
@@ -50,8 +50,8 @@ function formatSummaryPrompt(input: AgentPrompt): string {
     "",
     `Tu es ${input.selfName}. Tu produis la synthese finale du debat.`,
     "",
-    "Contexte de session Chicane:",
-    "- Source: fourni par Chicane et visible par tous les agents de ce debat.",
+    "Contexte de session PALABRE:",
+    "- Source: fourni par PALABRE et visible par tous les agents de ce debat.",
     `- Date locale: ${input.session.localDate}`,
     `- Fuseau horaire: ${input.session.timeZone}`,
     `- Dossier courant: ${input.session.cwd}`,
@@ -107,3 +107,4 @@ export function formatTranscript(messages: DebateMessage[]): string {
     })
     .join("\n\n");
 }
+

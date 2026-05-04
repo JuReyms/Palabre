@@ -21,7 +21,7 @@ export async function getUpdateInfo(version: string): Promise<UpdateInfo> {
 
 export function formatUpdateInstructions(info: UpdateInfo): string {
   const lines = [
-    `Chicane ${info.version}`,
+    `PALABRE ${info.version}`,
     "",
     "Mise a jour recommandee:"
   ];
@@ -39,18 +39,18 @@ export function formatUpdateInstructions(info: UpdateInfo): string {
       "",
       "Pour executer ces etapes automatiquement:",
       "",
-      "  chicane update --apply"
+      "  palabre update --apply"
     );
   } else {
     lines.push(
       "",
       "Installation package detectee.",
       "",
-      "  pnpm add --global chicane@latest",
+      "  pnpm add --global palabre@latest",
       "",
       "Si tu utilises npm:",
       "",
-      "  npm install --global chicane@latest"
+      "  npm install --global palabre@latest"
     );
   }
 
@@ -59,7 +59,7 @@ export function formatUpdateInstructions(info: UpdateInfo): string {
 
 export async function applySourceUpdate(info: UpdateInfo): Promise<void> {
   if (!info.sourceCheckout) {
-    throw new Error("Mise a jour automatique disponible seulement depuis un checkout git. Utilise pnpm add --global chicane@latest.");
+    throw new Error("Mise a jour automatique disponible seulement depuis un checkout git. Utilise pnpm add --global palabre@latest.");
   }
 
   await runStep("git", ["pull", "--ff-only"], info.projectRoot);
@@ -97,3 +97,4 @@ function runStep(command: string, args: string[], cwd: string): Promise<void> {
     });
   });
 }
+

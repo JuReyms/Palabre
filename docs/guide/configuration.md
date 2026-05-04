@@ -1,8 +1,10 @@
 # Configuration
 
-La configuration de Chicane se fait dans `chicane.config.json` à la racine de ton projet.
+La configuration de Palabre se fait dans `palabre.config.json` à la racine de ton projet.
 
-`chicane init` génère ce fichier et détecte les outils disponibles localement. La config garde les blocs agents connus pour rester facile à éditer, mais les `defaults` utilisent une paire détectée quand c'est possible.
+`palabre init` génère ce fichier et détecte les outils disponibles localement. La config garde les blocs agents connus pour rester facile à éditer, mais les `defaults` utilisent une paire détectée quand c'est possible.
+
+Si tu viens d'une ancienne installation, `chicane.config.json` reste lisible comme fallback. Le nom courant pour les nouvelles configs est `palabre.config.json`.
 
 ## Structure générale
 
@@ -116,3 +118,4 @@ Pour les modèles locaux exposés par Ollama :
 | `architect` | Structure une direction technique |
 | `scout` | Explore rapidement un sujet |
 | `summarizer` | Produit une synthèse |
+

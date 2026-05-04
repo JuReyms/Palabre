@@ -17,7 +17,7 @@
 #   5. Création de la release GitHub avec :
 #      - le tarball en pièce jointe (installable via npm/pnpm directement)
 #      - les notes de release générées automatiquement depuis les commits
-#   6. Push de public/version.json dans Chicane-app (branche dev)
+#   6. Push de public/version.json dans Palabre-app (branche dev)
 #      → déclenche un rebuild Netlify qui bake la version dans le site
 
 name: Release
@@ -63,8 +63,8 @@ jobs:
         run: pnpm build
 
       - name: Pack
-        # Produit un tarball chicane-X.Y.Z.tgz dans le répertoire courant
-        # Installable avec : pnpm add --global ./chicane-X.Y.Z.tgz
+        # Produit un tarball palabre-X.Y.Z.tgz dans le répertoire courant
+        # Installable avec : pnpm add --global ./palabre-X.Y.Z.tgz
         run: pnpm pack
 
       - name: Create GitHub Release
@@ -74,15 +74,16 @@ jobs:
           # Génère les notes depuis les commits entre ce tag et le précédent
           generate_release_notes: true
 
-      - name: Push version to Chicane-app
+      - name: Push version to Palabre-app
         env:
           TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
         run: |
-          git clone https://x-access-token:${TOKEN}@github.com/JuReyms/Chicane-app.git chicane-app
-          cd chicane-app && git checkout dev
+          git clone https://x-access-token:${TOKEN}@github.com/JuReyms/Palabre-app.git palabre-app
+          cd palabre-app && git checkout dev
           echo '{ "tag_name": "${{ github.ref_name }}" }' > public/version.json
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/version.json
           git commit -m "release: bump version to ${{ github.ref_name }}"
           git push origin dev
+

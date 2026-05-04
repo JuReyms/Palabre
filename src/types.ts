@@ -60,8 +60,8 @@ export interface OllamaAgentConfig extends BaseAgentConfig {
 /** Union discriminée par `type`. Utilisez `config.type` pour narrower vers l'adapter correspondant. */
 export type AgentConfig = CliAgentConfig | OllamaAgentConfig;
 
-/** Config racine issue de `chicane.config.json`. */
-export interface ChicaneConfig {
+/** Config racine issue de `palabre.config.json`. */
+export interface PalabreConfig {
   outputDir?: string;
   defaults?: {
     agentA?: string;
@@ -208,3 +208,4 @@ export interface DebateRenderer {
   summaryStart(agent: string, role: AgentRole): void;
   done(outputPath: string): void;
 }
+

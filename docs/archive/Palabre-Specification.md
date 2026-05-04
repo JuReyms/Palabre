@@ -1,4 +1,4 @@
-# CHICANE Spec: IA-Debat CLI & VS Code Extension
+# PALABRE Spec: IA-Debat CLI & VS Code Extension
 
 Concept d'un orchestrateur de dialogue entre plusieurs instances d'IA (Claude, Codex, Ollama, etc.) directement dans le terminal, avec une interface utilisateur riche (TUI) et une intégration VS Code.
 
@@ -8,7 +8,7 @@ Un outil "meta-CLI" qui permet de faire débattre deux intelligences artificiell
 ## 2. Architecture Technique
 
 ### A. Le Core (Package CLI)
-* **Nom suggéré :** `chicane`
+* **Nom suggéré :** `palabre`
 * **Langage :** Node.js (pour la compatibilité VS Code) ou Python (pour la puissance de manipulation de processus).
 * **Gestion des processus :** Utilisation de `spawn` pour lancer les CLIs cibles dans des terminaux virtuels (PTY) afin de capturer les flux `stdout` et injecter des commandes dans `stdin`.
 * **Adapters :** Chaque IA est pilotée via un adapter interchangeable.
@@ -23,7 +23,7 @@ Un outil "meta-CLI" qui permet de faire débattre deux intelligences artificiell
     4. Injecte le résultat dans l'IA B.
 
 ### A.1. Rôles des agents
-Chicane ne considère pas tous les modèles comme équivalents. Chaque agent a un rôle configurable :
+Palabre ne considère pas tous les modèles comme équivalents. Chaque agent a un rôle configurable :
 
 * **Primary / Implementer :** agent principal capable de proposer ou modifier une solution technique.
 * **Reviewer / Critic :** agent chargé de trouver les risques, incohérences et alternatives.
@@ -54,7 +54,7 @@ Ollama est configuré par défaut comme `scout`, `critic` ou `summarizer`, car l
 
 #### MVP TUI léger
 
-Avant le vrai TUI interactif, Chicane fournit un rendu console amélioré :
+Avant le vrai TUI interactif, Palabre fournit un rendu console amélioré :
 
 * En-tête de session.
 * Séparateurs par tour.
@@ -73,68 +73,68 @@ Ce jalon ne couvre pas encore le split-view, le scrolling interactif ou l'interv
 
 ## 3. Workflow Utilisateur
 
-1. **Installation :** `npm install -g chicane`.
-2. **Configuration :** `chicane setup` (choix des agents, chemins vers les exécutables CLI locaux, modèle Ollama éventuel, limite de messages, style de réponses détaillées ou rapides, rôles des agents).
-3. **Lancement :** `chicane --topic "Refacto de l'auth Nuxt" --files ./server/auth.ts`.
+1. **Installation :** `npm install -g palabre`.
+2. **Configuration :** `palabre setup` (choix des agents, chemins vers les exécutables CLI locaux, modèle Ollama éventuel, limite de messages, style de réponses détaillées ou rapides, rôles des agents).
+3. **Lancement :** `palabre --topic "Refacto de l'auth Nuxt" --files ./server/auth.ts`.
 4. **Action :** Les IA commencent à discuter. L'utilisateur observe et peut participer ou taper une commande à tout moment pour arrêter le débat et générer le plan d'action final.
 
 ### Exemples de débats
 
 ```bash
-chicane run --agent-a codex --agent-b claude --topic "Refacto de l'auth Nuxt"
-chicane run --agent-a claude-sonnet --agent-b claude-opus --topic "Architecture multi-tenant"
-chicane run --agent-a codex-5.4 --agent-b codex-5.5 --topic "Comparaison d'approches"
-chicane run --agent-a codex --agent-b ollama-local --topic "Critique rapide du plan"
+palabre run --agent-a codex --agent-b claude --topic "Refacto de l'auth Nuxt"
+palabre run --agent-a claude-sonnet --agent-b claude-opus --topic "Architecture multi-tenant"
+palabre run --agent-a codex-5.4 --agent-b codex-5.5 --topic "Comparaison d'approches"
+palabre run --agent-a codex --agent-b ollama-local --topic "Critique rapide du plan"
 ```
 
 Les presets simplifient les paires fréquentes :
 
 ```bash
-chicane run --preset codex-claude --topic "Debattez du prochain jalon"
-chicane run --preset claude-ollama --topic "Critique le MVP batch"
-chicane run --preset gemini-ollama --topic "Gemini est-il un bon reviewer ?"
+palabre run --preset codex-claude --topic "Debattez du prochain jalon"
+palabre run --preset claude-ollama --topic "Critique le MVP batch"
+palabre run --preset gemini-ollama --topic "Gemini est-il un bon reviewer ?"
 ```
 
-Un preset choisit les agents, pas les modèles. Les modèles par défaut restent ceux configurés dans les CLIs ou dans `chicane.config.json`. L'utilisateur peut transmettre une string brute sans que Chicane maintienne un catalogue de modèles :
+Un preset choisit les agents, pas les modèles. Les modèles par défaut restent ceux configurés dans les CLIs ou dans `palabre.config.json`. L'utilisateur peut transmettre une string brute sans que Palabre maintienne un catalogue de modèles :
 
 ```bash
-chicane run --preset codex-claude --model-a 5.5 --model-b opus --topic "Compare les approches"
-chicane run --preset codex-ollama --model-b gemma4:e4b --topic "Critique locale plus profonde"
+palabre run --preset codex-claude --model-a 5.5 --model-b opus --topic "Compare les approches"
+palabre run --preset codex-ollama --model-b gemma4:e4b --topic "Critique locale plus profonde"
 ```
 
-Pour Ollama, Chicane peut valider qu'un modèle est installé via l'API locale `/api/tags`. Il ne choisit pas automatiquement un modèle à la place de l'utilisateur. Le téléchargement d'un modèle manquant peut être autorisé explicitement via `--pull-models` ou `autoPullModel: true`, en utilisant `/api/pull`. Quand un changement de modèle local est demandé, Chicane peut aussi décharger les autres modèles déjà chargés via `/api/ps` et `keep_alive: 0`, afin d'éviter de garder inutilement un gros modèle en mémoire.
+Pour Ollama, Palabre peut valider qu'un modèle est installé via l'API locale `/api/tags`. Il ne choisit pas automatiquement un modèle à la place de l'utilisateur. Le téléchargement d'un modèle manquant peut être autorisé explicitement via `--pull-models` ou `autoPullModel: true`, en utilisant `/api/pull`. Quand un changement de modèle local est demandé, Palabre peut aussi décharger les autres modèles déjà chargés via `/api/ps` et `keep_alive: 0`, afin d'éviter de garder inutilement un gros modèle en mémoire.
 
 Le mode diagnostic permet d'afficher le prompt du premier tour sans appeler d'agent :
 
 ```bash
-chicane run --preset codex-claude --topic "Preview" --files README.md --show-prompt
+palabre run --preset codex-claude --topic "Preview" --files README.md --show-prompt
 ```
 
 La synthèse finale est produite après les tours de débat. Par défaut elle utilise l'agent B, mais l'utilisateur peut choisir un autre agent ou la désactiver :
 
 ```bash
-chicane run --preset codex-claude --topic "Critique le MVP" --summary-agent claude
-chicane run --preset codex-claude --topic "Critique le MVP" --summary-agent ollama-local --summary-model nemotron-3-nano:4b
-chicane run --preset codex-claude --topic "Critique le MVP" --no-summary
+palabre run --preset codex-claude --topic "Critique le MVP" --summary-agent claude
+palabre run --preset codex-claude --topic "Critique le MVP" --summary-agent ollama-local --summary-model nemotron-3-nano:4b
+palabre run --preset codex-claude --topic "Critique le MVP" --no-summary
 ```
 
 ### Contexte projet
 
-Chicane doit distinguer le workspace courant et le contexte explicitement injecté. Les agents CLI sont lancés depuis le dossier courant et peuvent éventuellement inspecter le workspace selon leurs propres capacités et permissions. Ollama, en revanche, ne lit pas le filesystem : il ne reçoit que le sujet, les instructions, les rôles, les fichiers explicitement passés et l'historique textuel transmis par Chicane.
+Palabre doit distinguer le workspace courant et le contexte explicitement injecté. Les agents CLI sont lancés depuis le dossier courant et peuvent éventuellement inspecter le workspace selon leurs propres capacités et permissions. Ollama, en revanche, ne lit pas le filesystem : il ne reçoit que le sujet, les instructions, les rôles, les fichiers explicitement passés et l'historique textuel transmis par Palabre.
 
-Si un agent Ollama participe sans contexte fourni via `--files` ou `--context`, Chicane doit afficher un warning visible pour éviter que l'utilisateur pense qu'Ollama inspecte le projet.
+Si un agent Ollama participe sans contexte fourni via `--files` ou `--context`, Palabre doit afficher un warning visible pour éviter que l'utilisateur pense qu'Ollama inspecte le projet.
 
 Le support explicite minimal est `--files`, qui injecte une sélection contrôlée de fichiers texte dans le prompt de tous les agents :
 
 ```bash
-chicane run --topic "Critique le MVP" --files README.md src/adapters/cli.ts
+palabre run --topic "Critique le MVP" --files README.md src/adapters/cli.ts
 ```
 
 Le support plus large `--context` construit un contexte projet borné à partir de fichiers ou dossiers :
 
 ```bash
-chicane run --topic "Critique le MVP" --context src docs
-chicane run --preset codex-claude --topic "Preview contexte" --context . --show-prompt
+palabre run --topic "Critique le MVP" --context src docs
+palabre run --preset codex-claude --topic "Preview contexte" --context . --show-prompt
 ```
 
 `--context` respecte les limites de taille du contexte, ignore les dossiers techniques courants (`.git`, `node_modules`, `dist`, etc.), applique les règles simples du `.gitignore` racine, garde seulement les extensions texte connues et affiche des warnings pour les fichiers ignorés. Cette première version ne fait pas encore de synthèse automatique des gros fichiers.
@@ -151,7 +151,7 @@ Le premier jalon doit rester volontairement étroit :
 * Injection explicite de fichiers texte via `--files`.
 * Selection bornee de contexte projet via `--context`.
 * Presets de paires d'agents via `--preset`.
-* Overrides de modèles via `--model-a` et `--model-b`, sans catalogue de modèles côté Chicane.
+* Overrides de modèles via `--model-a` et `--model-b`, sans catalogue de modèles côté Palabre.
 * Preview du prompt via `--show-prompt`.
 * Synthèse finale via `--summary-agent`, désactivable avec `--no-summary`.
 * Vue cascade simple dans le terminal, désactivable avec `--plain`.
@@ -165,4 +165,5 @@ Chaque session génère un fichier `.debate.md` à la racine du projet contenant
 * Le consensus final ou les points de désaccord restant.
 
 ---
-*Document généré pour la spécification du projet IA-Debat - 2026* nom de code "Chicane".
+*Document généré pour la spécification du projet IA-Debat - 2026* nom de code "Palabre".
+

@@ -1,11 +1,12 @@
 import { access, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { ChicaneConfig } from "./types.js";
+import type { PalabreConfig } from "./types.js";
 import type { ToolDiscovery } from "./discovery.js";
 
-export const DEFAULT_CONFIG_PATH = "chicane.config.json";
+export const DEFAULT_CONFIG_PATH = "palabre.config.json";
+export const LEGACY_CONFIG_PATH = "chicane.config.json";
 
-export const exampleConfig: ChicaneConfig = {
+export const exampleConfig: PalabreConfig = {
   outputDir: ".",
   defaults: {
     agentA: "codex",
@@ -74,10 +75,10 @@ export const exampleConfig: ChicaneConfig = {
   }
 };
 
-export async function loadConfig(configPath = DEFAULT_CONFIG_PATH): Promise<ChicaneConfig> {
+export async function loadConfig(configPath = DEFAULT_CONFIG_PATH): Promise<PalabreConfig> {
   const resolved = path.resolve(configPath);
   const raw = await readFile(resolved, "utf8");
-  return JSON.parse(raw) as ChicaneConfig;
+  return JSON.parse(raw) as PalabreConfig;
 }
 
 export async function configExists(configPath = DEFAULT_CONFIG_PATH): Promise<boolean> {
@@ -89,7 +90,19 @@ export async function configExists(configPath = DEFAULT_CONFIG_PATH): Promise<bo
   }
 }
 
-export function createConfigFromDiscovery(discovery: ToolDiscovery): ChicaneConfig {
+export async function resolveDefaultConfigPath(): Promise<string> {
+  if (await configExists(DEFAULT_CONFIG_PATH)) {
+    return DEFAULT_CONFIG_PATH;
+  }
+
+  if (await configExists(LEGACY_CONFIG_PATH)) {
+    return LEGACY_CONFIG_PATH;
+  }
+
+  return DEFAULT_CONFIG_PATH;
+}
+
+export function createConfigFromDiscovery(discovery: ToolDiscovery): PalabreConfig {
   const config = cloneConfig(exampleConfig);
   const pair = chooseDefaultPair(discovery);
 
@@ -116,7 +129,7 @@ export function createConfigFromDiscovery(discovery: ToolDiscovery): ChicaneConf
 
 export async function writeExampleConfig(
   configPath = DEFAULT_CONFIG_PATH,
-  config: ChicaneConfig = exampleConfig
+  config: PalabreConfig = exampleConfig
 ): Promise<void> {
   await writeFile(path.resolve(configPath), `${JSON.stringify(config, null, 2)}\n`, "utf8");
 }
@@ -151,6 +164,7 @@ function chooseDefaultPair(discovery: ToolDiscovery): [string, string] | undefin
   return undefined;
 }
 
-function cloneConfig(config: ChicaneConfig): ChicaneConfig {
-  return JSON.parse(JSON.stringify(config)) as ChicaneConfig;
+function cloneConfig(config: PalabreConfig): PalabreConfig {
+  return JSON.parse(JSON.stringify(config)) as PalabreConfig;
 }
+

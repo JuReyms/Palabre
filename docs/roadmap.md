@@ -1,11 +1,11 @@
-# Roadmap Chicane
+# Roadmap PALABRE
 
 Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux idees personnelles du mainteneur.
 
 ## Fait
 
 - MVP CLI Node.js/TypeScript avec `pnpm`.
-- Config JSON avec detection locale pendant `chicane init`.
+- Config JSON avec detection locale pendant `palabre init`.
 - Defaults orientes agents CLI premium : `codex <-> claude`.
 - Presets Codex, Claude, Gemini et Ollama.
 - Adapter CLI batch pour Codex, Claude et Gemini.
@@ -22,21 +22,22 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Rendu console pretty/plain avec etat "agent en cours".
 - Export `.debate.md`.
 - Installation globale locale testee avec `pnpm link --global`.
-- Commande `chicane update` avec instructions et `--apply` pour checkout git.
-- Syntaxe courte de lancement : `chicane preset "sujet" -t 4` et `chicane -s "sujet" -t 2`.
+- Commande `palabre update` avec instructions et `--apply` pour checkout git.
+- Syntaxe courte de lancement : `palabre preset "sujet" -t 4` et `palabre -s "sujet" -t 2`.
+- Renommage produit de Chicane vers Palabre, avec fallback de config legacy.
 - Guides utilisateur versionnes dans `docs/guide/`.
 
 ## P0 - Stabilisation CLI
 
 - Ajouter des JSDoc sur les API internes publiques du projet : types partages, adapters, orchestrateur, contexte, discovery et update.
-- Afficher le modele utilise quand Chicane peut le connaitre.
+- Afficher le modele utilise quand Palabre peut le connaitre.
 - Clarifier la synthese par defaut : `agentB` est pratique, mais peut biaiser la conclusion.
 - Ajouter un `defaults.summaryAgent` dans la config.
 - Ajouter un smoke test local reproductible pour les adapters CLI mock.
 
 ## P1 - Experience utilisateur
 
-- Ajouter une commande `chicane doctor` pour verifier config, CLIs, Ollama, modeles et permissions.
+- Ajouter une commande `palabre doctor` pour verifier config, CLIs, Ollama, modeles et permissions.
 - Ajouter un guide troubleshooting.
 - Ameliorer les messages d'erreur init/update quand le PATH, pnpm global ou Ollama posent probleme.
 - Afficher un recap clair avant debat : agents, roles, modeles connus, contexte, synthese.
@@ -44,7 +45,7 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 ## P2 - Historique et reprise
 
 - Stabiliser le format `.debate.md`.
-- Ajouter `chicane history`.
+- Ajouter `palabre history`.
 - Ajouter une reprise depuis un transcript existant.
 - Ajouter un index local optionnel des debats.
 
@@ -64,3 +65,4 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Internationalisation francais/anglais.
 - Modes multi-agents au-dela de deux participants.
 - Selection intelligente de contexte et resume automatique des gros fichiers.
+

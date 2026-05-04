@@ -14,7 +14,7 @@ export async function writeDebateMarkdown(
   stopReason?: string
 ): Promise<string> {
   const safeDate = new Date().toISOString().replace(/[:.]/g, "-");
-  const filePath = path.resolve(outputDir, `chicane-${safeDate}.debate.md`);
+  const filePath = path.resolve(outputDir, `palabre-${safeDate}.debate.md`);
 
   await mkdir(path.dirname(filePath), { recursive: true });
   await writeFile(filePath, renderDebateMarkdown(options, messages, summary, stopReason), "utf8");
@@ -33,7 +33,7 @@ export function renderDebateMarkdown(
   stopReason?: string
 ): string {
   const lines = [
-    "# Chicane Debate",
+    "# PALABRE Debate",
     "",
     `**Sujet:** ${options.topic}`,
     `**Agents:** ${options.agentA} <-> ${options.agentB}`,
@@ -85,3 +85,4 @@ function renderFileList(files: DebateOptions["files"]): string[] {
 
   return files.map((file) => `- \`${file.path}\` (${file.sizeBytes} bytes)`);
 }
+

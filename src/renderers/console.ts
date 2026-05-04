@@ -18,7 +18,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
   ) {}
 
   start(options: DebateOptions): void {
-    const title = "Chicane";
+    const title = "PALABRE";
     process.stdout.write([
       "",
       this.c("cyan", `┌─ ${title} ${"─".repeat(Math.max(1, 54 - title.length))}`),
@@ -147,3 +147,4 @@ const codes = {
   magenta: "\u001b[35m",
   yellow: "\u001b[33m"
 };
+

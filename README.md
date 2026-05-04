@@ -1,8 +1,8 @@
-# Chicane
+# PALABRE
 
-Chicane est un orchestrateur de debat entre agents IA installes localement : CLIs comme Codex ou Claude, et modeles locaux exposes par Ollama.
+PALABRE est un orchestrateur de debat entre agents IA installes localement : CLIs comme Codex ou Claude, et modeles locaux exposes par Ollama.
 
-L'objectif du projet est de permettre a un utilisateur deja a l'aise avec le terminal de faire dialoguer plusieurs assistants sur un sujet technique, sans imposer une API payante au jeton. Chicane pilote les outils deja configures sur la machine et exporte la session en Markdown.
+L'objectif du projet est de permettre a un utilisateur deja a l'aise avec le terminal de faire dialoguer plusieurs assistants sur un sujet technique, sans imposer une API payante au jeton. PALABRE pilote les outils deja configures sur la machine et exporte la session en Markdown.
 
 ## Etat actuel
 
@@ -44,7 +44,9 @@ pnpm build
 pnpm start -- init
 ```
 
-Cette commande cree `chicane.config.json` si le fichier n'existe pas encore. Pendant l'init, Chicane detecte `codex`, `claude`, `gemini` et l'API locale Ollama, puis choisit une paire par defaut detectee quand c'est possible. Le fichier d'exemple versionne est [chicane.config.example.json](./chicane.config.example.json).
+Cette commande cree `palabre.config.json` si le fichier n'existe pas encore. Pendant l'init, Palabre detecte `codex`, `claude`, `gemini` et l'API locale Ollama, puis choisit une paire par defaut detectee quand c'est possible. Le fichier d'exemple versionne est [palabre.config.example.json](./palabre.config.example.json).
+
+Compatibilite rename : si un ancien `chicane.config.json` existe encore, Palabre peut le lire comme fallback. Les nouvelles installations creent `palabre.config.json`.
 
 Extrait de configuration :
 
@@ -76,7 +78,7 @@ Extrait de configuration :
 
 ## Agents et roles
 
-Chicane se base sur des adapters :
+Palabre se base sur des adapters :
 
 - `cli` : lance une commande locale, injecte le prompt, capture la sortie.
 - `ollama` : appelle l'API HTTP locale d'Ollama.
@@ -123,20 +125,20 @@ pnpm start -- run --preset gemini-ollama --subject "Gemini est-il un bon reviewe
 Syntaxe courte equivalente :
 
 ```bash
-chicane claude-gemini "quel jour sommes nous ?" -t 4
-chicane -s "Critique rapide du MVP" -t 2
+palabre claude-gemini "quel jour sommes nous ?" -t 4
+palabre -s "Critique rapide du MVP" -t 2
 ```
 
 `--subject` est le nom long recommande pour le sujet. `-s` est son alias court, et `--topic` reste accepte pour compatibilite.
 
-Un preset choisit seulement les deux agents. Il ne change pas les modeles par defaut configures dans les CLIs. Pour demander un modele explicitement, Chicane transmet la string brute sans valider ni lister les modeles :
+Un preset choisit seulement les deux agents. Il ne change pas les modeles par defaut configures dans les CLIs. Pour demander un modele explicitement, Palabre transmet la string brute sans valider ni lister les modeles :
 
 ```bash
 pnpm start -- run --preset codex-claude --model-a 5.5 --model-b opus --subject "Compare les approches"
 pnpm start -- run --preset codex-ollama --model-b gemma4:e4b --subject "Critique locale plus profonde"
 ```
 
-Pour Ollama, Chicane valide par defaut que le modele est installe localement. Il ne telecharge rien sans accord explicite. Pour autoriser un telechargement Ollama si le modele manque :
+Pour Ollama, Palabre valide par defaut que le modele est installe localement. Il ne telecharge rien sans accord explicite. Pour autoriser un telechargement Ollama si le modele manque :
 
 ```bash
 pnpm start -- run --preset codex-ollama --model-b nemotron-3-nano:4b --pull-models --subject "Critique locale"
@@ -161,13 +163,13 @@ pnpm start -- run --preset codex-claude --subject "Preview" --context src docs -
 Pour mettre a jour une installation locale :
 
 ```bash
-chicane update
-chicane update --apply
+palabre update
+palabre update --apply
 ```
 
-`chicane update` affiche les etapes adaptees. `--apply` les execute seulement si Chicane est installe depuis un checkout git.
+`palabre update` affiche les etapes adaptees. `--apply` les execute seulement si Palabre est installe depuis un checkout git.
 
-Par defaut, Chicane produit une synthese finale avec l'agent B. Tu peux choisir un autre agent, un modele specifique, ou desactiver la synthese :
+Par defaut, Palabre produit une synthese finale avec l'agent B. Tu peux choisir un autre agent, un modele specifique, ou desactiver la synthese :
 
 ```bash
 pnpm start -- run --preset codex-claude --subject "Critique le MVP" --summary-agent claude
@@ -185,7 +187,7 @@ Les couleurs sont automatiquement desactivees si `NO_COLOR` est defini.
 
 La session genere un fichier `.debate.md` dans le dossier configure par `outputDir`.
 
-`--turns` est une limite haute. Par defaut, Chicane peut s'arreter avant la limite apres un tour complet si le dernier agent exprime clairement un accord complet (`rien a trancher`, `accord complet`, `aucun desaccord`, etc.). Pour forcer tous les tours :
+`--turns` est une limite haute. Par defaut, Palabre peut s'arreter avant la limite apres un tour complet si le dernier agent exprime clairement un accord complet (`rien a trancher`, `accord complet`, `aucun desaccord`, etc.). Pour forcer tous les tours :
 
 ```bash
 pnpm start -- run --subject "Sujet" --turns 4 --no-early-stop
@@ -193,7 +195,7 @@ pnpm start -- run --subject "Sujet" --turns 4 --no-early-stop
 
 ## Contexte projet
 
-Chicane distingue deux modes de contexte :
+Palabre distingue deux modes de contexte :
 
 - `--files` : selection explicite et stricte de fichiers texte.
 - `--context` : scan tolerant de fichiers ou dossiers texte avec exclusions et warnings.
@@ -204,7 +206,7 @@ Chicane distingue deux modes de contexte :
 pnpm start -- run --subject "Critique le MVP batch" --files README.md src/adapters/cli.ts --agent-a claude --agent-b ollama-local --turns 2
 ```
 
-Si un chemin `--files` pointe vers un dossier, un fichier binaire ou un fichier trop gros, Chicane arrete la commande avec une erreur claire.
+Si un chemin `--files` pointe vers un dossier, un fichier binaire ou un fichier trop gros, Palabre arrete la commande avec une erreur claire.
 
 `--context` est utile pour donner une vue projet plus large sans tout envoyer aveuglement :
 
@@ -223,18 +225,18 @@ Le scan `--context` :
 
 Les fichiers retenus, qu'ils viennent de `--files` ou de `--context`, sont envoyes a tous les agents, y compris Ollama. Ils sont aussi listes dans l'export `.debate.md`.
 
-Chicane injecte aussi un contexte de session minimal dans tous les prompts :
+Palabre injecte aussi un contexte de session minimal dans tous les prompts :
 
 - date locale ;
 - fuseau horaire ;
 - dossier courant ;
 - horodatage de debut de session.
 
-Ce contexte est fourni par Chicane et visible par tous les agents du debat. Il evite que Codex, Claude, Gemini ou Ollama se contredisent sur des informations implicites comme la date ou le fuseau horaire.
+Ce contexte est fourni par Palabre et visible par tous les agents du debat. Il evite que Codex, Claude, Gemini ou Ollama se contredisent sur des informations implicites comme la date ou le fuseau horaire.
 
-Les agents CLI sont lances depuis le dossier courant. Selon leur propre fonctionnement et leurs permissions, Codex, Claude ou Gemini peuvent donc inspecter le workspace par leurs outils internes. Ce comportement depend de chaque CLI et ne doit pas etre considere comme un contrat garanti par Chicane.
+Les agents CLI sont lances depuis le dossier courant. Selon leur propre fonctionnement et leurs permissions, Codex, Claude ou Gemini peuvent donc inspecter le workspace par leurs outils internes. Ce comportement depend de chaque CLI et ne doit pas etre considere comme un contrat garanti par Palabre.
 
-Ollama ne lit pas le filesystem par lui-meme. L'adapter Ollama recoit uniquement le prompt construit par Chicane : sujet, role, instructions, fichiers retenus par `--files` ou `--context`, et historique du debat. Si aucun contexte n'est passe, Ollama ne voit pas le contenu du projet.
+Ollama ne lit pas le filesystem par lui-meme. L'adapter Ollama recoit uniquement le prompt construit par Palabre : sujet, role, instructions, fichiers retenus par `--files` ou `--context`, et historique du debat. Si aucun contexte n'est passe, Ollama ne voit pas le contenu du projet.
 
 Limites actuelles :
 
@@ -266,7 +268,7 @@ Tests effectues sur Windows :
 - `--show-prompt` avec `--context docs` : OK.
 - contexte de session visible dans `--show-prompt` : OK.
 - arret anticipe sur accord clair : OK.
-- syntaxe courte `chicane preset "sujet" -t 4` et `chicane -s "sujet" -t 2` : OK.
+- syntaxe courte `palabre preset "sujet" -t 4` et `palabre -s "sujet" -t 2` : OK.
 - detection des limites d'usage CLI type Codex/Claude/Gemini : OK par simulation stderr.
 - `init` avec detection locale des agents : OK.
 - `update` en mode instructions : OK.
@@ -285,17 +287,18 @@ Reglages importants observes :
 ## Limites connues
 
 - L'adapter CLI actuel est volontairement minimal. Il marche mieux avec des commandes non interactives ou des CLIs qui acceptent un prompt via `stdin`.
-- `chicane init` detecte les outils locaux et ajuste seulement les defaults ; les blocs agents exemples restent dans la config pour faciliter l'edition.
+- `palabre init` detecte les outils locaux et ajuste seulement les defaults ; les blocs agents exemples restent dans la config pour faciliter l'edition.
+- `palabre.config.json` est le nom de config courant ; `chicane.config.json` reste lisible comme fallback de migration.
 - Les adapters exposent un contrat (`capabilities` et `guarantees`) pour documenter timeout, sortie vide, stderr, exit code, model override, filesystem et streaming.
 - Les erreurs CLI de limite d'usage ou de quota sont detectees dans stderr et reformatees sans recopier tout le prompt.
 - `--files` est explicite et strict ; `--context` scanne des dossiers texte de facon bornee et best-effort.
 - `--show-prompt` affiche le prompt exact du premier tour seulement. Les tours suivants dependent du transcript reel.
 - `--turns` est une limite haute quand l'arret anticipe est actif ; `--no-early-stop` force tous les tours demandes.
-- `--model-a` et `--model-b` transmettent une string brute aux adapters ; Chicane ne maintient pas de catalogue de modeles.
+- `--model-a` et `--model-b` transmettent une string brute aux adapters ; Palabre ne maintient pas de catalogue de modeles.
 - L'adapter Ollama detecte les modeles installes via `/api/tags` quand `validateModel` est actif.
 - L'adapter Ollama peut telecharger un modele manquant via `/api/pull` seulement si `--pull-models` ou `autoPullModel` est actif.
 - L'adapter Ollama decharge les autres modeles charges via `/api/ps` puis `keep_alive: 0` quand `unloadOtherModels` est actif.
-- Chicane affiche un warning si Ollama participe sans contexte fourni, car Ollama ne lit pas le filesystem.
+- Palabre affiche un warning si Ollama participe sans contexte fourni, car Ollama ne lit pas le filesystem.
 - La synthese finale est activee par defaut et utilise l'agent B, sauf `--summary-agent` ou `--no-summary`.
 - Le rendu console pretty est volontairement leger. Il affiche deja l'agent en cours, mais le split-view, le scrolling interactif et l'input humain arriveront avec le vrai TUI.
 - Une sortie CLI vide est consideree comme une erreur, sauf si `allowEmptyOutput` est active explicitement.
@@ -311,4 +314,5 @@ Reglages importants observes :
 - Configuration : [docs/guide/configuration.md](./docs/guide/configuration.md)
 - Lancer un debat : [docs/guide/running-a-debate.md](./docs/guide/running-a-debate.md)
 - Guide agents/contributeurs : [AGENTS.md](./AGENTS.md)
-- Archive de specification initiale : [docs/archive/Chicane-Specification.md](./docs/archive/Chicane-Specification.md)
+- Archive de specification initiale : [docs/archive/Palabre-Specification.md](./docs/archive/Palabre-Specification.md)
+

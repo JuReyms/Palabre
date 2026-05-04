@@ -4,9 +4,9 @@ Ce fichier guide les agents et contributeurs qui travaillent dans ce depot.
 
 ## Vision
 
-Chicane est un meta-CLI qui orchestre un debat entre plusieurs agents IA. Le produit cible des utilisateurs deja a l'aise avec le terminal, ayant installe et configure leurs outils IA locaux : Codex CLI, Claude CLI, Ollama, ou equivalents.
+Palabre est un meta-CLI qui orchestre un debat entre plusieurs agents IA. Le produit cible des utilisateurs deja a l'aise avec le terminal, ayant installe et configure leurs outils IA locaux : Codex CLI, Claude CLI, Ollama, ou equivalents.
 
-Le principe d'architecture important : Chicane orchestre des adapters. Claude, Codex et Ollama ne doivent pas etre codes comme des cas speciaux dans le moteur de debat.
+Le principe d'architecture important : Palabre orchestre des adapters. Claude, Codex et Ollama ne doivent pas etre codes comme des cas speciaux dans le moteur de debat.
 
 ## Stack
 
@@ -51,7 +51,7 @@ docs/archive/             Documents historiques
 
 ### Agent
 
-Un agent est une entree nommee dans `chicane.config.json`.
+Un agent est une entree nommee dans `palabre.config.json`. `chicane.config.json` reste un fallback de migration pour les anciennes installations, mais toute nouvelle doc ou nouvelle config doit utiliser `palabre.config.json`.
 
 Exemples :
 
@@ -121,7 +121,7 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 
 ## Init et discovery
 
-`chicane init` utilise `src/discovery.ts` pour detecter :
+`palabre init` utilise `src/discovery.ts` pour detecter :
 
 - `codex`
 - `claude.exe` puis `claude` sur Windows, `claude` ailleurs
@@ -135,9 +135,9 @@ Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` qua
 
 ## Update
 
-`chicane update` affiche les etapes de mise a jour adaptees au mode d'installation.
+`palabre update` affiche les etapes de mise a jour adaptees au mode d'installation.
 
-Depuis un checkout git, `chicane update --apply` execute :
+Depuis un checkout git, `palabre update --apply` execute :
 
 ```bash
 git pull --ff-only
@@ -146,7 +146,7 @@ pnpm build
 pnpm link --global
 ```
 
-Pour une installation package, la commande affiche les commandes `pnpm add --global chicane@latest` ou `npm install --global chicane@latest`. Garder ce mode explicite : une mise a jour peut toucher le reseau, le store global pnpm et le lien global.
+Pour une installation package, la commande affiche les commandes `pnpm add --global palabre@latest` ou `npm install --global palabre@latest`. Garder ce mode explicite : une mise a jour peut toucher le reseau, le store global pnpm et le lien global.
 
 ## Adapter CLI actuel
 
@@ -255,9 +255,9 @@ Le prompt de synthese est un mode dedie dans `formatAgentPrompt` (`mode: "summar
 
 ### Contexte de session
 
-Chaque prompt recoit un bloc `Contexte de session Chicane` construit au lancement :
+Chaque prompt recoit un bloc `Contexte de session Palabre` construit au lancement :
 
-- source explicite : fourni par Chicane et visible par tous les agents ;
+- source explicite : fourni par Palabre et visible par tous les agents ;
 - date locale ;
 - fuseau horaire ;
 - dossier courant ;
@@ -275,9 +275,9 @@ Le MVP fournit deux entrees de contexte :
 Important :
 
 - Les agents `cli` sont executes depuis le dossier courant. Codex, Claude ou Gemini peuvent donc inspecter le workspace si leur CLI le permet.
-- Ce comportement appartient aux CLIs externes, pas au contrat Chicane.
-- L'adapter `ollama` ne lit jamais le filesystem directement. Il ne voit que le prompt, les fichiers retenus par `--files` ou `--context`, et le transcript fournis par Chicane.
-- Si aucun contexte n'est fourni a Chicane, Ollama ne voit pas le contenu du projet.
+- Ce comportement appartient aux CLIs externes, pas au contrat Palabre.
+- L'adapter `ollama` ne lit jamais le filesystem directement. Il ne voit que le prompt, les fichiers retenus par `--files` ou `--context`, et le transcript fournis par Palabre.
+- Si aucun contexte n'est fourni a Palabre, Ollama ne voit pas le contenu du projet.
 - L'orchestrateur affiche un warning visible quand un agent Ollama participe sans contexte fourni.
 
 Comportement `--files` :
@@ -305,7 +305,7 @@ Evolution prevue :
 
 ## Modeles
 
-Chicane ne liste pas les modeles disponibles. Les catalogues changent trop vite et appartiennent aux providers ou CLIs.
+Palabre ne liste pas les modeles disponibles. Les catalogues changent trop vite et appartiennent aux providers ou CLIs.
 
 Exception utile : pour Ollama, l'adapter peut detecter les modeles installes localement afin de valider une config ou un override. Il ne choisit pas automatiquement un modele a la place de l'utilisateur.
 
@@ -327,9 +327,9 @@ Si une CLI utilise un nom d'option different, ajouter `modelArg` dans la config 
 Le parser accepte deux formes equivalentes pour lancer un debat :
 
 ```bash
-chicane run --preset claude-gemini --subject "quel jour sommes nous ?" --turns 4
-chicane claude-gemini "quel jour sommes nous ?" -t 4
-chicane -s "quel jour sommes nous ?" -t 2
+palabre run --preset claude-gemini --subject "quel jour sommes nous ?" --turns 4
+palabre claude-gemini "quel jour sommes nous ?" -t 4
+palabre -s "quel jour sommes nous ?" -t 2
 ```
 
 `--subject` est le nom long recommande pour le sujet. `-s` est l'alias court, et `--topic` reste accepte pour compatibilite. Si le premier argument positionnel est un preset connu, il devient `--preset`. Le positionnel suivant devient le sujet. Si le premier argument n'est pas un preset ni une commande (`init`, `update`, `help`, etc.), il devient directement le sujet.
@@ -373,8 +373,8 @@ Combinaisons validees localement :
 - `--show-prompt` avec `--context docs`
 - contexte de session visible dans `--show-prompt`
 - arret anticipe sur accord clair
-- syntaxe courte `chicane preset "sujet" -t 4`
-- alias sujet `chicane -s "sujet" -t 2`
+- syntaxe courte `palabre preset "sujet" -t 4`
+- alias sujet `palabre -s "sujet" -t 2`
 - detection des limites d'usage CLI type Codex/Claude/Gemini par simulation stderr
 - `init` dans un dossier temporaire pour verifier la detection locale
 - `update` en mode instructions
@@ -436,13 +436,13 @@ git push && git push --tags
 3. compile (`pnpm build`) ;
 4. pack un tarball npm (`pnpm pack`) ;
 5. cree une release GitHub avec le tarball en artifact et les notes generees depuis les commits ;
-6. pousse `public/version.json` dans le repo `JuReyms/Chicane-app` (branche `dev`), ce qui declenche un rebuild Netlify et met a jour le badge de version sur le site de documentation.
+6. pousse `public/version.json` dans le repo `JuReyms/Palabre-app` (branche `dev`), ce qui declenche un rebuild Netlify et met a jour le badge de version sur le site de documentation.
 
-## Sync documentation (Chicane-app)
+## Sync documentation (Palabre-app)
 
-Le repo CLI est prive. Le site de documentation (`JuReyms/Chicane-app`, Nuxt SSG sur Netlify) recoit les mises a jour via deux workflows GitHub Actions qui poussent directement dans la branche `dev` de Chicane-app. Netlify detecte le push et rebuild automatiquement.
+Le repo CLI est prive. Le site de documentation (`JuReyms/Palabre-app`, Nuxt SSG sur Netlify) recoit les mises a jour via deux workflows GitHub Actions qui poussent directement dans la branche `dev` de Palabre-app. Netlify detecte le push et rebuild automatiquement.
 
-Les deux workflows utilisent le secret `DOCS_REPO_TOKEN` (PAT fine-grained, `Contents = Read and write` sur `JuReyms/Chicane-app` uniquement).
+Les deux workflows utilisent le secret `DOCS_REPO_TOKEN` (PAT fine-grained, `Contents = Read and write` sur `JuReyms/Palabre-app` uniquement).
 
 ### Workflow sync-docs.yml
 
@@ -453,17 +453,17 @@ Pour chaque fichier source, le workflow :
 1. extrait le titre depuis le `# H1` ;
 2. extrait la description depuis le premier paragraphe de texte (160 caracteres max) ;
 3. injecte un frontmatter `title` / `description` ;
-4. copie le fichier dans Chicane-app.
+4. copie le fichier dans Palabre-app.
 
 Table de correspondance :
 
-| Source (Chicane CLI) | Destination (Chicane-app) |
+| Source (Palabre CLI) | Destination (Palabre-app) |
 |---|---|
 | `docs/guide/getting-started.md` | `content/1.guide/1.getting-started.md` |
 | `docs/guide/running-a-debate.md` | `content/1.guide/2.running-a-debate.md` |
 | `docs/guide/configuration.md` | `content/2.reference/1.configuration.md` |
 
-Pour ajouter un guide : creer le fichier dans `docs/guide/`, ajouter la ligne dans `FILE_MAP` de `sync-docs.yml`, et creer le fichier de destination vide dans Chicane-app.
+Pour ajouter un guide : creer le fichier dans `docs/guide/`, ajouter la ligne dans `FILE_MAP` de `sync-docs.yml`, et creer le fichier de destination vide dans Palabre-app.
 
 ### Workflow release.yml (step de sync)
 
@@ -473,7 +473,7 @@ A chaque release, apres la creation de la release GitHub, le workflow ecrit :
 { "tag_name": "vX.Y.Z" }
 ```
 
-dans `public/version.json` de Chicane-app. Le composable `useLatestRelease.ts` de Chicane-app lit ce fichier local au lieu d'appeler l'API GitHub — ce qui permet au repo CLI de rester prive sans impacter l'affichage de la version sur le site.
+dans `public/version.json` de Palabre-app. Le composable `useLatestRelease.ts` de Palabre-app lit ce fichier local au lieu d'appeler l'API GitHub — ce qui permet au repo CLI de rester prive sans impacter l'affichage de la version sur le site.
 
 ### Nommage des versions
 
@@ -490,3 +490,4 @@ Suivre semver :
 - Garder les adapters independants du moteur d'orchestration.
 - Documenter les limites connues plutot que de masquer les heuristiques.
 - Eviter les abstractions prematurees, sauf quand elles gardent les adapters propres.
+

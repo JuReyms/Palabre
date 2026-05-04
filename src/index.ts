@@ -2,7 +2,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, loadConfig, writeExampleConfig } from "./config.js";
+import { configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, writeExampleConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
 import { discoverLocalTools } from "./discovery.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
@@ -38,7 +38,7 @@ async function main(): Promise<void> {
 
     if (parsed.flags.apply) {
       await applySourceUpdate(info);
-      console.log("Chicane est a jour.");
+      console.log("PALABRE est a jour.");
       return;
     }
 
@@ -47,8 +47,10 @@ async function main(): Promise<void> {
   }
 
   if (parsed.command === "init" || parsed.command === "setup") {
-    if (await configExists(DEFAULT_CONFIG_PATH)) {
-      console.log(`${DEFAULT_CONFIG_PATH} existe deja.`);
+    const existingConfigPath = await resolveDefaultConfigPath();
+
+    if (await configExists(existingConfigPath)) {
+      console.log(`${existingConfigPath} existe deja.`);
       return;
     }
 
@@ -60,11 +62,11 @@ async function main(): Promise<void> {
     return;
   }
 
-  const configPath = String(parsed.flags.config ?? DEFAULT_CONFIG_PATH);
+  const configPath = optionalString(parsed.flags.config) ?? await resolveDefaultConfigPath();
 
   if (!(await configExists(configPath))) {
     await writeExampleConfig(configPath);
-    console.log(`${configPath} cree. Edite la config puis relance chicane run.`);
+    console.log(`${configPath} cree. Edite la config puis relance palabre run.`);
     return;
   }
 
@@ -355,21 +357,21 @@ function formatOllamaDetection(detection: Awaited<ReturnType<typeof discoverLoca
 
 function printHelp(): void {
   console.log(`
-Chicane
+PALABRE
 
 Commandes:
-  chicane init
-  chicane update [--apply]
-  chicane run --subject "Sujet" [--agent-a codex] [--agent-b claude] [--turns 4]
-  chicane claude-gemini "Sujet" -t 4
-  chicane -s "Sujet" -t 2
-  chicane help
-  chicane version
+  palabre init
+  palabre update [--apply]
+  palabre run --subject "Sujet" [--agent-a codex] [--agent-b claude] [--turns 4]
+  palabre claude-gemini "Sujet" -t 4
+  palabre -s "Sujet" -t 2
+  palabre help
+  palabre version
 
 Options:
   -h, --help           Affiche cette aide
   -v, --version        Affiche la version
-  --config <path>      Chemin vers chicane.config.json
+  --config <path>      Chemin vers palabre.config.json
   -s, --subject <text> Sujet du debat
   --topic <text>       Alias compatible de --subject
   --agent-a <name>     Premier agent
@@ -388,7 +390,7 @@ Options:
   --context <paths...> Scanne fichiers/dossiers texte en respectant les limites de contexte
   --show-prompt        Affiche le prompt du premier tour sans appeler d'agent
   --plain              Utilise le rendu console simple sans habillage TUI
-  --apply              Execute les etapes de chicane update pour un checkout git
+  --apply              Execute les etapes de palabre update pour un checkout git
 `);
 }
 
@@ -399,3 +401,4 @@ main().catch((error: unknown) => {
   console.error(`Erreur: ${message}`);
   process.exitCode = 1;
 });
+

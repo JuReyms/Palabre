@@ -2,5 +2,7 @@ node_modules/
 dist/
 .pnpm-store/
 *.debate.md
+palabre.config.json
 chicane.config.json
 .tmp/
+

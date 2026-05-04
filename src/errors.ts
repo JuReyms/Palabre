@@ -28,7 +28,7 @@ function hintForFailure(kind: AdapterFailureKind): string | undefined {
     case "idle-timeout":
       return "Desactive idleTimeoutMs pour les CLIs IA qui restent silencieuses pendant la generation.";
     case "empty-output":
-      return "Teste la commande en dehors de Chicane et verifie que le prompt est bien lu via stdin ou argument.";
+      return "Teste la commande en dehors de Palabre et verifie que le prompt est bien lu via stdin ou argument.";
     case "usage-limit":
       return "Attends la fenetre indiquee par la CLI, change de modele ou relance avec un autre agent/preset disponible.";
     case "non-zero-exit":

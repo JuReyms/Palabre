@@ -1,5 +1,5 @@
 import { createAgent } from "./adapters/index.js";
-import type { AgentConfig, ChicaneConfig, DebateMessage, DebateOptions, DebateRenderer, DebateSummary } from "./types.js";
+import type { AgentConfig, PalabreConfig, DebateMessage, DebateOptions, DebateRenderer, DebateSummary } from "./types.js";
 
 /** Résultat retourné par `runDebate`. `stopReason` est défini uniquement en cas d'arrêt anticipé. */
 export interface DebateResult {
@@ -17,7 +17,7 @@ export interface DebateResult {
  * @throws {Error} si un agent référencé dans `options` est absent de `config.agents`.
  */
 export async function runDebate(
-  config: ChicaneConfig,
+  config: PalabreConfig,
   options: DebateOptions,
   renderer?: DebateRenderer
 ): Promise<DebateResult> {
@@ -172,7 +172,7 @@ function warnIfOllamaHasNoContext(
  * @throws {Error} si l'agent de synthèse est absent de `config.agents`.
  */
 async function generateSummary(
-  config: ChicaneConfig,
+  config: PalabreConfig,
   options: DebateOptions,
   messages: DebateMessage[],
   renderer?: DebateRenderer
@@ -256,3 +256,4 @@ function withRuntimeOverrides(
     model
   };
 }
+

@@ -23,9 +23,9 @@ pnpm build
 pnpm start -- init
 ```
 
-Cette commande crée un fichier `chicane.config.json` dans le dossier courant si il n'existe pas encore. Tu peux ensuite l'éditer pour y déclarer tes agents.
+Cette commande crée un fichier `palabre.config.json` dans le dossier courant si il n'existe pas encore. Tu peux ensuite l'éditer pour y déclarer tes agents. Un ancien `chicane.config.json` reste lisible comme fallback de migration.
 
-Pendant l'initialisation, Chicane détecte `codex`, `claude`, `gemini` et l'API locale Ollama. Quand une paire fiable est trouvée, elle devient le défaut de la config générée.
+Pendant l'initialisation, Palabre détecte `codex`, `claude`, `gemini` et l'API locale Ollama. Quand une paire fiable est trouvée, elle devient le défaut de la config générée.
 
 ## Premier débat
 
@@ -33,7 +33,7 @@ Pendant l'initialisation, Chicane détecte `codex`, `claude`, `gemini` et l'API 
 pnpm start -- run --preset codex-claude --subject "Comment structurer l'auth d'une app Nuxt ?"
 ```
 
-Chicane va faire débattre Codex et Claude sur ce sujet pendant 4 tours (par défaut), puis générer une synthèse finale. La session est exportée dans un fichier `.debate.md`.
+Palabre va faire débattre Codex et Claude sur ce sujet pendant 4 tours (par défaut), puis générer une synthèse finale. La session est exportée dans un fichier `.debate.md`.
 
 Pour donner du contexte projet sans choisir les fichiers un par un :
 
@@ -50,14 +50,14 @@ Depuis le repo :
 ```bash
 pnpm build
 pnpm link --global
-chicane --version
+palabre --version
 ```
 
-Tu peux ensuite lancer `chicane` depuis un autre projet.
+Tu peux ensuite lancer `palabre` depuis un autre projet.
 
 ```bash
-chicane codex-claude "Comment structurer l'auth d'une app Nuxt ?" -t 4
-chicane -s "Critique rapide" -t 2
+palabre codex-claude "Comment structurer l'auth d'une app Nuxt ?" -t 4
+palabre -s "Critique rapide" -t 2
 ```
 
 `--subject` est le nom long recommande pour le sujet. `-s` est son alias court, et `--topic` reste accepte pour compatibilite.
@@ -65,13 +65,13 @@ chicane -s "Critique rapide" -t 2
 Pour afficher les etapes de mise a jour :
 
 ```bash
-chicane update
+palabre update
 ```
 
-Si Chicane est installe depuis ce repo git, tu peux aussi appliquer la mise a jour :
+Si Palabre est installe depuis ce repo git, tu peux aussi appliquer la mise a jour :
 
 ```bash
-chicane update --apply
+palabre update --apply
 ```
 
 ## Vérifier l'installation
@@ -80,3 +80,4 @@ chicane update --apply
 pnpm start -- --version
 pnpm start -- --help
 ```
+
