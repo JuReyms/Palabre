@@ -154,12 +154,24 @@ function optionalString(value: string | string[] | boolean | undefined): string 
 function parseArgs(args: string[]): ParsedArgs {
   const flags: Record<string, string | string[] | boolean> = {};
   let command = "run";
+  const positionals: string[] = [];
+  const commands = new Set(["run", "init", "setup", "help", "version", "update"]);
+  const presets = new Set(listPresetNames());
 
   for (let index = 0; index < args.length; index += 1) {
     const value = args[index];
 
     if (!value.startsWith("-") && index === 0) {
-      command = value;
+      if (commands.has(value)) {
+        command = value;
+      } else {
+        positionals.push(value);
+      }
+      continue;
+    }
+
+    if (!value.startsWith("-")) {
+      positionals.push(value);
       continue;
     }
 
@@ -174,7 +186,7 @@ function parseArgs(args: string[]): ParsedArgs {
     }
 
     if (value.startsWith("--")) {
-      const key = value.slice(2);
+      const key = normalizeFlagName(value.slice(2));
 
       if (key === "files" || key === "context") {
         const values: string[] = [];
@@ -199,7 +211,43 @@ function parseArgs(args: string[]): ParsedArgs {
     }
   }
 
+  if (command === "run") {
+    applyRunPositionals(positionals, flags, presets);
+  }
+
   return { command, flags };
+}
+
+function applyRunPositionals(
+  positionals: string[],
+  flags: Record<string, string | string[] | boolean>,
+  presets: Set<string>
+): void {
+  if (positionals.length === 0) {
+    return;
+  }
+
+  const [first, ...rest] = positionals;
+
+  if (presets.has(first)) {
+    flags.preset ??= first;
+
+    if (rest.length > 0) {
+      flags.topic ??= rest.join(" ");
+    }
+
+    return;
+  }
+
+  flags.topic ??= positionals.join(" ");
+}
+
+function normalizeFlagName(value: string): string {
+  const aliases: Record<string, string> = {
+    t: "turns"
+  };
+
+  return aliases[value] ?? value;
 }
 
 async function getPackageVersion(): Promise<string> {
@@ -267,6 +315,7 @@ Commandes:
   chicane init
   chicane update [--apply]
   chicane run --topic "Sujet" [--agent-a codex] [--agent-b claude] [--turns 4]
+  chicane claude-gemini "Sujet" --t 4
   chicane help
   chicane version
 
@@ -286,6 +335,7 @@ Options:
   --no-summary         Desactive la synthese finale
   --no-early-stop      Desactive l'arret anticipe si les agents sont clairement d'accord
   --turns <number>     Nombre total de tours
+  --t <number>         Alias court de --turns
   --files <paths...>   Fichiers texte a injecter explicitement dans le contexte
   --context <paths...> Scanne fichiers/dossiers texte en respectant les limites de contexte
   --show-prompt        Affiche le prompt du premier tour sans appeler d'agent

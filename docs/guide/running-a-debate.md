@@ -8,6 +8,12 @@ pnpm start -- run --topic "Ton sujet ici"
 
 Les agents et le nombre de tours utilisent les valeurs de `defaults` dans ta config.
 
+Une fois Chicane installe globalement, la syntaxe courte est aussi supportee :
+
+```bash
+chicane "Ton sujet ici"
+```
+
 ---
 
 ## Choisir les agents
@@ -28,6 +34,12 @@ pnpm start -- run --preset claude-ollama --topic "Critique du MVP"
 pnpm start -- run --preset gemini-ollama --topic "Gemini comme reviewer ?"
 ```
 
+Syntaxe courte equivalente :
+
+```bash
+chicane claude-gemini "quel jour sommes nous ?" --t 4
+```
+
 Presets disponibles : `codex-claude`, `claude-codex`, `codex-ollama`, `claude-ollama`, `gemini-ollama` et leurs variantes inversées.
 
 > Un preset choisit les agents, pas les modèles. Les modèles restent ceux configurés dans les CLIs.
@@ -38,6 +50,7 @@ Presets disponibles : `codex-claude`, `claude-codex`, `codex-ollama`, `claude-ol
 
 ```bash
 pnpm start -- run --preset codex-claude --topic "Sujet" --turns 6
+chicane codex-claude "Sujet" --t 6
 ```
 
 `--turns` est une limite haute. Si les agents expriment clairement un accord complet apres un tour complet, Chicane peut s'arreter avant la limite.

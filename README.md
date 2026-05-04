@@ -120,6 +120,12 @@ pnpm start -- run --preset claude-ollama --topic "Critique le MVP batch"
 pnpm start -- run --preset gemini-ollama --topic "Gemini est-il un bon reviewer ?"
 ```
 
+Syntaxe courte equivalente :
+
+```bash
+chicane claude-gemini "quel jour sommes nous ?" --t 4
+```
+
 Un preset choisit seulement les deux agents. Il ne change pas les modeles par defaut configures dans les CLIs. Pour demander un modele explicitement, Chicane transmet la string brute sans valider ni lister les modeles :
 
 ```bash
@@ -257,6 +263,7 @@ Tests effectues sur Windows :
 - `--show-prompt` avec `--context docs` : OK.
 - contexte de session visible dans `--show-prompt` : OK.
 - arret anticipe sur accord clair : OK.
+- syntaxe courte `chicane preset "topic" --t 4` : OK.
 - `init` avec detection locale des agents : OK.
 - `update` en mode instructions : OK.
 - etat "agent en cours" pendant les generations : OK.

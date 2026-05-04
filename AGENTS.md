@@ -322,6 +322,17 @@ Si une CLI utilise un nom d'option different, ajouter `modelArg` dans la config 
 
 `--show-prompt` affiche le prompt exact du premier tour, puis termine sans appeler d'agent. Les tours suivants ne peuvent pas etre connus sans executer le debat, car ils dependent du transcript reel.
 
+## Syntaxe CLI courte
+
+Le parser accepte deux formes equivalentes pour lancer un debat :
+
+```bash
+chicane run --preset claude-gemini --topic "quel jour sommes nous ?" --turns 4
+chicane claude-gemini "quel jour sommes nous ?" --t 4
+```
+
+Si le premier argument positionnel est un preset connu, il devient `--preset`. Le positionnel suivant devient `--topic`. Si le premier argument n'est pas un preset ni une commande (`init`, `update`, `help`, etc.), il devient directement le sujet.
+
 ## Rendu Console
 
 `src/renderers/console.ts` contient le premier rendu TUI leger :
@@ -359,6 +370,7 @@ Combinaisons validees localement :
 - `--show-prompt` avec `--context docs`
 - contexte de session visible dans `--show-prompt`
 - arret anticipe sur accord clair
+- syntaxe courte `chicane preset "topic" --t 4`
 - `init` dans un dossier temporaire pour verifier la detection locale
 - `update` en mode instructions
 - etat "agent en cours" en rendu pretty
