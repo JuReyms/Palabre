@@ -1,6 +1,6 @@
 {
   "name": "palabre",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Orchestrateur de debat entre agents IA locaux, CLIs et Ollama.",
   "type": "module",
   "packageManager": "pnpm@10.18.3",

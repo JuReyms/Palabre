@@ -62,13 +62,13 @@ palabre -s "Critique rapide" -t 2
 
 `--subject` est le nom long recommande pour le sujet. `-s` est son alias court, et `--topic` reste accepte pour compatibilite.
 
-Pour afficher les etapes de mise a jour :
+Pour afficher les étapes de mise à jour :
 
 ```bash
 palabre update
 ```
 
-Si Palabre est installe depuis ce repo git, tu peux aussi appliquer la mise a jour :
+Si Palabre est installé depuis ce repo git, tu peux aussi appliquer la mise à jour :
 
 ```bash
 palabre update --apply
