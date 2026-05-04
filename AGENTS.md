@@ -414,6 +414,37 @@ Mettre en place et maintenir des JSDoc sur les API internes qui servent de contr
 
 Les commentaires doivent expliquer le contrat, les invariants et les limites utiles. Eviter les commentaires qui paraphrasent simplement le code.
 
+## Releases
+
+Les releases sont gerees via des tags Git. Deux workflows GitHub Actions sont en place :
+
+- `.github/workflows/ci.yml` : type check + build sur chaque push `main` et chaque PR.
+- `.github/workflows/release.yml` : type check + build + pack + creation de release GitHub sur chaque tag `v*`.
+
+### Creer une release
+
+```bash
+# Bumper la version dans package.json et creer le tag Git
+pnpm version patch   # ou minor / major
+git push && git push --tags
+```
+
+`pnpm version` met a jour `package.json`, cree un commit de version et un tag `vX.Y.Z`. Le push du tag declenche le workflow `release.yml` qui :
+
+1. installe les dependances (`--frozen-lockfile`) ;
+2. verifie les types (`pnpm check`) ;
+3. compile (`pnpm build`) ;
+4. pack un tarball npm (`pnpm pack`) ;
+5. cree une release GitHub avec le tarball en artifact et les notes generees depuis les commits.
+
+### Nommage des versions
+
+Suivre semver :
+
+- `patch` : correction de bug, ajustement mineur sans impact sur les commandes.
+- `minor` : nouvelle fonctionnalite retro-compatible.
+- `major` : changement cassant de l'interface CLI ou du format de config.
+
 ## Style de contribution
 
 - Preferer des changements petits et comprehensibles.
