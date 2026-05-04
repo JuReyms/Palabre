@@ -151,6 +151,7 @@ export type AdapterFailureKind =
   | "timeout"
   | "idle-timeout"
   | "empty-output"
+  | "usage-limit"
   | "non-zero-exit"
   | "model-unavailable"
   | "model-pull-failed"

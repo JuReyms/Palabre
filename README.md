@@ -267,6 +267,7 @@ Tests effectues sur Windows :
 - contexte de session visible dans `--show-prompt` : OK.
 - arret anticipe sur accord clair : OK.
 - syntaxe courte `chicane preset "sujet" -t 4` et `chicane -s "sujet" -t 2` : OK.
+- detection des limites d'usage CLI type Codex/Claude/Gemini : OK par simulation stderr.
 - `init` avec detection locale des agents : OK.
 - `update` en mode instructions : OK.
 - etat "agent en cours" pendant les generations : OK.
@@ -286,6 +287,7 @@ Reglages importants observes :
 - L'adapter CLI actuel est volontairement minimal. Il marche mieux avec des commandes non interactives ou des CLIs qui acceptent un prompt via `stdin`.
 - `chicane init` detecte les outils locaux et ajuste seulement les defaults ; les blocs agents exemples restent dans la config pour faciliter l'edition.
 - Les adapters exposent un contrat (`capabilities` et `guarantees`) pour documenter timeout, sortie vide, stderr, exit code, model override, filesystem et streaming.
+- Les erreurs CLI de limite d'usage ou de quota sont detectees dans stderr et reformatees sans recopier tout le prompt.
 - `--files` est explicite et strict ; `--context` scanne des dossiers texte de facon bornee et best-effort.
 - `--show-prompt` affiche le prompt exact du premier tour seulement. Les tours suivants dependent du transcript reel.
 - `--turns` est une limite haute quand l'arret anticipe est actif ; `--no-early-stop` force tous les tours demandes.

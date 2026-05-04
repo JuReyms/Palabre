@@ -29,8 +29,10 @@ function hintForFailure(kind: AdapterFailureKind): string | undefined {
       return "Desactive idleTimeoutMs pour les CLIs IA qui restent silencieuses pendant la generation.";
     case "empty-output":
       return "Teste la commande en dehors de Chicane et verifie que le prompt est bien lu via stdin ou argument.";
+    case "usage-limit":
+      return "Attends la fenetre indiquee par la CLI, change de modele ou relance avec un autre agent/preset disponible.";
     case "non-zero-exit":
-      return "Lis stderr ci-dessus, puis ajuste args, permissions, modele ou authentification de la CLI.";
+      return "Teste la commande directement, puis ajuste args, permissions, modele ou authentification de la CLI.";
     case "model-unavailable":
       return "Installe le modele Ollama ou relance avec --pull-models pour autoriser le telechargement.";
     case "model-pull-failed":

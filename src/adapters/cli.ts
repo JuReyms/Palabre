@@ -121,10 +121,7 @@ export class CliAdapter implements AgentAdapter {
       });
       child.on("close", (code) => {
         if (code && code !== 0 && !stdout.trim()) {
-          finish(new AdapterError("non-zero-exit", this.name, `${this.name} exited with code ${code}: ${stderr.trim()}`, {
-            exitCode: code,
-            stderr: stderr.trim()
-          }));
+          finish(createCliExitError(this.name, code, stderr));
           return;
         }
 
@@ -162,4 +159,99 @@ function cleanCliOutput(output: string): string {
   return output
     .replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, "")
     .trim();
+}
+
+function createCliExitError(adapterName: string, exitCode: number, stderr: string): AdapterError {
+  const cleanedStderr = cleanCliOutput(stderr);
+  const usageLimitMessage = extractUsageLimitMessage(cleanedStderr);
+
+  if (usageLimitMessage) {
+    return new AdapterError(
+      "usage-limit",
+      adapterName,
+      `${adapterName} a atteint une limite d'utilisation: ${usageLimitMessage}`,
+      {
+        exitCode,
+        stderr: cleanedStderr
+      }
+    );
+  }
+
+  return new AdapterError(
+    "non-zero-exit",
+    adapterName,
+    `${adapterName} exited with code ${exitCode}: ${summarizeCliError(cleanedStderr)}`,
+    {
+      exitCode,
+      stderr: cleanedStderr
+    }
+  );
+}
+
+function extractUsageLimitMessage(stderr: string): string | undefined {
+  const lines = uniqueNonEmptyLines(stderr);
+  const match = lines.find((line) => isUsageLimitLine(line));
+
+  if (!match) {
+    return undefined;
+  }
+
+  return clipLine(stripLogPrefix(match), 500);
+}
+
+function isUsageLimitLine(line: string): boolean {
+  const normalized = line.toLowerCase();
+
+  return [
+    "usage limit",
+    "rate limit",
+    "quota exceeded",
+    "resource_exhausted",
+    "too many requests",
+    "insufficient_quota",
+    "exceeded your current quota",
+    "credit balance is too low",
+    "billing hard limit"
+  ].some((pattern) => normalized.includes(pattern));
+}
+
+function summarizeCliError(stderr: string): string {
+  const lines = uniqueNonEmptyLines(stderr).map(stripLogPrefix);
+
+  if (lines.length === 0) {
+    return "aucun stderr capture.";
+  }
+
+  return clipLine(lines.slice(-8).join("\n"), 1_200);
+}
+
+function uniqueNonEmptyLines(value: string): string[] {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+
+  for (const line of value.split(/\r?\n/)) {
+    const cleaned = line.trim();
+
+    if (!cleaned || seen.has(cleaned)) {
+      continue;
+    }
+
+    seen.add(cleaned);
+    lines.push(cleaned);
+  }
+
+  return lines;
+}
+
+function stripLogPrefix(line: string): string {
+  return line
+    .replace(/^\d{4}-\d{2}-\d{2}T\S+\s+(ERROR|WARN|INFO|DEBUG)\s+[^:]+:\s*/i, "")
+    .replace(/^ERROR:\s*/i, "")
+    .trim();
+}
+
+function clipLine(value: string, maxLength: number): string {
+  return value.length <= maxLength
+    ? value
+    : `${value.slice(0, maxLength - 1)}…`;
 }

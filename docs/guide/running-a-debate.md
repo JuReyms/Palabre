@@ -154,6 +154,12 @@ Les couleurs sont automatiquement désactivées si la variable d'environnement `
 
 ---
 
+## Erreurs de limites CLI
+
+Si Codex, Claude ou Gemini atteint une limite d'usage, un quota ou un rate limit, Chicane affiche une erreur courte avec la ligne utile de la CLI. Le stderr complet reste dans les détails internes de l'erreur, mais le message console évite de recopier tout le prompt.
+
+---
+
 ## Export
 
 Chaque session génère un fichier `.debate.md` dans le dossier défini par `outputDir` dans ta config (par défaut : le dossier courant).

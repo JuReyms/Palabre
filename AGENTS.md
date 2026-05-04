@@ -357,6 +357,8 @@ pnpm build
 
 Quand un changement touche l'adapter CLI, faire un smoke test avec une commande locale simple avant de tester Claude/Codex.
 
+Les erreurs CLI doivent rester actionnables. En particulier, les limites d'usage et quotas Codex/Claude/Gemini doivent etre classees comme `usage-limit` et ne pas recopier tout le prompt ou les logs bruts dans le message utilisateur.
+
 Quand un changement touche Ollama, verifier que l'erreur est lisible si Ollama n'est pas lance ou si le modele manque.
 
 Combinaisons validees localement :
@@ -373,6 +375,7 @@ Combinaisons validees localement :
 - arret anticipe sur accord clair
 - syntaxe courte `chicane preset "sujet" -t 4`
 - alias sujet `chicane -s "sujet" -t 2`
+- detection des limites d'usage CLI type Codex/Claude/Gemini par simulation stderr
 - `init` dans un dossier temporaire pour verifier la detection locale
 - `update` en mode instructions
 - etat "agent en cours" en rendu pretty
