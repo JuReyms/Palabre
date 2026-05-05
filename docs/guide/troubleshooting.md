@@ -86,7 +86,7 @@ Actions :
 - ferme et rouvre le terminal pour recharger le `PATH` ;
 - corrige `command` dans la config si la commande a un autre nom.
 
-Sur Windows, les wrappers npm comme `codex` et `gemini` peuvent nécessiter :
+Sur Windows, les wrappers npm/PowerShell comme `codex`, `gemini` et `opencode` peuvent nécessiter :
 
 ```json
 "shell": true
@@ -165,7 +165,7 @@ Ou :
 palabre codex-ollama "Critique l'architecture" --context src docs
 ```
 
-## Limite d'usage Codex, Claude ou Gemini
+## Limite d'usage Codex, Claude, Gemini ou OpenCode
 
 Message typique :
 
@@ -191,7 +191,7 @@ produced empty output
 Actions :
 
 - teste la commande hors de Palabre ;
-- vérifie que la CLI accepte bien un prompt via `stdin` ;
+- vérifie que la CLI accepte bien un prompt via `stdin` ou en argument positionnel ;
 - ajuste `args`, `promptMode`, `shell` ou `timeoutMs` dans la config.
 
 `allowEmptyOutput` existe, mais il vaut mieux le garder désactivé sauf cas très spécifique.

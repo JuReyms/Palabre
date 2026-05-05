@@ -12,6 +12,38 @@ const presets: Record<string, AgentPairPreset> = {
     agentA: "claude",
     agentB: "codex"
   },
+  "codex-opencode": {
+    agentA: "codex",
+    agentB: "opencode"
+  },
+  "opencode-codex": {
+    agentA: "opencode",
+    agentB: "codex"
+  },
+  "claude-opencode": {
+    agentA: "claude",
+    agentB: "opencode"
+  },
+  "opencode-claude": {
+    agentA: "opencode",
+    agentB: "claude"
+  },
+  "gemini-opencode": {
+    agentA: "gemini",
+    agentB: "opencode"
+  },
+  "opencode-gemini": {
+    agentA: "opencode",
+    agentB: "gemini"
+  },
+  "opencode-ollama": {
+    agentA: "opencode",
+    agentB: "ollama-local"
+  },
+  "ollama-opencode": {
+    agentA: "ollama-local",
+    agentB: "opencode"
+  },
   "codex-ollama": {
     agentA: "codex",
     agentB: "ollama-local"

@@ -342,6 +342,7 @@ function printInitDiscovery(
   console.log(`- Codex CLI: ${formatCommandDetection(discovery.codex)}`);
   console.log(`- Claude CLI: ${formatCommandDetection(discovery.claude)}`);
   console.log(`- Gemini CLI: ${formatCommandDetection(discovery.gemini)}`);
+  console.log(`- OpenCode CLI: ${formatCommandDetection(discovery.opencode)}`);
   console.log(`- Ollama API: ${formatOllamaDetection(discovery.ollama)}`);
   console.log("");
   console.log(`Defaults: ${config.defaults?.agentA ?? "codex"} <-> ${config.defaults?.agentB ?? "ollama-local"}`);

@@ -8,6 +8,7 @@
   - [Claude Code](https://claude.ai/code) (`claude` ou `claude.exe`)
   - [Codex CLI](https://github.com/openai/codex) (`codex`)
   - [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`gemini`)
+  - OpenCode (`opencode`)
   - [Ollama](https://ollama.com) pour les modèles locaux
 
 ## Installation
@@ -25,7 +26,7 @@ pnpm start -- init
 
 Cette commande crée par défaut `~/.palabre/palabre.config.json`. Tu peux ensuite l'éditer pour y déclarer tes agents. Un ancien `chicane.config.json` reste lisible comme fallback de migration.
 
-Pendant l'initialisation, Palabre détecte `codex`, `claude`, `gemini` et l'API locale Ollama. Quand une paire fiable est trouvée, elle devient le défaut de la config générée. Pour créer une config dans le dossier courant plutôt que dans ton home : `palabre init --local`.
+Pendant l'initialisation, Palabre détecte `codex`, `claude`, `gemini`, `opencode` et l'API locale Ollama. Quand une paire fiable est trouvée, elle devient le défaut de la config générée. Pour créer une config dans le dossier courant plutôt que dans ton home : `palabre init --local`.
 
 Pour vérifier que l'installation est utilisable :
 

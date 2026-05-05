@@ -40,7 +40,7 @@ Résolution au lancement : `./palabre.config.json`, puis `./chicane.config.json`
 
 ## Déclarer un agent CLI
 
-Pour les outils comme Claude, Codex ou Gemini qui s'utilisent en ligne de commande :
+Pour les outils comme Claude, Codex, Gemini ou OpenCode qui s'utilisent en ligne de commande :
 
 ```json
 "claude": {
@@ -61,6 +61,18 @@ Pour les outils comme Claude, Codex ou Gemini qui s'utilisent en ligne de comman
 }
 ```
 
+
+```json
+"opencode": {
+  "type": "cli",
+  "command": "opencode",
+  "args": ["run"],
+  "promptMode": "argument",
+  "modelArg": "--model",
+  "shell": true,
+  "role": "reviewer"
+}
+```
 ### Options CLI
 
 | Option | Description |
@@ -74,7 +86,7 @@ Pour les outils comme Claude, Codex ou Gemini qui s'utilisent en ligne de comman
 | `allowEmptyOutput` | Autorise une réponse vide (désactivé par défaut) |
 | `modelArg` | Nom du flag modèle si différent de `--model` |
 
-> **Windows** : pour Claude, utilise `claude.exe` avec `"shell": false`. Pour Codex et Gemini (wrappers npm), utilise `"shell": true`.
+> **Windows** : pour Claude, utilise `claude.exe` avec `"shell": false`. Pour Codex, Gemini et OpenCode (wrappers npm/PowerShell), utilise `"shell": true`.
 
 ---
 

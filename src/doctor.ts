@@ -42,6 +42,7 @@ export async function runDoctor(explicitConfigPath?: string): Promise<DoctorResu
   lines.push(formatCommand("Codex CLI", discovery.codex.available, discovery.codex.command, discovery.codex.path));
   lines.push(formatCommand("Claude CLI", discovery.claude.available, discovery.claude.command, discovery.claude.path));
   lines.push(formatCommand("Gemini CLI", discovery.gemini.available, discovery.gemini.command, discovery.gemini.path));
+  lines.push(formatCommand("OpenCode CLI", discovery.opencode.available, discovery.opencode.command, discovery.opencode.path));
   lines.push(discovery.ollama.available
     ? ok(`Ollama API joignable: ${discovery.ollama.baseUrl} (${discovery.ollama.models.length} modele(s))`)
     : warn(discovery.ollama.commandAvailable
@@ -183,6 +184,7 @@ function knownCliDetection(
   if (normalized === "codex") return discovery.codex;
   if (normalized === "claude") return discovery.claude;
   if (normalized === "gemini") return discovery.gemini;
+  if (normalized === "opencode") return discovery.opencode;
   return undefined;
 }
 

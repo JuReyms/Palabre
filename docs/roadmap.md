@@ -7,8 +7,8 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - MVP CLI Node.js/TypeScript avec `pnpm`.
 - Config JSON avec detection locale pendant `palabre init`.
 - Defaults orientes agents CLI premium : `codex <-> claude`.
-- Presets Codex, Claude, Gemini et Ollama.
-- Adapter CLI batch pour Codex, Claude et Gemini.
+- Presets Codex, Claude, Gemini, OpenCode et Ollama.
+- Adapter CLI batch pour Codex, Claude, Gemini et OpenCode.
 - Adapter Ollama HTTP local.
 - Validation Ollama via `/api/tags`.
 - Pull Ollama explicite via `--pull-models` ou `autoPullModel`.

@@ -8,7 +8,6 @@ Ce fichier est réservé aux idées personnelles du mainteneur.
 - Afficher le modèle utilisé quand Palabre peut le connaître.
 - Version anglaise et française — choix de la langue à l'installation.
 - Ajouter LM Studio via un provider compatible OpenAI local.
-- Ajouter OpenCode via un provider compatible OpenAI local.
 
 ## Observations
 
@@ -23,6 +22,7 @@ Pour utiliser Palabre, chaque provider doit être installé séparément :
 - **Claude Code** — abonnement Anthropic requis.
 - **Codex** — abonnement OpenAI requis.
 - **Gemini** — gratuit avec limitations, ou abonnement Google AI.
+- **OpenCode** — dépend du provider configuré dans OpenCode.
 - **Ollama** — gratuit en local (usage actuel) ou version cloud disponible.
 
 ### Branches de développement

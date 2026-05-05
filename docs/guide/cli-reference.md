@@ -6,7 +6,7 @@ Cette page reprend les commandes et options disponibles dans `palabre --help`.
 
 | Commande | Description |
 |----------|-------------|
-| `palabre init` | Crée la config globale `~/.palabre/palabre.config.json` si elle n'existe pas. Détecte Codex, Claude, Gemini et Ollama. |
+| `palabre init` | Crée la config globale `~/.palabre/palabre.config.json` si elle n'existe pas. Détecte Codex, Claude, Gemini, OpenCode et Ollama. |
 | `palabre init --local` | Crée une config locale `./palabre.config.json` dans le dossier courant. |
 | `palabre update` | Affiche les instructions pour mettre à jour une installation locale. |
 | `palabre update --apply` | Exécute la mise à jour si Palabre est lancé depuis un checkout git. |
@@ -40,7 +40,7 @@ Cette page reprend les commandes et options disponibles dans `palabre --help`.
 | `-t`, `--t <number>` | Alias court de `--turns`. |
 | `--no-early-stop` | Désactive l'arrêt anticipé quand les agents sont clairement d'accord. |
 
-Presets actuels : `codex-claude`, `claude-codex`, `codex-ollama`, `ollama-codex`, `claude-ollama`, `ollama-claude`, `gemini-ollama`, `ollama-gemini`, `codex-gemini`, `gemini-codex`, `claude-gemini`, `gemini-claude`.
+Presets actuels : `codex-claude`, `claude-codex`, `codex-ollama`, `ollama-codex`, `claude-ollama`, `ollama-claude`, `gemini-ollama`, `ollama-gemini`, `codex-gemini`, `gemini-codex`, `claude-gemini`, `gemini-claude`, `codex-opencode`, `opencode-codex`, `claude-opencode`, `opencode-claude`, `gemini-opencode`, `opencode-gemini`, `opencode-ollama`, `ollama-opencode`.
 
 ## Modèles
 
@@ -50,7 +50,7 @@ Presets actuels : `codex-claude`, `claude-codex`, `codex-ollama`, `ollama-codex`
 | `--model-b <model>` | Modèle brut transmis à l'agent B. |
 | `--pull-models` | Autorise Ollama à télécharger un modèle manquant. |
 
-Palabre ne liste pas les modèles Codex, Claude ou Gemini : les noms changent souvent. La valeur est transmise telle quelle à la CLI concernée.
+Palabre ne liste pas les modèles Codex, Claude, Gemini ou OpenCode : les noms changent souvent. La valeur est transmise telle quelle à la CLI concernée.
 
 ## Synthèse
 

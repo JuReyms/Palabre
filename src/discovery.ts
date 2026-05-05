@@ -19,14 +19,16 @@ export interface ToolDiscovery {
   codex: CommandDetection;
   claude: CommandDetection;
   gemini: CommandDetection;
+  opencode: CommandDetection;
   ollama: OllamaDetection;
 }
 
 export async function discoverLocalTools(): Promise<ToolDiscovery> {
-  const [codex, claude, gemini, ollamaCommand] = await Promise.all([
+  const [codex, claude, gemini, opencode, ollamaCommand] = await Promise.all([
     detectCommand("codex"),
     detectFirstCommand(process.platform === "win32" ? ["claude.exe", "claude"] : ["claude"]),
     detectCommand("gemini"),
+    detectCommand("opencode"),
     detectCommand("ollama")
   ]);
 
@@ -36,6 +38,7 @@ export async function discoverLocalTools(): Promise<ToolDiscovery> {
     codex,
     claude,
     gemini,
+    opencode,
     ollama: {
       ...ollamaServer,
       commandAvailable: ollamaCommand.available
@@ -141,7 +144,7 @@ function executableExtensions(command: string): string[] {
   return (process.env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD")
     .split(";")
     .map((extension) => extension.toLowerCase())
-    .concat("");
+    .concat(".ps1", "");
 }
 
 async function isAccessible(filePath: string): Promise<boolean> {

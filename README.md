@@ -1,6 +1,6 @@
 # PALABRE
 
-PALABRE est un orchestrateur de debat entre agents IA installes localement : CLIs comme Codex ou Claude, et modeles locaux exposes par Ollama.
+PALABRE est un orchestrateur de debat entre agents IA installes localement : CLIs comme Codex, Claude ou OpenCode, et modeles locaux exposes par Ollama.
 
 L'objectif du projet est de permettre a un utilisateur deja a l'aise avec le terminal de faire dialoguer plusieurs assistants sur un sujet technique, sans imposer une API payante au jeton. PALABRE pilote les outils deja configures sur la machine et exporte la session en Markdown.
 
@@ -29,6 +29,7 @@ Le preset CLI actuel vise les modes non interactifs : `codex exec` et `claude --
 - pnpm 10.
 - Pour les agents CLI : les commandes visees doivent deja etre installees et authentifiees, par exemple `codex` ou `claude`.
 - Gemini CLI est aussi supporte en mode batch si `gemini` est installe et authentifie.
+- OpenCode est supporte en mode batch si `opencode` est installe et authentifie.
 - Pour Ollama : Ollama doit tourner localement, par defaut sur `http://localhost:11434`, avec le modele configure deja disponible.
 
 ## Installation
@@ -44,7 +45,7 @@ pnpm build
 pnpm start -- init
 ```
 
-Cette commande cree par defaut une config globale dans `~/.palabre/palabre.config.json`. Pendant l'init, Palabre detecte `codex`, `claude`, `gemini` et l'API locale Ollama, puis choisit une paire par defaut detectee quand c'est possible. Le fichier d'exemple versionne est [palabre.config.example.json](./palabre.config.example.json).
+Cette commande cree par defaut une config globale dans `~/.palabre/palabre.config.json`. Pendant l'init, Palabre detecte `codex`, `claude`, `gemini`, `opencode` et l'API locale Ollama, puis choisit une paire par defaut detectee quand c'est possible. Le fichier d'exemple versionne est [palabre.config.example.json](./palabre.config.example.json).
 
 Resolution de config : `./palabre.config.json` est prioritaire quand il existe dans le dossier courant, puis `./chicane.config.json` en fallback legacy, puis `~/.palabre/palabre.config.json`, puis `~/.palabre/chicane.config.json`. Pour creer une config locale volontairement : `palabre init --local`.
 
@@ -95,8 +96,9 @@ Les presets CLI fournis utilisent les modes batch quand ils existent :
 - Codex : `codex exec ... -`, prompt via `stdin`.
 - Claude : `claude --print`, prompt via `stdin`.
 - Gemini : `gemini --prompt -`, prompt via `stdin`.
+- OpenCode : `opencode run`, prompt en argument positionnel.
 
-Sur Windows, les wrappers npm comme `codex` et `gemini` peuvent necessiter `"shell": true` dans la config agent. Claude fonctionne mieux via `claude.exe` avec `"shell": false`.
+Sur Windows, les wrappers npm comme `codex`, `gemini` et `opencode` peuvent necessiter `"shell": true` dans la config agent. Claude fonctionne mieux via `claude.exe` avec `"shell": false`.
 
 Les roles documentent l'intention de l'agent dans le debat et ajoutent une consigne de role dans chaque prompt :
 
@@ -127,6 +129,7 @@ Presets disponibles :
 pnpm start -- run --preset codex-claude --subject "Debattez du prochain jalon"
 pnpm start -- run --preset claude-ollama --subject "Critique le MVP batch"
 pnpm start -- run --preset gemini-ollama --subject "Gemini est-il un bon reviewer ?"
+pnpm start -- run --preset claude-opencode --subject "OpenCode comme reviewer ?"
 ```
 
 Syntaxe courte equivalente :
@@ -239,9 +242,9 @@ Palabre injecte aussi un contexte de session minimal dans tous les prompts :
 - dossier courant ;
 - horodatage de debut de session.
 
-Ce contexte est fourni par Palabre et visible par tous les agents du debat. Il evite que Codex, Claude, Gemini ou Ollama se contredisent sur des informations implicites comme la date ou le fuseau horaire.
+Ce contexte est fourni par Palabre et visible par tous les agents du debat. Il evite que Codex, Claude, Gemini, OpenCode ou Ollama se contredisent sur des informations implicites comme la date ou le fuseau horaire.
 
-Les agents CLI sont lances depuis le dossier courant. Selon leur propre fonctionnement et leurs permissions, Codex, Claude ou Gemini peuvent donc inspecter le workspace par leurs outils internes. Ce comportement depend de chaque CLI et ne doit pas etre considere comme un contrat garanti par Palabre.
+Les agents CLI sont lances depuis le dossier courant. Selon leur propre fonctionnement et leurs permissions, Codex, Claude, Gemini ou OpenCode peuvent donc inspecter le workspace par leurs outils internes. Ce comportement depend de chaque CLI et ne doit pas etre considere comme un contrat garanti par Palabre.
 
 Ollama ne lit pas le filesystem par lui-meme. L'adapter Ollama recoit uniquement le prompt construit par Palabre : sujet, role, instructions, fichiers retenus par `--files` ou `--context`, et historique du debat. Si aucun contexte n'est passe, Ollama ne voit pas le contenu du projet.
 
@@ -270,13 +273,14 @@ Tests effectues sur Windows :
 - `codex exec ↔ ollama` : OK.
 - `claude --print ↔ ollama` : OK avec `claude.exe` et `"shell": false`.
 - `gemini --prompt - ↔ ollama` : OK.
+- `opencode run ↔ claude --print` : OK en detection/config, a valider en debat reel.
 - `codex exec ↔ claude --print` : OK.
 - `--show-prompt` avec `--files` : OK.
 - `--show-prompt` avec `--context docs` : OK.
 - contexte de session visible dans `--show-prompt` : OK.
 - arret anticipe sur accord clair : OK.
 - syntaxe courte `palabre preset "sujet" -t 4` et `palabre -s "sujet" -t 2` : OK.
-- detection des limites d'usage CLI type Codex/Claude/Gemini : OK par simulation stderr.
+- detection des limites d'usage CLI type Codex/Claude/Gemini/OpenCode : OK par simulation stderr.
 - `init` avec detection locale des agents : OK.
 - config globale `~/.palabre/palabre.config.json` avec fallback local/legacy : OK.
 - en-tete des exports `.debate.md` en table Markdown : OK.
@@ -290,6 +294,7 @@ Reglages importants observes :
 
 - Codex via le wrapper npm Windows necessite `"shell": true`.
 - Gemini via le wrapper npm Windows fonctionne avec `"shell": true` et `--prompt -`.
+- OpenCode via le wrapper PowerShell/npm Windows fonctionne avec `"shell": true` et `opencode run`.
 - Claude capture correctement `stdin` avec `command: "claude.exe"` et `"shell": false`.
 - `idleTimeoutMs` ne doit pas etre active par defaut pour les CLIs IA en batch, car elles peuvent rester silencieuses pendant la generation.
 

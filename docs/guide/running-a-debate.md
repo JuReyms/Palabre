@@ -35,6 +35,7 @@ Les presets sont des paires d'agents prédéfinies :
 pnpm start -- run --preset codex-claude --subject "Stratégie de cache"
 pnpm start -- run --preset claude-ollama --subject "Critique du MVP"
 pnpm start -- run --preset gemini-ollama --subject "Gemini comme reviewer ?"
+pnpm start -- run --preset claude-opencode --subject "OpenCode comme reviewer ?"
 ```
 
 Syntaxe courte equivalente :
@@ -43,7 +44,7 @@ Syntaxe courte equivalente :
 palabre claude-gemini "quel jour sommes nous ?" -t 4
 ```
 
-Presets disponibles : `codex-claude`, `claude-codex`, `codex-ollama`, `claude-ollama`, `gemini-ollama` et leurs variantes inversées.
+Presets disponibles : `codex-claude`, `claude-codex`, `codex-ollama`, `claude-ollama`, `gemini-ollama`, `claude-opencode`, `codex-opencode`, `opencode-ollama` et leurs variantes inversées.
 
 > Un preset choisit les agents, pas les modèles. Les modèles restent ceux configurés dans les CLIs.
 
@@ -156,7 +157,7 @@ Les couleurs sont automatiquement désactivées si la variable d'environnement `
 
 ## Erreurs de limites CLI
 
-Si Codex, Claude ou Gemini atteint une limite d'usage, un quota ou un rate limit, Palabre affiche une erreur courte avec la ligne utile de la CLI. Le stderr complet reste dans les détails internes de l'erreur, mais le message console évite de recopier tout le prompt.
+Si Codex, Claude, Gemini ou OpenCode atteint une limite d'usage, un quota ou un rate limit, Palabre affiche une erreur courte avec la ligne utile de la CLI. Le stderr complet reste dans les détails internes de l'erreur, mais le message console évite de recopier tout le prompt.
 
 ---
 

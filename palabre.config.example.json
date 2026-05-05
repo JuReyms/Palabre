@@ -55,6 +55,18 @@
       "role": "reviewer",
       "tier": "primary"
     },
+    "opencode": {
+      "type": "cli",
+      "command": "opencode",
+      "args": [
+        "run"
+      ],
+      "promptMode": "argument",
+      "modelArg": "--model",
+      "shell": true,
+      "role": "reviewer",
+      "tier": "primary"
+    },
     "ollama-local": {
       "type": "ollama",
       "baseUrl": "http://localhost:11434",
