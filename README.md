@@ -55,6 +55,7 @@ Extrait de configuration :
   "defaults": {
     "agentA": "codex",
     "agentB": "claude",
+    "summaryAgent": "claude",
     "turns": 4
   },
   "agents": {
@@ -318,5 +319,6 @@ Site de documentation : **https://palab.re** (aussi accessible sur https://palab
 - Demarrage rapide : [docs/guide/getting-started.md](./docs/guide/getting-started.md)
 - Configuration : [docs/guide/configuration.md](./docs/guide/configuration.md)
 - Lancer un debat : [docs/guide/running-a-debate.md](./docs/guide/running-a-debate.md)
+- Reference CLI : [docs/guide/cli-reference.md](./docs/guide/cli-reference.md)
 - Guide agents/contributeurs : [AGENTS.md](./AGENTS.md)
 - Archive de specification initiale : [docs/archive/Palabre-Specification.md](./docs/archive/Palabre-Specification.md)

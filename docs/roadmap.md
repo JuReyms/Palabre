@@ -27,6 +27,7 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Renommage produit de Chicane vers Palabre, avec fallback de config legacy.
 - Config globale `~/.palabre/palabre.config.json`, avec config locale prioritaire et `palabre init --local`.
 - Guides utilisateur versionnes dans `docs/guide/`.
+- Reference CLI utilisateur dans `docs/guide/cli-reference.md`.
 - Roles injectes dans les prompts avec consignes dediees par role.
 
 ## P0 - Stabilisation CLI
