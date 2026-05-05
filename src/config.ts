@@ -73,7 +73,7 @@ export const exampleConfig: PalabreConfig = {
       args: [
         "run"
       ],
-      promptMode: "argument",
+      promptMode: "stdin",
       modelArg: "--model",
       shell: process.platform === "win32",
       role: "reviewer",

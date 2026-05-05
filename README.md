@@ -96,7 +96,7 @@ Les presets CLI fournis utilisent les modes batch quand ils existent :
 - Codex : `codex exec ... -`, prompt via `stdin`.
 - Claude : `claude --print`, prompt via `stdin`.
 - Gemini : `gemini --prompt -`, prompt via `stdin`.
-- OpenCode : `opencode run`, prompt en argument positionnel.
+- OpenCode : `opencode run`, prompt via `stdin`.
 
 Sur Windows, les wrappers npm comme `codex`, `gemini` et `opencode` peuvent necessiter `"shell": true` dans la config agent. Claude fonctionne mieux via `claude.exe` avec `"shell": false`.
 
@@ -273,7 +273,7 @@ Tests effectues sur Windows :
 - `codex exec ↔ ollama` : OK.
 - `claude --print ↔ ollama` : OK avec `claude.exe` et `"shell": false`.
 - `gemini --prompt - ↔ ollama` : OK.
-- `opencode run ↔ claude --print` : OK en detection/config, a valider en debat reel.
+- `opencode run` via Palabre : OK en debat reel 1 tour avec export.
 - `codex exec ↔ claude --print` : OK.
 - `--show-prompt` avec `--files` : OK.
 - `--show-prompt` avec `--context docs` : OK.

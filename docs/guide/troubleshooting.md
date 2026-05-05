@@ -191,7 +191,7 @@ produced empty output
 Actions :
 
 - teste la commande hors de Palabre ;
-- vérifie que la CLI accepte bien un prompt via `stdin` ou en argument positionnel ;
+- vérifie que la CLI accepte bien un prompt via `stdin` ;
 - ajuste `args`, `promptMode`, `shell` ou `timeoutMs` dans la config.
 
 `allowEmptyOutput` existe, mais il vaut mieux le garder désactivé sauf cas très spécifique.

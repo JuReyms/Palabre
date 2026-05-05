@@ -67,7 +67,7 @@ Pour les outils comme Claude, Codex, Gemini ou OpenCode qui s'utilisent en ligne
   "type": "cli",
   "command": "opencode",
   "args": ["run"],
-  "promptMode": "argument",
+  "promptMode": "stdin",
   "modelArg": "--model",
   "shell": true,
   "role": "reviewer"

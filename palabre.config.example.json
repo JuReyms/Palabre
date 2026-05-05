@@ -61,7 +61,7 @@
       "args": [
         "run"
       ],
-      "promptMode": "argument",
+      "promptMode": "stdin",
       "modelArg": "--model",
       "shell": true,
       "role": "reviewer",
