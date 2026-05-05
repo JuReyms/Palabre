@@ -35,18 +35,7 @@ export function renderDebateMarkdown(
   const lines = [
     "# PALABRE Debate",
     "",
-    `**Sujet:** ${options.topic}`,
-    `**Agents:** ${options.agentA} <-> ${options.agentB}`,
-    `**Modeles:** ${options.modelA ?? "default"} <-> ${options.modelB ?? "default"}`,
-    `**Auto-pull Ollama:** ${options.pullModels ? "yes" : "no"}`,
-    `**Synthese:** ${options.summaryEnabled ? options.summaryAgent ?? options.agentB : "disabled"}`,
-    `**Tours:** ${options.turns}`,
-    `**Tours joues:** ${messages.length}`,
-    `**Arret anticipe:** ${stopReason ?? "no"}`,
-    `**Date locale:** ${options.session.localDate}`,
-    `**Fuseau horaire:** ${options.session.timeZone}`,
-    `**Dossier courant:** ${options.session.cwd}`,
-    `**Session demarree a:** ${options.session.startedAt}`,
+    ...renderSessionHeader(options, messages, stopReason),
     "",
     "## Contexte",
     "",
@@ -76,6 +65,37 @@ export function renderDebateMarkdown(
   }
 
   return `${lines.join("\n")}\n`;
+}
+
+function renderSessionHeader(
+  options: DebateOptions,
+  messages: DebateMessage[],
+  stopReason?: string
+): string[] {
+  const rows = [
+    ["Sujet", options.topic],
+    ["Agents", `${options.agentA} <-> ${options.agentB}`],
+    ["Modeles", `${options.modelA ?? "default"} <-> ${options.modelB ?? "default"}`],
+    ["Auto-pull Ollama", options.pullModels ? "yes" : "no"],
+    ["Synthese", options.summaryEnabled ? options.summaryAgent ?? options.agentB : "disabled"],
+    ["Tours demandes", String(options.turns)],
+    ["Tours joues", String(messages.length)],
+    ["Arret anticipe", stopReason ?? "no"],
+    ["Date locale", options.session.localDate],
+    ["Fuseau horaire", options.session.timeZone],
+    ["Dossier courant", options.session.cwd],
+    ["Session demarree a", options.session.startedAt]
+  ];
+
+  return [
+    "| Champ | Valeur |",
+    "| --- | --- |",
+    ...rows.map(([label, value]) => `| ${escapeTableCell(label)} | ${escapeTableCell(value)} |`)
+  ];
+}
+
+function escapeTableCell(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>");
 }
 
 function renderFileList(files: DebateOptions["files"]): string[] {

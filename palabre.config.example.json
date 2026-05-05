@@ -3,6 +3,7 @@
   "defaults": {
     "agentA": "codex",
     "agentB": "claude",
+    "summaryAgent": "claude",
     "turns": 4
   },
   "agents": {
@@ -66,4 +67,3 @@
     }
   }
 }
-

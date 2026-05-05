@@ -2,7 +2,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, writeExampleConfig } from "./config.js";
+import { configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, writeExampleConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
 import { discoverLocalTools } from "./discovery.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
@@ -47,17 +47,17 @@ async function main(): Promise<void> {
   }
 
   if (parsed.command === "init" || parsed.command === "setup") {
-    const existingConfigPath = await resolveDefaultConfigPath();
+    const initConfigPath = optionalString(parsed.flags.config) ?? (parsed.flags.local ? DEFAULT_CONFIG_PATH : GLOBAL_CONFIG_PATH);
 
-    if (await configExists(existingConfigPath)) {
-      console.log(`${existingConfigPath} existe deja.`);
+    if (await configExists(initConfigPath)) {
+      console.log(`${initConfigPath} existe deja.`);
       return;
     }
 
     const discovery = await discoverLocalTools();
     const config = createConfigFromDiscovery(discovery);
-    await writeExampleConfig(DEFAULT_CONFIG_PATH, config);
-    console.log(`${DEFAULT_CONFIG_PATH} cree.`);
+    await writeExampleConfig(initConfigPath, config);
+    console.log(`${initConfigPath} cree.`);
     printInitDiscovery(discovery, config);
     return;
   }
@@ -93,7 +93,7 @@ async function main(): Promise<void> {
     modelA: optionalString(parsed.flags["model-a"]),
     modelB: optionalString(parsed.flags["model-b"]),
     pullModels: Boolean(parsed.flags["pull-models"]),
-    summaryAgent: optionalString(parsed.flags["summary-agent"]),
+    summaryAgent: optionalString(parsed.flags["summary-agent"]) ?? config.defaults?.summaryAgent,
     summaryModel: optionalString(parsed.flags["summary-model"]),
     summaryEnabled: !parsed.flags["no-summary"],
     earlyStopOnAgreement: !parsed.flags["no-early-stop"],
@@ -132,6 +132,7 @@ function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, opti
     turn: 1,
     selfName: options.agentA,
     peerName: options.agentB,
+    selfRole: agentConfig.role,
     session: options.session,
     files: options.files,
     transcript: []
@@ -371,16 +372,17 @@ Commandes:
 Options:
   -h, --help           Affiche cette aide
   -v, --version        Affiche la version
-  --config <path>      Chemin vers palabre.config.json
+  --config <path>      Chemin vers un fichier de config explicite
   -s, --subject <text> Sujet du debat
   --topic <text>       Alias compatible de --subject
+  --local              Avec init/setup, cree une config locale ./palabre.config.json
   --agent-a <name>     Premier agent
   --agent-b <name>     Second agent
   --preset <name>      Preset de paire d'agents (${listPresetNames().join(", ")})
   --model-a <model>    Modele brut transmis a l'agent A
   --model-b <model>    Modele brut transmis a l'agent B
   --pull-models        Autorise Ollama a telecharger un modele manquant
-  --summary-agent <n>  Agent utilise pour produire la synthese finale (defaut: agent B)
+  --summary-agent <n>  Agent utilise pour produire la synthese finale (defaut: config, puis agent B)
   --summary-model <m>  Modele brut transmis a l'agent de synthese
   --no-summary         Desactive la synthese finale
   --no-early-stop      Desactive l'arret anticipe si les agents sont clairement d'accord
@@ -401,4 +403,3 @@ main().catch((error: unknown) => {
   console.error(`Erreur: ${message}`);
   process.exitCode = 1;
 });
-

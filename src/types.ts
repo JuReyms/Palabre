@@ -66,6 +66,7 @@ export interface PalabreConfig {
   defaults?: {
     agentA?: string;
     agentB?: string;
+    summaryAgent?: string;
     turns?: number;
   };
   agents: Record<string, AgentConfig>;
@@ -103,6 +104,7 @@ export interface AgentPrompt {
   turn: number;
   selfName: string;
   peerName: string;
+  selfRole: AgentRole;
   mode?: "debate" | "summary";
   session: SessionContext;
   files: ProjectFileContext[];
@@ -208,4 +210,3 @@ export interface DebateRenderer {
   summaryStart(agent: string, role: AgentRole): void;
   done(outputPath: string): void;
 }
-

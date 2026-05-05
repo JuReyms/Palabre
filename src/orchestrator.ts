@@ -60,6 +60,7 @@ export async function runDebate(
       turn,
       selfName: current.name,
       peerName: peer.name,
+      selfRole: current.role,
       session: options.session,
       files: options.files,
       transcript: messages
@@ -167,7 +168,7 @@ function warnIfOllamaHasNoContext(
 }
 
 /**
- * Phase de synthèse post-débat. Utilise `agentB` par défaut sauf override par `options.summaryAgent`.
+ * Phase de synthèse post-débat. Utilise `options.summaryAgent` quand il est défini, sinon `agentB`.
  *
  * @throws {Error} si l'agent de synthèse est absent de `config.agents`.
  */
@@ -195,6 +196,7 @@ async function generateSummary(
     turn: messages.length + 1,
     selfName: summaryAgent.name,
     peerName: "transcript",
+    selfRole: summaryAgent.role,
     mode: "summary",
     session: options.session,
     files: options.files,
@@ -256,4 +258,3 @@ function withRuntimeOverrides(
     model
   };
 }
-

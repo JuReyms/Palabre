@@ -1,16 +1,21 @@
-import { access, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import type { PalabreConfig } from "./types.js";
 import type { ToolDiscovery } from "./discovery.js";
 
 export const DEFAULT_CONFIG_PATH = "palabre.config.json";
 export const LEGACY_CONFIG_PATH = "chicane.config.json";
+export const CONFIG_DIR_NAME = ".palabre";
+export const GLOBAL_CONFIG_PATH = path.join(os.homedir(), CONFIG_DIR_NAME, DEFAULT_CONFIG_PATH);
+export const GLOBAL_LEGACY_CONFIG_PATH = path.join(os.homedir(), CONFIG_DIR_NAME, LEGACY_CONFIG_PATH);
 
 export const exampleConfig: PalabreConfig = {
   outputDir: ".",
   defaults: {
     agentA: "codex",
     agentB: "claude",
+    summaryAgent: "claude",
     turns: 4
   },
   agents: {
@@ -99,7 +104,15 @@ export async function resolveDefaultConfigPath(): Promise<string> {
     return LEGACY_CONFIG_PATH;
   }
 
-  return DEFAULT_CONFIG_PATH;
+  if (await configExists(GLOBAL_CONFIG_PATH)) {
+    return GLOBAL_CONFIG_PATH;
+  }
+
+  if (await configExists(GLOBAL_LEGACY_CONFIG_PATH)) {
+    return GLOBAL_LEGACY_CONFIG_PATH;
+  }
+
+  return GLOBAL_CONFIG_PATH;
 }
 
 export function createConfigFromDiscovery(discovery: ToolDiscovery): PalabreConfig {
@@ -121,7 +134,7 @@ export function createConfigFromDiscovery(discovery: ToolDiscovery): PalabreConf
 
   config.defaults = {
     ...config.defaults,
-    ...(pair ? { agentA: pair[0], agentB: pair[1] } : {})
+    ...(pair ? { agentA: pair[0], agentB: pair[1], summaryAgent: chooseDefaultSummaryAgent(pair) } : {})
   };
 
   return config;
@@ -131,7 +144,19 @@ export async function writeExampleConfig(
   configPath = DEFAULT_CONFIG_PATH,
   config: PalabreConfig = exampleConfig
 ): Promise<void> {
-  await writeFile(path.resolve(configPath), `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  const resolved = path.resolve(configPath);
+  await mkdir(path.dirname(resolved), { recursive: true });
+  await writeFile(resolved, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+}
+
+function chooseDefaultSummaryAgent(pair: [string, string]): string {
+  for (const preferred of ["claude", "codex", "gemini"]) {
+    if (pair.includes(preferred)) {
+      return preferred;
+    }
+  }
+
+  return pair[1];
 }
 
 function chooseDefaultPair(discovery: ToolDiscovery): [string, string] | undefined {
@@ -167,4 +192,3 @@ function chooseDefaultPair(discovery: ToolDiscovery): [string, string] | undefin
 function cloneConfig(config: PalabreConfig): PalabreConfig {
   return JSON.parse(JSON.stringify(config)) as PalabreConfig;
 }
-

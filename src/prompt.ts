@@ -1,4 +1,4 @@
-import type { AgentPrompt, DebateMessage, ProjectFileContext } from "./types.js";
+import type { AgentPrompt, AgentRole, DebateMessage, ProjectFileContext } from "./types.js";
 
 /**
  * Formate le prompt complet transmis à l'adapter.
@@ -16,6 +16,8 @@ export function formatAgentPrompt(input: AgentPrompt): string {
     "",
     `Tu es ${input.selfName}. Tu reponds au tour ${input.turn}.`,
     `Ton interlocuteur est ${input.peerName}.`,
+    `Role de ${input.selfName}: ${input.selfRole}.`,
+    roleInstruction(input.selfRole),
     "",
     "Contexte de session PALABRE:",
     "- Source: fourni par PALABRE et visible par tous les agents de ce debat.",
@@ -28,6 +30,7 @@ export function formatAgentPrompt(input: AgentPrompt): string {
     "- Apporte une reponse utile, concrete et courte.",
     "- Reagis aux arguments precedents au lieu de repartir de zero.",
     "- Signale les incertitudes ou les points a trancher.",
+    "- Respecte ton role sans ignorer les faits du transcript.",
     "",
     input.files.length > 0 ? "Contexte fichiers:" : "",
     formatFileContext(input.files),
@@ -49,6 +52,8 @@ function formatSummaryPrompt(input: AgentPrompt): string {
     `Sujet: ${input.topic}`,
     "",
     `Tu es ${input.selfName}. Tu produis la synthese finale du debat.`,
+    `Role de ${input.selfName}: ${input.selfRole}.`,
+    roleInstruction("summarizer"),
     "",
     "Contexte de session PALABRE:",
     "- Source: fourni par PALABRE et visible par tous les agents de ce debat.",
@@ -82,6 +87,19 @@ function formatSummaryPrompt(input: AgentPrompt): string {
     .join("\n");
 }
 
+function roleInstruction(role: AgentRole): string {
+  const instructions: Record<AgentRole, string> = {
+    implementer: "Consigne de role: propose une solution concrete, executable et sobrement justifiee.",
+    reviewer: "Consigne de role: cherche les risques, regressions, angles morts et tests manquants.",
+    architect: "Consigne de role: structure les options techniques, compromis et frontieres du systeme.",
+    scout: "Consigne de role: explore rapidement le terrain, releve les pistes utiles et les inconnues.",
+    critic: "Consigne de role: challenge les hypotheses, pointe les faiblesses et demande les preuves utiles.",
+    summarizer: "Consigne de role: synthetise fidelement le transcript sans ajouter de nouvelles hypotheses non signalees."
+  };
+
+  return instructions[role];
+}
+
 /** Formate les fichiers projet en blocs de code annotés pour l'injection dans le prompt. */
 function formatFileContext(files: ProjectFileContext[]): string {
   return files
@@ -107,4 +125,3 @@ export function formatTranscript(messages: DebateMessage[]): string {
     })
     .join("\n\n");
 }
-
