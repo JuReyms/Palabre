@@ -472,9 +472,17 @@ Table de correspondance :
 |---|---|
 | `docs/guide/getting-started.md` | `content/1.guide/1.getting-started.md` |
 | `docs/guide/running-a-debate.md` | `content/1.guide/2.running-a-debate.md` |
+| `docs/guide/troubleshooting.md` | `content/1.guide/3.troubleshooting.md` |
 | `docs/guide/configuration.md` | `content/2.reference/1.configuration.md` |
+| `docs/guide/cli-reference.md` | `content/2.reference/2.cli-reference.md` |
 
-Pour ajouter un guide : creer le fichier dans `docs/guide/`, ajouter la ligne dans `FILE_MAP` de `sync-docs.yml`, et creer le fichier de destination vide dans Palabre-app.
+Pour ajouter une page de documentation, trois etapes sont obligatoires — en oublier une casse le build Netlify :
+
+1. Creer le fichier source dans `docs/guide/`.
+2. Ajouter la ligne correspondante dans `FILE_MAP` de `.github/workflows/sync-docs.yml` (source → destination dans Palabre-app).
+3. Creer le fichier de destination dans Palabre-app avec le bon frontmatter (le sync l'ecrasera au prochain push, mais il doit exister pour que le build passe entre-temps).
+
+Attention aux liens internes : ne pas utiliser de liens relatifs (`./autre-page.md`) dans les sources `docs/guide/`. Utiliser des URLs absolutes correspondant aux routes finales du site (`/guide/...` ou `/reference/...`), car les fichiers source et destination n'ont pas toujours la meme structure de dossiers.
 
 ### Workflow release.yml (step de sync)
 
