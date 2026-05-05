@@ -19,6 +19,7 @@ Le projet contient un premier MVP technique :
 - Contexte de session explicite dans tous les prompts : date locale, fuseau horaire et dossier courant.
 - Rendu console pretty, avec fallback `--plain`.
 - Etat vivant pendant qu'un agent genere sa reponse.
+- Assistant interactif `palabre new` pour composer un debat pas a pas.
 - Export `.debate.md`.
 
 Le preset CLI actuel vise les modes non interactifs : `codex exec` et `claude --print`. Le prochain gros chantier reste l'adapter PTY robuste pour les vraies sessions interactives.
@@ -53,6 +54,12 @@ Pour verifier l'installation sans lancer de debat :
 
 ```bash
 pnpm start -- doctor
+```
+
+Pour composer un premier debat pas a pas, avec les agents detectes et une commande equivalente affichee avant le lancement :
+
+```bash
+pnpm start -- new
 ```
 
 Extrait de configuration :
@@ -111,6 +118,14 @@ Les roles documentent l'intention de l'agent dans le debat et ajoutent une consi
 Ollama est pense par defaut comme `critic`, `scout` ou `summarizer`, car les machines utilisateur font souvent tourner des modeles modestes. Un utilisateur peut quand meme le promouvoir en agent principal dans sa config.
 
 ## Lancer un debat
+
+Mode guide :
+
+```bash
+pnpm start -- new
+```
+
+Mode direct :
 
 ```bash
 pnpm start -- run --subject "Refacto de l'auth Nuxt" --agent-a codex --agent-b claude --turns 4

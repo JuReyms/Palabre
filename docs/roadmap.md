@@ -24,6 +24,7 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Installation globale locale testee avec `pnpm link --global`.
 - Commande `palabre update` avec instructions et `--apply` pour checkout git.
 - Syntaxe courte de lancement : `palabre preset "sujet" -t 4` et `palabre -s "sujet" -t 2`.
+- Assistant interactif `palabre new` pour composer un debat pas a pas, afficher la commande equivalente et lancer ou previsualiser.
 - Renommage produit de Chicane vers Palabre, avec fallback de config legacy.
 - Config globale `~/.palabre/palabre.config.json`, avec config locale prioritaire et `palabre init --local`.
 - Guides utilisateur versionnes dans `docs/guide/`.
@@ -39,7 +40,7 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 ## P1 - Experience utilisateur
 
 - Ameliorer les messages d'erreur init/update quand le PATH, pnpm global ou Ollama posent probleme.
-- Afficher un recap clair avant debat : agents, roles, modeles connus, contexte, synthese.
+- Afficher un recap clair avant debat dans le mode direct : agents, roles, modeles connus, contexte, synthese.
 
 ## P2 - Historique et reprise
 

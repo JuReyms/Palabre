@@ -8,6 +8,7 @@ import { discoverLocalTools } from "./discovery.js";
 import { runDoctor } from "./doctor.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
 import { formatAgentPrompt } from "./prompt.js";
+import { runNewWizard } from "./new.js";
 import { listPresetNames, resolvePreset } from "./presets.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { runDebate } from "./orchestrator.js";
@@ -79,6 +80,30 @@ async function main(): Promise<void> {
   }
 
   const config = await loadConfig(configPath);
+
+  if (parsed.command === "new") {
+    const selection = await runNewWizard(config);
+
+    if (!selection) {
+      console.log("Creation de debat annulee.");
+      return;
+    }
+
+    parsed.flags["agent-a"] = selection.agentA;
+    parsed.flags["agent-b"] = selection.agentB;
+    parsed.flags.topic = selection.topic;
+    if (selection.modelA) parsed.flags["model-a"] = selection.modelA;
+    if (selection.modelB) parsed.flags["model-b"] = selection.modelB;
+    if (selection.turns) parsed.flags.turns = String(selection.turns);
+    if (selection.summaryAgent) parsed.flags["summary-agent"] = selection.summaryAgent;
+    if (selection.summaryModel) parsed.flags["summary-model"] = selection.summaryModel;
+    if (selection.summaryEnabled === false) parsed.flags["no-summary"] = true;
+    if (selection.showPrompt) parsed.flags["show-prompt"] = true;
+    if (selection.plainOutput) parsed.flags.plain = true;
+    if (selection.files.length > 0) parsed.flags.files = selection.files;
+    if (selection.context.length > 0) parsed.flags.context = selection.context;
+  }
+
   const topic = optionalString(parsed.flags.topic) ?? "";
   const context = await loadProjectInputs(
     getStringListFlag(parsed.flags.files),
@@ -166,7 +191,7 @@ function parseArgs(args: string[]): ParsedArgs {
   const flags: Record<string, string | string[] | boolean> = {};
   let command = "run";
   const positionals: string[] = [];
-  const commands = new Set(["run", "init", "setup", "help", "version", "update", "doctor"]);
+  const commands = new Set(["run", "new", "init", "setup", "help", "version", "update", "doctor"]);
   const presets = new Set(listPresetNames());
 
   for (let index = 0; index < args.length; index += 1) {
@@ -373,6 +398,7 @@ Commandes:
   palabre init
   palabre update [--apply]
   palabre doctor [--config <path>]
+  palabre new
   palabre run --subject "Sujet" [--agent-a codex] [--agent-b claude] [--turns 4]
   palabre claude-gemini "Sujet" -t 4
   palabre -s "Sujet" -t 2

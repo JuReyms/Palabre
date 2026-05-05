@@ -1,5 +1,13 @@
 # Lancer un débat
 
+## Mode guidé
+
+```bash
+pnpm start -- new
+```
+
+`palabre new` compose un débat pas à pas : choix des agents détectés, sujet, puis lancement immédiat avec les défauts ou passage par les options avancées. Le wizard affiche aussi la commande équivalente, pratique pour apprendre la syntaxe CLI.
+
 ## Commande de base
 
 ```bash

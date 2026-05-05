@@ -38,6 +38,16 @@ Le doctor vérifie la config, les agents déclarés, les CLIs détectées, Ollam
 
 ## Premier débat
 
+Le plus simple pour commencer est le mode guidé :
+
+```bash
+pnpm start -- new
+```
+
+Palabre liste les agents détectés, demande le sujet, affiche la commande équivalente et peut lancer dès que le minimum est renseigné.
+
+En mode direct :
+
 ```bash
 pnpm start -- run --preset codex-claude --subject "Comment structurer l'auth d'une app Nuxt ?"
 ```
@@ -65,6 +75,7 @@ palabre --version
 Tu peux ensuite lancer `palabre` depuis un autre projet.
 
 ```bash
+palabre new
 palabre codex-claude "Comment structurer l'auth d'une app Nuxt ?" -t 4
 palabre -s "Critique rapide" -t 2
 ```

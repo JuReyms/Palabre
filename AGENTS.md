@@ -32,6 +32,7 @@ pnpm start -- -v
 
 ```text
 src/index.ts              CLI entrypoint
+src/new.ts                Assistant interactif `palabre new`
 src/config.ts             Chargement et generation de config
 src/discovery.ts          Detection locale des CLIs et d'Ollama pendant init
 src/types.ts              Contrats partages
@@ -133,6 +134,14 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 La config generee conserve les blocs agents connus pour rester editable, mais ajuste `defaults.agentA` et `defaults.agentB` avec une paire detectee quand c'est possible. Si aucune paire fiable n'est detectee, les defaults d'exemple restent en place.
 
 Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` quand disponible. Ollama reste configure et accessible via presets, mais il est plutot destine aux power users ou aux roles locaux (`critic`, `scout`, `summarizer`).
+
+## New
+
+`palabre new` est l'assistant interactif de composition d'un debat. Il detecte les outils locaux via `src/discovery.ts`, liste les agents de la config en mettant les agents detectes en premier, demande le sujet, puis laisse lancer avec les defaults ou ouvrir les options avancees.
+
+Le mode avance couvre les options courantes : tours, modeles bruts, synthese, contexte, fichiers, `--show-prompt` et `--plain`. Garder le wizard comme une couche UX fine au-dessus du parser existant : il doit remplir les memes flags que la CLI directe, pas creer un second chemin d'execution.
+
+Le wizard affiche une commande equivalente avant execution. Cette sortie est intentionnelle : elle aide l'utilisateur a apprendre la syntaxe directe et sert de recap leger avant de lancer.
 
 ## Update
 
@@ -372,6 +381,7 @@ Combinaisons validees localement :
 - `codex exec ↔ claude --print`
 - `--show-prompt` avec `--files`
 - `--show-prompt` avec `--context docs`
+- `palabre new` simule par entree standard avec `--show-prompt` pour verifier le wizard sans appeler d'agent
 - contexte de session visible dans `--show-prompt`
 - arret anticipe sur accord clair
 - syntaxe courte `palabre preset "sujet" -t 4`
