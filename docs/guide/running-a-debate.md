@@ -127,7 +127,7 @@ Ce bloc est visible par tous les agents du débat.
 
 ## Synthèse finale
 
-Par défaut, Palabre demande à l'agent B de produire une synthèse à la fin du débat.
+Par défaut, Palabre demande à `defaults.summaryAgent` de produire une synthèse à la fin du débat. Si ce champ n'existe pas, Palabre utilise l'agent B.
 
 ```bash
 # Changer l'agent de synthèse
@@ -164,5 +164,4 @@ Si Codex, Claude ou Gemini atteint une limite d'usage, un quota ou un rate limit
 
 Chaque session génère un fichier `.debate.md` dans le dossier défini par `outputDir` dans ta config (par défaut : le dossier courant).
 
-L'export inclut aussi la date locale, le fuseau horaire, le dossier courant, l'horodatage de debut de session, le nombre de tours joues et la raison d'un eventuel arret anticipe.
-
+L'export inclut aussi une table d'en-tête avec la date locale, le fuseau horaire, le dossier courant, l'horodatage de debut de session, le nombre de tours joues et la raison d'un eventuel arret anticipe.

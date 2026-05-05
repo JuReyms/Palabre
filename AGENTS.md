@@ -52,7 +52,7 @@ docs/archive/             Documents historiques
 
 ### Agent
 
-Un agent est une entree nommee dans `palabre.config.json`. `chicane.config.json` reste un fallback de migration pour les anciennes installations, mais toute nouvelle doc ou nouvelle config doit utiliser `palabre.config.json`.
+Un agent est une entree nommee dans une config Palabre. La resolution cherche `./palabre.config.json`, puis `./chicane.config.json`, puis `~/.palabre/palabre.config.json`, puis `~/.palabre/chicane.config.json`. Toute nouvelle doc ou nouvelle config doit utiliser `palabre.config.json`.
 
 Exemples :
 
@@ -98,7 +98,7 @@ Les modeles restent ceux des CLIs ou de la config, sauf override explicite par `
 
 ### Role
 
-Les roles ne sont pas seulement decoratifs. Ils doivent guider les prompts et, plus tard, les modes d'orchestration.
+Les roles ne sont pas decoratifs. Ils ajoutent une consigne de role dans les prompts et pourront guider plus tard les modes d'orchestration.
 
 Roles supportes :
 
@@ -244,11 +244,11 @@ Le flag `--no-early-stop` force tous les tours demandes. Garder cette heuristiqu
 
 ### Synthese finale
 
-La synthese finale est activee par defaut. Elle utilise `agentB` sauf override par `--summary-agent`.
+La synthese finale est activee par defaut. Elle utilise `defaults.summaryAgent` quand il existe, sinon `agentB`. `--summary-agent` garde la priorite.
 
 Options :
 
-- `--summary-agent <name>` : agent de config utilise apres le debat.
+- `--summary-agent <name>` : agent de config utilise apres le debat, prioritaire sur `defaults.summaryAgent`.
 - `--summary-model <model>` : modele brut transmis a l'agent de synthese.
 - `--no-summary` : desactive la phase de synthese.
 
@@ -377,10 +377,10 @@ Combinaisons validees localement :
 - syntaxe courte `palabre preset "sujet" -t 4`
 - alias sujet `palabre -s "sujet" -t 2`
 - detection des limites d'usage CLI type Codex/Claude/Gemini par simulation stderr
-- `init` dans un dossier temporaire pour verifier la detection locale
+- `init` avec config globale et `init --local` dans un dossier temporaire pour verifier la detection locale
 - `update` en mode instructions
 - etat "agent en cours" en rendu pretty
-- synthese finale avec agent B
+- synthese finale avec `defaults.summaryAgent`, fallback agent B
 - `--no-summary`
 - erreurs adapter `empty-output`, `non-zero-exit`, `model-unavailable`
 - warning Ollama sans contexte
@@ -491,4 +491,3 @@ Suivre semver :
 - Garder les adapters independants du moteur d'orchestration.
 - Documenter les limites connues plutot que de masquer les heuristiques.
 - Eviter les abstractions prematurees, sauf quand elles gardent les adapters propres.
-

@@ -17,22 +17,22 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Contexte projet borne via `--context`.
 - Contexte de session explicite dans les prompts : date locale, fuseau horaire, dossier courant et debut de session.
 - Preview de prompt via `--show-prompt`.
-- Synthese finale configurable via `--summary-agent`, `--summary-model` et `--no-summary`.
+- Synthese finale configurable via `defaults.summaryAgent`, `--summary-agent`, `--summary-model` et `--no-summary`.
 - Arret anticipe sur accord clair, desactivable avec `--no-early-stop`.
 - Rendu console pretty/plain avec etat "agent en cours".
-- Export `.debate.md`.
+- Export `.debate.md` avec en-tete de session en table Markdown.
 - Installation globale locale testee avec `pnpm link --global`.
 - Commande `palabre update` avec instructions et `--apply` pour checkout git.
 - Syntaxe courte de lancement : `palabre preset "sujet" -t 4` et `palabre -s "sujet" -t 2`.
 - Renommage produit de Chicane vers Palabre, avec fallback de config legacy.
+- Config globale `~/.palabre/palabre.config.json`, avec config locale prioritaire et `palabre init --local`.
 - Guides utilisateur versionnes dans `docs/guide/`.
+- Roles injectes dans les prompts avec consignes dediees par role.
 
 ## P0 - Stabilisation CLI
 
 - Ajouter des JSDoc sur les API internes publiques du projet : types partages, adapters, orchestrateur, contexte, discovery et update.
 - Afficher le modele utilise quand Palabre peut le connaitre.
-- Clarifier la synthese par defaut : `agentB` est pratique, mais peut biaiser la conclusion.
-- Ajouter un `defaults.summaryAgent` dans la config.
 - Ajouter un smoke test local reproductible pour les adapters CLI mock.
 
 ## P1 - Experience utilisateur
@@ -65,4 +65,3 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Internationalisation francais/anglais.
 - Modes multi-agents au-dela de deux participants.
 - Selection intelligente de contexte et resume automatique des gros fichiers.
-

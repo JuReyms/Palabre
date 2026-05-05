@@ -44,9 +44,9 @@ pnpm build
 pnpm start -- init
 ```
 
-Cette commande cree `palabre.config.json` si le fichier n'existe pas encore. Pendant l'init, Palabre detecte `codex`, `claude`, `gemini` et l'API locale Ollama, puis choisit une paire par defaut detectee quand c'est possible. Le fichier d'exemple versionne est [palabre.config.example.json](./palabre.config.example.json).
+Cette commande cree par defaut une config globale dans `~/.palabre/palabre.config.json`. Pendant l'init, Palabre detecte `codex`, `claude`, `gemini` et l'API locale Ollama, puis choisit une paire par defaut detectee quand c'est possible. Le fichier d'exemple versionne est [palabre.config.example.json](./palabre.config.example.json).
 
-Compatibilite rename : si un ancien `chicane.config.json` existe encore, Palabre peut le lire comme fallback. Les nouvelles installations creent `palabre.config.json`.
+Resolution de config : `./palabre.config.json` est prioritaire quand il existe dans le dossier courant, puis `./chicane.config.json` en fallback legacy, puis `~/.palabre/palabre.config.json`, puis `~/.palabre/chicane.config.json`. Pour creer une config locale volontairement : `palabre init --local`.
 
 Extrait de configuration :
 
@@ -91,7 +91,7 @@ Les presets CLI fournis utilisent les modes batch quand ils existent :
 
 Sur Windows, les wrappers npm comme `codex` et `gemini` peuvent necessiter `"shell": true` dans la config agent. Claude fonctionne mieux via `claude.exe` avec `"shell": false`.
 
-Les roles documentent l'intention de l'agent dans le debat :
+Les roles documentent l'intention de l'agent dans le debat et ajoutent une consigne de role dans chaque prompt :
 
 - `implementer` : propose une solution concrete.
 - `reviewer` ou `critic` : cherche les risques, angles morts et contradictions.
@@ -169,7 +169,7 @@ palabre update --apply
 
 `palabre update` affiche les etapes adaptees. `--apply` les execute seulement si Palabre est installe depuis un checkout git.
 
-Par defaut, Palabre produit une synthese finale avec l'agent B. Tu peux choisir un autre agent, un modele specifique, ou desactiver la synthese :
+Par defaut, Palabre produit une synthese finale avec `defaults.summaryAgent` si ce champ est configure, sinon avec l'agent B. Tu peux choisir un autre agent, un modele specifique, ou desactiver la synthese :
 
 ```bash
 pnpm start -- run --preset codex-claude --subject "Critique le MVP" --summary-agent claude
@@ -185,7 +185,7 @@ pnpm start -- run --preset codex-claude --subject "Critique le MVP" --plain
 
 Les couleurs sont automatiquement desactivees si `NO_COLOR` est defini.
 
-La session genere un fichier `.debate.md` dans le dossier configure par `outputDir`.
+La session genere un fichier `.debate.md` dans le dossier configure par `outputDir`. L'en-tete de l'export est rendu en table Markdown pour rester lisible dans les renderers courants.
 
 `--turns` est une limite haute. Par defaut, Palabre peut s'arreter avant la limite apres un tour complet si le dernier agent exprime clairement un accord complet (`rien a trancher`, `accord complet`, `aucun desaccord`, etc.). Pour forcer tous les tours :
 
@@ -271,9 +271,11 @@ Tests effectues sur Windows :
 - syntaxe courte `palabre preset "sujet" -t 4` et `palabre -s "sujet" -t 2` : OK.
 - detection des limites d'usage CLI type Codex/Claude/Gemini : OK par simulation stderr.
 - `init` avec detection locale des agents : OK.
+- config globale `~/.palabre/palabre.config.json` avec fallback local/legacy : OK.
+- en-tete des exports `.debate.md` en table Markdown : OK.
 - `update` en mode instructions : OK.
 - etat "agent en cours" pendant les generations : OK.
-- synthese finale avec agent B : OK.
+- synthese finale avec `defaults.summaryAgent`, fallback agent B : OK.
 - `--no-summary` : OK.
 - rendu console pretty et `--plain` : OK.
 
@@ -288,7 +290,8 @@ Reglages importants observes :
 
 - L'adapter CLI actuel est volontairement minimal. Il marche mieux avec des commandes non interactives ou des CLIs qui acceptent un prompt via `stdin`.
 - `palabre init` detecte les outils locaux et ajuste seulement les defaults ; les blocs agents exemples restent dans la config pour faciliter l'edition.
-- `palabre.config.json` est le nom de config courant ; `chicane.config.json` reste lisible comme fallback de migration.
+- La resolution de config cherche `./palabre.config.json`, `./chicane.config.json`, `~/.palabre/palabre.config.json`, puis `~/.palabre/chicane.config.json` dans cet ordre.
+- Sans config existante, Palabre cree la config globale et quitte ; il n'ecrit plus automatiquement dans le dossier courant. `palabre init --local` force une config locale.
 - Les adapters exposent un contrat (`capabilities` et `guarantees`) pour documenter timeout, sortie vide, stderr, exit code, model override, filesystem et streaming.
 - Les erreurs CLI de limite d'usage ou de quota sont detectees dans stderr et reformatees sans recopier tout le prompt.
 - `--files` est explicite et strict ; `--context` scanne des dossiers texte de facon bornee et best-effort.
@@ -299,7 +302,7 @@ Reglages importants observes :
 - L'adapter Ollama peut telecharger un modele manquant via `/api/pull` seulement si `--pull-models` ou `autoPullModel` est actif.
 - L'adapter Ollama decharge les autres modeles charges via `/api/ps` puis `keep_alive: 0` quand `unloadOtherModels` est actif.
 - Palabre affiche un warning si Ollama participe sans contexte fourni, car Ollama ne lit pas le filesystem.
-- La synthese finale est activee par defaut et utilise l'agent B, sauf `--summary-agent` ou `--no-summary`.
+- La synthese finale est activee par defaut et utilise `defaults.summaryAgent` quand il existe, sinon l'agent B. `--summary-agent` garde la priorite, et `--no-summary` la desactive.
 - Le rendu console pretty est volontairement leger. Il affiche deja l'agent en cours, mais le split-view, le scrolling interactif et l'input humain arriveront avec le vrai TUI.
 - Une sortie CLI vide est consideree comme une erreur, sauf si `allowEmptyOutput` est active explicitement.
 - `idleTimeoutMs` doit etre utilise avec prudence : les CLIs IA peuvent rester silencieuses pendant la generation.
@@ -317,4 +320,3 @@ Site de documentation : **https://palab.re** (aussi accessible sur https://palab
 - Lancer un debat : [docs/guide/running-a-debate.md](./docs/guide/running-a-debate.md)
 - Guide agents/contributeurs : [AGENTS.md](./AGENTS.md)
 - Archive de specification initiale : [docs/archive/Palabre-Specification.md](./docs/archive/Palabre-Specification.md)
-

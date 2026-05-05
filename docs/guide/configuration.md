@@ -1,10 +1,10 @@
 # Configuration
 
-La configuration de Palabre se fait dans `palabre.config.json` à la racine de ton projet.
+La configuration de Palabre peut être locale au projet ou globale à l'utilisateur.
 
-`palabre init` génère ce fichier et détecte les outils disponibles localement. La config garde les blocs agents connus pour rester facile à éditer, mais les `defaults` utilisent une paire détectée quand c'est possible.
+`palabre init` génère par défaut `~/.palabre/palabre.config.json` et détecte les outils disponibles localement. La config garde les blocs agents connus pour rester facile à éditer, mais les `defaults` utilisent une paire détectée quand c'est possible.
 
-Si tu viens d'une ancienne installation, `chicane.config.json` reste lisible comme fallback. Le nom courant pour les nouvelles configs est `palabre.config.json`.
+Résolution au lancement : `./palabre.config.json`, puis `./chicane.config.json`, puis `~/.palabre/palabre.config.json`, puis `~/.palabre/chicane.config.json`. Le nom courant pour les nouvelles configs est `palabre.config.json`. Pour créer une config locale volontairement : `palabre init --local`.
 
 ## Structure générale
 
@@ -14,6 +14,7 @@ Si tu viens d'une ancienne installation, `chicane.config.json` reste lisible com
   "defaults": {
     "agentA": "codex",
     "agentB": "claude",
+    "summaryAgent": "claude",
     "turns": 4
   },
   "agents": { }
@@ -26,6 +27,7 @@ Si tu viens d'une ancienne installation, `chicane.config.json` reste lisible com
 |-------|-------------|-------------------|
 | `agentA` | Agent qui ouvre le débat | — |
 | `agentB` | Agent qui répond en second | — |
+| `summaryAgent` | Agent utilisé pour la synthèse finale | `agentB` |
 | `turns` | Nombre de tours d'échange | `4` |
 
 ### Racine
@@ -110,12 +112,13 @@ Pour les modèles locaux exposés par Ollama :
 
 ## Rôles disponibles
 
-| Rôle | Description |
-|------|-------------|
-| `implementer` | Propose une solution concrète |
-| `reviewer` | Cherche les risques et les angles morts |
-| `critic` | Remet en question les hypothèses |
-| `architect` | Structure une direction technique |
-| `scout` | Explore rapidement un sujet |
-| `summarizer` | Produit une synthèse |
+| Rôle | Description | Influence dans le prompt |
+|------|-------------|--------------------------|
+| `implementer` | Propose une solution concrète | Demande une solution exécutable et sobrement justifiée |
+| `reviewer` | Cherche les risques et les angles morts | Demande risques, régressions et tests manquants |
+| `critic` | Remet en question les hypothèses | Demande de challenger les hypothèses et les preuves |
+| `architect` | Structure une direction technique | Demande options, compromis et frontières du système |
+| `scout` | Explore rapidement un sujet | Demande pistes utiles et inconnues à lever |
+| `summarizer` | Produit une synthèse | Demande une synthèse fidèle sans hypothèses nouvelles |
 
+La synthèse finale utilise toujours un prompt de mode `summary`. Si l'agent choisi n'a pas le rôle `summarizer`, Palabre applique quand même la consigne de synthèse pour cette phase.

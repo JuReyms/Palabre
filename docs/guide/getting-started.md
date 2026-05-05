@@ -23,9 +23,9 @@ pnpm build
 pnpm start -- init
 ```
 
-Cette commande crée un fichier `palabre.config.json` dans le dossier courant si il n'existe pas encore. Tu peux ensuite l'éditer pour y déclarer tes agents. Un ancien `chicane.config.json` reste lisible comme fallback de migration.
+Cette commande crée par défaut `~/.palabre/palabre.config.json`. Tu peux ensuite l'éditer pour y déclarer tes agents. Un ancien `chicane.config.json` reste lisible comme fallback de migration.
 
-Pendant l'initialisation, Palabre détecte `codex`, `claude`, `gemini` et l'API locale Ollama. Quand une paire fiable est trouvée, elle devient le défaut de la config générée.
+Pendant l'initialisation, Palabre détecte `codex`, `claude`, `gemini` et l'API locale Ollama. Quand une paire fiable est trouvée, elle devient le défaut de la config générée. Pour créer une config dans le dossier courant plutôt que dans ton home : `palabre init --local`.
 
 ## Premier débat
 
