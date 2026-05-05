@@ -38,7 +38,6 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 
 ## P1 - Experience utilisateur
 
-- Ajouter une commande `palabre doctor` pour verifier config, CLIs, Ollama, modeles et permissions.
 - Ajouter un guide troubleshooting.
 - Ameliorer les messages d'erreur init/update quand le PATH, pnpm global ou Ollama posent probleme.
 - Afficher un recap clair avant debat : agents, roles, modeles connus, contexte, synthese.

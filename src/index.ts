@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, writeExampleConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
 import { discoverLocalTools } from "./discovery.js";
+import { runDoctor } from "./doctor.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
 import { formatAgentPrompt } from "./prompt.js";
 import { listPresetNames, resolvePreset } from "./presets.js";
@@ -30,6 +31,13 @@ async function main(): Promise<void> {
 
   if (parsed.command === "help" || parsed.flags.help) {
     printHelp();
+    return;
+  }
+
+  if (parsed.command === "doctor") {
+    const result = await runDoctor(optionalString(parsed.flags.config));
+    console.log(result.output);
+    process.exitCode = result.ok ? 0 : 1;
     return;
   }
 
@@ -158,7 +166,7 @@ function parseArgs(args: string[]): ParsedArgs {
   const flags: Record<string, string | string[] | boolean> = {};
   let command = "run";
   const positionals: string[] = [];
-  const commands = new Set(["run", "init", "setup", "help", "version", "update"]);
+  const commands = new Set(["run", "init", "setup", "help", "version", "update", "doctor"]);
   const presets = new Set(listPresetNames());
 
   for (let index = 0; index < args.length; index += 1) {
@@ -363,6 +371,7 @@ PALABRE
 Commandes:
   palabre init
   palabre update [--apply]
+  palabre doctor [--config <path>]
   palabre run --subject "Sujet" [--agent-a codex] [--agent-b claude] [--turns 4]
   palabre claude-gemini "Sujet" -t 4
   palabre -s "Sujet" -t 2

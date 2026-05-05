@@ -27,6 +27,14 @@ Cette commande crée par défaut `~/.palabre/palabre.config.json`. Tu peux ensui
 
 Pendant l'initialisation, Palabre détecte `codex`, `claude`, `gemini` et l'API locale Ollama. Quand une paire fiable est trouvée, elle devient le défaut de la config générée. Pour créer une config dans le dossier courant plutôt que dans ton home : `palabre init --local`.
 
+Pour vérifier que l'installation est utilisable :
+
+```bash
+pnpm start -- doctor
+```
+
+Le doctor vérifie la config, les agents déclarés, les CLIs détectées, Ollama et les modèles locaux configurés.
+
 ## Premier débat
 
 ```bash

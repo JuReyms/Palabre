@@ -48,6 +48,12 @@ Cette commande cree par defaut une config globale dans `~/.palabre/palabre.confi
 
 Resolution de config : `./palabre.config.json` est prioritaire quand il existe dans le dossier courant, puis `./chicane.config.json` en fallback legacy, puis `~/.palabre/palabre.config.json`, puis `~/.palabre/chicane.config.json`. Pour creer une config locale volontairement : `palabre init --local`.
 
+Pour verifier l'installation sans lancer de debat :
+
+```bash
+pnpm start -- doctor
+```
+
 Extrait de configuration :
 
 ```json
