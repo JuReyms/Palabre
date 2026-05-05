@@ -2,9 +2,21 @@
 
 La configuration de Palabre peut être locale au projet ou globale à l'utilisateur.
 
-`palabre init` génère par défaut `~/.palabre/palabre.config.json` et détecte les outils disponibles localement. La config garde les blocs agents connus pour rester facile à éditer, mais les `defaults` utilisent une paire détectée quand c'est possible.
+`palabre init` génère par défaut `~/.palabre/palabre.config.json` et détecte les outils disponibles localement. La config garde les blocs agents connus pour rester facile à éditer, mais les `defaults` utilisent une paire détectée quand c'est possible. Palabre ne possède pas de fallback agent codé en dur au lancement : sans preset, sans `--agent-a/--agent-b` et sans `defaults.agentA/defaults.agentB`, il affiche une erreur au lieu de lancer un débat accidentel.
 
 Résolution au lancement : `./palabre.config.json`, puis `./chicane.config.json`, puis `~/.palabre/palabre.config.json`, puis `~/.palabre/chicane.config.json`. Le nom courant pour les nouvelles configs est `palabre.config.json`. Pour créer une config locale volontairement : `palabre init --local`.
+
+Pour gérer les agents par défaut sans éditer le JSON :
+
+Le wizard `palabre config` peut être interrompu avec `Ctrl+C`. Dans un prompt, `q`, `quit` ou `exit` quittent sans appliquer de nouveau choix.
+
+```bash
+palabre config
+palabre config --set-defaults codex claude --summary-agent claude --turns 4
+palabre config -t 3
+palabre config --summary-agent claude
+palabre config --clear-defaults
+```
 
 ## Structure générale
 
@@ -28,7 +40,7 @@ Résolution au lancement : `./palabre.config.json`, puis `./chicane.config.json`
 | `agentA` | Agent qui ouvre le débat | — |
 | `agentB` | Agent qui répond en second | — |
 | `summaryAgent` | Agent utilisé pour la synthèse finale | `agentB` |
-| `turns` | Nombre de tours d'échange | `4` |
+| `turns` | Nombre total de réponses du débat | `4` |
 
 ### Racine
 

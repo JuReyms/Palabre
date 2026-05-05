@@ -6,7 +6,7 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 
 - MVP CLI Node.js/TypeScript avec `pnpm`.
 - Config JSON avec detection locale pendant `palabre init`.
-- Defaults orientes agents CLI premium : `codex <-> claude`.
+- Defaults de config orientes agents CLI premium : `codex <-> claude`, sans fallback agent code en dur au lancement.
 - Presets Codex, Claude, Gemini, OpenCode et Ollama.
 - Adapter CLI batch pour Codex, Claude, Gemini et OpenCode.
 - Adapter Ollama HTTP local.
@@ -24,12 +24,14 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Installation globale locale testee avec `pnpm link --global`.
 - Commande `palabre update` avec instructions et `--apply` pour checkout git.
 - Syntaxe courte de lancement : `palabre preset "sujet" -t 4` et `palabre -s "sujet" -t 2`.
-- Assistant interactif `palabre new` pour composer un debat pas a pas, afficher la commande equivalente et lancer ou previsualiser.
+- Assistant interactif `palabre new` pour composer un debat pas a pas, afficher les commandes equivalentes explicite/courte et lancer ou previsualiser.
 - Renommage produit de Chicane vers Palabre, avec fallback de config legacy.
 - Config globale `~/.palabre/palabre.config.json`, avec config locale prioritaire et `palabre init --local`.
 - Guides utilisateur versionnes dans `docs/guide/`.
 - Reference CLI utilisateur dans `docs/guide/cli-reference.md`.
 - Roles injectes dans les prompts avec consignes dediees par role.
+- Garde-fou contre les commandes inconnues proches de commandes valides, par exemple `palabre nex`.
+- Commande `palabre config`, `--set-defaults`, `-t/--turns`, `--summary-agent` et `--clear-defaults` pour gerer les parametres par defaut.
 
 ## P0 - Stabilisation CLI
 

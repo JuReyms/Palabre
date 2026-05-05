@@ -1,6 +1,7 @@
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
+import { findPresetNameForPair } from "./presets.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
 
 export interface NewCommandSelection {
@@ -42,8 +43,9 @@ export async function runNewWizard(config: PalabreConfig): Promise<NewCommandSel
   const rl = await createQuestioner();
 
   try {
-    console.log("PALABRE new");
-    console.log("Appuie sur Entree pour accepter un defaut, ou tape q pour quitter.");
+    console.log("PALABRE - ASSISTANT DE CONFIGURATION");
+    console.log("À tout moment: Ctrl+C pour interrompre, ou tape q, quit ou exit dans un prompt pour quitter.");
+    console.log("Appuie sur Entrée pour accepter un choix par défaut (*).");
     console.log("");
 
     const agentA = await askAgent(rl, choices, "Agent A", config.defaults?.agentA);
@@ -55,8 +57,9 @@ export async function runNewWizard(config: PalabreConfig): Promise<NewCommandSel
     const topic = await askRequiredText(rl, "Sujet");
     if (!topic) return undefined;
 
-    printCommandPreview({ agentA, agentB, topic });
-    const launchMinimal = await askYesNo(rl, "Lancer maintenant avec les options par defaut ?", true);
+    printCommandPreview({ agentA, agentB, topic, turns: config.defaults?.turns });
+    console.log("Réponds non pour choisir le nombre de tours, les modèles, la synthèse et le contexte.");
+    const launchMinimal = await askYesNo(rl, "Lancer maintenant avec les options par défaut ?", true);
     if (launchMinimal === undefined) return undefined;
 
     if (launchMinimal) {
@@ -74,22 +77,22 @@ export async function runNewWizard(config: PalabreConfig): Promise<NewCommandSel
     const turns = await askNumber(rl, "Nombre de tours", config.defaults?.turns ?? 4);
     if (turns === undefined) return undefined;
 
-    const modelA = await askOptionalText(rl, `Modele pour ${agentA} (optionnel)`);
+    const modelA = await askOptionalText(rl, `Modèle pour ${agentA} (optionnel)`);
     if (modelA === undefined) return undefined;
 
-    const modelB = await askOptionalText(rl, `Modele pour ${agentB} (optionnel)`);
+    const modelB = await askOptionalText(rl, `Modèle pour ${agentB} (optionnel)`);
     if (modelB === undefined) return undefined;
 
-    const summaryEnabled = await askYesNo(rl, "Synthese finale ?", true);
+    const summaryEnabled = await askYesNo(rl, "Synthèse finale ?", true);
     if (summaryEnabled === undefined) return undefined;
 
     let summaryAgent: string | undefined;
     let summaryModel: string | undefined;
     if (summaryEnabled) {
-      summaryAgent = await askAgent(rl, choices, "Agent de synthese", config.defaults?.summaryAgent ?? agentB);
+      summaryAgent = await askAgent(rl, choices, "Agent de synthèse", config.defaults?.summaryAgent ?? agentB);
       if (!summaryAgent) return undefined;
 
-      summaryModel = await askOptionalText(rl, `Modele de synthese pour ${summaryAgent} (optionnel)`);
+      summaryModel = await askOptionalText(rl, `Modèle de synthèse pour ${summaryAgent} (optionnel)`);
       if (summaryModel === undefined) return undefined;
     }
 
@@ -186,13 +189,13 @@ function isAgentDetected(name: string, config: AgentConfig, discovery: ToolDisco
 function agentStatus(name: string, config: AgentConfig, discovery: ToolDiscovery, detected: boolean): string {
   if (config.type === "ollama") {
     return detected
-      ? `ollama/${config.role} detecte (${discovery.ollama.models.length} modele(s))`
+      ? `ollama/${config.role} détecté (${discovery.ollama.models.length} modèle(s))`
       : `ollama/${config.role} non joignable`;
   }
 
   return detected
-    ? `cli/${config.role} detecte`
-    : `cli/${config.role} non detecte`;
+    ? `cli/${config.role} détecté`
+    : `cli/${config.role} non détecté`;
 }
 
 async function askAgent(
@@ -205,8 +208,8 @@ async function askAgent(
 
   console.log(label);
   choices.forEach((choice, index) => {
-    const marker = choice.name === fallback ? "*" : " ";
-    console.log(`  ${index + 1})${marker} ${choice.name} - ${choice.status}`);
+    const marker = choice.name === fallback ? "(*)" : "   ";
+    console.log(`  ${index + 1}) ${marker} ${choice.name} - ${choice.status}`);
   });
 
   while (true) {
@@ -225,7 +228,7 @@ async function askAgent(
       return value;
     }
 
-    console.log("Choix invalide. Tape un numero, un nom d'agent, Entree ou q.");
+    console.log("Choix invalide. Tape un numéro, un nom d'agent, Entrée ou q.");
   }
 }
 
@@ -237,7 +240,7 @@ async function askRequiredText(rl: Questioner, label: string): Promise<string | 
     if (isQuit(value)) return undefined;
     if (value) return value;
 
-    console.log("Ce champ est requis pour lancer un debat.");
+    console.log("Ce champ est requis pour lancer un débat.");
   }
 }
 
@@ -264,7 +267,7 @@ async function askNumber(
       return parsed;
     }
 
-    console.log("Entre un nombre entier positif, Entree ou q.");
+    console.log("Entre un nombre entier positif, Entrée ou q.");
   }
 }
 
@@ -284,7 +287,7 @@ async function askYesNo(
     if (["y", "yes", "o", "oui"].includes(value)) return true;
     if (["n", "no", "non"].includes(value)) return false;
 
-    console.log("Reponds par oui, non, Entree ou q.");
+    console.log("Réponds par oui, non, Entrée ou q.");
   }
 }
 
@@ -308,12 +311,44 @@ function isQuit(value: string): boolean {
 }
 
 function printCommandPreview(selection: Partial<NewCommandSelection> & Pick<NewCommandSelection, "agentA" | "agentB" | "topic">): void {
+  const explicitCommand = buildExplicitCommand(selection);
+  const shortCommand = buildShortCommand(selection);
+
+  console.log("");
+  console.log("Commandes équivalentes:");
+  console.log(`  ${explicitCommand}`);
+
+  if (shortCommand) {
+    console.log(`  ${shortCommand}`);
+  }
+
+  console.log("");
+}
+
+function buildExplicitCommand(selection: Partial<NewCommandSelection> & Pick<NewCommandSelection, "agentA" | "agentB" | "topic">): string {
   const args = ["palabre"];
 
   args.push("--agent-a", selection.agentA);
   args.push("--agent-b", selection.agentB);
   args.push(quoteShellArg(selection.topic));
+  appendOptionalArgs(args, selection);
 
+  return args.join(" ");
+}
+
+function buildShortCommand(selection: Partial<NewCommandSelection> & Pick<NewCommandSelection, "agentA" | "agentB" | "topic">): string | undefined {
+  const presetName = findPresetNameForPair(selection.agentA, selection.agentB);
+
+  if (!presetName) {
+    return undefined;
+  }
+
+  const args = ["palabre", presetName, quoteShellArg(selection.topic)];
+  appendOptionalArgs(args, selection);
+  return args.join(" ");
+}
+
+function appendOptionalArgs(args: string[], selection: Partial<NewCommandSelection>): void {
   if (selection.turns) args.push("-t", String(selection.turns));
   if (selection.modelA) args.push("--model-a", quoteShellArg(selection.modelA));
   if (selection.modelB) args.push("--model-b", quoteShellArg(selection.modelB));
@@ -324,11 +359,6 @@ function printCommandPreview(selection: Partial<NewCommandSelection> & Pick<NewC
   if (selection.files && selection.files.length > 0) args.push("--files", ...selection.files.map(quoteShellArg));
   if (selection.showPrompt) args.push("--show-prompt");
   if (selection.plainOutput) args.push("--plain");
-
-  console.log("");
-  console.log("Commande equivalente:");
-  console.log(`  ${args.join(" ")}`);
-  console.log("");
 }
 
 function quoteShellArg(value: string): string {

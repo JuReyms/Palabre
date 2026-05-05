@@ -11,9 +11,15 @@ Ce fichier est réservé aux idées personnelles du mainteneur.
 
 ## Observations
 
-### OpenSource 
+### OpenSource
 
 Voir conversation > C:\Users\jurey\Documents\Dev\Chicane\palabre-2026-05-05T11-30-42-773Z.debate.md
+
+### Documenter les CLI des providers
+
+Iniquer en priorité dans la documentation que les CLI des IA doivent etre installées avant de pouvoir utiliser Palabre. Par exemple, pour utiliser Claude Code, il faut d'abord installer le CLI d'Anthropic.
+Il faut un abonnement pour certains providers (Claude Code, Codex), tandis que d'autres sont gratuits (Gemini, Ollama en local). OpenCode dépend du provider configuré, et il y en a des gratuits.
+Si on peut mettre des lien vers la documentation de chaque provider, ce serait top pour les utilisateurs.
 
 ### Prérequis providers
 
@@ -24,6 +30,11 @@ Pour utiliser Palabre, chaque provider doit être installé séparément :
 - **Gemini** — gratuit avec limitations, ou abonnement Google AI.
 - **OpenCode** — dépend du provider configuré dans OpenCode.
 - **Ollama** — gratuit en local (usage actuel) ou version cloud disponible.
+
+### Nom de Debat exporte
+
+Comme on utilise des ia, peut etre qu'on peut mettre un nom de debat exporté dans le nom du fichier, pour mieux s'y retrouver.
+Et avoir un meilleurs nom de fichier que "palabre-2026-05-05T11-30-42-773Z.debate.md" pour les débats exportés, par exemple "palabre-nom_du_debat-date.debate.md" ou quelque chose du genre.
 
 ### Branches de développement
 

@@ -99,3 +99,7 @@ export function resolvePreset(name: string): AgentPairPreset {
 export function listPresetNames(): string[] {
   return Object.keys(presets);
 }
+
+export function findPresetNameForPair(agentA: string, agentB: string): string | undefined {
+  return Object.entries(presets).find(([, preset]) => preset.agentA === agentA && preset.agentB === agentB)?.[0];
+}

@@ -131,9 +131,9 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 - `ollama`
 - l'API Ollama locale via `GET http://localhost:11434/api/tags`
 
-La config generee conserve les blocs agents connus pour rester editable, mais ajuste `defaults.agentA` et `defaults.agentB` avec une paire detectee quand c'est possible. Si aucune paire fiable n'est detectee, les defaults d'exemple restent en place.
+La config generee conserve les blocs agents connus pour rester editable, mais ajuste `defaults.agentA` et `defaults.agentB` avec une paire detectee quand c'est possible. Au lancement, Palabre ne doit pas utiliser de fallback agent code en dur : sans preset, sans agents explicites et sans defaults de config, il doit afficher une erreur actionnable.
 
-Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` quand disponible. Ollama reste configure et accessible via presets, mais il est plutot destine aux power users ou aux roles locaux (`critic`, `scout`, `summarizer`).
+Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` quand disponible. Ollama reste configure et accessible via presets, mais il est plutot destine aux power users ou aux roles locaux (`critic`, `scout`, `summarizer`). Les defaults utilisateur se gerent par `palabre config`, `palabre config --set-defaults <agentA> <agentB>` et `palabre config --clear-defaults`.
 
 ## New
 
@@ -342,7 +342,7 @@ palabre claude-gemini "quel jour sommes nous ?" -t 4
 palabre -s "quel jour sommes nous ?" -t 2
 ```
 
-`--subject` est le nom long recommande pour le sujet. `-s` est l'alias court, et `--topic` reste accepte pour compatibilite. Si le premier argument positionnel est un preset connu, il devient `--preset`. Le positionnel suivant devient le sujet. Si le premier argument n'est pas un preset ni une commande (`init`, `update`, `help`, etc.), il devient directement le sujet.
+`--subject` est le nom long recommande pour le sujet. `-s` est l'alias court, et `--topic` reste accepte pour compatibilite. Si le premier argument positionnel est un preset connu, il devient `--preset`. Le positionnel suivant devient le sujet. Si le premier argument n'est pas un preset ni une commande (`init`, `update`, `help`, etc.), il devient directement le sujet, sauf s'il ressemble fortement a une commande connue (`nex` pour `new`, par exemple), auquel cas Palabre affiche une erreur de commande inconnue.
 
 ## Rendu Console
 
