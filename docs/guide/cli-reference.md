@@ -71,3 +71,7 @@ Par défaut, Palabre utilise `defaults.summaryAgent` quand il existe, sinon l'ag
 | `--show-prompt` | Affiche le prompt du premier tour sans appeler d'agent. |
 
 Ollama ne lit pas le filesystem par lui-même. Pour qu'un agent Ollama voie le projet, utilise `--files` ou `--context`.
+
+## En cas de problème
+
+Consulte [troubleshooting.md](./troubleshooting.md) pour les messages WARN et ERREUR de palabre doctor.

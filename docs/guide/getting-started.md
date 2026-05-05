@@ -89,9 +89,9 @@ pnpm start -- --version
 pnpm start -- --help
 ```
 
-
 ## Aller plus loin
 
 - Référence complète des commandes : [cli-reference.md](./cli-reference.md).
 - Configuration détaillée : [configuration.md](./configuration.md).
 - Options de débat : [running-a-debate.md](./running-a-debate.md).
+- Dépannage : [troubleshooting.md](./troubleshooting.md).
