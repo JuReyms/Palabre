@@ -15,6 +15,7 @@ Le principe d'architecture important : Palabre orchestre des adapters. Claude, C
 - Langage : TypeScript
 - Module system : ESM (`type: module`)
 - Build : `tsc`
+- Shell de developpement : PowerShell (machines Windows). Toutes les commandes shell doivent etre ecrites en syntaxe PowerShell.
 
 Commandes utiles :
 

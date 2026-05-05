@@ -309,6 +309,8 @@ Reglages importants observes :
 
 ## Documentation projet
 
+Site de documentation : **https://palab.re** (aussi accessible sur https://palabre.netlify.app)
+
 - Roadmap : [docs/roadmap.md](./docs/roadmap.md)
 - Demarrage rapide : [docs/guide/getting-started.md](./docs/guide/getting-started.md)
 - Configuration : [docs/guide/configuration.md](./docs/guide/configuration.md)
