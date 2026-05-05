@@ -44,12 +44,17 @@ jobs:
                 continue
               if in_code or para.startswith('#') or not para:
                 continue
+              if para.startswith('- ') or para.startswith('* '):
+                continue
               desc = para.replace('\n', ' ')
               if len(desc) > 160:
                 desc = desc[:157] + '...'
               break
 
-            out = f'---\ntitle: {title}\ndescription: {desc}\n---\n\n{body}'
+            desc = re.sub(r'\[([^\]]*)\]\([^)]*\)', r'\1', desc)
+            desc = re.sub(r'`([^`]*)`', r'\1', desc)
+            desc_escaped = desc.replace('"', '\\"')
+            out = f'---\ntitle: {title}\ndescription: "{desc_escaped}"\n---\n\n{body}'
             path = os.path.join('dist', dest)
             os.makedirs(os.path.dirname(path), exist_ok=True)
             open(path, 'w', encoding='utf-8').write(out)
