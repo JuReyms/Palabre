@@ -21,7 +21,9 @@ jobs:
           FILE_MAP = {
             'docs/guide/getting-started.md':  'content/1.guide/1.getting-started.md',
             'docs/guide/running-a-debate.md': 'content/1.guide/2.running-a-debate.md',
+            'docs/guide/troubleshooting.md':  'content/1.guide/3.troubleshooting.md',
             'docs/guide/configuration.md':    'content/2.reference/1.configuration.md',
+            'docs/guide/cli-reference.md':    'content/2.reference/2.cli-reference.md',
           }
 
           for src, dest in FILE_MAP.items():

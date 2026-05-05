@@ -82,4 +82,4 @@ Ollama ne lit pas le filesystem par lui-même. Pour qu'un agent Ollama voie le p
 
 ## En cas de problème
 
-Consulte [troubleshooting.md](./troubleshooting.md) pour les messages WARN et ERREUR de palabre doctor.
+Consulte [Dépannage](/guide/troubleshooting) pour les messages WARN et ERREUR de palabre doctor.
