@@ -37,7 +37,10 @@ export async function runDebate(
     [options.agentB, agentBConfig]
   ], renderer);
 
-  renderer?.start(options);
+  renderer?.start(options, [
+    { name: options.agentA, role: agentAConfig.role, type: agentAConfig.type },
+    { name: options.agentB, role: agentBConfig.role, type: agentBConfig.type }
+  ]);
 
   const agents = [
     createAgent(options.agentA, agentAConfig),

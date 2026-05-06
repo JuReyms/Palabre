@@ -1,4 +1,4 @@
-import type { AgentRole, DebateOptions, DebateRenderer } from "../types.js";
+import type { AgentRole, DebateOptions, DebateRenderer, DebateStartAgentInfo } from "../types.js";
 
 const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
 const supportsInteractiveOutput = Boolean(process.stdout.isTTY);
@@ -19,14 +19,16 @@ class PrettyConsoleRenderer implements DebateRenderer {
     private readonly interactive: boolean
   ) {}
 
-  start(options: DebateOptions): void {
+  start(options: DebateOptions, agents: DebateStartAgentInfo[] = []): void {
     const title = "PALABRE";
     process.stdout.write([
       "",
       this.c("cyan", `┌─ ${title} ${"─".repeat(Math.max(1, 54 - title.length))}`),
       this.c("cyan", `│`) + ` Sujet: ${options.topic}`,
-      this.c("cyan", `│`) + ` Agents: ${options.agentA} <-> ${options.agentB}`,
-      this.c("cyan", `│`) + ` Tours: ${options.turns} | Synthese: ${options.summaryEnabled ? options.summaryAgent ?? options.agentB : "disabled"}`,
+      this.c("cyan", `│`) + ` Agents: ${formatAgentPair(options, agents)}`,
+      this.c("cyan", `│`) + ` Réponses: ${options.turns} | Synthèse: ${formatSummary(options)}`,
+      this.c("cyan", `│`) + ` Contexte: ${formatContext(options)}`,
+      this.c("cyan", `│`) + ` Options: arrêt anticipé ${options.earlyStopOnAgreement ? "activé" : "désactivé"}, auto-pull Ollama ${options.pullModels ? "activé" : "désactivé"}`,
       this.c("cyan", `└${"─".repeat(57)}`),
       ""
     ].join("\n"));
@@ -129,7 +131,11 @@ class PrettyConsoleRenderer implements DebateRenderer {
 }
 
 class PlainConsoleRenderer implements DebateRenderer {
-  start(_options: DebateOptions): void {}
+  start(options: DebateOptions, agents: DebateStartAgentInfo[] = []): void {
+    process.stdout.write(`Sujet: ${options.topic}` + "\n");
+    process.stdout.write(`Agents: ${formatAgentPair(options, agents)}` + "\n");
+    process.stdout.write(`Réponses: ${options.turns} | Synthèse: ${formatSummary(options)} | Contexte: ${formatContext(options)}` + "\n");
+  }
 
   warning(message: string): void {
     process.stderr.write(`Warning: ${message}\n`);
@@ -160,6 +166,35 @@ class PlainConsoleRenderer implements DebateRenderer {
   }
 }
 
+function formatAgentPair(options: DebateOptions, agents: DebateStartAgentInfo[]): string {
+  if (agents.length >= 2) {
+    return `${formatAgentLabel(agents[0])} <-> ${formatAgentLabel(agents[1])}`;
+  }
+
+  return `${options.agentA} <-> ${options.agentB}`;
+}
+
+function formatAgentLabel(agent: DebateStartAgentInfo | undefined): string {
+  if (!agent) {
+    return "?";
+  }
+
+  return `${agent.name} (${agent.role}, ${agent.type})`;
+}
+
+function formatSummary(options: DebateOptions): string {
+  return options.summaryEnabled ? options.summaryAgent ?? options.agentB : "désactivée";
+}
+
+function formatContext(options: DebateOptions): string {
+  const count = options.files.length;
+
+  if (count === 0) {
+    return "aucun fichier injecté";
+  }
+
+  return `${count} fichier${count > 1 ? "s" : ""} injecté${count > 1 ? "s" : ""}`;
+}
 const codes = {
   reset: "\u001b[0m",
   dim: "\u001b[2m",

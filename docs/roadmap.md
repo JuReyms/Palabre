@@ -35,6 +35,7 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Commande `palabre config`, `--set-defaults`, `-t/--turns`, `--summary-agent`, `--summary-agent none`, `--clear-defaults` et defaults partiels pour gerer les parametres par defaut sans forcer une paire d'agents.
 - `palabre doctor` enrichi : rendu par sections, `--plain` pour les logs, defaults, `turns`, `outputDir`, agents detectes absents de la config, forme des agents CLI/Ollama et action `palabre config --sync-agents`.
 - Smoke tests automatises pour l'adapter CLI avec `node:test` : prompt via stdin, prompt en argument, insertion de `modelArg`, sortie vide, exit non-zero et limite d'usage.
+- Recap de demarrage enrichi avant debat : agents avec roles/types, nombre de reponses, synthese, contexte injecte, arret anticipe et auto-pull Ollama.
 
 ## P0 - Stabilisation CLI
 
@@ -43,7 +44,6 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 ## P1 - Experience utilisateur
 
 - Ameliorer les messages d'erreur init/update quand le PATH, pnpm global ou Ollama posent probleme.
-- Afficher un recap clair avant debat dans le mode direct : agents, roles, modeles connus, contexte, synthese.
 
 ## P2 - Historique et reprise
 

@@ -199,9 +199,16 @@ export interface DebateSummary {
   createdAt: string;
 }
 
+/** Métadonnées d'un agent affichées dans le récap de démarrage. */
+export interface DebateStartAgentInfo {
+  name: string;
+  role: AgentRole;
+  type: AgentConfig["type"];
+}
+
 /** Interface d'observation du rendu. Découple l'orchestrateur du rendu console, TUI ou tout autre backend. */
 export interface DebateRenderer {
-  start(options: DebateOptions): void;
+  start(options: DebateOptions, agents?: DebateStartAgentInfo[]): void;
   notice(message: string): void;
   warning(message: string): void;
   turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void;

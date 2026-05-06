@@ -6,7 +6,7 @@
 palabre new
 ```
 
-L'assistant de Palabre vous  aide à choisir les agents, préparer le sujet et les options principales. C'est le meilleur point de départ si vous découvrez Palabre.
+L'assistant de Palabre vous aide à choisir les agents, préparer le sujet et les options principales. C'est le meilleur point de départ si vous découvrez Palabre.
 
 ## Avec les agents par défaut
 
@@ -72,9 +72,11 @@ palabre codex-ollama "Sujet" --model-b gemma4:e4b
 palabre codex-claude "Sujet" --show-prompt
 ```
 
-Cette commande affiche le prompt du premier tour, les agents et les modèles connus, puis s'arrête. C'est utile pour vérifier le contexte envoyé sans consommer de requête IA.
+Cette commande affiche le prompt du premier tour, les agents et les options de synthèse, puis s'arrête. C'est utile pour vérifier le contexte envoyé sans consommer de requête IA.
 
 ## Rendu terminal
+
+Avant le premier tour, Palabre affiche un récapitulatif : sujet, agents avec leurs rôles, nombre de réponses, synthèse, contexte injecté et options importantes. Cela permet de repérer une mauvaise paire d'agents ou un contexte oublié avant de lire le débat.
 
 Par défaut, Palabre utilise un rendu lisible avec en-têtes, séparateurs, synthèse structurée et état de génération.
 
