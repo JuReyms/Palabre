@@ -493,6 +493,8 @@ Table de correspondance :
 | `docs/guide/reference/presets.md` | `content/5.reference/3.presets.md` |
 | `docs/guide/troubleshooting.md` | `content/6.troubleshooting.md` |
 
+**Contrainte critique** : ne jamais utiliser `rm -rf palabre-app/content/*` dans le step de copie. `content/index.md` (landing page) n'est pas dans le FILE_MAP et ne doit pas etre supprime — sans lui, la collection `landing` de Nuxt Content est vide, la route `/` retourne 404 et le build Netlify echoue. Le step de copie doit se limiter a `cp -R dist/content/. palabre-app/content/`.
+
 Pour ajouter une page de documentation, trois etapes sont obligatoires — en oublier une casse le build Netlify :
 
 1. Creer le fichier source dans la section adaptee de `docs/guide/`.
