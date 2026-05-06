@@ -14,7 +14,7 @@ Les fonctionnalités principales sont disponibles :
 - presets comme `codex-claude`, `claude-gemini` ou `opencode-ollama` ;
 - ajout de contexte avec `--files` ou `--context` ;
 - synthèse finale avec consensus, désaccords, actions proposées et conclusion ;
-- export Markdown `.debate.md` ;
+- export Markdown `.debate.md` avec nom basé sur le sujet ;
 - diagnostic avec `palabre doctor`.
 
 ## Prochaines améliorations
@@ -27,9 +27,10 @@ Les fonctionnalités principales sont disponibles :
 
 La commande `palabre config` va continuer à évoluer pour rendre les réglages courants plus faciles : agents par défaut, nombre de réponses, agent de synthèse, synchronisation des agents installés après l'initialisation.
 
-### Exports plus faciles à retrouver
 
-Les fichiers `.debate.md` sont déjà exportés automatiquement. Une prochaine amélioration envisagée consiste à générer des noms de fichiers plus lisibles, par exemple avec une partie du sujet du débat.
+### Conversation après le débat
+
+Après la synthèse finale, Palabre pourrait proposer de continuer brièvement la discussion avec les mêmes agents. L'objectif serait de demander une précision, de creuser un désaccord ou de faire réagir un agent à la synthèse, puis d'ajouter cette suite dans une section distincte de l'export Markdown.
 
 ### Tests et stabilité
 

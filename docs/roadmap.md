@@ -50,7 +50,8 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 
 - Stabiliser le format `.debate.md`.
 - Ajouter `palabre history`.
-- Ajouter une reprise depuis un transcript existant.
+- Ajouter une conversation post-debat immediate : question utilisateur apres la synthese, reprise du debat et de la synthese comme contexte, choix d'un petit nombre de reponses, puis ajout dans une section distincte de l'export Markdown.
+- Ajouter une reprise depuis un transcript existant (`palabre continue <fichier.debate.md>` ou equivalent).
 - Ajouter un index local optionnel des debats.
 
 ## P3 - Providers
