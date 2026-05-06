@@ -45,7 +45,7 @@ src/adapters/cli.ts       Adapter CLI minimal
 src/adapters/ollama.ts    Adapter Ollama HTTP
 docs/roadmap.md           Roadmap projet maintenue
 docs/notes.md             Notes personnelles du mainteneur
-docs/guide/               Guides utilisateur
+docs/guide/               Guides utilisateur organises par parcours
 docs/archive/             Documents historiques
 ```
 
@@ -404,7 +404,7 @@ La documentation doit rester a jour dans le meme changement que le code. Avant d
 
 - `README.md` pour l'etat du MVP, les commandes principales, les limites connues et les liens de documentation.
 - `AGENTS.md` pour les decisions d'architecture, les workflows contributeur et les consignes de maintenance.
-- `docs/guide/*.md` pour les guides utilisateur.
+- `docs/guide/**.md` pour les guides utilisateur.
 - `docs/roadmap.md` pour les travaux faits, en cours et prevus.
 
 `docs/notes.md` est reserve aux idees personnelles du mainteneur. Ne pas l'utiliser comme roadmap projet.
@@ -470,19 +470,36 @@ Table de correspondance :
 
 | Source (Palabre CLI) | Destination (Palabre-app) |
 |---|---|
-| `docs/guide/getting-started.md` | `content/1.guide/1.getting-started.md` |
-| `docs/guide/running-a-debate.md` | `content/1.guide/2.running-a-debate.md` |
-| `docs/guide/troubleshooting.md` | `content/1.guide/3.troubleshooting.md` |
-| `docs/guide/configuration.md` | `content/2.reference/1.configuration.md` |
-| `docs/guide/cli-reference.md` | `content/2.reference/2.cli-reference.md` |
+| `docs/guide/get-started/introduction.md` | `content/1.get-started/1.introduction.md` |
+| `docs/guide/get-started/installation.md` | `content/1.get-started/2.installation.md` |
+| `docs/guide/get-started/configuration.md` | `content/1.get-started/3.configuration.md` |
+| `docs/guide/get-started/first-debate.md` | `content/1.get-started/4.first-debate.md` |
+| `docs/guide/agents/overview.md` | `content/2.agents/1.overview.md` |
+| `docs/guide/agents/claude-code.md` | `content/2.agents/2.claude-code.md` |
+| `docs/guide/agents/codex.md` | `content/2.agents/3.codex.md` |
+| `docs/guide/agents/gemini.md` | `content/2.agents/4.gemini.md` |
+| `docs/guide/agents/opencode.md` | `content/2.agents/5.opencode.md` |
+| `docs/guide/agents/ollama.md` | `content/2.agents/6.ollama.md` |
+| `docs/guide/usage/running-a-debate.md` | `content/3.usage/1.running-a-debate.md` |
+| `docs/guide/usage/context-and-files.md` | `content/3.usage/2.context-and-files.md` |
+| `docs/guide/usage/summaries.md` | `content/3.usage/3.summaries.md` |
+| `docs/guide/usage/exports.md` | `content/3.usage/4.exports.md` |
+| `docs/guide/configuration/overview.md` | `content/4.configuration/1.overview.md` |
+| `docs/guide/configuration/defaults.md` | `content/4.configuration/2.defaults.md` |
+| `docs/guide/configuration/local-vs-global.md` | `content/4.configuration/3.local-vs-global.md` |
+| `docs/guide/configuration/advanced-json.md` | `content/4.configuration/4.advanced-json.md` |
+| `docs/guide/reference/cli.md` | `content/5.reference/1.cli.md` |
+| `docs/guide/reference/config-file.md` | `content/5.reference/2.config-file.md` |
+| `docs/guide/reference/presets.md` | `content/5.reference/3.presets.md` |
+| `docs/guide/troubleshooting.md` | `content/6.troubleshooting.md` |
 
 Pour ajouter une page de documentation, trois etapes sont obligatoires — en oublier une casse le build Netlify :
 
-1. Creer le fichier source dans `docs/guide/`.
+1. Creer le fichier source dans la section adaptee de `docs/guide/`.
 2. Ajouter la ligne correspondante dans `FILE_MAP` de `.github/workflows/sync-docs.yml` (source → destination dans Palabre-app).
 3. Creer le fichier de destination dans Palabre-app avec le bon frontmatter (le sync l'ecrasera au prochain push, mais il doit exister pour que le build passe entre-temps).
 
-Attention aux liens internes : ne pas utiliser de liens relatifs (`./autre-page.md`) dans les sources `docs/guide/`. Utiliser des URLs absolutes correspondant aux routes finales du site (`/guide/...` ou `/reference/...`), car les fichiers source et destination n'ont pas toujours la meme structure de dossiers.
+Attention aux liens internes : ne pas utiliser de liens relatifs (`./autre-page.md`) dans les sources `docs/guide/`. Utiliser des URLs absolutes correspondant aux routes finales du site (`/get-started/...`, `/agents/...`, `/usage/...`, `/configuration/...`, `/reference/...`), car les fichiers source et destination n'ont pas toujours la meme structure de dossiers.
 
 ### Workflow release.yml (step de sync)
 

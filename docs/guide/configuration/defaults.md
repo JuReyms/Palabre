@@ -1,0 +1,46 @@
+# Paramètres par défaut
+
+Les paramètres par défaut sont utilisés quand vous lancez un débat sans préciser tous les agents.
+
+## Définir les agents par défaut
+
+```bash
+palabre config --set-defaults codex claude
+```
+
+Après cette commande :
+
+```bash
+palabre -s "Critique ce plan"
+```
+
+utilise `codex` en agent A et `claude` en agent B.
+
+## Définir la synthèse par défaut
+
+```bash
+palabre config --summary-agent claude
+```
+
+Si aucun agent de synthèse n'est défini, Palabre utilise l'agent B.
+
+## Définir le nombre de réponses
+
+```bash
+palabre config -t 4
+```
+
+`turns` est le nombre total de réponses du débat. Palabre accepte une valeur entre 1 et 20.
+
+## Supprimer les paramètres par défaut
+
+```bash
+palabre config --clear-defaults
+```
+
+Après cela, utilisez un preset ou des agents explicites :
+
+```bash
+palabre codex-claude "Sujet" -t 4
+palabre run --subject "Sujet" --agent-a codex --agent-b claude
+```

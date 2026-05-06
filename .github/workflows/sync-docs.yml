@@ -19,11 +19,28 @@ jobs:
           import os, re
 
           FILE_MAP = {
-            'docs/guide/getting-started.md':  'content/1.guide/1.getting-started.md',
-            'docs/guide/running-a-debate.md': 'content/1.guide/2.running-a-debate.md',
-            'docs/guide/troubleshooting.md':  'content/1.guide/3.troubleshooting.md',
-            'docs/guide/configuration.md':    'content/2.reference/1.configuration.md',
-            'docs/guide/cli-reference.md':    'content/2.reference/2.cli-reference.md',
+            'docs/guide/get-started/introduction.md':   'content/1.get-started/1.introduction.md',
+            'docs/guide/get-started/installation.md':   'content/1.get-started/2.installation.md',
+            'docs/guide/get-started/configuration.md':  'content/1.get-started/3.configuration.md',
+            'docs/guide/get-started/first-debate.md':   'content/1.get-started/4.first-debate.md',
+            'docs/guide/agents/overview.md':            'content/2.agents/1.overview.md',
+            'docs/guide/agents/claude-code.md':         'content/2.agents/2.claude-code.md',
+            'docs/guide/agents/codex.md':               'content/2.agents/3.codex.md',
+            'docs/guide/agents/gemini.md':              'content/2.agents/4.gemini.md',
+            'docs/guide/agents/opencode.md':            'content/2.agents/5.opencode.md',
+            'docs/guide/agents/ollama.md':              'content/2.agents/6.ollama.md',
+            'docs/guide/usage/running-a-debate.md':     'content/3.usage/1.running-a-debate.md',
+            'docs/guide/usage/context-and-files.md':    'content/3.usage/2.context-and-files.md',
+            'docs/guide/usage/summaries.md':            'content/3.usage/3.summaries.md',
+            'docs/guide/usage/exports.md':              'content/3.usage/4.exports.md',
+            'docs/guide/configuration/overview.md':     'content/4.configuration/1.overview.md',
+            'docs/guide/configuration/defaults.md':     'content/4.configuration/2.defaults.md',
+            'docs/guide/configuration/local-vs-global.md': 'content/4.configuration/3.local-vs-global.md',
+            'docs/guide/configuration/advanced-json.md': 'content/4.configuration/4.advanced-json.md',
+            'docs/guide/reference/cli.md':              'content/5.reference/1.cli.md',
+            'docs/guide/reference/config-file.md':      'content/5.reference/2.config-file.md',
+            'docs/guide/reference/presets.md':          'content/5.reference/3.presets.md',
+            'docs/guide/troubleshooting.md':            'content/6.troubleshooting.md',
           }
 
           for src, dest in FILE_MAP.items():
@@ -72,9 +89,8 @@ jobs:
 
       - name: Copy files
         run: |
-          cp dist/content/1.guide/1.getting-started.md  palabre-app/content/1.guide/1.getting-started.md
-          cp dist/content/1.guide/2.running-a-debate.md palabre-app/content/1.guide/2.running-a-debate.md
-          cp dist/content/2.reference/1.configuration.md palabre-app/content/2.reference/1.configuration.md
+          rm -rf palabre-app/content/*
+          cp -R dist/content/. palabre-app/content/
 
       - name: Commit and push
         working-directory: palabre-app
@@ -91,4 +107,3 @@ jobs:
             git commit -m "sync: docs from Palabre@${COMMIT}"
             git push origin dev
           fi
-

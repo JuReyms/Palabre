@@ -1,20 +1,14 @@
 # Dépannage
 
-Commence par lancer le diagnostic :
+Commencez par lancer le diagnostic :
 
 ```bash
 palabre doctor
 ```
 
-Depuis le repo, utilise :
+`doctor` ne lance aucun agent IA. Il vérifie la configuration, les agents déclarés, les CLIs disponibles, Ollama et les modèles configurés.
 
-```bash
-pnpm start -- doctor
-```
-
-Le doctor ne lance aucun agent IA. Il vérifie la config, les agents déclarés, les CLIs disponibles, Ollama et les modèles configurés.
-
-## Config absente
+## Palabre ne trouve pas ma configuration
 
 Message typique :
 
@@ -22,21 +16,19 @@ Message typique :
 [ERREUR] Config absente: ...
 ```
 
-Actions :
+Créez une configuration :
 
 ```bash
 palabre init
 ```
 
-Ou, si tu veux une config propre au projet courant :
+ou une configuration locale au projet courant :
 
 ```bash
 palabre init --local
 ```
 
-Palabre cherche la config dans cet ordre : `./palabre.config.json`, `./chicane.config.json`, `~/.palabre/palabre.config.json`, puis `~/.palabre/chicane.config.json`.
-
-## Config illisible
+## La configuration est illisible
 
 Message typique :
 
@@ -44,13 +36,15 @@ Message typique :
 [ERREUR] Config illisible: ...
 ```
 
-Actions :
+Vérifiez que le JSON ne contient pas de virgule finale, que les clés sont entre guillemets et que le fichier est bien encodé en UTF-8.
 
-- vérifie que le JSON n'a pas de virgule finale ;
-- vérifie les guillemets autour des clés et valeurs ;
-- relance `palabre init --config <nouveau-fichier>` si tu veux repartir d'une config propre.
+Pour repartir d'une configuration propre :
 
-## Agent par défaut inconnu
+```bash
+palabre init --config ./nouvelle-config.json
+```
+
+## Un agent par défaut est inconnu
 
 Message typique :
 
@@ -58,70 +52,61 @@ Message typique :
 [ERREUR] defaults.agentA pointe vers un agent inconnu: ...
 ```
 
-Action : corrige `defaults.agentA`, `defaults.agentB` ou `defaults.summaryAgent` pour pointer vers une entrée existante dans `agents`.
+Listez les agents disponibles :
 
-Exemple :
-
-```json
-"defaults": {
-  "agentA": "codex",
-  "agentB": "claude",
-  "summaryAgent": "claude",
-  "turns": 4
-}
+```bash
+palabre agents
 ```
 
-## CLI introuvable
+Puis corrigez les agents par défaut :
+
+```bash
+palabre config --set-defaults codex claude
+```
+
+## Une CLI est introuvable
 
 Message typique :
 
 ```text
-[WARN] Codex CLI: non detecte dans PATH.
+[WARN] Codex CLI: non détecté dans PATH.
 ```
 
 Actions :
 
-- installe la CLI concernée ;
-- authentifie-la hors de Palabre ;
-- ferme et rouvre le terminal pour recharger le `PATH` ;
-- corrige `command` dans la config si la commande a un autre nom.
+- installez la CLI concernée ;
+- authentifiez-la hors de Palabre ;
+- fermez et rouvrez le terminal ;
+- relancez `palabre doctor` ;
+- corrigez `command` dans la configuration si la commande porte un autre nom.
 
-Sur Windows, les wrappers npm/PowerShell comme `codex`, `gemini` et `opencode` peuvent nécessiter :
+Sur Windows, les wrappers npm ou PowerShell comme `codex`, `gemini` et `opencode` peuvent nécessiter `shell: true` dans la configuration.
 
-```json
-"shell": true
-```
+Claude fonctionne souvent mieux avec `claude.exe` et `shell: false`.
 
-Claude fonctionne souvent mieux avec :
-
-```json
-"command": "claude.exe",
-"shell": false
-```
-
-## Ollama non joignable
+## Ollama ne répond pas
 
 Message typique :
 
 ```text
-[WARN] Ollama installe mais API non joignable: http://localhost:11434
+[WARN] Ollama installé mais API non joignable: http://localhost:11434
 ```
 
-Actions :
+Démarrez Ollama :
 
 ```bash
 ollama serve
 ```
 
-Puis relance :
+Puis relancez :
 
 ```bash
 palabre doctor
 ```
 
-Si ton Ollama n'écoute pas sur `http://localhost:11434`, corrige `baseUrl` dans l'agent Ollama.
+Si Ollama utilise une autre URL, corrigez `baseUrl` dans l'agent Ollama.
 
-## Modèle Ollama absent
+## Le modèle Ollama est absent
 
 Message typique :
 
@@ -129,43 +114,35 @@ Message typique :
 [WARN] ollama-local [ollama:critic] model=... absent.
 ```
 
-Actions :
+Installez le modèle :
 
 ```bash
 ollama pull le-modele
 ```
 
-Ou autorise Palabre à le télécharger au lancement du débat :
+ou autorisez Palabre à le télécharger au lancement :
 
 ```bash
 palabre codex-ollama "Sujet" --model-b le-modele --pull-models
 ```
 
-Tu peux aussi l'autoriser dans la config de l'agent :
-
-```json
-"autoPullModel": true
-```
-
-Attention : certains modèles pèsent plusieurs Go. Sur une machine modeste, privilégie un modèle local raisonnable.
+Certains modèles pèsent plusieurs Go. Sur une machine modeste, privilégiez un modèle local raisonnable.
 
 ## Ollama ne voit pas mes fichiers
 
-Ollama ne lit pas le filesystem par lui-même. Il reçoit uniquement le prompt construit par Palabre.
-
-Actions :
+Ollama ne lit pas le filesystem directement. Ajoutez le contexte au prompt :
 
 ```bash
 palabre codex-ollama "Critique ce module" --files src/module.ts
 ```
 
-Ou :
+ou :
 
 ```bash
 palabre codex-ollama "Critique l'architecture" --context src docs
 ```
 
-## Limite d'usage Codex, Claude, Gemini ou OpenCode
+## Une CLI atteint une limite d'usage
 
 Message typique :
 
@@ -173,14 +150,14 @@ Message typique :
 Erreur: codex a atteint une limite d'utilisation: ...
 ```
 
-Actions :
+Actions possibles :
 
-- attends l'heure indiquée par la CLI ;
-- change de modèle dans ta CLI ou avec `--model-a` / `--model-b` ;
-- utilise une autre paire d'agents ;
-- désactive temporairement l'agent concerné dans ta config.
+- attendez l'heure indiquée par la CLI ;
+- changez de modèle dans la CLI ou avec `--model-a` / `--model-b` ;
+- utilisez une autre paire d'agents ;
+- désactivez temporairement l'agent concerné dans votre configuration.
 
-## Sortie CLI vide
+## La sortie d'un agent est vide
 
 Message typique :
 
@@ -188,11 +165,7 @@ Message typique :
 produced empty output
 ```
 
-Actions :
-
-- teste la commande hors de Palabre ;
-- vérifie que la CLI accepte bien un prompt via `stdin` ;
-- ajuste `args`, `promptMode`, `shell` ou `timeoutMs` dans la config.
+Testez la commande hors de Palabre, puis vérifiez `args`, `promptMode`, `shell` et les timeouts dans la configuration.
 
 `allowEmptyOutput` existe, mais il vaut mieux le garder désactivé sauf cas très spécifique.
 
@@ -210,4 +183,4 @@ Pour appliquer depuis un checkout git :
 palabre update --apply
 ```
 
-Si `update --apply` échoue, vérifie que tu es bien dans un dépôt git Palabre et que `pnpm` est disponible.
+`update --apply` concerne surtout les installations depuis le dépôt source.

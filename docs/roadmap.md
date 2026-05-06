@@ -27,8 +27,8 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Assistant interactif `palabre new` pour composer un debat pas a pas, afficher les commandes equivalentes explicite/courte et lancer ou previsualiser.
 - Renommage produit de Chicane vers Palabre, avec fallback de config legacy.
 - Config globale `~/.palabre/palabre.config.json`, avec config locale prioritaire et `palabre init --local`.
-- Guides utilisateur versionnes dans `docs/guide/`.
-- Reference CLI utilisateur dans `docs/guide/cli-reference.md`.
+- Guides utilisateur versionnes et reorganises dans `docs/guide/`.
+- Reference CLI utilisateur dans `docs/guide/reference/cli.md`.
 - Roles injectes dans les prompts avec consignes dediees par role.
 - Garde-fou contre les commandes inconnues proches de commandes valides, par exemple `palabre nex`.
 - Commande `palabre config`, `--set-defaults`, `-t/--turns`, `--summary-agent` et `--clear-defaults` pour gerer les parametres par defaut.

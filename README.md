@@ -43,7 +43,7 @@ pnpm build
 ## Configuration
 
 ```bash
-pnpm start -- init
+palabre init
 ```
 
 Cette commande cree par defaut une config globale dans `~/.palabre/palabre.config.json`. Pendant l'init, Palabre detecte `codex`, `claude`, `gemini`, `opencode` et l'API locale Ollama, puis choisit une paire par defaut detectee quand c'est possible. Le fichier d'exemple versionne est [palabre.config.example.json](./palabre.config.example.json).
@@ -53,13 +53,13 @@ Resolution de config : `./palabre.config.json` est prioritaire quand il existe d
 Pour verifier l'installation sans lancer de debat :
 
 ```bash
-pnpm start -- doctor
+palabre doctor
 ```
 
 Pour composer un premier debat pas a pas, avec les agents detectes et une commande equivalente affichee avant le lancement :
 
 ```bash
-pnpm start -- new
+palabre new
 ```
 
 Extrait de configuration :
@@ -122,29 +122,29 @@ Ollama est pense par defaut comme `critic`, `scout` ou `summarizer`, car les mac
 Mode guide :
 
 ```bash
-pnpm start -- new
+palabre new
 ```
 
 Mode direct :
 
 ```bash
-pnpm start -- run --subject "Refacto de l'auth Nuxt" --agent-a codex --agent-b claude --turns 4
+palabre run --subject "Refacto de l'auth Nuxt" --agent-a codex --agent-b claude --turns 4
 ```
 
 Autres exemples :
 
 ```bash
-pnpm start -- run --subject "Comparer deux strategies de cache" --agent-a claude --agent-b codex
-pnpm start -- run --subject "Critique rapide du plan de migration" --agent-a codex --agent-b ollama-local --turns 2
+palabre run --subject "Comparer deux strategies de cache" --agent-a claude --agent-b codex
+palabre run --subject "Critique rapide du plan de migration" --agent-a codex --agent-b ollama-local --turns 2
 ```
 
 Presets disponibles :
 
 ```bash
-pnpm start -- run --preset codex-claude --subject "Debattez du prochain jalon"
-pnpm start -- run --preset claude-ollama --subject "Critique le MVP batch"
-pnpm start -- run --preset gemini-ollama --subject "Gemini est-il un bon reviewer ?"
-pnpm start -- run --preset claude-opencode --subject "OpenCode comme reviewer ?"
+palabre run --preset codex-claude --subject "Debattez du prochain jalon"
+palabre run --preset claude-ollama --subject "Critique le MVP batch"
+palabre run --preset gemini-ollama --subject "Gemini est-il un bon reviewer ?"
+palabre run --preset claude-opencode --subject "OpenCode comme reviewer ?"
 ```
 
 Syntaxe courte equivalente :
@@ -159,14 +159,14 @@ palabre -s "Critique rapide du MVP" -t 2
 Un preset choisit seulement les deux agents. Il ne change pas les modeles par defaut configures dans les CLIs. Pour demander un modele explicitement, Palabre transmet la string brute sans valider ni lister les modeles :
 
 ```bash
-pnpm start -- run --preset codex-claude --model-a 5.5 --model-b opus --subject "Compare les approches"
-pnpm start -- run --preset codex-ollama --model-b gemma4:e4b --subject "Critique locale plus profonde"
+palabre run --preset codex-claude --model-a 5.5 --model-b opus --subject "Compare les approches"
+palabre run --preset codex-ollama --model-b gemma4:e4b --subject "Critique locale plus profonde"
 ```
 
 Pour Ollama, Palabre valide par defaut que le modele est installe localement. Il ne telecharge rien sans accord explicite. Pour autoriser un telechargement Ollama si le modele manque :
 
 ```bash
-pnpm start -- run --preset codex-ollama --model-b nemotron-3-nano:4b --pull-models --subject "Critique locale"
+palabre run --preset codex-ollama --model-b nemotron-3-nano:4b --pull-models --subject "Critique locale"
 ```
 
 Equivalent dans la config agent :
@@ -182,7 +182,7 @@ Equivalent dans la config agent :
 Pour inspecter le prompt du premier tour sans appeler d'agent :
 
 ```bash
-pnpm start -- run --preset codex-claude --subject "Preview" --context src docs --show-prompt
+palabre run --preset codex-claude --subject "Preview" --context src docs --show-prompt
 ```
 
 Pour mettre a jour une installation locale :
@@ -197,15 +197,15 @@ palabre update --apply
 Par defaut, Palabre produit une synthese finale avec `defaults.summaryAgent` si ce champ est configure, sinon avec l'agent B. Tu peux choisir un autre agent, un modele specifique, ou desactiver la synthese :
 
 ```bash
-pnpm start -- run --preset codex-claude --subject "Critique le MVP" --summary-agent claude
-pnpm start -- run --preset codex-claude --subject "Critique le MVP" --summary-agent ollama-local --summary-model nemotron-3-nano:4b
-pnpm start -- run --preset codex-claude --subject "Critique le MVP" --no-summary
+palabre run --preset codex-claude --subject "Critique le MVP" --summary-agent claude
+palabre run --preset codex-claude --subject "Critique le MVP" --summary-agent ollama-local --summary-model nemotron-3-nano:4b
+palabre run --preset codex-claude --subject "Critique le MVP" --no-summary
 ```
 
 Le rendu console est un premier TUI leger : en-tete, separateurs, tours, synthese lisible et etat "agent en cours" pendant les generations longues. Pour revenir au rendu brut :
 
 ```bash
-pnpm start -- run --preset codex-claude --subject "Critique le MVP" --plain
+palabre run --preset codex-claude --subject "Critique le MVP" --plain
 ```
 
 Les couleurs sont automatiquement desactivees si `NO_COLOR` est defini.
@@ -215,7 +215,7 @@ La session genere un fichier `.debate.md` dans le dossier configure par `outputD
 `--turns` est une limite haute entre 1 et 20 réponses. Par defaut, Palabre peut s'arreter avant la limite apres un tour complet si le dernier agent exprime clairement un accord complet (`rien a trancher`, `accord complet`, `aucun desaccord`, etc.). Pour forcer tous les tours :
 
 ```bash
-pnpm start -- run --subject "Sujet" --turns 4 --no-early-stop
+palabre run --subject "Sujet" --turns 4 --no-early-stop
 ```
 
 ## Contexte projet
@@ -228,7 +228,7 @@ Palabre distingue deux modes de contexte :
 `--files` est utile quand tu sais exactement quels fichiers doivent etre envoyes :
 
 ```bash
-pnpm start -- run --subject "Critique le MVP batch" --files README.md src/adapters/cli.ts --agent-a claude --agent-b ollama-local --turns 2
+palabre run --subject "Critique le MVP batch" --files README.md src/adapters/cli.ts --agent-a claude --agent-b ollama-local --turns 2
 ```
 
 Si un chemin `--files` pointe vers un dossier, un fichier binaire ou un fichier trop gros, Palabre arrete la commande avec une erreur claire.
@@ -236,8 +236,8 @@ Si un chemin `--files` pointe vers un dossier, un fichier binaire ou un fichier 
 `--context` est utile pour donner une vue projet plus large sans tout envoyer aveuglement :
 
 ```bash
-pnpm start -- run --preset codex-ollama --subject "Critique l'architecture" --context src docs --turns 2
-pnpm start -- run --preset codex-claude --subject "Preview contexte" --context . --show-prompt
+palabre run --preset codex-ollama --subject "Critique l'architecture" --context src docs --turns 2
+palabre run --preset codex-claude --subject "Preview contexte" --context . --show-prompt
 ```
 
 Le scan `--context` :
@@ -275,9 +275,9 @@ Limites actuelles :
 ```bash
 pnpm check
 pnpm build
-pnpm start -- help
-pnpm start -- -h
-pnpm start -- -v
+palabre help
+palabre -h
+palabre -v
 ```
 
 ## Validation locale actuelle
@@ -342,10 +342,11 @@ Reglages importants observes :
 Site de documentation : **https://palab.re** (aussi accessible sur https://palabre.netlify.app)
 
 - Roadmap : [docs/roadmap.md](./docs/roadmap.md)
-- Demarrage rapide : [docs/guide/getting-started.md](./docs/guide/getting-started.md)
-- Configuration : [docs/guide/configuration.md](./docs/guide/configuration.md)
-- Lancer un debat : [docs/guide/running-a-debate.md](./docs/guide/running-a-debate.md)
-- Reference CLI : [docs/guide/cli-reference.md](./docs/guide/cli-reference.md)
+- Introduction : [docs/guide/get-started/introduction.md](./docs/guide/get-started/introduction.md)
+- Installation : [docs/guide/get-started/installation.md](./docs/guide/get-started/installation.md)
+- Premiere configuration : [docs/guide/get-started/configuration.md](./docs/guide/get-started/configuration.md)
+- Premier debat : [docs/guide/get-started/first-debate.md](./docs/guide/get-started/first-debate.md)
+- Reference CLI : [docs/guide/reference/cli.md](./docs/guide/reference/cli.md)
 - Depannage : [docs/guide/troubleshooting.md](./docs/guide/troubleshooting.md)
 - Guide agents/contributeurs : [AGENTS.md](./AGENTS.md)
 - Archive de specification initiale : [docs/archive/Palabre-Specification.md](./docs/archive/Palabre-Specification.md)
