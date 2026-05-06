@@ -20,8 +20,9 @@
     "ollama",
     "codex",
     "claude",
-    "gemini",
-    "opencode"
+    "opencode",
+    "debate",
+    "orchestrator"
   ],
   "bin": {
     "palabre": "dist/index.js"
