@@ -250,7 +250,8 @@ palabre run --preset codex-claude --subject "Preview contexte" --context . --sho
 Le scan `--context` :
 
 - parcourt recursivement les dossiers passes ;
-- ignore par defaut `.git`, `.gitignore`, `.tmp`, `.pnpm-store`, `node_modules` et `dist` ;
+- ignore par defaut `.git`, `.gitignore`, `.tmp`, `.pnpm-store`,
+ode_modules` et `dist` ;
 - applique les regles simples de `.gitignore` du projet ;
 - garde seulement les extensions texte connues (`.ts`, `.md`, `.json`, `.yaml`, etc.) ;
 - ignore les fichiers binaires, trop gros ou au-dela de la limite totale avec un warning.
@@ -340,7 +341,8 @@ Reglages importants observes :
 - Le rendu console pretty est volontairement leger. Il affiche deja l'agent en cours, mais le split-view, le scrolling interactif et l'input humain arriveront avec le vrai TUI.
 - Une sortie CLI vide est consideree comme une erreur, sauf si `allowEmptyOutput` est active explicitement.
 - `idleTimeoutMs` doit etre utilise avec prudence : les CLIs IA peuvent rester silencieuses pendant la generation.
-- Les CLIs interactives auront besoin d'un vrai PTY, probablement via `node-pty`.
+- Les CLIs interactives auront besoin d'un vrai PTY, probablement via
+ode-pty`.
 - La detection de fin de reponse est encore heuristique avec `idleTimeoutMs`.
 - La TUI et l'extension VS Code sont prevues apres stabilisation du coeur CLI.
 
@@ -355,5 +357,6 @@ Site de documentation : **https://palab.re** (aussi accessible sur https://palab
 - Premier debat : [docs/guide/get-started/first-debate.md](./docs/guide/get-started/first-debate.md)
 - Reference CLI : [docs/guide/reference/cli.md](./docs/guide/reference/cli.md)
 - Depannage : [docs/guide/troubleshooting.md](./docs/guide/troubleshooting.md)
+- Roadmap utilisateur : [docs/guide/roadmap.md](./docs/guide/roadmap.md)
 - Guide agents/contributeurs : [AGENTS.md](./AGENTS.md)
 - Archive de specification initiale : [docs/archive/Palabre-Specification.md](./docs/archive/Palabre-Specification.md)

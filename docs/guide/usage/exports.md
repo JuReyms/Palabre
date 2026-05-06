@@ -2,7 +2,7 @@
 
 Chaque débat génère un fichier `.debate.md` dans le dossier défini par `outputDir`.
 
-Par défaut, l'export est créé dans le dossier courant.
+Par défaut, l'export est créé dans le dossier depuis lequel vous lancez `palabre`. À la fin du débat, le terminal affiche une ligne `Debat exporte:` suivie du chemin complet du fichier.
 
 ## Contenu de l'export
 

@@ -6,18 +6,26 @@ Ollama peut avoir un temps de réponse plus lent que les autres agents, surtout 
 
 ## À installer avant Palabre
 
-Installez Ollama depuis la documentation officielle d'OpenAI,et téléchargez un modèle.
+Installez Ollama depuis la documentation officielle, puis téléchargez un modèle.
 
-Documentation officielle : [https://ollama.com/](https://ollama.com/)
+Documentation officielle : [https://docs.ollama.com/](https://docs.ollama.com/)
+
+Référence CLI : [https://docs.ollama.com/cli](https://docs.ollama.com/cli)
 
 Vérifiez ensuite que la commande fonctionne :
 
 ```bash
 ollama list
 ```
-ou 
+ou :
 ```bash
 ollama ls
+```
+
+Si Ollama a été installé après `palabre init`, synchronisez la configuration :
+
+```bash
+palabre config --sync-agents
 ```
 
 Si nécessaire, démarrez Ollama :
@@ -33,6 +41,8 @@ ollama pull gemma4:e4b
 ```
 
 Adaptez le modèle à votre machine. Les gros modèles peuvent être trop lourds pour un usage fluide.
+
+En usage local, les limites principales viennent de votre machine : mémoire, CPU/GPU et temps de réponse. Si vous utilisez une offre cloud, payante ou distante d'Ollama, les quotas et limites associées viennent de cette offre, pas de Palabre.
 
 ## Configuration typique
 
@@ -79,4 +89,3 @@ ou :
 ```bash
 palabre codex-ollama "Critique l'architecture" --context src docs
 ```
-

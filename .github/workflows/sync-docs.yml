@@ -41,6 +41,7 @@ jobs:
             'docs/guide/reference/config-file.md':      'content/5.reference/2.config-file.md',
             'docs/guide/reference/presets.md':          'content/5.reference/3.presets.md',
             'docs/guide/troubleshooting.md':            'content/6.troubleshooting.md',
+            'docs/guide/roadmap.md':                    'content/7.roadmap.md',
           }
 
           for src, dest in FILE_MAP.items():

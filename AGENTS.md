@@ -405,9 +405,10 @@ La documentation doit rester a jour dans le meme changement que le code. Avant d
 - `README.md` pour l'etat du MVP, les commandes principales, les limites connues et les liens de documentation.
 - `AGENTS.md` pour les decisions d'architecture, les workflows contributeur et les consignes de maintenance.
 - `docs/guide/**.md` pour les guides utilisateur.
-- `docs/roadmap.md` pour les travaux faits, en cours et prevus.
+- `docs/guide/roadmap.md` pour la roadmap publique orientee utilisateurs : disponible aujourd'hui, prochaines ameliorations, philosophie du projet.
+- `docs/roadmap.md` pour la roadmap interne projet : travaux faits, priorites, dettes techniques et sujets contributeurs.
 
-`docs/notes.md` est reserve aux idees personnelles du mainteneur. Ne pas l'utiliser comme roadmap projet.
+`docs/notes.md` est reserve aux idees personnelles du mainteneur. Ne pas l'utiliser comme roadmap projet. Quand une idee de `docs/notes.md` est implementee ou deplacee dans une roadmap, nettoyer la note correspondante pour garder ce fichier lisible.
 
 Les documents obsoletes ou historiques doivent etre deplaces dans `docs/archive/` plutot que supprimes brutalement quand ils gardent une valeur de contexte.
 
@@ -492,6 +493,7 @@ Table de correspondance :
 | `docs/guide/reference/config-file.md` | `content/5.reference/2.config-file.md` |
 | `docs/guide/reference/presets.md` | `content/5.reference/3.presets.md` |
 | `docs/guide/troubleshooting.md` | `content/6.troubleshooting.md` |
+| `docs/guide/roadmap.md` | `content/7.roadmap.md` |
 
 **Contrainte critique** : ne jamais utiliser `rm -rf palabre-app/content/*` dans le step de copie. `content/index.md` (landing page) n'est pas dans le FILE_MAP et ne doit pas etre supprime — sans lui, la collection `landing` de Nuxt Content est vide, la route `/` retourne 404 et le build Netlify echoue. Le step de copie doit se limiter a `cp -R dist/content/. palabre-app/content/`.
 

@@ -1,14 +1,16 @@
 # Codex
 
+Codex CLI permet d'utiliser Codex depuis le terminal.
+
 Palabre peut le lancer comme agent de débat, souvent en agent A pour proposer une première solution.
 
 ## À installer avant Palabre
 
-Installez Codex depuis la documentation officielle d'OpenAI, puis authentifiez la CLI dans votre terminal.
+Installez et configurez Codex CLI hors de Palabre. Consultez la documentation officielle, puis vérifiez la commande :
 
-Documentation officielle : [https://developers.openai.com/codex/cli](https://developers.openai.com/codex/cli)
+Documentation officielle : [https://help.openai.com/en/articles/11096431-openai-codex-cli-getting-started](https://help.openai.com/en/articles/11096431-openai-codex-cli-getting-started)
 
-Vérifiez ensuite que la commande fonctionne :
+Dépôt GitHub : [https://github.com/openai/codex](https://github.com/openai/codex)
 
 ```bash
 codex --version
@@ -20,11 +22,11 @@ Si Codex a été installé après `palabre init`, synchronisez la configuration 
 palabre config --sync-agents
 ```
 
-## Abonnement et limites
+## Compte, modèle et limites
 
-Codex utilise les règles d'accès de votre compte OpenAI. Palabre ne contourne pas les quotas, limites d'usage ou abonnements.
+Codex garde sa propre configuration : fournisseur, modèle par défaut, sandbox, approbations et limites d'usage.
 
-Si Codex atteint une limite, Palabre affiche une erreur courte et vous pouvez attendre que votre quota d'utilisation soit réinitialisé ou utiliser une autre paire d'agents.
+Palabre transmet seulement le prompt. Si vous indiquez `--model-a` ou `--model-b`, la valeur est transmise à la CLI via son argument modèle configuré.
 
 ## Configuration typique
 
@@ -39,7 +41,7 @@ Si Codex atteint une limite, Palabre affiche une erreur courte et vous pouvez at
 }
 ```
 
-Sur Windows, `shell: true` est souvent nécessaire pour les wrappers installés via npm ou PowerShell.
+Sur Windows, `shell: true` est souvent nécessaire pour les wrappers installés via npm ou PowerShell comme `codex`. Claude est différent dans beaucoup d'installations Windows : `claude.exe` est généralement appelé directement avec `shell: false`.
 
 ## Utilisation
 

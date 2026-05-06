@@ -1,6 +1,6 @@
 # Configuration
 
-La configuration indique à Palabre quels agents existent, quels agents utiliser par défaut et où écrire les exports.
+La configuration indique à Palabre quels agents existent, quels agents utiliser par défaut et où écrire les exports. Si `outputDir` n'est pas défini, les fichiers `.debate.md` sont créés dans le dossier courant.
 
 ## Créer une configuration
 

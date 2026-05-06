@@ -1,12 +1,14 @@
 # Gemini
 
+Gemini CLI permet d'utiliser les modèles Google Gemini depuis le terminal.
+
 Palabre peut l'utiliser comme agent de relecture, de comparaison ou de synthèse.
 
 ## À installer avant Palabre
 
 Installez Gemini CLI depuis la documentation officielle de Google, puis authentifiez la CLI dans votre terminal.
 
-Documentation officielle : [https://geminicli.com/](https://geminicli.com/)
+Documentation officielle : [https://google-gemini.github.io/gemini-cli/docs/cli/](https://google-gemini.github.io/gemini-cli/docs/cli/)
 
 Vérifiez ensuite que la commande fonctionne :
 
@@ -24,7 +26,11 @@ palabre config --sync-agents
 
 Les modèles disponibles et les limites d'usage dépendent de votre configuration Gemini CLI et de votre compte Google.
 
-Palabre ne liste pas les modèles Gemini, car ils peuvent évoluer, et utilise le modèle par défaut de Gemini que vous avez configuré. Si vous fournissez un modèle avec `--model-a`, `--model-b` ou `--summary-model`, Palabre transmet la valeur telle quelle à la CLI.
+Palabre ne liste pas les modèles Gemini, car ils peuvent évoluer. Par défaut, Gemini CLI utilise le modèle configuré de son côté. Si vous ajoutez `--model-a`, `--model-b` ou `--summary-model`, Palabre transmet cette chaîne à Gemini CLI via l'option modèle configurée. Si le modèle n'existe pas ou n'est pas autorisé, Gemini CLI renverra l'erreur.
+
+## Windows
+
+Sur Windows, `shell: true` est souvent nécessaire pour les wrappers npm ou PowerShell comme `gemini`.
 
 ## Configuration typique
 

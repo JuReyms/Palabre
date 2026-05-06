@@ -5,7 +5,7 @@
 Palabre nécessite :
 
 - Node.js 20 ou plus ;
-- au moins deux agents déja installés sur votre machine parmi Claude Code, Codex CLI, Gemini CLI, OpenCode ou Ollama.
+- au moins deux agents déjà installés sur votre machine parmi Claude Code, Codex CLI, Gemini CLI, OpenCode ou Ollama.
 
 Vous pouvez utiliser Palabre avec un seul agent configuré, mais l'intérêt principal est de faire dialoguer deux agents.
 
@@ -41,9 +41,9 @@ Dans le reste de cette documentation, les exemples utilisent toujours la command
 
 Palabre pilote des outils externes. Installez et authentifiez les agents que vous souhaitez utiliser avant de lancer Palabre.
 
-**Opencode** et **Gemini** peuvent être utilisés gratuitement avec certains modèles et des limites, tandis que **Claude Code** et **Codex** nécessitent un abonnement. 
+**OpenCode** et **Gemini** peuvent être utilisés gratuitement avec certains modèles et des limites propres à leurs providers, tandis que **Claude Code** et **Codex** nécessitent un abonnement.
 
-**Ollama** est gratuit en utilisation locale. Pour sa version Cloud, il propose un forfait gratuit limité ainsi qu'un forfait payant.
+**Ollama** est gratuit en utilisation locale. Si vous utilisez une offre cloud ou distante, les quotas et limites viennent de cette offre, pas de Palabre.
 
 Pages utiles :
 
