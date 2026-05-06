@@ -2,6 +2,7 @@
   "name": "palabre",
   "version": "0.1.4",
   "description": "Orchestrateur de debat entre agents IA locaux, CLIs et Ollama.",
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.18.3",
   "homepage": "https://github.com/JuReyms/Palabre#readme",
