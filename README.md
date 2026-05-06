@@ -282,6 +282,7 @@ Limites actuelles :
 
 ```bash
 pnpm check
+pnpm test
 pnpm build
 palabre help
 palabre -h
@@ -303,6 +304,7 @@ Tests effectues sur Windows :
 - contexte de session visible dans `--show-prompt` : OK.
 - arret anticipe sur accord clair : OK.
 - syntaxe courte `palabre preset "sujet" -t 4` et `palabre -s "sujet" -t 2` : OK.
+- smoke tests automatises de l'adapter CLI avec agents mockes : OK.
 - detection des limites d'usage CLI type Codex/Claude/Gemini/OpenCode : OK par simulation stderr.
 - `init` avec detection locale des agents : OK.
 - config globale `~/.palabre/palabre.config.json` avec fallback local/legacy : OK.

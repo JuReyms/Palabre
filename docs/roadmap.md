@@ -34,12 +34,12 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Garde-fou contre les commandes inconnues proches de commandes valides, par exemple `palabre nex`.
 - Commande `palabre config`, `--set-defaults`, `-t/--turns`, `--summary-agent` et `--clear-defaults` pour gerer les parametres par defaut.
 - `palabre doctor` enrichi : rendu par sections, `--plain` pour les logs, defaults, `turns`, `outputDir`, agents detectes absents de la config, forme des agents CLI/Ollama et action `palabre config --sync-agents`.
+- Smoke tests automatises pour l'adapter CLI avec `node:test` : prompt via stdin, prompt en argument, insertion de `modelArg`, sortie vide, exit non-zero et limite d'usage.
 
 ## P0 - Stabilisation CLI
 
 - Ajouter des JSDoc sur les API internes publiques du projet : types partages, adapters, orchestrateur, contexte, discovery et update.
 - Afficher le modele utilise quand Palabre peut le connaitre.
-- Ajouter un smoke test local reproductible pour les adapters CLI mock.
 
 ## P1 - Experience utilisateur
 

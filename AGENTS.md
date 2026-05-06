@@ -22,6 +22,7 @@ Commandes utiles :
 ```bash
 pnpm install
 pnpm check
+pnpm test
 pnpm build
 pnpm start -- help
 pnpm start -- -h
@@ -362,10 +363,11 @@ Avant de livrer une modification :
 
 ```bash
 pnpm check
+pnpm test
 pnpm build
 ```
 
-Quand un changement touche l'adapter CLI, faire un smoke test avec une commande locale simple avant de tester Claude/Codex.
+Quand un changement touche l'adapter CLI, lancer `pnpm test`. Ces tests compilent `src/` et `tests/` via `tsconfig.test.json` dans `.tmp/test-dist`, puis utilisent `node:test` avec des CLIs mockees. Garder les tests automatises sous `tests/` et completer par un smoke test manuel avec une vraie CLI seulement quand le comportement depend d'un outil externe.
 
 Les erreurs CLI doivent rester actionnables. En particulier, les limites d'usage et quotas Codex/Claude/Gemini doivent etre classees comme `usage-limit` et ne pas recopier tout le prompt ou les logs bruts dans le message utilisateur.
 
@@ -430,8 +432,8 @@ Les commentaires doivent expliquer le contrat, les invariants et les limites uti
 
 Les releases sont gerees via des tags Git. Deux workflows GitHub Actions sont en place :
 
-- `.github/workflows/ci.yml` : type check + build sur chaque push `main` et chaque PR.
-- `.github/workflows/release.yml` : type check + build + pack + creation de release GitHub sur chaque tag `v*`.
+- `.github/workflows/ci.yml` : type check + tests + build sur chaque push `main` et chaque PR.
+- `.github/workflows/release.yml` : type check + tests + build + pack + creation de release GitHub sur chaque tag `v*`.
 
 ### Creer une release
 
@@ -445,10 +447,11 @@ git push && git push --tags
 
 1. installe les dependances (`--frozen-lockfile`) ;
 2. verifie les types (`pnpm check`) ;
-3. compile (`pnpm build`) ;
-4. pack un tarball npm (`pnpm pack`) ;
-5. cree une release GitHub avec le tarball en artifact et les notes generees depuis les commits ;
-6. pousse `public/version.json` dans le repo `JuReyms/Palabre-app` (branche `dev`), ce qui declenche un rebuild Netlify et met a jour le badge de version sur le site de documentation.
+3. lance les tests automatises (`pnpm test`) ;
+4. compile (`pnpm build`) ;
+5. pack un tarball npm (`pnpm pack`) ;
+6. cree une release GitHub avec le tarball en artifact et les notes generees depuis les commits ;
+7. pousse `public/version.json` dans le repo `JuReyms/Palabre-app` (branche `dev`), ce qui declenche un rebuild Netlify et met a jour le badge de version sur le site de documentation.
 
 ## Sync documentation (Palabre-app)
 

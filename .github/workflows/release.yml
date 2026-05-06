@@ -12,8 +12,8 @@
 #   1. Checkout complet (fetch-depth: 0) pour que generate_release_notes
 #      puisse comparer les commits depuis le tag précédent
 #   2. Installation de pnpm et Node.js 24
-#   3. Vérification TypeScript et compilation
-#   4. Empaquetage npm (pnpm pack → tarball .tgz dans dist-pkg/)
+#   3. Vérification TypeScript, tests automatisés et compilation
+#   4. Empaquetage npm (pnpm pack → tarball .tgz dans le répertoire courant)
 #   5. Création de la release GitHub avec :
 #      - le tarball en pièce jointe (installable via npm/pnpm directement)
 #      - les notes de release générées automatiquement depuis les commits
@@ -59,6 +59,9 @@ jobs:
       - name: Type check
         run: pnpm check
 
+      - name: Test
+        run: pnpm test
+
       - name: Build
         run: pnpm build
 
@@ -86,4 +89,3 @@ jobs:
           git add public/version.json
           git commit -m "release: bump version to ${{ github.ref_name }}"
           git push origin dev
-
