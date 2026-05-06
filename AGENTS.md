@@ -236,7 +236,7 @@ Le moteur actuel alterne simplement entre deux agents pendant `turns` tours :
 3. Ajout du message au transcript.
 4. Passage a l'autre agent.
 5. Arret anticipe optionnel si un accord clair est detecte apres un tour complet.
-6. Export Markdown final.
+6. Export Markdown final. Le rendu export corrige `:**` en `&#58;**` dans les contenus agents pour eviter l'interpretation en emoji dans certains apercus Windows.
 
 Les futures evolutions possibles :
 
@@ -261,7 +261,7 @@ Options :
 - `--summary-model <model>` : modele brut transmis a l'agent de synthese.
 - `--no-summary` : desactive la phase de synthese.
 
-Le prompt de synthese est un mode dedie dans `formatAgentPrompt` (`mode: "summary"`). Il recoit le sujet, les fichiers de contexte et tout le transcript.
+Le prompt de synthese est un mode dedie dans `formatAgentPrompt` (`mode: "summary"`). Il recoit le sujet, les fichiers de contexte et tout le transcript. Il demande quatre sections: consensus, desaccords/incertitudes, actions proposees, puis une conclusion courte en prose.
 
 ### Contexte de session
 

@@ -44,7 +44,7 @@ export function formatAgentPrompt(input: AgentPrompt): string {
     .join("\n");
 }
 
-/** Formate le prompt de synthèse finale. Impose un format structuré : Consensus / Désaccords / Actions. */
+/** Formate le prompt de synthèse finale. Impose un format structuré : Consensus / Désaccords / Actions / Conclusion. */
 function formatSummaryPrompt(input: AgentPrompt): string {
   const transcript = formatTranscript(input.transcript);
 
@@ -66,6 +66,7 @@ function formatSummaryPrompt(input: AgentPrompt): string {
     "- Resume le consensus en points concrets.",
     "- Liste les desaccords ou incertitudes qui restent.",
     "- Propose les prochaines actions techniques.",
+    "- Termine par une conclusion courte en prose, bien ecrite, qui explique rapidement ce qu'il faut retenir.",
     "- Reste concis et exploitable.",
     "",
     input.files.length > 0 ? "Contexte fichiers:" : "",
@@ -80,6 +81,10 @@ function formatSummaryPrompt(input: AgentPrompt): string {
     "### Desaccords / incertitudes",
     "",
     "### Actions proposees",
+    "",
+    "### Conclusion",
+    "",
+    "Un court paragraphe de synthese en prose, sans liste, qui resume le sens general du debat et la decision ou direction la plus raisonnable.",
     "",
     "Synthese:"
   ]

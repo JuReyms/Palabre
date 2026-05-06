@@ -136,7 +136,7 @@ Ce bloc est visible par tous les agents du débat.
 
 ## Synthèse finale
 
-Par défaut, Palabre demande à `defaults.summaryAgent` de produire une synthèse à la fin du débat. Si ce champ n'existe pas, Palabre utilise l'agent B.
+Par défaut, Palabre demande à `defaults.summaryAgent` de produire une synthèse à la fin du débat. Si ce champ n'existe pas, Palabre utilise l'agent B. La synthèse contient les consensus, les désaccords ou incertitudes, les actions proposées, puis une courte conclusion en prose pour résumer rapidement ce qu'il faut retenir.
 
 ```bash
 # Changer l'agent de synthèse

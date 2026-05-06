@@ -316,7 +316,7 @@ Le rôle définit l'angle de réponse demandé à l'agent. Il ne change pas le m
 | `critic` | Remise en question d'une idée | Hypothèses faibles, contradictions, objections utiles. |
 | `architect` | Structuration technique | Options, frontières du système, dette possible, choix structurants. |
 | `scout` | Exploration rapide | Pistes, inconnues à lever, informations à collecter. |
-| `summarizer` | Synthèse finale | Synthèse fidèle, décisions, désaccords et actions proposées. |
+| `summarizer` | Synthèse finale | Synthèse fidèle, décisions, désaccords, actions proposées et conclusion courte en prose. |
 
 Exemple : Codex propose une solution, Claude la relit.
 

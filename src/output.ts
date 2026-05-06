@@ -49,7 +49,7 @@ export function renderDebateMarkdown(
     lines.push(
       `### ${message.agent} (${message.role})`,
       "",
-      message.content.trim(),
+      normalizeMarkdownForWindowsPreview(message.content.trim()),
       ""
     );
   }
@@ -57,7 +57,7 @@ export function renderDebateMarkdown(
   lines.push("## Synthese", "");
 
   if (summary) {
-    lines.push(`_Produite par ${summary.agent} (${summary.role}) le ${summary.createdAt}._`, "", summary.content.trim(), "");
+    lines.push(`_Produite par ${summary.agent} (${summary.role}) le ${summary.createdAt}._`, "", normalizeMarkdownForWindowsPreview(summary.content.trim()), "");
   } else if (options.summaryEnabled) {
     lines.push("_Synthese finale demandee mais non disponible._", "");
   } else {
@@ -65,6 +65,10 @@ export function renderDebateMarkdown(
   }
 
   return `${lines.join("\n")}\n`;
+}
+
+function normalizeMarkdownForWindowsPreview(content: string): string {
+  return content.replace(/:\*\*/g, "&#58;**");
 }
 
 function renderSessionHeader(
@@ -105,4 +109,3 @@ function renderFileList(files: DebateOptions["files"]): string[] {
 
   return files.map((file) => `- \`${file.path}\` (${file.sizeBytes} bytes)`);
 }
-
