@@ -14,6 +14,11 @@ interface AgentChoice {
   config: AgentConfig;
 }
 
+/**
+ * Lance le wizard interactif de configuration des defaults.
+ * Fonctionne en mode TTY (readline) et en mode piped (stdin lu en avance).
+ * Écrit la config sur disque si l'utilisateur confirme ; sort sans modifier si l'utilisateur quitte.
+ */
 export async function runConfigWizard(configPath: string, config: PalabreConfig): Promise<void> {
   const choices = Object.entries(config.agents).map(([name, agentConfig]) => ({ name, config: agentConfig }));
 
@@ -125,7 +130,7 @@ async function readPipedLines(): Promise<string[]> {
 async function askAgent(
   rl: ConfigQuestioner,
   choices: AgentChoice[],
-  label: string,
+  _label: string,
   description: string,
   defaultName: string | undefined
 ): Promise<string | undefined> {

@@ -5,6 +5,7 @@ import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { DEFAULT_TURNS, MAX_TURNS } from "./limits.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
 
+/** Résultat du diagnostic. `ok` est faux dès qu'au moins une ligne est de niveau `error`. */
 export interface DoctorResult {
   ok: boolean;
   output: string;
@@ -15,6 +16,10 @@ interface DiagnosticLine {
   text: string;
 }
 
+/**
+ * Exécute le diagnostic complet : config, outils locaux et agents.
+ * Retourne toujours un résultat (pas de throw) ; les erreurs de config sont reportées comme lignes `error`.
+ */
 export async function runDoctor(explicitConfigPath?: string, plain = false): Promise<DoctorResult> {
   const lines: DiagnosticLine[] = [];
   const configPath = explicitConfigPath ?? await resolveDefaultConfigPath();

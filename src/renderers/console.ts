@@ -3,6 +3,7 @@ import type { AgentRole, DebateOptions, DebateRenderer } from "../types.js";
 const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
 const supportsInteractiveOutput = Boolean(process.stdout.isTTY);
 
+/** Instancie le renderer adapté : pretty (spinner, couleurs ANSI, sections) ou plain (logs bruts). */
 export function createConsoleRenderer(plain: boolean): DebateRenderer {
   return plain ? new PlainConsoleRenderer() : new PrettyConsoleRenderer(supportsColor, supportsInteractiveOutput);
 }

@@ -5,6 +5,10 @@ import { findPresetNameForPair } from "./presets.js";
 import { MAX_TURNS, turnsOrDefault, validateTurns } from "./limits.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
 
+/**
+ * Paramètres collectés par le wizard `palabre new`.
+ * Structurellement identique aux flags CLI : le wizard ne crée pas un second chemin d'exécution.
+ */
 export interface NewCommandSelection {
   agentA: string;
   agentB: string;
@@ -33,6 +37,11 @@ interface Questioner {
   close(): void;
 }
 
+/**
+ * Lance le wizard interactif `palabre new`.
+ * Détecte les outils locaux, liste les agents de la config et guide la composition du débat.
+ * Retourne `undefined` si l'utilisateur annule (q/quit/exit ou Ctrl+C).
+ */
 export async function runNewWizard(config: PalabreConfig): Promise<NewCommandSelection | undefined> {
   const discovery = await discoverLocalTools();
   const choices = buildAgentChoices(config, discovery);
@@ -187,7 +196,7 @@ function isAgentDetected(name: string, config: AgentConfig, discovery: ToolDisco
   return true;
 }
 
-function agentStatus(name: string, config: AgentConfig, discovery: ToolDiscovery, detected: boolean): string {
+function agentStatus(_name: string, config: AgentConfig, discovery: ToolDiscovery, detected: boolean): string {
   if (config.type === "ollama") {
     return detected
       ? `ollama/${config.role} détecté (${discovery.ollama.models.length} modèle(s))`
