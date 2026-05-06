@@ -60,7 +60,7 @@ Cette page liste les commandes principales de Palabre.
 | `--no-summary` | Désactive la synthèse finale. |
 | `--files <paths...>` | Injecte des fichiers précis. |
 | `--context <paths...>` | Scanne fichiers ou dossiers texte. |
-| `--show-prompt` | Affiche le prompt sans appeler d'agent. |
+| `--show-prompt` | Affiche le prompt, les agents et les modèles connus sans appeler d'agent. |
 
 ## Mise à jour
 

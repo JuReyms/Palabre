@@ -15,6 +15,7 @@ Les fonctionnalités principales sont disponibles :
 - ajout de contexte avec `--files` ou `--context` ;
 - synthèse finale avec consensus, désaccords, actions proposées et conclusion ;
 - export Markdown `.debate.md` avec nom basé sur le sujet ;
+- affichage des modèles connus dans le terminal, `--show-prompt` et l'export ;
 - diagnostic avec `palabre doctor` ;
 - premiers tests automatisés de l'adapter CLI sans appeler de vrais services IA.
 
@@ -43,7 +44,6 @@ Ces sujets sont envisagés après stabilisation du CLI :
 
 - historique local des débats ;
 - reprise d'un débat depuis un transcript existant ;
-- affichage du modèle utilisé quand Palabre peut le connaître ;
 - provider compatible OpenAI local pour LM Studio, LocalAI, vLLM ou équivalent ;
 - documentation en français et en anglais ;
 - vrai TUI interactif avec scrolling, pause et reprise.

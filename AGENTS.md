@@ -322,6 +322,8 @@ Exception utile : pour Ollama, l'adapter peut detecter les modeles installes loc
 
 Le telechargement automatique Ollama est desactive par defaut. Il doit etre active par `--pull-models` ou `autoPullModel: true`, car un modele peut peser plusieurs Go.
 
+Palabre affiche les modeles quand il peut les connaitre : overrides runtime, champ `model` de la config CLI, ou modele Ollama. Si une CLI n'a pas de modele declare dans la config et qu'aucun override n'est fourni, afficher `CLI default` plutot que deviner le modele interne de la CLI.
+
 `--model-a` et `--model-b` transmettent simplement une string brute :
 
 - adapter `cli` : ajoute `--model <value>` via `modelArg` (par defaut `--model`) ;
@@ -385,6 +387,7 @@ Combinaisons validees localement :
 - `--show-prompt` avec `--context docs`
 - `palabre new` simule par entree standard avec `--show-prompt` pour verifier le wizard sans appeler d'agent
 - contexte de session visible dans `--show-prompt`
+- modeles connus visibles dans `--show-prompt`, le header console et l'export Markdown
 - arret anticipe sur accord clair
 - syntaxe courte `palabre preset "sujet" -t 4`
 - alias sujet `palabre -s "sujet" -t 2`

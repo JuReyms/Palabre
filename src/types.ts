@@ -80,6 +80,13 @@ export interface DebateMessage {
   createdAt: string;
 }
 
+/** Modèles effectifs affichables quand Palabre peut les connaître ou les déduire de la config. */
+export interface DebateModelInfo {
+  agentA: string;
+  agentB: string;
+  summary?: string;
+}
+
 /** Paramètres complets d'une session de débat. Transmis à travers toutes les couches sans mutation. */
 export interface DebateOptions {
   topic: string;
@@ -90,6 +97,7 @@ export interface DebateOptions {
   files: ProjectFileContext[];
   modelA?: string;
   modelB?: string;
+  modelInfo?: DebateModelInfo;
   pullModels: boolean;
   summaryAgent?: string;
   summaryModel?: string;

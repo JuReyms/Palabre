@@ -11,6 +11,7 @@ import { runConfigWizard } from "./configWizard.js";
 import { DEFAULT_TURNS, parseTurnsFlag, turnsOrDefault } from "./limits.js";
 import { formatAgentPrompt } from "./prompt.js";
 import { runNewWizard } from "./new.js";
+import { formatModelPair, formatSummaryLabel, withResolvedModelInfo } from "./modelInfo.js";
 import { listPresetNames, resolvePreset } from "./presets.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { runDebate } from "./orchestrator.js";
@@ -129,7 +130,7 @@ async function main(): Promise<void> {
     throw new Error("Le parametre --topic/--subject est requis.");
   }
 
-  const options: DebateOptions = {
+  const options = withResolvedModelInfo(config, {
     topic,
     agentA: resolveAgentName("agent A", parsed.flags["agent-a"], preset?.agentA, config.defaults?.agentA),
     agentB: resolveAgentName("agent B", parsed.flags["agent-b"], preset?.agentB, config.defaults?.agentB),
@@ -144,7 +145,7 @@ async function main(): Promise<void> {
     summaryEnabled: !parsed.flags["no-summary"],
     earlyStopOnAgreement: !parsed.flags["no-early-stop"],
     plainOutput: Boolean(parsed.flags.plain)
-  };
+  });
 
   if (parsed.flags["show-prompt"]) {
     printContextWarnings(context.warnings);
@@ -285,9 +286,9 @@ function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, opti
   console.log(`# Prompt preview`);
   console.log(`Agent: ${options.agentA} (${agentConfig.role})`);
   console.log(`Peer: ${options.agentB}`);
-  console.log(`Models: ${options.modelA ?? "default"} <-> ${options.modelB ?? "default"}`);
+  console.log(`Models: ${formatModelPair(options)}`);
   console.log(`Pull missing Ollama models: ${options.pullModels ? "yes" : "no"}`);
-  console.log(`Summary: ${options.summaryEnabled ? options.summaryAgent ?? options.agentB : "disabled"}`);
+  console.log(`Summary: ${formatSummaryLabel(options)}`);
   console.log("");
   console.log(prompt);
   console.log("");
