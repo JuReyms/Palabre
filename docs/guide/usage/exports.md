@@ -15,11 +15,13 @@ Le fichier contient :
 
 ## Nom du fichier
 
-Le nom contient un horodatage :
+Le nom contient une version courte du sujet et un horodatage. Cela rend les débats plus faciles à retrouver tout en gardant un nom unique :
 
 ```text
-palabre-2026-05-06T08-52-43-000Z.debate.md
+palabre-critique-ce-plan-technique-2026-05-06T08-52-43-000Z.debate.md
 ```
+
+Si le sujet ne contient aucun caractère exploitable, Palabre utilise `debat` comme nom court.
 
 ## Synthèse finale
 

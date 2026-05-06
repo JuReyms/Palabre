@@ -8,7 +8,7 @@ Cette page liste les commandes principales de Palabre.
 |----------|-------------|
 | `palabre init` | Crée la configuration globale et détecte les agents. |
 | `palabre init --local` | Crée une configuration dans le dossier courant. |
-| `palabre doctor` | Vérifie la configuration, les CLIs et Ollama. |
+| `palabre doctor` | Affiche un diagnostic par sections : configuration, outils locaux, agents et points à vérifier. |
 | `palabre agents` | Liste les agents déclarés et leur détection locale. |
 | `palabre -a` | Raccourci de `palabre agents`. |
 
@@ -39,7 +39,7 @@ Cette page liste les commandes principales de Palabre.
 | `-h`, `--help` | Affiche l'aide. |
 | `-v`, `--version` | Affiche la version. |
 | `--config <path>` | Utilise un fichier de configuration explicite. |
-| `--plain` | Utilise un rendu terminal brut. |
+| `--plain` | Utilise un rendu terminal brut. Aussi utile avec `palabre doctor` pour les logs. |
 
 ## Options de débat
 

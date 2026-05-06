@@ -1,6 +1,8 @@
 import path from "node:path";
+import { stat } from "node:fs/promises";
 import { configExists, loadConfig, resolveDefaultConfigPath } from "./config.js";
-import { discoverLocalTools } from "./discovery.js";
+import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
+import { DEFAULT_TURNS, MAX_TURNS } from "./limits.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
 
 export interface DoctorResult {
@@ -13,7 +15,7 @@ interface DiagnosticLine {
   text: string;
 }
 
-export async function runDoctor(explicitConfigPath?: string): Promise<DoctorResult> {
+export async function runDoctor(explicitConfigPath?: string, plain = false): Promise<DoctorResult> {
   const lines: DiagnosticLine[] = [];
   const configPath = explicitConfigPath ?? await resolveDefaultConfigPath();
   const hasConfig = await configExists(configPath);
@@ -26,16 +28,16 @@ export async function runDoctor(explicitConfigPath?: string): Promise<DoctorResu
 
   if (!hasConfig) {
     lines.push(info("Action: lance `palabre init` pour creer la config globale, ou `palabre init --local` pour une config projet."));
-    return render(lines);
+    return render(lines, plain);
   }
 
   const config = await loadConfigSafely(configPath, lines);
 
   if (!config) {
-    return render(lines);
+    return render(lines, plain);
   }
 
-  inspectConfig(config, lines);
+  await inspectConfig(config, lines);
 
   const discovery = await discoverLocalTools();
   lines.push(info("Outils locaux:"));
@@ -49,9 +51,10 @@ export async function runDoctor(explicitConfigPath?: string): Promise<DoctorResu
       ? `Ollama installe mais API non joignable: ${discovery.ollama.baseUrl}${formatErrorSuffix(discovery.ollama.error)}`
       : `Ollama non detecte et API non joignable: ${discovery.ollama.baseUrl}${formatErrorSuffix(discovery.ollama.error)}`));
 
+  inspectDetectedMissingAgents(config, discovery, lines);
   inspectAgents(config, discovery, lines);
 
-  return render(lines);
+  return render(lines, plain);
 }
 
 async function loadConfigSafely(configPath: string, lines: DiagnosticLine[]): Promise<PalabreConfig | undefined> {
@@ -67,15 +70,21 @@ async function loadConfigSafely(configPath: string, lines: DiagnosticLine[]): Pr
   }
 }
 
-function inspectConfig(config: PalabreConfig, lines: DiagnosticLine[]): void {
+async function inspectConfig(config: PalabreConfig, lines: DiagnosticLine[]): Promise<void> {
   const agentNames = Object.keys(config.agents ?? {});
 
-  lines.push(agentNames.length > 0
-    ? ok(`${agentNames.length} agent(s) configure(s): ${agentNames.join(", ")}`)
-    : error("Aucun agent configure."));
+  if (agentNames.length === 0) {
+    lines.push(error("Aucun agent configure."));
+  } else if (agentNames.length === 1) {
+    lines.push(warn(`1 agent configure: ${agentNames[0]}. Palabre fonctionne mieux avec au moins deux agents.`));
+  } else {
+    lines.push(ok(`${agentNames.length} agent(s) configure(s): ${agentNames.join(", ")}`));
+  }
 
   inspectDefaultAgent("defaults.agentA", config.defaults?.agentA, config, lines);
   inspectDefaultAgent("defaults.agentB", config.defaults?.agentB, config, lines);
+  inspectDefaultPair(config, lines);
+  inspectDefaultTurns(config.defaults?.turns, lines);
 
   if (config.defaults?.summaryAgent) {
     inspectDefaultAgent("defaults.summaryAgent", config.defaults.summaryAgent, config, lines);
@@ -83,11 +92,7 @@ function inspectConfig(config: PalabreConfig, lines: DiagnosticLine[]): void {
     lines.push(warn("defaults.summaryAgent absent: la synthese utilisera agentB."));
   }
 
-  if (config.outputDir) {
-    lines.push(ok(`outputDir configure: ${path.resolve(config.outputDir)}`));
-  } else {
-    lines.push(info("outputDir absent: les exports seront ecrits dans le dossier courant."));
-  }
+  await inspectOutputDir(config.outputDir, lines);
 }
 
 function inspectDefaultAgent(
@@ -109,14 +114,77 @@ function inspectDefaultAgent(
   lines.push(ok(`${label}: ${agentName}`));
 }
 
+function inspectDefaultPair(config: PalabreConfig, lines: DiagnosticLine[]): void {
+  const { agentA, agentB } = config.defaults ?? {};
+
+  if (!agentA || !agentB) {
+    lines.push(warn("Paire par defaut incomplete. Action: `palabre config --set-defaults <agentA> <agentB>`."));
+    return;
+  }
+
+  if (agentA === agentB) {
+    lines.push(warn(`defaults.agentA et defaults.agentB pointent vers le meme agent (${agentA}). C'est possible, mais souvent moins utile qu'une vraie paire.`));
+  }
+}
+
+function inspectDefaultTurns(turns: number | undefined, lines: DiagnosticLine[]): void {
+  const value = turns ?? DEFAULT_TURNS;
+
+  if (turns === undefined) {
+    lines.push(info(`defaults.turns absent: Palabre utilisera ${DEFAULT_TURNS} reponses.`));
+    return;
+  }
+
+  if (!Number.isInteger(value) || value < 1 || value > MAX_TURNS) {
+    lines.push(error(`defaults.turns invalide: ${String(turns)}. Action: choisis un entier entre 1 et ${MAX_TURNS}.`));
+    return;
+  }
+
+  lines.push(ok(`defaults.turns: ${value}`));
+}
+
+async function inspectOutputDir(outputDir: string | undefined, lines: DiagnosticLine[]): Promise<void> {
+  const resolved = path.resolve(outputDir ?? ".");
+
+  if (!outputDir) {
+    lines.push(info(`outputDir absent: les exports seront ecrits dans le dossier courant (${resolved}).`));
+    return;
+  }
+
+  try {
+    const stats = await stat(resolved);
+
+    if (!stats.isDirectory()) {
+      lines.push(error(`outputDir pointe vers un fichier, pas un dossier: ${resolved}`));
+      return;
+    }
+
+    lines.push(ok(`outputDir configure: ${resolved}`));
+  } catch {
+    lines.push(warn(`outputDir n'existe pas encore: ${resolved}. Palabre tentera de le creer au moment de l'export.`));
+  }
+}
+
+function inspectDetectedMissingAgents(config: PalabreConfig, discovery: ToolDiscovery, lines: DiagnosticLine[]): void {
+  const missing = detectedAgentNames(discovery).filter((name) => !config.agents[name]);
+
+  if (missing.length === 0) {
+    return;
+  }
+
+  lines.push(warn(`Agent(s) detecte(s) mais absent(s) de la config: ${missing.join(", ")}. Action: lance ` + "`palabre config --sync-agents`."));
+}
+
 function inspectAgents(
   config: PalabreConfig,
-  discovery: Awaited<ReturnType<typeof discoverLocalTools>>,
+  discovery: ToolDiscovery,
   lines: DiagnosticLine[]
 ): void {
   lines.push(info("Agents configures:"));
 
   for (const [name, agent] of Object.entries(config.agents)) {
+    inspectAgentShape(name, agent, lines);
+
     if (agent.type === "cli") {
       inspectCliAgent(name, agent, discovery, lines);
       continue;
@@ -126,10 +194,48 @@ function inspectAgents(
   }
 }
 
+function inspectAgentShape(name: string, agent: AgentConfig, lines: DiagnosticLine[]): void {
+  if (!agent.role) {
+    lines.push(error(`${name}: role absent.`));
+  }
+
+  if (agent.type === "cli") {
+    if (!agent.command || !agent.command.trim()) {
+      lines.push(error(`${name}: command CLI absent.`));
+    }
+
+    if (agent.promptMode && !["stdin", "argument"].includes(agent.promptMode)) {
+      lines.push(error(`${name}: promptMode invalide (${agent.promptMode}). Valeurs attendues: stdin ou argument.`));
+    }
+
+    if (agent.timeoutMs !== undefined && (!Number.isFinite(agent.timeoutMs) || agent.timeoutMs <= 0)) {
+      lines.push(error(`${name}: timeoutMs doit etre un nombre positif.`));
+    }
+
+    if (agent.idleTimeoutMs !== undefined && (!Number.isFinite(agent.idleTimeoutMs) || agent.idleTimeoutMs <= 0)) {
+      lines.push(error(`${name}: idleTimeoutMs doit etre un nombre positif.`));
+    }
+
+    return;
+  }
+
+  if (!agent.model || !agent.model.trim()) {
+    lines.push(error(`${name}: modele Ollama absent.`));
+  }
+
+  if (agent.baseUrl && !/^https?:\/\//.test(agent.baseUrl)) {
+    lines.push(error(`${name}: baseUrl Ollama invalide (${agent.baseUrl}). Attendu: http://... ou https://...`));
+  }
+
+  if (agent.timeoutMs !== undefined && (!Number.isFinite(agent.timeoutMs) || agent.timeoutMs <= 0)) {
+    lines.push(error(`${name}: timeoutMs doit etre un nombre positif.`));
+  }
+}
+
 function inspectCliAgent(
   name: string,
   agent: Extract<AgentConfig, { type: "cli" }>,
-  discovery: Awaited<ReturnType<typeof discoverLocalTools>>,
+  discovery: ToolDiscovery,
   lines: DiagnosticLine[]
 ): void {
   const known = knownCliDetection(agent.command, discovery);
@@ -148,7 +254,7 @@ function inspectCliAgent(
 function inspectOllamaAgent(
   name: string,
   agent: Extract<AgentConfig, { type: "ollama" }>,
-  discovery: Awaited<ReturnType<typeof discoverLocalTools>>,
+  discovery: ToolDiscovery,
   lines: DiagnosticLine[]
 ): void {
   const prefix = `${name} [ollama:${agent.role}] model=${agent.model}`;
@@ -169,15 +275,25 @@ function inspectOllamaAgent(
     : warn(`${prefix} absent. Action: lance ` + "`ollama pull " + agent.model + "`" + " ou utilise `--pull-models`."));
 }
 
+function detectedAgentNames(discovery: ToolDiscovery): string[] {
+  return [
+    discovery.codex.available ? "codex" : undefined,
+    discovery.claude.available ? "claude" : undefined,
+    discovery.gemini.available ? "gemini" : undefined,
+    discovery.opencode.available ? "opencode" : undefined,
+    discovery.ollama.available ? "ollama-local" : undefined
+  ].filter((name): name is string => Boolean(name));
+}
 
 function formatCommand(label: string, available: boolean, command: string, resolvedPath?: string): DiagnosticLine {
   return available
     ? ok(`${label}: detecte (${resolvedPath ?? command})`)
     : warn(`${label}: non detecte dans PATH.`);
 }
+
 function knownCliDetection(
   command: string,
-  discovery: Awaited<ReturnType<typeof discoverLocalTools>>
+  discovery: ToolDiscovery
 ): { available: boolean; command: string; path?: string } | undefined {
   const normalized = path.basename(command).toLowerCase().replace(/\.(exe|cmd|bat)$/i, "");
 
@@ -188,13 +304,108 @@ function knownCliDetection(
   return undefined;
 }
 
-function render(lines: DiagnosticLine[]): DoctorResult {
+function render(lines: DiagnosticLine[], plain: boolean): DoctorResult {
   const hasErrors = lines.some((line) => line.level === "error");
 
   return {
     ok: !hasErrors,
-    output: lines.map(formatLine).join("\n")
+    output: plain ? renderPlain(lines) : renderPretty(lines)
   };
+}
+
+function renderPlain(lines: DiagnosticLine[]): string {
+  return lines.map(formatLine).join("\n");
+}
+
+function renderPretty(lines: DiagnosticLine[]): string {
+  const configLines: DiagnosticLine[] = [];
+  const toolLines: DiagnosticLine[] = [];
+  const agentLines: DiagnosticLine[] = [];
+  const actionLines: DiagnosticLine[] = [];
+  let current: "config" | "tools" | "agents" = "config";
+  let cwd = process.cwd();
+
+  for (const line of lines) {
+    if (line.text === "PALABRE doctor") continue;
+
+    if (line.text.startsWith("Dossier courant: ")) {
+      cwd = line.text.replace("Dossier courant: ", "");
+      continue;
+    }
+
+    if (line.text === "Outils locaux:") {
+      current = "tools";
+      continue;
+    }
+
+    if (line.text === "Agents configures:") {
+      current = "agents";
+      continue;
+    }
+
+    if (line.level === "error" || line.level === "warn") {
+      actionLines.push(line);
+    }
+
+    if (current === "tools") {
+      toolLines.push(line);
+    } else if (current === "agents") {
+      agentLines.push(line);
+    } else {
+      configLines.push(line);
+    }
+  }
+
+  const errorCount = lines.filter((line) => line.level === "error").length;
+  const warnCount = lines.filter((line) => line.level === "warn").length;
+  const status = errorCount > 0
+    ? `${errorCount} erreur(s), ${warnCount} avertissement(s)`
+    : warnCount > 0 ? `${warnCount} avertissement(s)` : "OK";
+
+  return [
+    ...renderDoctorHeader(status),
+    "",
+    ...renderSection("Configuration", [info(`Dossier courant: ${cwd}`), ...configLines]),
+    "",
+    ...renderSection("Outils locaux", toolLines),
+    "",
+    ...renderSection("Agents", agentLines),
+    ...(actionLines.length > 0 ? ["", ...renderSection("A verifier", actionLines)] : []),
+    ""
+  ].join("\n");
+}
+
+function renderDoctorHeader(status: string): string[] {
+  const title = "PALABRE doctor";
+
+  return [
+    `┌─ ${title} ${"─".repeat(Math.max(1, 58 - title.length))}`,
+    `│ Statut: ${status}`,
+    `└${"─".repeat(73)}`
+  ];
+}
+
+function renderSection(title: string, lines: DiagnosticLine[]): string[] {
+  if (lines.length === 0) {
+    return [title, "  INFO  Rien a afficher."];
+  }
+
+  return [
+    title,
+    "─".repeat(Math.max(16, title.length + 8)),
+    ...lines.map((line) => `  ${formatPrettyLine(line)}`)
+  ];
+}
+
+function formatPrettyLine(line: DiagnosticLine): string {
+  const labels: Record<DiagnosticLine["level"], string> = {
+    ok: "OK    ",
+    warn: "WARN  ",
+    error: "ERREUR",
+    info: "INFO  "
+  };
+
+  return `${labels[line.level]} ${line.text}`;
 }
 
 function formatLine(line: DiagnosticLine): string {

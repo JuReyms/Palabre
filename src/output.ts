@@ -14,12 +14,26 @@ export async function writeDebateMarkdown(
   stopReason?: string
 ): Promise<string> {
   const safeDate = new Date().toISOString().replace(/[:.]/g, "-");
-  const filePath = path.resolve(outputDir, `palabre-${safeDate}.debate.md`);
+  const fileName = `palabre-${slugifyTopic(options.topic)}-${safeDate}.debate.md`;
+  const filePath = path.resolve(outputDir, fileName);
 
   await mkdir(path.dirname(filePath), { recursive: true });
   await writeFile(filePath, renderDebateMarkdown(options, messages, summary, stopReason), "utf8");
 
   return filePath;
+}
+
+function slugifyTopic(topic: string): string {
+  const slug = topic
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64)
+    .replace(/-+$/g, "");
+
+  return slug || "debat";
 }
 
 /**

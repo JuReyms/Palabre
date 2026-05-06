@@ -6,7 +6,9 @@ Commencez par lancer le diagnostic :
 palabre doctor
 ```
 
-`doctor` ne lance aucun agent IA. Il vérifie la configuration, les agents déclarés, les CLIs disponibles, Ollama et les modèles configurés.
+`doctor` ne lance aucun agent IA. Il affiche un diagnostic par sections : configuration, outils locaux, agents et points à vérifier. Il contrôle les agents déclarés, les paramètres par défaut, le nombre de réponses, `outputDir`, les CLIs disponibles, Ollama et les modèles configurés.
+
+Pour obtenir une sortie brute adaptée aux logs ou aux scripts :`n`n```bash`npalabre doctor --plain`n```
 
 ## Palabre ne trouve pas ma configuration
 
@@ -64,6 +66,45 @@ Puis corrigez les agents par défaut :
 palabre config --set-defaults codex claude
 ```
 
+## Un agent installé n'apparaît pas dans la config
+
+Message typique :
+
+```text
+[WARN] Agent(s) detecte(s) mais absent(s) de la config: opencode.
+```
+
+Synchronisez les agents détectés :
+
+```bash
+palabre config --sync-agents
+```
+
+Cette commande ajoute les agents manquants sans écraser vos réglages existants.
+
+## Le nombre de réponses par défaut est invalide
+
+Message typique :
+
+```text
+[ERREUR] defaults.turns invalide: 99.
+```
+
+Choisissez un nombre entre 1 et 20 :
+
+```bash
+palabre config -t 4
+```
+
+## Le dossier d'export pose problème
+
+Message typique :
+
+```text
+[ERREUR] outputDir pointe vers un fichier, pas un dossier: ...
+```
+
+Corrigez `outputDir` dans `palabre.config.json`, ou supprimez ce champ pour écrire les exports dans le dossier courant.
 ## Une CLI est introuvable
 
 Message typique :

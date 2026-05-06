@@ -21,6 +21,7 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Arret anticipe sur accord clair, desactivable avec `--no-early-stop`.
 - Rendu console pretty/plain avec etat "agent en cours".
 - Export `.debate.md` avec en-tete de session en table Markdown.
+- Nom des exports plus lisible avec slug derive du sujet et horodatage conserve.
 - Installation globale locale testee avec `pnpm link --global`.
 - Commande `palabre update` avec instructions et `--apply` pour checkout git.
 - Syntaxe courte de lancement : `palabre preset "sujet" -t 4` et `palabre -s "sujet" -t 2`.
@@ -32,6 +33,7 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Roles injectes dans les prompts avec consignes dediees par role.
 - Garde-fou contre les commandes inconnues proches de commandes valides, par exemple `palabre nex`.
 - Commande `palabre config`, `--set-defaults`, `-t/--turns`, `--summary-agent` et `--clear-defaults` pour gerer les parametres par defaut.
+- `palabre doctor` enrichi : rendu par sections, `--plain` pour les logs, defaults, `turns`, `outputDir`, agents detectes absents de la config, forme des agents CLI/Ollama et action `palabre config --sync-agents`.
 
 ## P0 - Stabilisation CLI
 

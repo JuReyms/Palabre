@@ -39,7 +39,7 @@ async function main(): Promise<void> {
   }
 
   if (parsed.command === "doctor") {
-    const result = await runDoctor(optionalString(parsed.flags.config));
+    const result = await runDoctor(optionalString(parsed.flags.config), Boolean(parsed.flags.plain));
     console.log(result.output);
     process.exitCode = result.ok ? 0 : 1;
     return;

@@ -21,7 +21,7 @@ Les fonctionnalités principales sont disponibles :
 
 ### Diagnostic plus utile
 
-`palabre doctor` doit devenir le premier réflexe quand quelque chose ne fonctionne pas. L'objectif est d'afficher des messages plus actionnables pour les problèmes courants : agent introuvable, configuration incomplète, modèle Ollama manquant, PATH incorrect ou quota atteint côté provider.
+`palabre doctor` est le premier réflexe quand quelque chose ne fonctionne pas. Il affiche un diagnostic lisible par sections et garde `--plain` pour les logs. Les prochaines améliorations continueront à rendre ses messages plus actionnables pour les problèmes courants : agent introuvable, configuration incomplète, modèle Ollama manquant, PATH incorrect ou quota atteint côté provider.
 
 ### Configuration plus simple
 
