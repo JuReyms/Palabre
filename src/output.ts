@@ -1,6 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { formatModelPair, formatSummaryModel } from "./modelInfo.js";
 import type { DebateMessage, DebateOptions, DebateSummary } from "./types.js";
 
 /**
@@ -108,8 +107,6 @@ function renderSessionHeader(
   const rows = [
     ["Sujet", options.topic],
     ["Agents", `${options.agentA} <-> ${options.agentB}`],
-    ["Modeles", formatModelPair(options)],
-    ...(options.summaryEnabled ? [["Modele synthese", formatSummaryModel(options)]] as Array<[string, string]> : []),
     ["Auto-pull Ollama", options.pullModels ? "yes" : "no"],
     ["Synthese", options.summaryEnabled ? options.summaryAgent ?? options.agentB : "disabled"],
     ["Tours demandes", String(options.turns)],

@@ -114,6 +114,20 @@ test("CliAdapter classifies usage limit errors", async () => {
   );
 });
 
+test("CliAdapter classifies unsupported model errors", async () => {
+  const script = "process.stderr.write(JSON.stringify({ type: 'error', status: 400, error: { type: 'invalid_request_error', message: \"The '5.4' model is not supported when using Codex with a ChatGPT account.\" } })); process.exit(1)";
+  const adapter = new CliAdapter("codex", cliConfig({
+    args: ["-e", script]
+  }));
+
+  await assert.rejects(
+    adapter.generate(basePrompt()),
+    (error) => error instanceof AdapterError
+      && error.kind === "unsupported-model"
+      && error.message.includes("5.4")
+      && error.message.includes("not supported")
+  );
+});
 async function writeFakeCli(name: string, source: string): Promise<string> {
   const dir = path.join(os.tmpdir(), "palabre-cli-adapter-tests");
   await mkdir(dir, { recursive: true });

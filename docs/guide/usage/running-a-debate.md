@@ -54,7 +54,7 @@ palabre codex-claude "Sujet" -t 4 --no-early-stop
 
 ## Choisir un modèle à la volée
 
-Palabre ne liste pas les modèles des CLIs, car ils changent souvent. Il transmet simplement la valeur à l'agent. Dans l'affichage terminal et l'export Markdown, Palabre indique le modèle quand il le connaît : override explicite, modèle Ollama ou modèle déclaré dans la configuration. Si une CLI utilise son propre réglage interne, Palabre affiche `CLI default`.
+Palabre ne liste pas les modèles des CLIs, car ils changent souvent. Il transmet simplement la valeur à l'agent. Si le modèle n'existe pas ou n'est pas autorisé par votre compte, la CLI renverra l'erreur.
 
 ```bash
 palabre codex-claude "Sujet" --model-a gpt-5.5 --model-b opus-4.7

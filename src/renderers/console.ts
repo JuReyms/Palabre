@@ -1,4 +1,3 @@
-import { formatModelPair, formatSummaryLabel } from "../modelInfo.js";
 import type { AgentRole, DebateOptions, DebateRenderer } from "../types.js";
 
 const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
@@ -27,8 +26,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
       this.c("cyan", `┌─ ${title} ${"─".repeat(Math.max(1, 54 - title.length))}`),
       this.c("cyan", `│`) + ` Sujet: ${options.topic}`,
       this.c("cyan", `│`) + ` Agents: ${options.agentA} <-> ${options.agentB}`,
-      this.c("cyan", `│`) + ` Modeles: ${formatModelPair(options)}`,
-      this.c("cyan", `│`) + ` Tours: ${options.turns} | Synthese: ${formatSummaryLabel(options)}`,
+      this.c("cyan", `│`) + ` Tours: ${options.turns} | Synthese: ${options.summaryEnabled ? options.summaryAgent ?? options.agentB : "disabled"}`,
       this.c("cyan", `└${"─".repeat(57)}`),
       ""
     ].join("\n"));

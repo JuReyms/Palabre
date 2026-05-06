@@ -40,6 +40,8 @@ function hintForFailure(kind: AdapterFailureKind): string | undefined {
       return "Teste la commande directement, puis ajuste args, permissions, modele ou authentification de la CLI.";
     case "model-unavailable":
       return "Installe le modele Ollama ou relance avec --pull-models pour autoriser le telechargement.";
+    case "unsupported-model":
+      return "Verifie le nom du modele, ton abonnement, ou retire --model-a/--model-b/--summary-model pour laisser la CLI utiliser son modele par defaut.";
     case "model-pull-failed":
       return "Verifie le nom du modele, ta connexion et l'espace disque disponible.";
     case "http-error":

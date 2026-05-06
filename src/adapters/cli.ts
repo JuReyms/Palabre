@@ -178,12 +178,25 @@ function cleanCliOutput(output: string): string {
 function createCliExitError(adapterName: string, exitCode: number, stderr: string): AdapterError {
   const cleanedStderr = cleanCliOutput(stderr);
   const usageLimitMessage = extractUsageLimitMessage(cleanedStderr);
+  const unsupportedModelMessage = extractUnsupportedModelMessage(cleanedStderr);
 
   if (usageLimitMessage) {
     return new AdapterError(
       "usage-limit",
       adapterName,
       `${adapterName} a atteint une limite d'utilisation: ${usageLimitMessage}`,
+      {
+        exitCode,
+        stderr: cleanedStderr
+      }
+    );
+  }
+
+  if (unsupportedModelMessage) {
+    return new AdapterError(
+      "unsupported-model",
+      adapterName,
+      `${adapterName} ne peut pas utiliser ce modèle: ${unsupportedModelMessage}`,
       {
         exitCode,
         stderr: cleanedStderr
@@ -202,6 +215,35 @@ function createCliExitError(adapterName: string, exitCode: number, stderr: strin
   );
 }
 
+function extractUnsupportedModelMessage(stderr: string): string | undefined {
+  const lines = uniqueNonEmptyLines(stderr);
+  const match = lines.find((line) => isUnsupportedModelLine(line));
+
+  if (!match) {
+    return undefined;
+  }
+
+  return clipLine(stripLogPrefix(extractJsonErrorMessage(match) ?? match), 500);
+}
+
+function isUnsupportedModelLine(line: string): boolean {
+  const normalized = line.toLowerCase();
+
+  return [
+    "model is not supported",
+    "model is unsupported",
+    "unsupported model",
+    "model_not_found",
+    "not supported when using",
+    "model does not exist",
+    "unknown model"
+  ].some((pattern) => normalized.includes(pattern));
+}
+
+function extractJsonErrorMessage(line: string): string | undefined {
+  const match = line.match(/"message"\s*:\s*"([^"]+)"/);
+  return match?.[1];
+}
 function extractUsageLimitMessage(stderr: string): string | undefined {
   const lines = uniqueNonEmptyLines(stderr);
   const match = lines.find((line) => isUsageLimitLine(line));

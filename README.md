@@ -163,7 +163,7 @@ palabre -s "Critique rapide du MVP" -t 2
 
 `--subject` est le nom long recommande pour le sujet. `-s` est son alias court, et `--topic` reste accepte pour compatibilite.
 
-Un preset choisit seulement les deux agents. Il ne change pas les modeles par defaut configures dans les CLIs. Palabre affiche le modele quand il le connait : override explicite, modele Ollama ou modele declare dans la config. Sinon il indique `CLI default`, car la CLI garde son propre choix interne. Pour demander un modele explicitement, Palabre transmet la string brute sans valider ni lister les modeles :
+Un preset choisit seulement les deux agents. Il ne change pas les modeles par defaut configures dans les CLIs. Pour demander un modele explicitement, Palabre transmet la string brute sans valider ni lister les modeles :
 
 ```bash
 palabre run --preset codex-claude --model-a 5.5 --model-b opus --subject "Compare les approches"
@@ -301,7 +301,6 @@ Tests effectues sur Windows :
 - `codex exec ↔ claude --print` : OK.
 - `--show-prompt` avec `--files` : OK.
 - `--show-prompt` avec `--context docs` : OK.
-- affichage des modeles connus dans `--show-prompt`, le header console et l'export Markdown : OK.
 - contexte de session visible dans `--show-prompt` : OK.
 - arret anticipe sur accord clair : OK.
 - syntaxe courte `palabre preset "sujet" -t 4` et `palabre -s "sujet" -t 2` : OK.
@@ -336,7 +335,6 @@ Reglages importants observes :
 - `--show-prompt` affiche le prompt exact du premier tour seulement. Les tours suivants dependent du transcript reel.
 - `--turns` est une limite haute quand l'arret anticipe est actif ; `--no-early-stop` force tous les tours demandes.
 - `--model-a` et `--model-b` transmettent une string brute aux adapters ; Palabre ne maintient pas de catalogue de modeles.
-- Les modeles affiches sont les valeurs connues par Palabre : overrides, config agent ou modele Ollama. Les CLIs sans modele declare restent affichees comme `CLI default`.
 - L'adapter Ollama detecte les modeles installes via `/api/tags` quand `validateModel` est actif.
 - L'adapter Ollama peut telecharger un modele manquant via `/api/pull` seulement si `--pull-models` ou `autoPullModel` est actif.
 - L'adapter Ollama decharge les autres modeles charges via `/api/ps` puis `keep_alive: 0` quand `unloadOtherModels` est actif.

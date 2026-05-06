@@ -35,7 +35,6 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Commande `palabre config`, `--set-defaults`, `-t/--turns`, `--summary-agent` et `--clear-defaults` pour gerer les parametres par defaut.
 - `palabre doctor` enrichi : rendu par sections, `--plain` pour les logs, defaults, `turns`, `outputDir`, agents detectes absents de la config, forme des agents CLI/Ollama et action `palabre config --sync-agents`.
 - Smoke tests automatises pour l'adapter CLI avec `node:test` : prompt via stdin, prompt en argument, insertion de `modelArg`, sortie vide, exit non-zero et limite d'usage.
-- Affichage des modeles connus dans `--show-prompt`, le header console et l'export Markdown : override runtime, modele de config, Ollama, ou `CLI default` quand Palabre ne peut pas deviner.
 
 ## P0 - Stabilisation CLI
 
@@ -70,3 +69,4 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Internationalisation francais/anglais.
 - Modes multi-agents au-dela de deux participants.
 - Selection intelligente de contexte et resume automatique des gros fichiers.
+- Affichage fiable des modeles seulement quand Palabre peut les connaitre sans afficher un placeholder bruyant.
