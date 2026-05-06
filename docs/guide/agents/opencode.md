@@ -1,12 +1,14 @@
 # OpenCode
 
-OpenCode est une CLI d'assistance au développement. Selon votre configuration locale, elle peut utiliser différents modèles.
-
-Palabre peut l'utiliser comme agent CLI au même titre que Codex, Claude ou Gemini.
+Palabre peut l'utiliser comme agent CLI au même titre que Codex, Claude Code ou Gemini.
 
 ## À installer avant Palabre
 
-Installez OpenCode et vérifiez que la commande fonctionne :
+Installez OpenCode depuis la documentation officielle de OpenCode, puis authentifiez la CLI dans votre terminal.
+
+Documentation officielle : [https://opencode.ai/](https://opencode.ai/)
+
+Vérifiez ensuite que la commande fonctionne :
 
 ```bash
 opencode --version

@@ -1,16 +1,14 @@
 # Lancer un premier débat
 
-Le moyen le plus simple de commencer est l'assistant interactif.
-
 ```bash
 palabre new
 ```
 
-Palabre liste les agents disponibles, demande un sujet, affiche la commande équivalente, puis peut lancer le débat dès que les informations minimales sont renseignées.
+La commande `palabre new` est un assistant interactif qui liste les agents disponibles, demande un sujet, affiche la commande équivalente, puis peut lancer le débat dès que les informations minimales sont renseignées.
 
 ## Lancer avec les agents par défaut
 
-Si vous avez configuré des agents par défaut :
+Si vous avez [configuré des agents par défaut](/configuration/defaults) :
 
 ```bash
 palabre -s "Critique ce plan technique" -t 4
@@ -57,5 +55,7 @@ Pendant le débat, Palabre affiche les réponses dans le terminal. À la fin, il
 - le transcript complet ;
 - la synthèse finale ;
 - une conclusion courte en prose.
+
+Par défaut, l'[export](/usage/export) est créé dans le dossier courant.
 
 Pour aller plus loin, consultez [Lancer un débat](/usage/running-a-debate), [Contexte et fichiers](/usage/context-and-files) et [Synthèses](/usage/summaries).

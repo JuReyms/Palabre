@@ -1,14 +1,12 @@
 # Lancer un débat
 
-Cette page décrit les façons courantes de lancer un débat avec Palabre.
-
 ## Mode guidé
 
 ```bash
 palabre new
 ```
 
-L'assistant demande les agents, le sujet et les options principales. C'est le meilleur point de départ si vous découvrez Palabre.
+L'assistant de Palabre vous  aide à choisir les agents, préparer le sujet et les options principales. C'est le meilleur point de départ si vous découvrez Palabre.
 
 ## Avec les agents par défaut
 

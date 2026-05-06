@@ -1,7 +1,5 @@
 # Première configuration
 
-Après l'installation, Palabre doit créer une configuration locale ou globale pour savoir quels agents utiliser.
-
 ## Initialiser Palabre
 
 ```bash

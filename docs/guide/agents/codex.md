@@ -1,22 +1,30 @@
 # Codex
 
-Codex CLI permet d'utiliser Codex depuis le terminal.
-
 Palabre peut le lancer comme agent de débat, souvent en agent A pour proposer une première solution.
 
 ## À installer avant Palabre
 
-Installez et configurez Codex CLI hors de Palabre, puis vérifiez la commande :
+Installez Codex depuis la documentation officielle d'OpenAI, puis authentifiez la CLI dans votre terminal.
+
+Documentation officielle : [https://developers.openai.com/codex/cli](https://developers.openai.com/codex/cli)
+
+Vérifiez ensuite que la commande fonctionne :
 
 ```bash
 codex --version
 ```
 
-## Compte, modèle et limites
+Si Codex a été installé après `palabre init`, synchronisez la configuration :
 
-Codex garde sa propre configuration : fournisseur, modèle par défaut, sandbox, approbations et limites d'usage.
+```bash
+palabre config --sync-agents
+```
 
-Palabre transmet seulement le prompt. Si vous indiquez `--model-a` ou `--model-b`, la valeur est transmise telle quelle à la CLI via son argument modèle configuré.
+## Abonnement et limites
+
+Codex utilise les règles d'accès de votre compte OpenAI. Palabre ne contourne pas les quotas, limites d'usage ou abonnements.
+
+Si Codex atteint une limite, Palabre affiche une erreur courte et vous pouvez attendre que votre quota d'utilisation soit réinitialisé ou utiliser une autre paire d'agents.
 
 ## Configuration typique
 

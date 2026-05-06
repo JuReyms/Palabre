@@ -1,11 +1,9 @@
 # Agents
 
-Un agent Palabre est une entrée de configuration qui décrit comment appeler une IA.
-
 Palabre supporte deux familles d'agents :
 
 - les agents CLI, comme Claude Code, Codex CLI, Gemini CLI ou OpenCode ;
-- les agents Ollama, appelés via l'API HTTP locale.
+- les agents comme Ollama (et bientôt LM Studio) qui appellent via l'API HTTP locale.
 
 ## Agents CLI
 
@@ -13,11 +11,11 @@ Un agent CLI est lancé comme une commande de terminal. Palabre lui envoie un pr
 
 Chaque CLI garde ses propres règles : authentification, modèle par défaut, abonnement, limites d'usage et options de configuration.
 
-## Agents Ollama
+## Agents Locaux
 
-Un agent Ollama utilise un modèle local installé sur votre machine. C'est utile pour des rôles de critique, d'exploration ou de synthèse légère.
+Un agent local comme Ollama utilise un modèle local installé sur votre machine. C'est utile pour des rôles de critique, d'exploration ou de synthèse légère.
 
-Ollama ne lit pas vos fichiers directement. Pour lui donner du contexte, utilisez `--files` ou `--context`.
+L'agent local ne lit pas vos fichiers directement. Pour lui donner du contexte, utilisez `--files` ou `--context`.
 
 ## Voir les agents disponibles
 
@@ -25,7 +23,7 @@ Ollama ne lit pas vos fichiers directement. Pour lui donner du contexte, utilise
 palabre agents
 ```
 
-Si une CLI installée n'apparaît pas dans la configuration :
+Si un agent CLI installé n'apparaît pas dans la configuration :
 
 ```bash
 palabre config --sync-agents

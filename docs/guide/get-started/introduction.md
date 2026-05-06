@@ -1,7 +1,5 @@
 # Introduction
 
-Palabre est un orchestrateur de débats entre agents IA déjà installés sur votre machine.
-
 L'objectif est simple : vous donnez un sujet, Palabre fait dialoguer deux assistants, affiche leurs réponses dans le terminal, puis exporte le transcript complet avec une synthèse finale.
 
 Palabre ne remplace pas Claude Code, Codex CLI, Gemini CLI, OpenCode ou Ollama. Il les pilote. Vous gardez donc vos outils, vos abonnements, vos modèles par défaut et vos habitudes de terminal.
@@ -29,7 +27,7 @@ Palabre :
 
 ## Ce que Palabre ne fait pas
 
-Palabre ne fournit pas d'accès payant aux modèles. Il ne crée pas de compte Claude, OpenAI, Google ou Ollama. Chaque agent doit être installé et authentifié séparément.
+Palabre ne fournit pas d'accès payant aux modèles. Il ne crée pas de compte Claude, OpenAI, Google, Opencode ou Ollama. Chaque agent doit être installé et authentifié séparément.
 
 Palabre ne garde pas non plus une session interactive ouverte avec les CLIs. Chaque réponse est produite par un appel batch. La mémoire du débat vient du transcript que Palabre réinjecte à chaque tour.
 
