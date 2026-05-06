@@ -18,6 +18,7 @@ Dans les exemples, [option] signifie facultatif et les crochets ne sont pas à t
 | `palabre config --set-defaults codex claude --summary-agent claude --turns 4` | Définit les agents, la synthèse et les réponses par défaut. |
 | `palabre config -t 3` | Modifie seulement le nombre de réponses par défaut si les agents par défaut existent déjà. |
 | `palabre config --clear-defaults` | Supprime les agents et options par défaut de la config résolue. |
+| `palabre config --sync-agents` | Ajoute les agents détectés mais absents de la config, sans écraser l'existant. |
 | `palabre new` | Ouvre un assistant interactif pour choisir agents, sujet et options avant de lancer ou prévisualiser. |
 | `palabre run --subject "Sujet"` | Lance un débat avec les agents par défaut de la config. |
 | `palabre run --subject "Sujet" --agent-a codex --agent-b claude --turns 4` | Lance un débat en choisissant explicitement agents et tours. |

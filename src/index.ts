@@ -186,6 +186,19 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   }
 
   const config = await loadConfig(configPath);
+  if (flags["sync-agents"]) {
+    const discovery = await discoverLocalTools();
+    const addedAgents = syncDetectedAgents(config, discovery);
+
+    if (addedAgents.length === 0) {
+      console.log(`Aucun agent détecté manquant dans ${configPath}.`);
+      return;
+    }
+
+    await writeExampleConfig(configPath, config);
+    console.log(`Agents ajoutés dans ${configPath}: ${addedAgents.join(", ")}.`);
+    return;
+  }
 
   const defaultAgents = getStringListFlag(flags["set-defaults"]);
   const turnsValue = optionalString(flags.turns);
@@ -521,6 +534,34 @@ function printContextWarnings(warnings: string[]): void {
   }
 }
 
+function syncDetectedAgents(
+  config: PalabreConfig,
+  discovery: Awaited<ReturnType<typeof discoverLocalTools>>
+): string[] {
+  const discoveredConfig = createConfigFromDiscovery(discovery);
+  const missingAgents = findDetectedMissingAgents(config, discovery);
+
+  for (const agentName of missingAgents) {
+    config.agents[agentName] = discoveredConfig.agents[agentName];
+  }
+
+  return missingAgents;
+}
+
+function findDetectedMissingAgents(
+  config: PalabreConfig,
+  discovery: Awaited<ReturnType<typeof discoverLocalTools>>
+): string[] {
+  const detectedAgents = [
+    discovery.codex.available ? "codex" : undefined,
+    discovery.claude.available ? "claude" : undefined,
+    discovery.gemini.available ? "gemini" : undefined,
+    discovery.opencode.available ? "opencode" : undefined,
+    discovery.ollama.available ? "ollama-local" : undefined
+  ].filter((agent): agent is string => Boolean(agent));
+
+  return detectedAgents.filter((agentName) => !config.agents[agentName]);
+}
 function printAgents(
   configPath: string,
   config: PalabreConfig,
@@ -706,6 +747,7 @@ Configuration:
   --local                 Avec init/setup, crée ./palabre.config.json
   --set-defaults <a b>    Avec config, définit les agents par défaut
   --clear-defaults        Avec config, supprime les paramètres par défaut
+  --sync-agents           Avec config, ajoute les agents détectés manquants
 
 Mise à jour:
   --apply                 Avec update, exécute les étapes de mise à jour
