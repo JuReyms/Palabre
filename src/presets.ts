@@ -1,3 +1,4 @@
+/** Paire d'agents nommée. Les noms doivent correspondre à des clés dans `PalabreConfig.agents`. */
 export interface AgentPairPreset {
   agentA: string;
   agentB: string;
@@ -86,6 +87,7 @@ const presets: Record<string, AgentPairPreset> = {
   }
 };
 
+/** Retourne la paire d'agents pour `name`. Lève une erreur avec la liste des presets disponibles si inconnu. */
 export function resolvePreset(name: string): AgentPairPreset {
   const preset = presets[name];
 
@@ -96,10 +98,12 @@ export function resolvePreset(name: string): AgentPairPreset {
   return preset;
 }
 
+/** Retourne la liste de tous les noms de presets disponibles, dans l'ordre de déclaration. */
 export function listPresetNames(): string[] {
   return Object.keys(presets);
 }
 
+/** Recherche inverse : retourne le nom du preset correspondant à une paire `(agentA, agentB)`, ou `undefined`. */
 export function findPresetNameForPair(agentA: string, agentB: string): string | undefined {
   return Object.entries(presets).find(([, preset]) => preset.agentA === agentA && preset.agentB === agentB)?.[0];
 }

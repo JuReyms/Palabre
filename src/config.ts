@@ -92,12 +92,14 @@ export const exampleConfig: PalabreConfig = {
   }
 };
 
+/** Charge et parse la config depuis `configPath`. Lance une erreur si le fichier est absent ou invalide. */
 export async function loadConfig(configPath = DEFAULT_CONFIG_PATH): Promise<PalabreConfig> {
   const resolved = path.resolve(configPath);
   const raw = await readFile(resolved, "utf8");
   return JSON.parse(raw) as PalabreConfig;
 }
 
+/** Retourne `true` si le fichier de config est accessible en lecture. Silencieux sur toute erreur filesystem. */
 export async function configExists(configPath = DEFAULT_CONFIG_PATH): Promise<boolean> {
   try {
     await access(path.resolve(configPath));
@@ -107,6 +109,11 @@ export async function configExists(configPath = DEFAULT_CONFIG_PATH): Promise<bo
   }
 }
 
+/**
+ * Résout le chemin de config à utiliser selon l'ordre de priorité :
+ * local (`palabre.config.json`) → legacy local → global → legacy global.
+ * Retourne le chemin global même s'il n'existe pas encore (cas d'un premier `init`).
+ */
 export async function resolveDefaultConfigPath(): Promise<string> {
   if (await configExists(DEFAULT_CONFIG_PATH)) {
     return DEFAULT_CONFIG_PATH;
@@ -127,6 +134,11 @@ export async function resolveDefaultConfigPath(): Promise<string> {
   return GLOBAL_CONFIG_PATH;
 }
 
+/**
+ * Construit une `PalabreConfig` complète à partir des outils détectés localement.
+ * Ajuste `defaults.agentA/agentB/summaryAgent` en fonction de la paire disponible.
+ * Si aucune paire n'est détectée, `defaults` reste celui de `exampleConfig`.
+ */
 export function createConfigFromDiscovery(discovery: ToolDiscovery): PalabreConfig {
   const config = cloneConfig(exampleConfig);
   const pair = chooseDefaultPair(discovery);
@@ -156,6 +168,7 @@ export function createConfigFromDiscovery(discovery: ToolDiscovery): PalabreConf
   return config;
 }
 
+/** Écrit `config` sérialisé en JSON dans `configPath`. Crée le répertoire parent si nécessaire. */
 export async function writeExampleConfig(
   configPath = DEFAULT_CONFIG_PATH,
   config: PalabreConfig = exampleConfig

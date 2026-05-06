@@ -3,12 +3,15 @@ import { access } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+/** Informations sur l'installation courante, utilisées pour adapter les instructions de mise à jour. */
 export interface UpdateInfo {
   version: string;
   projectRoot: string;
+  /** `true` si le dossier parent contient un `.git` — distingue un checkout source d'une installation via npm/pnpm. */
   sourceCheckout: boolean;
 }
 
+/** Détecte le mode d'installation (source ou package) à partir de la présence d'un dossier `.git`. */
 export async function getUpdateInfo(version: string): Promise<UpdateInfo> {
   const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -19,6 +22,7 @@ export async function getUpdateInfo(version: string): Promise<UpdateInfo> {
   };
 }
 
+/** Génère les instructions de mise à jour adaptées au mode d'installation détecté dans `info`. */
 export function formatUpdateInstructions(info: UpdateInfo): string {
   const lines = [
     `PALABRE ${info.version}`,
@@ -57,6 +61,10 @@ export function formatUpdateInstructions(info: UpdateInfo): string {
   return lines.join("\n");
 }
 
+/**
+ * Exécute `git pull`, `pnpm install`, `pnpm build`, `pnpm link --global` dans le répertoire du projet.
+ * @throws {Error} si `info.sourceCheckout` est faux — la mise à jour automatique ne s'applique qu'aux checkouts git.
+ */
 export async function applySourceUpdate(info: UpdateInfo): Promise<void> {
   if (!info.sourceCheckout) {
     throw new Error("Mise a jour automatique disponible seulement depuis un checkout git. Utilise pnpm add --global palabre@latest.");

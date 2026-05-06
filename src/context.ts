@@ -32,6 +32,7 @@ const TEXT_EXTENSIONS = new Set([
   ".yml"
 ]);
 
+/** Résultat combiné du chargement de contexte. `warnings` liste les fichiers ignorés ou tronqués. */
 export interface ProjectContextLoadResult {
   files: ProjectFileContext[];
   warnings: string[];
@@ -45,11 +46,20 @@ interface LoadState {
   gitignoreRules: string[];
 }
 
+/**
+ * Mode strict (`--files`) : charge uniquement les fichiers explicitement listés.
+ * Lève une erreur si un chemin est un dossier, un binaire, ou dépasse 64 KiB / 192 KiB au total.
+ */
 export async function loadProjectFiles(paths: string[], cwd = process.cwd()): Promise<ProjectFileContext[]> {
   const result = await loadProjectInputs(paths, [], cwd);
   return result.files;
 }
 
+/**
+ * Combine le chargement strict (`--files`) et tolérant (`--context`).
+ * Les fichiers explicites sont chargés en premier et comptent dans le budget total.
+ * Les chemins de contexte acceptent fichiers et dossiers ; les fichiers ignorés génèrent des warnings, pas des erreurs.
+ */
 export async function loadProjectInputs(
   filePaths: string[],
   contextPaths: string[],

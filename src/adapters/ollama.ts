@@ -28,6 +28,11 @@ interface OllamaPullResponse {
   error?: string;
 }
 
+/**
+ * Adapter pour Ollama via l'API HTTP locale (`POST /api/chat`).
+ * N'accède jamais au filesystem : ne voit que le prompt et le transcript fournis par l'orchestrateur.
+ * Garantit : rejection des sorties vides et des timeouts.
+ */
 export class OllamaAdapter implements AgentAdapter {
   readonly role;
   readonly contract: AdapterContract;
@@ -122,6 +127,11 @@ export class OllamaAdapter implements AgentAdapter {
     }
   }
 
+  /**
+   * Vérifie que le modèle est disponible avant de générer.
+   * Si absent et `autoPullModel` est faux, lève `model-unavailable` avec la liste des modèles détectés.
+   * Si absent et `autoPullModel` est vrai, déclenche le pull puis re-vérifie.
+   */
   private async ensureModelAvailable(baseUrl: string): Promise<void> {
     const available = await this.isModelAvailable(baseUrl);
 
@@ -243,6 +253,7 @@ export class OllamaAdapter implements AgentAdapter {
   }
 }
 
+/** Décharge un modèle Ollama en mémoire GPU/CPU via `POST /api/generate` avec `keep_alive: 0`. */
 async function unloadModel(baseUrl: string, model: string, signal: AbortSignal): Promise<void> {
   const response = await fetch(`${baseUrl}/api/generate`, {
     method: "POST",
@@ -264,6 +275,7 @@ async function unloadModel(baseUrl: string, model: string, signal: AbortSignal):
   }
 }
 
+/** Supprime le slash final de `baseUrl` pour éviter les doubles slashs dans les URLs construites. */
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/$/, "");
 }

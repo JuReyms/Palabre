@@ -3,6 +3,11 @@ import { AdapterError } from "../errors.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
 
+/**
+ * Adapter pour les CLIs batch (Codex, Claude, Gemini…).
+ * Lance un sous-processus, injecte le prompt via stdin ou argument, capture stdout.
+ * Garantit : rejection des sorties vides (sauf `allowEmptyOutput`), des timeouts et des exit codes non nuls sans stdout.
+ */
 export class CliAdapter implements AgentAdapter {
   readonly role;
   readonly contract: AdapterContract;
@@ -136,6 +141,10 @@ export class CliAdapter implements AgentAdapter {
   }
 }
 
+/**
+ * Insère `modelArg model` dans la liste d'arguments.
+ * Si le dernier argument est `-` (stdin marker), insère avant lui pour préserver l'ordre attendu par les CLIs.
+ */
 function withModelArgs(args: string[], model: string | undefined, modelArg: string): string[] {
   if (!model) {
     return [...args];
@@ -155,12 +164,17 @@ function withModelArgs(args: string[], model: string | undefined, modelArg: stri
   return [...args, modelArg, model];
 }
 
+/** Retire les séquences ANSI et les espaces en tête/fin. */
 function cleanCliOutput(output: string): string {
   return output
     .replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, "")
     .trim();
 }
 
+/**
+ * Construit une `AdapterError` typée depuis un exit code non nul.
+ * Élève en `usage-limit` si le stderr contient un signal de quota/rate-limit connu.
+ */
 function createCliExitError(adapterName: string, exitCode: number, stderr: string): AdapterError {
   const cleanedStderr = cleanCliOutput(stderr);
   const usageLimitMessage = extractUsageLimitMessage(cleanedStderr);

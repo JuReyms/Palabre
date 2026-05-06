@@ -1,5 +1,9 @@
 import type { AdapterFailureKind } from "./types.js";
 
+/**
+ * Erreur typée levée par les adapters.
+ * `kind` est stable et utilisé par l'orchestrateur pour classifier l'échec sans inspecter le message.
+ */
 export class AdapterError extends Error {
   constructor(
     readonly kind: AdapterFailureKind,
@@ -12,6 +16,7 @@ export class AdapterError extends Error {
   }
 }
 
+/** Formate le message d'erreur avec une suggestion actionnable selon `error.kind`. */
 export function formatAdapterError(error: AdapterError): string {
   const hint = hintForFailure(error.kind);
   return hint ? `${error.message}\nSuggestion: ${hint}` : error.message;

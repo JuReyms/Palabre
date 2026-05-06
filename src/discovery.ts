@@ -1,12 +1,17 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
 
+/** Résultat de la détection d'une commande dans le PATH. */
 export interface CommandDetection {
   available: boolean;
   command: string;
   path?: string;
 }
 
+/**
+ * Résultat de la détection Ollama.
+ * `available` reflète l'accessibilité de l'API locale ; `commandAvailable` reflète la présence de la CLI `ollama` dans le PATH.
+ */
 export interface OllamaDetection {
   available: boolean;
   baseUrl: string;
@@ -15,6 +20,7 @@ export interface OllamaDetection {
   error?: string;
 }
 
+/** Résultat agrégé de toutes les détections locales. Construit par `discoverLocalTools`. */
 export interface ToolDiscovery {
   codex: CommandDetection;
   claude: CommandDetection;
@@ -23,6 +29,10 @@ export interface ToolDiscovery {
   ollama: OllamaDetection;
 }
 
+/**
+ * Détecte en parallèle toutes les CLIs supportées et le serveur Ollama local.
+ * Sur Windows, tente `claude.exe` avant `claude`.
+ */
 export async function discoverLocalTools(): Promise<ToolDiscovery> {
   const [codex, claude, gemini, opencode, ollamaCommand] = await Promise.all([
     detectCommand("codex"),
