@@ -2,6 +2,7 @@ import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { findPresetNameForPair } from "./presets.js";
+import { MAX_TURNS, turnsOrDefault, validateTurns } from "./limits.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
 
 export interface NewCommandSelection {
@@ -57,8 +58,8 @@ export async function runNewWizard(config: PalabreConfig): Promise<NewCommandSel
     const topic = await askRequiredText(rl, "Sujet");
     if (!topic) return undefined;
 
-    printCommandPreview({ agentA, agentB, topic, turns: config.defaults?.turns });
-    console.log("Réponds non pour choisir le nombre de tours, les modèles, la synthèse et le contexte.");
+    printCommandPreview({ agentA, agentB, topic, turns: turnsOrDefault(config.defaults?.turns) });
+    console.log("Réponds non pour choisir le nombre de réponses, les modèles, la synthèse et le contexte.");
     const launchMinimal = await askYesNo(rl, "Lancer maintenant avec les options par défaut ?", true);
     if (launchMinimal === undefined) return undefined;
 
@@ -74,7 +75,7 @@ export async function runNewWizard(config: PalabreConfig): Promise<NewCommandSel
       };
     }
 
-    const turns = await askNumber(rl, "Nombre de tours", config.defaults?.turns ?? 4);
+    const turns = await askNumber(rl, "Nombre de réponses", turnsOrDefault(config.defaults?.turns));
     if (turns === undefined) return undefined;
 
     const modelA = await askOptionalText(rl, `Modèle pour ${agentA} (optionnel)`);
@@ -263,11 +264,16 @@ async function askNumber(
     if (!value) return defaultValue;
 
     const parsed = Number(value);
-    if (Number.isInteger(parsed) && parsed > 0) {
-      return parsed;
+    if (Number.isInteger(parsed)) {
+      try {
+        validateTurns(parsed, "Le nombre de réponses");
+        return parsed;
+      } catch {
+        // Show the user-facing wizard hint below.
+      }
     }
 
-    console.log("Entre un nombre entier positif, Entrée ou q.");
+    console.log(`Entre un nombre entier entre 1 et ${MAX_TURNS}, Entrée ou q.`);
   }
 }
 

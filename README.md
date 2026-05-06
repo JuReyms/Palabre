@@ -212,7 +212,7 @@ Les couleurs sont automatiquement desactivees si `NO_COLOR` est defini.
 
 La session genere un fichier `.debate.md` dans le dossier configure par `outputDir`. L'en-tete de l'export est rendu en table Markdown pour rester lisible dans les renderers courants.
 
-`--turns` est une limite haute. Par defaut, Palabre peut s'arreter avant la limite apres un tour complet si le dernier agent exprime clairement un accord complet (`rien a trancher`, `accord complet`, `aucun desaccord`, etc.). Pour forcer tous les tours :
+`--turns` est une limite haute entre 1 et 20 réponses. Par defaut, Palabre peut s'arreter avant la limite apres un tour complet si le dernier agent exprime clairement un accord complet (`rien a trancher`, `accord complet`, `aucun desaccord`, etc.). Pour forcer tous les tours :
 
 ```bash
 pnpm start -- run --subject "Sujet" --turns 4 --no-early-stop

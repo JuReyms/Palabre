@@ -1,6 +1,7 @@
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { writeExampleConfig } from "./config.js";
+import { DEFAULT_TURNS, MAX_TURNS, turnsOrDefault, validateTurns } from "./limits.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
 
 interface ConfigQuestioner {
@@ -69,7 +70,7 @@ export async function runConfigWizard(configPath: string, config: PalabreConfig)
     );
     if (!agentB) return;
 
-    const turns = await askNumber(rl, "Nombre de réponses par défaut", config.defaults?.turns ?? 4, Boolean(config.defaults?.turns));
+    const turns = await askNumber(rl, "Nombre de réponses par défaut", turnsOrDefault(config.defaults?.turns), Boolean(config.defaults?.turns));
     if (turns === undefined) return;
 
     const summaryAgent = await askSummaryAgent(rl, choices, config.defaults?.summaryAgent ?? agentB, Boolean(config.defaults?.summaryAgent), agentB);
@@ -239,11 +240,16 @@ async function askNumber(
     if (!value) return defaultValue;
 
     const parsed = Number(value);
-    if (Number.isInteger(parsed) && parsed > 0) {
-      return parsed;
+    if (Number.isInteger(parsed)) {
+      try {
+        validateTurns(parsed, "Le nombre de réponses");
+        return parsed;
+      } catch {
+        // Show the user-facing wizard hint below.
+      }
     }
 
-    console.log("Entre un nombre entier positif, Entrée ou q.");
+    console.log(`Entre un nombre entier entre 1 et ${MAX_TURNS}, Entrée ou q.`);
   }
 }
 
@@ -252,7 +258,7 @@ function formatAgentLine(choice: AgentChoice): string {
 }
 
 function formatDefaults(defaults: NonNullable<PalabreConfig["defaults"]>): string {
-  return `${defaults.agentA ?? "?"} <-> ${defaults.agentB ?? "?"}, réponses: ${defaults.turns ?? 4}${defaults.summaryAgent ? `, synthèse: ${defaults.summaryAgent}` : ""}`;
+  return `${defaults.agentA ?? "?"} <-> ${defaults.agentB ?? "?"}, réponses: ${turnsOrDefault(defaults.turns ?? DEFAULT_TURNS)}${defaults.summaryAgent ? `, synthèse: ${defaults.summaryAgent}` : ""}`;
 }
 
 function isQuit(value: string): boolean {

@@ -65,7 +65,7 @@ pnpm start -- run --preset codex-claude --subject "Sujet" --turns 6
 palabre codex-claude "Sujet" -t 6
 ```
 
-`--turns` est le nombre total de réponses, pas le nombre de cycles complets par agent. Par exemple, `--turns 4` donne A, B, A, B ; `--turns 3` donne A, B, A. C'est une limite haute : si les agents expriment clairement un accord complet apres un tour complet, Palabre peut s'arreter avant la limite.
+`--turns` est le nombre total de réponses, entre 1 et 20, pas le nombre de cycles complets par agent. Par exemple, `--turns 4` donne A, B, A, B ; `--turns 3` donne A, B, A. C'est une limite haute : si les agents expriment clairement un accord complet apres un tour complet, Palabre peut s'arreter avant la limite.
 
 Pour forcer exactement le nombre de tours demande :
 

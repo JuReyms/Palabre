@@ -5,10 +5,10 @@
 - Node.js 20 ou plus
 - pnpm 10
 - Au moins un agent IA installé et configuré sur ta machine :
-  - [Claude Code](https://claude.ai/code) (`claude` ou `claude.exe`)
+  - [Claude Code](https://code.claude.com/docs/) (`claude` ou `claude.exe`)
   - [Codex CLI](https://github.com/openai/codex) (`codex`)
   - [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`gemini`)
-  - OpenCode (`opencode`)
+  - [Opencode CLI](https://opencode.ai/) (`opencode`)
   - [Ollama](https://ollama.com) pour les modèles locaux
 
 ## Installation

@@ -8,6 +8,7 @@ import { discoverLocalTools } from "./discovery.js";
 import { runDoctor } from "./doctor.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
 import { runConfigWizard } from "./configWizard.js";
+import { DEFAULT_TURNS, parseTurnsFlag, turnsOrDefault } from "./limits.js";
 import { formatAgentPrompt } from "./prompt.js";
 import { runNewWizard } from "./new.js";
 import { listPresetNames, resolvePreset } from "./presets.js";
@@ -132,7 +133,7 @@ async function main(): Promise<void> {
     topic,
     agentA: resolveAgentName("agent A", parsed.flags["agent-a"], preset?.agentA, config.defaults?.agentA),
     agentB: resolveAgentName("agent B", parsed.flags["agent-b"], preset?.agentB, config.defaults?.agentB),
-    turns: Number(parsed.flags.turns ?? config.defaults?.turns ?? 4),
+    turns: parseTurnsFlag(parsed.flags.turns, config.defaults?.turns ?? DEFAULT_TURNS, "--turns"),
     session: createSessionContext(),
     files: context.files,
     modelA: optionalString(parsed.flags["model-a"]),
@@ -201,10 +202,10 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   }
 
   const defaultAgents = getStringListFlag(flags["set-defaults"]);
-  const turnsValue = optionalString(flags.turns);
+  const hasTurnsFlag = flags.turns !== undefined;
   const summaryAgentValue = optionalString(flags["summary-agent"]);
 
-  if (defaultAgents.length > 0 || turnsValue || summaryAgentValue) {
+  if (defaultAgents.length > 0 || hasTurnsFlag || summaryAgentValue) {
     const currentDefaults = config.defaults ?? {};
     const [agentA = currentDefaults.agentA, agentB = currentDefaults.agentB] = defaultAgents;
 
@@ -215,11 +216,7 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
     assertKnownAgent(config, agentA, "defaults.agentA");
     assertKnownAgent(config, agentB, "defaults.agentB");
 
-    const turns = turnsValue ? Number(turnsValue) : currentDefaults.turns ?? 4;
-
-    if (!Number.isInteger(turns) || turns <= 0) {
-      throw new Error("L'option --turns attend un nombre entier positif.");
-    }
+    const turns = parseTurnsFlag(flags.turns, currentDefaults.turns ?? DEFAULT_TURNS, "--turns");
 
     const summaryAgent = summaryAgentValue ?? currentDefaults.summaryAgent;
 
@@ -586,7 +583,7 @@ function printAgents(
   }
 
   console.log("");
-  console.log(`Défauts: ${config.defaults?.agentA ?? "aucun"} <-> ${config.defaults?.agentB ?? "aucun"}, réponses: ${config.defaults?.turns ?? 4}, synthèse: ${config.defaults?.summaryAgent ?? "agent B"}`);
+  console.log(`Défauts: ${config.defaults?.agentA ?? "aucun"} <-> ${config.defaults?.agentB ?? "aucun"}, réponses: ${turnsOrDefault(config.defaults?.turns)}, synthèse: ${config.defaults?.summaryAgent ?? "agent B"}`);
 }
 
 function formatAgentDefaults(name: string, config: PalabreConfig): string {
@@ -725,7 +722,7 @@ Sujet et lancement:
   --agent-a <name>        Premier agent
   --agent-b <name>        Second agent
   --preset <name>         Preset de paire d'agents. Exemples: codex-claude, claude-gemini
-  -t, --turns <number>    Nombre total de réponses
+  -t, --turns <number>    Nombre total de réponses (1 à 20)
   --no-early-stop         Désactive l'arrêt anticipé si les agents sont clairement d'accord
 
 Modèles:

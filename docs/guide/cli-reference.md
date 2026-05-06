@@ -56,7 +56,7 @@ Dans les assistants interactifs, `Ctrl+C` interrompt immédiatement. Dans un pro
 | `--preset <name>` | Choisit une paire d'agents prédéfinie. |
 | `--agent-a <name>` | Premier agent. |
 | `--agent-b <name>` | Second agent. |
-| `-t`, `--turns <number>` | Nombre total de réponses demandées. C'est une limite haute si l'arrêt anticipé est actif. Avec `palabre config`, modifie les réponses par défaut. |
+| `-t`, `--turns <number>` | Nombre total de réponses demandées, entre 1 et 20. C'est une limite haute si l'arrêt anticipé est actif. Avec `palabre config`, modifie les réponses par défaut. |
 | `--no-early-stop` | Désactive l'arrêt anticipé quand les agents sont clairement d'accord. |
 
 Presets actuels : `codex-claude`, `claude-codex`, `codex-ollama`, `ollama-codex`, `claude-ollama`, `ollama-claude`, `gemini-ollama`, `ollama-gemini`, `codex-gemini`, `gemini-codex`, `claude-gemini`, `gemini-claude`, `codex-opencode`, `opencode-codex`, `claude-opencode`, `opencode-claude`, `gemini-opencode`, `opencode-gemini`, `opencode-ollama`, `ollama-opencode`.
