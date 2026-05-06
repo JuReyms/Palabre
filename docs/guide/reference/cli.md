@@ -14,14 +14,14 @@ Cette page liste les commandes principales de Palabre.
 
 ## Configuration
 
-| Commande | Description |
-|----------|-------------|
-| `palabre config` | Ouvre l'assistant de configuration. |
-| `palabre config --set-defaults codex claude` | Définit les agents par défaut. |
-| `palabre config -t 4` | Définit le nombre de réponses par défaut. |
-| `palabre config --summary-agent claude` | Définit l'agent de synthèse par défaut. |
-| `palabre config --clear-defaults` | Supprime les paramètres par défaut. |
-| `palabre config --sync-agents` | Ajoute les agents détectés manquants. |
+| Commande                                     | Description                               |
+| -------------------------------------------- | ----------------------------------------- |
+| `palabre config`                             | Ouvre l'assistant de configuration.       |
+| `palabre config --set-defaults codex claude` | Définit les agents par défaut.            |
+| `palabre config -t 4`                        | Définit le nombre de réponses par défaut. |
+| `palabre config --summary-agent claude`      | Définit l'agent de synthèse par défaut.   |
+| `palabre config --clear-defaults`            | Supprime les paramètres par défaut.       |
+| `palabre config --sync-agents`               | Ajoute les agents détectés manquants.     |
 
 ## Débats
 
