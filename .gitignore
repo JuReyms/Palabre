@@ -1,3 +1,4 @@
+## Ignore dependencies and build artifacts
 node_modules/
 dist/
 .pnpm-store/
@@ -5,4 +6,7 @@ dist/
 palabre.config.json
 chicane.config.json
 .tmp/
+
+## Ignore notes
+docs/notes.md
 
