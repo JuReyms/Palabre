@@ -1,5 +1,12 @@
 # PALABRE
 
+<p>
+  <a href="https://www.npmjs.com/package/palabre"><img src="https://img.shields.io/npm/v/palabre.svg?style=flat&colorA=18181B&colorB=7C3AED" alt="Version"></a>
+  <a href="https://www.npmjs.com/package/palabre"><img src="https://img.shields.io/npm/dm/palabre.svg?style=flat&colorA=18181B&colorB=7C3AED" alt="Downloads"></a>
+  <a href="https://github.com/JuReyms/Palabre/blob/main/LICENSE"><img src="https://img.shields.io/github/license/JuReyms/Palabre.svg?style=flat&colorA=18181B&colorB=7C3AED" alt="License"></a>
+  <a href="https://palab.re"><img src="https://img.shields.io/badge/palab.re-18181B?logo=netlify&logoColor=7C3AED" alt="Website"></a>
+</p>
+
 PALABRE est un orchestrateur de debat entre agents IA installes localement : CLIs comme Codex, Claude ou OpenCode, et modeles locaux exposes par Ollama.
 
 L'objectif du projet est de permettre a un utilisateur deja a l'aise avec le terminal de faire dialoguer plusieurs assistants sur un sujet technique, sans imposer une API payante au jeton. PALABRE pilote les outils deja configures sur la machine et exporte la session en Markdown.
