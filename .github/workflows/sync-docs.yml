@@ -89,7 +89,6 @@ jobs:
 
       - name: Copy files
         run: |
-          rm -rf palabre-app/content/*
           cp -R dist/content/. palabre-app/content/
 
       - name: Commit and push
