@@ -10,3 +10,5 @@ chicane.config.json
 ## Ignore notes
 docs/notes.md
 
+## Ignore Obsidian vaults
+**/.obsidian
