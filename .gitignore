@@ -12,3 +12,4 @@ docs/notes.md
 
 ## Ignore Obsidian vaults
 **/.obsidian
+*.tgz

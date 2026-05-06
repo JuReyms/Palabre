@@ -42,9 +42,21 @@ Le preset CLI actuel vise les modes non interactifs : `codex exec` et `claude --
 
 ## Installation
 
+Quand le package npm est publie :
+
+```bash
+npm install -g palabre
+palabre --version
+palabre --help
+```
+
+Pour tester depuis le depot source :
+
 ```bash
 pnpm install
 pnpm build
+pnpm link --global
+palabre --version
 ```
 
 ## Configuration

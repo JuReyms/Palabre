@@ -11,7 +11,7 @@ Vous pouvez utiliser Palabre avec un seul agent configuré, mais l'intérêt pri
 
 ## Installer Palabre
 
-Quand le package est disponible sur npm :
+Depuis npm :
 
 ```bash
 npm install -g palabre
@@ -26,7 +26,7 @@ palabre --help
 
 ## Installer depuis le dépôt source
 
-Cette section concerne les personnes qui veulent tester Palabre depuis le dépôt Git.
+Cette section concerne les personnes qui veulent tester Palabre depuis le dépôt Git. Elle nécessite `pnpm`.
 
 ```bash
 pnpm install
