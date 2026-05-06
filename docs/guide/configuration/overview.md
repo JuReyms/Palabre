@@ -41,7 +41,7 @@ palabre doctor
 palabre config
 ```
 
-L'assistant permet de définir ou supprimer les agents par défaut.
+L'assistant permet de définir ou supprimer les paramètres par défaut. Les commandes directes ci-dessous permettent de modifier un seul réglage sans repasser par tout l'assistant.
 
 Commandes directes utiles :
 

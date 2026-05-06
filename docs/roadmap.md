@@ -32,7 +32,7 @@ Cette roadmap est la source projet partagee. `docs/notes.md` reste reserve aux i
 - Reference CLI utilisateur dans `docs/guide/reference/cli.md`.
 - Roles injectes dans les prompts avec consignes dediees par role.
 - Garde-fou contre les commandes inconnues proches de commandes valides, par exemple `palabre nex`.
-- Commande `palabre config`, `--set-defaults`, `-t/--turns`, `--summary-agent` et `--clear-defaults` pour gerer les parametres par defaut.
+- Commande `palabre config`, `--set-defaults`, `-t/--turns`, `--summary-agent`, `--summary-agent none`, `--clear-defaults` et defaults partiels pour gerer les parametres par defaut sans forcer une paire d'agents.
 - `palabre doctor` enrichi : rendu par sections, `--plain` pour les logs, defaults, `turns`, `outputDir`, agents detectes absents de la config, forme des agents CLI/Ollama et action `palabre config --sync-agents`.
 - Smoke tests automatises pour l'adapter CLI avec `node:test` : prompt via stdin, prompt en argument, insertion de `modelArg`, sortie vide, exit non-zero et limite d'usage.
 

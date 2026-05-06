@@ -205,34 +205,40 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   const hasTurnsFlag = flags.turns !== undefined;
   const summaryAgentValue = optionalString(flags["summary-agent"]);
 
-  if (defaultAgents.length > 0 || hasTurnsFlag || summaryAgentValue) {
-    const currentDefaults = config.defaults ?? {};
-    const [agentA = currentDefaults.agentA, agentB = currentDefaults.agentB] = defaultAgents;
+  if (defaultAgents.length > 0 || hasTurnsFlag || summaryAgentValue !== undefined) {
+    const nextDefaults = { ...(config.defaults ?? {}) };
 
-    if (!agentA || !agentB) {
-      throw new Error("Impossible de définir les paramètres par défaut: indique d'abord deux agents avec --set-defaults <agentA> <agentB>.");
+    if (defaultAgents.length > 0) {
+      const [agentA, agentB] = defaultAgents;
+
+      if (!agentA || !agentB) {
+        throw new Error("L'option --set-defaults attend deux agents: --set-defaults <agentA> <agentB>.");
+      }
+
+      assertKnownAgent(config, agentA, "defaults.agentA");
+      assertKnownAgent(config, agentB, "defaults.agentB");
+
+      nextDefaults.agentA = agentA;
+      nextDefaults.agentB = agentB;
     }
 
-    assertKnownAgent(config, agentA, "defaults.agentA");
-    assertKnownAgent(config, agentB, "defaults.agentB");
-
-    const turns = parseTurnsFlag(flags.turns, currentDefaults.turns ?? DEFAULT_TURNS, "--turns");
-
-    const summaryAgent = summaryAgentValue ?? currentDefaults.summaryAgent;
-
-    if (summaryAgent) {
-      assertKnownAgent(config, summaryAgent, "defaults.summaryAgent");
+    if (hasTurnsFlag) {
+      nextDefaults.turns = parseTurnsFlag(flags.turns, nextDefaults.turns ?? DEFAULT_TURNS, "--turns");
     }
 
-    config.defaults = {
-      agentA,
-      agentB,
-      ...(summaryAgent ? { summaryAgent } : {}),
-      turns
-    };
+    if (summaryAgentValue !== undefined) {
+      if (isNoneValue(summaryAgentValue)) {
+        delete nextDefaults.summaryAgent;
+      } else {
+        assertKnownAgent(config, summaryAgentValue, "defaults.summaryAgent");
+        nextDefaults.summaryAgent = summaryAgentValue;
+      }
+    }
+
+    config.defaults = nextDefaults;
 
     await writeExampleConfig(configPath, config);
-    console.log(`Paramètres par défaut définis dans ${configPath}: ${agentA} <-> ${agentB}, réponses: ${turns}${summaryAgent ? `, synthèse: ${summaryAgent}` : ""}.`);
+    console.log(`Paramètres par défaut mis à jour dans ${configPath}: ${formatDefaultsForMessage(config.defaults)}.`);
     return;
   }
 
@@ -244,6 +250,18 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   }
 
   await runConfigWizard(configPath, config);
+}
+function isNoneValue(value: string): boolean {
+  return ["0", "none", "aucun", "disabled", "désactivé", "desactive"].includes(value.trim().toLowerCase());
+}
+
+function formatDefaultsForMessage(defaults: NonNullable<PalabreConfig["defaults"]>): string {
+  const pair = defaults.agentA && defaults.agentB
+    ? `agents: ${defaults.agentA} <-> ${defaults.agentB}`
+    : "agents: non définis";
+  const summary = defaults.summaryAgent ? `synthèse: ${defaults.summaryAgent}` : "synthèse: agent B";
+
+  return `${pair}, réponses: ${turnsOrDefault(defaults.turns)}, ${summary}`;
 }
 function assertKnownAgent(config: Awaited<ReturnType<typeof loadConfig>>, agentName: string, fieldName: string): void {
   if (!config.agents[agentName]) {
@@ -693,6 +711,10 @@ Commandes:
       Assistant pour définir ou supprimer les paramètres par défaut.
   palabre config --set-defaults <agentA> <agentB> [-t <n>] [--summary-agent <name>]
       Définit les agents par défaut, et optionnellement les réponses et la synthèse.
+  palabre config -t <n>
+      Définit seulement le nombre de réponses par défaut.
+  palabre config --summary-agent <name|none>
+      Définit ou retire seulement l'agent de synthèse par défaut.
   palabre config --clear-defaults
       Supprime les paramètres par défaut.
   palabre doctor [--config <path>]
@@ -742,6 +764,8 @@ Contexte:
 Configuration:
   --local                 Avec init/setup, crée ./palabre.config.json
   --set-defaults <a b>    Avec config, définit les agents par défaut
+  --summary-agent <name>  Avec config, définit l'agent de synthèse par défaut
+  --summary-agent none    Avec config, retire l'agent de synthèse par défaut
   --clear-defaults        Avec config, supprime les paramètres par défaut
   --sync-agents           Avec config, ajoute les agents détectés manquants
 

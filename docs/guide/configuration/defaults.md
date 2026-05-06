@@ -1,6 +1,6 @@
 # Paramètres par défaut
 
-Les paramètres par défaut sont utilisés quand vous lancez un débat sans préciser tous les agents.
+Les paramètres par défaut sont utilisés quand vous lancez un débat sans préciser tous les agents ou toutes les options. Ils peuvent être partiels : vous pouvez définir seulement le nombre de réponses, seulement la synthèse, ou une paire d'agents complète.
 
 ## Définir les agents par défaut
 
@@ -22,7 +22,11 @@ utilise `codex` en agent A et `claude` en agent B.
 palabre config --summary-agent claude
 ```
 
-Si aucun agent de synthèse n'est défini, Palabre utilise l'agent B.
+Si aucun agent de synthèse n'est défini, Palabre utilise l'agent B. Pour retirer ce réglage sans supprimer les autres paramètres par défaut :
+
+```bash
+palabre config --summary-agent none
+```
 
 ## Définir le nombre de réponses
 
