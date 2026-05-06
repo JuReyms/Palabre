@@ -54,17 +54,31 @@ export function renderDebateMarkdown(
     );
   }
 
-  lines.push("## Synthese", "");
-
-  if (summary) {
-    lines.push(`_Produite par ${summary.agent} (${summary.role}) le ${summary.createdAt}._`, "", normalizeMarkdownForWindowsPreview(summary.content.trim()), "");
-  } else if (options.summaryEnabled) {
-    lines.push("_Synthese finale demandee mais non disponible._", "");
-  } else {
-    lines.push("_Synthese desactivee._", "");
-  }
+  lines.push("---", "", "## Synthese finale", "", ...renderSummaryBlock(options, summary));
 
   return `${lines.join("\n")}\n`;
+}
+
+function renderSummaryBlock(options: DebateOptions, summary?: DebateSummary): string[] {
+  if (summary) {
+    return [
+      "| Champ | Valeur |",
+      "| --- | --- |",
+      `| Agent | ${escapeTableCell(summary.agent)} |`,
+      `| Role | ${escapeTableCell(summary.role)} |`,
+      `| Date | ${escapeTableCell(summary.createdAt)} |`,
+      "",
+      normalizeMarkdownForWindowsPreview(summary.content.trim()),
+      ""
+    ];
+  }
+
+  return [
+    options.summaryEnabled
+      ? "_Synthese finale demandee mais non disponible._"
+      : "_Synthese desactivee._",
+    ""
+  ];
 }
 
 function normalizeMarkdownForWindowsPreview(content: string): string {

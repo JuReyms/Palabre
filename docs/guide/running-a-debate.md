@@ -153,7 +153,7 @@ pnpm start -- run --preset codex-claude --subject "Sujet" --no-summary
 
 ## Rendu console
 
-Le rendu par défaut est un affichage coloré avec en-têtes, séparateurs et état "agent en cours" pendant les générations. Pour un rendu brut compatible avec les logs :
+Le rendu par défaut est un affichage coloré avec en-têtes, séparateurs, synthèse structurée et état "agent en cours" pendant les générations. Pour un rendu brut compatible avec les logs :
 
 ```bash
 pnpm start -- run --preset codex-claude --subject "Sujet" --plain
@@ -173,4 +173,4 @@ Si Codex, Claude, Gemini ou OpenCode atteint une limite d'usage, un quota ou un 
 
 Chaque session génère un fichier `.debate.md` dans le dossier défini par `outputDir` dans ta config (par défaut : le dossier courant).
 
-L'export inclut aussi une table d'en-tête avec la date locale, le fuseau horaire, le dossier courant, l'horodatage de debut de session, le nombre de tours joues et la raison d'un eventuel arret anticipe.
+L'export inclut aussi une table d'en-tête avec la date locale, le fuseau horaire, le dossier courant, l'horodatage de debut de session, le nombre de tours joues et la raison d'un eventuel arret anticipe. La synthese finale est separee du transcript par une ligne horizontale et commence par une courte table indiquant l'agent, le role et la date de production.

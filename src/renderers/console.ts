@@ -10,6 +10,7 @@ export function createConsoleRenderer(plain: boolean): DebateRenderer {
 class PrettyConsoleRenderer implements DebateRenderer {
   private spinner?: ReturnType<typeof setInterval>;
   private spinnerFrame = 0;
+  private renderingSummary = false;
   private readonly frames = ["-", "\\", "|", "/"];
 
   constructor(
@@ -39,6 +40,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
   }
 
   turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void {
+    this.renderingSummary = false;
     process.stdout.write([
       "",
       this.c("blue", `◆ ${agent}`) + this.dim(` · ${role} · tour ${turn}/${totalTurns}`),
@@ -79,10 +81,12 @@ class PrettyConsoleRenderer implements DebateRenderer {
   }
 
   message(content: string): void {
-    process.stdout.write(`${content.trim()}\n`);
+    const trimmed = content.trim();
+    process.stdout.write(`${this.renderingSummary ? this.formatSummaryMessage(trimmed) : trimmed}\n`);
   }
 
   summaryStart(agent: string, role: AgentRole): void {
+    this.renderingSummary = true;
     process.stdout.write([
       "",
       this.c("magenta", `◆ Synthese`) + this.dim(` · ${agent} · ${role}`),
@@ -93,6 +97,23 @@ class PrettyConsoleRenderer implements DebateRenderer {
 
   done(outputPath: string): void {
     process.stdout.write(`\n${this.c("green", "Debat exporte:")} ${outputPath}\n`);
+  }
+
+  private formatSummaryMessage(content: string): string {
+    return content
+      .split(/\r?\n/)
+      .map((line) => {
+        const heading = line.match(/^###\s+(.+)$/);
+        if (!heading) return line;
+
+        return [
+          "",
+          this.c("magenta", heading[1] ?? line),
+          this.dim("─".repeat(40))
+        ].join("\n");
+      })
+      .join("\n")
+      .trimStart();
   }
 
   private c(color: keyof typeof codes, value: string): string {
@@ -147,4 +168,3 @@ const codes = {
   magenta: "\u001b[35m",
   yellow: "\u001b[33m"
 };
-

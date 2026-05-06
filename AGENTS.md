@@ -236,7 +236,7 @@ Le moteur actuel alterne simplement entre deux agents pendant `turns` tours :
 3. Ajout du message au transcript.
 4. Passage a l'autre agent.
 5. Arret anticipe optionnel si un accord clair est detecte apres un tour complet.
-6. Export Markdown final. Le rendu export corrige `:**` en `&#58;**` dans les contenus agents pour eviter l'interpretation en emoji dans certains apercus Windows.
+6. Export Markdown final. Le rendu export separe la synthese finale du transcript avec une ligne horizontale et une table de metadonnees. Il corrige aussi `:**` en `&#58;**` dans les contenus agents pour eviter l'interpretation en emoji dans certains apercus Windows.
 
 Les futures evolutions possibles :
 
@@ -348,7 +348,7 @@ palabre -s "quel jour sommes nous ?" -t 2
 
 `src/renderers/console.ts` contient le premier rendu TUI leger :
 
-- `PrettyConsoleRenderer` : en-tete, separateurs, tours, synthese, couleurs ANSI si TTY.
+- `PrettyConsoleRenderer` : en-tete, separateurs, tours, synthese structuree, couleurs ANSI si TTY.
 - `PlainConsoleRenderer` : rendu historique compatible logs.
 - Etat "agent en cours" pendant les appels longs en rendu pretty.
 
