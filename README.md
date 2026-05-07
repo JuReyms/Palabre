@@ -7,6 +7,8 @@
   <a href="https://palab.re"><img src="https://img.shields.io/badge/docs-palab.re-18181B?logo=netlify&logoColor=7C3AED" alt="Documentation"></a>
 </p>
 
+![PALABRE](docs/assets/palabre-logo-text-og.png)
+
 [Français](#français) | [English](#english)
 
 ## Français
@@ -77,7 +79,7 @@ palabre --version
 
 Commandes utiles : `pnpm check`, `pnpm test`, `pnpm build`.
 
-Roadmap projet : [docs/roadmap.md](./docs/roadmap.md). Guide agents/contributeurs : [AGENTS.md](./AGENTS.md).
+Roadmap publique : [docs/guide/roadmap.md](./docs/guide/roadmap.md). Guide agents/contributeurs : [AGENTS.md](./AGENTS.md).
 
 ### Licence
 
@@ -151,7 +153,7 @@ palabre --version
 
 Useful commands: `pnpm check`, `pnpm test`, `pnpm build`.
 
-Project roadmap: [docs/roadmap.md](./docs/roadmap.md). Agent/contributor guide: [AGENTS.md](./AGENTS.md).
+Public roadmap: [docs/guide/roadmap.md](./docs/guide/roadmap.md). Agent/contributor guide: [AGENTS.md](./AGENTS.md).
 
 ### License
 
