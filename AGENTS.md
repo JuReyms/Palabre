@@ -433,7 +433,7 @@ Les commentaires doivent expliquer le contrat, les invariants et les limites uti
 Les releases sont gerees via des tags Git. Deux workflows GitHub Actions sont en place :
 
 - `.github/workflows/ci.yml` : type check + tests + build sur chaque push `main` et chaque PR.
-- `.github/workflows/release.yml` : type check + tests + build + pack + creation de release GitHub sur chaque tag `v*`.
+- `.github/workflows/release.yml` : type check + tests + build + pack + publication npm via Trusted Publishing + creation de release GitHub sur chaque tag `v*`.
 
 ### Creer une release
 
@@ -450,8 +450,20 @@ git push && git push --tags
 3. lance les tests automatises (`pnpm test`) ;
 4. compile (`pnpm build`) ;
 5. pack un tarball npm (`pnpm pack`) ;
-6. cree une release GitHub avec le tarball en artifact et les notes generees depuis les commits ;
-7. pousse `public/version.json` dans le repo `JuReyms/Palabre-app` (branche `dev`), ce qui declenche un rebuild Netlify et met a jour le badge de version sur le site de documentation.
+6. publie sur npm via Trusted Publishing (`npm publish --access public --provenance`) sans token npm stocke dans GitHub ;
+7. cree une release GitHub avec le tarball en artifact et les notes generees depuis les commits ;
+8. pousse `public/version.json` dans le repo `JuReyms/Palabre-app` (branche `dev`), ce qui declenche un rebuild Netlify et met a jour le badge de version sur le site de documentation.
+
+### Npm Trusted Publishing
+
+Le package npm `palabre` doit etre configure cote npm avec un Trusted Publisher GitHub Actions :
+
+- Repository owner: `JuReyms`
+- Repository name: `Palabre`
+- Workflow filename: `release.yml`
+- Environment: laisser vide, sauf si le workflow ajoute explicitement `environment: ...`
+
+Ne pas stocker de `NPM_TOKEN` dans GitHub et ne pas publier depuis la machine locale pour les releases normales. Si une publication manuelle d'urgence est faite, supprimer le token local avec `npm config delete //registry.npmjs.org/:_authToken` juste apres.
 
 ## Sync documentation (Palabre-app)
 

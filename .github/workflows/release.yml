@@ -14,10 +14,11 @@
 #   2. Installation de pnpm et Node.js 24
 #   3. Vérification TypeScript, tests automatisés et compilation
 #   4. Empaquetage npm (pnpm pack → tarball .tgz dans le répertoire courant)
-#   5. Création de la release GitHub avec :
+#   5. Publication npm via Trusted Publishing (npm publish --provenance)
+#   6. Création de la release GitHub avec :
 #      - le tarball en pièce jointe (installable via npm/pnpm directement)
 #      - les notes de release générées automatiquement depuis les commits
-#   6. Push de public/version.json dans Palabre-app (branche dev)
+#   7. Push de public/version.json dans Palabre-app (branche dev)
 #      → déclenche un rebuild Netlify qui bake la version dans le site
 
 name: Release
@@ -39,7 +40,8 @@ jobs:
     permissions:
       # Nécessaire pour créer et écrire la release GitHub
       contents: write
-
+      # Nécessaire pour npm Trusted Publishing / provenance
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,7 +54,7 @@ jobs:
         with:
           node-version: '24'
           cache: 'pnpm'
-
+          registry-url: 'https://registry.npmjs.org'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -69,6 +71,11 @@ jobs:
         # Produit un tarball palabre-X.Y.Z.tgz dans le répertoire courant
         # Installable avec : pnpm add --global ./palabre-X.Y.Z.tgz
         run: pnpm pack
+
+      - name: Publish to npm
+        # Utilise npm Trusted Publishing : pas de token npm stocké dans GitHub.
+        # Le package npm doit être configuré avec ce repository et ce workflow.
+        run: npm publish --access public --provenance
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
