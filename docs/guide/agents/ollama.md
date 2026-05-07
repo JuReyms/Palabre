@@ -1,4 +1,7 @@
-# Ollama
+---
+title: Ollama
+description: Utiliser Ollama avec Palabre pour faire intervenir des modèles locaux ou compatibles avec votre configuration Ollama.
+---
 
 C'est utile pour ajouter un regard local, moins coûteux, ou pour confier à un petit modèle un rôle ciblé : critique, exploration ou synthèse légère.
 

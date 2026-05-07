@@ -1,4 +1,7 @@
-# Exports
+---
+title: Exports
+description: Savoir où Palabre écrit les exports Markdown et ce qu'ils contiennent après un débat.
+---
 
 Chaque débat génère un fichier `.debate.md` dans le dossier défini par `outputDir`.
 

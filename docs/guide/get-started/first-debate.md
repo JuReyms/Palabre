@@ -1,4 +1,7 @@
-# Lancer un premier débat
+---
+title: Lancer un premier débat
+description: Lancer un premier débat avec l'assistant interactif ou une commande courte, puis retrouver l'export Markdown.
+---
 
 ```bash
 palabre new

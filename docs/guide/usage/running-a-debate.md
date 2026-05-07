@@ -1,4 +1,7 @@
-# Lancer un débat
+---
+title: Lancer un débat
+description: Choisir les agents, les réponses, les presets et les options principales pour lancer un débat Palabre.
+---
 
 ## Mode guidé
 

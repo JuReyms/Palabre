@@ -1,4 +1,7 @@
-# Gemini
+---
+title: Gemini
+description: Configurer Gemini CLI dans Palabre et l'utiliser dans des débats avec d'autres agents.
+---
 
 Gemini CLI permet d'utiliser les modèles Google Gemini depuis le terminal.
 

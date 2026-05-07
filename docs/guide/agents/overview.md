@@ -1,4 +1,7 @@
-# Agents
+---
+title: Agents
+description: Comprendre les agents Palabre, leurs rôles, leurs modèles et la différence entre CLIs externes et agents locaux.
+---
 
 Un agent Palabre est une entrée de configuration qui décrit comment appeler une IA.
 

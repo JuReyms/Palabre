@@ -1,4 +1,7 @@
-# JSON avancé
+---
+title: JSON avancé
+description: Modifier directement le JSON de configuration pour les usages avancés et les agents personnalisés.
+---
 
 La plupart des réglages courants peuvent se faire avec `palabre config`. Cette page concerne les cas où vous éditez directement `palabre.config.json`.
 

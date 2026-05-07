@@ -1,4 +1,7 @@
-# Codex
+---
+title: Codex
+description: Configurer Codex CLI dans Palabre, choisir éventuellement un modèle et reconnaître les erreurs fréquentes.
+---
 
 Codex CLI permet d'utiliser Codex depuis le terminal.
 

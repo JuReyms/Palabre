@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'docs/guide/**'
+      - 'scripts/sync_docs.py'
+      - '.github/workflows/sync-docs.yml'
 
 jobs:
   sync:
@@ -13,73 +15,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Process docs and inject frontmatter
-        run: |
-          python3 - << 'EOF'
-          import os, re
-
-          FILE_MAP = {
-            'docs/guide/get-started/introduction.md':   'content/1.get-started/1.introduction.md',
-            'docs/guide/get-started/installation.md':   'content/1.get-started/2.installation.md',
-            'docs/guide/get-started/configuration.md':  'content/1.get-started/3.configuration.md',
-            'docs/guide/get-started/first-debate.md':   'content/1.get-started/4.first-debate.md',
-            'docs/guide/agents/overview.md':            'content/2.agents/1.overview.md',
-            'docs/guide/agents/claude-code.md':         'content/2.agents/2.claude-code.md',
-            'docs/guide/agents/codex.md':               'content/2.agents/3.codex.md',
-            'docs/guide/agents/gemini.md':              'content/2.agents/4.gemini.md',
-            'docs/guide/agents/opencode.md':            'content/2.agents/5.opencode.md',
-            'docs/guide/agents/ollama.md':              'content/2.agents/6.ollama.md',
-            'docs/guide/usage/running-a-debate.md':     'content/3.usage/1.running-a-debate.md',
-            'docs/guide/usage/context-and-files.md':    'content/3.usage/2.context-and-files.md',
-            'docs/guide/usage/summaries.md':            'content/3.usage/3.summaries.md',
-            'docs/guide/usage/exports.md':              'content/3.usage/4.exports.md',
-            'docs/guide/configuration/overview.md':     'content/4.configuration/1.overview.md',
-            'docs/guide/configuration/defaults.md':     'content/4.configuration/2.defaults.md',
-            'docs/guide/configuration/local-vs-global.md': 'content/4.configuration/3.local-vs-global.md',
-            'docs/guide/configuration/advanced-json.md': 'content/4.configuration/4.advanced-json.md',
-            'docs/guide/reference/cli.md':              'content/5.reference/1.cli.md',
-            'docs/guide/reference/config-file.md':      'content/5.reference/2.config-file.md',
-            'docs/guide/reference/presets.md':          'content/5.reference/3.presets.md',
-            'docs/guide/troubleshooting.md':            'content/6.troubleshooting.md',
-            'docs/guide/roadmap.md':                    'content/7.roadmap.md',
-          }
-
-          for src, dest in FILE_MAP.items():
-            if not os.path.exists(src):
-              print(f'Skip: {src} not found')
-              continue
-
-            text = open(src, encoding='utf-8').read()
-
-            m = re.match(r'^# (.+)\n', text)
-            title = m.group(1) if m else ''
-            body  = text[m.end():] if m else text
-
-            desc = ''
-            in_code = False
-            for para in body.split('\n\n'):
-              para = para.strip()
-              if para.startswith('```'):
-                in_code = not in_code
-                continue
-              if in_code or para.startswith('#') or not para:
-                continue
-              if para.startswith('- ') or para.startswith('* '):
-                continue
-              desc = para.replace('\n', ' ')
-              if len(desc) > 160:
-                desc = desc[:157] + '...'
-              break
-
-            desc = re.sub(r'\[([^\]]*)\]\([^)]*\)', r'\1', desc)
-            desc = re.sub(r'`([^`]*)`', r'\1', desc)
-            desc_escaped = desc.replace('"', '\\"')
-            out = f'---\ntitle: {title}\ndescription: "{desc_escaped}"\n---\n\n{body}'
-            path = os.path.join('dist', dest)
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            open(path, 'w', encoding='utf-8').write(out)
-            print(f'OK: {src} -> {dest}')
-          EOF
+      - name: Process docs
+        run: python3 scripts/sync_docs.py
 
       - name: Clone Palabre-app
         env:

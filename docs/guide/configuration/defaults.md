@@ -1,4 +1,7 @@
-# Paramètres par défaut
+---
+title: Paramètres par défaut
+description: Définir ou supprimer les agents, le nombre de réponses et la synthèse utilisés par défaut.
+---
 
 Les paramètres par défaut sont utilisés quand vous lancez un débat sans préciser tous les agents ou toutes les options. Ils peuvent être partiels : vous pouvez définir seulement le nombre de réponses, seulement la synthèse, ou une paire d'agents complète.
 

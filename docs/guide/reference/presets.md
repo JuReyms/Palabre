@@ -1,4 +1,7 @@
-# Presets
+---
+title: Presets
+description: Liste et principe des presets de paires d'agents utilisables dans les commandes courtes.
+---
 
 Les presets permettent de choisir rapidement une paire d'agents.
 

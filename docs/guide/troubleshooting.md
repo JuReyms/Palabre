@@ -1,4 +1,7 @@
-# Dépannage
+---
+title: Dépannage
+description: Résoudre les problèmes courants de configuration, de détection d'agents, d'Ollama ou de limites d'usage.
+---
 
 Commencez par lancer le diagnostic :
 
@@ -8,7 +11,11 @@ palabre doctor
 
 `doctor` ne lance aucun agent IA. Il affiche un diagnostic par sections : configuration, outils locaux, agents et points à vérifier. Il contrôle les agents déclarés, les paramètres par défaut, le nombre de réponses, `outputDir`, les CLIs disponibles, Ollama et les modèles configurés.
 
-Pour obtenir une sortie brute adaptée aux logs ou aux scripts :`n`n```bash`npalabre doctor --plain`n```
+Pour obtenir une sortie brute adaptée aux logs ou aux scripts :
+
+```bash
+palabre doctor --plain
+```
 
 ## Palabre ne trouve pas ma configuration
 

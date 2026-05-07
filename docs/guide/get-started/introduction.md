@@ -1,4 +1,7 @@
-# Introduction
+---
+title: Introduction
+description: Comprendre ce que fait Palabre, comment il orchestre vos agents IA et quelles garanties de confidentialité il apporte.
+---
 
 Palabre est un orchestrateur de débats entre agents IA déjà installés sur votre machine.
 

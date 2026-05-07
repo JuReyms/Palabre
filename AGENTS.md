@@ -404,9 +404,11 @@ Ces tests ont confirme que le mode batch est deja exploitable avant l'adapter PT
 
 La documentation doit rester a jour dans le meme changement que le code. Avant de finaliser une modification, verifier les fichiers concernes :
 
+Le script `scripts/sync_docs.py` valide et copie les pages `docs/guide` vers le format numerote de Palabre-app. Ne pas recreer de logique qui devine les descriptions depuis le contenu : elles doivent etre explicites dans le frontmatter.
+
 - `README.md` pour l'etat du MVP, les commandes principales, les limites connues et les liens de documentation.
 - `AGENTS.md` pour les decisions d'architecture, les workflows contributeur et les consignes de maintenance.
-- `docs/guide/**.md` pour les guides utilisateur.
+- `docs/guide/**.md` pour les guides utilisateur. Ces pages utilisent le meme format que Palabre-app/Nuxt Content : frontmatter `title` + `description`, puis contenu sans H1 de page.
 - `docs/guide/roadmap.md` pour la roadmap publique orientee utilisateurs : disponible aujourd'hui, prochaines ameliorations, philosophie du projet.
 - `docs/roadmap.md` pour la roadmap interne locale non versionnee : travaux faits, priorites, dettes techniques et notes de pilotage.
 

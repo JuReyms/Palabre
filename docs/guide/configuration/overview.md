@@ -1,4 +1,7 @@
-# Configuration
+---
+title: Configuration
+description: Comprendre le fichier de configuration Palabre et les commandes disponibles pour le créer ou le modifier.
+---
 
 La configuration indique à Palabre quels agents existent, quels agents utiliser par défaut et où écrire les exports. Si `outputDir` n'est pas défini, les fichiers `.debate.md` sont créés dans le dossier courant.
 

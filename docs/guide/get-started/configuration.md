@@ -1,4 +1,7 @@
-# Première configuration
+---
+title: Première configuration
+description: Créer une configuration Palabre, détecter les agents installés et définir des paramètres par défaut utiles.
+---
 
 ## Initialiser Palabre
 

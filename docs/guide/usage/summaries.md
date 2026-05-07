@@ -1,4 +1,7 @@
-# Synthèses
+---
+title: Synthèses
+description: Comprendre la synthèse finale, choisir l'agent de synthèse et désactiver la synthèse si nécessaire.
+---
 
 À la fin d'un débat, Palabre peut demander à un agent de produire une synthèse finale.
 

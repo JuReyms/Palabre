@@ -1,4 +1,7 @@
-# Claude Code
+---
+title: Claude Code
+description: Configurer Claude Code dans Palabre et comprendre ce que Palabre transmet à la CLI Claude.
+---
 
 Claude Code est la CLI d'Anthropic pour travailler avec Claude depuis le terminal.
 

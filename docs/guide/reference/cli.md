@@ -1,4 +1,7 @@
-# Référence des commandes
+---
+title: Référence des commandes
+description: Référence des commandes et options disponibles dans la CLI Palabre.
+---
 
 Cette page liste les commandes principales de Palabre.
 

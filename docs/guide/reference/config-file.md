@@ -1,4 +1,7 @@
-# Référence du fichier de configuration
+---
+title: Référence du fichier de configuration
+description: Référence du format palabre.config.json, des agents, des defaults et des options avancées.
+---
 
 Cette page sert de référence rapide pour `palabre.config.json`.
 

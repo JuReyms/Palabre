@@ -1,4 +1,7 @@
-# Configuration locale ou globale
+---
+title: Configuration locale ou globale
+description: Choisir entre configuration globale utilisateur et configuration locale propre à un projet.
+---
 
 Palabre peut utiliser une configuration globale pour tous vos projets, ou une configuration locale pour un projet précis.
 

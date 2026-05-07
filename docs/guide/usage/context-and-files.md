@@ -1,4 +1,7 @@
-# Contexte et fichiers
+---
+title: Contexte et fichiers
+description: Ajouter du contexte à un débat avec --files ou --context tout en gardant le contrôle sur les données transmises.
+---
 
 Palabre peut envoyer du contexte projet aux agents. C'est indispensable pour demander une critique de code, d'architecture ou de documentation.
 
