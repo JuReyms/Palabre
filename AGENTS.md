@@ -46,7 +46,7 @@ src/adapters/cli.ts       Adapter CLI minimal
 src/adapters/ollama.ts    Adapter Ollama HTTP
 docs/roadmap.md           Roadmap interne locale non versionnee
 docs/notes.md             Notes personnelles du mainteneur
-docs/guide/               Guides utilisateur organises par parcours
+docs/guide/fr/            Guides utilisateur francais organises par parcours
 docs/archive/             Documents historiques
 ```
 
@@ -404,12 +404,12 @@ Ces tests ont confirme que le mode batch est deja exploitable avant l'adapter PT
 
 La documentation doit rester a jour dans le meme changement que le code. Avant de finaliser une modification, verifier les fichiers concernes :
 
-Le script `scripts/sync_docs.py` valide et copie les pages `docs/guide` vers le format numerote de Palabre-app. Ne pas recreer de logique qui devine les descriptions depuis le contenu : elles doivent etre explicites dans le frontmatter.
+Le script `scripts/sync_docs.py` valide et copie les pages `docs/guide/fr` vers le format numerote `content/fr` de Palabre-app. Ne pas recreer de logique qui devine les descriptions depuis le contenu : elles doivent etre explicites dans le frontmatter.
 
 - `README.md` pour l'etat du MVP, les commandes principales, les limites connues et les liens de documentation.
 - `AGENTS.md` pour les decisions d'architecture, les workflows contributeur et les consignes de maintenance.
-- `docs/guide/**.md` pour les guides utilisateur. Ces pages utilisent le meme format que Palabre-app/Nuxt Content : frontmatter `title` + `description`, puis contenu sans H1 de page.
-- `docs/guide/roadmap.md` pour la roadmap publique orientee utilisateurs : disponible aujourd'hui, prochaines ameliorations, philosophie du projet.
+- `docs/guide/fr/**.md` pour les guides utilisateur francais. Ces pages utilisent le meme format que Palabre-app/Nuxt Content : frontmatter `title` + `description`, puis contenu sans H1 de page. La future traduction anglaise devra vivre dans `docs/guide/en/**.md`.
+- `docs/guide/fr/roadmap.md` pour la roadmap publique francaise orientee utilisateurs : disponible aujourd'hui, prochaines ameliorations, philosophie du projet.
 - `docs/roadmap.md` pour la roadmap interne locale non versionnee : travaux faits, priorites, dettes techniques et notes de pilotage.
 
 `docs/notes.md` est reserve aux idees personnelles du mainteneur. Ne pas l'utiliser comme roadmap projet. Quand une idee de `docs/notes.md` est implementee ou deplacee dans une roadmap, nettoyer la note correspondante pour garder ce fichier lisible.
@@ -475,53 +475,27 @@ Les deux workflows utilisent le secret `DOCS_REPO_TOKEN` (PAT fine-grained, `Con
 
 ### Workflow sync-docs.yml
 
-Declenche sur tout push dans `docs/guide/**` vers `main`.
+Declenche sur tout push dans `docs/guide/fr/**`, `scripts/sync_docs.py` ou le workflow lui-meme vers `main`.
 
-Pour chaque fichier source, le workflow :
+Les pages source utilisent le meme format que Palabre-app/Nuxt Content : frontmatter `title` + `description`, puis contenu sans H1 de page. Le workflow appelle `scripts/sync_docs.py`, qui valide ce format et copie les pages vers `content/fr/**` dans Palabre-app.
 
-1. extrait le titre depuis le `# H1` ;
-2. extrait la description depuis le premier paragraphe de texte (160 caracteres max) ;
-3. injecte un frontmatter `title` / `description` ;
-4. copie le fichier dans Palabre-app.
+Convention i18n :
 
-Table de correspondance :
+- francais actif : `docs/guide/fr/**` -> `content/fr/**` ;
+- anglais futur : `docs/guide/en/**` -> `content/en/**`.
 
-| Source (Palabre CLI) | Destination (Palabre-app) |
-|---|---|
-| `docs/guide/get-started/introduction.md` | `content/1.get-started/1.introduction.md` |
-| `docs/guide/get-started/installation.md` | `content/1.get-started/2.installation.md` |
-| `docs/guide/get-started/configuration.md` | `content/1.get-started/3.configuration.md` |
-| `docs/guide/get-started/first-debate.md` | `content/1.get-started/4.first-debate.md` |
-| `docs/guide/agents/overview.md` | `content/2.agents/1.overview.md` |
-| `docs/guide/agents/claude-code.md` | `content/2.agents/2.claude-code.md` |
-| `docs/guide/agents/codex.md` | `content/2.agents/3.codex.md` |
-| `docs/guide/agents/gemini.md` | `content/2.agents/4.gemini.md` |
-| `docs/guide/agents/opencode.md` | `content/2.agents/5.opencode.md` |
-| `docs/guide/agents/ollama.md` | `content/2.agents/6.ollama.md` |
-| `docs/guide/usage/running-a-debate.md` | `content/3.usage/1.running-a-debate.md` |
-| `docs/guide/usage/context-and-files.md` | `content/3.usage/2.context-and-files.md` |
-| `docs/guide/usage/summaries.md` | `content/3.usage/3.summaries.md` |
-| `docs/guide/usage/exports.md` | `content/3.usage/4.exports.md` |
-| `docs/guide/configuration/overview.md` | `content/4.configuration/1.overview.md` |
-| `docs/guide/configuration/defaults.md` | `content/4.configuration/2.defaults.md` |
-| `docs/guide/configuration/local-vs-global.md` | `content/4.configuration/3.local-vs-global.md` |
-| `docs/guide/configuration/advanced-json.md` | `content/4.configuration/4.advanced-json.md` |
-| `docs/guide/reference/cli.md` | `content/5.reference/1.cli.md` |
-| `docs/guide/reference/config-file.md` | `content/5.reference/2.config-file.md` |
-| `docs/guide/reference/presets.md` | `content/5.reference/3.presets.md` |
-| `docs/guide/troubleshooting.md` | `content/6.troubleshooting.md` |
-| `docs/guide/roadmap.md` | `content/7.roadmap.md` |
+Ne pas recreer de logique qui devine les descriptions depuis le contenu. Les descriptions doivent rester explicites dans le frontmatter.
 
-**Contrainte critique** : ne jamais utiliser `rm -rf palabre-app/content/*` dans le step de copie. `content/index.md` (landing page) n'est pas dans le FILE_MAP et ne doit pas etre supprime — sans lui, la collection `landing` de Nuxt Content est vide, la route `/` retourne 404 et le build Netlify echoue. Le step de copie doit se limiter a `cp -R dist/content/. palabre-app/content/`.
+**Contrainte critique** : ne jamais utiliser `rm -rf palabre-app/content/*` dans le step de copie. `content/index.md` (landing page) n'est pas dans la sync et ne doit pas etre supprime — sans lui, la collection `landing` de Nuxt Content est vide, la route `/` retourne 404 et le build Netlify echoue. Le step de copie doit se limiter a `cp -R dist/content/. palabre-app/content/`.
 
-Pour ajouter une page de documentation, trois etapes sont obligatoires — en oublier une casse le build Netlify :
+Pour ajouter une page de documentation :
 
-1. Creer le fichier source dans la section adaptee de `docs/guide/`.
-2. Ajouter la ligne correspondante dans `FILE_MAP` de `.github/workflows/sync-docs.yml` (source → destination dans Palabre-app).
-3. Creer le fichier de destination dans Palabre-app avec le bon frontmatter (le sync l'ecrasera au prochain push, mais il doit exister pour que le build passe entre-temps).
+1. Creer le fichier source dans la section adaptee de `docs/guide/fr/`.
+2. Ajouter la ligne correspondante dans `FILE_MAP` de `scripts/sync_docs.py`.
+3. Verifier localement avec `python scripts/sync_docs.py`.
+4. Si la page ajoute une nouvelle section, creer ou adapter la navigation correspondante dans Palabre-app (`content/fr/**/.navigation.yml`).
 
-Attention aux liens internes : ne pas utiliser de liens relatifs (`./autre-page.md`) dans les sources `docs/guide/`. Utiliser des URLs absolutes correspondant aux routes finales du site (`/get-started/...`, `/agents/...`, `/usage/...`, `/configuration/...`, `/reference/...`), car les fichiers source et destination n'ont pas toujours la meme structure de dossiers.
-
+Attention aux liens internes : ne pas utiliser de liens relatifs (`./autre-page.md`) dans les sources `docs/guide/fr/`. Utiliser des URLs absolutes correspondant aux routes finales du site (`/fr/get-started/...`, `/fr/agents/...`, `/fr/usage/...`, `/fr/configuration/...`, `/fr/reference/...`).
 ### Workflow release.yml (step de sync)
 
 A chaque release, apres la creation de la release GitHub, le workflow ecrit :

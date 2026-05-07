@@ -50,12 +50,12 @@ Palabre pilote des outils externes. Installez et authentifiez les agents que vou
 
 Pages utiles :
 
-- [Claude Code](/agents/claude-code)
-- [Codex](/agents/codex)
-- [Gemini](/agents/gemini)
-- [OpenCode](/agents/opencode)
-- [Ollama](/agents/ollama)
+- [Claude Code](/fr/agents/claude-code)
+- [Codex](/fr/agents/codex)
+- [Gemini](/fr/agents/gemini)
+- [OpenCode](/fr/agents/opencode)
+- [Ollama](/fr/agents/ollama)
 
 ## Étape suivante
 
-Lancez maintenant [la première configuration](/get-started/configuration).
+Lancez maintenant [la première configuration](/fr/get-started/configuration).

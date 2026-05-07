@@ -58,6 +58,6 @@ palabre config --sync-agents
 
 ## Aller plus loin
 
-- [Paramètres par défaut](/configuration/defaults)
-- [Configuration locale ou globale](/configuration/local-vs-global)
-- [JSON avancé](/configuration/advanced-json)
+- [Paramètres par défaut](/fr/configuration/defaults)
+- [Configuration locale ou globale](/fr/configuration/local-vs-global)
+- [JSON avancé](/fr/configuration/advanced-json)

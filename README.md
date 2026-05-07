@@ -22,7 +22,7 @@ Il ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos 
 - https://palab.re
 - https://palabre.netlify.app
 
-Pages utiles : [Installation](https://palab.re/get-started/installation), [Configuration](https://palab.re/get-started/configuration), [Premier débat](https://palab.re/get-started/first-debate), [Référence CLI](https://palab.re/reference/cli), [Dépannage](https://palab.re/troubleshooting), [Roadmap](https://palab.re/roadmap).
+Pages utiles : [Installation](https://palab.re/fr/get-started/installation), [Configuration](https://palab.re/fr/get-started/configuration), [Premier débat](https://palab.re/fr/get-started/first-debate), [Référence CLI](https://palab.re/fr/reference/cli), [Dépannage](https://palab.re/fr/troubleshooting), [Roadmap](https://palab.re/fr/roadmap).
 
 ### Installation
 
@@ -79,7 +79,7 @@ palabre --version
 
 Commandes utiles : `pnpm check`, `pnpm test`, `pnpm build`.
 
-Roadmap publique : [docs/guide/roadmap.md](./docs/guide/roadmap.md). Guide agents/contributeurs : [AGENTS.md](./AGENTS.md).
+Roadmap publique : [docs/guide/fr/roadmap.md](./docs/guide/fr/roadmap.md). Guide agents/contributeurs : [AGENTS.md](./AGENTS.md).
 
 ### Licence
 
@@ -96,7 +96,7 @@ It does not replace your tools: it drives them. You keep your subscriptions, def
 - https://palab.re
 - https://palabre.netlify.app
 
-Useful pages: [Installation](https://palab.re/get-started/installation), [Configuration](https://palab.re/get-started/configuration), [First debate](https://palab.re/get-started/first-debate), [CLI reference](https://palab.re/reference/cli), [Troubleshooting](https://palab.re/troubleshooting), [Roadmap](https://palab.re/roadmap).
+Useful pages: [Installation](https://palab.re/fr/get-started/installation), [Configuration](https://palab.re/fr/get-started/configuration), [First debate](https://palab.re/fr/get-started/first-debate), [CLI reference](https://palab.re/fr/reference/cli), [Troubleshooting](https://palab.re/fr/troubleshooting), [Roadmap](https://palab.re/fr/roadmap).
 
 ### Installation
 
@@ -153,7 +153,7 @@ palabre --version
 
 Useful commands: `pnpm check`, `pnpm test`, `pnpm build`.
 
-Public roadmap: [docs/guide/roadmap.md](./docs/guide/roadmap.md). Agent/contributor guide: [AGENTS.md](./AGENTS.md).
+Public roadmap: [docs/guide/fr/roadmap.md](./docs/guide/fr/roadmap.md). Agent/contributor guide: [AGENTS.md](./AGENTS.md).
 
 ### License
 

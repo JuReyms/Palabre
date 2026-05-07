@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'docs/guide/**'
+      - 'docs/guide/fr/**'
       - 'scripts/sync_docs.py'
       - '.github/workflows/sync-docs.yml'
 

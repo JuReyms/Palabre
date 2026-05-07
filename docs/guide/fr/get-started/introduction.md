@@ -42,4 +42,4 @@ Palabre ne garde pas non plus une session interactive ouverte avec les CLIs. Cha
 
 ## Suite
 
-Commencez par [installer Palabre](/get-started/installation), puis lancez [la première configuration](/get-started/configuration).
+Commencez par [installer Palabre](/fr/get-started/installation), puis lancez [la première configuration](/fr/get-started/configuration).

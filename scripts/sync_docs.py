@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Sync docs/guide pages to the Nuxt Content tree used by Palabre-app.
+"""Sync localized docs/guide pages to the Nuxt Content tree used by Palabre-app.
 
 Source pages already use the same Markdown/frontmatter format as the docs site.
-This script only validates the required frontmatter and copies pages to their
+The active French source is docs/guide/fr/** and maps to content/fr/**.
+Future English pages should live in docs/guide/en/** and map to content/en/**.
+This script validates the required frontmatter and copies pages to their
 numbered Nuxt Content destinations.
 """
 
@@ -14,29 +16,29 @@ import shutil
 from pathlib import Path
 
 FILE_MAP = {
-    "docs/guide/get-started/introduction.md": "content/1.get-started/1.introduction.md",
-    "docs/guide/get-started/installation.md": "content/1.get-started/2.installation.md",
-    "docs/guide/get-started/configuration.md": "content/1.get-started/3.configuration.md",
-    "docs/guide/get-started/first-debate.md": "content/1.get-started/4.first-debate.md",
-    "docs/guide/agents/overview.md": "content/2.agents/1.overview.md",
-    "docs/guide/agents/claude-code.md": "content/2.agents/2.claude-code.md",
-    "docs/guide/agents/codex.md": "content/2.agents/3.codex.md",
-    "docs/guide/agents/gemini.md": "content/2.agents/4.gemini.md",
-    "docs/guide/agents/opencode.md": "content/2.agents/5.opencode.md",
-    "docs/guide/agents/ollama.md": "content/2.agents/6.ollama.md",
-    "docs/guide/usage/running-a-debate.md": "content/3.usage/1.running-a-debate.md",
-    "docs/guide/usage/context-and-files.md": "content/3.usage/2.context-and-files.md",
-    "docs/guide/usage/summaries.md": "content/3.usage/3.summaries.md",
-    "docs/guide/usage/exports.md": "content/3.usage/4.exports.md",
-    "docs/guide/configuration/overview.md": "content/4.configuration/1.overview.md",
-    "docs/guide/configuration/defaults.md": "content/4.configuration/2.defaults.md",
-    "docs/guide/configuration/local-vs-global.md": "content/4.configuration/3.local-vs-global.md",
-    "docs/guide/configuration/advanced-json.md": "content/4.configuration/4.advanced-json.md",
-    "docs/guide/reference/cli.md": "content/5.reference/1.cli.md",
-    "docs/guide/reference/config-file.md": "content/5.reference/2.config-file.md",
-    "docs/guide/reference/presets.md": "content/5.reference/3.presets.md",
-    "docs/guide/troubleshooting.md": "content/6.troubleshooting.md",
-    "docs/guide/roadmap.md": "content/7.roadmap.md",
+    "docs/guide/fr/get-started/introduction.md": "content/fr/1.get-started/1.introduction.md",
+    "docs/guide/fr/get-started/installation.md": "content/fr/1.get-started/2.installation.md",
+    "docs/guide/fr/get-started/configuration.md": "content/fr/1.get-started/3.configuration.md",
+    "docs/guide/fr/get-started/first-debate.md": "content/fr/1.get-started/4.first-debate.md",
+    "docs/guide/fr/agents/overview.md": "content/fr/2.agents/1.overview.md",
+    "docs/guide/fr/agents/claude-code.md": "content/fr/2.agents/2.claude-code.md",
+    "docs/guide/fr/agents/codex.md": "content/fr/2.agents/3.codex.md",
+    "docs/guide/fr/agents/gemini.md": "content/fr/2.agents/4.gemini.md",
+    "docs/guide/fr/agents/opencode.md": "content/fr/2.agents/5.opencode.md",
+    "docs/guide/fr/agents/ollama.md": "content/fr/2.agents/6.ollama.md",
+    "docs/guide/fr/usage/running-a-debate.md": "content/fr/3.usage/1.running-a-debate.md",
+    "docs/guide/fr/usage/context-and-files.md": "content/fr/3.usage/2.context-and-files.md",
+    "docs/guide/fr/usage/summaries.md": "content/fr/3.usage/3.summaries.md",
+    "docs/guide/fr/usage/exports.md": "content/fr/3.usage/4.exports.md",
+    "docs/guide/fr/configuration/overview.md": "content/fr/4.configuration/1.overview.md",
+    "docs/guide/fr/configuration/defaults.md": "content/fr/4.configuration/2.defaults.md",
+    "docs/guide/fr/configuration/local-vs-global.md": "content/fr/4.configuration/3.local-vs-global.md",
+    "docs/guide/fr/configuration/advanced-json.md": "content/fr/4.configuration/4.advanced-json.md",
+    "docs/guide/fr/reference/cli.md": "content/fr/5.reference/1.cli.md",
+    "docs/guide/fr/reference/config-file.md": "content/fr/5.reference/2.config-file.md",
+    "docs/guide/fr/reference/presets.md": "content/fr/5.reference/3.presets.md",
+    "docs/guide/fr/troubleshooting.md": "content/fr/6.troubleshooting.md",
+    "docs/guide/fr/roadmap.md": "content/fr/7.roadmap.md",
 }
 
 FRONTMATTER_RE = re.compile(r"^---\n(?P<meta>.*?)\n---\n", re.DOTALL)

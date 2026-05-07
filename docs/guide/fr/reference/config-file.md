@@ -5,7 +5,7 @@ description: Référence du format palabre.config.json, des agents, des defaults
 
 Cette page sert de référence rapide pour `palabre.config.json`.
 
-Pour une explication progressive, commencez par [Configuration](/configuration/overview).
+Pour une explication progressive, commencez par [Configuration](/fr/configuration/overview).
 
 ## Exemple complet
 
