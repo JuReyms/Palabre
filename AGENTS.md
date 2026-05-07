@@ -404,11 +404,11 @@ Ces tests ont confirme que le mode batch est deja exploitable avant l'adapter PT
 
 La documentation doit rester a jour dans le meme changement que le code. Avant de finaliser une modification, verifier les fichiers concernes :
 
-Le script `scripts/sync_docs.py` valide et copie les pages `docs/guide/fr` vers le format numerote `content/fr` de Palabre-app. Ne pas recreer de logique qui devine les descriptions depuis le contenu : elles doivent etre explicites dans le frontmatter.
+Le script `scripts/sync_docs.py` valide et copie les pages `docs/guide/fr` et `docs/guide/en` vers les formats numerotes `content/fr` et `content/en` de Palabre-app. Ne pas recreer de logique qui devine les descriptions depuis le contenu : elles doivent etre explicites dans le frontmatter.
 
 - `README.md` pour l'etat du MVP, les commandes principales, les limites connues et les liens de documentation.
 - `AGENTS.md` pour les decisions d'architecture, les workflows contributeur et les consignes de maintenance.
-- `docs/guide/fr/**.md` pour les guides utilisateur francais. Ces pages utilisent le meme format que Palabre-app/Nuxt Content : frontmatter `title` + `description`, puis contenu sans H1 de page. La future traduction anglaise devra vivre dans `docs/guide/en/**.md`.
+- `docs/guide/fr/**.md` pour les guides utilisateur francais. Ces pages utilisent le meme format que Palabre-app/Nuxt Content : frontmatter `title` + `description`, puis contenu sans H1 de page. La traduction anglaise vit dans `docs/guide/en/**.md`.
 - `docs/guide/fr/roadmap.md` pour la roadmap publique francaise orientee utilisateurs : disponible aujourd'hui, prochaines ameliorations, philosophie du projet.
 - `docs/roadmap.md` pour la roadmap interne locale non versionnee : travaux faits, priorites, dettes techniques et notes de pilotage.
 
@@ -482,13 +482,13 @@ Les pages source utilisent le meme format que Palabre-app/Nuxt Content : frontma
 Convention i18n :
 
 - francais actif : `docs/guide/fr/**` -> `content/fr/**` ;
-- anglais futur : `docs/guide/en/**` -> `content/en/**`.
+- anglais : `docs/guide/en/**` -> `content/en/**`.
 
 Ne pas recreer de logique qui devine les descriptions depuis le contenu. Les descriptions doivent rester explicites dans le frontmatter.
 
 **Contrainte critique** : ne jamais utiliser `rm -rf palabre-app/content/*` dans le step de copie. `content/index.md` (landing page) n'est pas dans la sync et ne doit pas etre supprime — sans lui, la collection `landing` de Nuxt Content est vide, la route `/` retourne 404 et le build Netlify echoue. Le step de copie doit se limiter a `cp -R dist/content/. palabre-app/content/`.
 
-Pour ajouter une page de documentation :
+Pour ajouter une page de documentation, ajouter les versions `fr` et `en` dans le meme changement :
 
 1. Creer le fichier source dans la section adaptee de `docs/guide/fr/`.
 2. Ajouter la ligne correspondante dans `FILE_MAP` de `scripts/sync_docs.py`.

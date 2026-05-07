@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'docs/guide/fr/**'
+      - 'docs/guide/en/**'
       - 'scripts/sync_docs.py'
       - '.github/workflows/sync-docs.yml'
 
