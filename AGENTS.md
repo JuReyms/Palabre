@@ -44,7 +44,7 @@ src/renderers/console.ts  Rendu console pretty/plain
 src/adapters/index.ts     Factory d'adapters
 src/adapters/cli.ts       Adapter CLI minimal
 src/adapters/ollama.ts    Adapter Ollama HTTP
-docs/roadmap.md           Roadmap projet maintenue
+docs/roadmap.md           Roadmap interne locale non versionnee
 docs/notes.md             Notes personnelles du mainteneur
 docs/guide/               Guides utilisateur organises par parcours
 docs/archive/             Documents historiques
@@ -408,7 +408,7 @@ La documentation doit rester a jour dans le meme changement que le code. Avant d
 - `AGENTS.md` pour les decisions d'architecture, les workflows contributeur et les consignes de maintenance.
 - `docs/guide/**.md` pour les guides utilisateur.
 - `docs/guide/roadmap.md` pour la roadmap publique orientee utilisateurs : disponible aujourd'hui, prochaines ameliorations, philosophie du projet.
-- `docs/roadmap.md` pour la roadmap interne projet : travaux faits, priorites, dettes techniques et sujets contributeurs.
+- `docs/roadmap.md` pour la roadmap interne locale non versionnee : travaux faits, priorites, dettes techniques et notes de pilotage.
 
 `docs/notes.md` est reserve aux idees personnelles du mainteneur. Ne pas l'utiliser comme roadmap projet. Quand une idee de `docs/notes.md` est implementee ou deplacee dans une roadmap, nettoyer la note correspondante pour garder ce fichier lisible.
 
@@ -467,7 +467,7 @@ Ne pas stocker de `NPM_TOKEN` dans GitHub et ne pas publier depuis la machine lo
 
 ## Sync documentation (Palabre-app)
 
-Le repo CLI est prive. Le site de documentation (`JuReyms/Palabre-app`, Nuxt SSG sur Netlify) recoit les mises a jour via deux workflows GitHub Actions qui poussent directement dans la branche `dev` de Palabre-app. Netlify detecte le push et rebuild automatiquement.
+Le repo CLI est public. Le site de documentation (`JuReyms/Palabre-app`, Nuxt SSG sur Netlify) recoit les mises a jour via deux workflows GitHub Actions qui poussent directement dans la branche `dev` de Palabre-app. Netlify detecte le push et rebuild automatiquement.
 
 Les deux workflows utilisent le secret `DOCS_REPO_TOKEN` (PAT fine-grained, `Contents = Read and write` sur `JuReyms/Palabre-app` uniquement).
 
@@ -528,7 +528,7 @@ A chaque release, apres la creation de la release GitHub, le workflow ecrit :
 { "tag_name": "vX.Y.Z" }
 ```
 
-dans `public/version.json` de Palabre-app. Le composable `useLatestRelease.ts` de Palabre-app lit ce fichier local au lieu d'appeler l'API GitHub — ce qui permet au repo CLI de rester prive sans impacter l'affichage de la version sur le site.
+dans `public/version.json` de Palabre-app. Le composable `useLatestRelease.ts` de Palabre-app lit ce fichier local au lieu d'appeler l'API GitHub — ce qui evite au site de documentation d'appeler l'API GitHub a chaque affichage.
 
 ### Nommage des versions
 

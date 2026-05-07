@@ -8,6 +8,7 @@ chicane.config.json
 .tmp/
 
 ## Ignore notes
+docs/roadmap.md
 docs/notes.md
 
 ## Ignore Obsidian vaults
