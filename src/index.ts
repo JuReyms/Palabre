@@ -25,6 +25,7 @@ interface ParsedArgs {
   flags: Record<string, string | string[] | boolean>;
 }
 
+/** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
 async function main(): Promise<void> {
   const parsed = parseArgs(process.argv.slice(2));
 
@@ -166,6 +167,10 @@ async function main(): Promise<void> {
   renderer.done(outputPath);
 }
 
+/**
+ * Exécute la commande `agents` : charge la config et affiche les agents déclarés avec leur état de détection.
+ * @param flags - Flags parsés depuis la ligne de commande.
+ */
 async function runAgentsCommand(flags: Record<string, string | string[] | boolean>): Promise<void> {
   const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
 
@@ -177,6 +182,10 @@ async function runAgentsCommand(flags: Record<string, string | string[] | boolea
   const discovery = await discoverLocalTools();
   printAgents(configPath, config, discovery);
 }
+/**
+ * Exécute la commande `config` : wizard interactif ou mise à jour directe des paramètres par défaut.
+ * @param flags - Flags parsés depuis la ligne de commande.
+ */
 async function runConfigCommand(flags: Record<string, string | string[] | boolean>): Promise<void> {
   const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
 
@@ -251,10 +260,19 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
 
   await runConfigWizard(configPath, config);
 }
+/**
+ * Renvoie `true` si la valeur représente une désactivation explicite (ex. "none", "0", "disabled").
+ * @param value - Chaîne saisie par l'utilisateur.
+ */
 function isNoneValue(value: string): boolean {
   return ["0", "none", "aucun", "disabled", "désactivé", "desactive"].includes(value.trim().toLowerCase());
 }
 
+/**
+ * Formate les paramètres par défaut en une ligne lisible pour les messages console.
+ * @param defaults - Objet `defaults` de la config Palabre.
+ * @returns Chaîne résumant la paire d'agents, le nombre de réponses et l'agent de synthèse.
+ */
 function formatDefaultsForMessage(defaults: NonNullable<PalabreConfig["defaults"]>): string {
   const pair = defaults.agentA && defaults.agentB
     ? `agents: ${defaults.agentA} <-> ${defaults.agentB}`
@@ -263,11 +281,26 @@ function formatDefaultsForMessage(defaults: NonNullable<PalabreConfig["defaults"
 
   return `${pair}, réponses: ${turnsOrDefault(defaults.turns)}, ${summary}`;
 }
+/**
+ * Lève une erreur si `agentName` n'est pas déclaré dans la config.
+ * @param config - Config chargée.
+ * @param agentName - Nom de l'agent à vérifier.
+ * @param fieldName - Nom du champ (utilisé dans le message d'erreur).
+ */
 function assertKnownAgent(config: Awaited<ReturnType<typeof loadConfig>>, agentName: string, fieldName: string): void {
   if (!config.agents[agentName]) {
     throw new Error(`Agent inconnu pour ${fieldName}: ${agentName}. Agents disponibles: ${Object.keys(config.agents).join(", ")}.`);
   }
 }
+/**
+ * Résout le nom d'un agent selon la priorité : flag CLI > preset > défaut config.
+ * Lève une erreur si aucune source ne fournit de valeur.
+ * @param label - Libellé humain utilisé dans le message d'erreur (ex. "agent A").
+ * @param explicitValue - Valeur passée via flag CLI.
+ * @param presetValue - Valeur issue du preset sélectionné.
+ * @param defaultValue - Valeur issue des défauts de la config.
+ * @returns Nom de l'agent résolu.
+ */
 function resolveAgentName(
   label: string,
   explicitValue: string | string[] | boolean | undefined,
@@ -282,6 +315,11 @@ function resolveAgentName(
 
   return resolved;
 }
+/**
+ * Affiche un aperçu du prompt du premier tour sans appeler aucun agent (flag `--show-prompt`).
+ * @param config - Config chargée.
+ * @param options - Options du débat résolues.
+ */
 function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, options: DebateOptions): void {
   const agentConfig = config.agents[options.agentA];
 
@@ -311,10 +349,21 @@ function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, opti
   console.log("Note: seuls les prompts du premier tour sont exacts sans exécuter les agents. Les tours suivants incluent le transcript réel.");
 }
 
+/**
+ * Extrait une chaîne non vide depuis une valeur de flag, ou renvoie `undefined`.
+ * @param value - Valeur brute issue du parseur de flags.
+ */
 function optionalString(value: string | string[] | boolean | undefined): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
 }
 
+/**
+ * Parse `process.argv` en une structure typée `ParsedArgs`.
+ * Gère les flags courts (-h, -v, -s, -t, -a), les flags longs (--topic, --agent-a…),
+ * les flags multi-valeurs (--files, --context, --set-defaults) et les positionnels.
+ * @param args - Tableau d'arguments (généralement `process.argv.slice(2)`).
+ * @returns Commande détectée, indicateur d'explicitation et map de flags.
+ */
 function parseArgs(args: string[]): ParsedArgs {
   const flags: Record<string, string | string[] | boolean> = {};
   let command = "run";
@@ -437,6 +486,12 @@ function parseArgs(args: string[]): ParsedArgs {
   return { command, commandExplicit, flags };
 }
 
+/**
+ * Détecte si une valeur ressemble à une faute de frappe d'une commande connue
+ * (même première lettre et distance de Levenshtein ≤ 2).
+ * @param value - Token saisi par l'utilisateur.
+ * @param commands - Ensemble des commandes valides.
+ */
 function isLikelyCommandTypo(value: string, commands: Set<string>): boolean {
   const normalized = value.toLowerCase();
 
@@ -449,6 +504,12 @@ function isLikelyCommandTypo(value: string, commands: Set<string>): boolean {
   return false;
 }
 
+/**
+ * Calcule la distance de Levenshtein entre deux chaînes (insertions, suppressions, substitutions).
+ * @param left - Première chaîne.
+ * @param right - Deuxième chaîne.
+ * @returns Distance entière ≥ 0.
+ */
 function levenshteinDistance(left: string, right: string): number {
   const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
 
@@ -467,6 +528,14 @@ function levenshteinDistance(left: string, right: string): number {
 
   return previous[right.length] ?? 0;
 }
+/**
+ * Interprète les arguments positionnels pour la commande `run` :
+ * premier positionnel = preset si connu, sinon sujet complet concaténé.
+ * @param positionals - Arguments positionnels extraits du parseur.
+ * @param flags - Map de flags à muter si un preset ou un sujet est détecté.
+ * @param presets - Ensemble des noms de presets valides.
+ * @param commandExplicit - `true` si l'utilisateur a tapé `palabre run` explicitement.
+ */
 function applyRunPositionals(
   positionals: string[],
   flags: Record<string, string | string[] | boolean>,
@@ -496,6 +565,10 @@ function applyRunPositionals(
   flags.topic ??= positionals.join(" ");
 }
 
+/**
+ * Normalise un nom de flag long en son alias canonique (ex. `subject` → `topic`).
+ * @param value - Nom brut extrait après `--`.
+ */
 function normalizeFlagName(value: string): string {
   const aliases: Record<string, string> = {
     s: "topic",
@@ -506,6 +579,10 @@ function normalizeFlagName(value: string): string {
   return aliases[value] ?? value;
 }
 
+/**
+ * Indique si un flag long nécessite une valeur suivante (lève une erreur si absente).
+ * @param value - Nom canonique du flag (sans `--`).
+ */
 function requiresFlagValue(value: string): boolean {
   return new Set([
     "agent-a",
@@ -522,6 +599,7 @@ function requiresFlagValue(value: string): boolean {
   ]).has(value);
 }
 
+/** Lit la version depuis `package.json` adjacent au bundle compilé. */
 async function getPackageVersion(): Promise<string> {
   const packageJsonPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "package.json");
   const raw = await readFile(packageJsonPath, "utf8");
@@ -530,6 +608,11 @@ async function getPackageVersion(): Promise<string> {
   return packageJson.version ?? "0.0.0";
 }
 
+/**
+ * Normalise une valeur de flag multi-valeur en tableau de chaînes.
+ * @param value - Valeur brute (tableau, chaîne unique ou absent).
+ * @returns Tableau de chaînes, vide si la valeur n'est pas applicable.
+ */
 function getStringListFlag(value: string | string[] | boolean | undefined): string[] {
   if (Array.isArray(value)) {
     return value;
@@ -542,12 +625,23 @@ function getStringListFlag(value: string | string[] | boolean | undefined): stri
   return [];
 }
 
+/**
+ * Écrit les avertissements de contexte sur `stderr`.
+ * @param warnings - Messages d'avertissement issus du chargement des fichiers de contexte.
+ */
 function printContextWarnings(warnings: string[]): void {
   for (const warning of warnings) {
     process.stderr.write(`Warning: ${warning}\n`);
   }
 }
 
+/**
+ * Ajoute dans `config.agents` les agents détectés localement mais absents de la config.
+ * Mute `config` directement ; l'appelant est responsable de persister la config.
+ * @param config - Config Palabre à compléter.
+ * @param discovery - Résultat de la découverte locale des outils.
+ * @returns Noms des agents nouvellement ajoutés.
+ */
 function syncDetectedAgents(
   config: PalabreConfig,
   discovery: Awaited<ReturnType<typeof discoverLocalTools>>
@@ -562,6 +656,11 @@ function syncDetectedAgents(
   return missingAgents;
 }
 
+/**
+ * Renvoie les noms des agents détectés localement qui ne sont pas encore dans `config.agents`.
+ * @param config - Config Palabre existante.
+ * @param discovery - Résultat de la découverte locale des outils.
+ */
 function findDetectedMissingAgents(
   config: PalabreConfig,
   discovery: Awaited<ReturnType<typeof discoverLocalTools>>
@@ -576,6 +675,12 @@ function findDetectedMissingAgents(
 
   return detectedAgents.filter((agentName) => !config.agents[agentName]);
 }
+/**
+ * Affiche la liste des agents déclarés avec leur type, rôle, état de détection et défauts.
+ * @param configPath - Chemin du fichier de config (affiché en en-tête).
+ * @param config - Config Palabre chargée.
+ * @param discovery - Résultat de la découverte locale des outils.
+ */
 function printAgents(
   configPath: string,
   config: PalabreConfig,
@@ -603,6 +708,11 @@ function printAgents(
   console.log(`Défauts: ${config.defaults?.agentA ?? "aucun"} <-> ${config.defaults?.agentB ?? "aucun"}, réponses: ${turnsOrDefault(config.defaults?.turns)}, synthèse: ${config.defaults?.summaryAgent ?? "agent B"}`);
 }
 
+/**
+ * Renvoie un libellé indiquant si l'agent est agent A, agent B ou agent de synthèse par défaut.
+ * @param name - Nom de l'agent.
+ * @param config - Config Palabre contenant les défauts.
+ */
 function formatAgentDefaults(name: string, config: PalabreConfig): string {
   const labels: string[] = [];
 
@@ -613,6 +723,10 @@ function formatAgentDefaults(name: string, config: PalabreConfig): string {
   return labels.join(", ");
 }
 
+/**
+ * Renvoie une ligne de détails pour un agent : commande CLI ou modèle Ollama.
+ * @param agentConfig - Configuration de l'agent.
+ */
 function formatAgentDetails(agentConfig: AgentConfig): string {
   if (agentConfig.type === "ollama") {
     return `modèle: ${agentConfig.model}`;
@@ -621,6 +735,13 @@ function formatAgentDetails(agentConfig: AgentConfig): string {
   return `commande: ${agentConfig.command}${agentConfig.model ? ` | modèle: ${agentConfig.model}` : ""}`;
 }
 
+/**
+ * Renvoie le statut de détection d'un agent sous forme de chaîne lisible.
+ * Pour Ollama, vérifie la disponibilité du serveur et la présence du modèle.
+ * @param name - Nom de l'agent dans la config.
+ * @param agentConfig - Configuration de l'agent.
+ * @param discovery - Résultat de la découverte locale des outils.
+ */
 function formatAgentDetection(
   name: string,
   agentConfig: AgentConfig,
@@ -640,6 +761,13 @@ function formatAgentDetection(
   return detection.available ? `détecté (${detection.command})` : "non détecté";
 }
 
+/**
+ * Résout l'entrée de détection correspondant à un agent CLI dans le résultat de découverte.
+ * Renvoie un objet `{ available: true }` pour les agents CLI non reconnus (considérés disponibles).
+ * @param name - Nom de l'agent dans la config.
+ * @param agentConfig - Configuration de l'agent.
+ * @param discovery - Résultat de la découverte locale des outils.
+ */
 function cliDetectionForAgent(
   name: string,
   agentConfig: AgentConfig,
@@ -655,9 +783,18 @@ function cliDetectionForAgent(
   return { available: true, command: agentConfig.type === "cli" ? agentConfig.command : name };
 }
 
+/**
+ * Extrait le nom de base d'une commande en supprimant le chemin et l'extension Windows éventuelle.
+ * @param command - Chemin ou nom de commande brut (ex. `C:\bin\claude.cmd`).
+ */
 function normalizeCommandName(command: string): string {
   return path.basename(command).replace(/\.(cmd|exe|ps1|bat)$/i, "").toLowerCase();
 }
+/**
+ * Affiche le récapitulatif de détection locale après `palabre init`.
+ * @param discovery - Résultat de la découverte locale des outils.
+ * @param config - Config générée à partir de la découverte.
+ */
 function printInitDiscovery(
   discovery: Awaited<ReturnType<typeof discoverLocalTools>>,
   config: Awaited<ReturnType<typeof loadConfig>>
@@ -673,12 +810,20 @@ function printInitDiscovery(
   console.log(`Défauts: ${config.defaults?.agentA ?? "codex"} <-> ${config.defaults?.agentB ?? "ollama-local"}`);
 }
 
+/**
+ * Formate le statut de détection d'un outil CLI (disponible ou non).
+ * @param detection - Résultat de détection d'un outil CLI.
+ */
 function formatCommandDetection(detection: Awaited<ReturnType<typeof discoverLocalTools>>["codex"]): string {
   return detection.available
     ? `détecté (${detection.command})`
     : "non détecté";
 }
 
+/**
+ * Formate le statut de détection d'Ollama : commande absente, serveur injoignable ou modèles disponibles.
+ * @param detection - Résultat de détection d'Ollama.
+ */
 function formatOllamaDetection(detection: Awaited<ReturnType<typeof discoverLocalTools>>["ollama"]): string {
   if (!detection.available) {
     return detection.commandAvailable
@@ -690,54 +835,88 @@ function formatOllamaDetection(detection: Awaited<ReturnType<typeof discoverLoca
   return `détectée (${modelCount} modèle${modelCount > 1 ? "s" : ""})`;
 }
 
+/** Affiche le texte d'aide complet sur `stdout`. */
 function printHelp(): void {
   console.log(`
 PALABRE
+_____________________________________________
 
 Usage rapide:
+
+  palabre init 
+      Crée une config globale et détecte les agents AI disponibles sur la machine.
+
+  palabre agents
+      Affiche les agents déclarés dans la config.
+
+  palabre config
+      Assistant pour définir ou supprimer les paramètres par défaut.
+
   palabre new
       Assistant interactif pour choisir les agents, le sujet et les options.
-  palabre run -s "Sujet"
-      Lance avec les agents par défaut de la config.
+
   palabre claude-gemini "Sujet" -t 4
       Lance avec un preset et un sujet positionnel.
 
+  palabre "Sujet"
+      Lance le débat avec paramètres par défaut de la config.
+
+_____________________________________________
+
+
 Commandes:
+
   palabre init [--local]
-      Crée une config et détecte Codex, Claude, Gemini, OpenCode et Ollama.
+      Crée une config locale et détecte Codex, Claude, Gemini, OpenCode et Ollama.
+
   palabre agents [--config <path>]
       Liste les agents déclarés dans la config et leur détection locale.
+
   palabre config
       Assistant pour définir ou supprimer les paramètres par défaut.
+
   palabre config --set-defaults <agentA> <agentB> [-t <n>] [--summary-agent <name>]
       Définit les agents par défaut, et optionnellement les réponses et la synthèse.
+
   palabre config -t <n>
       Définit seulement le nombre de réponses par défaut.
+
   palabre config --summary-agent <name|none>
       Définit ou retire seulement l'agent de synthèse par défaut.
+
   palabre config --clear-defaults
       Supprime les paramètres par défaut.
+
   palabre doctor [--config <path>]
       Vérifie la config et les outils locaux.
+
   palabre update [--apply]
       Affiche ou exécute les étapes de mise à jour d'un checkout git.
+
   palabre help
       Affiche cette aide. Identique à -h ou --help.
+      
   palabre version
       Affiche la version. Identique à -v ou --version.
 
+_____________________________________________
+
+
 Notation:
+
   [option] signifie facultatif. Ne tape pas les crochets.
   <valeur> signifie qu'il faut remplacer ce texte par ta valeur.
 
 Options générales:
+
   -h, --help              Affiche cette aide
   -v, --version           Affiche la version
-  -a                      Liste les agents. Identique à palabre agents
+  -a, --agents            Liste les agents. Identique à palabre agents
   --config <path>         Chemin vers un fichier de config explicite
   --plain                 Utilise le rendu console simple sans habillage TUI
 
 Sujet et lancement:
+
   -s, --subject <text>    Sujet du débat, option recommandée
   --topic <text>          Alias compatible de --subject
   --agent-a <name>        Premier agent
@@ -747,21 +926,25 @@ Sujet et lancement:
   --no-early-stop         Désactive l'arrêt anticipé si les agents sont clairement d'accord
 
 Modèles:
+
   --model-a <model>       Modèle brut transmis à l'agent A
   --model-b <model>       Modèle brut transmis à l'agent B
   --pull-models           Autorise Ollama à télécharger un modèle manquant
 
 Synthèse:
+
   --summary-agent <name>  Agent utilisé pour produire la synthèse finale
   --summary-model <model> Modèle brut transmis à l'agent de synthèse
   --no-summary            Désactive la synthèse finale
 
 Contexte:
+
   --files <paths...>      Fichiers texte à injecter explicitement dans le contexte
   --context <paths...>    Scanne fichiers/dossiers texte en respectant les limites de contexte
   --show-prompt           Affiche le prompt du premier tour sans appeler d'agent
 
 Configuration:
+
   --local                 Avec init/setup, crée ./palabre.config.json
   --set-defaults <a b>    Avec config, définit les agents par défaut
   --summary-agent <name>  Avec config, définit l'agent de synthèse par défaut
@@ -770,10 +953,18 @@ Configuration:
   --sync-agents           Avec config, ajoute les agents détectés manquants
 
 Mise à jour:
+
   --apply                 Avec update, exécute les étapes de mise à jour
 
+_____________________________________________
+
+
 Presets disponibles:
+
   ${listPresetNames().join(", ")}
+
+_____________________________________________
+
 `);
 }
 main().catch((error: unknown) => {
