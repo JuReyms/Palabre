@@ -11,7 +11,7 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 
 ```json
 {
-  "outputDir": ".",
+  "outputDir": ".palabre",
   "defaults": {
     "agentA": "codex",
     "agentB": "claude",

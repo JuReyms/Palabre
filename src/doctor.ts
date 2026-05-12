@@ -1,6 +1,6 @@
 import path from "node:path";
 import { stat } from "node:fs/promises";
-import { configExists, loadConfig, resolveDefaultConfigPath } from "./config.js";
+import { configExists, loadConfig, resolveDefaultConfigPath, resolveOutputDir } from "./config.js";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { DEFAULT_TURNS, MAX_TURNS } from "./limits.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
@@ -149,11 +149,13 @@ function inspectDefaultTurns(turns: number | undefined, lines: DiagnosticLine[])
 }
 
 async function inspectOutputDir(outputDir: string | undefined, lines: DiagnosticLine[]): Promise<void> {
-  const resolved = path.resolve(outputDir ?? ".");
+  const effectiveOutputDir = resolveOutputDir(outputDir);
+  const resolved = path.resolve(effectiveOutputDir);
 
   if (!outputDir) {
-    lines.push(info(`outputDir absent: les exports seront ecrits dans le dossier courant (${resolved}).`));
-    return;
+    lines.push(info(`outputDir absent: les exports seront ecrits dans le dossier par defaut (${resolved}).`));
+  } else if (outputDir.trim() === ".") {
+    lines.push(info(`outputDir legacy '.': les exports seront regroupes dans ${resolved}.`));
   }
 
   try {

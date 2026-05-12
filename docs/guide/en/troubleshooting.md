@@ -111,7 +111,7 @@ Typical message:
 [ERROR] outputDir points to a file, not a folder: ...
 ```
 
-Fix `outputDir` in `palabre.config.json`, or remove this field to write exports to the current folder.
+Fix `outputDir` in `palabre.config.json`, or remove this field to write exports to the default `.palabre/` folder.
 
 ## A CLI is not found
 

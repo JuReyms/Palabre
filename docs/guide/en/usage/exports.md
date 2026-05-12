@@ -5,7 +5,7 @@ description: Learn where Palabre writes Markdown exports and what they contain a
 
 Each debate generates a `.debate.md` file in the folder defined by `outputDir`.
 
-By default, the export is created in the folder from which you run `palabre`. At the end of the debate, the terminal displays a `Debate exported:` line followed by the full path to the file.
+By default, exports are grouped in a `.palabre/` folder under the directory from which you run `palabre`. At the end of the debate, the terminal displays a `Debate exported:` line followed by the full path to the file.
 
 ## Export contents
 
@@ -42,7 +42,7 @@ In the advanced configuration:
 
 ```json
 {
-  "outputDir": "debates"
+  "outputDir": ".palabre"
 }
 ```
 

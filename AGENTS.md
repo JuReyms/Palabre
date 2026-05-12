@@ -164,7 +164,7 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 - Garder le coeur CLI simple avant de construire la TUI.
 - Garder la config en JSON pour le MVP. YAML peut venir plus tard.
 - Eviter les dependances UI tant que l'orchestration n'est pas stable.
-- Exporter chaque session en `.debate.md`.
+- Exporter chaque session en `.debate.md` dans un dossier `.palabre/` par défaut pour éviter de polluer la racine du projet.
 - Ne pas supposer que Claude/Codex ont une API stable : les CLIs interactives doivent etre isolees derriere un adapter.
 
 ## Init et discovery

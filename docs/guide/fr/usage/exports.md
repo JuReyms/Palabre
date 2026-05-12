@@ -42,7 +42,7 @@ Dans la configuration avancée :
 
 ```json
 {
-  "outputDir": "debates"
+  "outputDir": ".palabre"
 }
 ```
 

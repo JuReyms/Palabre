@@ -111,7 +111,7 @@ Message typique :
 [ERREUR] outputDir pointe vers un fichier, pas un dossier: ...
 ```
 
-Corrigez `outputDir` dans `palabre.config.json`, ou supprimez ce champ pour écrire les exports dans le dossier courant.
+Corrigez `outputDir` dans `palabre.config.json`, ou supprimez ce champ pour écrire les exports dans le dossier `.palabre/` par défaut.
 ## Une CLI est introuvable
 
 Message typique :

@@ -2,7 +2,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, writeExampleConfig } from "./config.js";
+import { configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, writeExampleConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
 import { discoverLocalTools } from "./discovery.js";
 import { runDoctor } from "./doctor.js";
@@ -163,7 +163,7 @@ async function main(): Promise<void> {
   context.warnings.forEach((warning) => renderer.warning(warning));
   const result = await runDebate(config, options, renderer);
   const outputPath = await writeDebateMarkdown(
-    config.outputDir ?? ".",
+    resolveOutputDir(config.outputDir),
     result.options,
     result.messages,
     result.summary,

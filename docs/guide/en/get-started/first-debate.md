@@ -59,6 +59,6 @@ During the debate, Palabre displays responses in the terminal. At the end, it ex
 - the final summary;
 - a short prose conclusion.
 
-By default, the [export](/en/usage/exports) is created in the folder from which you run the command. At the end of the debate, Palabre displays the full path of the exported file in the terminal.
+By default, the [export](/en/usage/exports) is created in a `.palabre/` folder under the folder from which you run the command. At the end of the debate, Palabre displays the full path of the exported file in the terminal.
 
 To go further, see [Running a debate](/en/usage/running-a-debate), [Context and files](/en/usage/context-and-files), and [Summaries](/en/usage/summaries).

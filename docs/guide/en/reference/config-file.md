@@ -11,7 +11,7 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 
 ```json
 {
-  "outputDir": ".",
+  "outputDir": ".palabre",
   "defaults": {
     "agentA": "codex",
     "agentB": "claude",

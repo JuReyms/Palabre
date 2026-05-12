@@ -9,7 +9,7 @@ Most common settings can be done with `palabre config`. This page covers cases w
 
 ```json
 {
-  "outputDir": ".",
+  "outputDir": ".palabre",
   "defaults": {
     "agentA": "codex",
     "agentB": "claude",

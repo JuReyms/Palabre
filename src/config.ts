@@ -10,9 +10,10 @@ export const CONFIG_DIR_NAME = ".palabre";
 export const GLOBAL_CONFIG_PATH = path.join(os.homedir(), CONFIG_DIR_NAME, DEFAULT_CONFIG_PATH);
 export const GLOBAL_LEGACY_CONFIG_PATH = path.join(os.homedir(), CONFIG_DIR_NAME, LEGACY_CONFIG_PATH);
 export const DEFAULT_OLLAMA_MODEL = "nemotron-3-nano:4b";
+export const DEFAULT_OUTPUT_DIR = ".palabre";
 
 export const exampleConfig: PalabreConfig = {
-  outputDir: ".",
+  outputDir: DEFAULT_OUTPUT_DIR,
   defaults: {
     agentA: "codex",
     agentB: "claude",
@@ -92,6 +93,16 @@ export const exampleConfig: PalabreConfig = {
     }
   }
 };
+
+/**
+ * Résout le dossier d'export effectif.
+ * `.` est traité comme l'ancien défaut historique afin de regrouper les exports
+ * dans un dossier dédié sans demander de migration manuelle aux utilisateurs.
+ */
+export function resolveOutputDir(outputDir: string | undefined): string {
+  const normalized = outputDir?.trim();
+  return !normalized || normalized === "." ? DEFAULT_OUTPUT_DIR : normalized;
+}
 
 /** Charge et parse la config depuis `configPath`. Lance une erreur si le fichier est absent ou invalide. */
 export async function loadConfig(configPath = DEFAULT_CONFIG_PATH): Promise<PalabreConfig> {

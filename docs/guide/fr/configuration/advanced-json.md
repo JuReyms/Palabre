@@ -9,7 +9,7 @@ La plupart des réglages courants peuvent se faire avec `palabre config`. Cette 
 
 ```json
 {
-  "outputDir": ".",
+  "outputDir": ".palabre",
   "defaults": {
     "agentA": "codex",
     "agentB": "claude",

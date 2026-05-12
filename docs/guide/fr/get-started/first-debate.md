@@ -59,6 +59,6 @@ Pendant le débat, Palabre affiche les réponses dans le terminal. À la fin, il
 - la synthèse finale ;
 - une conclusion courte en prose.
 
-Par défaut, l'[export](/fr/usage/exports) est créé dans le dossier depuis lequel vous lancez la commande. À la fin du débat, Palabre affiche le chemin complet du fichier exporté dans le terminal.
+Par défaut, l'[export](/fr/usage/exports) est créé dans un dossier `.palabre/` sous le dossier depuis lequel vous lancez la commande. À la fin du débat, Palabre affiche le chemin complet du fichier exporté dans le terminal.
 
 Pour aller plus loin, consultez [Lancer un débat](/fr/usage/running-a-debate), [Contexte et fichiers](/fr/usage/context-and-files) et [Synthèses](/fr/usage/summaries).
