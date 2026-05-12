@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Palabre documentation
+    url: https://palab.re/en/
+    about: Read the documentation before opening an issue.
+  - name: Palabre CLI repository
+    url: https://github.com/JuReyms/Palabre
+    about: Public repository for CLI, VS Code extension support, and website/documentation issues.

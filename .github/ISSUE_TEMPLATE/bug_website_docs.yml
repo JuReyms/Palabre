@@ -1,0 +1,41 @@
+name: "Bug report: Website / docs"
+description: Report a problem on palab.re or in the documentation.
+title: "[Docs]: "
+labels: ["type: bug", "area: website"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for broken links, unclear documentation, incorrect examples, translation issues, or website rendering problems.
+  - type: input
+    id: url
+    attributes:
+      label: Page URL
+      placeholder: "https://palab.re/en/..."
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Issue type
+      options:
+        - Broken link
+        - Incorrect documentation
+        - Missing documentation
+        - Translation issue
+        - Website rendering / layout
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong?
+      description: Explain what should be corrected or clarified.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested correction
+      description: Optional, but very helpful for docs issues.

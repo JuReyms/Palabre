@@ -1,0 +1,87 @@
+name: "Bug report: VS Code extension"
+description: Report a problem with the Palabre VS Code extension.
+title: "[VS Code]: "
+labels: ["type: bug", "area: vscode-extension"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for the Palabre VS Code side panel, commands, UI, cancellation, context picker, or extension packaging.
+  - type: input
+    id: extension-version
+    attributes:
+      label: Extension version
+      description: Find it in VS Code Extensions, or in the `.vsix` filename if installed manually.
+      placeholder: "1.0.1"
+    validations:
+      required: true
+  - type: input
+    id: cli-version
+    attributes:
+      label: Palabre CLI version
+      description: Run `palabre --version` in the same terminal environment used by VS Code if possible.
+      placeholder: "0.3.0"
+    validations:
+      required: true
+  - type: input
+    id: vscode-version
+    attributes:
+      label: VS Code version
+      placeholder: "1.99.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: cli-terminal
+    attributes:
+      label: Does the same Palabre command work in a terminal?
+      options:
+        - "Yes"
+        - "No"
+        - "I have not tested"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Describe the clicks/commands that reproduce the issue.
+      placeholder: |
+        1. Open the Palabre side panel
+        2. Select preset ...
+        3. Click ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Palabre output channel / Developer Tools logs
+      description: Paste relevant logs from View > Output > Palabre or webview DevTools. Redact secrets.
+      render: text
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or screen recording
+      description: Drag images/videos here if the issue is visual.

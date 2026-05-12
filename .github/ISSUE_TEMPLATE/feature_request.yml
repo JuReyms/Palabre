@@ -1,0 +1,41 @@
+name: "Feature request"
+description: Suggest an improvement for the CLI, VS Code extension, or website/docs.
+title: "[Feature]: "
+labels: ["type: feature"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of Palabre would this improve?
+      options:
+        - CLI
+        - VS Code extension
+        - Website / documentation
+        - Cross-product / not sure
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to do, and what currently gets in the way?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior you would like to see.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Mention workarounds or other designs you considered.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, examples, links, or related issues.
