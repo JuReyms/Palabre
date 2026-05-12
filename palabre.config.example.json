@@ -1,4 +1,5 @@
 {
+  "language": "fr",
   "outputDir": ".",
   "defaults": {
     "agentA": "codex",

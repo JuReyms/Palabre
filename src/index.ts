@@ -8,6 +8,7 @@ import { discoverLocalTools } from "./discovery.js";
 import { runDoctor } from "./doctor.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
 import { runConfigWizard } from "./configWizard.js";
+import { parseLanguage, resolveLanguage } from "./i18n.js";
 import { DEFAULT_TURNS, parseTurnsFlag, turnsOrDefault } from "./limits.js";
 import { formatAgentPrompt } from "./prompt.js";
 import { runNewWizard } from "./new.js";
@@ -41,7 +42,7 @@ async function main(): Promise<void> {
   }
 
   if (parsed.command === "doctor") {
-    const result = await runDoctor(optionalString(parsed.flags.config), Boolean(parsed.flags.plain));
+    const result = await runDoctor(optionalString(parsed.flags.config), Boolean(parsed.flags.plain), optionalString(parsed.flags.language));
     console.log(result.output);
     process.exitCode = result.ok ? 0 : 1;
     return;
@@ -85,6 +86,10 @@ async function main(): Promise<void> {
 
     const discovery = await discoverLocalTools();
     const config = createConfigFromDiscovery(discovery);
+    config.language = resolveLanguage({
+      explicitLanguage: optionalString(parsed.flags.language),
+      configLanguage: config.language
+    });
     await writeExampleConfig(initConfigPath, config);
     console.log(`${initConfigPath} créé.`);
     printInitDiscovery(discovery, config);
@@ -100,6 +105,10 @@ async function main(): Promise<void> {
   }
 
   const config = await loadConfig(configPath);
+  const language = resolveLanguage({
+    explicitLanguage: optionalString(parsed.flags.language),
+    configLanguage: config.language
+  });
 
   if (parsed.command === "new") {
     const selection = await runNewWizard(config);
@@ -155,7 +164,7 @@ async function main(): Promise<void> {
 
   if (parsed.flags["show-prompt"]) {
     printContextWarnings(context.warnings);
-    printPromptPreview(config, options);
+    printPromptPreview(config, options, language);
     return;
   }
 
@@ -219,8 +228,10 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   const defaultAgents = getStringListFlag(flags["set-defaults"]);
   const hasTurnsFlag = flags.turns !== undefined;
   const summaryAgentValue = optionalString(flags["summary-agent"]);
+  const languageValue = optionalString(flags.language);
+  const changesDefaults = defaultAgents.length > 0 || hasTurnsFlag || summaryAgentValue !== undefined;
 
-  if (defaultAgents.length > 0 || hasTurnsFlag || summaryAgentValue !== undefined) {
+  if (changesDefaults || languageValue !== undefined) {
     const nextDefaults = { ...(config.defaults ?? {}) };
 
     if (defaultAgents.length > 0) {
@@ -250,10 +261,16 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
       }
     }
 
-    config.defaults = nextDefaults;
+    if (languageValue !== undefined) {
+      config.language = parseLanguage(languageValue, "--language");
+    }
+
+    if (changesDefaults) {
+      config.defaults = nextDefaults;
+    }
 
     await writeExampleConfig(configPath, config);
-    console.log(`Paramètres par défaut mis à jour dans ${configPath}: ${formatDefaultsForMessage(config.defaults)}.`);
+    console.log(`Configuration mise à jour dans ${configPath}: ${formatDefaultsForMessage(config.defaults ?? {})}, langue: ${config.language ?? "fr"}.`);
     return;
   }
 
@@ -326,7 +343,7 @@ function resolveAgentName(
  * @param config - Config chargée.
  * @param options - Options du débat résolues.
  */
-function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, options: DebateOptions): void {
+function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, options: DebateOptions, language: string): void {
   const agentConfig = config.agents[options.agentA];
 
   if (!agentConfig) {
@@ -349,6 +366,7 @@ function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, opti
   console.log(`Peer: ${options.agentB}`);
   console.log(`Pull missing Ollama models: ${options.pullModels ? "yes" : "no"}`);
   console.log(`Summary: ${options.summaryEnabled ? options.summaryAgent ?? options.agentB : "disabled"}`);
+  console.log(`Interface language: ${language}`);
   console.log("");
   console.log(prompt);
   console.log("");
@@ -459,6 +477,12 @@ function parseArgs(args: string[]): ParsedArgs {
 
   for (let index = 0; index < args.length; index += 1) {
     const value = args[index];
+
+    if (!value.startsWith("-") && !commandExplicit && positionals.length === 0 && commands.has(value)) {
+      command = value;
+      commandExplicit = true;
+      continue;
+    }
 
     if (!value.startsWith("-") && index === 0) {
       if (commands.has(value)) {
@@ -656,6 +680,7 @@ function applyRunPositionals(
  */
 function normalizeFlagName(value: string): string {
   const aliases: Record<string, string> = {
+    lang: "language",
     s: "topic",
     subject: "topic",
     t: "turns"
@@ -673,6 +698,7 @@ function requiresFlagValue(value: string): boolean {
     "agent-a",
     "agent-b",
     "config",
+    "language",
     "model-a",
     "model-b",
     "preset",
@@ -973,6 +999,9 @@ Commandes:
   palabre config --summary-agent <name|none>
       Définit ou retire seulement l'agent de synthèse par défaut.
 
+  palabre config --language <fr|en>
+      Définit la langue de l'interface Palabre.
+
   palabre config --clear-defaults
       Supprime les paramètres par défaut.
 
@@ -1002,6 +1031,7 @@ Options générales:
   -v, --version           Affiche la version
   -a, --agents            Liste les agents. Identique à palabre agents
   --config <path>         Chemin vers un fichier de config explicite
+  --language <fr|en>      Force la langue de l'interface (alias : --lang)
   --plain                 Utilise le rendu console simple sans habillage TUI
   --json                  Émet un événement NDJSON par ligne sur stdout (alias de --renderer ndjson)
   --renderer <kind>       Force le renderer : auto | pretty | plain | ndjson
@@ -1040,6 +1070,7 @@ Configuration:
   --set-defaults <a b>    Avec config, définit les agents par défaut
   --summary-agent <name>  Avec config, définit l'agent de synthèse par défaut
   --summary-agent none    Avec config, retire l'agent de synthèse par défaut
+  --language <fr|en>      Avec config/init/run, définit ou force la langue d'interface
   --clear-defaults        Avec config, supprime les paramètres par défaut
   --sync-agents           Avec config, ajoute les agents détectés manquants
 

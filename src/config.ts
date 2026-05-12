@@ -13,6 +13,7 @@ export const DEFAULT_OLLAMA_MODEL = "nemotron-3-nano:4b";
 export const DEFAULT_OUTPUT_DIR = ".palabre";
 
 export const exampleConfig: PalabreConfig = {
+  language: "fr",
   outputDir: DEFAULT_OUTPUT_DIR,
   defaults: {
     agentA: "codex",

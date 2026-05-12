@@ -11,6 +11,7 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 
 ```json
 {
+  "language": "en",
   "outputDir": ".palabre",
   "defaults": {
     "agentA": "codex",
@@ -38,6 +39,13 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
   }
 }
 ```
+
+## Root
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `language` | `fr` or `en` | Palabre interface language. Can be overridden for one command with `--language` or `PALABRE_LANGUAGE`. |
+| `outputDir` | string | Export folder for `.debate.md` files. |
 
 ## `defaults`
 

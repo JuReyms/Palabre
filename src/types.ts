@@ -13,6 +13,9 @@ export type AgentTier = "primary" | "premium" | "local";
 /** Mode de transmission du prompt au processus CLI. `stdin` pipe le prompt ; `argument` le passe en argument positionnel. */
 export type CliPromptMode = "stdin" | "argument";
 
+/** Langue de l'interface Palabre. Distincte de la future langue demandée aux agents pour le débat. */
+export type Language = "fr" | "en";
+
 /** Propriétés partagées par tous les adapters. Étendu par `CliAgentConfig` et `OllamaAgentConfig`. */
 export interface BaseAgentConfig {
   role: AgentRole;
@@ -62,6 +65,7 @@ export type AgentConfig = CliAgentConfig | OllamaAgentConfig;
 
 /** Config racine issue de `palabre.config.json`. */
 export interface PalabreConfig {
+  language?: Language;
   outputDir?: string;
   defaults?: {
     agentA?: string;

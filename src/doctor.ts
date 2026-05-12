@@ -2,6 +2,7 @@ import path from "node:path";
 import { stat } from "node:fs/promises";
 import { configExists, loadConfig, resolveDefaultConfigPath, resolveOutputDir } from "./config.js";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
+import { resolveLanguage } from "./i18n.js";
 import { DEFAULT_TURNS, MAX_TURNS } from "./limits.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
 
@@ -20,7 +21,7 @@ interface DiagnosticLine {
  * Exécute le diagnostic complet : config, outils locaux et agents.
  * Retourne toujours un résultat (pas de throw) ; les erreurs de config sont reportées comme lignes `error`.
  */
-export async function runDoctor(explicitConfigPath?: string, plain = false): Promise<DoctorResult> {
+export async function runDoctor(explicitConfigPath?: string, plain = false, explicitLanguage?: string): Promise<DoctorResult> {
   const lines: DiagnosticLine[] = [];
   const configPath = explicitConfigPath ?? await resolveDefaultConfigPath();
   const hasConfig = await configExists(configPath);
@@ -41,6 +42,12 @@ export async function runDoctor(explicitConfigPath?: string, plain = false): Pro
   if (!config) {
     return render(lines, plain);
   }
+
+  const language = resolveLanguage({
+    explicitLanguage,
+    configLanguage: config.language
+  });
+  lines.push(ok(`Langue interface: ${language}`));
 
   await inspectConfig(config, lines);
 
