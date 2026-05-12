@@ -26,7 +26,7 @@ Cette commande équivaut à choisir `codex` en agent A et `claude` en agent B.
 | `codex-ollama` | Agent CLI puissant face à modèle local. |
 | `ollama-claude` | Modèle local en premier, Claude en relecture. |
 
-Les presets disponibles dépendent du code de Palabre, pas de votre configuration locale. Si un agent du preset n'existe pas dans votre config, la commande échoue avec un message explicite.
+`palabre presets --json` inclut maintenant des métadonnées de disponibilité locale pour les intégrations. Un preset est marqué indisponible si un agent manque dans la config, si une CLI connue n'est pas détectée, ou si le modèle Ollama configuré n'est pas installé.
 
 ## Choisir les modèles
 

@@ -126,11 +126,20 @@ Format JSON v1 :
 {
   "v": 1,
   "presets": [
-    { "name": "codex-claude", "agentA": "codex", "agentB": "claude" },
+    {
+      "name": "codex-claude",
+      "agentA": "codex",
+      "agentB": "claude",
+      "available": true,
+      "missingAgents": [],
+      "unavailableReasons": []
+    },
     ...
   ]
 }
 ```
+
+Les champs `available`, `missingAgents` et `unavailableReasons` sont des métadonnées optionnelles du schéma v1. Ils reflètent la config résolue et la détection locale : agent absent de config, CLI connue non détectée, API Ollama non joignable ou modèle Ollama configuré absent. Les intégrations peuvent filtrer `available === true` sans réimplémenter la découverte.
 
 Politique de versioning du champ `v` : ajout de champ optionnel sans bump, suppression / renommage avec bump v2. Memes regles que le renderer NDJSON.
 
@@ -255,7 +264,7 @@ Options Ollama supportees :
 - `unloadOtherModels` : detecte les modeles charges via `GET /api/ps` et decharge les autres modeles avec `POST /api/generate` + `keep_alive: 0`.
 - `keepAlive` : transmis a Ollama sous forme `keep_alive`.
 
-Par defaut local, preferer un modele leger comme `nemotron-3-nano:4b` pour les tests. Eviter les gros modeles dans les tests automatises ou repetes.
+Au `palabre init`, si Ollama expose déjà des modèles installés via `/api/tags`, la config générée choisit le modèle installé en priorité (en conservant `nemotron-3-nano:4b` s'il est présent). Sinon, elle retombe sur `nemotron-3-nano:4b` comme fallback léger. Eviter les gros modeles dans les tests automatises ou repetes.
 
 Erreurs connues classees :
 

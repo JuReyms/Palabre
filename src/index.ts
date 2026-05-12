@@ -11,7 +11,7 @@ import { runConfigWizard } from "./configWizard.js";
 import { DEFAULT_TURNS, parseTurnsFlag, turnsOrDefault } from "./limits.js";
 import { formatAgentPrompt } from "./prompt.js";
 import { runNewWizard } from "./new.js";
-import { listPresetNames, resolvePreset } from "./presets.js";
+import { listPresetNames, listPresetsWithAvailability, resolvePreset } from "./presets.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { createNdjsonRenderer } from "./renderers/ndjson.js";
 import { runDebate } from "./orchestrator.js";
@@ -58,7 +58,7 @@ async function main(): Promise<void> {
   }
 
   if (parsed.command === "presets" || parsed.command === "preset") {
-    runPresetsCommand(parsed.flags);
+    await runPresetsCommand(parsed.flags);
     return;
   }
 
@@ -417,11 +417,13 @@ function createRendererFromFlags(
  *
  * @param flags - Flags parsés depuis la ligne de commande.
  */
-function runPresetsCommand(flags: Record<string, string | string[] | boolean>): void {
-  const presets = listPresetNames().map((name) => {
-    const pair = resolvePreset(name);
-    return { name, agentA: pair.agentA, agentB: pair.agentB };
-  });
+async function runPresetsCommand(flags: Record<string, string | string[] | boolean>): Promise<void> {
+  const discovery = await discoverLocalTools();
+  const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
+  const config = await configExists(configPath)
+    ? await loadConfig(configPath)
+    : createConfigFromDiscovery(discovery);
+  const presets = listPresetsWithAvailability(config, discovery);
 
   if (flags.json) {
     process.stdout.write(JSON.stringify({ v: 1, presets }) + "\n");
@@ -431,7 +433,10 @@ function runPresetsCommand(flags: Record<string, string | string[] | boolean>): 
   console.log("Presets disponibles:");
   console.log("");
   for (const preset of presets) {
-    console.log(`  ${preset.name.padEnd(20)} ${preset.agentA} <-> ${preset.agentB}`);
+    const status = preset.available
+      ? "disponible"
+      : `indisponible (${preset.unavailableReasons.join("; ")})`;
+    console.log(`  ${preset.name.padEnd(20)} ${preset.agentA} <-> ${preset.agentB}  ${status}`);
   }
   console.log("");
   console.log(`Total : ${presets.length} preset(s). Utilise --json pour une sortie machine-readable.`);

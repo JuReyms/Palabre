@@ -26,7 +26,7 @@ This command is equivalent to choosing `codex` as agent A and `claude` as agent 
 | `codex-ollama` | Powerful CLI agent vs. local model. |
 | `ollama-claude` | Local model first, Claude reviewing. |
 
-Available presets depend on Palabre's code, not on your local configuration. If an agent in the preset does not exist in your config, the command fails with an explicit message.
+`palabre presets --json` includes local availability metadata for integrations. A preset is marked unavailable when an agent is missing from the config, when a known CLI is not detected, or when the configured Ollama model is not installed.
 
 ## Choosing models
 

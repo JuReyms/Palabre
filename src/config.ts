@@ -9,6 +9,7 @@ export const LEGACY_CONFIG_PATH = "chicane.config.json";
 export const CONFIG_DIR_NAME = ".palabre";
 export const GLOBAL_CONFIG_PATH = path.join(os.homedir(), CONFIG_DIR_NAME, DEFAULT_CONFIG_PATH);
 export const GLOBAL_LEGACY_CONFIG_PATH = path.join(os.homedir(), CONFIG_DIR_NAME, LEGACY_CONFIG_PATH);
+export const DEFAULT_OLLAMA_MODEL = "nemotron-3-nano:4b";
 
 export const exampleConfig: PalabreConfig = {
   outputDir: ".",
@@ -82,7 +83,7 @@ export const exampleConfig: PalabreConfig = {
     "ollama-local": {
       type: "ollama",
       baseUrl: "http://localhost:11434",
-      model: "nemotron-3-nano:4b",
+      model: DEFAULT_OLLAMA_MODEL,
       role: "critic",
       tier: "local",
       temperature: 0.2,
@@ -159,6 +160,10 @@ export function createConfigFromDiscovery(discovery: ToolDiscovery): PalabreConf
     ...config.agents.opencode,
     ...(discovery.opencode.available ? { command: discovery.opencode.command } : {})
   };
+  const ollamaAgent = config.agents["ollama-local"];
+  if (ollamaAgent?.type === "ollama") {
+    ollamaAgent.model = chooseDefaultOllamaModel(discovery);
+  }
 
   config.defaults = {
     ...config.defaults,
@@ -176,6 +181,14 @@ export async function writeExampleConfig(
   const resolved = path.resolve(configPath);
   await mkdir(path.dirname(resolved), { recursive: true });
   await writeFile(resolved, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+}
+
+function chooseDefaultOllamaModel(discovery: ToolDiscovery): string {
+  if (discovery.ollama.models.includes(DEFAULT_OLLAMA_MODEL)) {
+    return DEFAULT_OLLAMA_MODEL;
+  }
+
+  return discovery.ollama.models[0] ?? DEFAULT_OLLAMA_MODEL;
 }
 
 function chooseDefaultSummaryAgent(pair: [string, string]): string {
