@@ -378,6 +378,19 @@ Si une CLI utilise un nom d'option different, ajouter `modelArg` dans la config 
 
 `--show-prompt` affiche le prompt exact du premier tour, puis termine sans appeler d'agent. Les tours suivants ne peuvent pas etre connus sans executer le debat, car ils dependent du transcript reel.
 
+## Internationalisation
+
+La langue de l'interface CLI est resolue via `src/i18n.ts` avec la precedence suivante :
+
+1. `--language <fr|en>` ou alias `--lang <fr|en>` ;
+2. variable d'environnement `PALABRE_LANGUAGE` ;
+3. champ racine `language` dans `palabre.config.json` ;
+4. fallback `fr`.
+
+`language` controle l'interface Palabre, pas encore la langue demandee aux agents. Garder cette separation nette : une future option `debateLanguage` pourra guider les prompts sans forcer la langue de l'interface.
+
+Les messages traduisibles vivent dans `src/messages.ts`. Ajouter les nouvelles surfaces par lots coherents plutot que melanger traduction et refactor large. `palabre doctor` est la premiere commande migree vers le dictionnaire FR/EN.
+
 ## Syntaxe CLI courte
 
 Le parser accepte deux formes equivalentes pour lancer un debat :

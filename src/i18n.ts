@@ -1,4 +1,5 @@
 import type { Language } from "./types.js";
+import { createTranslator } from "./messages.js";
 
 export const DEFAULT_LANGUAGE: Language = "fr";
 export const SUPPORTED_LANGUAGES = ["fr", "en"] as const;
@@ -25,7 +26,7 @@ export function parseLanguage(value: string | undefined, source = "language"): L
     return normalized as Language;
   }
 
-  throw new Error(`${source} invalide: ${value}. Valeurs supportées: ${SUPPORTED_LANGUAGES.join(", ")}.`);
+  throw new Error(createTranslator(DEFAULT_LANGUAGE).invalidLanguage(source, value ?? "", SUPPORTED_LANGUAGES));
 }
 
 /**
@@ -40,3 +41,5 @@ export function resolveLanguage(options: ResolveLanguageOptions = {}): Language 
     ?? parseLanguage(options.configLanguage, "config.language")
     ?? DEFAULT_LANGUAGE;
 }
+
+export { createTranslator };
