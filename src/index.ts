@@ -57,6 +57,11 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (parsed.command === "presets" || parsed.command === "preset") {
+    runPresetsCommand(parsed.flags);
+    return;
+  }
+
   if (parsed.command === "update") {
     const info = await getUpdateInfo(await getPackageVersion());
 
@@ -403,6 +408,36 @@ function createRendererFromFlags(
 }
 
 /**
+ * Exécute la commande `palabre presets`.
+ *
+ * Sortie humaine par défaut (liste alignée), ou JSON avec `--json` pour les
+ * intégrations (extension VS Code, scripts shell). Le schéma JSON est versionné
+ * via le champ `v` au cas où on enrichirait plus tard (ex : description par
+ * preset, tags premium/local).
+ *
+ * @param flags - Flags parsés depuis la ligne de commande.
+ */
+function runPresetsCommand(flags: Record<string, string | string[] | boolean>): void {
+  const presets = listPresetNames().map((name) => {
+    const pair = resolvePreset(name);
+    return { name, agentA: pair.agentA, agentB: pair.agentB };
+  });
+
+  if (flags.json) {
+    process.stdout.write(JSON.stringify({ v: 1, presets }) + "\n");
+    return;
+  }
+
+  console.log("Presets disponibles:");
+  console.log("");
+  for (const preset of presets) {
+    console.log(`  ${preset.name.padEnd(20)} ${preset.agentA} <-> ${preset.agentB}`);
+  }
+  console.log("");
+  console.log(`Total : ${presets.length} preset(s). Utilise --json pour une sortie machine-readable.`);
+}
+
+/**
  * Parse `process.argv` en une structure typée `ParsedArgs`.
  * Gère les flags courts (-h, -v, -s, -t, -a), les flags longs (--topic, --agent-a…),
  * les flags multi-valeurs (--files, --context, --set-defaults) et les positionnels.
@@ -414,7 +449,7 @@ function parseArgs(args: string[]): ParsedArgs {
   let command = "run";
   let commandExplicit = false;
   const positionals: string[] = [];
-  const commands = new Set(["run", "new", "init", "setup", "help", "version", "update", "doctor", "config", "agent", "agents"]);
+  const commands = new Set(["run", "new", "init", "setup", "help", "version", "update", "doctor", "config", "agent", "agents", "preset", "presets"]);
   const presets = new Set(listPresetNames());
 
   for (let index = 0; index < args.length; index += 1) {
@@ -916,6 +951,10 @@ Commandes:
 
   palabre agents [--config <path>]
       Liste les agents déclarés dans la config et leur détection locale.
+
+  palabre presets [--json]
+      Liste les presets de paires d'agents. \`--json\` émet la liste structurée
+      pour les intégrations (extension VS Code, scripts).
 
   palabre config
       Assistant pour définir ou supprimer les paramètres par défaut.

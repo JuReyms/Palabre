@@ -87,16 +87,52 @@ L'orchestrateur doit s'appuyer sur ce contrat plutot que sur des exceptions impl
 
 ### Preset
 
-Un preset choisit une paire d'agents. Il ne choisit pas les modeles :
+Un preset choisit une paire d'agents. Il ne choisit pas les modeles. La source de verite est `src/presets.ts`.
 
-- `codex-claude`
-- `claude-codex`
-- `codex-ollama`
-- `claude-ollama`
-- `gemini-ollama`
-- variantes inversees et combinaisons Codex/Claude/Gemini
+Presets CLI ↔ CLI (12) :
+
+- `codex-claude`, `claude-codex`
+- `codex-gemini`, `gemini-codex`
+- `codex-opencode`, `opencode-codex`
+- `claude-gemini`, `gemini-claude`
+- `claude-opencode`, `opencode-claude`
+- `gemini-opencode`, `opencode-gemini`
+
+Presets CLI ↔ Ollama local (8) :
+
+- `codex-ollama`, `ollama-codex`
+- `claude-ollama`, `ollama-claude`
+- `gemini-ollama`, `ollama-gemini`
+- `opencode-ollama`, `ollama-opencode`
+
+Total : 20 presets. Toute paire X-Y a sa variante inversee Y-X. La variante inversee differe surtout par "qui parle en premier" — les roles restent ceux configures dans la config utilisateur, pas determines par la position.
 
 Les modeles restent ceux des CLIs ou de la config, sauf override explicite par `--model-a` ou `--model-b`.
+
+A chaque ajout de preset dans `src/presets.ts`, refleter dans cette section. L'extension VS Code (`Palabre-vscode`) consomme `palabre presets --json` au demarrage et n'a donc plus besoin d'etre synchronisee manuellement.
+
+### Commande `palabre presets`
+
+Liste les presets disponibles.
+
+```bash
+palabre presets             # sortie humaine
+palabre presets --json      # sortie JSON pour les integrations
+```
+
+Format JSON v1 :
+
+```json
+{
+  "v": 1,
+  "presets": [
+    { "name": "codex-claude", "agentA": "codex", "agentB": "claude" },
+    ...
+  ]
+}
+```
+
+Politique de versioning du champ `v` : ajout de champ optionnel sans bump, suppression / renommage avec bump v2. Memes regles que le renderer NDJSON.
 
 ### Role
 
