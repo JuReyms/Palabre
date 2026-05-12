@@ -5,7 +5,7 @@ import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { createTranslator, resolveLanguage } from "./i18n.js";
 import { DEFAULT_TURNS, MAX_TURNS } from "./limits.js";
 import type { AgentConfig, Language, PalabreConfig } from "./types.js";
-import type { Messages } from "./messages.js";
+import type { Messages } from "./messages/index.js";
 
 /** Résultat du diagnostic. `ok` est faux dès qu'au moins une ligne est de niveau `error`. */
 export interface DoctorResult {

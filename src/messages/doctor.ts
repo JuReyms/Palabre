@@ -1,4 +1,4 @@
-import type { Language } from "./types.js";
+import type { Language } from "../types.js";
 
 type LevelLabels = {
   ok: string;
@@ -7,73 +7,69 @@ type LevelLabels = {
   info: string;
 };
 
-export interface Messages {
-  invalidLanguage(source: string, value: string, supported: readonly string[]): string;
-  doctor: {
-    title: string;
-    currentDirectory(cwd: string): string;
-    configFound(path: string): string;
-    configMissing(path: string): string;
-    noConfigAction: string;
-    configReadable: string;
-    configUnreadable(message: string): string;
-    configUnreadableAction: string;
-    interfaceLanguage(language: Language): string;
-    noAgents: string;
-    oneAgent(name: string): string;
-    agentCount(count: number, names: string): string;
-    defaultAgentMissing(label: string): string;
-    defaultAgentUnknown(label: string, name: string): string;
-    defaultAgentOk(label: string, name: string): string;
-    defaultPairIncomplete: string;
-    sameDefaultAgent(name: string): string;
-    defaultTurnsMissing(turns: number): string;
-    defaultTurnsInvalid(value: string, max: number): string;
-    defaultTurnsOk(value: number): string;
-    summaryAgentMissing: string;
-    outputDirMissing(path: string): string;
-    outputDirLegacy(path: string): string;
-    outputDirIsFile(path: string): string;
-    outputDirConfigured(path: string): string;
-    outputDirWillCreate(path: string): string;
-    localTools: string;
-    ollamaReachable(baseUrl: string, count: number): string;
-    ollamaInstalledNoApi(baseUrl: string, suffix: string): string;
-    ollamaMissingNoApi(baseUrl: string, suffix: string): string;
-    configuredAgents: string;
-    detectedMissing(names: string): string;
-    roleMissing(name: string): string;
-    cliCommandMissing(name: string): string;
-    promptModeInvalid(name: string, value: string): string;
-    positiveTimeout(name: string, field: string): string;
-    ollamaModelMissing(name: string): string;
-    ollamaBaseUrlInvalid(name: string, value: string): string;
-    customCommand(prefix: string): string;
-    cliDetected(prefix: string, path: string): string;
-    cliMissing(prefix: string): string;
-    ollamaNotVerifiable(prefix: string): string;
-    ollamaValidateFalse(prefix: string): string;
-    ollamaInstalled(prefix: string): string;
-    ollamaMissing(prefix: string, model: string): string;
-    commandDetected(label: string, path: string): string;
-    commandMissing(label: string): string;
-    status(errorCount: number, warnCount: number): string;
-    sections: {
-      configuration: string;
-      tools: string;
-      agents: string;
-      check: string;
-    };
-    nothingToDisplay: string;
-    statusLabel: string;
-    levelLabels: LevelLabels;
-    prettyLevelLabels: LevelLabels;
+export interface DoctorMessages {
+  title: string;
+  currentDirectory(cwd: string): string;
+  configFound(path: string): string;
+  configMissing(path: string): string;
+  noConfigAction: string;
+  configReadable: string;
+  configUnreadable(message: string): string;
+  configUnreadableAction: string;
+  interfaceLanguage(language: Language): string;
+  noAgents: string;
+  oneAgent(name: string): string;
+  agentCount(count: number, names: string): string;
+  defaultAgentMissing(label: string): string;
+  defaultAgentUnknown(label: string, name: string): string;
+  defaultAgentOk(label: string, name: string): string;
+  defaultPairIncomplete: string;
+  sameDefaultAgent(name: string): string;
+  defaultTurnsMissing(turns: number): string;
+  defaultTurnsInvalid(value: string, max: number): string;
+  defaultTurnsOk(value: number): string;
+  summaryAgentMissing: string;
+  outputDirMissing(path: string): string;
+  outputDirLegacy(path: string): string;
+  outputDirIsFile(path: string): string;
+  outputDirConfigured(path: string): string;
+  outputDirWillCreate(path: string): string;
+  localTools: string;
+  ollamaReachable(baseUrl: string, count: number): string;
+  ollamaInstalledNoApi(baseUrl: string, suffix: string): string;
+  ollamaMissingNoApi(baseUrl: string, suffix: string): string;
+  configuredAgents: string;
+  detectedMissing(names: string): string;
+  roleMissing(name: string): string;
+  cliCommandMissing(name: string): string;
+  promptModeInvalid(name: string, value: string): string;
+  positiveTimeout(name: string, field: string): string;
+  ollamaModelMissing(name: string): string;
+  ollamaBaseUrlInvalid(name: string, value: string): string;
+  customCommand(prefix: string): string;
+  cliDetected(prefix: string, path: string): string;
+  cliMissing(prefix: string): string;
+  ollamaNotVerifiable(prefix: string): string;
+  ollamaValidateFalse(prefix: string): string;
+  ollamaInstalled(prefix: string): string;
+  ollamaMissing(prefix: string, model: string): string;
+  commandDetected(label: string, path: string): string;
+  commandMissing(label: string): string;
+  status(errorCount: number, warnCount: number): string;
+  sections: {
+    configuration: string;
+    tools: string;
+    agents: string;
+    check: string;
   };
+  nothingToDisplay: string;
+  statusLabel: string;
+  levelLabels: LevelLabels;
+  prettyLevelLabels: LevelLabels;
 }
 
-const fr: Messages = {
-  invalidLanguage: (source, value, supported) => `${source} invalide: ${value}. Valeurs supportées: ${supported.join(", ")}.`,
-  doctor: {
+export const doctorMessages: Record<Language, DoctorMessages> = {
+  fr: {
     title: "PALABRE doctor",
     currentDirectory: (cwd) => `Dossier courant: ${cwd}`,
     configFound: (path) => `Config trouvée: ${path}`,
@@ -134,12 +130,8 @@ const fr: Messages = {
     statusLabel: "Statut",
     levelLabels: { ok: "OK", warn: "WARN", error: "ERREUR", info: "INFO" },
     prettyLevelLabels: { ok: "OK    ", warn: "WARN  ", error: "ERREUR", info: "INFO  " }
-  }
-};
-
-const en: Messages = {
-  invalidLanguage: (source, value, supported) => `Invalid ${source}: ${value}. Supported values: ${supported.join(", ")}.`,
-  doctor: {
+  },
+  en: {
     title: "PALABRE doctor",
     currentDirectory: (cwd) => `Current directory: ${cwd}`,
     configFound: (path) => `Config found: ${path}`,
@@ -202,9 +194,3 @@ const en: Messages = {
     prettyLevelLabels: { ok: "OK    ", warn: "WARN  ", error: "ERROR ", info: "INFO  " }
   }
 };
-
-const messages: Record<Language, Messages> = { fr, en };
-
-export function createTranslator(language: Language): Messages {
-  return messages[language];
-}
