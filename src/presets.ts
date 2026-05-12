@@ -215,4 +215,3 @@ function available(agent: string): AgentAvailabilityCheck {
 function unavailable(agent: string, reason: string): AgentAvailabilityCheck {
   return { agent, available: false, reason };
 }
-
