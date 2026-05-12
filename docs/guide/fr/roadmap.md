@@ -19,7 +19,8 @@ Les fonctionnalités principales sont disponibles :
 - synthèse finale avec consensus, désaccords, actions proposées et conclusion ;
 - export Markdown `.debate.md` avec nom basé sur le sujet ;
 - diagnostic avec `palabre doctor` ;
-- premiers tests automatisés de l'adapter CLI sans appeler de vrais services IA.
+- sortie machine-readable avec `palabre presets --json` et le renderer NDJSON ;
+- tests automatisés de l'adapter CLI, du renderer NDJSON, des presets et de la configuration de sortie, sans appeler de vrais services IA.
 
 ## Prochaines améliorations
 
@@ -29,7 +30,7 @@ Les fonctionnalités principales sont disponibles :
 
 ### Configuration plus simple
 
-La commande `palabre config` va continuer à évoluer pour rendre les réglages courants plus faciles : agents par défaut, nombre de réponses, agent de synthèse, synchronisation des agents installés après l'initialisation.
+La commande `palabre config` couvre déjà les réglages courants : agents par défaut, nombre de réponses, agent de synthèse et synchronisation des agents installés après l'initialisation. Les prochaines améliorations viseront surtout des messages plus clairs, de meilleures validations et une expérience plus guidée.
 
 
 ### Conversation après le débat
@@ -38,7 +39,7 @@ Après la synthèse finale, Palabre pourrait proposer de continuer brièvement l
 
 ### Tests et stabilité
 
-Les premiers tests de fumée reproductibles couvrent déjà l'adapter CLI : prompt via `stdin`, prompt en argument, erreurs de sortie vide, exit non-zero et limite d'usage. La suite consiste à élargir progressivement cette couverture aux autres comportements sensibles, sans appeler de vrais services IA pendant les tests automatisés.
+Les tests reproductibles couvrent déjà l'adapter CLI, le renderer NDJSON, la disponibilité des presets et la résolution du dossier d'export. La suite consiste à élargir progressivement cette couverture aux autres comportements sensibles, sans appeler de vrais services IA pendant les tests automatisés.
 
 ## Ensuite
 
@@ -47,7 +48,7 @@ Ces sujets sont envisagés après stabilisation du CLI :
 - historique local des débats ;
 - reprise d'un débat depuis un transcript existant ;
 - provider compatible OpenAI local pour LM Studio, LocalAI, vLLM ou équivalent ;
-- documentation en français et en anglais ;
+- maintenance continue de la documentation française et anglaise ;
 - vrai TUI interactif avec scrolling, pause et reprise ;
 - affichage fiable des modèles quand Palabre pourra les connaître sans bruit inutile.
 

@@ -19,7 +19,8 @@ The main features are available:
 - final summary with consensus, disagreements, proposed actions, and conclusion;
 - Markdown export `.debate.md` with a name based on the subject;
 - diagnostics with `palabre doctor`;
-- first automated tests for the CLI adapter without calling real AI services.
+- machine-readable output with `palabre presets --json` and the NDJSON renderer;
+- automated tests for the CLI adapter, NDJSON renderer, presets, and output configuration without calling real AI services.
 
 ## Upcoming improvements
 
@@ -29,7 +30,7 @@ The main features are available:
 
 ### Simpler configuration
 
-The `palabre config` command will continue to evolve to make common settings easier: default agents, number of turns, summary agent, and synchronization of installed agents after initialization.
+The `palabre config` command already covers common settings: default agents, number of turns, summary agent, and synchronization of installed agents after initialization. Future improvements will focus on clearer messages, better validation, and a more guided experience.
 
 ### Conversation after the debate
 
@@ -37,7 +38,7 @@ After the final summary, Palabre could offer to briefly continue the discussion 
 
 ### Tests and stability
 
-The first reproducible smoke tests already cover the CLI adapter: prompt via `stdin`, prompt as argument, empty output errors, non-zero exit, and usage limits. The next step is to gradually expand this coverage to other sensitive behaviors, without calling real AI services during automated tests.
+Reproducible tests already cover the CLI adapter, the NDJSON renderer, preset availability, and output directory resolution. The next step is to gradually expand this coverage to other sensitive behaviors, without calling real AI services during automated tests.
 
 ## Next
 
@@ -46,7 +47,7 @@ These topics are considered after the CLI stabilizes:
 - local debate history;
 - resuming a debate from an existing transcript;
 - OpenAI-compatible local provider for LM Studio, LocalAI, vLLM, or equivalent;
-- documentation in French and English;
+- ongoing maintenance of the French and English documentation;
 - real interactive TUI with scrolling, pause, and resume;
 - reliable model display when Palabre can know them without unnecessary noise.
 
