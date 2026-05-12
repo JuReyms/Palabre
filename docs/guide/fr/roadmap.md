@@ -49,6 +49,7 @@ Ces sujets sont envisagés après stabilisation du CLI :
 - reprise d'un débat depuis un transcript existant ;
 - provider compatible OpenAI local pour LM Studio, LocalAI, vLLM ou équivalent ;
 - maintenance continue de la documentation française et anglaise ;
+- interface CLI multilingue français/anglais, avec choix de langue dans la configuration et override ponctuel par commande ;
 - vrai TUI interactif avec scrolling, pause et reprise ;
 - affichage fiable des modèles quand Palabre pourra les connaître sans bruit inutile.
 

@@ -48,6 +48,7 @@ These topics are considered after the CLI stabilizes:
 - resuming a debate from an existing transcript;
 - OpenAI-compatible local provider for LM Studio, LocalAI, vLLM, or equivalent;
 - ongoing maintenance of the French and English documentation;
+- multilingual French/English CLI interface, with a configured language and per-command override;
 - real interactive TUI with scrolling, pause, and resume;
 - reliable model display when Palabre can know them without unnecessary noise.
 
