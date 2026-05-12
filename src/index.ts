@@ -13,6 +13,7 @@ import { formatAgentPrompt } from "./prompt.js";
 import { runNewWizard } from "./new.js";
 import { listPresetNames, resolvePreset } from "./presets.js";
 import { createConsoleRenderer } from "./renderers/console.js";
+import { createNdjsonRenderer } from "./renderers/ndjson.js";
 import { runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./update.js";
@@ -153,7 +154,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const renderer = createConsoleRenderer(options.plainOutput);
+  const renderer = createRendererFromFlags(parsed.flags, options.plainOutput);
   context.warnings.forEach((warning) => renderer.warning(warning));
   const result = await runDebate(config, options, renderer);
   const outputPath = await writeDebateMarkdown(
@@ -355,6 +356,50 @@ function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, opti
  */
 function optionalString(value: string | string[] | boolean | undefined): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+/** Liste des kinds de renderer acceptés par `--renderer`. */
+const SUPPORTED_RENDERERS = ["auto", "pretty", "plain", "ndjson"] as const;
+type RendererKind = (typeof SUPPORTED_RENDERERS)[number];
+
+/**
+ * Instancie le renderer en fonction des flags CLI.
+ *
+ * Précédence :
+ *  1. `--renderer <kind>` (canonique).
+ *  2. `--json` (alias pour `--renderer ndjson`).
+ *  3. `--plain` (rétro-compatible, équivalent `--renderer plain`).
+ *  4. par défaut : `auto` (pretty si TTY, plain sinon, hérité de `createConsoleRenderer`).
+ *
+ * Lève si la valeur de `--renderer` n'est pas dans `SUPPORTED_RENDERERS`.
+ */
+function createRendererFromFlags(
+  flags: Record<string, string | string[] | boolean>,
+  plainOutputFallback: boolean,
+) {
+  const explicit = optionalString(flags.renderer);
+  if (explicit) {
+    if (!(SUPPORTED_RENDERERS as readonly string[]).includes(explicit)) {
+      throw new Error(
+        `Renderer inconnu: ${explicit}. Valeurs supportées: ${SUPPORTED_RENDERERS.join(", ")}.`,
+      );
+    }
+    const kind = explicit as RendererKind;
+    switch (kind) {
+      case "ndjson":
+        return createNdjsonRenderer();
+      case "plain":
+        return createConsoleRenderer(true);
+      case "pretty":
+        return createConsoleRenderer(false);
+      case "auto":
+        return createConsoleRenderer(plainOutputFallback);
+    }
+  }
+  if (flags.json) {
+    return createNdjsonRenderer();
+  }
+  return createConsoleRenderer(plainOutputFallback);
 }
 
 /**
@@ -914,6 +959,8 @@ Options générales:
   -a, --agents            Liste les agents. Identique à palabre agents
   --config <path>         Chemin vers un fichier de config explicite
   --plain                 Utilise le rendu console simple sans habillage TUI
+  --json                  Émet un événement NDJSON par ligne sur stdout (alias de --renderer ndjson)
+  --renderer <kind>       Force le renderer : auto | pretty | plain | ndjson
 
 Sujet et lancement:
 

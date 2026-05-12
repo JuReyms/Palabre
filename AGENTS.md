@@ -357,6 +357,75 @@ Le flag `--plain` force le rendu simple. `NO_COLOR` desactive les couleurs sans 
 
 Ce n'est pas encore le vrai TUI interactif : pas de split-view, pas de scrolling controle, pas d'input humain pendant le debat.
 
+## Renderer NDJSON
+
+`src/renderers/ndjson.ts` fournit un renderer machine-readable pour les integrations out-of-process : extension VS Code Palabre-vscode, plugin Obsidian, scripts shell, replay. Le rendu humain reste assure par les renderers console.
+
+### Activation
+
+Trois facons equivalentes :
+
+```bash
+palabre run --preset codex-claude -s "..." --renderer ndjson
+palabre run --preset codex-claude -s "..." --json
+palabre codex-claude "..." --json -t 4
+```
+
+Precedence des flags : `--renderer` > `--json` > `--plain` > defaut (pretty si TTY, plain sinon). `--renderer <kind>` accepte `auto | pretty | plain | ndjson`. Une valeur inconnue leve une erreur listant les choix supportes.
+
+### Contrat de sortie
+
+- toute la sortie va sur **stdout** ;
+- une ligne = un evenement JSON valide, termine par `\n` ;
+- chaque evenement porte un champ `v` (entier) pour le versioning ; la version courante est `v=1` ;
+- stderr reste libre pour les messages bas niveau (Node, shell, erreurs adapter remontees comme exceptions) que les consommateurs agregent comme ils veulent.
+
+### Schema v1
+
+Types d'evenements emis aujourd'hui :
+
+| Type | Quand | Champs |
+| --- | --- | --- |
+| `start` | une fois, au demarrage du debat | `topic`, `turns`, `agents[]` (`name`, `role`, `type`), `summaryEnabled`, `summaryAgent`, `earlyStop`, `filesCount`, `session` (`startedAt`, `localDate`, `timeZone`, `cwd`) |
+| `notice` | message informatif | `message` |
+| `warning` | avertissement | `message` |
+| `turn-start` | debut d'un tour | `turn`, `totalTurns`, `agent`, `role` |
+| `thinking-start` | agent en cours de generation | `agent`, `role` |
+| `thinking-end` | fin de generation | (aucun) |
+| `message` | contenu d'un message de debat | `turn`, `agent`, `role`, `content` |
+| `summary-start` | debut de la synthese finale | `agent`, `role` |
+| `summary-message` | contenu de la synthese | `agent`, `role`, `content` |
+| `done` | export du `.debate.md` ecrit | `outputPath` |
+
+Exemple de session minimale :
+
+```json
+{"v":1,"type":"start","topic":"...","turns":2,"agents":[{"name":"codex","role":"implementer","type":"cli"},{"name":"claude","role":"reviewer","type":"cli"}],"summaryEnabled":true,"summaryAgent":"claude","earlyStop":true,"filesCount":0,"session":{"startedAt":"...","localDate":"...","timeZone":"...","cwd":"..."}}
+{"v":1,"type":"turn-start","turn":1,"totalTurns":2,"agent":"codex","role":"implementer"}
+{"v":1,"type":"thinking-start","agent":"codex","role":"implementer"}
+{"v":1,"type":"thinking-end"}
+{"v":1,"type":"message","turn":1,"agent":"codex","role":"implementer","content":"..."}
+{"v":1,"type":"turn-start","turn":2,"totalTurns":2,"agent":"claude","role":"reviewer"}
+{"v":1,"type":"message","turn":2,"agent":"claude","role":"reviewer","content":"..."}
+{"v":1,"type":"summary-start","agent":"claude","role":"summarizer"}
+{"v":1,"type":"summary-message","agent":"claude","role":"summarizer","content":"..."}
+{"v":1,"type":"done","outputPath":"./debate-2026-05-11.debate.md"}
+```
+
+### Politique de versioning
+
+- ajout d'un nouveau type d'evenement ou d'un nouveau champ optionnel : **compatible v1**, pas de bump de `v` ;
+- suppression d'un type ou d'un champ obligatoire, renommage, changement de semantique : **breaking**, bump `v` a `2`, documenter la migration ici ;
+- les consommateurs doivent ignorer les champs inconnus et les types inconnus plutot que crasher.
+
+### Limites actuelles
+
+- pas d'evenement `agent-chunk` : le rendu Palabre est par message complet, pas par token. Le streaming token-par-token necessitera un changement de contrat `DebateRenderer` cote orchestrateur, pas seulement le renderer.
+- pas d'evenement `error` : les erreurs d'adapter remontent comme exceptions non capturees par le renderer. Les consommateurs out-of-process recuperent l'exit code != 0 + stderr.
+- pas d'evenement `early-stop` distinct : la fin du debat se voit par l'absence de nouveaux `turn-start` avant le `summary-start` ou le `done`.
+
+Ces points sont a evaluer au cas par cas si un consommateur reel les demande. Eviter de speculer.
+
 ## Tests et verification
 
 Avant de livrer une modification :
