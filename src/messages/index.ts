@@ -8,6 +8,7 @@ import { initMessages, type InitMessages } from "./init.js";
 import { newMessages, type NewMessages } from "./new.js";
 import { presetsMessages, type PresetsMessages } from "./presets.js";
 import { previewMessages, type PreviewMessages } from "./preview.js";
+import { rendererMessages, type RendererMessages } from "./renderers.js";
 import { updateMessages, type UpdateMessages } from "./update.js";
 
 export interface Messages {
@@ -20,6 +21,7 @@ export interface Messages {
   new: NewMessages;
   presets: PresetsMessages;
   preview: PreviewMessages;
+  renderers: RendererMessages;
   update: UpdateMessages;
 }
 
@@ -34,6 +36,7 @@ export function createTranslator(language: Language): Messages {
     new: newMessages[language],
     presets: presetsMessages[language],
     preview: previewMessages[language],
+    renderers: rendererMessages[language],
     update: updateMessages[language]
   };
 }

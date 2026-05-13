@@ -1,11 +1,12 @@
 import type { AgentRole, DebateOptions, DebateRenderer, DebateStartAgentInfo } from "../types.js";
+import type { Messages } from "../messages/index.js";
 
 const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
 const supportsInteractiveOutput = Boolean(process.stdout.isTTY);
 
 /** Instancie le renderer adapté : pretty (spinner, couleurs ANSI, sections) ou plain (logs bruts). */
-export function createConsoleRenderer(plain: boolean): DebateRenderer {
-  return plain ? new PlainConsoleRenderer() : new PrettyConsoleRenderer(supportsColor, supportsInteractiveOutput);
+export function createConsoleRenderer(plain: boolean, messages: Messages): DebateRenderer {
+  return plain ? new PlainConsoleRenderer(messages) : new PrettyConsoleRenderer(supportsColor, supportsInteractiveOutput, messages);
 }
 
 /**
@@ -24,7 +25,8 @@ class PrettyConsoleRenderer implements DebateRenderer {
    */
   constructor(
     private readonly color: boolean,
-    private readonly interactive: boolean
+    private readonly interactive: boolean,
+    private readonly messages: Messages
   ) {}
 
   /** Affiche l'en-tête du débat (sujet, agents, options). */
@@ -33,11 +35,11 @@ class PrettyConsoleRenderer implements DebateRenderer {
     process.stdout.write([
       "",
       this.c("cyan", `┌─ ${title} ${"─".repeat(Math.max(1, 54 - title.length))}`),
-      this.c("cyan", `│`) + ` Sujet: ${options.topic}`,
-      this.c("cyan", `│`) + ` Agents: ${formatAgentPair(options, agents)}`,
-      this.c("cyan", `│`) + ` Réponses: ${options.turns} | Synthèse: ${formatSummary(options)}`,
-      this.c("cyan", `│`) + ` Contexte: ${formatContext(options)}`,
-      this.c("cyan", `│`) + ` Options: arrêt anticipé ${options.earlyStopOnAgreement ? "activé" : "désactivé"}, auto-pull Ollama ${options.pullModels ? "activé" : "désactivé"}`,
+      this.c("cyan", `│`) + ` ${this.messages.renderers.subject(options.topic)}`,
+      this.c("cyan", `│`) + ` ${this.messages.renderers.agents(formatAgentPair(options, agents))}`,
+      this.c("cyan", `│`) + ` ${this.messages.renderers.responsesSummary(options.turns, formatSummary(options, this.messages))}`,
+      this.c("cyan", `│`) + ` ${this.messages.renderers.context(formatContext(options, this.messages))}`,
+      this.c("cyan", `│`) + ` ${this.messages.renderers.options(options.earlyStopOnAgreement, options.pullModels)}`,
       this.c("cyan", `└${"─".repeat(57)}`),
       ""
     ].join("\n"));
@@ -45,12 +47,12 @@ class PrettyConsoleRenderer implements DebateRenderer {
 
   /** Écrit un avertissement sur `stderr` en jaune. */
   warning(message: string): void {
-    process.stderr.write(`${this.c("yellow", "Warning:")} ${message}\n`);
+    process.stderr.write(`${this.c("yellow", this.messages.renderers.warningPrefix)} ${message}\n`);
   }
 
   /** Écrit une notice informative sur `stdout` en vert. */
   notice(message: string): void {
-    process.stdout.write(`${this.c("green", "Info:")} ${message}\n`);
+    process.stdout.write(`${this.c("green", this.messages.renderers.infoPrefix)} ${message}\n`);
   }
 
   /** Affiche l'en-tête d'un nouveau tour (agent, rôle, progression). */
@@ -58,7 +60,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
     this.renderingSummary = false;
     process.stdout.write([
       "",
-      this.c("orange", `◆ ${agent}`) + this.dim(` · ${role} · tour ${turn}/${totalTurns}`),
+      this.c("orange", `◆ ${agent}`) + this.dim(` · ${role} · ${this.messages.renderers.turn(turn, totalTurns)}`),
       this.dim("─".repeat(60)),
       ""
     ].join("\n"));
@@ -68,7 +70,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
   thinkingStart(agent: string, role: AgentRole): void {
     this.thinkingEnd();
 
-    const text = `${agent} (${role}) reflechit`;
+    const text = this.messages.renderers.thinking(agent, role);
 
     if (!this.interactive) {
       process.stdout.write(`${this.dim(`${text}...`)}\n`);
@@ -108,7 +110,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
     this.renderingSummary = true;
     process.stdout.write([
       "",
-      this.c("pink", `◆ Synthese`) + this.dim(` · ${agent} · ${role}`),
+      this.c("pink", `◆ ${this.messages.renderers.summaryTitle}`) + this.dim(` · ${agent} · ${role}`),
       this.dim("─".repeat(60)),
       ""
     ].join("\n"));
@@ -116,7 +118,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
 
   /** Affiche le chemin du fichier de sortie en vert à la fin du débat. */
   done(outputPath: string): void {
-    process.stdout.write(`\n\n${this.c("green", "Debat exporte:")} ${outputPath}\n\n`);
+    process.stdout.write(`\n\n${this.c("green", this.messages.renderers.exported(outputPath))}\n\n`);
   }
 
   /**
@@ -158,21 +160,23 @@ class PrettyConsoleRenderer implements DebateRenderer {
  * Utilisé avec `--plain` ou quand `stdout` n'est pas un TTY.
  */
 class PlainConsoleRenderer implements DebateRenderer {
+  constructor(private readonly messages: Messages) {}
+
   /** Affiche les informations de démarrage du débat en texte brut. */
   start(options: DebateOptions, agents: DebateStartAgentInfo[] = []): void {
-    process.stdout.write(`Sujet: ${options.topic}` + "\n");
-    process.stdout.write(`Agents: ${formatAgentPair(options, agents)}` + "\n");
-    process.stdout.write(`Réponses: ${options.turns} | Synthèse: ${formatSummary(options)} | Contexte: ${formatContext(options)}` + "\n");
+    process.stdout.write(this.messages.renderers.subject(options.topic) + "\n");
+    process.stdout.write(this.messages.renderers.agents(formatAgentPair(options, agents)) + "\n");
+    process.stdout.write(this.messages.renderers.responsesSummaryContext(options.turns, formatSummary(options, this.messages), formatContext(options, this.messages)) + "\n");
   }
 
   /** Écrit un avertissement sur `stderr`. */
   warning(message: string): void {
-    process.stderr.write(`Warning: ${message}\n`);
+    process.stderr.write(`${this.messages.renderers.warningPrefix} ${message}\n`);
   }
 
   /** Écrit une notice informative sur `stdout`. */
   notice(message: string): void {
-    process.stdout.write(`Info: ${message}\n`);
+    process.stdout.write(`${this.messages.renderers.infoPrefix} ${message}\n`);
   }
 
   /** Affiche la progression du tour en texte brut. */
@@ -193,12 +197,12 @@ class PlainConsoleRenderer implements DebateRenderer {
 
   /** Affiche l'en-tête de la section synthèse en texte brut. */
   summaryStart(agent: string, role: AgentRole): void {
-    process.stdout.write(`\n[Synthese] ${agent} (${role})...\n`);
+    process.stdout.write(`\n[${this.messages.renderers.summaryTitle}] ${agent} (${role})...\n`);
   }
 
   /** Affiche le chemin du fichier de sortie à la fin du débat. */
   done(outputPath: string): void {
-    process.stdout.write(`\nDebat exporte: ${outputPath}\n`);
+    process.stdout.write(`\n${this.messages.renderers.exported(outputPath)}\n`);
   }
 }
 
@@ -232,22 +236,22 @@ function formatAgentLabel(agent: DebateStartAgentInfo | undefined): string {
  * Renvoie le nom de l'agent de synthèse ou `"désactivée"` si la synthèse est désactivée.
  * @param options - Options du débat.
  */
-function formatSummary(options: DebateOptions): string {
-  return options.summaryEnabled ? options.summaryAgent ?? options.agentB : "désactivée";
+function formatSummary(options: DebateOptions, messages: Messages): string {
+  return options.summaryEnabled ? options.summaryAgent ?? options.agentB : messages.renderers.disabled;
 }
 
 /**
  * Renvoie un résumé du contexte injecté (nombre de fichiers ou mention d'absence).
  * @param options - Options du débat.
  */
-function formatContext(options: DebateOptions): string {
+function formatContext(options: DebateOptions, messages: Messages): string {
   const count = options.files.length;
 
   if (count === 0) {
-    return "aucun fichier injecté";
+    return messages.renderers.noInjectedFiles;
   }
 
-  return `${count} fichier${count > 1 ? "s" : ""} injecté${count > 1 ? "s" : ""}`;
+  return messages.renderers.injectedFiles(count);
 }
 /** Codes d'échappement ANSI utilisés par `PrettyConsoleRenderer`. */
 const codes = {

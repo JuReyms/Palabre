@@ -100,3 +100,11 @@ test("createTranslator returns localized new wizard messages", () => {
   assert.equal(createTranslator("en").new.yesNoSuffix(false), "y/N");
   assert.equal(createTranslator("en").new.cancelled, "Debate creation cancelled.");
 });
+
+test("createTranslator returns localized console renderer messages", () => {
+  assert.equal(createTranslator("fr").renderers.subject("Sujet test"), "Sujet: Sujet test");
+  assert.equal(createTranslator("en").renderers.subject("Test subject"), "Subject: Test subject");
+  assert.equal(createTranslator("en").renderers.responsesSummaryContext(4, "claude", "no injected files"), "Responses: 4 | Summary: claude | Context: no injected files");
+  assert.equal(createTranslator("en").renderers.options(true, false), "Options: early stop enabled, Ollama auto-pull disabled");
+  assert.equal(createTranslator("en").renderers.exported("out.md"), "Debate exported: out.md");
+});

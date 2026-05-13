@@ -463,17 +463,17 @@ function createRendererFromFlags(
       case "ndjson":
         return createNdjsonRenderer();
       case "plain":
-        return createConsoleRenderer(true);
+        return createConsoleRenderer(true, messages);
       case "pretty":
-        return createConsoleRenderer(false);
+        return createConsoleRenderer(false, messages);
       case "auto":
-        return createConsoleRenderer(plainOutputFallback);
+        return createConsoleRenderer(plainOutputFallback, messages);
     }
   }
   if (flags.json) {
     return createNdjsonRenderer();
   }
-  return createConsoleRenderer(plainOutputFallback);
+  return createConsoleRenderer(plainOutputFallback, messages);
 }
 
 /**
