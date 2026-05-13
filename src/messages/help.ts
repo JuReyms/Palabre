@@ -236,7 +236,7 @@ Flags:
   --config <path>         chemin de config explicite
 
 Documentation complete:
-  https://palab.re/+local
+  https://palab.re/fr
 
 Utilisez "palabre [command] --help" pour plus d'informations sur une commande.
 `,
@@ -280,7 +280,7 @@ Flags:
   --config <path>         explicit config path
 
 Full documentation:
-  https://palab.re/+local
+  https://palab.re/en
 
 Use "palabre [command] --help" for more information about a command.
 `,
