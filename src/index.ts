@@ -193,7 +193,7 @@ async function main(): Promise<void> {
 
   const renderer = createRendererFromFlags(parsed.flags, options.plainOutput, messages);
   context.warnings.forEach((warning) => renderer.warning(warning));
-  const result = await runDebate(config, options, renderer);
+  const result = await runDebate(config, options, renderer, messages);
   const outputPath = await writeDebateMarkdown(
     resolveOutputDir(config.outputDir),
     result.options,

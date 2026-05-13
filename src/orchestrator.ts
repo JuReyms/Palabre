@@ -1,4 +1,6 @@
 import { createAgent } from "./adapters/index.js";
+import { createTranslator } from "./i18n.js";
+import type { Messages } from "./messages/index.js";
 import type { AgentConfig, PalabreConfig, DebateMessage, DebateOptions, DebateRenderer, DebateSummary } from "./types.js";
 
 /** Résultat retourné par `runDebate`. `stopReason` est défini uniquement en cas d'arrêt anticipé. */
@@ -19,23 +21,24 @@ export interface DebateResult {
 export async function runDebate(
   config: PalabreConfig,
   options: DebateOptions,
-  renderer?: DebateRenderer
+  renderer?: DebateRenderer,
+  messages: Messages = createTranslator("fr")
 ): Promise<DebateResult> {
   const agentAConfig = withRuntimeOverrides(config.agents[options.agentA], options.modelA, options.pullModels);
   const agentBConfig = withRuntimeOverrides(config.agents[options.agentB], options.modelB, options.pullModels);
 
   if (!agentAConfig) {
-    throw new Error(`Agent inconnu: ${options.agentA}`);
+    throw new Error(messages.common.unknownAgent(options.agentA));
   }
 
   if (!agentBConfig) {
-    throw new Error(`Agent inconnu: ${options.agentB}`);
+    throw new Error(messages.common.unknownAgent(options.agentB));
   }
 
   warnIfOllamaHasNoContext(options, [
     [options.agentA, agentAConfig],
     [options.agentB, agentBConfig]
-  ], renderer);
+  ], renderer, messages);
 
   renderer?.start(options, [
     { name: options.agentA, role: agentAConfig.role, type: agentAConfig.type },
@@ -47,7 +50,7 @@ export async function runDebate(
     createAgent(options.agentB, agentBConfig)
   ];
 
-  const messages: DebateMessage[] = [];
+  const transcript: DebateMessage[] = [];
   let stopReason: string | undefined;
 
   for (let index = 0; index < options.turns; index += 1) {
@@ -66,7 +69,7 @@ export async function runDebate(
       selfRole: current.role,
       session: options.session,
       files: options.files,
-      transcript: messages
+      transcript
     }).finally(() => renderer?.thinkingEnd());
 
     const message: DebateMessage = {
@@ -76,23 +79,23 @@ export async function runDebate(
       createdAt: new Date().toISOString()
     };
 
-    messages.push(message);
+    transcript.push(message);
     renderer?.message(message.content);
 
-    if (shouldStopOnAgreement(options, messages)) {
-      stopReason = "Accord clair detecte apres un tour complet.";
-      renderer?.notice(`Arret anticipe: ${stopReason}`);
+    if (shouldStopOnAgreement(options, transcript)) {
+      stopReason = messages.orchestrator.agreementStopReason;
+      renderer?.notice(messages.orchestrator.earlyStop(stopReason));
       break;
     }
   }
 
   const summary = options.summaryEnabled
-    ? await generateSummary(config, options, messages, renderer)
+    ? await generateSummary(config, options, transcript, renderer, messages)
     : undefined;
 
   return {
     options,
-    messages,
+    messages: transcript,
     summary,
     stopReason
   };
@@ -150,7 +153,8 @@ function normalizeForAgreement(value: string): string {
 function warnIfOllamaHasNoContext(
   options: DebateOptions,
   agents: Array<[string, AgentConfig]>,
-  renderer?: DebateRenderer
+  renderer?: DebateRenderer,
+  messages: Messages = createTranslator("fr")
 ): void {
   if (options.files.length > 0) {
     return;
@@ -165,9 +169,7 @@ function warnIfOllamaHasNoContext(
     return;
   }
 
-  renderer?.warning(
-    `${ollamaAgents.join(", ")} ne lit pas le filesystem. Ajoute --files ou --context pour fournir un contexte projet.`
-  );
+  renderer?.warning(messages.orchestrator.ollamaNoContext(ollamaAgents.join(", ")));
 }
 
 /**
@@ -178,15 +180,16 @@ function warnIfOllamaHasNoContext(
 async function generateSummary(
   config: PalabreConfig,
   options: DebateOptions,
-  messages: DebateMessage[],
-  renderer?: DebateRenderer
+  transcript: DebateMessage[],
+  renderer?: DebateRenderer,
+  messages: Messages = createTranslator("fr")
 ): Promise<DebateSummary> {
   const summaryAgentName = options.summaryAgent ?? options.agentB;
   const summaryModel = options.summaryModel ?? modelForAgent(options, summaryAgentName);
   const summaryConfig = withRuntimeOverrides(config.agents[summaryAgentName], summaryModel, options.pullModels);
 
   if (!summaryConfig) {
-    throw new Error(`Agent de synthese inconnu: ${summaryAgentName}`);
+    throw new Error(messages.orchestrator.unknownSummaryAgent(summaryAgentName));
   }
 
   const summaryAgent = createAgent(summaryAgentName, summaryConfig);
@@ -196,14 +199,14 @@ async function generateSummary(
 
   const response = await summaryAgent.generate({
     topic: options.topic,
-    turn: messages.length + 1,
+    turn: transcript.length + 1,
     selfName: summaryAgent.name,
     peerName: "transcript",
     selfRole: summaryAgent.role,
     mode: "summary",
     session: options.session,
     files: options.files,
-    transcript: messages
+    transcript
   }).finally(() => renderer?.thinkingEnd());
 
   const summary: DebateSummary = {
