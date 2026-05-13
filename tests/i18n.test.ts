@@ -91,3 +91,12 @@ test("createTranslator returns localized preview messages", () => {
   assert.equal(createTranslator("en").preview.summary(createTranslator("en").preview.disabled), "Summary: disabled");
   assert.match(createTranslator("en").preview.note, /first-turn prompts/);
 });
+
+test("createTranslator returns localized new wizard messages", () => {
+  assert.equal(createTranslator("fr").new.title, "PALABRE - ASSISTANT DE CONFIGURATION");
+  assert.equal(createTranslator("en").new.title, "PALABRE - SETUP ASSISTANT");
+  assert.equal(createTranslator("en").new.detectedCli("reviewer"), "cli/reviewer detected");
+  assert.equal(createTranslator("en").new.modelFor("codex"), "Model for codex (optional)");
+  assert.equal(createTranslator("en").new.yesNoSuffix(false), "y/N");
+  assert.equal(createTranslator("en").new.cancelled, "Debate creation cancelled.");
+});

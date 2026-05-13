@@ -389,7 +389,7 @@ La langue de l'interface CLI est resolue via `src/i18n.ts` avec la precedence su
 
 `language` controle l'interface Palabre, pas encore la langue demandee aux agents. Garder cette separation nette : une future option `debateLanguage` pourra guider les prompts sans forcer la langue de l'interface.
 
-Les messages traduisibles vivent dans `src/messages/`, decoupes par domaine (`common`, `doctor`, `help`, `init`, `agents`, `config`, `presets`, `update`, `preview`, etc.). Ajouter les nouvelles surfaces par lots coherents plutot que melanger traduction et refactor large. `palabre doctor`, `palabre help`, `palabre init`, `palabre agents`, `palabre config`, `palabre presets`, `palabre update` et `--show-prompt` sont migrees vers le dictionnaire FR/EN.
+Les messages traduisibles vivent dans `src/messages/`, decoupes par domaine (`common`, `doctor`, `help`, `init`, `agents`, `config`, `presets`, `update`, `preview`, `new`, etc.). Ajouter les nouvelles surfaces par lots coherents plutot que melanger traduction et refactor large. `palabre doctor`, `palabre help`, `palabre init`, `palabre agents`, `palabre config`, `palabre presets`, `palabre update`, `--show-prompt` et `palabre new` sont migrees vers le dictionnaire FR/EN.
 
 ## Syntaxe CLI courte
 

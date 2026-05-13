@@ -132,10 +132,10 @@ async function main(): Promise<void> {
   const messages = createTranslator(language);
 
   if (parsed.command === "new") {
-    const selection = await runNewWizard(config);
+    const selection = await runNewWizard(config, messages);
 
     if (!selection) {
-      console.log("Création de débat annulée.");
+      console.log(messages.new.cancelled);
       return;
     }
 

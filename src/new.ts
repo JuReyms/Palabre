@@ -4,6 +4,7 @@ import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { findPresetNameForPair } from "./presets.js";
 import { MAX_TURNS, turnsOrDefault, validateTurns } from "./limits.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
+import type { Messages } from "./messages/index.js";
 
 /**
  * Paramètres collectés par le wizard `palabre new`.
@@ -42,34 +43,34 @@ interface Questioner {
  * Détecte les outils locaux, liste les agents de la config et guide la composition du débat.
  * Retourne `undefined` si l'utilisateur annule (q/quit/exit ou Ctrl+C).
  */
-export async function runNewWizard(config: PalabreConfig): Promise<NewCommandSelection | undefined> {
+export async function runNewWizard(config: PalabreConfig, messages: Messages): Promise<NewCommandSelection | undefined> {
   const discovery = await discoverLocalTools();
-  const choices = buildAgentChoices(config, discovery);
+  const choices = buildAgentChoices(config, discovery, messages);
 
   if (choices.length < 2) {
-    throw new Error("palabre new a besoin d'au moins deux agents dans la config. Lance `palabre init` ou edite ta config.");
+    throw new Error(messages.new.needsTwoAgents);
   }
 
   const rl = await createQuestioner();
 
   try {
-    console.log("PALABRE - ASSISTANT DE CONFIGURATION");
-    console.log("À tout moment: Ctrl+C pour interrompre, ou tape q, quit ou exit dans un prompt pour quitter.");
-    console.log("Appuie sur Entrée pour accepter un choix par défaut (*).");
+    console.log(messages.new.title);
+    console.log(messages.new.quitHint);
+    console.log(messages.new.defaultHint);
     console.log("");
 
-    const agentA = await askAgent(rl, choices, "Agent A", config.defaults?.agentA);
+    const agentA = await askAgent(rl, choices, messages.new.agentA, config.defaults?.agentA, messages);
     if (!agentA) return undefined;
 
-    const agentB = await askAgent(rl, choices.filter((choice) => choice.name !== agentA), "Agent B", config.defaults?.agentB === agentA ? undefined : config.defaults?.agentB);
+    const agentB = await askAgent(rl, choices.filter((choice) => choice.name !== agentA), messages.new.agentB, config.defaults?.agentB === agentA ? undefined : config.defaults?.agentB, messages);
     if (!agentB) return undefined;
 
-    const topic = await askRequiredText(rl, "Sujet");
+    const topic = await askRequiredText(rl, messages.new.topic, messages);
     if (!topic) return undefined;
 
-    printCommandPreview({ agentA, agentB, topic, turns: turnsOrDefault(config.defaults?.turns) });
-    console.log("Réponds non pour choisir le nombre de réponses, les modèles, la synthèse et le contexte.");
-    const launchMinimal = await askYesNo(rl, "Lancer maintenant avec les options par défaut ?", true);
+    printCommandPreview({ agentA, agentB, topic, turns: turnsOrDefault(config.defaults?.turns) }, messages);
+    console.log(messages.new.advancedHint);
+    const launchMinimal = await askYesNo(rl, messages.new.launchMinimal, true, messages);
     if (launchMinimal === undefined) return undefined;
 
     if (launchMinimal) {
@@ -84,34 +85,34 @@ export async function runNewWizard(config: PalabreConfig): Promise<NewCommandSel
       };
     }
 
-    const turns = await askNumber(rl, "Nombre de réponses", turnsOrDefault(config.defaults?.turns));
+    const turns = await askNumber(rl, messages.new.turns, turnsOrDefault(config.defaults?.turns), messages);
     if (turns === undefined) return undefined;
 
-    const modelA = await askOptionalText(rl, `Modèle pour ${agentA} (optionnel)`);
+    const modelA = await askOptionalText(rl, messages.new.modelFor(agentA));
     if (modelA === undefined) return undefined;
 
-    const modelB = await askOptionalText(rl, `Modèle pour ${agentB} (optionnel)`);
+    const modelB = await askOptionalText(rl, messages.new.modelFor(agentB));
     if (modelB === undefined) return undefined;
 
-    const summaryEnabled = await askYesNo(rl, "Synthèse finale ?", true);
+    const summaryEnabled = await askYesNo(rl, messages.new.summaryEnabled, true, messages);
     if (summaryEnabled === undefined) return undefined;
 
     let summaryAgent: string | undefined;
     let summaryModel: string | undefined;
     if (summaryEnabled) {
-      summaryAgent = await askAgent(rl, choices, "Agent de synthèse", config.defaults?.summaryAgent ?? agentB);
+      summaryAgent = await askAgent(rl, choices, messages.new.summaryAgent, config.defaults?.summaryAgent ?? agentB, messages);
       if (!summaryAgent) return undefined;
 
-      summaryModel = await askOptionalText(rl, `Modèle de synthèse pour ${summaryAgent} (optionnel)`);
+      summaryModel = await askOptionalText(rl, messages.new.summaryModelFor(summaryAgent));
       if (summaryModel === undefined) return undefined;
     }
 
-    const context = splitPaths(await askOptionalText(rl, "Contexte dossier/fichier via --context (optionnel)"));
-    const files = splitPaths(await askOptionalText(rl, "Fichiers stricts via --files (optionnel)"));
-    const showPrompt = await askYesNo(rl, "Afficher seulement le prompt ?", false);
+    const context = splitPaths(await askOptionalText(rl, messages.new.contextPaths));
+    const files = splitPaths(await askOptionalText(rl, messages.new.filesPaths));
+    const showPrompt = await askYesNo(rl, messages.new.showPrompt, false, messages);
     if (showPrompt === undefined) return undefined;
 
-    const plainOutput = await askYesNo(rl, "Rendu plain ?", false);
+    const plainOutput = await askYesNo(rl, messages.new.plainOutput, false, messages);
     if (plainOutput === undefined) return undefined;
 
     const selection = {
@@ -129,7 +130,7 @@ export async function runNewWizard(config: PalabreConfig): Promise<NewCommandSel
       showPrompt,
       plainOutput
     };
-    printCommandPreview(selection);
+    printCommandPreview(selection, messages);
     return selection;
   } finally {
     rl.close();
@@ -168,7 +169,7 @@ async function readPipedLines(): Promise<string[]> {
   return raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
 }
 
-function buildAgentChoices(config: PalabreConfig, discovery: ToolDiscovery): AgentChoice[] {
+function buildAgentChoices(config: PalabreConfig, discovery: ToolDiscovery, messages: Messages): AgentChoice[] {
   return Object.entries(config.agents)
     .map(([name, agentConfig]) => {
       const detected = isAgentDetected(name, agentConfig, discovery);
@@ -176,7 +177,7 @@ function buildAgentChoices(config: PalabreConfig, discovery: ToolDiscovery): Age
         name,
         config: agentConfig,
         detected,
-        status: agentStatus(name, agentConfig, discovery, detected)
+        status: agentStatus(name, agentConfig, discovery, detected, messages)
       };
     })
     .sort((left, right) => Number(right.detected) - Number(left.detected) || left.name.localeCompare(right.name));
@@ -196,23 +197,24 @@ function isAgentDetected(name: string, config: AgentConfig, discovery: ToolDisco
   return true;
 }
 
-function agentStatus(_name: string, config: AgentConfig, discovery: ToolDiscovery, detected: boolean): string {
+function agentStatus(_name: string, config: AgentConfig, discovery: ToolDiscovery, detected: boolean, messages: Messages): string {
   if (config.type === "ollama") {
     return detected
-      ? `ollama/${config.role} détecté (${discovery.ollama.models.length} modèle(s))`
-      : `ollama/${config.role} non joignable`;
+      ? messages.new.detectedOllama(config.role, discovery.ollama.models.length)
+      : messages.new.ollamaUnreachable(config.role);
   }
 
   return detected
-    ? `cli/${config.role} détecté`
-    : `cli/${config.role} non détecté`;
+    ? messages.new.detectedCli(config.role)
+    : messages.new.missingCli(config.role);
 }
 
 async function askAgent(
   rl: Questioner,
   choices: AgentChoice[],
   label: string,
-  defaultName: string | undefined
+  defaultName: string | undefined,
+  messages: Messages
 ): Promise<string | undefined> {
   const fallback = choices.find((choice) => choice.name === defaultName)?.name ?? choices[0]?.name;
 
@@ -238,11 +240,11 @@ async function askAgent(
       return value;
     }
 
-    console.log("Choix invalide. Tape un numéro, un nom d'agent, Entrée ou q.");
+    console.log(messages.new.invalidAgentChoice);
   }
 }
 
-async function askRequiredText(rl: Questioner, label: string): Promise<string | undefined> {
+async function askRequiredText(rl: Questioner, label: string, messages: Messages): Promise<string | undefined> {
   while (true) {
     const answer = await rl.question(`${label}: `);
     const value = answer.trim();
@@ -250,7 +252,7 @@ async function askRequiredText(rl: Questioner, label: string): Promise<string | 
     if (isQuit(value)) return undefined;
     if (value) return value;
 
-    console.log("Ce champ est requis pour lancer un débat.");
+    console.log(messages.new.requiredField);
   }
 }
 
@@ -263,7 +265,8 @@ async function askOptionalText(rl: Questioner, label: string): Promise<string | 
 async function askNumber(
   rl: Questioner,
   label: string,
-  defaultValue: number
+  defaultValue: number,
+  messages: Messages
 ): Promise<number | undefined> {
   while (true) {
     const answer = await rl.question(`${label} [${defaultValue}]: `);
@@ -275,23 +278,24 @@ async function askNumber(
     const parsed = Number(value);
     if (Number.isInteger(parsed)) {
       try {
-        validateTurns(parsed, "Le nombre de réponses");
+        validateTurns(parsed, messages.new.turnsValidationLabel);
         return parsed;
       } catch {
         // Show the user-facing wizard hint below.
       }
     }
 
-    console.log(`Entre un nombre entier entre 1 et ${MAX_TURNS}, Entrée ou q.`);
+    console.log(messages.new.invalidTurns(MAX_TURNS));
   }
 }
 
 async function askYesNo(
   rl: Questioner,
   label: string,
-  defaultValue: boolean
+  defaultValue: boolean,
+  messages: Messages
 ): Promise<boolean | undefined> {
-  const suffix = defaultValue ? "Y/n" : "y/N";
+  const suffix = messages.new.yesNoSuffix(defaultValue);
 
   while (true) {
     const answer = await rl.question(`${label} [${suffix}]: `);
@@ -302,7 +306,7 @@ async function askYesNo(
     if (["y", "yes", "o", "oui"].includes(value)) return true;
     if (["n", "no", "non"].includes(value)) return false;
 
-    console.log("Réponds par oui, non, Entrée ou q.");
+    console.log(messages.new.invalidYesNo);
   }
 }
 
@@ -325,12 +329,12 @@ function isQuit(value: string): boolean {
   return ["q", "quit", "exit"].includes(value.toLowerCase());
 }
 
-function printCommandPreview(selection: Partial<NewCommandSelection> & Pick<NewCommandSelection, "agentA" | "agentB" | "topic">): void {
+function printCommandPreview(selection: Partial<NewCommandSelection> & Pick<NewCommandSelection, "agentA" | "agentB" | "topic">, messages: Messages): void {
   const explicitCommand = buildExplicitCommand(selection);
   const shortCommand = buildShortCommand(selection);
 
   console.log("");
-  console.log("Commandes équivalentes:");
+  console.log(messages.new.equivalentCommands);
   console.log(`  ${explicitCommand}`);
 
   if (shortCommand) {
