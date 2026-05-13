@@ -69,14 +69,23 @@ async function main(): Promise<void> {
 
   if (parsed.command === "update") {
     const info = await getUpdateInfo(await getPackageVersion());
+    const updateConfigPath = optionalString(parsed.flags.config) ?? await resolveDefaultConfigPath();
+    const updateConfig = await configExists(updateConfigPath)
+      ? await loadConfig(updateConfigPath)
+      : undefined;
+    const updateLanguage = resolveLanguage({
+      explicitLanguage: optionalString(parsed.flags.language),
+      configLanguage: updateConfig?.language
+    });
+    const updateMessages = createTranslator(updateLanguage);
 
     if (parsed.flags.apply) {
-      await applySourceUpdate(info);
-      console.log("PALABRE est a jour.");
+      await applySourceUpdate(info, updateMessages);
+      console.log(updateMessages.update.upToDate);
       return;
     }
 
-    console.log(formatUpdateInstructions(info));
+    console.log(formatUpdateInstructions(info, updateMessages));
     return;
   }
 
