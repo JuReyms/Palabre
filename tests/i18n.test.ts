@@ -33,3 +33,9 @@ test("createTranslator returns localized common errors", () => {
   assert.equal(createTranslator("en").common.errorPrefix, "Error");
   assert.match(createTranslator("en").common.optionRequiresValue("--topic"), /expects a value/);
 });
+
+test("createTranslator returns localized help text", () => {
+  assert.match(createTranslator("fr").help.render("codex-claude"), /Usage rapide/);
+  assert.match(createTranslator("en").help.render("codex-claude"), /Quick usage/);
+  assert.match(createTranslator("en").help.render("codex-claude"), /codex-claude/);
+});

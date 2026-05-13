@@ -41,7 +41,7 @@ async function main(): Promise<void> {
   }
 
   if (parsed.command === "help" || parsed.flags.help) {
-    printHelp();
+    printHelp(startupMessages);
     return;
   }
 
@@ -979,148 +979,10 @@ function formatOllamaDetection(detection: Awaited<ReturnType<typeof discoverLoca
 }
 
 /** Affiche le texte d'aide complet sur `stdout`. */
-function printHelp(): void {
-  console.log(`
-PALABRE
-_____________________________________________
-
-Usage rapide:
-
-  palabre init 
-      Crée une config globale et détecte les agents AI disponibles sur la machine.
-
-  palabre agents
-      Affiche les agents déclarés dans la config.
-
-  palabre config
-      Assistant pour définir ou supprimer les paramètres par défaut.
-
-  palabre new
-      Assistant interactif pour choisir les agents, le sujet et les options.
-
-  palabre claude-gemini "Sujet" -t 4
-      Lance avec un preset et un sujet positionnel.
-
-  palabre "Sujet"
-      Lance le débat avec paramètres par défaut de la config.
-
-_____________________________________________
-
-
-Commandes:
-
-  palabre init [--local]
-      Crée une config locale et détecte Codex, Claude, Gemini, OpenCode et Ollama.
-
-  palabre agents [--config <path>]
-      Liste les agents déclarés dans la config et leur détection locale.
-
-  palabre presets [--json]
-      Liste les presets de paires d'agents. \`--json\` émet la liste structurée
-      pour les intégrations (extension VS Code, scripts).
-
-  palabre config
-      Assistant pour définir ou supprimer les paramètres par défaut.
-
-  palabre config --set-defaults <agentA> <agentB> [-t <n>] [--summary-agent <name>]
-      Définit les agents par défaut, et optionnellement les réponses et la synthèse.
-
-  palabre config -t <n>
-      Définit seulement le nombre de réponses par défaut.
-
-  palabre config --summary-agent <name|none>
-      Définit ou retire seulement l'agent de synthèse par défaut.
-
-  palabre config --language <fr|en>
-      Définit la langue de l'interface Palabre.
-
-  palabre config --clear-defaults
-      Supprime les paramètres par défaut.
-
-  palabre doctor [--config <path>]
-      Vérifie la config et les outils locaux.
-
-  palabre update [--apply]
-      Affiche ou exécute les étapes de mise à jour d'un checkout git.
-
-  palabre help
-      Affiche cette aide. Identique à -h ou --help.
-      
-  palabre version
-      Affiche la version. Identique à -v ou --version.
-
-_____________________________________________
-
-
-Notation:
-
-  [option] signifie facultatif. Ne tape pas les crochets.
-  <valeur> signifie qu'il faut remplacer ce texte par ta valeur.
-
-Options générales:
-
-  -h, --help              Affiche cette aide
-  -v, --version           Affiche la version
-  -a, --agents            Liste les agents. Identique à palabre agents
-  --config <path>         Chemin vers un fichier de config explicite
-  --language <fr|en>      Force la langue de l'interface (alias : --lang)
-  --plain                 Utilise le rendu console simple sans habillage TUI
-  --json                  Émet un événement NDJSON par ligne sur stdout (alias de --renderer ndjson)
-  --renderer <kind>       Force le renderer : auto | pretty | plain | ndjson
-
-Sujet et lancement:
-
-  -s, --subject <text>    Sujet du débat, option recommandée
-  --topic <text>          Alias compatible de --subject
-  --agent-a <name>        Premier agent
-  --agent-b <name>        Second agent
-  --preset <name>         Preset de paire d'agents. Exemples: codex-claude, claude-gemini
-  -t, --turns <number>    Nombre total de réponses (1 à 20)
-  --no-early-stop         Désactive l'arrêt anticipé si les agents sont clairement d'accord
-
-Modèles:
-
-  --model-a <model>       Modèle brut transmis à l'agent A
-  --model-b <model>       Modèle brut transmis à l'agent B
-  --pull-models           Autorise Ollama à télécharger un modèle manquant
-
-Synthèse:
-
-  --summary-agent <name>  Agent utilisé pour produire la synthèse finale
-  --summary-model <model> Modèle brut transmis à l'agent de synthèse
-  --no-summary            Désactive la synthèse finale
-
-Contexte:
-
-  --files <paths...>      Fichiers texte à injecter explicitement dans le contexte
-  --context <paths...>    Scanne fichiers/dossiers texte en respectant les limites de contexte
-  --show-prompt           Affiche le prompt du premier tour sans appeler d'agent
-
-Configuration:
-
-  --local                 Avec init/setup, crée ./palabre.config.json
-  --set-defaults <a b>    Avec config, définit les agents par défaut
-  --summary-agent <name>  Avec config, définit l'agent de synthèse par défaut
-  --summary-agent none    Avec config, retire l'agent de synthèse par défaut
-  --language <fr|en>      Avec config/init/run, définit ou force la langue d'interface
-  --clear-defaults        Avec config, supprime les paramètres par défaut
-  --sync-agents           Avec config, ajoute les agents détectés manquants
-
-Mise à jour:
-
-  --apply                 Avec update, exécute les étapes de mise à jour
-
-_____________________________________________
-
-
-Presets disponibles:
-
-  ${listPresetNames().join(", ")}
-
-_____________________________________________
-
-`);
+function printHelp(messages: Messages): void {
+  console.log(messages.help.render(listPresetNames().join(", ")));
 }
+
 main().catch((error: unknown) => {
   const message = error instanceof AdapterError
     ? formatAdapterError(error)
@@ -1137,3 +999,4 @@ function safeStartupLanguage(args: string[]) {
     return DEFAULT_LANGUAGE;
   }
 }
+
