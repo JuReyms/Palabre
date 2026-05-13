@@ -130,3 +130,10 @@ test("createTranslator returns localized orchestrator messages", () => {
   assert.equal(createTranslator("en").orchestrator.ollamaNoContext("ollama-local"), "ollama-local cannot read the filesystem. Add --files or --context to provide project context.");
   assert.equal(createTranslator("en").orchestrator.unknownSummaryAgent("ghost"), "Unknown summary agent: ghost");
 });
+
+test("createTranslator returns localized output messages", () => {
+  assert.equal(createTranslator("fr").output.contextTitle, "## Contexte");
+  assert.equal(createTranslator("en").output.contextTitle, "## Context");
+  assert.equal(createTranslator("en").output.fields.requestedTurns, "Requested turns");
+  assert.equal(createTranslator("en").output.summaryDisabled, "_Summary disabled._");
+});

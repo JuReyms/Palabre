@@ -9,6 +9,7 @@ import { initMessages, type InitMessages } from "./init.js";
 import { limitsMessages, type LimitsMessages } from "./limits.js";
 import { newMessages, type NewMessages } from "./new.js";
 import { orchestratorMessages, type OrchestratorMessages } from "./orchestrator.js";
+import { outputMessages, type OutputMessages } from "./output.js";
 import { presetsMessages, type PresetsMessages } from "./presets.js";
 import { previewMessages, type PreviewMessages } from "./preview.js";
 import { rendererMessages, type RendererMessages } from "./renderers.js";
@@ -25,6 +26,7 @@ export interface Messages {
   limits: LimitsMessages;
   new: NewMessages;
   orchestrator: OrchestratorMessages;
+  output: OutputMessages;
   presets: PresetsMessages;
   preview: PreviewMessages;
   renderers: RendererMessages;
@@ -43,6 +45,7 @@ export function createTranslator(language: Language): Messages {
     limits: limitsMessages[language],
     new: newMessages[language],
     orchestrator: orchestratorMessages[language],
+    output: outputMessages[language],
     presets: presetsMessages[language],
     preview: previewMessages[language],
     renderers: rendererMessages[language],

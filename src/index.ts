@@ -199,7 +199,8 @@ async function main(): Promise<void> {
     result.options,
     result.messages,
     result.summary,
-    result.stopReason
+    result.stopReason,
+    messages
   );
 
   renderer.done(outputPath);

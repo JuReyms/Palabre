@@ -1,5 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { createTranslator } from "./i18n.js";
+import type { Messages } from "./messages/index.js";
 import type { DebateMessage, DebateOptions, DebateSummary } from "./types.js";
 
 /**
@@ -9,16 +11,17 @@ import type { DebateMessage, DebateOptions, DebateSummary } from "./types.js";
 export async function writeDebateMarkdown(
   outputDir: string,
   options: DebateOptions,
-  messages: DebateMessage[],
+  debateMessages: DebateMessage[],
   summary?: DebateSummary,
-  stopReason?: string
+  stopReason?: string,
+  messages: Messages = createTranslator("fr")
 ): Promise<string> {
   const safeDate = new Date().toISOString().replace(/[:.]/g, "-");
   const fileName = `palabre-${slugifyTopic(options.topic)}-${safeDate}.debate.md`;
   const filePath = path.resolve(outputDir, fileName);
 
   await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, renderDebateMarkdown(options, messages, summary, stopReason), "utf8");
+  await writeFile(filePath, renderDebateMarkdown(options, debateMessages, summary, stopReason, messages), "utf8");
 
   return filePath;
 }
@@ -42,24 +45,25 @@ function slugifyTopic(topic: string): string {
  */
 export function renderDebateMarkdown(
   options: DebateOptions,
-  messages: DebateMessage[],
+  debateMessages: DebateMessage[],
   summary?: DebateSummary,
-  stopReason?: string
+  stopReason?: string,
+  messages: Messages = createTranslator("fr")
 ): string {
   const lines = [
-    "# PALABRE Debate",
+    messages.output.title,
     "",
-    ...renderSessionHeader(options, messages, stopReason),
+    ...renderSessionHeader(options, debateMessages, stopReason, messages),
     "",
-    "## Contexte",
+    messages.output.contextTitle,
     "",
-    ...renderFileList(options.files),
+    ...renderFileList(options.files, messages),
     "",
-    "## Echanges",
+    messages.output.exchangesTitle,
     ""
   ];
 
-  for (const message of messages) {
+  for (const message of debateMessages) {
     lines.push(
       `### ${message.agent} (${message.role})`,
       "",
@@ -68,19 +72,19 @@ export function renderDebateMarkdown(
     );
   }
 
-  lines.push("---", "", "## Synthese finale", "", ...renderSummaryBlock(options, summary));
+  lines.push("---", "", messages.output.finalSummaryTitle, "", ...renderSummaryBlock(options, summary, messages));
 
   return `${lines.join("\n")}\n`;
 }
 
-function renderSummaryBlock(options: DebateOptions, summary?: DebateSummary): string[] {
+function renderSummaryBlock(options: DebateOptions, summary: DebateSummary | undefined, messages: Messages): string[] {
   if (summary) {
     return [
-      "| Champ | Valeur |",
+      `| ${messages.output.tableField} | ${messages.output.tableValue} |`,
       "| --- | --- |",
-      `| Agent | ${escapeTableCell(summary.agent)} |`,
-      `| Role | ${escapeTableCell(summary.role)} |`,
-      `| Date | ${escapeTableCell(summary.createdAt)} |`,
+      `| ${messages.output.fields.agent} | ${escapeTableCell(summary.agent)} |`,
+      `| ${messages.output.fields.role} | ${escapeTableCell(summary.role)} |`,
+      `| ${messages.output.fields.date} | ${escapeTableCell(summary.createdAt)} |`,
       "",
       normalizeMarkdownForWindowsPreview(summary.content.trim()),
       ""
@@ -89,8 +93,8 @@ function renderSummaryBlock(options: DebateOptions, summary?: DebateSummary): st
 
   return [
     options.summaryEnabled
-      ? "_Synthese finale demandee mais non disponible._"
-      : "_Synthese desactivee._",
+      ? messages.output.summaryMissing
+      : messages.output.summaryDisabled,
     ""
   ];
 }
@@ -101,25 +105,26 @@ function normalizeMarkdownForWindowsPreview(content: string): string {
 
 function renderSessionHeader(
   options: DebateOptions,
-  messages: DebateMessage[],
-  stopReason?: string
+  debateMessages: DebateMessage[],
+  stopReason: string | undefined,
+  messages: Messages
 ): string[] {
   const rows = [
-    ["Sujet", options.topic],
-    ["Agents", `${options.agentA} <-> ${options.agentB}`],
-    ["Auto-pull Ollama", options.pullModels ? "yes" : "no"],
-    ["Synthese", options.summaryEnabled ? options.summaryAgent ?? options.agentB : "disabled"],
-    ["Tours demandes", String(options.turns)],
-    ["Tours joues", String(messages.length)],
-    ["Arret anticipe", stopReason ?? "no"],
-    ["Date locale", options.session.localDate],
-    ["Fuseau horaire", options.session.timeZone],
-    ["Dossier courant", options.session.cwd],
-    ["Session demarree a", options.session.startedAt]
+    [messages.output.fields.subject, options.topic],
+    [messages.output.fields.agents, `${options.agentA} <-> ${options.agentB}`],
+    [messages.output.fields.autoPullOllama, options.pullModels ? messages.output.yes : messages.output.no],
+    [messages.output.fields.summary, options.summaryEnabled ? options.summaryAgent ?? options.agentB : messages.output.disabled],
+    [messages.output.fields.requestedTurns, String(options.turns)],
+    [messages.output.fields.playedTurns, String(debateMessages.length)],
+    [messages.output.fields.earlyStop, stopReason ?? messages.output.no],
+    [messages.output.fields.localDate, options.session.localDate],
+    [messages.output.fields.timeZone, options.session.timeZone],
+    [messages.output.fields.cwd, options.session.cwd],
+    [messages.output.fields.sessionStartedAt, options.session.startedAt]
   ];
 
   return [
-    "| Champ | Valeur |",
+    `| ${messages.output.tableField} | ${messages.output.tableValue} |`,
     "| --- | --- |",
     ...rows.map(([label, value]) => `| ${escapeTableCell(label)} | ${escapeTableCell(value)} |`)
   ];
@@ -129,10 +134,10 @@ function escapeTableCell(value: string): string {
   return value.replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>");
 }
 
-function renderFileList(files: DebateOptions["files"]): string[] {
+function renderFileList(files: DebateOptions["files"], messages: Messages): string[] {
   if (files.length === 0) {
-    return ["Aucun contexte fichier injecte."];
+    return [messages.output.noFileContext];
   }
 
-  return files.map((file) => `- \`${file.path}\` (${file.sizeBytes} bytes)`);
+  return files.map((file) => `- \`${file.path}\` (${file.sizeBytes} ${messages.output.fileSizeUnit})`);
 }
