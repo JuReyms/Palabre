@@ -16,6 +16,7 @@ This command creates a global configuration at:
 ```
 
 It also detects locally available tools: Codex, Claude, Gemini, OpenCode, and Ollama.
+After creation, Palabre shows the active language and the quick command to switch to the other language.
 
 ## Choose the language
 

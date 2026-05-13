@@ -19,7 +19,7 @@ export const previewMessages: Record<Language, PreviewMessages> = {
     pullModels: (enabled) => `Télécharger les modèles Ollama manquants: ${enabled ? "oui" : "non"}`,
     summary: (value) => `Synthèse: ${value}`,
     disabled: "désactivée",
-    interfaceLanguage: (language) => `Langue interface: ${language}`,
+    interfaceLanguage: (language) => `Langue: ${language}`,
     note: "Note: seuls les prompts du premier tour sont exacts sans exécuter les agents. Les tours suivants incluent le transcript réel."
   },
   en: {
@@ -29,7 +29,7 @@ export const previewMessages: Record<Language, PreviewMessages> = {
     pullModels: (enabled) => `Pull missing Ollama models: ${enabled ? "yes" : "no"}`,
     summary: (value) => `Summary: ${value}`,
     disabled: "disabled",
-    interfaceLanguage: (language) => `Interface language: ${language}`,
+    interfaceLanguage: (language) => `Language: ${language}`,
     note: "Note: only first-turn prompts are exact without running agents. Later turns include the real transcript."
   }
 };

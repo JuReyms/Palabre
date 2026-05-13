@@ -23,8 +23,8 @@ test("resolveLanguage applies CLI, env, config, fallback precedence", () => {
 
 test("createTranslator returns localized doctor messages", () => {
   assert.equal(createTranslator("en").adapterErrors.hint("command-not-found"), "Check that the CLI is installed, authenticated, and available in PATH.");
-  assert.equal(createTranslator("fr").doctor.interfaceLanguage("fr"), "Langue interface: fr");
-  assert.equal(createTranslator("en").doctor.interfaceLanguage("en"), "Interface language: en");
+  assert.equal(createTranslator("fr").doctor.interfaceLanguage("fr"), "Langue: fr");
+  assert.equal(createTranslator("en").doctor.interfaceLanguage("en"), "Language: en");
   assert.equal(createTranslator("en").doctor.sections.tools, "Local tools");
 });
 
@@ -47,6 +47,8 @@ test("createTranslator returns localized init messages", () => {
   assert.equal(createTranslator("fr").init.localDetectionTitle, "Détection locale:");
   assert.equal(createTranslator("en").init.localDetectionTitle, "Local detection:");
   assert.equal(createTranslator("en").init.configCreated("x.json"), "x.json created.");
+  assert.equal(createTranslator("fr").init.languageHint("fr"), "Langue: fr\nEnglish > palabre config --language en");
+  assert.equal(createTranslator("en").init.languageHint("en"), "Language: en\nFrançais > palabre config --language fr");
 });
 
 test("createTranslator returns localized agents messages", () => {
@@ -92,6 +94,8 @@ test("createTranslator returns localized preview messages", () => {
   assert.equal(createTranslator("en").preview.title, "# Prompt preview");
   assert.equal(createTranslator("en").preview.pullModels(true), "Pull missing Ollama models: yes");
   assert.equal(createTranslator("en").preview.summary(createTranslator("en").preview.disabled), "Summary: disabled");
+  assert.equal(createTranslator("fr").preview.interfaceLanguage("fr"), "Langue: fr");
+  assert.equal(createTranslator("en").preview.interfaceLanguage("en"), "Language: en");
   assert.match(createTranslator("en").preview.note, /first-turn prompts/);
 });
 
