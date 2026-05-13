@@ -157,7 +157,9 @@ async function main(): Promise<void> {
   const topic = optionalString(parsed.flags.topic) ?? "";
   const context = await loadProjectInputs(
     getStringListFlag(parsed.flags.files),
-    getStringListFlag(parsed.flags.context)
+    getStringListFlag(parsed.flags.context),
+    process.cwd(),
+    messages
   );
   const presetName = optionalString(parsed.flags.preset);
   const preset = presetName ? resolvePreset(presetName, messages) : undefined;
@@ -184,7 +186,7 @@ async function main(): Promise<void> {
   };
 
   if (parsed.flags["show-prompt"]) {
-    printContextWarnings(context.warnings);
+    printContextWarnings(context.warnings, messages);
     printPromptPreview(config, options, language, messages);
     return;
   }
@@ -801,9 +803,9 @@ function getStringListFlag(value: string | string[] | boolean | undefined): stri
  * Écrit les avertissements de contexte sur `stderr`.
  * @param warnings - Messages d'avertissement issus du chargement des fichiers de contexte.
  */
-function printContextWarnings(warnings: string[]): void {
+function printContextWarnings(warnings: string[], messages: Messages): void {
   for (const warning of warnings) {
-    process.stderr.write(`Warning: ${warning}\n`);
+    process.stderr.write(`${messages.renderers.warningPrefix} ${warning}\n`);
   }
 }
 

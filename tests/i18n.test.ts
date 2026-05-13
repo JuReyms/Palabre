@@ -108,3 +108,10 @@ test("createTranslator returns localized console renderer messages", () => {
   assert.equal(createTranslator("en").renderers.options(true, false), "Options: early stop enabled, Ollama auto-pull disabled");
   assert.equal(createTranslator("en").renderers.exported("out.md"), "Debate exported: out.md");
 });
+
+test("createTranslator returns localized context messages", () => {
+  assert.equal(createTranslator("fr").context.explicitMustBeFile("src"), "Le contexte fichier doit pointer vers un fichier: src");
+  assert.equal(createTranslator("en").context.explicitMustBeFile("src"), "File context must point to a file: src");
+  assert.equal(createTranslator("en").context.ignoredNonTextExtension("image.png"), "Context ignored (non-text extension): image.png");
+  assert.equal(createTranslator("en").context.explicitTotalTooLarge(200, 100), "Context files too large (200 bytes, max 100)");
+});

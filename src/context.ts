@@ -1,6 +1,8 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import type { ProjectFileContext } from "./types.js";
+import { createTranslator } from "./i18n.js";
+import type { Messages } from "./messages/index.js";
 
 const MAX_FILE_BYTES = 64 * 1024;
 const MAX_TOTAL_BYTES = 192 * 1024;
@@ -44,14 +46,15 @@ interface LoadState {
   seen: Set<string>;
   totalBytes: number;
   gitignoreRules: string[];
+  messages: Messages;
 }
 
 /**
  * Mode strict (`--files`) : charge uniquement les fichiers explicitement listés.
  * Lève une erreur si un chemin est un dossier, un binaire, ou dépasse 64 KiB / 192 KiB au total.
  */
-export async function loadProjectFiles(paths: string[], cwd = process.cwd()): Promise<ProjectFileContext[]> {
-  const result = await loadProjectInputs(paths, [], cwd);
+export async function loadProjectFiles(paths: string[], cwd = process.cwd(), messages = createTranslator("fr")): Promise<ProjectFileContext[]> {
+  const result = await loadProjectInputs(paths, [], cwd, messages);
   return result.files;
 }
 
@@ -63,14 +66,16 @@ export async function loadProjectFiles(paths: string[], cwd = process.cwd()): Pr
 export async function loadProjectInputs(
   filePaths: string[],
   contextPaths: string[],
-  cwd = process.cwd()
+  cwd = process.cwd(),
+  messages = createTranslator("fr")
 ): Promise<ProjectContextLoadResult> {
   const state: LoadState = {
     files: [],
     warnings: [],
     seen: new Set(),
     totalBytes: 0,
-    gitignoreRules: await loadGitignoreRules(cwd)
+    gitignoreRules: await loadGitignoreRules(cwd),
+    messages
   };
 
   await addExplicitFiles(filePaths, cwd, state);
@@ -90,19 +95,17 @@ async function addExplicitFiles(paths: string[], cwd: string, state: LoadState):
     const fileStat = await stat(absolutePath);
 
     if (!fileStat.isFile()) {
-      throw new Error(`Le contexte fichier doit pointer vers un fichier: ${inputPath}`);
+      throw new Error(state.messages.context.explicitMustBeFile(inputPath));
     }
 
     if (fileStat.size > MAX_FILE_BYTES) {
-      throw new Error(
-        `Fichier trop gros pour le contexte: ${inputPath} (${fileStat.size} bytes, max ${MAX_FILE_BYTES})`
-      );
+      throw new Error(state.messages.context.explicitTooLarge(inputPath, fileStat.size, MAX_FILE_BYTES));
     }
 
     const content = await readFile(absolutePath, "utf8");
 
     if (content.includes("\u0000")) {
-      throw new Error(`Fichier binaire ou non texte refuse: ${inputPath}`);
+      throw new Error(state.messages.context.explicitBinary(inputPath));
     }
 
     addFileToState(cwd, state, absolutePath, content, fileStat.size, "explicit");
@@ -122,7 +125,7 @@ async function addContextPaths(paths: string[], cwd: string, state: LoadState): 
     }
 
     if (!fileStat.isDirectory()) {
-      state.warnings.push(`Contexte ignore (ni fichier ni dossier): ${inputPath}`);
+      state.warnings.push(state.messages.context.ignoredNotFileOrDirectory(inputPath));
       continue;
     }
 
@@ -160,26 +163,26 @@ async function addContextFile(absolutePath: string, cwd: string, state: LoadStat
   }
 
   if (!isLikelyTextFile(absolutePath)) {
-    state.warnings.push(`Contexte ignore (extension non texte): ${relativePath}`);
+    state.warnings.push(state.messages.context.ignoredNonTextExtension(relativePath));
     return;
   }
 
   const fileStat = await stat(absolutePath);
 
   if (fileStat.size > MAX_FILE_BYTES) {
-    state.warnings.push(`Contexte ignore (fichier trop gros): ${relativePath} (${fileStat.size} bytes)`);
+    state.warnings.push(state.messages.context.ignoredTooLarge(relativePath, fileStat.size));
     return;
   }
 
   if (state.totalBytes + fileStat.size > MAX_TOTAL_BYTES) {
-    state.warnings.push(`Contexte ignore (limite totale atteinte): ${relativePath}`);
+    state.warnings.push(state.messages.context.ignoredTotalLimit(relativePath));
     return;
   }
 
   const content = await readFile(absolutePath, "utf8");
 
   if (content.includes("\u0000")) {
-    state.warnings.push(`Contexte ignore (binaire detecte): ${relativePath}`);
+    state.warnings.push(state.messages.context.ignoredBinary(relativePath));
     return;
   }
 
@@ -200,10 +203,10 @@ function addFileToState(
 
   if (state.totalBytes + sizeBytes > MAX_TOTAL_BYTES) {
     if (source === "explicit") {
-      throw new Error(`Contexte fichiers trop gros (${state.totalBytes + sizeBytes} bytes, max ${MAX_TOTAL_BYTES})`);
+      throw new Error(state.messages.context.explicitTotalTooLarge(state.totalBytes + sizeBytes, MAX_TOTAL_BYTES));
     }
 
-    state.warnings.push(`Contexte ignore (limite totale atteinte): ${normalizePath(path.relative(cwd, absolutePath))}`);
+    state.warnings.push(state.messages.context.ignoredTotalLimit(normalizePath(path.relative(cwd, absolutePath))));
     return;
   }
 
