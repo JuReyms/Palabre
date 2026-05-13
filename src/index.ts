@@ -41,7 +41,7 @@ async function main(): Promise<void> {
   }
 
   if (parsed.command === "help" || parsed.flags.help) {
-    printHelp(startupMessages);
+    printHelp(await resolveCommandMessages(parsed.flags));
     return;
   }
 
@@ -1024,6 +1024,23 @@ function formatOllamaDetection(detection: Awaited<ReturnType<typeof discoverLoca
 /** Affiche le texte d'aide complet sur `stdout`. */
 function printHelp(messages: Messages): void {
   console.log(messages.help.render(listPresetNames().join(", ")));
+}
+
+/** Résout les messages d'une commande qui peut être affichée avant le flux principal. */
+async function resolveCommandMessages(flags: Record<string, string | string[] | boolean>): Promise<Messages> {
+  const explicitLanguage = optionalString(flags.language);
+  const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
+  let configLanguage: string | undefined;
+
+  try {
+    configLanguage = await configExists(configPath)
+      ? (await loadConfig(configPath)).language
+      : undefined;
+  } catch {
+    configLanguage = undefined;
+  }
+
+  return createTranslator(resolveLanguage({ explicitLanguage, configLanguage }));
 }
 
 main().catch((error: unknown) => {
