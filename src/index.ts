@@ -202,12 +202,18 @@ async function runAgentsCommand(flags: Record<string, string | string[] | boolea
   const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
 
   if (!(await configExists(configPath))) {
-    throw new Error("Aucune config trouvée. Lance `palabre init`, puis `palabre agents`.");
+    const messages = createTranslator(resolveLanguage({ explicitLanguage: optionalString(flags.language) }));
+    throw new Error(messages.agents.noConfig);
   }
 
   const config = await loadConfig(configPath);
+  const language = resolveLanguage({
+    explicitLanguage: optionalString(flags.language),
+    configLanguage: config.language
+  });
+  const messages = createTranslator(language);
   const discovery = await discoverLocalTools();
-  printAgents(configPath, config, discovery);
+  printAgents(configPath, config, discovery, messages);
 }
 /**
  * Exécute la commande `config` : wizard interactif ou mise à jour directe des paramètres par défaut.
@@ -834,18 +840,19 @@ function findDetectedMissingAgents(
 function printAgents(
   configPath: string,
   config: PalabreConfig,
-  discovery: Awaited<ReturnType<typeof discoverLocalTools>>
+  discovery: Awaited<ReturnType<typeof discoverLocalTools>>,
+  messages: Messages
 ): void {
   const entries = Object.entries(config.agents).sort(([left], [right]) => left.localeCompare(right));
 
-  console.log(`Config: ${configPath}`);
+  console.log(messages.agents.config(configPath));
   console.log("");
-  console.log("Agents déclarés:");
+  console.log(messages.agents.title);
 
   for (const [name, agentConfig] of entries) {
-    const status = formatAgentDetection(name, agentConfig, discovery);
-    const defaults = formatAgentDefaults(name, config);
-    const details = formatAgentDetails(agentConfig);
+    const status = formatAgentDetection(name, agentConfig, discovery, messages);
+    const defaults = formatAgentDefaults(name, config, messages);
+    const details = formatAgentDetails(agentConfig, messages);
     const suffix = defaults ? ` | ${defaults}` : "";
 
     console.log(`- ${name.padEnd(13)} ${`${agentConfig.type}/${agentConfig.role}`.padEnd(18)} ${status}${suffix}`);
@@ -855,7 +862,12 @@ function printAgents(
   }
 
   console.log("");
-  console.log(`Défauts: ${config.defaults?.agentA ?? "aucun"} <-> ${config.defaults?.agentB ?? "aucun"}, réponses: ${turnsOrDefault(config.defaults?.turns)}, synthèse: ${config.defaults?.summaryAgent ?? "agent B"}`);
+  console.log(messages.agents.defaults(
+    config.defaults?.agentA ?? messages.agents.none,
+    config.defaults?.agentB ?? messages.agents.none,
+    turnsOrDefault(config.defaults?.turns),
+    config.defaults?.summaryAgent ?? messages.agents.summaryAgentB
+  ));
 }
 
 /**
@@ -863,12 +875,12 @@ function printAgents(
  * @param name - Nom de l'agent.
  * @param config - Config Palabre contenant les défauts.
  */
-function formatAgentDefaults(name: string, config: PalabreConfig): string {
+function formatAgentDefaults(name: string, config: PalabreConfig, messages: Messages): string {
   const labels: string[] = [];
 
-  if (config.defaults?.agentA === name) labels.push("agent A par défaut");
-  if (config.defaults?.agentB === name) labels.push("agent B par défaut");
-  if (config.defaults?.summaryAgent === name) labels.push("synthèse par défaut");
+  if (config.defaults?.agentA === name) labels.push(messages.agents.defaultAgentA);
+  if (config.defaults?.agentB === name) labels.push(messages.agents.defaultAgentB);
+  if (config.defaults?.summaryAgent === name) labels.push(messages.agents.defaultSummary);
 
   return labels.join(", ");
 }
@@ -877,12 +889,12 @@ function formatAgentDefaults(name: string, config: PalabreConfig): string {
  * Renvoie une ligne de détails pour un agent : commande CLI ou modèle Ollama.
  * @param agentConfig - Configuration de l'agent.
  */
-function formatAgentDetails(agentConfig: AgentConfig): string {
+function formatAgentDetails(agentConfig: AgentConfig, messages: Messages): string {
   if (agentConfig.type === "ollama") {
-    return `modèle: ${agentConfig.model}`;
+    return messages.agents.model(agentConfig.model);
   }
 
-  return `commande: ${agentConfig.command}${agentConfig.model ? ` | modèle: ${agentConfig.model}` : ""}`;
+  return messages.agents.command(agentConfig.command, agentConfig.model);
 }
 
 /**
@@ -895,20 +907,21 @@ function formatAgentDetails(agentConfig: AgentConfig): string {
 function formatAgentDetection(
   name: string,
   agentConfig: AgentConfig,
-  discovery: Awaited<ReturnType<typeof discoverLocalTools>>
+  discovery: Awaited<ReturnType<typeof discoverLocalTools>>,
+  messages: Messages
 ): string {
   if (agentConfig.type === "ollama") {
     if (!discovery.ollama.available) {
-      return discovery.ollama.commandAvailable ? "Ollama non joignable" : "Ollama non détecté";
+      return discovery.ollama.commandAvailable ? messages.agents.ollamaUnreachable : messages.agents.ollamaNotDetected;
     }
 
     return discovery.ollama.models.includes(agentConfig.model)
-      ? "détecté"
-      : `modèle absent (${agentConfig.model})`;
+      ? messages.agents.detected()
+      : messages.agents.missingModel(agentConfig.model);
   }
 
   const detection = cliDetectionForAgent(name, agentConfig, discovery);
-  return detection.available ? `détecté (${detection.command})` : "non détecté";
+  return detection.available ? messages.agents.detected(detection.command) : messages.agents.notDetected;
 }
 
 /**

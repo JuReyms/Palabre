@@ -45,3 +45,11 @@ test("createTranslator returns localized init messages", () => {
   assert.equal(createTranslator("en").init.localDetectionTitle, "Local detection:");
   assert.equal(createTranslator("en").init.configCreated("x.json"), "x.json created.");
 });
+
+test("createTranslator returns localized agents messages", () => {
+  assert.equal(createTranslator("fr").agents.title, "Agents déclarés:");
+  assert.equal(createTranslator("en").agents.title, "Declared agents:");
+  assert.equal(createTranslator("en").agents.defaults("codex", "claude", 4, "claude"), "Defaults: codex <-> claude, responses: 4, summary: claude");
+  assert.equal(createTranslator("en").agents.command("codex", "gpt-5.5"), "command: codex | model: gpt-5.5");
+  assert.equal(createTranslator("en").agents.missingModel("gemma4:e4b"), "missing model (gemma4:e4b)");
+});
