@@ -151,7 +151,7 @@ async function main(): Promise<void> {
     getStringListFlag(parsed.flags.context)
   );
   const presetName = optionalString(parsed.flags.preset);
-  const preset = presetName ? resolvePreset(presetName) : undefined;
+  const preset = presetName ? resolvePreset(presetName, messages) : undefined;
 
   if (!topic) {
     throw new Error(messages.common.topicRequired);
@@ -483,23 +483,28 @@ async function runPresetsCommand(flags: Record<string, string | string[] | boole
   const config = await configExists(configPath)
     ? await loadConfig(configPath)
     : createConfigFromDiscovery(discovery);
-  const presets = listPresetsWithAvailability(config, discovery);
+  const language = resolveLanguage({
+    explicitLanguage: optionalString(flags.language),
+    configLanguage: config.language
+  });
+  const messages = createTranslator(language);
+  const presets = listPresetsWithAvailability(config, discovery, messages);
 
   if (flags.json) {
     process.stdout.write(JSON.stringify({ v: 1, presets }) + "\n");
     return;
   }
 
-  console.log("Presets disponibles:");
+  console.log(messages.presets.title);
   console.log("");
   for (const preset of presets) {
     const status = preset.available
-      ? "disponible"
-      : `indisponible (${preset.unavailableReasons.join("; ")})`;
+      ? messages.presets.available
+      : messages.presets.unavailable(preset.unavailableReasons.join("; "));
     console.log(`  ${preset.name.padEnd(20)} ${preset.agentA} <-> ${preset.agentB}  ${status}`);
   }
   console.log("");
-  console.log(`Total : ${presets.length} preset(s). Utilise --json pour une sortie machine-readable.`);
+  console.log(messages.presets.total(presets.length));
 }
 
 /**

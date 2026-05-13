@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { ToolDiscovery } from "./discovery.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
+import type { Messages } from "./messages/index.js";
 
 /** Paire d'agents nommée. Les noms doivent correspondre à des clés dans `PalabreConfig.agents`. */
 export interface AgentPairPreset {
@@ -104,11 +105,12 @@ const presets: Record<string, AgentPairPreset> = {
 };
 
 /** Retourne la paire d'agents pour `name`. Lève une erreur avec la liste des presets disponibles si inconnu. */
-export function resolvePreset(name: string): AgentPairPreset {
+export function resolvePreset(name: string, messages?: Messages): AgentPairPreset {
   const preset = presets[name];
 
   if (!preset) {
-    throw new Error(`Preset inconnu: ${name}. Presets disponibles: ${Object.keys(presets).join(", ")}`);
+    const available = Object.keys(presets).join(", ");
+    throw new Error(messages?.presets.unknown(name, available) ?? `Preset inconnu: ${name}. Presets disponibles: ${available}`);
   }
 
   return preset;
@@ -132,11 +134,11 @@ export function listPresets(): PresetInfo[] {
  * Retourne les presets enrichis par la disponibilité réelle des agents déclarés.
  * Les intégrations peuvent filtrer `available === true` sans réimplémenter la découverte locale.
  */
-export function listPresetsWithAvailability(config: PalabreConfig, discovery: ToolDiscovery): PresetAvailability[] {
+export function listPresetsWithAvailability(config: PalabreConfig, discovery: ToolDiscovery, messages?: Messages): PresetAvailability[] {
   return listPresets().map((preset) => {
     const checks = [
-      checkAgentAvailability(preset.agentA, config, discovery),
-      checkAgentAvailability(preset.agentB, config, discovery)
+      checkAgentAvailability(preset.agentA, config, discovery, messages),
+      checkAgentAvailability(preset.agentB, config, discovery, messages)
     ];
     const unavailable = checks.filter((check) => !check.available);
 
@@ -160,22 +162,22 @@ interface AgentAvailabilityCheck {
   reason: string;
 }
 
-function checkAgentAvailability(agentName: string, config: PalabreConfig, discovery: ToolDiscovery): AgentAvailabilityCheck {
+function checkAgentAvailability(agentName: string, config: PalabreConfig, discovery: ToolDiscovery, messages?: Messages): AgentAvailabilityCheck {
   const agent = config.agents[agentName];
 
   if (!agent) {
-    return unavailable(agentName, `agent absent de la config: ${agentName}`);
+    return unavailable(agentName, messages?.presets.missingAgent(agentName) ?? `agent absent de la config: ${agentName}`);
   }
 
   if (agent.type === "ollama") {
     if (!discovery.ollama.available) {
       return unavailable(agentName, discovery.ollama.commandAvailable
-        ? `Ollama non joignable pour ${agentName}`
-        : `Ollama non détecté pour ${agentName}`);
+        ? messages?.presets.ollamaUnreachable(agentName) ?? `Ollama non joignable pour ${agentName}`
+        : messages?.presets.ollamaNotDetected(agentName) ?? `Ollama non détecté pour ${agentName}`);
     }
 
     if (!discovery.ollama.models.includes(agent.model)) {
-      return unavailable(agentName, `modèle Ollama absent pour ${agentName}: ${agent.model}`);
+      return unavailable(agentName, messages?.presets.missingOllamaModel(agentName, agent.model) ?? `modèle Ollama absent pour ${agentName}: ${agent.model}`);
     }
 
     return available(agentName);
@@ -190,7 +192,7 @@ function checkAgentAvailability(agentName: string, config: PalabreConfig, discov
 
   return detection.available
     ? available(agentName)
-    : unavailable(agentName, `commande non détectée pour ${agentName}: ${detection.command}`);
+    : unavailable(agentName, messages?.presets.missingCommand(agentName, detection.command) ?? `commande non détectée pour ${agentName}: ${detection.command}`);
 }
 
 function knownCliDetection(agent: Extract<AgentConfig, { type: "cli" }>, discovery: ToolDiscovery): { available: boolean; command: string } | undefined {

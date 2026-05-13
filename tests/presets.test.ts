@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { exampleConfig } from "../src/config.js";
-import { listPresetsWithAvailability } from "../src/presets.js";
+import { createTranslator } from "../src/i18n.js";
+import { listPresetsWithAvailability, resolvePreset } from "../src/presets.js";
 import type { ToolDiscovery } from "../src/discovery.js";
 
 function discovery(overrides: Partial<ToolDiscovery> = {}): ToolDiscovery {
@@ -46,4 +47,19 @@ test("listPresetsWithAvailability marks Ollama presets unavailable when the conf
   assert.equal(codexOllama?.available, false);
   assert.deepEqual(codexOllama?.missingAgents, ["ollama-local"]);
   assert.match(codexOllama?.unavailableReasons[0] ?? "", /modèle Ollama absent/);
+});
+
+test("listPresetsWithAvailability localizes unavailable reasons", () => {
+  const presets = listPresetsWithAvailability(exampleConfig, discovery(), createTranslator("en"));
+  const codexOpencode = presets.find((preset) => preset.name === "codex-opencode");
+
+  assert.equal(codexOpencode?.available, false);
+  assert.equal(codexOpencode?.unavailableReasons[0], "command not detected for opencode: opencode");
+});
+
+test("resolvePreset localizes unknown preset errors", () => {
+  assert.throws(
+    () => resolvePreset("codex-codex", createTranslator("en")),
+    /Unknown preset: codex-codex/
+  );
 });

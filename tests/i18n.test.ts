@@ -61,3 +61,11 @@ test("createTranslator returns localized config messages", () => {
   assert.equal(createTranslator("en").config.wizardChoiceQuestion("Type the number of your choice", "1"), "Type the number of your choice (Enter = 1): ");
   assert.equal(createTranslator("en").config.wizardDefaults({ agentA: "codex", agentB: "claude", turns: 4, summaryAgent: "claude" }), "codex <-> claude, responses: 4, summary: claude");
 });
+
+test("createTranslator returns localized presets messages", () => {
+  assert.equal(createTranslator("fr").presets.title, "Presets disponibles:");
+  assert.equal(createTranslator("en").presets.title, "Available presets:");
+  assert.equal(createTranslator("en").presets.unavailable("command not detected for opencode: opencode"), "unavailable (command not detected for opencode: opencode)");
+  assert.equal(createTranslator("en").presets.missingOllamaModel("ollama-local", "gemma4:e4b"), "missing Ollama model for ollama-local: gemma4:e4b");
+  assert.equal(createTranslator("en").presets.total(20), "Total: 20 preset(s). Use --json for machine-readable output.");
+});
