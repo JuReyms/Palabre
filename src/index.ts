@@ -41,7 +41,7 @@ async function main(): Promise<void> {
   }
 
   if (parsed.command === "help" || parsed.flags.help) {
-    printHelp(await resolveCommandMessages(parsed.flags));
+    printHelp(await resolveCommandMessages(parsed.flags), commandHelpTarget(parsed));
     return;
   }
 
@@ -1022,8 +1022,21 @@ function formatOllamaDetection(detection: Awaited<ReturnType<typeof discoverLoca
 }
 
 /** Affiche le texte d'aide complet sur `stdout`. */
-function printHelp(messages: Messages): void {
-  console.log(messages.help.render(listPresetNames().join(", ")));
+function printHelp(messages: Messages, command?: string): void {
+  const commandHelp = command ? messages.help.renderCommand(command) : undefined;
+  console.log(commandHelp ?? messages.help.render(listPresetNames().join(", ")));
+}
+
+function commandHelpTarget(parsed: ParsedArgs): string | undefined {
+  if (parsed.command === "help" || parsed.command === "run") {
+    return undefined;
+  }
+
+  if (parsed.command === "agent") return "agents";
+  if (parsed.command === "preset") return "presets";
+  if (parsed.command === "setup") return "init";
+
+  return parsed.command;
 }
 
 /** Résout les messages d'une commande qui peut être affichée avant le flux principal. */

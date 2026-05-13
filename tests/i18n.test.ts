@@ -36,9 +36,10 @@ test("createTranslator returns localized common errors", () => {
 });
 
 test("createTranslator returns localized help text", () => {
-  assert.match(createTranslator("fr").help.render("codex-claude"), /Usage rapide/);
-  assert.match(createTranslator("en").help.render("codex-claude"), /Quick usage/);
-  assert.match(createTranslator("en").help.render("codex-claude"), /codex-claude/);
+  assert.match(createTranslator("fr").help.render("codex-claude"), /Demarrage rapide/);
+  assert.match(createTranslator("en").help.render("codex-claude"), /Quick start/);
+  assert.match(createTranslator("en").help.render("codex-claude"), /https:\/\/palab\.re\/\+local/);
+  assert.match(createTranslator("en").help.renderCommand("config") ?? "", /palabre config --language/);
 });
 
 test("createTranslator returns localized init messages", () => {
