@@ -150,7 +150,7 @@ export async function resolveDefaultConfigPath(): Promise<string> {
 /**
  * Construit une `PalabreConfig` complète à partir des outils détectés localement.
  * Ajuste `defaults.agentA/agentB/summaryAgent` en fonction de la paire disponible.
- * Si aucune paire n'est détectée, `defaults` reste celui de `exampleConfig`.
+ * Si aucune paire n'est détectée, seuls les defaults sans agent sont conservés.
  */
 export function createConfigFromDiscovery(discovery: ToolDiscovery): PalabreConfig {
   const config = cloneConfig(exampleConfig);
@@ -177,10 +177,14 @@ export function createConfigFromDiscovery(discovery: ToolDiscovery): PalabreConf
     ollamaAgent.model = chooseDefaultOllamaModel(discovery);
   }
 
-  config.defaults = {
-    ...config.defaults,
-    ...(pair ? { agentA: pair[0], agentB: pair[1], summaryAgent: chooseDefaultSummaryAgent(pair) } : {})
-  };
+  config.defaults = pair
+    ? {
+        ...config.defaults,
+        agentA: pair[0],
+        agentB: pair[1],
+        summaryAgent: chooseDefaultSummaryAgent(pair)
+      }
+    : { turns: config.defaults?.turns };
 
   return config;
 }

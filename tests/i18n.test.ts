@@ -31,6 +31,8 @@ test("createTranslator returns localized doctor messages", () => {
 test("createTranslator returns localized common errors", () => {
   assert.equal(createTranslator("fr").common.topicRequired, "Le paramètre --subject est requis.");
   assert.equal(createTranslator("en").common.topicRequired, "The --subject parameter is required.");
+  assert.match(createTranslator("fr").common.noAgentDefined("agent A"), /https:\/\/palab\.re\/fr\/agents\/overview/);
+  assert.match(createTranslator("en").common.noAgentDefined("agent A"), /https:\/\/palab\.re\/en\/agents\/overview/);
   assert.equal(createTranslator("en").common.errorPrefix, "Error");
   assert.match(createTranslator("en").common.optionRequiresValue("--topic"), /expects a value/);
 });
@@ -47,6 +49,8 @@ test("createTranslator returns localized init messages", () => {
   assert.equal(createTranslator("fr").init.localDetectionTitle, "Détection locale:");
   assert.equal(createTranslator("en").init.localDetectionTitle, "Local detection:");
   assert.equal(createTranslator("en").init.configCreated("x.json"), "x.json created.");
+  assert.match(createTranslator("fr").init.noDefaultPair, /https:\/\/palab\.re\/fr\/agents\/overview/);
+  assert.match(createTranslator("en").init.noDefaultPair, /https:\/\/palab\.re\/en\/agents\/overview/);
   assert.equal(createTranslator("fr").init.languageHint("fr"), "Langue: fr\nEnglish > palabre config --language en");
   assert.equal(createTranslator("en").init.languageHint("en"), "Language: en\nFrançais > palabre config --language fr");
 });

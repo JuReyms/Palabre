@@ -11,6 +11,7 @@ export interface InitMessages {
   ollamaMissing: string;
   ollamaDetected(modelCount: number): string;
   defaults(agentA: string, agentB: string): string;
+  noDefaultPair: string;
   languageHint(language: Language): string;
 }
 
@@ -26,6 +27,7 @@ export const initMessages: Record<Language, InitMessages> = {
     ollamaMissing: "non détecté",
     ollamaDetected: (modelCount) => `détectée (${modelCount} modèle${modelCount > 1 ? "s" : ""})`,
     defaults: (agentA, agentB) => `Défauts: ${agentA} <-> ${agentB}`,
+    noDefaultPair: "Défauts: aucune paire détectée. Installe au moins deux agents, puis lance `palabre config --sync-agents` ou `palabre config --set-defaults <agentA> <agentB>`. Guide: https://palab.re/fr/agents/overview",
     languageHint: (language) => `Langue: ${language}\nEnglish > palabre config --language en`
   },
   en: {
@@ -39,6 +41,7 @@ export const initMessages: Record<Language, InitMessages> = {
     ollamaMissing: "not detected",
     ollamaDetected: (modelCount) => `detected (${modelCount} model${modelCount > 1 ? "s" : ""})`,
     defaults: (agentA, agentB) => `Defaults: ${agentA} <-> ${agentB}`,
+    noDefaultPair: "Defaults: no detected pair. Install at least two agents, then run `palabre config --sync-agents` or `palabre config --set-defaults <agentA> <agentB>`. Guide: https://palab.re/en/agents/overview",
     languageHint: (language) => `Language: ${language}\nFrançais > palabre config --language fr`
   }
 };

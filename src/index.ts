@@ -993,7 +993,9 @@ function printInitDiscovery(
   console.log(`- OpenCode CLI: ${formatCommandDetection(discovery.opencode, messages)}`);
   console.log(`- Ollama API: ${formatOllamaDetection(discovery.ollama, messages)}`);
   console.log("");
-  console.log(messages.init.defaults(config.defaults?.agentA ?? "codex", config.defaults?.agentB ?? "ollama-local"));
+  console.log(config.defaults?.agentA && config.defaults.agentB
+    ? messages.init.defaults(config.defaults.agentA, config.defaults.agentB)
+    : messages.init.noDefaultPair);
   console.log(messages.init.languageHint(config.language ?? DEFAULT_LANGUAGE));
 }
 
