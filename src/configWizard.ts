@@ -3,6 +3,7 @@ import { stdin as input, stdout as output } from "node:process";
 import { writeExampleConfig } from "./config.js";
 import { DEFAULT_TURNS, MAX_TURNS, turnsOrDefault, validateTurns } from "./limits.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
+import type { Messages } from "./messages/index.js";
 
 interface ConfigQuestioner {
   question(prompt: string): Promise<string>;
@@ -19,66 +20,66 @@ interface AgentChoice {
  * Fonctionne en mode TTY (readline) et en mode piped (stdin lu en avance).
  * Écrit la config sur disque si l'utilisateur confirme ; sort sans modifier si l'utilisateur quitte.
  */
-export async function runConfigWizard(configPath: string, config: PalabreConfig): Promise<void> {
+export async function runConfigWizard(configPath: string, config: PalabreConfig, messages: Messages): Promise<void> {
   const choices = Object.entries(config.agents).map(([name, agentConfig]) => ({ name, config: agentConfig }));
 
   if (choices.length < 2) {
-    throw new Error("La config doit contenir au moins deux agents pour définir des paramètres par défaut.");
+    throw new Error(messages.config.wizardNeedsTwoAgents);
   }
 
   const rl = await createQuestioner();
 
   try {
-    console.log("PALABRE - Configuration");
-    console.log("À tout moment: Ctrl+C pour interrompre, ou tape q, quit ou exit dans un prompt pour quitter.");
+    console.log(messages.config.wizardTitle);
+    console.log(messages.config.wizardQuitHint);
     console.log("");
-    console.log("Fichier de configuration :");
+    console.log(messages.config.wizardConfigFile);
     console.log(`  ${configPath}`);
     console.log("");
-    console.log("Paramètres par défaut actuels :");
-    console.log(`  ${config.defaults ? formatDefaults(config.defaults) : "Aucun"}`);
+    console.log(messages.config.wizardCurrentDefaults);
+    console.log(`  ${config.defaults ? formatDefaults(config.defaults, messages) : messages.config.wizardNoDefaults}`);
     console.log("");
-    console.log("Que veux-tu faire ?");
-    console.log("  1) Définir des paramètres par défaut");
-    console.log("  2) Supprimer les paramètres par défaut");
-    console.log("  3) Quitter sans modifier");
+    console.log(messages.config.wizardActionQuestion);
+    console.log(`  1) ${messages.config.wizardActionSetDefaults}`);
+    console.log(`  2) ${messages.config.wizardActionClearDefaults}`);
+    console.log(`  3) ${messages.config.wizardActionExit}`);
 
-    const action = await askChoice(rl, "Tape le numéro de ton choix", "1", ["1", "2", "3"]);
+    const action = await askChoice(rl, messages.config.wizardChoicePrompt, "1", ["1", "2", "3"], messages);
 
     if (!action || action === "3") {
-      console.log("Config inchangée.");
+      console.log(messages.config.wizardUnchanged);
       return;
     }
 
     if (action === "2") {
       delete config.defaults;
       await writeExampleConfig(configPath, config);
-      console.log(`Paramètres par défaut supprimés dans ${configPath}.`);
+      console.log(messages.config.wizardCleared(configPath));
       return;
     }
 
     const agentA = await askAgent(
       rl,
       choices,
-      "Agent A",
-      "Choisis l'agent A, celui qui répondra en premier.",
-      config.defaults?.agentA
+      messages.config.wizardAgentADescription,
+      config.defaults?.agentA,
+      messages
     );
     if (!agentA) return;
 
     const agentB = await askAgent(
       rl,
       choices.filter((choice) => choice.name !== agentA),
-      "Agent B",
-      "Choisis l'agent B, celui qui répondra en second.",
-      config.defaults?.agentB === agentA ? undefined : config.defaults?.agentB
+      messages.config.wizardAgentBDescription,
+      config.defaults?.agentB === agentA ? undefined : config.defaults?.agentB,
+      messages
     );
     if (!agentB) return;
 
-    const turns = await askNumber(rl, "Nombre de réponses par défaut", turnsOrDefault(config.defaults?.turns), Boolean(config.defaults?.turns));
+    const turns = await askNumber(rl, messages.config.wizardTurnsLabel, turnsOrDefault(config.defaults?.turns), Boolean(config.defaults?.turns), messages);
     if (turns === undefined) return;
 
-    const summaryAgent = await askSummaryAgent(rl, choices, config.defaults?.summaryAgent ?? agentB, Boolean(config.defaults?.summaryAgent), agentB);
+    const summaryAgent = await askSummaryAgent(rl, choices, config.defaults?.summaryAgent ?? agentB, Boolean(config.defaults?.summaryAgent), agentB, messages);
     if (summaryAgent === undefined) return;
 
     config.defaults = {
@@ -89,7 +90,7 @@ export async function runConfigWizard(configPath: string, config: PalabreConfig)
     };
 
     await writeExampleConfig(configPath, config);
-    console.log(`Paramètres par défaut définis dans ${configPath}: ${formatDefaults(config.defaults)}.`);
+    console.log(messages.config.wizardDefaultsSet(configPath, formatDefaults(config.defaults, messages)));
   } finally {
     rl.close();
   }
@@ -130,12 +131,12 @@ async function readPipedLines(): Promise<string[]> {
 async function askAgent(
   rl: ConfigQuestioner,
   choices: AgentChoice[],
-  _label: string,
   description: string,
-  defaultName: string | undefined
+  defaultName: string | undefined,
+  messages: Messages
 ): Promise<string | undefined> {
   const fallback = choices.find((choice) => choice.name === defaultName)?.name ?? choices[0]?.name;
-  const fallbackLabel = defaultName ? "Actuel" : "Suggestion";
+  const fallbackLabel = defaultName ? messages.config.wizardCurrent : messages.config.wizardSuggestion;
 
   console.log("");
   console.log(description);
@@ -147,7 +148,7 @@ async function askAgent(
   });
 
   while (true) {
-    const answer = await rl.question(`Tape un numéro ou un nom d'agent (Entrée = ${fallback}) : `);
+    const answer = await rl.question(messages.config.wizardAgentPrompt(fallback));
     const value = answer.trim();
 
     if (isQuit(value)) return undefined;
@@ -162,7 +163,7 @@ async function askAgent(
       return value;
     }
 
-    console.log("Choix invalide. Tape un numéro, un nom d'agent, Entrée ou q.");
+    console.log(messages.config.wizardInvalidAgentChoice);
   }
 }
 
@@ -171,22 +172,23 @@ async function askSummaryAgent(
   choices: AgentChoice[],
   defaultName: string,
   hasCurrentDefault: boolean,
-  agentB: string
+  agentB: string,
+  messages: Messages
 ): Promise<string | undefined> {
   const fallback = choices.some((choice) => choice.name === defaultName) ? defaultName : choices[0]?.name;
-  const fallbackLabel = hasCurrentDefault ? "Actuel" : "Suggestion";
+  const fallbackLabel = hasCurrentDefault ? messages.config.wizardCurrent : messages.config.wizardSuggestion;
 
   console.log("");
-  console.log("Agent de synthèse par défaut");
-  console.log(`${fallbackLabel} : ${fallback}${!hasCurrentDefault && fallback === agentB ? " (agent B)" : ""}`);
+  console.log(messages.config.wizardSummaryTitle);
+  console.log(`${fallbackLabel} : ${fallback}${!hasCurrentDefault && fallback === agentB ? ` (${messages.config.wizardAgentBHint})` : ""}`);
   console.log("");
-  console.log("  0) Aucun agent de synthèse par défaut");
+  console.log(`  0) ${messages.config.wizardNoSummary}`);
   choices.forEach((choice, index) => {
     console.log(`  ${index + 1}) ${formatAgentLine(choice)}`);
   });
 
   while (true) {
-    const answer = await rl.question(`Tape un numéro, un nom d'agent, ou 0 pour aucun (Entrée = ${fallback}) : `);
+    const answer = await rl.question(messages.config.wizardSummaryPrompt(fallback));
     const value = answer.trim();
 
     if (isQuit(value)) return undefined;
@@ -202,7 +204,7 @@ async function askSummaryAgent(
       return value;
     }
 
-    console.log("Choix invalide. Tape un numéro, un nom d'agent, 0, Entrée ou q.");
+    console.log(messages.config.wizardInvalidSummaryChoice);
   }
 }
 
@@ -210,17 +212,18 @@ async function askChoice(
   rl: ConfigQuestioner,
   label: string,
   defaultValue: string,
-  allowed: string[]
+  allowed: string[],
+  messages: Messages
 ): Promise<string | undefined> {
   while (true) {
-    const answer = await rl.question(`${label} (Entrée = ${defaultValue}) : `);
+    const answer = await rl.question(messages.config.wizardChoiceQuestion(label, defaultValue));
     const value = answer.trim();
 
     if (isQuit(value)) return undefined;
     if (!value) return defaultValue;
     if (allowed.includes(value)) return value;
 
-    console.log(`Choix invalide. Valeurs: ${allowed.join(", ")}, Entrée ou q.`);
+    console.log(messages.config.wizardInvalidChoice(allowed.join(", ")));
   }
 }
 
@@ -228,9 +231,10 @@ async function askNumber(
   rl: ConfigQuestioner,
   label: string,
   defaultValue: number,
-  hasCurrentDefault: boolean
+  hasCurrentDefault: boolean,
+  messages: Messages
 ): Promise<number | undefined> {
-  const fallbackLabel = hasCurrentDefault ? "Actuel" : "Suggestion";
+  const fallbackLabel = hasCurrentDefault ? messages.config.wizardCurrent : messages.config.wizardSuggestion;
 
   console.log("");
   console.log(label);
@@ -238,7 +242,7 @@ async function askNumber(
   console.log("");
 
   while (true) {
-    const answer = await rl.question(`Tape le nombre total de réponses du débat (Entrée = ${defaultValue}) : `);
+    const answer = await rl.question(messages.config.wizardTurnsPrompt(defaultValue));
     const value = answer.trim();
 
     if (isQuit(value)) return undefined;
@@ -254,7 +258,7 @@ async function askNumber(
       }
     }
 
-    console.log(`Entre un nombre entier entre 1 et ${MAX_TURNS}, Entrée ou q.`);
+    console.log(messages.config.wizardTurnsInvalid(MAX_TURNS));
   }
 }
 
@@ -262,8 +266,13 @@ function formatAgentLine(choice: AgentChoice): string {
   return `${choice.name.padEnd(12)} ${choice.config.type} / ${choice.config.role}`;
 }
 
-function formatDefaults(defaults: NonNullable<PalabreConfig["defaults"]>): string {
-  return `${defaults.agentA ?? "?"} <-> ${defaults.agentB ?? "?"}, réponses: ${turnsOrDefault(defaults.turns ?? DEFAULT_TURNS)}${defaults.summaryAgent ? `, synthèse: ${defaults.summaryAgent}` : ""}`;
+function formatDefaults(defaults: NonNullable<PalabreConfig["defaults"]>, messages: Messages): string {
+  return messages.config.wizardDefaults({
+    agentA: defaults.agentA,
+    agentB: defaults.agentB,
+    turns: turnsOrDefault(defaults.turns ?? DEFAULT_TURNS),
+    summaryAgent: defaults.summaryAgent
+  });
 }
 
 function isQuit(value: string): boolean {

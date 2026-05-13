@@ -221,16 +221,18 @@ async function runAgentsCommand(flags: Record<string, string | string[] | boolea
  */
 async function runConfigCommand(flags: Record<string, string | string[] | boolean>): Promise<void> {
   const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
+  const explicitLanguage = optionalString(flags.language);
 
   if (!(await configExists(configPath))) {
+    const messages = createTranslator(resolveLanguage({ explicitLanguage }));
     await writeExampleConfig(configPath);
-    console.log(`${configPath} créé. Édite la config puis relance palabre config.`);
+    console.log(messages.config.createdForConfig(configPath));
     return;
   }
 
   const config = await loadConfig(configPath);
   const language = resolveLanguage({
-    explicitLanguage: optionalString(flags.language),
+    explicitLanguage,
     configLanguage: config.language
   });
   const messages = createTranslator(language);
@@ -240,19 +242,19 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
     const addedAgents = syncDetectedAgents(config, discovery);
 
     if (addedAgents.length === 0) {
-      console.log(`Aucun agent détecté manquant dans ${configPath}.`);
+      console.log(messages.config.syncNoMissing(configPath));
       return;
     }
 
     await writeExampleConfig(configPath, config);
-    console.log(`Agents ajoutés dans ${configPath}: ${addedAgents.join(", ")}.`);
+    console.log(messages.config.syncAdded(configPath, addedAgents.join(", ")));
     return;
   }
 
   const defaultAgents = getStringListFlag(flags["set-defaults"]);
   const hasTurnsFlag = flags.turns !== undefined;
   const summaryAgentValue = optionalString(flags["summary-agent"]);
-  const languageValue = optionalString(flags.language);
+  const languageValue = explicitLanguage;
   const changesDefaults = defaultAgents.length > 0 || hasTurnsFlag || summaryAgentValue !== undefined;
 
   if (changesDefaults || languageValue !== undefined) {
@@ -294,18 +296,18 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
     }
 
     await writeExampleConfig(configPath, config);
-    console.log(`Configuration mise à jour dans ${configPath}: ${formatDefaultsForMessage(config.defaults ?? {})}, langue: ${config.language ?? "fr"}.`);
+    console.log(messages.config.updated(configPath, formatDefaultsForMessage(config.defaults ?? {}, messages), config.language ?? DEFAULT_LANGUAGE));
     return;
   }
 
   if (flags["clear-defaults"]) {
     delete config.defaults;
     await writeExampleConfig(configPath, config);
-    console.log(`Paramètres par défaut supprimés dans ${configPath}. Utilise maintenant un preset ou --agent-a/--agent-b pour lancer un débat.`);
+    console.log(messages.config.cleared(configPath));
     return;
   }
 
-  await runConfigWizard(configPath, config);
+  await runConfigWizard(configPath, config, messages);
 }
 /**
  * Renvoie `true` si la valeur représente une désactivation explicite (ex. "none", "0", "disabled").
@@ -320,13 +322,13 @@ function isNoneValue(value: string): boolean {
  * @param defaults - Objet `defaults` de la config Palabre.
  * @returns Chaîne résumant la paire d'agents, le nombre de réponses et l'agent de synthèse.
  */
-function formatDefaultsForMessage(defaults: NonNullable<PalabreConfig["defaults"]>): string {
-  const pair = defaults.agentA && defaults.agentB
-    ? `agents: ${defaults.agentA} <-> ${defaults.agentB}`
-    : "agents: non définis";
-  const summary = defaults.summaryAgent ? `synthèse: ${defaults.summaryAgent}` : "synthèse: agent B";
-
-  return `${pair}, réponses: ${turnsOrDefault(defaults.turns)}, ${summary}`;
+function formatDefaultsForMessage(defaults: NonNullable<PalabreConfig["defaults"]>, messages: Messages): string {
+  return messages.config.defaultsSummary(
+    defaults.agentA,
+    defaults.agentB,
+    turnsOrDefault(defaults.turns),
+    defaults.summaryAgent
+  );
 }
 /**
  * Lève une erreur si `agentName` n'est pas déclaré dans la config.

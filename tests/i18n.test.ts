@@ -53,3 +53,11 @@ test("createTranslator returns localized agents messages", () => {
   assert.equal(createTranslator("en").agents.command("codex", "gpt-5.5"), "command: codex | model: gpt-5.5");
   assert.equal(createTranslator("en").agents.missingModel("gemma4:e4b"), "missing model (gemma4:e4b)");
 });
+
+test("createTranslator returns localized config messages", () => {
+  assert.equal(createTranslator("fr").config.syncNoMissing("palabre.config.json"), "Aucun agent détecté manquant dans palabre.config.json.");
+  assert.equal(createTranslator("en").config.syncNoMissing("palabre.config.json"), "No missing detected agent in palabre.config.json.");
+  assert.equal(createTranslator("en").config.defaultsSummary("codex", "claude", 4, undefined), "agents: codex <-> claude, responses: 4, summary: agent B");
+  assert.equal(createTranslator("en").config.wizardChoiceQuestion("Type the number of your choice", "1"), "Type the number of your choice (Enter = 1): ");
+  assert.equal(createTranslator("en").config.wizardDefaults({ agentA: "codex", agentB: "claude", turns: 4, summaryAgent: "claude" }), "codex <-> claude, responses: 4, summary: claude");
+});
