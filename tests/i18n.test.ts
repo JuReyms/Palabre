@@ -26,3 +26,10 @@ test("createTranslator returns localized doctor messages", () => {
   assert.equal(createTranslator("en").doctor.interfaceLanguage("en"), "Interface language: en");
   assert.equal(createTranslator("en").doctor.sections.tools, "Local tools");
 });
+
+test("createTranslator returns localized common errors", () => {
+  assert.equal(createTranslator("fr").common.topicRequired, "Le paramètre --topic/--subject est requis.");
+  assert.equal(createTranslator("en").common.topicRequired, "The --topic/--subject parameter is required.");
+  assert.equal(createTranslator("en").common.errorPrefix, "Error");
+  assert.match(createTranslator("en").common.optionRequiresValue("--topic"), /expects a value/);
+});

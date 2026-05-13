@@ -8,7 +8,7 @@ import { discoverLocalTools } from "./discovery.js";
 import { runDoctor } from "./doctor.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
 import { runConfigWizard } from "./configWizard.js";
-import { parseLanguage, resolveLanguage } from "./i18n.js";
+import { createTranslator, DEFAULT_LANGUAGE, parseLanguage, resolveLanguage } from "./i18n.js";
 import { DEFAULT_TURNS, parseTurnsFlag, turnsOrDefault } from "./limits.js";
 import { formatAgentPrompt } from "./prompt.js";
 import { runNewWizard } from "./new.js";
@@ -20,6 +20,7 @@ import { writeDebateMarkdown } from "./output.js";
 import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./update.js";
 import { createSessionContext } from "./session.js";
 import type { AgentConfig, DebateOptions, PalabreConfig } from "./types.js";
+import type { Messages } from "./messages/index.js";
 
 interface ParsedArgs {
   command: string;
@@ -29,7 +30,10 @@ interface ParsedArgs {
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
 async function main(): Promise<void> {
-  const parsed = parseArgs(process.argv.slice(2));
+  const rawArgs = process.argv.slice(2);
+  const startupLanguage = resolveLanguage({ explicitLanguage: findRawLanguageFlag(rawArgs) });
+  const startupMessages = createTranslator(startupLanguage);
+  const parsed = parseArgs(rawArgs, startupMessages);
 
   if (parsed.command === "version" || parsed.flags.version) {
     console.log(await getPackageVersion());
@@ -109,6 +113,7 @@ async function main(): Promise<void> {
     explicitLanguage: optionalString(parsed.flags.language),
     configLanguage: config.language
   });
+  const messages = createTranslator(language);
 
   if (parsed.command === "new") {
     const selection = await runNewWizard(config);
@@ -142,13 +147,13 @@ async function main(): Promise<void> {
   const preset = presetName ? resolvePreset(presetName) : undefined;
 
   if (!topic) {
-    throw new Error("Le parametre --topic/--subject est requis.");
+    throw new Error(messages.common.topicRequired);
   }
 
   const options: DebateOptions = {
     topic,
-    agentA: resolveAgentName("agent A", parsed.flags["agent-a"], preset?.agentA, config.defaults?.agentA),
-    agentB: resolveAgentName("agent B", parsed.flags["agent-b"], preset?.agentB, config.defaults?.agentB),
+    agentA: resolveAgentName("agent A", parsed.flags["agent-a"], preset?.agentA, config.defaults?.agentA, messages),
+    agentB: resolveAgentName("agent B", parsed.flags["agent-b"], preset?.agentB, config.defaults?.agentB, messages),
     turns: parseTurnsFlag(parsed.flags.turns, config.defaults?.turns ?? DEFAULT_TURNS, "--turns"),
     session: createSessionContext(),
     files: context.files,
@@ -164,11 +169,11 @@ async function main(): Promise<void> {
 
   if (parsed.flags["show-prompt"]) {
     printContextWarnings(context.warnings);
-    printPromptPreview(config, options, language);
+    printPromptPreview(config, options, language, messages);
     return;
   }
 
-  const renderer = createRendererFromFlags(parsed.flags, options.plainOutput);
+  const renderer = createRendererFromFlags(parsed.flags, options.plainOutput, messages);
   context.warnings.forEach((warning) => renderer.warning(warning));
   const result = await runDebate(config, options, renderer);
   const outputPath = await writeDebateMarkdown(
@@ -211,6 +216,12 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   }
 
   const config = await loadConfig(configPath);
+  const language = resolveLanguage({
+    explicitLanguage: optionalString(flags.language),
+    configLanguage: config.language
+  });
+  const messages = createTranslator(language);
+
   if (flags["sync-agents"]) {
     const discovery = await discoverLocalTools();
     const addedAgents = syncDetectedAgents(config, discovery);
@@ -238,11 +249,11 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
       const [agentA, agentB] = defaultAgents;
 
       if (!agentA || !agentB) {
-        throw new Error("L'option --set-defaults attend deux agents: --set-defaults <agentA> <agentB>.");
+        throw new Error(messages.common.setDefaultsRequiresTwo);
       }
 
-      assertKnownAgent(config, agentA, "defaults.agentA");
-      assertKnownAgent(config, agentB, "defaults.agentB");
+      assertKnownAgent(config, agentA, "defaults.agentA", messages);
+      assertKnownAgent(config, agentB, "defaults.agentB", messages);
 
       nextDefaults.agentA = agentA;
       nextDefaults.agentB = agentB;
@@ -256,7 +267,7 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
       if (isNoneValue(summaryAgentValue)) {
         delete nextDefaults.summaryAgent;
       } else {
-        assertKnownAgent(config, summaryAgentValue, "defaults.summaryAgent");
+        assertKnownAgent(config, summaryAgentValue, "defaults.summaryAgent", messages);
         nextDefaults.summaryAgent = summaryAgentValue;
       }
     }
@@ -310,9 +321,9 @@ function formatDefaultsForMessage(defaults: NonNullable<PalabreConfig["defaults"
  * @param agentName - Nom de l'agent à vérifier.
  * @param fieldName - Nom du champ (utilisé dans le message d'erreur).
  */
-function assertKnownAgent(config: Awaited<ReturnType<typeof loadConfig>>, agentName: string, fieldName: string): void {
+function assertKnownAgent(config: Awaited<ReturnType<typeof loadConfig>>, agentName: string, fieldName: string, messages: Messages): void {
   if (!config.agents[agentName]) {
-    throw new Error(`Agent inconnu pour ${fieldName}: ${agentName}. Agents disponibles: ${Object.keys(config.agents).join(", ")}.`);
+    throw new Error(messages.common.unknownAgentForField(fieldName, agentName, Object.keys(config.agents).join(", ")));
   }
 }
 /**
@@ -328,12 +339,13 @@ function resolveAgentName(
   label: string,
   explicitValue: string | string[] | boolean | undefined,
   presetValue: string | undefined,
-  defaultValue: string | undefined
+  defaultValue: string | undefined,
+  messages: Messages
 ): string {
   const resolved = optionalString(explicitValue) ?? presetValue ?? defaultValue;
 
   if (!resolved) {
-    throw new Error(`Aucun ${label} défini. Utilise --agent-a/--agent-b, un preset, ou lance palabre init pour définir defaults.agentA/defaults.agentB.`);
+    throw new Error(messages.common.noAgentDefined(label));
   }
 
   return resolved;
@@ -343,11 +355,11 @@ function resolveAgentName(
  * @param config - Config chargée.
  * @param options - Options du débat résolues.
  */
-function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, options: DebateOptions, language: string): void {
+function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, options: DebateOptions, language: string, messages: Messages): void {
   const agentConfig = config.agents[options.agentA];
 
   if (!agentConfig) {
-    throw new Error(`Agent inconnu: ${options.agentA}`);
+    throw new Error(messages.common.unknownAgent(options.agentA));
   }
 
   const prompt = formatAgentPrompt({
@@ -381,6 +393,22 @@ function optionalString(value: string | string[] | boolean | undefined): string 
   return typeof value === "string" && value.trim() ? value : undefined;
 }
 
+/**
+ * Pré-lit seulement `--language`/`--lang` dans les arguments bruts pour localiser
+ * les erreurs qui peuvent survenir avant le parsing complet ou le chargement de config.
+ */
+function findRawLanguageFlag(args: string[]): string | undefined {
+  for (let index = 0; index < args.length; index += 1) {
+    const value = args[index];
+    if (value === "--language" || value === "--lang") {
+      const next = args[index + 1];
+      return next && !next.startsWith("-") ? next : undefined;
+    }
+  }
+
+  return undefined;
+}
+
 /** Liste des kinds de renderer acceptés par `--renderer`. */
 const SUPPORTED_RENDERERS = ["auto", "pretty", "plain", "ndjson"] as const;
 type RendererKind = (typeof SUPPORTED_RENDERERS)[number];
@@ -399,13 +427,12 @@ type RendererKind = (typeof SUPPORTED_RENDERERS)[number];
 function createRendererFromFlags(
   flags: Record<string, string | string[] | boolean>,
   plainOutputFallback: boolean,
+  messages: Messages,
 ) {
   const explicit = optionalString(flags.renderer);
   if (explicit) {
     if (!(SUPPORTED_RENDERERS as readonly string[]).includes(explicit)) {
-      throw new Error(
-        `Renderer inconnu: ${explicit}. Valeurs supportées: ${SUPPORTED_RENDERERS.join(", ")}.`,
-      );
+      throw new Error(messages.common.unknownRenderer(explicit, SUPPORTED_RENDERERS.join(", ")));
     }
     const kind = explicit as RendererKind;
     switch (kind) {
@@ -467,7 +494,7 @@ async function runPresetsCommand(flags: Record<string, string | string[] | boole
  * @param args - Tableau d'arguments (généralement `process.argv.slice(2)`).
  * @returns Commande détectée, indicateur d'explicitation et map de flags.
  */
-function parseArgs(args: string[]): ParsedArgs {
+function parseArgs(args: string[], messages: Messages): ParsedArgs {
   const flags: Record<string, string | string[] | boolean> = {};
   let command = "run";
   let commandExplicit = false;
@@ -489,7 +516,7 @@ function parseArgs(args: string[]): ParsedArgs {
         command = value;
         commandExplicit = true;
       } else if (isLikelyCommandTypo(value, commands)) {
-        throw new Error(`Commande inconnue: ${value}. Commandes disponibles: ${Array.from(commands).join(", ")}.`);
+        throw new Error(messages.common.unknownCommand(value, Array.from(commands).join(", ")));
       } else {
         positionals.push(value);
       }
@@ -521,7 +548,7 @@ function parseArgs(args: string[]): ParsedArgs {
       const next = args[index + 1];
 
       if (!next || next.startsWith("-")) {
-        throw new Error("L'option -s attend une valeur.");
+        throw new Error(messages.common.optionRequiresValue("-s"));
       }
 
       flags.topic = next;
@@ -533,7 +560,7 @@ function parseArgs(args: string[]): ParsedArgs {
       const next = args[index + 1];
 
       if (!next || next.startsWith("-")) {
-        throw new Error("L'option -t attend une valeur.");
+        throw new Error(messages.common.optionRequiresValue("-t"));
       }
 
       flags.turns = next;
@@ -554,7 +581,7 @@ function parseArgs(args: string[]): ParsedArgs {
         }
 
         if (values.length !== 2) {
-          throw new Error("L'option --set-defaults attend deux agents: --set-defaults <agentA> <agentB>.");
+          throw new Error(messages.common.setDefaultsRequiresTwo);
         }
 
         flags[key] = values;
@@ -577,7 +604,7 @@ function parseArgs(args: string[]): ParsedArgs {
 
       if (!next || next.startsWith("-")) {
         if (requiresFlagValue(key)) {
-          throw new Error(`L'option --${rawKey} attend une valeur.`);
+          throw new Error(messages.common.optionRequiresValue(`--${rawKey}`));
         }
 
         flags[key] = true;
@@ -589,7 +616,7 @@ function parseArgs(args: string[]): ParsedArgs {
   }
 
   if (command === "run") {
-    applyRunPositionals(positionals, flags, presets, commandExplicit);
+    applyRunPositionals(positionals, flags, presets, commandExplicit, commands, messages);
   }
 
   return { command, commandExplicit, flags };
@@ -649,7 +676,9 @@ function applyRunPositionals(
   positionals: string[],
   flags: Record<string, string | string[] | boolean>,
   presets: Set<string>,
-  commandExplicit: boolean
+  commandExplicit: boolean,
+  commands: Set<string>,
+  messages: Messages
 ): void {
   if (positionals.length === 0) {
     return;
@@ -668,7 +697,10 @@ function applyRunPositionals(
   }
 
   if (!commandExplicit && positionals.length === 1 && !positionals[0]?.includes(" ")) {
-    throw new Error(`Commande inconnue ou sujet ambigu: ${positionals[0]}. Utilise -s "${positionals[0]}" pour un sujet en un mot, ou palabre help pour voir les commandes.`);
+    if (isLikelyCommandTypo(positionals[0], commands)) {
+      throw new Error(messages.common.unknownCommand(positionals[0], Array.from(commands).join(", ")));
+    }
+    throw new Error(messages.common.ambiguousSubject(positionals[0]));
   }
 
   flags.topic ??= positionals.join(" ");
@@ -1093,6 +1125,15 @@ main().catch((error: unknown) => {
   const message = error instanceof AdapterError
     ? formatAdapterError(error)
     : error instanceof Error ? error.message : String(error);
-  console.error(`Erreur: ${message}`);
+  const language = safeStartupLanguage(process.argv.slice(2));
+  console.error(`${createTranslator(language).common.errorPrefix}: ${message}`);
   process.exitCode = 1;
 });
+
+function safeStartupLanguage(args: string[]) {
+  try {
+    return resolveLanguage({ explicitLanguage: findRawLanguageFlag(args) });
+  } catch {
+    return DEFAULT_LANGUAGE;
+  }
+}
