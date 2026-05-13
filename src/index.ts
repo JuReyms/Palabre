@@ -397,16 +397,16 @@ function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, opti
     transcript: []
   });
 
-  console.log(`# Prompt preview`);
-  console.log(`Agent: ${options.agentA} (${agentConfig.role})`);
-  console.log(`Peer: ${options.agentB}`);
-  console.log(`Pull missing Ollama models: ${options.pullModels ? "yes" : "no"}`);
-  console.log(`Summary: ${options.summaryEnabled ? options.summaryAgent ?? options.agentB : "disabled"}`);
-  console.log(`Interface language: ${language}`);
+  console.log(messages.preview.title);
+  console.log(messages.preview.agent(options.agentA, agentConfig.role));
+  console.log(messages.preview.peer(options.agentB));
+  console.log(messages.preview.pullModels(options.pullModels));
+  console.log(messages.preview.summary(options.summaryEnabled ? options.summaryAgent ?? options.agentB : messages.preview.disabled));
+  console.log(messages.preview.interfaceLanguage(language));
   console.log("");
   console.log(prompt);
   console.log("");
-  console.log("Note: seuls les prompts du premier tour sont exacts sans exécuter les agents. Les tours suivants incluent le transcript réel.");
+  console.log(messages.preview.note);
 }
 
 /**

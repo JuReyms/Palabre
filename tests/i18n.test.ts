@@ -83,3 +83,11 @@ test("createTranslator returns localized update messages", () => {
     /Package installation detected/
   );
 });
+
+test("createTranslator returns localized preview messages", () => {
+  assert.equal(createTranslator("fr").preview.title, "# Aperçu du prompt");
+  assert.equal(createTranslator("en").preview.title, "# Prompt preview");
+  assert.equal(createTranslator("en").preview.pullModels(true), "Pull missing Ollama models: yes");
+  assert.equal(createTranslator("en").preview.summary(createTranslator("en").preview.disabled), "Summary: disabled");
+  assert.match(createTranslator("en").preview.note, /first-turn prompts/);
+});
