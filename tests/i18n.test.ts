@@ -49,8 +49,10 @@ test("createTranslator returns localized init messages", () => {
   assert.equal(createTranslator("fr").init.localDetectionTitle, "Détection locale:");
   assert.equal(createTranslator("en").init.localDetectionTitle, "Local detection:");
   assert.equal(createTranslator("en").init.configCreated("x.json"), "x.json created.");
-  assert.match(createTranslator("fr").init.noDefaultPair, /https:\/\/palab\.re\/fr\/agents\/overview/);
-  assert.match(createTranslator("en").init.noDefaultPair, /https:\/\/palab\.re\/en\/agents\/overview/);
+  assert.match(createTranslator("fr").init.noDefaultPair("un seul agent détecté (codex)"), /Agents compatibles: Codex CLI/);
+  assert.match(createTranslator("fr").init.noDefaultPair("un seul agent détecté (codex)"), /https:\/\/palab\.re\/fr\/agents\/overview/);
+  assert.match(createTranslator("en").init.noDefaultPair("only one agent detected (codex)"), /Compatible agents: Codex CLI/);
+  assert.match(createTranslator("en").init.noDefaultPair("only one agent detected (codex)"), /https:\/\/palab\.re\/en\/agents\/overview/);
   assert.equal(createTranslator("fr").init.languageHint("fr"), "Langue: fr\nEnglish > palabre config --language en");
   assert.equal(createTranslator("en").init.languageHint("en"), "Language: en\nFrançais > palabre config --language fr");
 });

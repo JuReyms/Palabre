@@ -995,8 +995,35 @@ function printInitDiscovery(
   console.log("");
   console.log(config.defaults?.agentA && config.defaults.agentB
     ? messages.init.defaults(config.defaults.agentA, config.defaults.agentB)
-    : messages.init.noDefaultPair);
+    : messages.init.noDefaultPair(formatDetectedAgentSummary(discovery, config.language ?? DEFAULT_LANGUAGE)));
   console.log(messages.init.languageHint(config.language ?? DEFAULT_LANGUAGE));
+}
+
+function formatDetectedAgentSummary(
+  discovery: Awaited<ReturnType<typeof discoverLocalTools>>,
+  language: NonNullable<PalabreConfig["language"]>
+): string {
+  const names = [
+    discovery.codex.available ? "codex" : undefined,
+    discovery.claude.available ? "claude" : undefined,
+    discovery.gemini.available ? "gemini" : undefined,
+    discovery.opencode.available ? "opencode" : undefined,
+    discovery.ollama.available ? "ollama-local" : undefined
+  ].filter((name): name is string => Boolean(name));
+
+  if (names.length === 0) {
+    return language === "en" ? "no agent detected" : "aucun agent détecté";
+  }
+
+  if (names.length === 1) {
+    return language === "en"
+      ? `only one agent detected (${names[0]})`
+      : `un seul agent détecté (${names[0]})`;
+  }
+
+  return language === "en"
+    ? `no usable pair detected among ${names.join(", ")}`
+    : `aucune paire utilisable détectée parmi ${names.join(", ")}`;
 }
 
 /**
