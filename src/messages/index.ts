@@ -1,4 +1,5 @@
 import type { Language } from "../types.js";
+import { adapterErrorMessages, type AdapterErrorMessages } from "./adapter-errors.js";
 import { agentsMessages, type AgentsMessages } from "./agents.js";
 import { commonMessages, type CommonMessages } from "./common.js";
 import { configMessages, type ConfigMessages } from "./config.js";
@@ -16,6 +17,7 @@ import { rendererMessages, type RendererMessages } from "./renderers.js";
 import { updateMessages, type UpdateMessages } from "./update.js";
 
 export interface Messages {
+  adapterErrors: AdapterErrorMessages;
   agents: AgentsMessages;
   common: CommonMessages;
   config: ConfigMessages;
@@ -35,6 +37,7 @@ export interface Messages {
 
 export function createTranslator(language: Language): Messages {
   return {
+    adapterErrors: adapterErrorMessages[language],
     agents: agentsMessages[language],
     common: commonMessages[language],
     config: configMessages[language],

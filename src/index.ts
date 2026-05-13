@@ -1024,11 +1024,12 @@ function printHelp(messages: Messages): void {
 }
 
 main().catch((error: unknown) => {
-  const message = error instanceof AdapterError
-    ? formatAdapterError(error)
-    : error instanceof Error ? error.message : String(error);
   const language = safeStartupLanguage(process.argv.slice(2));
-  console.error(`${createTranslator(language).common.errorPrefix}: ${message}`);
+  const messages = createTranslator(language);
+  const message = error instanceof AdapterError
+    ? formatAdapterError(error, messages)
+    : error instanceof Error ? error.message : String(error);
+  console.error(`${messages.common.errorPrefix}: ${message}`);
   process.exitCode = 1;
 });
 

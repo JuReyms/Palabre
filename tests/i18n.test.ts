@@ -22,6 +22,7 @@ test("resolveLanguage applies CLI, env, config, fallback precedence", () => {
 });
 
 test("createTranslator returns localized doctor messages", () => {
+  assert.equal(createTranslator("en").adapterErrors.hint("command-not-found"), "Check that the CLI is installed, authenticated, and available in PATH.");
   assert.equal(createTranslator("fr").doctor.interfaceLanguage("fr"), "Langue interface: fr");
   assert.equal(createTranslator("en").doctor.interfaceLanguage("en"), "Interface language: en");
   assert.equal(createTranslator("en").doctor.sections.tools, "Local tools");
