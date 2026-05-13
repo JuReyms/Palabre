@@ -1,10 +1,13 @@
+import { createTranslator } from "./i18n.js";
+import type { Messages } from "./messages/index.js";
+
 export const DEFAULT_TURNS = 4;
 export const MAX_TURNS = 20;
 
 /** Convertit `value` en nombre et valide la plage [1, `MAX_TURNS`]. Lève une erreur si invalide. */
-export function parseTurns(value: string | number | undefined, label = "--turns"): number {
+export function parseTurns(value: string | number | undefined, label = "--turns", messages = createTranslator("fr")): number {
   const parsed = typeof value === "number" ? value : Number(value ?? DEFAULT_TURNS);
-  validateTurns(parsed, label);
+  validateTurns(parsed, label, messages);
   return parsed;
 }
 
@@ -16,31 +19,32 @@ export function parseTurns(value: string | number | undefined, label = "--turns"
 export function parseTurnsFlag(
   value: string | string[] | boolean | number | undefined,
   fallback = DEFAULT_TURNS,
-  label = "--turns"
+  label = "--turns",
+  messages: Messages = createTranslator("fr")
 ): number {
   if (value === undefined) {
-    return parseTurns(fallback, label);
+    return parseTurns(fallback, label, messages);
   }
 
   if (typeof value === "boolean") {
-    throw new Error(`${label} attend un nombre entier entre 1 et ${MAX_TURNS}.`);
+    throw new Error(messages.limits.expectsInteger(label, MAX_TURNS));
   }
 
   if (Array.isArray(value)) {
     if (value.length !== 1) {
-      throw new Error(`${label} doit être fourni une seule fois.`);
+      throw new Error(messages.limits.mustBeProvidedOnce(label));
     }
 
-    return parseTurns(value[0], label);
+    return parseTurns(value[0], label, messages);
   }
 
-  return parseTurns(value, label);
+  return parseTurns(value, label, messages);
 }
 
 /** Valide que `value` est un entier dans [1, `MAX_TURNS`]. Lève une erreur descriptive sinon. */
-export function validateTurns(value: number, label = "--turns"): void {
+export function validateTurns(value: number, label = "--turns", messages = createTranslator("fr")): void {
   if (!Number.isInteger(value) || value < 1 || value > MAX_TURNS) {
-    throw new Error(`${label} doit être un nombre entier entre 1 et ${MAX_TURNS}.`);
+    throw new Error(messages.limits.mustBeInteger(label, MAX_TURNS));
   }
 }
 

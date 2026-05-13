@@ -172,7 +172,7 @@ async function main(): Promise<void> {
     topic,
     agentA: resolveAgentName("agent A", parsed.flags["agent-a"], preset?.agentA, config.defaults?.agentA, messages),
     agentB: resolveAgentName("agent B", parsed.flags["agent-b"], preset?.agentB, config.defaults?.agentB, messages),
-    turns: parseTurnsFlag(parsed.flags.turns, config.defaults?.turns ?? DEFAULT_TURNS, "--turns"),
+    turns: parseTurnsFlag(parsed.flags.turns, config.defaults?.turns ?? DEFAULT_TURNS, "--turns", messages),
     session: createSessionContext(),
     files: context.files,
     modelA: optionalString(parsed.flags["model-a"]),
@@ -286,7 +286,7 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
     }
 
     if (hasTurnsFlag) {
-      nextDefaults.turns = parseTurnsFlag(flags.turns, nextDefaults.turns ?? DEFAULT_TURNS, "--turns");
+      nextDefaults.turns = parseTurnsFlag(flags.turns, nextDefaults.turns ?? DEFAULT_TURNS, "--turns", messages);
     }
 
     if (summaryAgentValue !== undefined) {

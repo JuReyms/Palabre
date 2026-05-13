@@ -115,3 +115,10 @@ test("createTranslator returns localized context messages", () => {
   assert.equal(createTranslator("en").context.ignoredNonTextExtension("image.png"), "Context ignored (non-text extension): image.png");
   assert.equal(createTranslator("en").context.explicitTotalTooLarge(200, 100), "Context files too large (200 bytes, max 100)");
 });
+
+test("createTranslator returns localized limits messages", () => {
+  assert.equal(createTranslator("fr").limits.mustBeInteger("--turns", 20), "--turns doit être un nombre entier entre 1 et 20.");
+  assert.equal(createTranslator("en").limits.mustBeInteger("--turns", 20), "--turns must be an integer between 1 and 20.");
+  assert.equal(createTranslator("en").limits.expectsInteger("--turns", 20), "--turns expects an integer between 1 and 20.");
+  assert.equal(createTranslator("en").limits.mustBeProvidedOnce("--turns"), "--turns must be provided only once.");
+});

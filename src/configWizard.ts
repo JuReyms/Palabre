@@ -251,7 +251,7 @@ async function askNumber(
     const parsed = Number(value);
     if (Number.isInteger(parsed)) {
       try {
-        validateTurns(parsed, "Le nombre de réponses");
+        validateTurns(parsed, messages.config.wizardTurnsLabel, messages);
         return parsed;
       } catch {
         // Show the user-facing wizard hint below.

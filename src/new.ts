@@ -278,7 +278,7 @@ async function askNumber(
     const parsed = Number(value);
     if (Number.isInteger(parsed)) {
       try {
-        validateTurns(parsed, messages.new.turnsValidationLabel);
+        validateTurns(parsed, messages.new.turnsValidationLabel, messages);
         return parsed;
       } catch {
         // Show the user-facing wizard hint below.

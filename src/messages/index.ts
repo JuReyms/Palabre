@@ -6,6 +6,7 @@ import { contextMessages, type ContextMessages } from "./context.js";
 import { doctorMessages, type DoctorMessages } from "./doctor.js";
 import { helpMessages, type HelpMessages } from "./help.js";
 import { initMessages, type InitMessages } from "./init.js";
+import { limitsMessages, type LimitsMessages } from "./limits.js";
 import { newMessages, type NewMessages } from "./new.js";
 import { presetsMessages, type PresetsMessages } from "./presets.js";
 import { previewMessages, type PreviewMessages } from "./preview.js";
@@ -20,6 +21,7 @@ export interface Messages {
   doctor: DoctorMessages;
   help: HelpMessages;
   init: InitMessages;
+  limits: LimitsMessages;
   new: NewMessages;
   presets: PresetsMessages;
   preview: PreviewMessages;
@@ -36,6 +38,7 @@ export function createTranslator(language: Language): Messages {
     doctor: doctorMessages[language],
     help: helpMessages[language],
     init: initMessages[language],
+    limits: limitsMessages[language],
     new: newMessages[language],
     presets: presetsMessages[language],
     preview: previewMessages[language],
