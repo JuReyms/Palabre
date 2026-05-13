@@ -84,7 +84,7 @@ async function main(): Promise<void> {
     const initConfigPath = optionalString(parsed.flags.config) ?? (parsed.flags.local ? DEFAULT_CONFIG_PATH : GLOBAL_CONFIG_PATH);
 
     if (await configExists(initConfigPath)) {
-      console.log(`${initConfigPath} existe déjà.`);
+      console.log(startupMessages.init.configExists(initConfigPath));
       return;
     }
 
@@ -94,17 +94,24 @@ async function main(): Promise<void> {
       explicitLanguage: optionalString(parsed.flags.language),
       configLanguage: config.language
     });
+    const initMessages = createTranslator(config.language);
     await writeExampleConfig(initConfigPath, config);
-    console.log(`${initConfigPath} créé.`);
-    printInitDiscovery(discovery, config);
+    console.log(initMessages.init.configCreated(initConfigPath));
+    printInitDiscovery(discovery, config, initMessages);
     return;
   }
 
   const configPath = optionalString(parsed.flags.config) ?? await resolveDefaultConfigPath();
 
   if (!(await configExists(configPath))) {
-    await writeExampleConfig(configPath);
-    console.log(`${configPath} créé. Édite la config puis relance palabre run.`);
+    const config = createConfigFromDiscovery(await discoverLocalTools());
+    config.language = resolveLanguage({
+      explicitLanguage: optionalString(parsed.flags.language),
+      configLanguage: config.language
+    });
+    const messages = createTranslator(config.language);
+    await writeExampleConfig(configPath, config);
+    console.log(messages.init.editConfigThenRerun(configPath));
     return;
   }
 
@@ -940,42 +947,43 @@ function normalizeCommandName(command: string): string {
  */
 function printInitDiscovery(
   discovery: Awaited<ReturnType<typeof discoverLocalTools>>,
-  config: Awaited<ReturnType<typeof loadConfig>>
+  config: Awaited<ReturnType<typeof loadConfig>>,
+  messages: Messages
 ): void {
   console.log("");
-  console.log("Détection locale:");
-  console.log(`- Codex CLI: ${formatCommandDetection(discovery.codex)}`);
-  console.log(`- Claude CLI: ${formatCommandDetection(discovery.claude)}`);
-  console.log(`- Gemini CLI: ${formatCommandDetection(discovery.gemini)}`);
-  console.log(`- OpenCode CLI: ${formatCommandDetection(discovery.opencode)}`);
-  console.log(`- Ollama API: ${formatOllamaDetection(discovery.ollama)}`);
+  console.log(messages.init.localDetectionTitle);
+  console.log(`- Codex CLI: ${formatCommandDetection(discovery.codex, messages)}`);
+  console.log(`- Claude CLI: ${formatCommandDetection(discovery.claude, messages)}`);
+  console.log(`- Gemini CLI: ${formatCommandDetection(discovery.gemini, messages)}`);
+  console.log(`- OpenCode CLI: ${formatCommandDetection(discovery.opencode, messages)}`);
+  console.log(`- Ollama API: ${formatOllamaDetection(discovery.ollama, messages)}`);
   console.log("");
-  console.log(`Défauts: ${config.defaults?.agentA ?? "codex"} <-> ${config.defaults?.agentB ?? "ollama-local"}`);
+  console.log(messages.init.defaults(config.defaults?.agentA ?? "codex", config.defaults?.agentB ?? "ollama-local"));
 }
 
 /**
  * Formate le statut de détection d'un outil CLI (disponible ou non).
  * @param detection - Résultat de détection d'un outil CLI.
  */
-function formatCommandDetection(detection: Awaited<ReturnType<typeof discoverLocalTools>>["codex"]): string {
+function formatCommandDetection(detection: Awaited<ReturnType<typeof discoverLocalTools>>["codex"], messages: Messages): string {
   return detection.available
-    ? `détecté (${detection.command})`
-    : "non détecté";
+    ? messages.init.commandDetected(detection.command)
+    : messages.init.commandMissing;
 }
 
 /**
  * Formate le statut de détection d'Ollama : commande absente, serveur injoignable ou modèles disponibles.
  * @param detection - Résultat de détection d'Ollama.
  */
-function formatOllamaDetection(detection: Awaited<ReturnType<typeof discoverLocalTools>>["ollama"]): string {
+function formatOllamaDetection(detection: Awaited<ReturnType<typeof discoverLocalTools>>["ollama"], messages: Messages): string {
   if (!detection.available) {
     return detection.commandAvailable
-      ? `serveur non joignable (${detection.baseUrl})`
-      : "non détecté";
+      ? messages.init.ollamaServerUnreachable(detection.baseUrl)
+      : messages.init.ollamaMissing;
   }
 
   const modelCount = detection.models.length;
-  return `détectée (${modelCount} modèle${modelCount > 1 ? "s" : ""})`;
+  return messages.init.ollamaDetected(modelCount);
 }
 
 /** Affiche le texte d'aide complet sur `stdout`. */

@@ -39,3 +39,9 @@ test("createTranslator returns localized help text", () => {
   assert.match(createTranslator("en").help.render("codex-claude"), /Quick usage/);
   assert.match(createTranslator("en").help.render("codex-claude"), /codex-claude/);
 });
+
+test("createTranslator returns localized init messages", () => {
+  assert.equal(createTranslator("fr").init.localDetectionTitle, "Détection locale:");
+  assert.equal(createTranslator("en").init.localDetectionTitle, "Local detection:");
+  assert.equal(createTranslator("en").init.configCreated("x.json"), "x.json created.");
+});
