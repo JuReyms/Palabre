@@ -67,6 +67,7 @@ export async function runDebate(
       selfName: current.name,
       peerName: peer.name,
       selfRole: current.role,
+      language: options.language,
       session: options.session,
       files: options.files,
       transcript
@@ -204,6 +205,7 @@ async function generateSummary(
     peerName: "transcript",
     selfRole: summaryAgent.role,
     mode: "summary",
+    language: options.language,
     session: options.session,
     files: options.files,
     transcript

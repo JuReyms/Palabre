@@ -6,6 +6,7 @@ import type { DebateOptions } from "../src/types.js";
 
 function baseOptions(overrides: Partial<DebateOptions> = {}): DebateOptions {
   return {
+    language: "fr",
     topic: "Choose a cache strategy",
     agentA: "codex",
     agentB: "claude",

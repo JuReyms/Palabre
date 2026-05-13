@@ -387,9 +387,9 @@ La langue de l'interface CLI est resolue via `src/i18n.ts` avec la precedence su
 3. champ racine `language` dans `palabre.config.json` ;
 4. fallback `fr`.
 
-`language` controle l'interface Palabre, pas encore la langue demandee aux agents. Garder cette separation nette : une future option `debateLanguage` pourra guider les prompts sans forcer la langue de l'interface.
+`language` controle l'interface Palabre et la langue des prompts envoyes aux agents. Pour le MVP, garder cette regle simple : interface en francais, agents guides en francais ; interface en anglais, agents guides en anglais. Une future option `debateLanguage` ne doit etre ajoutee que si un besoin reel apparait pour decoupler les deux.
 
-Les messages traduisibles vivent dans `src/messages/`, decoupes par domaine (`common`, `doctor`, `help`, `init`, `agents`, `config`, `presets`, `update`, `preview`, `new`, `renderers`, `context`, `limits`, `orchestrator`, `output`, `adapter-errors`, etc.). Ajouter les nouvelles surfaces par lots coherents plutot que melanger traduction et refactor large. `palabre doctor`, `palabre help`, `palabre init`, `palabre agents`, `palabre config`, `palabre presets`, `palabre update`, `--show-prompt`, `palabre new`, les renderers console, les erreurs/warnings de contexte, les erreurs de limites `--turns`, les notices/erreurs runtime de l'orchestrateur, l'habillage de l'export Markdown et les suggestions d'erreurs adapter sont migres vers le dictionnaire FR/EN.
+Les messages traduisibles vivent dans `src/messages/`, decoupes par domaine (`common`, `doctor`, `help`, `init`, `agents`, `config`, `presets`, `update`, `preview`, `new`, `renderers`, `context`, `limits`, `orchestrator`, `output`, `adapter-errors`, `prompt`, etc.). Ajouter les nouvelles surfaces par lots coherents plutot que melanger traduction et refactor large. `palabre doctor`, `palabre help`, `palabre init`, `palabre agents`, `palabre config`, `palabre presets`, `palabre update`, `--show-prompt`, `palabre new`, les renderers console, les erreurs/warnings de contexte, les erreurs de limites `--turns`, les notices/erreurs runtime de l'orchestrateur, l'habillage de l'export Markdown, les suggestions d'erreurs adapter et les prompts agents sont migres vers le dictionnaire FR/EN.
 
 ## Syntaxe CLI courte
 

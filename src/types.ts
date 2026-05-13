@@ -86,6 +86,7 @@ export interface DebateMessage {
 
 /** Paramètres complets d'une session de débat. Transmis à travers toutes les couches sans mutation. */
 export interface DebateOptions {
+  language: Language;
   topic: string;
   agentA: string;
   agentB: string;
@@ -104,6 +105,7 @@ export interface DebateOptions {
 
 /** Données fournies à l'adapter pour générer une réponse. Reconstruit à chaque tour par l'orchestrateur. */
 export interface AgentPrompt {
+  language?: Language;
   topic: string;
   turn: number;
   selfName: string;

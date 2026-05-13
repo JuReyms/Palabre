@@ -1,108 +1,92 @@
-import type { AgentPrompt, AgentRole, DebateMessage, ProjectFileContext } from "./types.js";
+import { createTranslator } from "./i18n.js";
+import type { PromptMessages } from "./messages/prompt.js";
+import type { AgentPrompt, DebateMessage, ProjectFileContext } from "./types.js";
 
 /**
  * Formate le prompt complet transmis à l'adapter.
  * Dispatche vers le format de synthèse si `input.mode === "summary"`, sinon construit le prompt de débat standard.
  */
 export function formatAgentPrompt(input: AgentPrompt): string {
+  const messages = createTranslator(input.language ?? "fr").prompt;
+
   if (input.mode === "summary") {
-    return formatSummaryPrompt(input);
+    return formatSummaryPrompt(input, messages);
   }
 
   const transcript = formatTranscript(input.transcript);
 
   return [
-    `Sujet: ${input.topic}`,
+    messages.subject(input.topic),
     "",
-    `Tu es ${input.selfName}. Tu reponds au tour ${input.turn}.`,
-    `Ton interlocuteur est ${input.peerName}.`,
-    `Role de ${input.selfName}: ${input.selfRole}.`,
-    roleInstruction(input.selfRole),
+    messages.debateIntro(input.selfName, input.turn),
+    messages.peer(input.peerName),
+    messages.role(input.selfName, input.selfRole),
+    messages.roleInstruction(input.selfRole),
     "",
-    "Contexte de session PALABRE:",
-    "- Source: fourni par PALABRE et visible par tous les agents de ce debat.",
-    `- Date locale: ${input.session.localDate}`,
-    `- Fuseau horaire: ${input.session.timeZone}`,
-    `- Dossier courant: ${input.session.cwd}`,
-    `- Session demarree a: ${input.session.startedAt}`,
+    messages.sessionTitle,
+    messages.sessionSource,
+    messages.localDate(input.session.localDate),
+    messages.timeZone(input.session.timeZone),
+    messages.cwd(input.session.cwd),
+    messages.sessionStartedAt(input.session.startedAt),
     "",
-    "Objectif:",
-    "- Apporte une reponse utile, concrete et courte.",
-    "- Reagis aux arguments precedents au lieu de repartir de zero.",
-    "- Signale les incertitudes ou les points a trancher.",
-    "- Respecte ton role sans ignorer les faits du transcript.",
+    messages.objectiveTitle,
+    ...messages.debateObjectives,
     "",
-    input.files.length > 0 ? "Contexte fichiers:" : "",
+    input.files.length > 0 ? messages.fileContextTitle : "",
     formatFileContext(input.files),
     input.files.length > 0 ? "" : "",
-    transcript.length > 0 ? "Historique:" : "Historique: aucun message pour le moment.",
+    transcript.length > 0 ? messages.historyTitle : messages.emptyHistory,
     transcript,
     "",
-    "Ta reponse:"
+    messages.answerTitle
   ]
     .filter(Boolean)
     .join("\n");
 }
 
 /** Formate le prompt de synthèse finale. Impose un format structuré : Consensus / Désaccords / Actions / Conclusion. */
-function formatSummaryPrompt(input: AgentPrompt): string {
+function formatSummaryPrompt(input: AgentPrompt, messages: PromptMessages): string {
   const transcript = formatTranscript(input.transcript);
 
   return [
-    `Sujet: ${input.topic}`,
+    messages.subject(input.topic),
     "",
-    `Tu es ${input.selfName}. Tu produis la synthese finale du debat.`,
-    `Role de ${input.selfName}: ${input.selfRole}.`,
-    roleInstruction("summarizer"),
+    messages.summaryIntro(input.selfName),
+    messages.role(input.selfName, input.selfRole),
+    messages.roleInstruction("summarizer"),
     "",
-    "Contexte de session PALABRE:",
-    "- Source: fourni par PALABRE et visible par tous les agents de ce debat.",
-    `- Date locale: ${input.session.localDate}`,
-    `- Fuseau horaire: ${input.session.timeZone}`,
-    `- Dossier courant: ${input.session.cwd}`,
-    `- Session demarree a: ${input.session.startedAt}`,
+    messages.sessionTitle,
+    messages.sessionSource,
+    messages.localDate(input.session.localDate),
+    messages.timeZone(input.session.timeZone),
+    messages.cwd(input.session.cwd),
+    messages.sessionStartedAt(input.session.startedAt),
     "",
-    "Objectif:",
-    "- Resume le consensus en points concrets.",
-    "- Liste les desaccords ou incertitudes qui restent.",
-    "- Propose les prochaines actions techniques.",
-    "- Termine par une conclusion courte en prose, bien ecrite, qui explique rapidement ce qu'il faut retenir.",
-    "- Reste concis et exploitable.",
+    messages.objectiveTitle,
+    ...messages.summaryObjectives,
     "",
-    input.files.length > 0 ? "Contexte fichiers:" : "",
+    input.files.length > 0 ? messages.fileContextTitle : "",
     formatFileContext(input.files),
     input.files.length > 0 ? "" : "",
-    "Transcript du debat:",
-    transcript || "Aucun message.",
+    messages.transcriptTitle,
+    transcript || messages.noMessage,
     "",
-    "Format attendu:",
-    "### Consensus",
+    messages.expectedFormatTitle,
+    messages.consensusHeading,
     "",
-    "### Desaccords / incertitudes",
+    messages.disagreementsHeading,
     "",
-    "### Actions proposees",
+    messages.actionsHeading,
     "",
-    "### Conclusion",
+    messages.conclusionHeading,
     "",
-    "Un court paragraphe de synthese en prose, sans liste, qui resume le sens general du debat et la decision ou direction la plus raisonnable.",
+    messages.finalProseInstruction,
     "",
-    "Synthese:"
+    messages.summaryAnswerTitle
   ]
     .filter(Boolean)
     .join("\n");
-}
-
-function roleInstruction(role: AgentRole): string {
-  const instructions: Record<AgentRole, string> = {
-    implementer: "Consigne de role: propose une solution concrete, executable et sobrement justifiee.",
-    reviewer: "Consigne de role: cherche les risques, regressions, angles morts et tests manquants.",
-    architect: "Consigne de role: structure les options techniques, compromis et frontieres du systeme.",
-    scout: "Consigne de role: explore rapidement le terrain, releve les pistes utiles et les inconnues.",
-    critic: "Consigne de role: challenge les hypotheses, pointe les faiblesses et demande les preuves utiles.",
-    summarizer: "Consigne de role: synthetise fidelement le transcript sans ajouter de nouvelles hypotheses non signalees."
-  };
-
-  return instructions[role];
 }
 
 /** Formate les fichiers projet en blocs de code annotés pour l'injection dans le prompt. */

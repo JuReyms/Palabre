@@ -36,6 +36,7 @@ function captureStdout(): { lines: string[]; restore: () => void } {
 
 function baseOptions(overrides: Partial<DebateOptions> = {}): DebateOptions {
   return {
+    language: "fr",
     topic: "Test",
     agentA: "codex",
     agentB: "claude",

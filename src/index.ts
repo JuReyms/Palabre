@@ -169,6 +169,7 @@ async function main(): Promise<void> {
   }
 
   const options: DebateOptions = {
+    language,
     topic,
     agentA: resolveAgentName("agent A", parsed.flags["agent-a"], preset?.agentA, config.defaults?.agentA, messages),
     agentB: resolveAgentName("agent B", parsed.flags["agent-b"], preset?.agentB, config.defaults?.agentB, messages),
@@ -395,6 +396,7 @@ function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, opti
     selfName: options.agentA,
     peerName: options.agentB,
     selfRole: agentConfig.role,
+    language: options.language,
     session: options.session,
     files: options.files,
     transcript: []
