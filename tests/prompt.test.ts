@@ -7,6 +7,7 @@ function basePrompt(overrides: Partial<AgentPrompt> = {}): AgentPrompt {
   return {
     topic: "Choose a cache strategy",
     turn: 1,
+    totalTurns: 4,
     selfName: "codex",
     peerName: "claude",
     selfRole: "architect",
@@ -28,6 +29,7 @@ test("formatAgentPrompt follows the selected interface language", () => {
   assert.match(prompt, /^Subject: Choose a cache strategy/);
   assert.match(prompt, /You are codex\. You are answering turn 1\./);
   assert.match(prompt, /PALABRE session context:/);
+  assert.match(prompt, /- Current turn: 1\/4/);
   assert.match(prompt, /History: no message yet\./);
   assert.match(prompt, /Your answer:/);
 });
@@ -37,6 +39,7 @@ test("formatAgentPrompt keeps French as the fallback language", () => {
 
   assert.match(prompt, /^Sujet: Choose a cache strategy/);
   assert.match(prompt, /Tu es codex\. Tu reponds au tour 1\./);
+  assert.match(prompt, /- Tour courant: 1\/4/);
   assert.match(prompt, /Ta reponse:/);
 });
 

@@ -13,6 +13,7 @@ function basePrompt(overrides: Partial<AgentPrompt> = {}): AgentPrompt {
   return {
     topic: "Smoke test CLI",
     turn: 1,
+    totalTurns: 4,
     selfName: "mock-a",
     peerName: "mock-b",
     selfRole: "reviewer",

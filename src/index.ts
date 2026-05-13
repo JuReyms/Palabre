@@ -393,6 +393,7 @@ function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, opti
   const prompt = formatAgentPrompt({
     topic: options.topic,
     turn: 1,
+    totalTurns: options.turns,
     selfName: options.agentA,
     peerName: options.agentB,
     selfRole: agentConfig.role,

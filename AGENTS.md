@@ -317,7 +317,8 @@ Chaque prompt recoit un bloc `Contexte de session Palabre` construit au lancemen
 - date locale ;
 - fuseau horaire ;
 - dossier courant ;
-- horodatage de debut de session.
+- horodatage de debut de session ;
+- progression du debat (`tour courant / tours demandes`).
 
 Ce contexte doit rester petit et factuel. Il sert a eviter que les agents comparent des contextes implicites differents, par exemple sur la date, le fuseau horaire ou le dossier courant.
 

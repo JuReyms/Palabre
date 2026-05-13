@@ -108,6 +108,7 @@ export interface AgentPrompt {
   language?: Language;
   topic: string;
   turn: number;
+  totalTurns: number;
   selfName: string;
   peerName: string;
   selfRole: AgentRole;

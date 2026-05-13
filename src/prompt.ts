@@ -29,6 +29,7 @@ export function formatAgentPrompt(input: AgentPrompt): string {
     messages.timeZone(input.session.timeZone),
     messages.cwd(input.session.cwd),
     messages.sessionStartedAt(input.session.startedAt),
+    messages.turnProgress(input.turn, input.totalTurns),
     "",
     messages.objectiveTitle,
     ...messages.debateObjectives,

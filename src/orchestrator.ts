@@ -64,6 +64,7 @@ export async function runDebate(
     const response = await current.generate({
       topic: options.topic,
       turn,
+      totalTurns: options.turns,
       selfName: current.name,
       peerName: peer.name,
       selfRole: current.role,
@@ -201,6 +202,7 @@ async function generateSummary(
   const response = await summaryAgent.generate({
     topic: options.topic,
     turn: transcript.length + 1,
+    totalTurns: options.turns,
     selfName: summaryAgent.name,
     peerName: "transcript",
     selfRole: summaryAgent.role,

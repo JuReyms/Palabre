@@ -13,6 +13,7 @@ export interface PromptMessages {
   timeZone(value: string): string;
   cwd(value: string): string;
   sessionStartedAt(value: string): string;
+  turnProgress(turn: number, totalTurns: number): string;
   objectiveTitle: string;
   debateObjectives: string[];
   summaryObjectives: string[];
@@ -63,6 +64,7 @@ export const promptMessages: Record<Language, PromptMessages> = {
     timeZone: (value) => `- Fuseau horaire: ${value}`,
     cwd: (value) => `- Dossier courant: ${value}`,
     sessionStartedAt: (value) => `- Session demarree a: ${value}`,
+    turnProgress: (turn, totalTurns) => `- Tour courant: ${turn}/${totalTurns}`,
     objectiveTitle: "Objectif:",
     debateObjectives: [
       "- Apporte une reponse utile, concrete et courte.",
@@ -104,6 +106,7 @@ export const promptMessages: Record<Language, PromptMessages> = {
     timeZone: (value) => `- Time zone: ${value}`,
     cwd: (value) => `- Current directory: ${value}`,
     sessionStartedAt: (value) => `- Session started at: ${value}`,
+    turnProgress: (turn, totalTurns) => `- Current turn: ${turn}/${totalTurns}`,
     objectiveTitle: "Objective:",
     debateObjectives: [
       "- Provide a useful, concrete, and concise answer.",
