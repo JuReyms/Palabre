@@ -44,7 +44,7 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `language` | `fr` or `en` | Palabre interface language. Can be overridden for one command with `--language` or `PALABRE_LANGUAGE`. |
+| `language` | `fr` or `en` | Palabre and agent prompt language. Can be overridden for one command with `--language` or `PALABRE_LANGUAGE`. |
 | `outputDir` | string | Export folder for `.debate.md` files. |
 
 ## `defaults`

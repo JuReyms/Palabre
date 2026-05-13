@@ -24,7 +24,7 @@ Cette page liste les commandes principales de Palabre.
 | `palabre config -t 4`                        | Définit le nombre de réponses par défaut. |
 | `palabre config --summary-agent claude`      | Définit l'agent de synthèse par défaut.   |
 | `palabre config --summary-agent none`        | Retire l'agent de synthèse par défaut.    |
-| `palabre config --language en`               | Définit la langue de l'interface.         |
+| `palabre config --language en`               | Définit la langue de Palabre et des prompts agents. |
 | `palabre config --clear-defaults`            | Supprime les paramètres par défaut.       |
 | `palabre config --sync-agents`               | Ajoute les agents détectés manquants.     |
 
@@ -44,7 +44,7 @@ Cette page liste les commandes principales de Palabre.
 | `-h`, `--help` | Affiche l'aide. |
 | `-v`, `--version` | Affiche la version. |
 | `--config <path>` | Utilise un fichier de configuration explicite. |
-| `--language <fr\|en>`, `--lang <fr\|en>` | Force la langue de l'interface pour la commande. |
+| `--language <fr\|en>`, `--lang <fr\|en>` | Force la langue de Palabre et des prompts agents pour la commande. |
 | `--plain` | Utilise un rendu terminal brut. Aussi utile avec `palabre doctor` pour les logs. |
 
 ## Options de débat

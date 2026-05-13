@@ -39,13 +39,13 @@ palabre config -t 4
 
 `turns` is the total number of debate turns. Palabre accepts a value between 1 and 20.
 
-## Set the interface language
+## Set the language
 
 ```bash
 palabre config --language en
 ```
 
-The configured language progressively controls the Palabre interface. You can override it for one command with `--language <fr|en>`, `--lang <fr|en>`, or the `PALABRE_LANGUAGE` environment variable.
+The configured language controls the Palabre interface and the prompts sent to agents. You can override it for one command with `--language <fr|en>`, `--lang <fr|en>`, or the `PALABRE_LANGUAGE` environment variable.
 
 ## Clear default settings
 

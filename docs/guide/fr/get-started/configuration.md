@@ -17,6 +17,26 @@ Cette commande crée une configuration globale dans :
 
 Elle détecte aussi les outils disponibles localement : Codex, Claude, Gemini, OpenCode et Ollama.
 
+## Choisir la langue
+
+Par défaut, Palabre utilise le français. Pour passer l'interface et les prompts envoyés aux agents en anglais :
+
+```bash
+palabre config --language en
+```
+
+Pour revenir au français :
+
+```bash
+palabre config --language fr
+```
+
+Vous pouvez aussi choisir la langue directement à l'initialisation :
+
+```bash
+palabre init --language en
+```
+
 ## Vérifier l'installation
 
 ```bash

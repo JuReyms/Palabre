@@ -39,13 +39,13 @@ palabre config -t 4
 
 `turns` est le nombre total de réponses du débat. Palabre accepte une valeur entre 1 et 20.
 
-## Définir la langue de l'interface
+## Définir la langue
 
 ```bash
 palabre config --language en
 ```
 
-La langue configurée contrôle progressivement l'interface Palabre. Vous pouvez la forcer pour une commande avec `--language <fr|en>`, `--lang <fr|en>` ou la variable d'environnement `PALABRE_LANGUAGE`.
+La langue configurée contrôle l'interface Palabre et les prompts envoyés aux agents. Vous pouvez la forcer pour une commande avec `--language <fr|en>`, `--lang <fr|en>` ou la variable d'environnement `PALABRE_LANGUAGE`.
 
 ## Supprimer les paramètres par défaut
 

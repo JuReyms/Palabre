@@ -24,7 +24,7 @@ This page lists the main Palabre commands.
 | `palabre config -t 4` | Sets the default number of turns. |
 | `palabre config --summary-agent claude` | Sets the default summary agent. |
 | `palabre config --summary-agent none` | Removes the default summary agent. |
-| `palabre config --language en` | Sets the interface language. |
+| `palabre config --language en` | Sets the Palabre and agent prompt language. |
 | `palabre config --clear-defaults` | Removes default settings. |
 | `palabre config --sync-agents` | Adds missing detected agents. |
 
@@ -44,7 +44,7 @@ This page lists the main Palabre commands.
 | `-h`, `--help` | Displays help. |
 | `-v`, `--version` | Displays the version. |
 | `--config <path>` | Uses an explicit configuration file. |
-| `--language <fr\|en>`, `--lang <fr\|en>` | Forces the interface language for this command. |
+| `--language <fr\|en>`, `--lang <fr\|en>` | Forces the Palabre and agent prompt language for this command. |
 | `--plain` | Uses raw terminal rendering. Also useful with `palabre doctor` for logs. |
 
 ## Debate options

@@ -17,6 +17,26 @@ This command creates a global configuration at:
 
 It also detects locally available tools: Codex, Claude, Gemini, OpenCode, and Ollama.
 
+## Choose the language
+
+By default, Palabre uses French. To switch the interface and the prompts sent to agents to English:
+
+```bash
+palabre config --language en
+```
+
+To switch back to French:
+
+```bash
+palabre config --language fr
+```
+
+You can also choose the language directly during initialization:
+
+```bash
+palabre init --language en
+```
+
 ## Verify the installation
 
 ```bash

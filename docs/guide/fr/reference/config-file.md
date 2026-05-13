@@ -44,7 +44,7 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 
 | Champ | Type | Description |
 |-------|------|-------------|
-| `language` | `fr` ou `en` | Langue de l'interface Palabre. Peut être forcée ponctuellement avec `--language` ou `PALABRE_LANGUAGE`. |
+| `language` | `fr` ou `en` | Langue de Palabre et des prompts envoyés aux agents. Peut être forcée ponctuellement avec `--language` ou `PALABRE_LANGUAGE`. |
 | `outputDir` | string | Dossier d'export des fichiers `.debate.md`. |
 
 ## `defaults`
