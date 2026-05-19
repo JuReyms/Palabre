@@ -3,7 +3,6 @@ node_modules/
 dist/
 .pnpm-store/
 *.debate.md
-palabre.config.json
 chicane.config.json
 .tmp/
 
@@ -16,8 +15,14 @@ docs/notes.md
 *.tgz
 desktop.ini
 __pycache__/
-scripts/__pycache__/
 
 ## Palabre
 palabre.config.json
 .palabre/
+
+## ressources 
+docs/ressources/
+
+## archive
+docs/archive/
+
