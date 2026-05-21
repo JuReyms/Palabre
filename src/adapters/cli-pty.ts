@@ -6,6 +6,8 @@ import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliPtyAgentConfig } from "../types.js";
 import { cleanTerminalOutput } from "./terminal.js";
 
+const DEFAULT_MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
+
 /**
  * Adapter pour les CLIs qui exigent un vrai terminal.
  * Contrairement à `CliAdapter`, stdout/stderr sont fusionnés dans le flux PTY.
@@ -49,11 +51,13 @@ export class CliPtyAdapter implements AgentAdapter {
 
     return new Promise<AgentResponse>((resolve, reject) => {
       let output = "";
+      let outputBytes = 0;
       let settled = false;
       let hardTimer: ReturnType<typeof setTimeout>;
       let term: ReturnType<typeof spawnPty>;
       let dataSubscription: { dispose(): void } | undefined;
       let exitSubscription: { dispose(): void } | undefined;
+      const maxOutputBytes = this.config.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
 
       const finish = (error?: Error, exitCode?: number, kill = true) => {
         if (settled) return;
@@ -121,6 +125,14 @@ export class CliPtyAdapter implements AgentAdapter {
       }, this.config.timeoutMs ?? 180_000);
 
       dataSubscription = term.onData((chunk) => {
+        outputBytes += Buffer.byteLength(chunk, "utf8");
+        if (outputBytes > maxOutputBytes) {
+          finish(new AdapterError("output-too-large", this.name, `${this.name} produced more than ${maxOutputBytes} bytes of PTY output`, {
+            maxOutputBytes,
+            outputBytes
+          }));
+          return;
+        }
         output += chunk;
       });
 

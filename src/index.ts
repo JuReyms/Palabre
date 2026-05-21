@@ -201,10 +201,14 @@ async function main(): Promise<void> {
     result.messages,
     result.summary,
     result.stopReason,
-    messages
+    messages,
+    result.failure
   );
 
   renderer.done(outputPath);
+  if (result.failure) {
+    process.exitCode = 1;
+  }
 }
 
 /**

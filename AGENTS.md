@@ -253,10 +253,13 @@ Il supporte :
 - `promptMode: "stdin" | "argument"`
 - `timeoutMs`
 - `idleTimeoutMs`
+- `maxOutputBytes`
 - `shell`
 - `allowEmptyOutput`
 
 `idleTimeoutMs` doit rester optionnel pour les CLIs IA en mode batch. Certains modeles peuvent rester silencieux longtemps avant d'ecrire leur reponse ; dans ce cas, le timeout dur `timeoutMs` est le garde-fou principal.
+
+`maxOutputBytes` protege le CLI contre les agents qui produisent une sortie enorme ou partent en boucle. Par defaut, les adapters CLI et PTY coupent a 50 Mio et levent `AdapterError("output-too-large")`.
 
 Erreurs connues classees :
 
@@ -264,6 +267,7 @@ Erreurs connues classees :
 - `spawn-failed`
 - `timeout`
 - `idle-timeout`
+- `output-too-large`
 - `empty-output`
 - `non-zero-exit`
 
@@ -506,6 +510,7 @@ Types d'evenements emis aujourd'hui :
 | `message` | contenu d'un message de debat | `turn`, `agent`, `role`, `content` |
 | `summary-start` | debut de la synthese finale | `agent`, `role` |
 | `summary-message` | contenu de la synthese | `agent`, `role`, `content` |
+| `error` | erreur runtime structurée pendant le debat ou la synthese | `phase` (`debate` ou `summary`), `kind`, `message`, optionnels `agent`, `role`, `turn`, `details` |
 | `done` | export du `.debate.md` ecrit | `outputPath` |
 
 Exemple de session minimale :
@@ -523,6 +528,8 @@ Exemple de session minimale :
 {"v":1,"type":"done","outputPath":"./debate-2026-05-11.debate.md"}
 ```
 
+Si un agent plante, Palabre emet `error`, ecrit tout de meme l'export Markdown partiel avec une section `Interruption`, emet `done`, puis termine avec un exit code non nul.
+
 ### Politique de versioning
 
 - ajout d'un nouveau type d'evenement ou d'un nouveau champ optionnel : **compatible v1**, pas de bump de `v` ;
@@ -532,7 +539,6 @@ Exemple de session minimale :
 ### Limites actuelles
 
 - pas d'evenement `agent-chunk` : le rendu Palabre est par message complet, pas par token. Le streaming token-par-token necessitera un changement de contrat `DebateRenderer` cote orchestrateur, pas seulement le renderer.
-- pas d'evenement `error` : les erreurs d'adapter remontent comme exceptions non capturees par le renderer. Les consommateurs out-of-process recuperent l'exit code != 0 + stderr.
 - pas d'evenement `early-stop` distinct : la fin du debat se voit par l'absence de nouveaux `turn-start` avant le `summary-start` ou le `done`.
 
 Ces points sont a evaluer au cas par cas si un consommateur reel les demande. Eviter de speculer.

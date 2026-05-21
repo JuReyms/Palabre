@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createTranslator } from "./i18n.js";
 import type { Messages } from "./messages/index.js";
-import type { DebateMessage, DebateOptions, DebateSummary } from "./types.js";
+import type { DebateFailure, DebateMessage, DebateOptions, DebateSummary } from "./types.js";
 
 /**
  * Écrit le débat au format Markdown dans `outputDir`.
@@ -14,14 +14,15 @@ export async function writeDebateMarkdown(
   debateMessages: DebateMessage[],
   summary?: DebateSummary,
   stopReason?: string,
-  messages: Messages = createTranslator("fr")
+  messages: Messages = createTranslator("fr"),
+  failure?: DebateFailure
 ): Promise<string> {
   const safeDate = new Date().toISOString().replace(/[:.]/g, "-");
   const fileName = `palabre-${slugifyTopic(options.topic)}-${safeDate}.debate.md`;
   const filePath = path.resolve(outputDir, fileName);
 
   await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, renderDebateMarkdown(options, debateMessages, summary, stopReason, messages), "utf8");
+  await writeFile(filePath, renderDebateMarkdown(options, debateMessages, summary, stopReason, messages, failure), "utf8");
 
   return filePath;
 }
@@ -48,7 +49,8 @@ export function renderDebateMarkdown(
   debateMessages: DebateMessage[],
   summary?: DebateSummary,
   stopReason?: string,
-  messages: Messages = createTranslator("fr")
+  messages: Messages = createTranslator("fr"),
+  failure?: DebateFailure
 ): string {
   const lines = [
     messages.output.title,
@@ -70,6 +72,10 @@ export function renderDebateMarkdown(
       normalizeMarkdownForWindowsPreview(message.content.trim()),
       ""
     );
+  }
+
+  if (failure) {
+    lines.push("---", "", messages.output.failureTitle, "", ...renderFailureBlock(failure, messages), "");
   }
 
   lines.push("---", "", messages.output.finalSummaryTitle, "", ...renderSummaryBlock(options, summary, messages));
@@ -96,6 +102,22 @@ function renderSummaryBlock(options: DebateOptions, summary: DebateSummary | und
       ? messages.output.summaryMissing
       : messages.output.summaryDisabled,
     ""
+  ];
+}
+
+function renderFailureBlock(failure: DebateFailure, messages: Messages): string[] {
+  const rows = [
+    [messages.output.fields.failurePhase, failure.phase],
+    [messages.output.fields.failureAgent, failure.agent ?? messages.output.no],
+    [messages.output.fields.failureTurn, failure.turn === undefined ? messages.output.no : String(failure.turn)],
+    [messages.output.fields.failureKind, failure.kind],
+    [messages.output.fields.failureMessage, failure.message]
+  ];
+
+  return [
+    `| ${messages.output.tableField} | ${messages.output.tableValue} |`,
+    "| --- | --- |",
+    ...rows.map(([label, value]) => `| ${escapeTableCell(label)} | ${escapeTableCell(value)} |`)
   ];
 }
 

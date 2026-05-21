@@ -1,7 +1,8 @@
 import { createAgent } from "./adapters/index.js";
+import { AdapterError } from "./errors.js";
 import { createTranslator } from "./i18n.js";
 import type { Messages } from "./messages/index.js";
-import type { AgentConfig, PalabreConfig, DebateMessage, DebateOptions, DebateRenderer, DebateSummary } from "./types.js";
+import type { AgentConfig, PalabreConfig, DebateFailure, DebateMessage, DebateOptions, DebateRenderer, DebateSummary } from "./types.js";
 
 /** Résultat retourné par `runDebate`. `stopReason` est défini uniquement en cas d'arrêt anticipé. */
 export interface DebateResult {
@@ -9,6 +10,7 @@ export interface DebateResult {
   messages: DebateMessage[];
   summary?: DebateSummary;
   stopReason?: string;
+  failure?: DebateFailure;
 }
 
 /**
@@ -61,18 +63,37 @@ export async function runDebate(
     renderer?.turnStart(turn, options.turns, current.name, current.role);
     renderer?.thinkingStart(current.name, current.role);
 
-    const response = await current.generate({
-      topic: options.topic,
-      turn,
-      totalTurns: options.turns,
-      selfName: current.name,
-      peerName: peer.name,
-      selfRole: current.role,
-      language: options.language,
-      session: options.session,
-      files: options.files,
-      transcript
-    }).finally(() => renderer?.thinkingEnd());
+    let response;
+    try {
+      response = await current.generate({
+        topic: options.topic,
+        turn,
+        totalTurns: options.turns,
+        selfName: current.name,
+        peerName: peer.name,
+        selfRole: current.role,
+        language: options.language,
+        session: options.session,
+        files: options.files,
+        transcript
+      });
+    } catch (error) {
+      const failure = toDebateFailure(error, {
+        phase: "debate",
+        agent: current.name,
+        role: current.role,
+        turn
+      });
+      renderer?.error(failure);
+      return {
+        options,
+        messages: transcript,
+        stopReason,
+        failure
+      };
+    } finally {
+      renderer?.thinkingEnd();
+    }
 
     const message: DebateMessage = {
       agent: current.name,
@@ -91,15 +112,28 @@ export async function runDebate(
     }
   }
 
-  const summary = options.summaryEnabled
-    ? await generateSummary(config, options, transcript, renderer, messages)
-    : undefined;
+  let summary: DebateSummary | undefined;
+  let failure: DebateFailure | undefined;
+
+  if (options.summaryEnabled) {
+    try {
+      summary = await generateSummary(config, options, transcript, renderer, messages);
+    } catch (error) {
+      failure = toDebateFailure(error, {
+        phase: "summary",
+        agent: options.summaryAgent ?? options.agentB,
+        turn: transcript.length + 1
+      });
+      renderer?.error(failure);
+    }
+  }
 
   return {
     options,
     messages: transcript,
     summary,
-    stopReason
+    stopReason,
+    failure
   };
 }
 
@@ -222,6 +256,32 @@ async function generateSummary(
 
   renderer?.message(summary.content);
   return summary;
+}
+
+function toDebateFailure(
+  error: unknown,
+  context: Pick<DebateFailure, "phase"> & Partial<Pick<DebateFailure, "agent" | "role" | "turn">>
+): DebateFailure {
+  if (error instanceof AdapterError) {
+    return {
+      phase: context.phase,
+      agent: context.agent ?? error.adapterName,
+      role: context.role,
+      turn: context.turn,
+      kind: error.kind,
+      message: error.message,
+      details: error.details
+    };
+  }
+
+  return {
+    phase: context.phase,
+    agent: context.agent,
+    role: context.role,
+    turn: context.turn,
+    kind: "unknown",
+    message: error instanceof Error ? error.message : String(error)
+  };
 }
 
 /** Résout le model override pour un agent donné. Retourne `undefined` si l'agent n'est ni A ni B. */

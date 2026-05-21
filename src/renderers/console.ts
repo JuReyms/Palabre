@@ -1,4 +1,4 @@
-import type { AgentRole, DebateOptions, DebateRenderer, DebateStartAgentInfo } from "../types.js";
+import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateStartAgentInfo } from "../types.js";
 import type { Messages } from "../messages/index.js";
 
 const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
@@ -116,6 +116,11 @@ class PrettyConsoleRenderer implements DebateRenderer {
     ].join("\n"));
   }
 
+  error(failure: DebateFailure): void {
+    this.thinkingEnd();
+    process.stderr.write(`\n${this.c("red", this.messages.common.errorPrefix)} ${formatFailureLocation(failure, this.messages)}: ${failure.message}\n`);
+  }
+
   /** Affiche le chemin du fichier de sortie en vert à la fin du débat. */
   done(outputPath: string): void {
     process.stdout.write(`\n\n${this.c("green", this.messages.renderers.exported(outputPath))}\n\n`);
@@ -200,6 +205,10 @@ class PlainConsoleRenderer implements DebateRenderer {
     process.stdout.write(`\n[${this.messages.renderers.summaryTitle}] ${agent} (${role})...\n`);
   }
 
+  error(failure: DebateFailure): void {
+    process.stderr.write(`\n${this.messages.common.errorPrefix}: ${formatFailureLocation(failure, this.messages)}: ${failure.message}\n`);
+  }
+
   /** Affiche le chemin du fichier de sortie à la fin du débat. */
   done(outputPath: string): void {
     process.stdout.write(`\n${this.messages.renderers.exported(outputPath)}\n`);
@@ -253,6 +262,16 @@ function formatContext(options: DebateOptions, messages: Messages): string {
 
   return messages.renderers.injectedFiles(count);
 }
+
+function formatFailureLocation(failure: DebateFailure, messages: Messages): string {
+  if (failure.phase === "summary") {
+    return messages.renderers.summaryTitle;
+  }
+
+  const turn = failure.turn === undefined ? "" : `, turn ${failure.turn}`;
+  return `${failure.agent ?? "?"} (${failure.role ?? "?"}${turn})`;
+}
+
 /** Codes d'échappement ANSI utilisés par `PrettyConsoleRenderer`. */
 const codes = {
   reset: "\u001b[0m",
@@ -261,6 +280,7 @@ const codes = {
   cyan: "\u001b[36m",
   green: "\u001b[32m",
   magenta: "\u001b[35m",
+  red: "\u001b[31m",
   yellow: "\u001b[33m",
   orange: "\u001b[38;5;208m",
   pink: "\u001b[38;5;205m"

@@ -44,3 +44,26 @@ test("renderDebateMarkdown localizes export metadata", () => {
   assert.match(markdown, /## Final summary/);
   assert.match(markdown, /_Summary disabled\._/);
 });
+
+test("renderDebateMarkdown includes interruption metadata", () => {
+  const markdown = renderDebateMarkdown(
+    baseOptions(),
+    [],
+    undefined,
+    undefined,
+    createTranslator("en"),
+    {
+      phase: "debate",
+      agent: "codex",
+      role: "implementer",
+      turn: 1,
+      kind: "output-too-large",
+      message: "codex produced too much output"
+    }
+  );
+
+  assert.match(markdown, /## Interruption/);
+  assert.match(markdown, /\| Phase \| debate \|/);
+  assert.match(markdown, /\| Agent \| codex \|/);
+  assert.match(markdown, /\| Error kind \| output-too-large \|/);
+});

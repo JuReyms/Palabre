@@ -129,6 +129,20 @@ test("CliAdapter classifies unsupported model errors", async () => {
       && error.message.includes("not supported")
   );
 });
+
+test("CliAdapter rejects output above maxOutputBytes", async () => {
+  const adapter = new CliAdapter("mock", cliConfig({
+    args: ["-e", "process.stdout.write('x'.repeat(128))"],
+    maxOutputBytes: 32
+  }));
+
+  await assert.rejects(
+    adapter.generate(basePrompt()),
+    (error) => error instanceof AdapterError
+      && error.kind === "output-too-large"
+      && error.details?.maxOutputBytes === 32
+  );
+});
 async function writeFakeCli(name: string, source: string): Promise<string> {
   const dir = path.join(os.tmpdir(), "palabre-cli-adapter-tests");
   await mkdir(dir, { recursive: true });

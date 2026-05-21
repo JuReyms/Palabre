@@ -4,6 +4,7 @@ export interface OutputMessages {
   title: string;
   contextTitle: string;
   exchangesTitle: string;
+  failureTitle: string;
   finalSummaryTitle: string;
   tableField: string;
   tableValue: string;
@@ -29,6 +30,11 @@ export interface OutputMessages {
     agent: string;
     role: string;
     date: string;
+    failurePhase: string;
+    failureAgent: string;
+    failureTurn: string;
+    failureKind: string;
+    failureMessage: string;
   };
 }
 
@@ -37,6 +43,7 @@ export const outputMessages: Record<Language, OutputMessages> = {
     title: "# PALABRE Debate",
     contextTitle: "## Contexte",
     exchangesTitle: "## Echanges",
+    failureTitle: "## Interruption",
     finalSummaryTitle: "## Synthese finale",
     tableField: "Champ",
     tableValue: "Valeur",
@@ -61,13 +68,19 @@ export const outputMessages: Record<Language, OutputMessages> = {
       sessionStartedAt: "Session demarree a",
       agent: "Agent",
       role: "Role",
-      date: "Date"
+      date: "Date",
+      failurePhase: "Phase",
+      failureAgent: "Agent",
+      failureTurn: "Tour",
+      failureKind: "Type d'erreur",
+      failureMessage: "Message"
     }
   },
   en: {
     title: "# PALABRE Debate",
     contextTitle: "## Context",
     exchangesTitle: "## Exchanges",
+    failureTitle: "## Interruption",
     finalSummaryTitle: "## Final summary",
     tableField: "Field",
     tableValue: "Value",
@@ -92,7 +105,12 @@ export const outputMessages: Record<Language, OutputMessages> = {
       sessionStartedAt: "Session started at",
       agent: "Agent",
       role: "Role",
-      date: "Date"
+      date: "Date",
+      failurePhase: "Phase",
+      failureAgent: "Agent",
+      failureTurn: "Turn",
+      failureKind: "Error kind",
+      failureMessage: "Message"
     }
   }
 };

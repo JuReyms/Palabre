@@ -40,6 +40,7 @@ export interface CliAgentConfig extends BaseAgentConfig {
   allowEmptyOutput?: boolean;
   timeoutMs?: number;
   idleTimeoutMs?: number;
+  maxOutputBytes?: number;
 }
 
 /**
@@ -169,6 +170,7 @@ export type AdapterFailureKind =
   | "spawn-failed"
   | "timeout"
   | "idle-timeout"
+  | "output-too-large"
   | "empty-output"
   | "usage-limit"
   | "non-zero-exit"
@@ -216,6 +218,20 @@ export interface DebateSummary {
   createdAt: string;
 }
 
+/** Phase stable où une erreur runtime a interrompu le débat. */
+export type DebateFailurePhase = "debate" | "summary";
+
+/** Erreur runtime structurée exposée aux renderers et intégrations. */
+export interface DebateFailure {
+  phase: DebateFailurePhase;
+  agent?: string;
+  role?: AgentRole;
+  turn?: number;
+  kind: AdapterFailureKind | "unknown";
+  message: string;
+  details?: Record<string, unknown>;
+}
+
 /** Métadonnées d'un agent affichées dans le récap de démarrage. */
 export interface DebateStartAgentInfo {
   name: string;
@@ -233,5 +249,6 @@ export interface DebateRenderer {
   thinkingEnd(): void;
   message(content: string): void;
   summaryStart(agent: string, role: AgentRole): void;
+  error(failure: DebateFailure): void;
   done(outputPath: string): void;
 }

@@ -3,6 +3,7 @@ import type {
   DebateOptions,
   DebateRenderer,
   DebateStartAgentInfo,
+  DebateFailure,
 } from "../types.js";
 
 /**
@@ -114,6 +115,11 @@ export class NdjsonRenderer implements DebateRenderer {
     this.currentAgent = agent;
     this.currentRole = role;
     this.emit({ type: "summary-start", agent, role });
+  }
+
+  /** Émet une erreur runtime structurée. */
+  error(failure: DebateFailure): void {
+    this.emit({ type: "error", ...failure });
   }
 
   /** Émet `done` avec le chemin du `.debate.md` écrit. */

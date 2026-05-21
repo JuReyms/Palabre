@@ -182,6 +182,32 @@ test("NdjsonRenderer emits done with outputPath", () => {
   assert.equal(event.outputPath, "/tmp/debate.md");
 });
 
+test("NdjsonRenderer emits structured error events", () => {
+  const capture = captureStdout();
+  try {
+    const renderer = new NdjsonRenderer();
+    renderer.error({
+      phase: "summary",
+      agent: "gemini",
+      role: "reviewer",
+      turn: 3,
+      kind: "non-zero-exit",
+      message: "gemini exited with code 1",
+      details: { exitCode: 1 },
+    });
+  } finally {
+    capture.restore();
+  }
+
+  const event = JSON.parse(capture.lines[0]!);
+  assert.equal(event.v, 1);
+  assert.equal(event.type, "error");
+  assert.equal(event.phase, "summary");
+  assert.equal(event.agent, "gemini");
+  assert.equal(event.kind, "non-zero-exit");
+  assert.equal(event.details.exitCode, 1);
+});
+
 test("NdjsonRenderer emits start without agents argument (interface contract)", () => {
   // Le contrat DebateRenderer déclare `agents?: DebateStartAgentInfo[]` :
   // l'argument doit rester optionnel. Régression silencieuse possible si le

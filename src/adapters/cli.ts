@@ -4,6 +4,8 @@ import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
 import { cleanTerminalOutput } from "./terminal.js";
 
+const DEFAULT_MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
+
 /**
  * Adapter pour les CLIs batch (Codex, Claude, Gemini…).
  * Lance un sous-processus, injecte le prompt via stdin ou argument, capture stdout.
@@ -55,8 +57,10 @@ export class CliAdapter implements AgentAdapter {
       let stdout = "";
       let stderr = "";
       let settled = false;
+      let outputBytes = 0;
       let hardTimer: ReturnType<typeof setTimeout>;
       let idleTimer: ReturnType<typeof setTimeout> | undefined;
+      const maxOutputBytes = this.config.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
 
       const finish = (error?: Error) => {
         if (settled) return;
@@ -109,11 +113,29 @@ export class CliAdapter implements AgentAdapter {
       bumpIdleTimer();
 
       child.stdout.on("data", (chunk: Buffer) => {
+        outputBytes += chunk.length;
+        if (outputBytes > maxOutputBytes) {
+          child.kill();
+          finish(new AdapterError("output-too-large", this.name, `${this.name} produced more than ${maxOutputBytes} bytes of output`, {
+            maxOutputBytes,
+            outputBytes
+          }));
+          return;
+        }
         stdout += chunk.toString("utf8");
         bumpIdleTimer();
       });
 
       child.stderr.on("data", (chunk: Buffer) => {
+        outputBytes += chunk.length;
+        if (outputBytes > maxOutputBytes) {
+          child.kill();
+          finish(new AdapterError("output-too-large", this.name, `${this.name} produced more than ${maxOutputBytes} bytes of output`, {
+            maxOutputBytes,
+            outputBytes
+          }));
+          return;
+        }
         stderr += chunk.toString("utf8");
         bumpIdleTimer();
       });
