@@ -28,6 +28,14 @@ palabre codex-claude "Critique cette architecture" --context src docs
 
 `--context` ignore les dossiers techniques courants comme `.git`, `node_modules` et `dist`. Il garde les fichiers texte connus et affiche des avertissements pour les fichiers ignorés.
 
+## Prévisualiser le scan en JSON
+
+```bash
+palabre context scan src docs --json
+```
+
+Cette commande expose le même scan que `--context`, sans lancer de débat. Elle renvoie un JSON versionné avec la racine scannée, les chemins demandés, les dossiers et fichiers retenus, ainsi que les avertissements. Les intégrations comme l'extension VS Code doivent utiliser cette commande au lieu de réimplémenter les règles d'exclusion ou de limite.
+
 ## Ollama et les fichiers
 
 Ollama ne lit pas le filesystem par lui-même. Il reçoit seulement le prompt construit par Palabre.

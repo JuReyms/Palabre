@@ -14,6 +14,7 @@ This page lists the main Palabre commands.
 | `palabre doctor` | Displays a diagnostic by sections: configuration, local tools, agents, and items to check. |
 | `palabre agents` | Lists declared agents and their local detection. |
 | `palabre -a` | Shortcut for `palabre agents`. |
+| `palabre context scan --json` | Previews the project context Palabre would retain. |
 
 ## Configuration
 
@@ -36,6 +37,13 @@ This page lists the main Palabre commands.
 | `palabre -s "Subject" -t 4` | Launches with default agents. |
 | `palabre codex-claude "Subject" -t 4` | Launches with a preset. |
 | `palabre run --subject "Subject" --agent-a codex --agent-b claude` | Launches with explicit agents. |
+
+## Integrations
+
+| Command | Description |
+|---------|-------------|
+| `palabre presets --json` | Lists presets and their local availability. |
+| `palabre context scan [paths...] --json` | Returns the folders, files, and warnings from the `--context` scan as JSON v1. |
 
 ## General options
 

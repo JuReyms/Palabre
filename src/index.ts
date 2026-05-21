@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, writeExampleConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
+import { buildContextScan } from "./contextScan.js";
 import { discoverLocalTools } from "./discovery.js";
 import { runDoctor } from "./doctor.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
@@ -542,24 +543,12 @@ async function runContextCommand(flags: Record<string, string | string[] | boole
   }
 
   const paths = positionals.slice(1);
-  const scanPaths = paths.length > 0 ? paths : ["."];
-  const result = await loadProjectInputs([], scanPaths, process.cwd(), messages);
-  const files = result.files.map((file) => ({
-    kind: "file" as const,
-    path: file.path,
-    absolutePath: file.absolutePath,
-    sizeBytes: file.sizeBytes
-  }));
-  const folders = collectContextFolders(files.map((file) => file.path));
+  const result = await buildContextScan(paths, process.cwd(), messages);
+  const folders = result.items.filter((item) => item.kind === "folder");
+  const files = result.items.filter((item) => item.kind === "file");
 
   if (flags.json) {
-    console.log(JSON.stringify({
-      v: 1,
-      root: process.cwd(),
-      scanned: scanPaths,
-      items: [...folders, ...files],
-      warnings: result.warnings
-    }, null, 2));
+    console.log(JSON.stringify(result, null, 2));
     return;
   }
 
@@ -572,30 +561,6 @@ async function runContextCommand(flags: Record<string, string | string[] | boole
   for (const warning of result.warnings) {
     console.error(`${messages.renderers.warningPrefix} ${warning}`);
   }
-}
-
-function collectContextFolders(filePaths: string[]): Array<{ kind: "folder"; path: string; absolutePath: string; filesCount: number }> {
-  const counts = new Map<string, number>();
-  if (filePaths.length > 0) {
-    counts.set(".", filePaths.length);
-  }
-
-  for (const filePath of filePaths) {
-    const parts = filePath.split("/").filter(Boolean);
-    for (let index = 1; index < parts.length; index += 1) {
-      const folder = parts.slice(0, index).join("/");
-      counts.set(folder, (counts.get(folder) ?? 0) + 1);
-    }
-  }
-
-  return [...counts.entries()]
-    .sort(([left], [right]) => left === "." ? -1 : right === "." ? 1 : left.localeCompare(right))
-    .map(([folder, filesCount]) => ({
-      kind: "folder" as const,
-      path: folder,
-      absolutePath: path.resolve(process.cwd(), folder),
-      filesCount
-    }));
 }
 
 /**

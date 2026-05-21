@@ -14,6 +14,7 @@ Cette page liste les commandes principales de Palabre.
 | `palabre doctor` | Affiche un diagnostic par sections : configuration, outils locaux, agents et points à vérifier. |
 | `palabre agents` | Liste les agents déclarés et leur détection locale. |
 | `palabre -a` | Raccourci de `palabre agents`. |
+| `palabre context scan --json` | Prévisualise le contexte projet que Palabre retiendrait. |
 
 ## Configuration
 
@@ -36,6 +37,13 @@ Cette page liste les commandes principales de Palabre.
 | `palabre -s "Sujet" -t 4` | Lance avec les agents par défaut. |
 | `palabre codex-claude "Sujet" -t 4` | Lance avec un preset. |
 | `palabre run --subject "Sujet" --agent-a codex --agent-b claude` | Lance avec des agents explicites. |
+
+## Intégrations
+
+| Commande | Description |
+|----------|-------------|
+| `palabre presets --json` | Liste les presets et leur disponibilité locale. |
+| `palabre context scan [paths...] --json` | Renvoie les dossiers, fichiers et avertissements du scan `--context` au format JSON v1. |
 
 ## Options générales
 

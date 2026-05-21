@@ -28,6 +28,14 @@ palabre codex-claude "Critique this architecture" --context src docs
 
 `--context` ignores common technical folders such as `.git`, `node_modules`, and `dist`. It keeps known text files and displays warnings for ignored files.
 
+## Preview the scan as JSON
+
+```bash
+palabre context scan src docs --json
+```
+
+This command exposes the same scan as `--context`, without starting a debate. It returns versioned JSON with the scanned root, requested paths, retained folders and files, and warnings. Integrations such as the VS Code extension should use this command instead of reimplementing exclusion or limit rules.
+
 ## Ollama and files
 
 Ollama does not read the filesystem on its own. It only receives the prompt built by Palabre.
