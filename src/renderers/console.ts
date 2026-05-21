@@ -31,7 +31,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
 
   /** Affiche l'en-tête du débat (sujet, agents, options). */
   start(options: DebateOptions, agents: DebateStartAgentInfo[] = []): void {
-    const title = "PALABRE";
+    const title = "PALABRE CLI";
     process.stdout.write([
       "",
       this.c("cyan", `┌─ ${title} ${"─".repeat(Math.max(1, 54 - title.length))}`),
