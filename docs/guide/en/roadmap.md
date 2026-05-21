@@ -16,17 +16,24 @@ The main features are available:
 - interactive assistant `palabre new`;
 - presets such as `codex-claude`, `claude-gemini`, `codex-antigravity`, or `opencode-ollama`;
 - adding context with `--files` or `--context`;
+- previewing the context scan with `palabre context scan --json` for integrations;
 - final summary with consensus, disagreements, proposed actions, and conclusion;
 - Markdown export `.debate.md` with a name based on the subject;
+- partial export preserved if an agent fails during the debate or final summary;
 - diagnostics with `palabre doctor`;
-- machine-readable output with `palabre presets --json` and the NDJSON renderer;
-- automated tests for the CLI adapter, NDJSON renderer, presets, and output configuration without calling real AI services.
+- machine-readable output with `palabre presets --json`, `palabre context scan --json`, and the NDJSON renderer;
+- structured errors for integrations, with an NDJSON versioning policy;
+- automated tests for the CLI adapter, NDJSON renderer, presets, context scan, and output configuration without calling real AI services.
 
 ## Upcoming improvements
 
 ### More useful diagnostics
 
 `palabre doctor` is the first reflex when something goes wrong. It displays a readable diagnostic by sections and keeps `--plain` for logs. Future improvements will continue to make its messages more actionable for common issues: agent not found, incomplete configuration, missing Ollama model, incorrect PATH, or provider quota reached.
+
+### More robust integrations
+
+Palabre already exposes JSON contracts for presets, context scanning, and NDJSON debate rendering. Upcoming improvements will keep these contracts stable, well documented, and easier for the VS Code extension or other integrations to consume.
 
 ### Simpler configuration
 
@@ -48,7 +55,7 @@ These topics are considered after the CLI stabilizes:
 - resuming a debate from an existing transcript;
 - OpenAI-compatible local provider for LM Studio, LocalAI, vLLM, or equivalent;
 - ongoing maintenance of the French and English documentation;
-- multilingual French/English CLI interface, with a configured language and per-command override;
+- continued refinement of the multilingual French/English CLI interface, with a configured language and per-command override;
 - real interactive TUI with scrolling, pause, and resume;
 - reliable model display when Palabre can know them without unnecessary noise.
 

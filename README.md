@@ -50,6 +50,7 @@ palabre -s "Compare ces deux approches" -t 2
 palabre codex-claude "Relis cette architecture" --context src docs
 palabre claude-ollama "Critique ce fichier" --files README.md
 palabre codex-claude "Preview" --context src --show-prompt
+palabre context scan src docs --json
 ```
 
 ### Agents supportés
@@ -63,9 +64,21 @@ palabre codex-claude "Preview" --context src --show-prompt
 
 PALABRE ne liste pas les modèles : ils changent souvent et dépendent de chaque CLI ou compte utilisateur. `--model-a`, `--model-b` et `--summary-model` transmettent simplement la valeur brute à l'agent concerné.
 
+### Intégrations
+
+PALABRE expose des sorties JSON versionnées pour les clients externes :
+
+- `palabre presets --json` pour lire les paires d'agents disponibles ;
+- `palabre context scan --json` pour prévisualiser le contexte que `--context` retiendrait ;
+- `--renderer ndjson` ou `--json` pour suivre un débat événement par événement.
+
+Le flux NDJSON v1 est traité comme une API publique d'intégration. Les ajouts compatibles se font sans casser v1 ; les changements cassants doivent changer le champ `v`.
+
 ### Confidentialité
 
 PALABRE tourne localement et n'envoie aucune donnée à un serveur appartenant à PALABRE. Les données envoyées aux agents dépendent des outils que vous utilisez : vérifiez les politiques de confidentialité de Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Ollama ou de tout autre agent configuré.
+
+Si un agent échoue pendant le débat ou la synthèse, PALABRE conserve l'export Markdown partiel avec une section d'interruption quand c'est possible.
 
 ### Développement local
 
@@ -97,7 +110,7 @@ It does not replace your tools: it drives them. You keep your subscriptions, def
 - https://palab.re
 - https://palabre.netlify.app
 
-Useful pages: [Installation](https://palab.re/fr/get-started/installation), [Configuration](https://palab.re/fr/get-started/configuration), [First debate](https://palab.re/fr/get-started/first-debate), [CLI reference](https://palab.re/fr/reference/cli), [Troubleshooting](https://palab.re/fr/troubleshooting), [Roadmap](https://palab.re/fr/roadmap).
+Useful pages: [Installation](https://palab.re/en/get-started/installation), [Configuration](https://palab.re/en/get-started/configuration), [First debate](https://palab.re/en/get-started/first-debate), [CLI reference](https://palab.re/en/reference/cli), [Troubleshooting](https://palab.re/en/troubleshooting), [Roadmap](https://palab.re/en/roadmap).
 
 ### Installation
 
@@ -125,6 +138,7 @@ palabre -s "Compare these two approaches" -t 2
 palabre codex-claude "Review this architecture" --context src docs
 palabre claude-ollama "Review this file" --files README.md
 palabre codex-claude "Preview" --context src --show-prompt
+palabre context scan src docs --json
 ```
 
 ### Supported Agents
@@ -138,9 +152,21 @@ palabre codex-claude "Preview" --context src --show-prompt
 
 PALABRE does not list models: they change often and depend on each CLI or user account. `--model-a`, `--model-b`, and `--summary-model` simply pass the raw value to the selected agent.
 
+### Integrations
+
+PALABRE exposes versioned JSON outputs for external clients:
+
+- `palabre presets --json` to read available agent pairs;
+- `palabre context scan --json` to preview the context `--context` would retain;
+- `--renderer ndjson` or `--json` to follow a debate event by event.
+
+The NDJSON v1 stream is treated as a public integration API. Compatible additions do not break v1; breaking changes must change the `v` field.
+
 ### Privacy
 
 PALABRE runs locally and does not send data to a PALABRE-owned server. Data sent to agents depends on the tools you use: check the privacy policies of Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Ollama, or any custom agent you configure.
+
+If an agent fails during the debate or final summary, PALABRE keeps the partial Markdown export with an interruption section whenever possible.
 
 ### Local Development
 

@@ -59,6 +59,8 @@ src/config.ts             Chargement et generation de config
 src/discovery.ts          Detection locale des CLIs et d'Ollama pendant init
 src/types.ts              Contrats partages
 src/prompt.ts             Rendu des prompts agent
+src/context.ts            Chargement des fichiers et dossiers de contexte
+src/contextScan.ts        Contrat JSON `palabre context scan --json`
 src/orchestrator.ts       Boucle de debat ping-pong
 src/output.ts             Export Markdown
 src/renderers/console.ts  Rendu console pretty/plain
@@ -575,6 +577,7 @@ Combinaisons validees localement :
 - `codex exec ↔ claude --print`
 - `--show-prompt` avec `--files`
 - `--show-prompt` avec `--context docs`
+- `palabre context scan src --json`
 - `palabre new` simule par entree standard avec `--show-prompt` pour verifier le wizard sans appeler d'agent
 - contexte de session visible dans `--show-prompt`
 - arret anticipe sur accord clair
@@ -587,6 +590,8 @@ Combinaisons validees localement :
 - synthese finale avec `defaults.summaryAgent`, fallback agent B
 - `--no-summary`
 - erreurs adapter `empty-output`, `non-zero-exit`, `model-unavailable`
+- erreur adapter `output-too-large`
+- evenement NDJSON `error` et export partiel apres interruption
 - warning Ollama sans contexte
 - rendu console pretty et `--plain`
 

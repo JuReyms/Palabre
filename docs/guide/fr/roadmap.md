@@ -16,17 +16,24 @@ Les fonctionnalités principales sont disponibles :
 - assistant interactif `palabre new` ;
 - presets comme `codex-claude`, `claude-gemini`, `codex-antigravity` ou `opencode-ollama` ;
 - ajout de contexte avec `--files` ou `--context` ;
+- prévisualisation du scan de contexte avec `palabre context scan --json` pour les intégrations ;
 - synthèse finale avec consensus, désaccords, actions proposées et conclusion ;
 - export Markdown `.debate.md` avec nom basé sur le sujet ;
+- export partiel conservé si un agent plante pendant le débat ou la synthèse ;
 - diagnostic avec `palabre doctor` ;
-- sortie machine-readable avec `palabre presets --json` et le renderer NDJSON ;
-- tests automatisés de l'adapter CLI, du renderer NDJSON, des presets et de la configuration de sortie, sans appeler de vrais services IA.
+- sortie machine-readable avec `palabre presets --json`, `palabre context scan --json` et le renderer NDJSON ;
+- erreurs structurées pour les intégrations, avec une politique de versioning NDJSON ;
+- tests automatisés de l'adapter CLI, du renderer NDJSON, des presets, du scan de contexte et de la configuration de sortie, sans appeler de vrais services IA.
 
 ## Prochaines améliorations
 
 ### Diagnostic plus utile
 
 `palabre doctor` est le premier réflexe quand quelque chose ne fonctionne pas. Il affiche un diagnostic lisible par sections et garde `--plain` pour les logs. Les prochaines améliorations continueront à rendre ses messages plus actionnables pour les problèmes courants : agent introuvable, configuration incomplète, modèle Ollama manquant, PATH incorrect ou quota atteint côté provider.
+
+### Intégrations plus robustes
+
+Palabre expose déjà des contrats JSON pour les presets, le scan de contexte et le rendu NDJSON des débats. Les prochaines améliorations viseront à garder ces contrats stables, mieux documentés et plus faciles à consommer par l'extension VS Code ou d'autres intégrations.
 
 ### Configuration plus simple
 
@@ -49,7 +56,7 @@ Ces sujets sont envisagés après stabilisation du CLI :
 - reprise d'un débat depuis un transcript existant ;
 - provider compatible OpenAI local pour LM Studio, LocalAI, vLLM ou équivalent ;
 - maintenance continue de la documentation française et anglaise ;
-- interface CLI multilingue français/anglais, avec choix de langue dans la configuration et override ponctuel par commande ;
+- interface CLI multilingue français/anglais à continuer d'affiner, avec choix de langue dans la configuration et override ponctuel par commande ;
 - vrai TUI interactif avec scrolling, pause et reprise ;
 - affichage fiable des modèles quand Palabre pourra les connaître sans bruit inutile.
 
