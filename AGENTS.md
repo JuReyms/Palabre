@@ -8,6 +8,27 @@ Palabre est un meta-CLI qui orchestre un debat entre plusieurs agents IA. Le pro
 
 Le principe d'architecture important : Palabre orchestre des adapters. Claude, Codex, Antigravity et Ollama ne doivent pas etre codes comme des cas speciaux dans le moteur de debat.
 
+## Frontiere CLI / integrations
+
+Palabre CLI est la source de verite produit. Toute fonctionnalite qui doit produire le meme resultat hors VS Code appartient au CLI avant d'etre exposee par une integration.
+
+Appartient au CLI :
+
+- orchestration du debat, tours, roles, synthese, arret anticipe, reprise ou retry ;
+- agents, adapters, batch/PTY, timeouts agent, limites de sortie, limites d'usage ;
+- presets, disponibilite des agents, resolution de config, diagnostics, `doctor` ;
+- scan du contexte, limites fichiers/taille, `.gitignore`, export `.debate.md`, export partiel ;
+- taxonomie d'erreurs, codes de sortie, protocole NDJSON et evenements runtime structures.
+
+Appartient aux integrations comme Palabre-vscode :
+
+- UI, commandes, boutons, webview, QuickPick, notifications, Output channel ;
+- choix utilisateur transmis a des flags CLI existants ;
+- rendu des evenements NDJSON fournis par le CLI, sans en changer le sens ;
+- garde-fous techniques minimaux pour proteger l'hote si un vieux CLI ou un flux corrompu se comporte mal.
+
+Regle d'arret : si une integration doit deviner, dupliquer ou compenser un comportement que le CLI n'expose pas encore, corriger d'abord le CLI. L'integration ne doit pas devenir un second cerveau Palabre.
+
 ## Stack
 
 - Runtime : Node.js 20+
