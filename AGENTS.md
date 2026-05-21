@@ -534,9 +534,12 @@ Si un agent plante, Palabre emet `error`, ecrit tout de meme l'export Markdown p
 
 ### Politique de versioning
 
+Le renderer NDJSON est une API publique d'integration. Toute integration officielle doit le traiter comme un contrat versionne, pas comme un detail d'affichage interne.
+
 - ajout d'un nouveau type d'evenement ou d'un nouveau champ optionnel : **compatible v1**, pas de bump de `v` ;
 - suppression d'un type ou d'un champ obligatoire, renommage, changement de semantique : **breaking**, bump `v` a `2`, documenter la migration ici ;
 - les consommateurs doivent ignorer les champs inconnus et les types inconnus plutot que crasher.
+- Palabre-vscode doit continuer a supporter v1 tant que sa version minimale de CLI le demande. S'il recoit une version majeure inconnue, il doit afficher une erreur actionnable demandant de mettre a jour l'extension ou d'aligner les versions CLI/extension, sans tenter d'interpreter le flux.
 
 ### Limites actuelles
 
