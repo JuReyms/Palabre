@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { AdapterError } from "../errors.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
+import { cleanTerminalOutput } from "./terminal.js";
 
 /**
  * Adapter pour les CLIs batch (Codex, Claude, Gemini…).
@@ -124,19 +125,21 @@ export class CliAdapter implements AgentAdapter {
           command: this.config.command
         }));
       });
-      child.on("close", (code) => {
+      const finishFromExitCode = (code: number | null) => {
         if (code && code !== 0 && !stdout.trim()) {
           finish(createCliExitError(this.name, code, stderr));
           return;
         }
 
         finish();
-      });
+      };
+
+      child.on("close", finishFromExitCode);
 
       if (promptMode === "stdin") {
         child.stdin.write(renderedPrompt);
-        child.stdin.end();
       }
+      child.stdin.end();
     });
   }
 }
@@ -166,9 +169,7 @@ function withModelArgs(args: string[], model: string | undefined, modelArg: stri
 
 /** Retire les séquences ANSI et les espaces en tête/fin. */
 function cleanCliOutput(output: string): string {
-  return output
-    .replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, "")
-    .trim();
+  return cleanTerminalOutput(output);
 }
 
 /**

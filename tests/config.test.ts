@@ -33,6 +33,7 @@ function noDetectedTools(): ToolDiscovery {
     codex: { available: false, command: "codex" },
     claude: { available: false, command: "claude" },
     gemini: { available: false, command: "gemini" },
+    antigravity: { available: false, command: "agy" },
     opencode: { available: false, command: "opencode" },
     ollama: {
       available: false,

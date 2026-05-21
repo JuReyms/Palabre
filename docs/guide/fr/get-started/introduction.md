@@ -7,11 +7,11 @@ Palabre est un orchestrateur de débats entre agents IA déjà installés sur vo
 
 L'objectif est simple : vous donnez un sujet, Palabre fait dialoguer deux assistants, affiche leurs réponses dans le terminal, puis exporte le transcript complet avec une synthèse finale.
 
-Palabre ne remplace pas Claude Code, Codex CLI, Gemini CLI, OpenCode ou Ollama. Il les pilote. Vous gardez donc vos outils, vos abonnements, vos modèles par défaut et vos habitudes de terminal.
+Palabre ne remplace pas Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode ou Ollama. Il les pilote. Vous gardez donc vos outils, vos abonnements, vos modèles par défaut et vos habitudes de terminal.
 
 Palabre s'exécute localement sur votre machine. Il n'envoie aucune donnée à un serveur appartenant à Palabre. Les prompts, fichiers et transcripts sont transmis uniquement aux agents que vous choisissez d'utiliser.
 
-La confidentialité dépend donc des agents sélectionnés. Avant d'envoyer du code, des documents ou des données sensibles à Claude Code, Codex CLI, Gemini CLI, OpenCode, Ollama ou tout autre agent configuré, vérifiez leurs propres politiques de confidentialité et les paramètres de votre compte.
+La confidentialité dépend donc des agents sélectionnés. Avant d'envoyer du code, des documents ou des données sensibles à Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Ollama ou tout autre agent configuré, vérifiez leurs propres politiques de confidentialité et les paramètres de votre compte.
 
 ## À quoi sert Palabre ?
 

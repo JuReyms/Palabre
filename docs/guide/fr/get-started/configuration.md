@@ -15,7 +15,7 @@ Cette commande crée une configuration globale dans :
 ~/.palabre/palabre.config.json
 ```
 
-Elle détecte aussi les outils disponibles localement : Codex, Claude, Gemini, OpenCode et Ollama.
+Elle détecte aussi les outils disponibles localement : Codex, Claude, Gemini, Antigravity, OpenCode et Ollama.
 Après la création, Palabre affiche la langue active et la commande rapide pour basculer vers l'autre langue.
 
 ## Choisir la langue
@@ -83,7 +83,7 @@ Ici :
 
 ## Ajouter des agents détectés plus tard
 
-Si vous installez OpenCode, Gemini ou Ollama après avoir créé la configuration :
+Si vous installez Antigravity, OpenCode, Gemini ou Ollama après avoir créé la configuration :
 
 ```bash
 palabre config --sync-agents

@@ -21,6 +21,8 @@ This command is equivalent to choosing `codex` as agent A and `claude` as agent 
 | `claude-codex` | Claude proposes, Codex reviews. |
 | `codex-gemini` | Codex vs. Gemini comparison. |
 | `claude-gemini` | Claude vs. Gemini comparison. |
+| `codex-antigravity` | Codex vs. Antigravity comparison. |
+| `claude-antigravity` | Claude vs. Antigravity comparison. |
 | `codex-opencode` | Codex vs. OpenCode. |
 | `opencode-claude` | OpenCode vs. Claude. |
 | `codex-ollama` | Powerful CLI agent vs. local model. |

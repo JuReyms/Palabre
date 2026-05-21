@@ -847,6 +847,7 @@ function findDetectedMissingAgents(
     discovery.codex.available ? "codex" : undefined,
     discovery.claude.available ? "claude" : undefined,
     discovery.gemini.available ? "gemini" : undefined,
+    discovery.antigravity.available ? "antigravity" : undefined,
     discovery.opencode.available ? "opencode" : undefined,
     discovery.ollama.available ? "ollama-local" : undefined
   ].filter((agent): agent is string => Boolean(agent));
@@ -958,14 +959,16 @@ function cliDetectionForAgent(
   agentConfig: AgentConfig,
   discovery: Awaited<ReturnType<typeof discoverLocalTools>>
 ): Awaited<ReturnType<typeof discoverLocalTools>>["codex"] {
-  const command = normalizeCommandName(agentConfig.type === "cli" ? agentConfig.command : name);
+  const command = normalizeCommandName(agentConfig.type === "cli" || agentConfig.type === "cli-pty" ? agentConfig.command : name);
 
   if (command === "codex") return discovery.codex;
   if (command === "claude") return discovery.claude;
   if (command === "gemini") return discovery.gemini;
+  if (command === "agy") return discovery.antigravity;
+  if (command === "antigravity") return discovery.antigravity;
   if (command === "opencode") return discovery.opencode;
 
-  return { available: true, command: agentConfig.type === "cli" ? agentConfig.command : name };
+  return { available: true, command: agentConfig.type === "cli" || agentConfig.type === "cli-pty" ? agentConfig.command : name };
 }
 
 /**
@@ -990,6 +993,7 @@ function printInitDiscovery(
   console.log(`- Codex CLI: ${formatCommandDetection(discovery.codex, messages)}`);
   console.log(`- Claude CLI: ${formatCommandDetection(discovery.claude, messages)}`);
   console.log(`- Gemini CLI: ${formatCommandDetection(discovery.gemini, messages)}`);
+  console.log(`- Antigravity CLI: ${formatCommandDetection(discovery.antigravity, messages)}`);
   console.log(`- OpenCode CLI: ${formatCommandDetection(discovery.opencode, messages)}`);
   console.log(`- Ollama API: ${formatOllamaDetection(discovery.ollama, messages)}`);
   console.log("");
@@ -1007,6 +1011,7 @@ function formatDetectedAgentSummary(
     discovery.codex.available ? "codex" : undefined,
     discovery.claude.available ? "claude" : undefined,
     discovery.gemini.available ? "gemini" : undefined,
+    discovery.antigravity.available ? "antigravity" : undefined,
     discovery.opencode.available ? "opencode" : undefined,
     discovery.ollama.available ? "ollama-local" : undefined
   ].filter((name): name is string => Boolean(name));

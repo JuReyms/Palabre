@@ -60,7 +60,7 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 
 | Champ | Type | Description |
 |-------|------|-------------|
-| `type` | `cli` | Type de l'agent. |
+| `type` | `cli` ou `cli-pty` | Type de l'agent. |
 | `command` | string | Commande à lancer. |
 | `args` | string[] | Arguments transmis. |
 | `promptMode` | `stdin` ou `argument` | Manière de transmettre le prompt. |
@@ -70,6 +70,7 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 | `modelArg` | string | Flag modèle optionnel. |
 | `timeoutMs` | number | Timeout global. |
 | `idleTimeoutMs` | number | Timeout d'inactivité. |
+| `cols` / `rows` | number | Dimensions du pseudo-terminal pour `cli-pty`. |
 
 ## Agent Ollama
 

@@ -70,6 +70,19 @@ export const exampleConfig: PalabreConfig = {
       role: "reviewer",
       tier: "primary"
     },
+    antigravity: {
+      type: "cli-pty",
+      command: "agy",
+      args: [
+        "--print-timeout",
+        "5m0s",
+        "--print"
+      ],
+      promptMode: "argument",
+      role: "reviewer",
+      tier: "primary",
+      timeoutMs: 300_000
+    },
     opencode: {
       type: "cli",
       command: "opencode",
@@ -168,6 +181,10 @@ export function createConfigFromDiscovery(discovery: ToolDiscovery): PalabreConf
     ...config.agents.gemini,
     ...(discovery.gemini.available ? { command: discovery.gemini.command } : {})
   };
+  config.agents.antigravity = {
+    ...config.agents.antigravity,
+    ...(discovery.antigravity.available ? { command: discovery.antigravity.command } : {})
+  };
   config.agents.opencode = {
     ...config.agents.opencode,
     ...(discovery.opencode.available ? { command: discovery.opencode.command } : {})
@@ -208,7 +225,7 @@ function chooseDefaultOllamaModel(discovery: ToolDiscovery): string {
 }
 
 function chooseDefaultSummaryAgent(pair: [string, string]): string {
-  for (const preferred of ["claude", "codex", "gemini"]) {
+  for (const preferred of ["claude", "codex", "antigravity", "gemini"]) {
     if (pair.includes(preferred)) {
       return preferred;
     }
@@ -234,6 +251,10 @@ function chooseDefaultPair(discovery: ToolDiscovery): [string, string] | undefin
     return ["opencode", "ollama-local"];
   }
 
+  if (discovery.antigravity.available && discovery.ollama.available) {
+    return ["antigravity", "ollama-local"];
+  }
+
   if (discovery.gemini.available && discovery.ollama.available) {
     return ["gemini", "ollama-local"];
   }
@@ -241,6 +262,7 @@ function chooseDefaultPair(discovery: ToolDiscovery): [string, string] | undefin
   const cliAgents = [
     discovery.codex.available ? "codex" : undefined,
     discovery.claude.available ? "claude" : undefined,
+    discovery.antigravity.available ? "antigravity" : undefined,
     discovery.opencode.available ? "opencode" : undefined,
     discovery.gemini.available ? "gemini" : undefined
   ].filter((agent): agent is string => Boolean(agent));

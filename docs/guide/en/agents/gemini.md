@@ -7,6 +7,10 @@ Gemini CLI lets you use Google Gemini models from the terminal.
 
 Palabre can use it as a review, comparison, or summary agent.
 
+Google announced the transition from Gemini CLI to Antigravity CLI for individual users. Palabre keeps Gemini CLI available for existing configurations and exposes Antigravity through the `cli-pty` adapter, because `agy --print` needs a real console to produce recoverable output.
+
+Official reference: [Transitioning Gemini CLI to Antigravity CLI](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/)
+
 ## Install before Palabre
 
 Install Gemini CLI from the official Google documentation, then authenticate the CLI in your terminal.

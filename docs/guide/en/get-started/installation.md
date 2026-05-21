@@ -8,7 +8,7 @@ description: Install Palabre from npm, verify the command, and prepare the AI ag
 Palabre requires:
 
 - Node.js 20 or higher;
-- at least two agents already installed on your machine among Claude Code, Codex CLI, Gemini CLI, OpenCode, or Ollama.
+- at least two agents already installed on your machine among Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, or Ollama.
 
 You can use Palabre with only one configured agent, but the main benefit is having two agents dialogue with each other.
 
@@ -53,6 +53,7 @@ Useful pages:
 - [Claude Code](/en/agents/claude-code)
 - [Codex](/en/agents/codex)
 - [Gemini](/en/agents/gemini)
+- [Antigravity](/en/agents/antigravity)
 - [OpenCode](/en/agents/opencode)
 - [Ollama](/en/agents/ollama)
 

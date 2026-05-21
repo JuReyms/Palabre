@@ -13,7 +13,7 @@
 
 ## Français
 
-PALABRE est un orchestrateur CLI qui fait dialoguer plusieurs agents IA installés sur votre machine : Claude Code, Codex CLI, Gemini CLI, OpenCode et Ollama.
+PALABRE est un orchestrateur CLI qui fait dialoguer plusieurs agents IA installés sur votre machine : Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode et Ollama.
 
 Il ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos modèles par défaut, vos habitudes de terminal et vos fichiers en local. PALABRE exporte ensuite le débat en Markdown.
 
@@ -57,6 +57,7 @@ palabre codex-claude "Preview" --context src --show-prompt
 - Claude Code via `claude --print`
 - Codex CLI via `codex exec`
 - Gemini CLI via `gemini --prompt -`
+- Antigravity CLI via `agy --print` en pseudo-terminal
 - OpenCode via `opencode run`
 - Ollama via l'API locale HTTP
 
@@ -64,7 +65,7 @@ PALABRE ne liste pas les modèles : ils changent souvent et dépendent de chaque
 
 ### Confidentialité
 
-PALABRE tourne localement et n'envoie aucune donnée à un serveur appartenant à PALABRE. Les données envoyées aux agents dépendent des outils que vous utilisez : vérifiez les politiques de confidentialité de Claude Code, Codex CLI, Gemini CLI, OpenCode, Ollama ou de tout autre agent configuré.
+PALABRE tourne localement et n'envoie aucune donnée à un serveur appartenant à PALABRE. Les données envoyées aux agents dépendent des outils que vous utilisez : vérifiez les politiques de confidentialité de Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Ollama ou de tout autre agent configuré.
 
 ### Développement local
 
@@ -87,7 +88,7 @@ MIT. Voir [LICENSE](./LICENSE).
 
 ## English
 
-PALABRE is a CLI orchestrator that lets multiple AI agents installed on your machine talk to each other: Claude Code, Codex CLI, Gemini CLI, OpenCode, and Ollama.
+PALABRE is a CLI orchestrator that lets multiple AI agents installed on your machine talk to each other: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, and Ollama.
 
 It does not replace your tools: it drives them. You keep your subscriptions, default models, terminal habits, and local files. PALABRE then exports the debate as Markdown.
 
@@ -131,6 +132,7 @@ palabre codex-claude "Preview" --context src --show-prompt
 - Claude Code via `claude --print`
 - Codex CLI via `codex exec`
 - Gemini CLI via `gemini --prompt -`
+- Antigravity CLI via `agy --print` in a pseudo-terminal
 - OpenCode via `opencode run`
 - Ollama via the local HTTP API
 
@@ -138,7 +140,7 @@ PALABRE does not list models: they change often and depend on each CLI or user a
 
 ### Privacy
 
-PALABRE runs locally and does not send data to a PALABRE-owned server. Data sent to agents depends on the tools you use: check the privacy policies of Claude Code, Codex CLI, Gemini CLI, OpenCode, Ollama, or any custom agent you configure.
+PALABRE runs locally and does not send data to a PALABRE-owned server. Data sent to agents depends on the tools you use: check the privacy policies of Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Ollama, or any custom agent you configure.
 
 ### Local Development
 

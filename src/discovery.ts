@@ -25,6 +25,7 @@ export interface ToolDiscovery {
   codex: CommandDetection;
   claude: CommandDetection;
   gemini: CommandDetection;
+  antigravity: CommandDetection;
   opencode: CommandDetection;
   ollama: OllamaDetection;
 }
@@ -34,10 +35,11 @@ export interface ToolDiscovery {
  * Sur Windows, tente `claude.exe` avant `claude`.
  */
 export async function discoverLocalTools(): Promise<ToolDiscovery> {
-  const [codex, claude, gemini, opencode, ollamaCommand] = await Promise.all([
+  const [codex, claude, gemini, antigravity, opencode, ollamaCommand] = await Promise.all([
     detectCommand("codex"),
     detectFirstCommand(process.platform === "win32" ? ["claude.exe", "claude"] : ["claude"]),
     detectCommand("gemini"),
+    detectCommand("agy"),
     detectCommand("opencode"),
     detectCommand("ollama")
   ]);
@@ -48,6 +50,7 @@ export async function discoverLocalTools(): Promise<ToolDiscovery> {
     codex,
     claude,
     gemini,
+    antigravity,
     opencode,
     ollama: {
       ...ollamaServer,

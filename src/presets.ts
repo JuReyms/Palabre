@@ -38,12 +38,28 @@ const presets: Record<string, AgentPairPreset> = {
     agentA: "opencode",
     agentB: "codex"
   },
+  "codex-antigravity": {
+    agentA: "codex",
+    agentB: "antigravity"
+  },
+  "antigravity-codex": {
+    agentA: "antigravity",
+    agentB: "codex"
+  },
   "claude-opencode": {
     agentA: "claude",
     agentB: "opencode"
   },
   "opencode-claude": {
     agentA: "opencode",
+    agentB: "claude"
+  },
+  "claude-antigravity": {
+    agentA: "claude",
+    agentB: "antigravity"
+  },
+  "antigravity-claude": {
+    agentA: "antigravity",
     agentB: "claude"
   },
   "gemini-opencode": {
@@ -53,6 +69,22 @@ const presets: Record<string, AgentPairPreset> = {
   "opencode-gemini": {
     agentA: "opencode",
     agentB: "gemini"
+  },
+  "gemini-antigravity": {
+    agentA: "gemini",
+    agentB: "antigravity"
+  },
+  "antigravity-gemini": {
+    agentA: "antigravity",
+    agentB: "gemini"
+  },
+  "opencode-antigravity": {
+    agentA: "opencode",
+    agentB: "antigravity"
+  },
+  "antigravity-opencode": {
+    agentA: "antigravity",
+    agentB: "opencode"
   },
   "opencode-ollama": {
     agentA: "opencode",
@@ -85,6 +117,14 @@ const presets: Record<string, AgentPairPreset> = {
   "ollama-gemini": {
     agentA: "ollama-local",
     agentB: "gemini"
+  },
+  "antigravity-ollama": {
+    agentA: "antigravity",
+    agentB: "ollama-local"
+  },
+  "ollama-antigravity": {
+    agentA: "ollama-local",
+    agentB: "antigravity"
   },
   "codex-gemini": {
     agentA: "codex",
@@ -195,12 +235,14 @@ function checkAgentAvailability(agentName: string, config: PalabreConfig, discov
     : unavailable(agentName, messages?.presets.missingCommand(agentName, detection.command) ?? `commande non détectée pour ${agentName}: ${detection.command}`);
 }
 
-function knownCliDetection(agent: Extract<AgentConfig, { type: "cli" }>, discovery: ToolDiscovery): { available: boolean; command: string } | undefined {
+function knownCliDetection(agent: Extract<AgentConfig, { type: "cli" | "cli-pty" }>, discovery: ToolDiscovery): { available: boolean; command: string } | undefined {
   const command = normalizeCommandName(agent.command);
 
   if (command === "codex") return discovery.codex;
   if (command === "claude") return discovery.claude;
   if (command === "gemini") return discovery.gemini;
+  if (command === "agy") return discovery.antigravity;
+  if (command === "antigravity") return discovery.antigravity;
   if (command === "opencode") return discovery.opencode;
 
   return undefined;

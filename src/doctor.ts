@@ -63,6 +63,7 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
   lines.push(formatCommand("Codex CLI", discovery.codex.available, discovery.codex.command, discovery.codex.path, t));
   lines.push(formatCommand("Claude CLI", discovery.claude.available, discovery.claude.command, discovery.claude.path, t));
   lines.push(formatCommand("Gemini CLI", discovery.gemini.available, discovery.gemini.command, discovery.gemini.path, t));
+  lines.push(formatCommand("Antigravity CLI", discovery.antigravity.available, discovery.antigravity.command, discovery.antigravity.path, t));
   lines.push(formatCommand("OpenCode CLI", discovery.opencode.available, discovery.opencode.command, discovery.opencode.path, t));
   lines.push(discovery.ollama.available
     ? ok(t.doctor.ollamaReachable(discovery.ollama.baseUrl, discovery.ollama.models.length))
@@ -212,7 +213,7 @@ function inspectAgents(
   for (const [name, agent] of Object.entries(config.agents)) {
     inspectAgentShape(name, agent, lines, t);
 
-    if (agent.type === "cli") {
+    if (agent.type === "cli" || agent.type === "cli-pty") {
       inspectCliAgent(name, agent, discovery, lines, t);
       continue;
     }
@@ -226,7 +227,7 @@ function inspectAgentShape(name: string, agent: AgentConfig, lines: DiagnosticLi
     lines.push(error(t.doctor.roleMissing(name)));
   }
 
-  if (agent.type === "cli") {
+  if (agent.type === "cli" || agent.type === "cli-pty") {
     if (!agent.command || !agent.command.trim()) {
       lines.push(error(t.doctor.cliCommandMissing(name)));
     }
@@ -261,7 +262,7 @@ function inspectAgentShape(name: string, agent: AgentConfig, lines: DiagnosticLi
 
 function inspectCliAgent(
   name: string,
-  agent: Extract<AgentConfig, { type: "cli" }>,
+  agent: Extract<AgentConfig, { type: "cli" | "cli-pty" }>,
   discovery: ToolDiscovery,
   lines: DiagnosticLine[],
   t: Messages
@@ -309,6 +310,7 @@ function detectedAgentNames(discovery: ToolDiscovery): string[] {
     discovery.codex.available ? "codex" : undefined,
     discovery.claude.available ? "claude" : undefined,
     discovery.gemini.available ? "gemini" : undefined,
+    discovery.antigravity.available ? "antigravity" : undefined,
     discovery.opencode.available ? "opencode" : undefined,
     discovery.ollama.available ? "ollama-local" : undefined
   ].filter((name): name is string => Boolean(name));
@@ -329,6 +331,8 @@ function knownCliDetection(
   if (normalized === "codex") return discovery.codex;
   if (normalized === "claude") return discovery.claude;
   if (normalized === "gemini") return discovery.gemini;
+  if (normalized === "agy") return discovery.antigravity;
+  if (normalized === "antigravity") return discovery.antigravity;
   if (normalized === "opencode") return discovery.opencode;
   return undefined;
 }

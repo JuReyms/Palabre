@@ -7,14 +7,14 @@ This page gives an overview of the planned evolution of Palabre. It helps users 
 
 ## Available today
 
-Palabre already lets you run debates between two agents installed on your machine: Claude Code, Codex CLI, Gemini CLI, OpenCode, or Ollama.
+Palabre already lets you run debates between two agents installed on your machine: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, or Ollama.
 
 The main features are available:
 
 - global or local configuration;
 - detection of installed agents;
 - interactive assistant `palabre new`;
-- presets such as `codex-claude`, `claude-gemini`, or `opencode-ollama`;
+- presets such as `codex-claude`, `claude-gemini`, `codex-antigravity`, or `opencode-ollama`;
 - adding context with `--files` or `--context`;
 - final summary with consensus, disagreements, proposed actions, and conclusion;
 - Markdown export `.debate.md` with a name based on the subject;

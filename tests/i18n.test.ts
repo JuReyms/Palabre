@@ -78,7 +78,7 @@ test("createTranslator returns localized presets messages", () => {
   assert.equal(createTranslator("en").presets.title, "Available presets:");
   assert.equal(createTranslator("en").presets.unavailable("command not detected for opencode: opencode"), "unavailable (command not detected for opencode: opencode)");
   assert.equal(createTranslator("en").presets.missingOllamaModel("ollama-local", "gemma4:e4b"), "missing Ollama model for ollama-local: gemma4:e4b");
-  assert.equal(createTranslator("en").presets.total(20), "Total: 20 preset(s). Use --json for machine-readable output.");
+  assert.equal(createTranslator("en").presets.total(30), "Total: 30 preset(s). Use --json for machine-readable output.");
 });
 
 test("createTranslator returns localized update messages", () => {

@@ -192,6 +192,8 @@ function isAgentDetected(name: string, config: AgentConfig, discovery: ToolDisco
   if (normalized === "codex") return discovery.codex.available;
   if (normalized === "claude") return discovery.claude.available;
   if (normalized === "gemini") return discovery.gemini.available;
+  if (normalized === "agy") return discovery.antigravity.available;
+  if (normalized === "antigravity") return discovery.antigravity.available;
   if (normalized === "opencode") return discovery.opencode.available;
 
   return true;

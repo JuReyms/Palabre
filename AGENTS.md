@@ -6,7 +6,7 @@ Ce fichier guide les agents et contributeurs qui travaillent dans ce depot.
 
 Palabre est un meta-CLI qui orchestre un debat entre plusieurs agents IA. Le produit cible des utilisateurs deja a l'aise avec le terminal, ayant installe et configure leurs outils IA locaux : Codex CLI, Claude CLI, Ollama, ou equivalents.
 
-Le principe d'architecture important : Palabre orchestre des adapters. Claude, Codex et Ollama ne doivent pas etre codes comme des cas speciaux dans le moteur de debat.
+Le principe d'architecture important : Palabre orchestre des adapters. Claude, Codex, Antigravity et Ollama ne doivent pas etre codes comme des cas speciaux dans le moteur de debat.
 
 ## Stack
 
@@ -42,7 +42,8 @@ src/orchestrator.ts       Boucle de debat ping-pong
 src/output.ts             Export Markdown
 src/renderers/console.ts  Rendu console pretty/plain
 src/adapters/index.ts     Factory d'adapters
-src/adapters/cli.ts       Adapter CLI minimal
+src/adapters/cli.ts       Adapter CLI batch minimal
+src/adapters/cli-pty.ts   Adapter pseudo-terminal pour CLIs interactives
 src/adapters/ollama.ts    Adapter Ollama HTTP
 docs/roadmap.md           Roadmap interne locale non versionnee
 docs/notes.md             Notes personnelles du mainteneur
@@ -71,11 +72,11 @@ Un adapter transforme une config agent en objet capable de repondre a `generate(
 Types actuels :
 
 - `cli` : lance une commande locale et capture sa sortie.
+- `cli-pty` : lance une commande dans un pseudo-terminal pour les CLIs qui exigent une vraie console.
 - `ollama` : appelle `POST /api/chat` sur une instance Ollama.
 
 Types envisages :
 
-- `cli-pty` : adapter robuste pour les CLIs interactives.
 - `api` : adapter HTTP direct pour les utilisateurs qui veulent connecter une API payante.
 
 Chaque adapter expose aussi un `contract` :
@@ -89,23 +90,28 @@ L'orchestrateur doit s'appuyer sur ce contrat plutot que sur des exceptions impl
 
 Un preset choisit une paire d'agents. Il ne choisit pas les modeles. La source de verite est `src/presets.ts`.
 
-Presets CLI ↔ CLI (12) :
+Presets CLI ↔ CLI (20) :
 
 - `codex-claude`, `claude-codex`
 - `codex-gemini`, `gemini-codex`
 - `codex-opencode`, `opencode-codex`
+- `codex-antigravity`, `antigravity-codex`
 - `claude-gemini`, `gemini-claude`
 - `claude-opencode`, `opencode-claude`
+- `claude-antigravity`, `antigravity-claude`
 - `gemini-opencode`, `opencode-gemini`
+- `gemini-antigravity`, `antigravity-gemini`
+- `opencode-antigravity`, `antigravity-opencode`
 
-Presets CLI ↔ Ollama local (8) :
+Presets CLI ↔ Ollama local (10) :
 
 - `codex-ollama`, `ollama-codex`
 - `claude-ollama`, `ollama-claude`
 - `gemini-ollama`, `ollama-gemini`
 - `opencode-ollama`, `ollama-opencode`
+- `antigravity-ollama`, `ollama-antigravity`
 
-Total : 20 presets. Toute paire X-Y a sa variante inversee Y-X. La variante inversee differe surtout par "qui parle en premier" — les roles restent ceux configures dans la config utilisateur, pas determines par la position.
+Total : 30 presets. Toute paire X-Y a sa variante inversee Y-X. La variante inversee differe surtout par "qui parle en premier" — les roles restent ceux configures dans la config utilisateur, pas determines par la position.
 
 Les modeles restent ceux des CLIs ou de la config, sauf override explicite par `--model-a` ou `--model-b`.
 
@@ -174,6 +180,7 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 - `codex`
 - `claude.exe` puis `claude` sur Windows, `claude` ailleurs
 - `gemini`
+- `agy` (Antigravity CLI)
 - `ollama`
 - l'API Ollama locale via `GET http://localhost:11434/api/tags`
 
@@ -212,6 +219,10 @@ Pour une installation package, la commande affiche les commandes `pnpm add --glo
 - Claude : `claude --print`
 - Gemini : `gemini --prompt -`
 
+Antigravity utilise un adapter separe :
+
+- Antigravity : `agy --print <prompt>` via `cli-pty`
+
 Sur Windows, garder `"shell": true` pour les wrappers npm ou executables shimmes quand `spawn` retourne `EPERM` ou `EINVAL`. Pour Claude Code, preferer `claude.exe` avec `"shell": false`, car `stdin` est capture correctement dans ce mode.
 
 Il supporte :
@@ -238,12 +249,22 @@ Erreurs connues classees :
 Il ne supporte pas encore :
 
 - sessions interactives persistantes ;
-- PTY ;
 - detection fiable de fin de reponse ;
 - confirmations interactives ;
 - capture propre des interfaces riches.
 
-La prochaine evolution importante est de creer un adapter PTY distinct plutot que de gonfler l'adapter minimal.
+## Adapter CLI PTY
+
+`src/adapters/cli-pty.ts` lance une CLI dans un pseudo-terminal via `node-pty`. Il sert les outils qui exigent une vraie console. Antigravity CLI en a besoin : en console directe, `agy` affiche une reponse ; lance depuis Node avec stdout/stderr pipes, il sort avec code 0 sans contenu capturable.
+
+Le premier usage supporte est `agy --print-timeout 5m0s --print <prompt>` avec `promptMode: "argument"`. L'adapter nettoie les sequences ANSI/OSC via `src/adapters/terminal.ts` et retourne le raw PTY output dans `raw`.
+
+Limites actuelles :
+
+- pas encore de sessions persistantes ;
+- pas encore de confirmations interactives ;
+- fin de reponse basee sur la sortie du process et le timeout dur ;
+- stdout/stderr sont fusionnes dans le flux PTY.
 
 ## Adapter Ollama
 
@@ -331,7 +352,7 @@ Le MVP fournit deux entrees de contexte :
 
 Important :
 
-- Les agents `cli` sont executes depuis le dossier courant. Codex, Claude ou Gemini peuvent donc inspecter le workspace si leur CLI le permet.
+- Les agents `cli` et `cli-pty` sont executes depuis le dossier courant. Codex, Claude, Gemini ou Antigravity peuvent donc inspecter le workspace si leur CLI le permet.
 - Ce comportement appartient aux CLIs externes, pas au contrat Palabre.
 - L'adapter `ollama` ne lit jamais le filesystem directement. Il ne voit que le prompt, les fichiers retenus par `--files` ou `--context`, et le transcript fournis par Palabre.
 - Si aucun contexte n'est fourni a Palabre, Ollama ne voit pas le contenu du projet.
@@ -389,6 +410,10 @@ La langue de l'interface CLI est resolue via `src/i18n.ts` avec la precedence su
 4. fallback `fr`.
 
 `language` controle l'interface Palabre et la langue des prompts envoyes aux agents. Pour le MVP, garder cette regle simple : interface en francais, agents guides en francais ; interface en anglais, agents guides en anglais. Une future option `debateLanguage` ne doit etre ajoutee que si un besoin reel apparait pour decoupler les deux.
+
+L'extension VS Code peut detecter la langue de VS Code et transmettre `--language fr` ou `--language en` au CLI. Garder le contrat CLI limite a `fr|en` tant que les dictionnaires, exports et prompts ne supportent pas officiellement d'autres langues. Les locales VS Code non supportees, par exemple portugais, doivent donc etre mappees cote integration vers une langue supportee, aujourd'hui `en` par defaut.
+
+Decision a garder en tete : `--language <fr|en>` doit etre compris comme une consigne forte pour les agents. Si `--language en` est passe avec un sujet en francais, les agents doivent etre guides pour repondre en anglais ; si `--language fr` est passe avec un sujet en anglais, ils doivent etre guides pour repondre en francais. La detection automatique appartient aux integrations, mais l'application stricte de la langue appartient aux prompts du CLI.
 
 Les messages traduisibles vivent dans `src/messages/`, decoupes par domaine (`common`, `doctor`, `help`, `init`, `agents`, `config`, `presets`, `update`, `preview`, `new`, `renderers`, `context`, `limits`, `orchestrator`, `output`, `adapter-errors`, `prompt`, etc.). Ajouter les nouvelles surfaces par lots coherents plutot que melanger traduction et refactor large. `palabre doctor`, `palabre help`, `palabre init`, `palabre agents`, `palabre config`, `palabre presets`, `palabre update`, `--show-prompt`, `palabre new`, les renderers console, les erreurs/warnings de contexte, les erreurs de limites `--turns`, les notices/erreurs runtime de l'orchestrateur, l'habillage de l'export Markdown, les suggestions d'erreurs adapter et les prompts agents sont migres vers le dictionnaire FR/EN.
 
@@ -503,7 +528,7 @@ pnpm build
 
 Quand un changement touche l'adapter CLI, lancer `pnpm test`. Ces tests compilent `src/` et `tests/` via `tsconfig.test.json` dans `.tmp/test-dist`, puis utilisent `node:test` avec des CLIs mockees. Garder les tests automatises sous `tests/` et completer par un smoke test manuel avec une vraie CLI seulement quand le comportement depend d'un outil externe.
 
-Les erreurs CLI doivent rester actionnables. En particulier, les limites d'usage et quotas Codex/Claude/Gemini doivent etre classees comme `usage-limit` et ne pas recopier tout le prompt ou les logs bruts dans le message utilisateur.
+Les erreurs CLI doivent rester actionnables. En particulier, les limites d'usage et quotas Codex/Claude/Gemini/Antigravity doivent etre classees comme `usage-limit` et ne pas recopier tout le prompt ou les logs bruts dans le message utilisateur.
 
 Quand un changement touche Ollama, verifier que l'erreur est lisible si Ollama n'est pas lance ou si le modele manque.
 
@@ -514,6 +539,7 @@ Combinaisons validees localement :
 - `codex exec ↔ ollama`
 - `claude --print ↔ ollama`
 - `gemini --prompt - ↔ ollama`
+- `agy --print ↔ ollama`
 - `codex exec ↔ claude --print`
 - `--show-prompt` avec `--files`
 - `--show-prompt` avec `--context docs`
@@ -522,7 +548,7 @@ Combinaisons validees localement :
 - arret anticipe sur accord clair
 - syntaxe courte `palabre preset "sujet" -t 4`
 - alias sujet `palabre -s "sujet" -t 2`
-- detection des limites d'usage CLI type Codex/Claude/Gemini par simulation stderr
+- detection des limites d'usage CLI type Codex/Claude/Gemini/Antigravity par simulation stderr
 - `init` avec config globale et `init --local` dans un dossier temporaire pour verifier la detection locale
 - `update` en mode instructions
 - etat "agent en cours" en rendu pretty

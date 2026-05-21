@@ -61,7 +61,17 @@ export interface OllamaAgentConfig extends BaseAgentConfig {
 }
 
 /** Union discriminée par `type`. Utilisez `config.type` pour narrower vers l'adapter correspondant. */
-export type AgentConfig = CliAgentConfig | OllamaAgentConfig;
+/**
+ * Config d'un adapter CLI lancé dans un pseudo-terminal.
+ * À utiliser uniquement pour les CLIs qui ne produisent pas de stdout capturable en mode batch.
+ */
+export interface CliPtyAgentConfig extends Omit<CliAgentConfig, "type"> {
+  type: "cli-pty";
+  cols?: number;
+  rows?: number;
+}
+
+export type AgentConfig = CliAgentConfig | CliPtyAgentConfig | OllamaAgentConfig;
 
 /** Config racine issue de `palabre.config.json`. */
 export interface PalabreConfig {

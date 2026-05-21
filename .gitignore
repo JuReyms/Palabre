@@ -19,10 +19,10 @@ __pycache__/
 ## Palabre
 palabre.config.json
 .palabre/
+.antigravitycli/
 
 ## ressources 
 docs/ressources/
 
 ## archive
 docs/archive/
-

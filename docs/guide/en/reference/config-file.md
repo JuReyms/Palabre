@@ -60,7 +60,7 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `type` | `cli` | Agent type. |
+| `type` | `cli` or `cli-pty` | Agent type. |
 | `command` | string | Command to run. |
 | `args` | string[] | Arguments passed. |
 | `promptMode` | `stdin` or `argument` | How the prompt is passed. |
@@ -70,6 +70,7 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 | `modelArg` | string | Optional model flag. |
 | `timeoutMs` | number | Global timeout. |
 | `idleTimeoutMs` | number | Idle timeout. |
+| `cols` / `rows` | number | Pseudo-terminal dimensions for `cli-pty`. |
 
 ## Ollama agent
 

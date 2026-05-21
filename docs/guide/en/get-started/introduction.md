@@ -7,11 +7,11 @@ Palabre is a debate orchestrator between AI agents already installed on your mac
 
 The goal is simple: you give a subject, Palabre has two assistants dialogue, displays their responses in the terminal, then exports the full transcript with a final summary.
 
-Palabre does not replace Claude Code, Codex CLI, Gemini CLI, OpenCode, or Ollama. It drives them. You therefore keep your tools, subscriptions, default models, and terminal habits.
+Palabre does not replace Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, or Ollama. It drives them. You therefore keep your tools, subscriptions, default models, and terminal habits.
 
 Palabre runs locally on your machine. It does not send any data to a server owned by Palabre. Prompts, files, and transcripts are only transmitted to the agents you choose to use.
 
-Privacy therefore depends on the agents selected. Before sending code, documents, or sensitive data to Claude Code, Codex CLI, Gemini CLI, OpenCode, Ollama, or any other configured agent, check their own privacy policies and your account settings.
+Privacy therefore depends on the agents selected. Before sending code, documents, or sensitive data to Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Ollama, or any other configured agent, check their own privacy policies and your account settings.
 
 ## What is Palabre for?
 

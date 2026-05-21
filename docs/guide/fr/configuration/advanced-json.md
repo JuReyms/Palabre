@@ -57,6 +57,7 @@ Options utiles :
 | `role` | Rôle de l'agent. |
 | `timeoutMs` | Timeout global. |
 | `idleTimeoutMs` | Timeout si la CLI reste silencieuse. |
+| `cols` / `rows` | Dimensions du pseudo-terminal pour les agents `cli-pty`. |
 
 ## Agent Ollama
 
