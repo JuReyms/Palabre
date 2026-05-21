@@ -25,6 +25,7 @@ import type { Messages } from "./messages/index.js";
 interface ParsedArgs {
   command: string;
   commandExplicit: boolean;
+  positionals: string[];
   flags: Record<string, string | string[] | boolean>;
 }
 
@@ -64,6 +65,11 @@ async function main(): Promise<void> {
 
   if (parsed.command === "presets" || parsed.command === "preset") {
     await runPresetsCommand(parsed.flags);
+    return;
+  }
+
+  if (parsed.command === "context") {
+    await runContextCommand(parsed.flags, parsed.positionals);
     return;
   }
 
@@ -526,6 +532,72 @@ async function runPresetsCommand(flags: Record<string, string | string[] | boole
   console.log(messages.presets.total(presets.length));
 }
 
+async function runContextCommand(flags: Record<string, string | string[] | boolean>, positionals: string[]): Promise<void> {
+  const language = resolveLanguage({ explicitLanguage: optionalString(flags.language) });
+  const messages = createTranslator(language);
+  const subcommand = positionals[0] ?? "scan";
+
+  if (subcommand !== "scan") {
+    throw new Error(messages.common.unknownCommand(`context ${subcommand}`, "context scan"));
+  }
+
+  const paths = positionals.slice(1);
+  const scanPaths = paths.length > 0 ? paths : ["."];
+  const result = await loadProjectInputs([], scanPaths, process.cwd(), messages);
+  const files = result.files.map((file) => ({
+    kind: "file" as const,
+    path: file.path,
+    absolutePath: file.absolutePath,
+    sizeBytes: file.sizeBytes
+  }));
+  const folders = collectContextFolders(files.map((file) => file.path));
+
+  if (flags.json) {
+    console.log(JSON.stringify({
+      v: 1,
+      root: process.cwd(),
+      scanned: scanPaths,
+      items: [...folders, ...files],
+      warnings: result.warnings
+    }, null, 2));
+    return;
+  }
+
+  for (const folder of folders) {
+    console.log(`[folder] ${folder.path}`);
+  }
+  for (const file of files) {
+    console.log(`[file] ${file.path} (${file.sizeBytes} bytes)`);
+  }
+  for (const warning of result.warnings) {
+    console.error(`${messages.renderers.warningPrefix} ${warning}`);
+  }
+}
+
+function collectContextFolders(filePaths: string[]): Array<{ kind: "folder"; path: string; absolutePath: string; filesCount: number }> {
+  const counts = new Map<string, number>();
+  if (filePaths.length > 0) {
+    counts.set(".", filePaths.length);
+  }
+
+  for (const filePath of filePaths) {
+    const parts = filePath.split("/").filter(Boolean);
+    for (let index = 1; index < parts.length; index += 1) {
+      const folder = parts.slice(0, index).join("/");
+      counts.set(folder, (counts.get(folder) ?? 0) + 1);
+    }
+  }
+
+  return [...counts.entries()]
+    .sort(([left], [right]) => left === "." ? -1 : right === "." ? 1 : left.localeCompare(right))
+    .map(([folder, filesCount]) => ({
+      kind: "folder" as const,
+      path: folder,
+      absolutePath: path.resolve(process.cwd(), folder),
+      filesCount
+    }));
+}
+
 /**
  * Parse `process.argv` en une structure typée `ParsedArgs`.
  * Gère les flags courts (-h, -v, -s, -t, -a), les flags longs (--topic, --agent-a…),
@@ -538,7 +610,7 @@ function parseArgs(args: string[], messages: Messages): ParsedArgs {
   let command = "run";
   let commandExplicit = false;
   const positionals: string[] = [];
-  const commands = new Set(["run", "new", "init", "setup", "help", "version", "update", "doctor", "config", "agent", "agents", "preset", "presets"]);
+  const commands = new Set(["run", "new", "init", "setup", "help", "version", "update", "doctor", "config", "agent", "agents", "preset", "presets", "context"]);
   const presets = new Set(listPresetNames());
 
   for (let index = 0; index < args.length; index += 1) {
@@ -658,7 +730,7 @@ function parseArgs(args: string[], messages: Messages): ParsedArgs {
     applyRunPositionals(positionals, flags, presets, commandExplicit, commands, messages);
   }
 
-  return { command, commandExplicit, flags };
+  return { command, commandExplicit, positionals, flags };
 }
 
 /**

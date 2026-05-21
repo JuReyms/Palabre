@@ -37,6 +37,16 @@ Flags:
   --json               sortie structuree pour integrations
   --config <path>      chemin de config explicite
 `,
+  context: `
+Scanne le contexte projet avec les memes regles que --context.
+
+Usage:
+  palabre context scan [paths...] [flags]
+
+Flags:
+  --json               sortie structuree pour integrations
+  --language <fr|en>   force la langue des avertissements
+`,
   config: `
 Configure les agents par defaut, la synthese, le nombre de reponses et la langue.
 
@@ -133,6 +143,16 @@ Flags:
   --json               structured output for integrations
   --config <path>      explicit config path
 `,
+  context: `
+Scans project context with the same rules as --context.
+
+Usage:
+  palabre context scan [paths...] [flags]
+
+Flags:
+  --json               structured output for integrations
+  --language <fr|en>   forces warning language
+`,
   config: `
 Configures default agents, summary, response count, and language.
 
@@ -221,6 +241,7 @@ Commandes:
   new        Assistant interactif de debat
   agents     Lister les agents configures
   presets    Lister les presets disponibles
+  context    Scanner le contexte projet
   config     Modifier les parametres par defaut
   doctor     Verifier la config et les outils locaux
   update     Afficher ou appliquer les etapes de mise a jour
@@ -265,6 +286,7 @@ Commands:
   new        Interactive debate assistant
   agents     List configured agents
   presets    List available presets
+  context    Scan project context
   config     Edit default settings
   doctor     Check config and local tools
   update     Show or apply update steps

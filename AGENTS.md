@@ -375,6 +375,8 @@ Le MVP fournit deux entrees de contexte :
 - `--files <paths...>` : fichiers texte explicites, mode strict.
 - `--context <paths...>` : fichiers ou dossiers texte, mode tolerant avec warnings.
 
+`palabre context scan --json [paths...]` expose le scan tolerant sous forme JSON pour les integrations. L'extension VS Code doit consommer cette commande pour afficher une selection de contexte, plutot que reimplementer les regles de scan. Le contrat JSON courant est v1 : `root`, `scanned`, `items[]` (`kind`, `path`, `absolutePath`, `sizeBytes` ou `filesCount`) et `warnings[]`.
+
 Important :
 
 - Les agents `cli` et `cli-pty` sont executes depuis le dossier courant. Codex, Claude, Gemini ou Antigravity peuvent donc inspecter le workspace si leur CLI le permet.
