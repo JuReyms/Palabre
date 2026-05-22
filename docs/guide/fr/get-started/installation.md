@@ -59,4 +59,4 @@ Pages utiles :
 
 ## Étape suivante
 
-Lancez maintenant [la première configuration](/fr/get-started/configuration).
+Lancez maintenant [la première configuration](/fr/get-started/configuration). Si vous utilisez VS Code, vous pouvez aussi installer [l'extension Palabre](/fr/get-started/vscode-extension).

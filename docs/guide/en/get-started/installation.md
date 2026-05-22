@@ -59,4 +59,4 @@ Useful pages:
 
 ## Next step
 
-Now proceed to [the first configuration](/en/get-started/configuration).
+Now proceed to [the first configuration](/en/get-started/configuration). If you use VS Code, you can also install the [Palabre extension](/en/get-started/vscode-extension).
