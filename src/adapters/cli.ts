@@ -191,7 +191,56 @@ function withModelArgs(args: string[], model: string | undefined, modelArg: stri
 
 /** Retire les séquences ANSI et les espaces en tête/fin. */
 function cleanCliOutput(output: string): string {
-  return cleanTerminalOutput(output);
+  return stripWindowsTaskkillNoise(cleanTerminalOutput(output));
+}
+
+function stripWindowsTaskkillNoise(output: string): string {
+  const lines = output.split("\n");
+  const kept: string[] = [];
+  let skipNextFrenchContinuation = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const normalized = normalizeForWindowsStatus(trimmed);
+
+    if (skipNextFrenchContinuation && /^arr.*t.*\.$/i.test(normalized)) {
+      skipNextFrenchContinuation = false;
+      continue;
+    }
+    skipNextFrenchContinuation = false;
+
+    if (isWindowsTaskkillStatusLine(trimmed)) {
+      skipNextFrenchContinuation = true;
+      continue;
+    }
+
+    kept.push(line);
+  }
+
+  return kept.join("\n").trim();
+}
+
+function isWindowsTaskkillStatusLine(line: string): boolean {
+  const normalized = normalizeForWindowsStatus(line);
+  const lower = line.toLowerCase();
+
+  return (
+    /^SUCCESS:\s+The process with PID \d+ .* has been terminated\.$/i.test(line) ||
+    /^operation reussie.*processus de pid \d+ .* a ete$/.test(normalized) ||
+    (
+      lower.startsWith("op") &&
+      lower.includes("processus de pid ") &&
+      lower.includes("processus enfant de pid") &&
+      lower.includes(" a ")
+    )
+  );
+}
+
+function normalizeForWindowsStatus(line: string): string {
+  return line
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
 }
 
 /**

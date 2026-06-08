@@ -130,6 +130,36 @@ test("CliAdapter classifies unsupported model errors", async () => {
   );
 });
 
+test("CliAdapter strips Windows taskkill status noise from stdout", async () => {
+  const script = [
+    "process.stdout.write('Opération réussie : le processus de PID 42120 (processus enfant de PID 45636) a été\\n');",
+    "process.stdout.write('arrêté.\\n');",
+    "process.stdout.write('Nous sommes le lundi 8 juin 2026.');"
+  ].join("");
+  const adapter = new CliAdapter("codex", cliConfig({
+    args: ["-e", script]
+  }));
+
+  const response = await adapter.generate(basePrompt());
+
+  assert.equal(response.content, "Nous sommes le lundi 8 juin 2026.");
+});
+
+test("CliAdapter strips mojibake Windows taskkill status noise from stdout", async () => {
+  const script = [
+    "process.stdout.write('Op�ration r�ussie�: le processus de PID 45240 (processus enfant de PID 52352) a �t�\\n');",
+    "process.stdout.write('arr�t�.\\n');",
+    "process.stdout.write('Nous sommes le lundi 8 juin 2026.');"
+  ].join("");
+  const adapter = new CliAdapter("codex", cliConfig({
+    args: ["-e", script]
+  }));
+
+  const response = await adapter.generate(basePrompt());
+
+  assert.equal(response.content, "Nous sommes le lundi 8 juin 2026.");
+});
+
 test("CliAdapter rejects output above maxOutputBytes", async () => {
   const adapter = new CliAdapter("mock", cliConfig({
     args: ["-e", "process.stdout.write('x'.repeat(128))"],
