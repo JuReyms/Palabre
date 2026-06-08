@@ -560,13 +560,20 @@ pnpm test
 pnpm build
 ```
 
-Avant de publier une version CLI ou extension, lancer en plus le smoke test réel des presets depuis le repo CLI après `pnpm build` :
+Avant de publier une version CLI ou extension, lancer en plus le smoke test reel des presets depuis le repo CLI apres `pnpm build` :
 
 ```bash
 pnpm smoke:real-presets -- --keep-going
 ```
 
-Ce test appelle les vrais agents locaux, consomme potentiellement des quotas et dépend de la machine. Il n'appartient donc pas à `pnpm test`. Par défaut il privilégie les presets centraux orientés Antigravity plutôt que Gemini ; ajouter `--include-gemini` pour couvrir les presets legacy Gemini et `--include-ollama` pour inclure les paires Ollama.
+Ce script compile `scripts/smoke_real_presets.ts`, lit `palabre presets --json`, lance les presets prioritaires disponibles avec de vrais agents, puis verifie le contrat NDJSON, l'export `.debate.md`, les messages agents non vides et l'absence de bruit connu comme les sorties `taskkill` Windows. Il est volontairement hors `pnpm test`, car il peut consommer des quotas Codex/Claude/Antigravity/OpenCode et depend de l'authentification locale.
+
+Options utiles :
+
+- `--include-gemini` : inclut Gemini, considere comme legacy car Antigravity doit le remplacer dans les presets prioritaires.
+- `--include-ollama` : inclut les presets Ollama disponibles.
+- `--all-available` : teste toutes les paires disponibles en premiere direction seulement.
+- `--turns <n>` et `--topic <texte>` : ajustent la duree et le sujet du debat de smoke.
 
 Quand un changement touche l'adapter CLI, lancer `pnpm test`. Ces tests compilent `src/` et `tests/` via `tsconfig.test.json` dans `.tmp/test-dist`, puis utilisent `node:test` avec des CLIs mockees. Garder les tests automatises sous `tests/` et completer par un smoke test manuel avec une vraie CLI seulement quand le comportement depend d'un outil externe.
 
@@ -613,6 +620,7 @@ Le script `scripts/sync_docs.py` valide et copie les pages `docs/guide/fr` et `d
 
 - `README.md` pour l'etat du MVP, les commandes principales, les limites connues et les liens de documentation.
 - `AGENTS.md` pour les decisions d'architecture, les workflows contributeur et les consignes de maintenance.
+- `CHANGELOG.md` pour les changements notables par version. Toute release CLI doit y ajouter une entree datee avant le bump/tag, avec les sections utiles (`Added`, `Changed`, `Fixed`, `Removed`, `Security`).
 - `docs/guide/fr/**.md` pour les guides utilisateur francais. Ces pages utilisent le meme format que Palabre-app/Nuxt Content : frontmatter `title` + `description`, puis contenu sans H1 de page. La traduction anglaise vit dans `docs/guide/en/**.md`.
 - `docs/guide/fr/roadmap.md` pour la roadmap publique francaise orientee utilisateurs : disponible aujourd'hui, prochaines ameliorations, philosophie du projet.
 - `docs/roadmap.md` pour la roadmap interne locale non versionnee : travaux faits, priorites, dettes techniques et notes de pilotage.
@@ -649,6 +657,8 @@ Les releases sont gerees via des tags Git. Deux workflows GitHub Actions sont en
 pnpm version patch   # ou minor / major
 git push && git push --tags
 ```
+
+Avant `pnpm version`, mettre a jour `CHANGELOG.md` avec l'entree de la version cible.
 
 `pnpm version` met a jour `package.json`, cree un commit de version et un tag `vX.Y.Z`. Le push du tag declenche le workflow `release.yml` qui :
 
