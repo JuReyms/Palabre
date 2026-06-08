@@ -560,6 +560,14 @@ pnpm test
 pnpm build
 ```
 
+Avant de publier une version CLI ou extension, lancer en plus le smoke test réel des presets depuis le repo CLI après `pnpm build` :
+
+```bash
+pnpm smoke:real-presets -- --keep-going
+```
+
+Ce test appelle les vrais agents locaux, consomme potentiellement des quotas et dépend de la machine. Il n'appartient donc pas à `pnpm test`. Par défaut il privilégie les presets centraux orientés Antigravity plutôt que Gemini ; ajouter `--include-gemini` pour couvrir les presets legacy Gemini et `--include-ollama` pour inclure les paires Ollama.
+
 Quand un changement touche l'adapter CLI, lancer `pnpm test`. Ces tests compilent `src/` et `tests/` via `tsconfig.test.json` dans `.tmp/test-dist`, puis utilisent `node:test` avec des CLIs mockees. Garder les tests automatises sous `tests/` et completer par un smoke test manuel avec une vraie CLI seulement quand le comportement depend d'un outil externe.
 
 Les erreurs CLI doivent rester actionnables. En particulier, les limites d'usage et quotas Codex/Claude/Gemini/Antigravity doivent etre classees comme `usage-limit` et ne pas recopier tout le prompt ou les logs bruts dans le message utilisateur.
