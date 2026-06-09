@@ -1,4 +1,3 @@
-import path from "node:path";
 import type { CommandDetection, ToolDiscovery } from "./discovery.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
 
@@ -40,7 +39,11 @@ export const OLLAMA_AGENT_KEY = "ollama-local";
  * exécutable Windows éventuelle (ex. `C:\bin\claude.cmd` → `claude`).
  */
 export function normalizeCommandName(command: string): string {
-  return path.basename(command).toLowerCase().replace(/\.(exe|cmd|bat|ps1)$/i, "");
+  return command
+    .split(/[\\/]/)
+    .pop()
+    ?.toLowerCase()
+    .replace(/\.(exe|cmd|bat|ps1)$/i, "") ?? command.toLowerCase();
 }
 
 /**

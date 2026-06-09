@@ -1,4 +1,3 @@
-import { spawn as spawnPty } from "node-pty";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { AdapterError } from "../errors.js";
@@ -7,6 +6,8 @@ import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliPtyAgentConfig } from "../types.js";
 import { DEFAULT_MAX_OUTPUT_BYTES, DEFAULT_TIMEOUT_MS, withModelArgs } from "./cli-shared.js";
 import { cleanTerminalOutput } from "./terminal.js";
+
+type PtyProcess = ReturnType<typeof import("node-pty").spawn>;
 
 /**
  * Adapter pour les CLIs qui exigent un vrai terminal.
@@ -48,13 +49,14 @@ export class CliPtyAdapter implements AgentAdapter {
     const args = promptMode === "argument"
       ? [...baseArgs, renderedPrompt]
       : baseArgs;
+    const { spawn: spawnPty } = await import("node-pty");
 
     return new Promise<AgentResponse>((resolve, reject) => {
       let output = "";
       let outputBytes = 0;
       let settled = false;
       let hardTimer: ReturnType<typeof setTimeout>;
-      let term: ReturnType<typeof spawnPty>;
+      let term: PtyProcess;
       let dataSubscription: { dispose(): void } | undefined;
       let exitSubscription: { dispose(): void } | undefined;
       const maxOutputBytes = this.config.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
@@ -167,7 +169,7 @@ function resolveExecutable(command: string): string {
   return command;
 }
 
-function cleanupPty(term: ReturnType<typeof spawnPty>): void {
+function cleanupPty(term: PtyProcess): void {
   const maybeTerm = term as unknown as {
     _agent?: {
       _cleanUpProcess?: () => void;
