@@ -38,18 +38,22 @@ jobs:
       # Nécessaire pour npm Trusted Publishing / provenance
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           # Historique complet requis pour la génération des notes de release
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
+
+      # Lit la version de pnpm depuis le champ "packageManager" de package.json
+      # sans dépendre d'une action JavaScript séparée.
+      - name: Enable pnpm
+        run: corepack enable
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -66,6 +70,13 @@ jobs:
         # Produit un tarball palabre-X.Y.Z.tgz dans le répertoire courant
         # Installable avec : pnpm add --global ./palabre-X.Y.Z.tgz
         run: pnpm pack
+
+      - name: Upgrade npm for trusted publishing
+        # npm Trusted Publishing requiert npm 11.5.1+ et Node 22.14+.
+        # Les images GitHub Node 22 peuvent encore embarquer npm 10.x.
+        run: |
+          npm install --global npm@^11.5.1
+          npm --version
 
       - name: Publish to npm
         # Utilise npm Trusted Publishing : pas de token npm stocké dans GitHub.

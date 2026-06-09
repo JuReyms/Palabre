@@ -25,15 +25,17 @@ jobs:
     name: Type check & build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      # Lit la version de pnpm depuis le champ "packageManager" de package.json
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: 'pnpm'
+
+      # Lit la version de pnpm depuis le champ "packageManager" de package.json
+      # sans dépendre d'une action JavaScript séparée.
+      - name: Enable pnpm
+        run: corepack enable
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
