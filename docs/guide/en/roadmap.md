@@ -15,6 +15,7 @@ The main features are available:
 - detection of installed agents;
 - interactive assistant `palabre new`;
 - presets such as `codex-claude`, `claude-gemini`, `codex-antigravity`, or `opencode-ollama`;
+- French or English interface and prompts through `--language`, `--lang`, `PALABRE_LANGUAGE`, or configuration;
 - adding context with `--files` or `--context`;
 - previewing the context scan with `palabre context scan --json` for integrations;
 - final summary with consensus, disagreements, proposed actions, and conclusion;
@@ -23,7 +24,8 @@ The main features are available:
 - diagnostics with `palabre doctor`;
 - machine-readable output with `palabre presets --json`, `palabre context scan --json`, and the NDJSON renderer;
 - structured errors for integrations, with an NDJSON versioning policy;
-- automated tests for the CLI adapter, NDJSON renderer, presets, context scan, and output configuration without calling real AI services.
+- a more robust CLI parser for boolean flags such as `--plain`, `--json`, or `--no-summary`;
+- automated tests for the CLI adapter, parser, NDJSON renderer, presets, context scan, prompts, and output configuration without calling real AI services.
 
 ## Upcoming improvements
 
@@ -55,7 +57,7 @@ These topics are considered after the CLI stabilizes:
 - resuming a debate from an existing transcript;
 - OpenAI-compatible local provider for LM Studio, LocalAI, vLLM, or equivalent;
 - ongoing maintenance of the French and English documentation;
-- continued refinement of the multilingual French/English CLI interface, with a configured language and per-command override;
+- continued refinement of the multilingual French/English CLI interface, with a future interactive language choice during initialization;
 - real interactive TUI with scrolling, pause, and resume;
 - reliable model display when Palabre can know them without unnecessary noise.
 

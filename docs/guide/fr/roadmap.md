@@ -15,6 +15,7 @@ Les fonctionnalités principales sont disponibles :
 - détection des agents installés ;
 - assistant interactif `palabre new` ;
 - presets comme `codex-claude`, `claude-gemini`, `codex-antigravity` ou `opencode-ollama` ;
+- interface et prompts en français ou en anglais avec `--language`, `--lang`, `PALABRE_LANGUAGE` ou la configuration ;
 - ajout de contexte avec `--files` ou `--context` ;
 - prévisualisation du scan de contexte avec `palabre context scan --json` pour les intégrations ;
 - synthèse finale avec consensus, désaccords, actions proposées et conclusion ;
@@ -23,7 +24,8 @@ Les fonctionnalités principales sont disponibles :
 - diagnostic avec `palabre doctor` ;
 - sortie machine-readable avec `palabre presets --json`, `palabre context scan --json` et le renderer NDJSON ;
 - erreurs structurées pour les intégrations, avec une politique de versioning NDJSON ;
-- tests automatisés de l'adapter CLI, du renderer NDJSON, des presets, du scan de contexte et de la configuration de sortie, sans appeler de vrais services IA.
+- parser CLI plus robuste pour les flags booléens comme `--plain`, `--json` ou `--no-summary` ;
+- tests automatisés de l'adapter CLI, du parser, du renderer NDJSON, des presets, du scan de contexte, des prompts et de la configuration de sortie, sans appeler de vrais services IA.
 
 ## Prochaines améliorations
 
@@ -56,7 +58,7 @@ Ces sujets sont envisagés après stabilisation du CLI :
 - reprise d'un débat depuis un transcript existant ;
 - provider compatible OpenAI local pour LM Studio, LocalAI, vLLM ou équivalent ;
 - maintenance continue de la documentation française et anglaise ;
-- interface CLI multilingue français/anglais à continuer d'affiner, avec choix de langue dans la configuration et override ponctuel par commande ;
+- interface CLI multilingue français/anglais à continuer d'affiner, avec un futur choix interactif de langue pendant l'initialisation ;
 - vrai TUI interactif avec scrolling, pause et reprise ;
 - affichage fiable des modèles quand Palabre pourra les connaître sans bruit inutile.
 
