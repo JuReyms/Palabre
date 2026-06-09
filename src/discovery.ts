@@ -34,13 +34,14 @@ export interface ToolDiscovery {
 /**
  * Détecte en parallèle toutes les CLIs supportées et le serveur Ollama local.
  * Sur Windows, tente `claude.exe` avant `claude`.
+ * Antigravity est exposé selon les installations sous `agy` ou `antigravity`.
  */
 export async function discoverLocalTools(): Promise<ToolDiscovery> {
   const [codex, claude, gemini, antigravity, opencode, ollamaCommand] = await Promise.all([
     detectCommand("codex"),
     detectFirstCommand(process.platform === "win32" ? ["claude.exe", "claude"] : ["claude"]),
     detectCommand("gemini"),
-    detectCommand("agy"),
+    detectFirstCommand(["agy", "antigravity"]),
     detectCommand("opencode"),
     detectCommand("ollama")
   ]);

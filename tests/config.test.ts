@@ -29,6 +29,18 @@ test("createConfigFromDiscovery clears default agents when no pair is detected",
   assert.equal(config.defaults?.turns, 4);
 });
 
+test("createConfigFromDiscovery applies the detected Antigravity command alias", () => {
+  const discovery = noDetectedTools();
+  discovery.codex = { available: true, command: "codex" };
+  discovery.antigravity = { available: true, command: "antigravity", path: "C:/bin/antigravity.cmd" };
+
+  const config = createConfigFromDiscovery(discovery);
+  const antigravity = config.agents.antigravity;
+
+  assert.equal(antigravity?.type, "cli-pty");
+  assert.equal(antigravity?.command, "antigravity");
+});
+
 test("assertRunnableConfig rejects configs without a usable agents block", () => {
   const messages = createTranslator("en");
 
