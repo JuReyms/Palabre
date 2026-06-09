@@ -30,6 +30,8 @@ export interface PromptMessages {
   conclusionHeading: string;
   finalProseInstruction: string;
   summaryAnswerTitle: string;
+  /** Message système par défaut envoyé aux modèles Ollama, sauf override `systemPrompt`. */
+  ollamaSystemPrompt: string;
 }
 
 const frRoleInstructions: Record<AgentRole, string> = {
@@ -91,7 +93,8 @@ export const promptMessages: Record<Language, PromptMessages> = {
     actionsHeading: "### Actions proposees",
     conclusionHeading: "### Conclusion",
     finalProseInstruction: "Un court paragraphe de synthese en prose, sans liste, qui resume le sens general du debat et la decision ou direction la plus raisonnable.",
-    summaryAnswerTitle: "Synthese:"
+    summaryAnswerTitle: "Synthese:",
+    ollamaSystemPrompt: "Tu participes a un debat technique orchestre. Reste precis, utile et honnete sur tes limites."
   },
   en: {
     subject: (topic) => `Subject: ${topic}`,
@@ -133,6 +136,7 @@ export const promptMessages: Record<Language, PromptMessages> = {
     actionsHeading: "### Proposed actions",
     conclusionHeading: "### Conclusion",
     finalProseInstruction: "A short prose summary paragraph, without a list, that captures the general meaning of the debate and the most reasonable decision or direction.",
-    summaryAnswerTitle: "Summary:"
+    summaryAnswerTitle: "Summary:",
+    ollamaSystemPrompt: "You are taking part in an orchestrated technical debate. Stay precise, useful, and honest about your limits."
   }
 };

@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import type { PalabreConfig } from "./types.js";
 import type { ToolDiscovery } from "./discovery.js";
+import type { Messages } from "./messages/index.js";
 
 export const DEFAULT_CONFIG_PATH = "palabre.config.json";
 export const LEGACY_CONFIG_PATH = "chicane.config.json";
@@ -123,6 +124,35 @@ export async function loadConfig(configPath = DEFAULT_CONFIG_PATH): Promise<Pala
   const resolved = path.resolve(configPath);
   const raw = await readFile(resolved, "utf8");
   return JSON.parse(raw) as PalabreConfig;
+}
+
+/**
+ * Valide qu'une config chargée est exploitable pour lancer un débat.
+ *
+ * `loadConfig` se contente de parser le JSON ; cette garde attrape les configs
+ * structurellement cassées (racine non-objet, bloc `agents` absent ou vide)
+ * avant qu'elles ne provoquent un `TypeError` opaque dans l'orchestrateur.
+ * Volontairement minimale : la validation sémantique fine (agents par défaut
+ * inconnus, timeouts invalides, etc.) reste du ressort de `palabre doctor`.
+ *
+ * @throws {Error} message actionnable si la config ne peut pas faire tourner un débat.
+ */
+export function assertRunnableConfig(config: PalabreConfig, messages: Messages, configPath = DEFAULT_CONFIG_PATH): void {
+  const root = config as unknown;
+
+  if (!root || typeof root !== "object" || Array.isArray(root)) {
+    throw new Error(messages.common.configInvalidShape(configPath));
+  }
+
+  const agents = (root as { agents?: unknown }).agents;
+
+  if (!agents || typeof agents !== "object" || Array.isArray(agents)) {
+    throw new Error(messages.common.configMissingAgents(configPath));
+  }
+
+  if (Object.keys(agents).length === 0) {
+    throw new Error(messages.common.configEmptyAgents(configPath));
+  }
 }
 
 /** Retourne `true` si le fichier de config est accessible en lecture. Silencieux sur toute erreur filesystem. */

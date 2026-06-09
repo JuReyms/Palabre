@@ -1,0 +1,91 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { parseArgs } from "../src/args.js";
+import { createTranslator } from "../src/i18n.js";
+
+const messages = createTranslator("en");
+
+function parse(args: string[]) {
+  return parseArgs(args, messages);
+}
+
+test("a boolean flag does not swallow the following preset positional", () => {
+  const parsed = parse(["--plain", "codex-claude", "mon sujet"]);
+
+  assert.equal(parsed.flags.plain, true);
+  assert.equal(parsed.flags.preset, "codex-claude");
+  assert.equal(parsed.flags.topic, "mon sujet");
+});
+
+test("--no-summary stays boolean regardless of position", () => {
+  const before = parse(["--no-summary", "codex-claude", "sujet"]);
+  assert.equal(before.flags["no-summary"], true);
+  assert.equal(before.flags.preset, "codex-claude");
+
+  const after = parse(["codex-claude", "sujet", "--no-summary"]);
+  assert.equal(after.flags["no-summary"], true);
+  assert.equal(after.flags.preset, "codex-claude");
+});
+
+test("single-value flags consume exactly one value", () => {
+  const parsed = parse(["--agent-a", "codex", "--agent-b", "claude", "-s", "topic"]);
+
+  assert.equal(parsed.flags["agent-a"], "codex");
+  assert.equal(parsed.flags["agent-b"], "claude");
+  assert.equal(parsed.flags.topic, "topic");
+});
+
+test("a single-value flag without value throws", () => {
+  assert.throws(() => parse(["--turns", "--plain"]), /expects a value/);
+  assert.throws(() => parse(["--model-a"]), /expects a value/);
+});
+
+test("multi-value flags collect until the next flag", () => {
+  const parsed = parse(["--files", "a.ts", "b.ts", "--plain"]);
+
+  assert.deepEqual(parsed.flags.files, ["a.ts", "b.ts"]);
+  assert.equal(parsed.flags.plain, true);
+});
+
+test("--set-defaults requires exactly two agents", () => {
+  const parsed = parse(["config", "--set-defaults", "codex", "claude"]);
+  assert.equal(parsed.command, "config");
+  assert.deepEqual(parsed.flags["set-defaults"], ["codex", "claude"]);
+
+  assert.throws(() => parse(["config", "--set-defaults", "codex"]), /two agents/);
+});
+
+test("an unknown flag is treated as boolean and never swallows a positional", () => {
+  const parsed = parse(["--frobnicate", "codex-claude", "sujet"]);
+
+  assert.equal(parsed.flags.frobnicate, true);
+  assert.equal(parsed.flags.preset, "codex-claude");
+  assert.equal(parsed.flags.topic, "sujet");
+});
+
+test("a known preset positional becomes the preset, the rest becomes the subject", () => {
+  const parsed = parse(["codex-claude", "quel jour sommes nous ?"]);
+
+  assert.equal(parsed.command, "run");
+  assert.equal(parsed.flags.preset, "codex-claude");
+  assert.equal(parsed.flags.topic, "quel jour sommes nous ?");
+});
+
+test("flag aliases normalize to their canonical name", () => {
+  const parsed = parse(["--subject", "topic", "--lang", "fr", "--turns", "3"]);
+
+  assert.equal(parsed.flags.topic, "topic");
+  assert.equal(parsed.flags.language, "fr");
+  assert.equal(parsed.flags.turns, "3");
+});
+
+test("an explicit command is detected as the first positional", () => {
+  assert.equal(parse(["doctor"]).command, "doctor");
+  assert.equal(parse(["doctor"]).commandExplicit, true);
+  assert.equal(parse(["init", "--local"]).command, "init");
+  assert.equal(parse(["init", "--local"]).flags.local, true);
+});
+
+test("an ambiguous single-word subject throws", () => {
+  assert.throws(() => parse(["bonjour"]), /ambiguous subject/);
+});

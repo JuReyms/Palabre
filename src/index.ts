@@ -2,7 +2,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, writeExampleConfig } from "./config.js";
+import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, writeExampleConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
 import { buildContextScan } from "./contextScan.js";
 import { discoverLocalTools } from "./discovery.js";
@@ -20,15 +20,9 @@ import { runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./update.js";
 import { createSessionContext } from "./session.js";
+import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import type { AgentConfig, DebateOptions, PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
-
-interface ParsedArgs {
-  command: string;
-  commandExplicit: boolean;
-  positionals: string[];
-  flags: Record<string, string | string[] | boolean>;
-}
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
 async function main(): Promise<void> {
@@ -137,6 +131,8 @@ async function main(): Promise<void> {
     configLanguage: config.language
   });
   const messages = createTranslator(language);
+
+  assertRunnableConfig(config, messages, configPath);
 
   if (parsed.command === "new") {
     const selection = await runNewWizard(config, messages);
@@ -563,261 +559,6 @@ async function runContextCommand(flags: Record<string, string | string[] | boole
   }
 }
 
-/**
- * Parse `process.argv` en une structure typée `ParsedArgs`.
- * Gère les flags courts (-h, -v, -s, -t, -a), les flags longs (--topic, --agent-a…),
- * les flags multi-valeurs (--files, --context, --set-defaults) et les positionnels.
- * @param args - Tableau d'arguments (généralement `process.argv.slice(2)`).
- * @returns Commande détectée, indicateur d'explicitation et map de flags.
- */
-function parseArgs(args: string[], messages: Messages): ParsedArgs {
-  const flags: Record<string, string | string[] | boolean> = {};
-  let command = "run";
-  let commandExplicit = false;
-  const positionals: string[] = [];
-  const commands = new Set(["run", "new", "init", "setup", "help", "version", "update", "doctor", "config", "agent", "agents", "preset", "presets", "context"]);
-  const presets = new Set(listPresetNames());
-
-  for (let index = 0; index < args.length; index += 1) {
-    const value = args[index];
-
-    if (!value.startsWith("-") && !commandExplicit && positionals.length === 0 && commands.has(value)) {
-      command = value;
-      commandExplicit = true;
-      continue;
-    }
-
-    if (!value.startsWith("-") && index === 0) {
-      if (commands.has(value)) {
-        command = value;
-        commandExplicit = true;
-      } else if (isLikelyCommandTypo(value, commands)) {
-        throw new Error(messages.common.unknownCommand(value, Array.from(commands).join(", ")));
-      } else {
-        positionals.push(value);
-      }
-      continue;
-    }
-
-    if (!value.startsWith("-")) {
-      positionals.push(value);
-      continue;
-    }
-
-    if (value === "-h") {
-      flags.help = true;
-      continue;
-    }
-
-    if (value === "-v") {
-      flags.version = true;
-      continue;
-    }
-
-    if (value === "-a") {
-      command = "agents";
-      commandExplicit = true;
-      continue;
-    }
-
-    if (value === "-s") {
-      const next = args[index + 1];
-
-      if (!next || next.startsWith("-")) {
-        throw new Error(messages.common.optionRequiresValue("-s"));
-      }
-
-      flags.topic = next;
-      index += 1;
-      continue;
-    }
-
-    if (value === "-t") {
-      const next = args[index + 1];
-
-      if (!next || next.startsWith("-")) {
-        throw new Error(messages.common.optionRequiresValue("-t"));
-      }
-
-      flags.turns = next;
-      index += 1;
-      continue;
-    }
-
-    if (value.startsWith("--")) {
-      const rawKey = value.slice(2);
-      const key = normalizeFlagName(rawKey);
-
-      if (key === "set-defaults") {
-        const values: string[] = [];
-
-        while (args[index + 1] && !args[index + 1].startsWith("-") && values.length < 2) {
-          values.push(args[index + 1]);
-          index += 1;
-        }
-
-        if (values.length !== 2) {
-          throw new Error(messages.common.setDefaultsRequiresTwo);
-        }
-
-        flags[key] = values;
-        continue;
-      }
-
-      if (key === "files" || key === "context") {
-        const values: string[] = [];
-
-        while (args[index + 1] && !args[index + 1].startsWith("-")) {
-          values.push(args[index + 1]);
-          index += 1;
-        }
-
-        flags[key] = [...getStringListFlag(flags[key]), ...values];
-        continue;
-      }
-
-      const next = args[index + 1];
-
-      if (!next || next.startsWith("-")) {
-        if (requiresFlagValue(key)) {
-          throw new Error(messages.common.optionRequiresValue(`--${rawKey}`));
-        }
-
-        flags[key] = true;
-      } else {
-        flags[key] = next;
-        index += 1;
-      }
-    }
-  }
-
-  if (command === "run") {
-    applyRunPositionals(positionals, flags, presets, commandExplicit, commands, messages);
-  }
-
-  return { command, commandExplicit, positionals, flags };
-}
-
-/**
- * Détecte si une valeur ressemble à une faute de frappe d'une commande connue
- * (même première lettre et distance de Levenshtein ≤ 2).
- * @param value - Token saisi par l'utilisateur.
- * @param commands - Ensemble des commandes valides.
- */
-function isLikelyCommandTypo(value: string, commands: Set<string>): boolean {
-  const normalized = value.toLowerCase();
-
-  for (const command of commands) {
-    if (normalized[0] === command[0] && levenshteinDistance(normalized, command) <= 2) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * Calcule la distance de Levenshtein entre deux chaînes (insertions, suppressions, substitutions).
- * @param left - Première chaîne.
- * @param right - Deuxième chaîne.
- * @returns Distance entière ≥ 0.
- */
-function levenshteinDistance(left: string, right: string): number {
-  const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
-
-  for (let leftIndex = 0; leftIndex < left.length; leftIndex += 1) {
-    let diagonal = previous[0];
-    previous[0] = leftIndex + 1;
-
-    for (let rightIndex = 0; rightIndex < right.length; rightIndex += 1) {
-      const insertCost = previous[rightIndex + 1] + 1;
-      const deleteCost = previous[rightIndex] + 1;
-      const replaceCost = diagonal + (left[leftIndex] === right[rightIndex] ? 0 : 1);
-      diagonal = previous[rightIndex + 1];
-      previous[rightIndex + 1] = Math.min(insertCost, deleteCost, replaceCost);
-    }
-  }
-
-  return previous[right.length] ?? 0;
-}
-/**
- * Interprète les arguments positionnels pour la commande `run` :
- * premier positionnel = preset si connu, sinon sujet complet concaténé.
- * @param positionals - Arguments positionnels extraits du parseur.
- * @param flags - Map de flags à muter si un preset ou un sujet est détecté.
- * @param presets - Ensemble des noms de presets valides.
- * @param commandExplicit - `true` si l'utilisateur a tapé `palabre run` explicitement.
- */
-function applyRunPositionals(
-  positionals: string[],
-  flags: Record<string, string | string[] | boolean>,
-  presets: Set<string>,
-  commandExplicit: boolean,
-  commands: Set<string>,
-  messages: Messages
-): void {
-  if (positionals.length === 0) {
-    return;
-  }
-
-  const [first, ...rest] = positionals;
-
-  if (presets.has(first)) {
-    flags.preset ??= first;
-
-    if (rest.length > 0) {
-      flags.topic ??= rest.join(" ");
-    }
-
-    return;
-  }
-
-  if (!commandExplicit && positionals.length === 1 && !positionals[0]?.includes(" ")) {
-    if (isLikelyCommandTypo(positionals[0], commands)) {
-      throw new Error(messages.common.unknownCommand(positionals[0], Array.from(commands).join(", ")));
-    }
-    throw new Error(messages.common.ambiguousSubject(positionals[0]));
-  }
-
-  flags.topic ??= positionals.join(" ");
-}
-
-/**
- * Normalise un nom de flag long en son alias canonique (ex. `subject` → `topic`).
- * @param value - Nom brut extrait après `--`.
- */
-function normalizeFlagName(value: string): string {
-  const aliases: Record<string, string> = {
-    lang: "language",
-    s: "topic",
-    subject: "topic",
-    t: "turns"
-  };
-
-  return aliases[value] ?? value;
-}
-
-/**
- * Indique si un flag long nécessite une valeur suivante (lève une erreur si absente).
- * @param value - Nom canonique du flag (sans `--`).
- */
-function requiresFlagValue(value: string): boolean {
-  return new Set([
-    "agent-a",
-    "agent-b",
-    "config",
-    "language",
-    "model-a",
-    "model-b",
-    "preset",
-    "summary-agent",
-    "summary-model",
-    "set-defaults",
-    "topic",
-    "turns"
-  ]).has(value);
-}
-
 /** Lit la version depuis `package.json` adjacent au bundle compilé. */
 async function getPackageVersion(): Promise<string> {
   const packageJsonPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "package.json");
@@ -825,23 +566,6 @@ async function getPackageVersion(): Promise<string> {
   const packageJson = JSON.parse(raw) as { version?: string };
 
   return packageJson.version ?? "0.0.0";
-}
-
-/**
- * Normalise une valeur de flag multi-valeur en tableau de chaînes.
- * @param value - Valeur brute (tableau, chaîne unique ou absent).
- * @returns Tableau de chaînes, vide si la valeur n'est pas applicable.
- */
-function getStringListFlag(value: string | string[] | boolean | undefined): string[] {
-  if (Array.isArray(value)) {
-    return value;
-  }
-
-  if (typeof value === "string") {
-    return [value];
-  }
-
-  return [];
 }
 
 /**

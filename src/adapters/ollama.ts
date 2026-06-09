@@ -1,4 +1,5 @@
 import { AdapterError } from "../errors.js";
+import { createTranslator } from "../i18n.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, OllamaAgentConfig } from "../types.js";
 
@@ -91,7 +92,7 @@ export class OllamaAdapter implements AgentAdapter {
               role: "system",
               content:
                 this.config.systemPrompt ??
-                "Tu participes a un debat technique orchestre. Reste precis, utile et honnete sur tes limites."
+                createTranslator(prompt.language ?? "fr").prompt.ollamaSystemPrompt
             },
             {
               role: "user",

@@ -105,7 +105,7 @@ export async function runDebate(
     transcript.push(message);
     renderer?.message(message.content);
 
-    if (shouldStopOnAgreement(options, transcript)) {
+    if (shouldStopOnAgreement(options, transcript, messages)) {
       stopReason = messages.orchestrator.agreementStopReason;
       renderer?.notice(messages.orchestrator.earlyStop(stopReason));
       break;
@@ -140,33 +140,25 @@ export async function runDebate(
 /**
  * Heuristique d'arrêt sur accord explicite.
  * Ne s'active qu'après un tour complet (nombre pair de messages) pour éviter les faux positifs.
+ * Les phrases d'accord proviennent du dictionnaire i18n pour suivre la langue d'interface.
  * Intentionnellement prudente : ne remplace pas une évaluation sémantique réelle.
  */
-function shouldStopOnAgreement(options: DebateOptions, messages: DebateMessage[]): boolean {
-  if (!options.earlyStopOnAgreement || messages.length < 2 || messages.length % 2 !== 0) {
+function shouldStopOnAgreement(options: DebateOptions, transcript: DebateMessage[], messages: Messages): boolean {
+  if (!options.earlyStopOnAgreement || transcript.length < 2 || transcript.length % 2 !== 0) {
     return false;
   }
 
-  const latest = normalizeForAgreement(messages[messages.length - 1]?.content ?? "");
+  const latest = normalizeForAgreement(transcript[transcript.length - 1]?.content ?? "");
 
   if (!latest) {
     return false;
   }
 
-  const positivePatterns = [
-    "accord complet",
-    "accord total",
-    "aucun desaccord",
-    "aucune incertitude",
-    "rien a trancher",
-    "rien a ajouter",
-    "question factuelle resolue"
-  ];
-
-  if (positivePatterns.some((pattern) => latest.includes(pattern))) {
+  if (messages.orchestrator.agreementPatterns.some((pattern) => latest.includes(pattern))) {
     return true;
   }
 
+  // Combinaison française historique : confirmation explicite + absence de point ouvert.
   return (latest.includes("confirme") || latest.includes("acte")) &&
     (latest.includes("aucun") || latest.includes("rien a trancher") || latest.includes("rien a ajouter"));
 }

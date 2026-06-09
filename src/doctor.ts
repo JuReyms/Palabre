@@ -326,7 +326,7 @@ function knownCliDetection(
   command: string,
   discovery: ToolDiscovery
 ): { available: boolean; command: string; path?: string } | undefined {
-  const normalized = path.basename(command).toLowerCase().replace(/\.(exe|cmd|bat)$/i, "");
+  const normalized = path.basename(command).toLowerCase().replace(/\.(exe|cmd|bat|ps1)$/i, "");
 
   if (normalized === "codex") return discovery.codex;
   if (normalized === "claude") return discovery.claude;
