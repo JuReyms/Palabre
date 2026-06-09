@@ -1,8 +1,5 @@
 #!/usr/bin/env node
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, writeExampleConfig } from "./config.js";
+import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, syncDetectedAgents, writeExampleConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
 import { buildContextScan } from "./contextScan.js";
 import { discoverLocalTools } from "./discovery.js";
@@ -22,6 +19,7 @@ import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./up
 import { createSessionContext } from "./session.js";
 import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { detectedAgentNames, detectionForCommand } from "./agentRegistry.js";
+import { getPackageVersion } from "./version.js";
 import type { CommandDetection } from "./discovery.js";
 import type { AgentConfig, DebateOptions, PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
@@ -561,15 +559,6 @@ async function runContextCommand(flags: Record<string, string | string[] | boole
   }
 }
 
-/** Lit la version depuis `package.json` adjacent au bundle compilé. */
-async function getPackageVersion(): Promise<string> {
-  const packageJsonPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "package.json");
-  const raw = await readFile(packageJsonPath, "utf8");
-  const packageJson = JSON.parse(raw) as { version?: string };
-
-  return packageJson.version ?? "0.0.0";
-}
-
 /**
  * Écrit les avertissements de contexte sur `stderr`.
  * @param warnings - Messages d'avertissement issus du chargement des fichiers de contexte.
@@ -587,31 +576,6 @@ function printContextWarnings(warnings: string[], messages: Messages): void {
  * @param discovery - Résultat de la découverte locale des outils.
  * @returns Noms des agents nouvellement ajoutés.
  */
-function syncDetectedAgents(
-  config: PalabreConfig,
-  discovery: Awaited<ReturnType<typeof discoverLocalTools>>
-): string[] {
-  const discoveredConfig = createConfigFromDiscovery(discovery);
-  const missingAgents = findDetectedMissingAgents(config, discovery);
-
-  for (const agentName of missingAgents) {
-    config.agents[agentName] = discoveredConfig.agents[agentName];
-  }
-
-  return missingAgents;
-}
-
-/**
- * Renvoie les noms des agents détectés localement qui ne sont pas encore dans `config.agents`.
- * @param config - Config Palabre existante.
- * @param discovery - Résultat de la découverte locale des outils.
- */
-function findDetectedMissingAgents(
-  config: PalabreConfig,
-  discovery: Awaited<ReturnType<typeof discoverLocalTools>>
-): string[] {
-  return detectedAgentNames(discovery).filter((agentName) => !config.agents[agentName]);
-}
 /**
  * Affiche la liste des agents déclarés avec leur type, rôle, état de détection et défauts.
  * @param configPath - Chemin du fichier de config (affiché en en-tête).

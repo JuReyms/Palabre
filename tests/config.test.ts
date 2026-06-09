@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assertRunnableConfig, DEFAULT_OUTPUT_DIR, createConfigFromDiscovery, exampleConfig, resolveOutputDir } from "../src/config.js";
+import { assertRunnableConfig, DEFAULT_OUTPUT_DIR, createConfigFromDiscovery, exampleConfig, resolveOutputDir, syncDetectedAgents } from "../src/config.js";
 import { createTranslator } from "../src/i18n.js";
 import type { ToolDiscovery } from "../src/discovery.js";
 
@@ -39,6 +39,26 @@ test("createConfigFromDiscovery applies the detected Antigravity command alias",
 
   assert.equal(antigravity?.type, "cli-pty");
   assert.equal(antigravity?.command, "antigravity");
+});
+
+test("syncDetectedAgents refreshes commands for already configured known agents", () => {
+  const discovery = noDetectedTools();
+  discovery.claude = { available: true, command: "claude", path: "C:/bin/claude.cmd" };
+  discovery.antigravity = { available: true, command: "agy", path: "C:/bin/agy.exe" };
+  const config = createConfigFromDiscovery(noDetectedTools());
+  const claude = config.agents.claude;
+
+  assert.equal(claude?.type, "cli");
+  if (claude?.type === "cli") {
+    claude.command = "claude.exe";
+  }
+  delete config.agents.antigravity;
+
+  const added = syncDetectedAgents(config, discovery);
+
+  assert.deepEqual(added, ["antigravity"]);
+  assert.equal(config.agents.claude?.type === "cli" ? config.agents.claude.command : undefined, "claude");
+  assert.equal(config.agents.antigravity?.type, "cli-pty");
 });
 
 test("assertRunnableConfig rejects configs without a usable agents block", () => {

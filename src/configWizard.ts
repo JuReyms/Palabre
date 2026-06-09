@@ -1,6 +1,7 @@
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-import { writeExampleConfig } from "./config.js";
+import { syncDetectedAgents, writeExampleConfig } from "./config.js";
+import { discoverLocalTools } from "./discovery.js";
 import { DEFAULT_TURNS, MAX_TURNS, turnsOrDefault, validateTurns } from "./limits.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
@@ -42,11 +43,12 @@ export async function runConfigWizard(configPath: string, config: PalabreConfig,
     console.log(messages.config.wizardActionQuestion);
     console.log(`  1) ${messages.config.wizardActionSetDefaults}`);
     console.log(`  2) ${messages.config.wizardActionClearDefaults}`);
-    console.log(`  3) ${messages.config.wizardActionExit}`);
+    console.log(`  3) ${messages.config.wizardActionSyncAgents}`);
+    console.log(`  4) ${messages.config.wizardActionExit}`);
 
-    const action = await askChoice(rl, messages.config.wizardChoicePrompt, "1", ["1", "2", "3"], messages);
+    const action = await askChoice(rl, messages.config.wizardChoicePrompt, "1", ["1", "2", "3", "4"], messages);
 
-    if (!action || action === "3") {
+    if (!action || action === "4") {
       console.log(messages.config.wizardUnchanged);
       return;
     }
@@ -55,6 +57,20 @@ export async function runConfigWizard(configPath: string, config: PalabreConfig,
       delete config.defaults;
       await writeExampleConfig(configPath, config);
       console.log(messages.config.wizardCleared(configPath));
+      return;
+    }
+
+    if (action === "3") {
+      const discovery = await discoverLocalTools();
+      const addedAgents = syncDetectedAgents(config, discovery);
+
+      if (addedAgents.length === 0) {
+        console.log(messages.config.syncNoMissing(configPath));
+        return;
+      }
+
+      await writeExampleConfig(configPath, config);
+      console.log(messages.config.syncAdded(configPath, addedAgents.join(", ")));
       return;
     }
 

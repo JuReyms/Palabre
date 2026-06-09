@@ -16,6 +16,7 @@ export interface ConfigMessages {
   wizardActionQuestion: string;
   wizardActionSetDefaults: string;
   wizardActionClearDefaults: string;
+  wizardActionSyncAgents: string;
   wizardActionExit: string;
   wizardChoicePrompt: string;
   wizardChoiceQuestion(label: string, defaultValue: string): string;
@@ -61,6 +62,7 @@ export const configMessages: Record<Language, ConfigMessages> = {
     wizardActionQuestion: "Que veux-tu faire ?",
     wizardActionSetDefaults: "Définir des paramètres par défaut",
     wizardActionClearDefaults: "Supprimer les paramètres par défaut",
+    wizardActionSyncAgents: "Synchroniser les agents détectés",
     wizardActionExit: "Quitter sans modifier",
     wizardChoicePrompt: "Tape le numéro de ton choix",
     wizardChoiceQuestion: (label, defaultValue) => `${label} (Entrée = ${defaultValue}) : `,
@@ -104,6 +106,7 @@ export const configMessages: Record<Language, ConfigMessages> = {
     wizardActionQuestion: "What do you want to do?",
     wizardActionSetDefaults: "Set default settings",
     wizardActionClearDefaults: "Clear default settings",
+    wizardActionSyncAgents: "Sync detected agents",
     wizardActionExit: "Exit without changes",
     wizardChoicePrompt: "Type the number of your choice",
     wizardChoiceQuestion: (label, defaultValue) => `${label} (Enter = ${defaultValue}): `,

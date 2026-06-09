@@ -23,6 +23,10 @@ test("resolveLanguage applies CLI, env, config, fallback precedence", () => {
 
 test("createTranslator returns localized doctor messages", () => {
   assert.equal(createTranslator("en").adapterErrors.hint("command-not-found"), "Check that the CLI is installed, authenticated, and available in PATH.");
+  assert.equal(createTranslator("fr").doctor.cliVersion("0.6.5"), "Version CLI: 0.6.5");
+  assert.equal(createTranslator("en").doctor.cliVersion("0.6.5"), "CLI version: 0.6.5");
+  assert.equal(createTranslator("fr").doctor.updateCurrent("0.6.5"), "Mise à jour: CLI à jour (0.6.5).");
+  assert.equal(createTranslator("en").doctor.updateAvailable("0.6.4", "0.6.5"), "Update available: 0.6.4 -> 0.6.5. Action: run `palabre update`.");
   assert.equal(createTranslator("fr").doctor.interfaceLanguage("fr"), "Langue: fr");
   assert.equal(createTranslator("en").doctor.interfaceLanguage("en"), "Language: en");
   assert.equal(createTranslator("en").doctor.sections.tools, "Local tools");
@@ -70,6 +74,8 @@ test("createTranslator returns localized config messages", () => {
   assert.equal(createTranslator("fr").config.syncNoMissing("palabre.config.json"), "Aucun agent détecté manquant dans palabre.config.json.");
   assert.equal(createTranslator("en").config.syncNoMissing("palabre.config.json"), "No missing detected agent in palabre.config.json.");
   assert.equal(createTranslator("en").config.defaultsSummary("codex", "claude", 4, undefined), "agents: codex <-> claude, responses: 4, summary: agent B");
+  assert.equal(createTranslator("fr").config.wizardActionSyncAgents, "Synchroniser les agents détectés");
+  assert.equal(createTranslator("en").config.wizardActionSyncAgents, "Sync detected agents");
   assert.equal(createTranslator("en").config.wizardChoiceQuestion("Type the number of your choice", "1"), "Type the number of your choice (Enter = 1): ");
   assert.equal(createTranslator("en").config.wizardDefaults({ agentA: "codex", agentB: "claude", turns: 4, summaryAgent: "claude" }), "codex <-> claude, responses: 4, summary: claude");
 });

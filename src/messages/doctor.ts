@@ -9,6 +9,10 @@ type LevelLabels = {
 
 export interface DoctorMessages {
   title: string;
+  cliVersion(version: string): string;
+  updateCurrent(version: string): string;
+  updateAvailable(current: string, latest: string): string;
+  updateUnknown: string;
   currentDirectory(cwd: string): string;
   configFound(path: string): string;
   configMissing(path: string): string;
@@ -71,6 +75,10 @@ export interface DoctorMessages {
 export const doctorMessages: Record<Language, DoctorMessages> = {
   fr: {
     title: "PALABRE doctor",
+    cliVersion: (version) => `Version CLI: ${version}`,
+    updateCurrent: (version) => `Mise à jour: CLI à jour (${version}).`,
+    updateAvailable: (current, latest) => `Mise à jour disponible: ${current} -> ${latest}. Action: lance ` + "`palabre update`.",
+    updateUnknown: "Mise à jour: vérification npm indisponible. Action: lance `palabre update` pour les instructions.",
     currentDirectory: (cwd) => `Dossier courant: ${cwd}`,
     configFound: (path) => `Config trouvée: ${path}`,
     configMissing: (path) => `Config absente: ${path}`,
@@ -133,6 +141,10 @@ export const doctorMessages: Record<Language, DoctorMessages> = {
   },
   en: {
     title: "PALABRE doctor",
+    cliVersion: (version) => `CLI version: ${version}`,
+    updateCurrent: (version) => `Update: CLI is up to date (${version}).`,
+    updateAvailable: (current, latest) => `Update available: ${current} -> ${latest}. Action: run ` + "`palabre update`.",
+    updateUnknown: "Update: npm check unavailable. Action: run `palabre update` for instructions.",
     currentDirectory: (cwd) => `Current directory: ${cwd}`,
     configFound: (path) => `Config found: ${path}`,
     configMissing: (path) => `Config missing: ${path}`,

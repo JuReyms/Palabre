@@ -5,6 +5,7 @@ import { detectedAgentNames, detectionForCommand } from "./agentRegistry.js";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { createTranslator, resolveLanguage } from "./i18n.js";
 import { DEFAULT_TURNS, MAX_TURNS } from "./limits.js";
+import { compareSemver, getLatestPackageVersion, getPackageVersion } from "./version.js";
 import type { AgentConfig, Language, PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
 
@@ -37,6 +38,7 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
   const t = createTranslator(language);
 
   lines.push(info(t.doctor.title, "title"));
+  await inspectCliVersion(lines, t);
   lines.push(info(t.doctor.currentDirectory(process.cwd()), "cwd"));
   lines.push(hasConfig
     ? ok(t.doctor.configFound(configPath))
@@ -76,6 +78,21 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
   inspectAgents(config, discovery, lines, t);
 
   return render(lines, plain, t);
+}
+
+async function inspectCliVersion(lines: DiagnosticLine[], t: Messages): Promise<void> {
+  const currentVersion = await getPackageVersion();
+  lines.push(info(t.doctor.cliVersion(currentVersion)));
+
+  const latestVersion = await getLatestPackageVersion();
+  if (!latestVersion) {
+    lines.push(info(t.doctor.updateUnknown));
+    return;
+  }
+
+  lines.push(compareSemver(currentVersion, latestVersion) < 0
+    ? warn(t.doctor.updateAvailable(currentVersion, latestVersion))
+    : ok(t.doctor.updateCurrent(latestVersion)));
 }
 
 async function loadConfigSafely(configPath: string): Promise<PalabreConfig | undefined> {

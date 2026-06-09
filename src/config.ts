@@ -1,7 +1,7 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { applyDetectedCommands } from "./agentRegistry.js";
+import { applyDetectedCommands, detectedAgentNames } from "./agentRegistry.js";
 import type { PalabreConfig } from "./types.js";
 import type { ToolDiscovery } from "./discovery.js";
 import type { Messages } from "./messages/index.js";
@@ -217,6 +217,23 @@ export function createConfigFromDiscovery(discovery: ToolDiscovery): PalabreConf
     : { turns: config.defaults?.turns };
 
   return config;
+}
+
+/**
+ * Ajoute dans `config.agents` les agents détectés localement mais absents de la config.
+ * Mute `config` directement ; l'appelant est responsable de persister la config.
+ */
+export function syncDetectedAgents(config: PalabreConfig, discovery: ToolDiscovery): string[] {
+  const discoveredConfig = createConfigFromDiscovery(discovery);
+  const missingAgents = detectedAgentNames(discovery).filter((agentName) => !config.agents[agentName]);
+
+  applyDetectedCommands(config, discovery);
+
+  for (const agentName of missingAgents) {
+    config.agents[agentName] = discoveredConfig.agents[agentName];
+  }
+
+  return missingAgents;
 }
 
 /** Écrit `config` sérialisé en JSON dans `configPath`. Crée le répertoire parent si nécessaire. */
