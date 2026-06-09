@@ -75,6 +75,13 @@ export class CliAdapter implements AgentAdapter {
         const content = cleanCliOutput(stdout);
 
         if (!content && !this.config.allowEmptyOutput) {
+          const knownError = createKnownCliError(this.name, undefined, stderr);
+
+          if (knownError) {
+            reject(knownError);
+            return;
+          }
+
           const detail = stderr.trim() ? ` Stderr: ${stderr.trim()}` : "";
           reject(new AdapterError("empty-output", this.name, `${this.name} produced empty output.${detail}`, {
             stderr: stderr.trim()
@@ -224,6 +231,19 @@ function normalizeForWindowsStatus(line: string): string {
  * Élève en `usage-limit` si le stderr contient un signal de quota/rate-limit connu.
  */
 function createCliExitError(adapterName: string, exitCode: number, stderr: string): AdapterError {
+  return createKnownCliError(adapterName, exitCode, stderr)
+    ?? new AdapterError(
+      "non-zero-exit",
+      adapterName,
+      `${adapterName} exited with code ${exitCode}: ${summarizeCliError(cleanCliOutput(stderr))}`,
+      {
+        exitCode,
+        stderr: cleanCliOutput(stderr)
+      }
+    );
+}
+
+function createKnownCliError(adapterName: string, exitCode: number | undefined, stderr: string): AdapterError | undefined {
   const cleanedStderr = cleanCliOutput(stderr);
   const usageLimitMessage = extractUsageLimitMessage(cleanedStderr);
   const unsupportedModelMessage = extractUnsupportedModelMessage(cleanedStderr);
@@ -234,7 +254,7 @@ function createCliExitError(adapterName: string, exitCode: number, stderr: strin
       adapterName,
       `${adapterName} a atteint une limite d'utilisation: ${usageLimitMessage}`,
       {
-        exitCode,
+        ...(exitCode === undefined ? {} : { exitCode }),
         stderr: cleanedStderr
       }
     );
@@ -246,21 +266,13 @@ function createCliExitError(adapterName: string, exitCode: number, stderr: strin
       adapterName,
       `${adapterName} ne peut pas utiliser ce modèle: ${unsupportedModelMessage}`,
       {
-        exitCode,
+        ...(exitCode === undefined ? {} : { exitCode }),
         stderr: cleanedStderr
       }
     );
   }
 
-  return new AdapterError(
-    "non-zero-exit",
-    adapterName,
-    `${adapterName} exited with code ${exitCode}: ${summarizeCliError(cleanedStderr)}`,
-    {
-      exitCode,
-      stderr: cleanedStderr
-    }
-  );
+  return undefined;
 }
 
 function extractUnsupportedModelMessage(stderr: string): string | undefined {

@@ -15,7 +15,7 @@ const frHints: Partial<Record<AdapterFailureKind, string>> = {
   "usage-limit": "Attends la fenetre indiquee par la CLI, change de modele ou relance avec un autre agent/preset disponible.",
   "non-zero-exit": "Teste la commande directement, puis ajuste args, permissions, modele ou authentification de la CLI.",
   "model-unavailable": "Installe le modele Ollama ou relance avec --pull-models pour autoriser le telechargement.",
-  "unsupported-model": "Verifie le nom du modele, ton abonnement, ou retire --model-a/--model-b/--summary-model pour laisser la CLI utiliser son modele par defaut.",
+  "unsupported-model": "Mets a jour la CLI de l'agent, verifie le nom du modele et ton abonnement, ou retire --model-a/--model-b/--summary-model pour laisser la CLI utiliser son modele par defaut.",
   "model-pull-failed": "Verifie le nom du modele, ta connexion et l'espace disque disponible.",
   "http-error": "Verifie que le service local est lance et que baseUrl est correct."
 };
@@ -30,7 +30,7 @@ const enHints: Partial<Record<AdapterFailureKind, string>> = {
   "usage-limit": "Wait for the window indicated by the CLI, change model, or run again with another available agent/preset.",
   "non-zero-exit": "Test the command directly, then adjust args, permissions, model, or CLI authentication.",
   "model-unavailable": "Install the Ollama model or run again with --pull-models to allow downloading.",
-  "unsupported-model": "Check the model name, your subscription, or remove --model-a/--model-b/--summary-model so the CLI can use its default model.",
+  "unsupported-model": "Update the agent CLI, check the model name and your subscription, or remove --model-a/--model-b/--summary-model so the CLI can use its default model.",
   "model-pull-failed": "Check the model name, your connection, and available disk space.",
   "http-error": "Check that the local service is running and baseUrl is correct."
 };

@@ -130,6 +130,21 @@ test("CliAdapter classifies unsupported model errors", async () => {
   );
 });
 
+test("CliAdapter classifies unsupported model errors even when the CLI exits empty", async () => {
+  const script = "process.stderr.write('ERROR: ' + JSON.stringify({ type: 'error', status: 400, error: { type: 'invalid_request_error', message: \"The 'gpt-5.3-codex' model is not supported when using Codex with a ChatGPT account.\" } }));";
+  const adapter = new CliAdapter("codex", cliConfig({
+    args: ["-e", script]
+  }));
+
+  await assert.rejects(
+    adapter.generate(basePrompt()),
+    (error) => error instanceof AdapterError
+      && error.kind === "unsupported-model"
+      && error.message.includes("gpt-5.3-codex")
+      && error.message.includes("ChatGPT account")
+  );
+});
+
 test("CliAdapter strips Windows taskkill status noise from stdout", async () => {
   const script = [
     "process.stdout.write('Opération réussie : le processus de PID 42120 (processus enfant de PID 45636) a été\\n');",
