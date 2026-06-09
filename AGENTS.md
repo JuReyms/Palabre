@@ -54,9 +54,12 @@ pnpm start -- -v
 
 ```text
 src/index.ts              CLI entrypoint
+src/args.ts               Parseur d'arguments CLI (table d'arite des flags)
 src/new.ts                Assistant interactif `palabre new`
-src/config.ts             Chargement et generation de config
+src/config.ts             Chargement, generation et validation de config
 src/discovery.ts          Detection locale des CLIs et d'Ollama pendant init
+src/agentRegistry.ts      Source de verite des agents CLI connus (mapping commande -> decouverte)
+src/exec.ts               Resolution d'extensions executables partagee
 src/types.ts              Contrats partages
 src/prompt.ts             Rendu des prompts agent
 src/context.ts            Chargement des fichiers et dossiers de contexte
@@ -67,6 +70,7 @@ src/renderers/console.ts  Rendu console pretty/plain
 src/adapters/index.ts     Factory d'adapters
 src/adapters/cli.ts       Adapter CLI batch minimal
 src/adapters/cli-pty.ts   Adapter pseudo-terminal pour CLIs interactives
+src/adapters/cli-shared.ts Utilitaires partages CLI/PTY (withModelArgs, constantes timeout/sortie)
 src/adapters/ollama.ts    Adapter Ollama HTTP
 docs/roadmap.md           Roadmap interne locale non versionnee
 docs/notes.md             Notes personnelles du mainteneur
@@ -108,6 +112,16 @@ Chaque adapter expose aussi un `contract` :
 - `guarantees` : rejet des sorties vides, des timeouts, des exit codes non nuls, retour du raw output.
 
 L'orchestrateur doit s'appuyer sur ce contrat plutot que sur des exceptions implicites par adapter. Les erreurs connues doivent utiliser `AdapterError` avec un `kind` stable.
+
+### Registre d'agents connus
+
+`src/agentRegistry.ts` est la source de verite unique reliant un nom de commande a une entree de detection locale (`ToolDiscovery`). Avant ce registre, le mapping `commande -> decouverte` et la liste des agents detectes etaient dupliques dans `index.ts`, `presets.ts`, `doctor.ts`, `new.ts` et `config.ts`, et avaient deja diverge (ex. `doctor` qui ne normalisait pas l'extension `.ps1`).
+
+`KNOWN_CLI_AGENTS` decrit chaque agent CLI connu par trois champs : `configKey` (cle dans `config.agents`), `commandAliases` (noms de commande reconnus apres `normalizeCommandName`) et `discoveryKey` (cle dans `ToolDiscovery`). Ollama n'y figure pas : ce n'est pas une commande CLI, il est traite a part via `discovery.ollama`.
+
+Pour ajouter un agent CLI connu (nouvelle CLI premiere classe), ajouter une seule entree dans `KNOWN_CLI_AGENTS`, ajouter le bloc agent correspondant dans `exampleConfig` (`src/config.ts`), et completer `ToolDiscovery` / `discoverLocalTools` si une nouvelle commande doit etre detectee. Les helpers `normalizeCommandName`, `detectionForCommand`, `detectedAgentNames`, `isAgentDetected` et `applyDetectedCommands` se mettent a jour automatiquement pour tous les consommateurs.
+
+Les CLIs custom declarees par l'utilisateur (non listees dans le registre) restent considerees disponibles : Palabre ne peut pas connaitre leur semantique sans les lancer.
 
 ### Preset
 
