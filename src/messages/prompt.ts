@@ -14,6 +14,7 @@ export interface PromptMessages {
   cwd(value: string): string;
   sessionStartedAt(value: string): string;
   turnProgress(turn: number, totalTurns: number): string;
+  responseLanguageInstruction: string;
   objectiveTitle: string;
   debateObjectives: string[];
   summaryObjectives: string[];
@@ -67,6 +68,7 @@ export const promptMessages: Record<Language, PromptMessages> = {
     cwd: (value) => `- Dossier courant: ${value}`,
     sessionStartedAt: (value) => `- Session demarree a: ${value}`,
     turnProgress: (turn, totalTurns) => `- Tour courant: ${turn}/${totalTurns}`,
+    responseLanguageInstruction: "Langue de reponse obligatoire: francais. Reponds uniquement en francais, meme si le sujet ou le transcript contient une autre langue.",
     objectiveTitle: "Objectif:",
     debateObjectives: [
       "- Apporte une reponse utile, concrete et courte.",
@@ -110,6 +112,7 @@ export const promptMessages: Record<Language, PromptMessages> = {
     cwd: (value) => `- Current directory: ${value}`,
     sessionStartedAt: (value) => `- Session started at: ${value}`,
     turnProgress: (turn, totalTurns) => `- Current turn: ${turn}/${totalTurns}`,
+    responseLanguageInstruction: "Required response language: English. Answer only in English, even if the subject or transcript contains another language.",
     objectiveTitle: "Objective:",
     debateObjectives: [
       "- Provide a useful, concrete, and concise answer.",

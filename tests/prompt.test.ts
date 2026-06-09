@@ -30,6 +30,7 @@ test("formatAgentPrompt follows the selected interface language", () => {
   assert.match(prompt, /You are codex\. You are answering turn 1\./);
   assert.match(prompt, /PALABRE session context:/);
   assert.match(prompt, /- Current turn: 1\/4/);
+  assert.match(prompt, /Required response language: English\. Answer only in English/);
   assert.match(prompt, /History: no message yet\./);
   assert.match(prompt, /Your answer:/);
 });
@@ -40,6 +41,7 @@ test("formatAgentPrompt keeps French as the fallback language", () => {
   assert.match(prompt, /^Sujet: Choose a cache strategy/);
   assert.match(prompt, /Tu es codex\. Tu reponds au tour 1\./);
   assert.match(prompt, /- Tour courant: 1\/4/);
+  assert.match(prompt, /Langue de reponse obligatoire: francais\. Reponds uniquement en francais/);
   assert.match(prompt, /Ta reponse:/);
 });
 
@@ -51,6 +53,7 @@ test("formatAgentPrompt localizes the summary prompt", () => {
   }));
 
   assert.match(prompt, /You are codex\. You are producing the final debate summary\./);
+  assert.match(prompt, /Required response language: English\. Answer only in English/);
   assert.match(prompt, /Debate transcript:/);
   assert.match(prompt, /### Disagreements \/ uncertainties/);
   assert.match(prompt, /Summary:/);
