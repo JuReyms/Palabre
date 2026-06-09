@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_OUTPUT_DIR, createConfigFromDiscovery, exampleConfig, resolveOutputDir } from "../src/config.js";
+import { assertRunnableConfig, DEFAULT_OUTPUT_DIR, createConfigFromDiscovery, exampleConfig, resolveOutputDir } from "../src/config.js";
+import { createTranslator } from "../src/i18n.js";
 import type { ToolDiscovery } from "../src/discovery.js";
 
 test("resolveOutputDir groups default and legacy root exports in .palabre", () => {
@@ -26,6 +27,23 @@ test("createConfigFromDiscovery clears default agents when no pair is detected",
   assert.equal(config.defaults?.agentB, undefined);
   assert.equal(config.defaults?.summaryAgent, undefined);
   assert.equal(config.defaults?.turns, 4);
+});
+
+test("assertRunnableConfig rejects configs without a usable agents block", () => {
+  const messages = createTranslator("en");
+
+  assert.throws(
+    () => assertRunnableConfig(null as never, messages, "broken.json"),
+    /does not contain a JSON object/
+  );
+  assert.throws(
+    () => assertRunnableConfig({} as never, messages, "broken.json"),
+    /has no "agents" block/
+  );
+  assert.throws(
+    () => assertRunnableConfig({ agents: {} } as never, messages, "broken.json"),
+    /declares no agent/
+  );
 });
 
 function noDetectedTools(): ToolDiscovery {
