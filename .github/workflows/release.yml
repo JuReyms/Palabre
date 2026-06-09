@@ -11,7 +11,7 @@
 # Étapes du workflow :
 #   1. Checkout complet (fetch-depth: 0) pour que generate_release_notes
 #      puisse comparer les commits depuis le tag précédent
-#   2. Installation de pnpm et Node.js 24
+#   2. Installation de pnpm et Node.js 22
 #   3. Vérification TypeScript, tests automatisés et compilation
 #   4. Empaquetage npm (pnpm pack → tarball .tgz dans le répertoire courant)
 #   5. Publication npm via Trusted Publishing (npm publish --provenance)
@@ -27,11 +27,6 @@ on:
   push:
     tags:
       - 'v*'
-
-# Force les actions GitHub à tourner sur Node.js 24.
-# Voir ci.yml pour le contexte de cette variable.
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   release:
@@ -52,7 +47,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
       - name: Install dependencies

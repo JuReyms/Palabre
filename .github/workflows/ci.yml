@@ -7,7 +7,7 @@
 # Étapes :
 #   1. Checkout du dépôt
 #   2. Installation de pnpm (version lue depuis packageManager dans package.json)
-#   3. Installation de Node.js 24 avec cache pnpm
+#   3. Installation de Node.js 22 avec cache pnpm
 #   4. Installation des dépendances (lockfile strict — échoue si pnpm-lock.yaml est désynchronisé)
 #   5. Vérification TypeScript sans émission (tsc --noEmit)
 #   6. Tests automatisés
@@ -19,12 +19,6 @@ on:
   push:
     branches: [main]
   pull_request:
-
-# Force les actions GitHub (checkout, setup-node, pnpm/action-setup) à tourner
-# sur le runtime Node.js 24. Sans ça, elles utilisent Node.js 20 qui sera
-# retiré des runners GitHub le 16 septembre 2026.
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   check:
@@ -38,7 +32,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
           cache: 'pnpm'
 
       - name: Install dependencies
