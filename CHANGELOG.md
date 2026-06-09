@@ -2,7 +2,7 @@
 
 Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspire de [Keep a Changelog](https://keepachangelog.com/), versionnage [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.6.3] - 2026-06-09
 
 ### Fixed
 
