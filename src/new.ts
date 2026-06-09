@@ -1,5 +1,6 @@
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { isAgentDetected } from "./agentRegistry.js";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { findPresetNameForPair } from "./presets.js";
 import { MAX_TURNS, turnsOrDefault, validateTurns } from "./limits.js";
@@ -183,22 +184,6 @@ function buildAgentChoices(config: PalabreConfig, discovery: ToolDiscovery, mess
     .sort((left, right) => Number(right.detected) - Number(left.detected) || left.name.localeCompare(right.name));
 }
 
-function isAgentDetected(name: string, config: AgentConfig, discovery: ToolDiscovery): boolean {
-  if (config.type === "ollama") {
-    return discovery.ollama.available;
-  }
-
-  const normalized = normalizeCommandName(config.command || name);
-  if (normalized === "codex") return discovery.codex.available;
-  if (normalized === "claude") return discovery.claude.available;
-  if (normalized === "gemini") return discovery.gemini.available;
-  if (normalized === "agy") return discovery.antigravity.available;
-  if (normalized === "antigravity") return discovery.antigravity.available;
-  if (normalized === "opencode") return discovery.opencode.available;
-
-  return true;
-}
-
 function agentStatus(_name: string, config: AgentConfig, discovery: ToolDiscovery, detected: boolean, messages: Messages): string {
   if (config.type === "ollama") {
     return detected
@@ -317,14 +302,6 @@ function splitPaths(value: string | undefined): string[] {
     ?.split(/\s+/)
     .map((entry) => entry.trim())
     .filter(Boolean) ?? [];
-}
-
-function normalizeCommandName(command: string): string {
-  return command
-    .split(/[\\/]/)
-    .pop()
-    ?.toLowerCase()
-    .replace(/\.(exe|cmd|bat|ps1)$/i, "") ?? command.toLowerCase();
 }
 
 function isQuit(value: string): boolean {

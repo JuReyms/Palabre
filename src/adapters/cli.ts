@@ -2,9 +2,8 @@ import { spawn } from "node:child_process";
 import { AdapterError } from "../errors.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
+import { DEFAULT_MAX_OUTPUT_BYTES, DEFAULT_TIMEOUT_MS, withModelArgs } from "./cli-shared.js";
 import { cleanTerminalOutput } from "./terminal.js";
-
-const DEFAULT_MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
 
 /**
  * Adapter pour les CLIs batch (Codex, Claude, Gemini…).
@@ -91,10 +90,10 @@ export class CliAdapter implements AgentAdapter {
 
       hardTimer = setTimeout(() => {
         child.kill();
-        finish(new AdapterError("timeout", this.name, `${this.name} timed out after ${this.config.timeoutMs ?? 180_000}ms`, {
-          timeoutMs: this.config.timeoutMs ?? 180_000
+        finish(new AdapterError("timeout", this.name, `${this.name} timed out after ${this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS}ms`, {
+          timeoutMs: this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS
         }));
-      }, this.config.timeoutMs ?? 180_000);
+      }, this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS);
 
       const bumpIdleTimer = () => {
         if (!this.config.idleTimeoutMs) return;
@@ -164,29 +163,6 @@ export class CliAdapter implements AgentAdapter {
       child.stdin.end();
     });
   }
-}
-
-/**
- * Insère `modelArg model` dans la liste d'arguments.
- * Si le dernier argument est `-` (stdin marker), insère avant lui pour préserver l'ordre attendu par les CLIs.
- */
-function withModelArgs(args: string[], model: string | undefined, modelArg: string): string[] {
-  if (!model) {
-    return [...args];
-  }
-
-  const promptStdinIndex = args.lastIndexOf("-");
-
-  if (promptStdinIndex === args.length - 1) {
-    return [
-      ...args.slice(0, promptStdinIndex),
-      modelArg,
-      model,
-      ...args.slice(promptStdinIndex)
-    ];
-  }
-
-  return [...args, modelArg, model];
 }
 
 /** Retire les séquences ANSI et les espaces en tête/fin. */

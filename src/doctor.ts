@@ -1,6 +1,7 @@
 import path from "node:path";
 import { stat } from "node:fs/promises";
 import { configExists, loadConfig, resolveDefaultConfigPath, resolveOutputDir } from "./config.js";
+import { detectedAgentNames, detectionForCommand } from "./agentRegistry.js";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { createTranslator, resolveLanguage } from "./i18n.js";
 import { DEFAULT_TURNS, MAX_TURNS } from "./limits.js";
@@ -267,7 +268,7 @@ function inspectCliAgent(
   lines: DiagnosticLine[],
   t: Messages
 ): void {
-  const known = knownCliDetection(agent.command, discovery);
+  const known = detectionForCommand(agent.command, discovery);
   const prefix = `${name} [cli:${agent.role}] command=${agent.command}`;
 
   if (!known) {
@@ -305,36 +306,10 @@ function inspectOllamaAgent(
     : warn(t.doctor.ollamaMissing(prefix, agent.model)));
 }
 
-function detectedAgentNames(discovery: ToolDiscovery): string[] {
-  return [
-    discovery.codex.available ? "codex" : undefined,
-    discovery.claude.available ? "claude" : undefined,
-    discovery.gemini.available ? "gemini" : undefined,
-    discovery.antigravity.available ? "antigravity" : undefined,
-    discovery.opencode.available ? "opencode" : undefined,
-    discovery.ollama.available ? "ollama-local" : undefined
-  ].filter((name): name is string => Boolean(name));
-}
-
 function formatCommand(label: string, available: boolean, command: string, resolvedPath: string | undefined, t: Messages): DiagnosticLine {
   return available
     ? ok(t.doctor.commandDetected(label, resolvedPath ?? command))
     : warn(t.doctor.commandMissing(label));
-}
-
-function knownCliDetection(
-  command: string,
-  discovery: ToolDiscovery
-): { available: boolean; command: string; path?: string } | undefined {
-  const normalized = path.basename(command).toLowerCase().replace(/\.(exe|cmd|bat|ps1)$/i, "");
-
-  if (normalized === "codex") return discovery.codex;
-  if (normalized === "claude") return discovery.claude;
-  if (normalized === "gemini") return discovery.gemini;
-  if (normalized === "agy") return discovery.antigravity;
-  if (normalized === "antigravity") return discovery.antigravity;
-  if (normalized === "opencode") return discovery.opencode;
-  return undefined;
 }
 
 function render(lines: DiagnosticLine[], plain: boolean, t: Messages): DoctorResult {

@@ -1,6 +1,6 @@
-import path from "node:path";
+import { detectionForCommand } from "./agentRegistry.js";
 import type { ToolDiscovery } from "./discovery.js";
-import type { AgentConfig, PalabreConfig } from "./types.js";
+import type { PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
 
 /** Paire d'agents nommée. Les noms doivent correspondre à des clés dans `PalabreConfig.agents`. */
@@ -223,7 +223,7 @@ function checkAgentAvailability(agentName: string, config: PalabreConfig, discov
     return available(agentName);
   }
 
-  const detection = knownCliDetection(agent, discovery);
+  const detection = detectionForCommand(agent.command, discovery);
   if (!detection) {
     // Les CLIs custom déclarées par l'utilisateur restent considérées utilisables :
     // Palabre ne peut pas connaître leur sémantique sans les lancer.
@@ -233,23 +233,6 @@ function checkAgentAvailability(agentName: string, config: PalabreConfig, discov
   return detection.available
     ? available(agentName)
     : unavailable(agentName, messages?.presets.missingCommand(agentName, detection.command) ?? `commande non détectée pour ${agentName}: ${detection.command}`);
-}
-
-function knownCliDetection(agent: Extract<AgentConfig, { type: "cli" | "cli-pty" }>, discovery: ToolDiscovery): { available: boolean; command: string } | undefined {
-  const command = normalizeCommandName(agent.command);
-
-  if (command === "codex") return discovery.codex;
-  if (command === "claude") return discovery.claude;
-  if (command === "gemini") return discovery.gemini;
-  if (command === "agy") return discovery.antigravity;
-  if (command === "antigravity") return discovery.antigravity;
-  if (command === "opencode") return discovery.opencode;
-
-  return undefined;
-}
-
-function normalizeCommandName(command: string): string {
-  return path.basename(command).toLowerCase().replace(/\.(exe|cmd|ps1|bat)$/i, "");
 }
 
 function available(agent: string): AgentAvailabilityCheck {

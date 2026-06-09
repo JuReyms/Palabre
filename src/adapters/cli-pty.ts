@@ -2,11 +2,11 @@ import { spawn as spawnPty } from "node-pty";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { AdapterError } from "../errors.js";
+import { executableExtensions } from "../exec.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliPtyAgentConfig } from "../types.js";
+import { DEFAULT_MAX_OUTPUT_BYTES, DEFAULT_TIMEOUT_MS, withModelArgs } from "./cli-shared.js";
 import { cleanTerminalOutput } from "./terminal.js";
-
-const DEFAULT_MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
 
 /**
  * Adapter pour les CLIs qui exigent un vrai terminal.
@@ -119,10 +119,10 @@ export class CliPtyAdapter implements AgentAdapter {
       }
 
       hardTimer = setTimeout(() => {
-        finish(new AdapterError("timeout", this.name, `${this.name} timed out after ${this.config.timeoutMs ?? 180_000}ms`, {
-          timeoutMs: this.config.timeoutMs ?? 180_000
+        finish(new AdapterError("timeout", this.name, `${this.name} timed out after ${this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS}ms`, {
+          timeoutMs: this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS
         }));
-      }, this.config.timeoutMs ?? 180_000);
+      }, this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS);
 
       dataSubscription = term.onData((chunk) => {
         outputBytes += Buffer.byteLength(chunk, "utf8");
@@ -185,36 +185,6 @@ function cleanupPty(term: ReturnType<typeof spawnPty>): void {
   } catch {
     // Best-effort cleanup for Windows ConPTY internals.
   }
-}
-
-function executableExtensions(command: string): string[] {
-  if (path.extname(command) || process.platform !== "win32") {
-    return [""];
-  }
-
-  return (process.env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD")
-    .split(";")
-    .map((extension) => extension.toLowerCase())
-    .concat(".ps1", "");
-}
-
-function withModelArgs(args: string[], model: string | undefined, modelArg: string): string[] {
-  if (!model) {
-    return [...args];
-  }
-
-  const promptStdinIndex = args.lastIndexOf("-");
-
-  if (promptStdinIndex === args.length - 1) {
-    return [
-      ...args.slice(0, promptStdinIndex),
-      modelArg,
-      model,
-      ...args.slice(promptStdinIndex)
-    ];
-  }
-
-  return [...args, modelArg, model];
 }
 
 function createPtyExitError(adapterName: string, exitCode: number, raw: string): AdapterError {

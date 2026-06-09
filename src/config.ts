@@ -1,6 +1,7 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { applyDetectedCommands } from "./agentRegistry.js";
 import type { PalabreConfig } from "./types.js";
 import type { ToolDiscovery } from "./discovery.js";
 import type { Messages } from "./messages/index.js";
@@ -199,26 +200,8 @@ export function createConfigFromDiscovery(discovery: ToolDiscovery): PalabreConf
   const config = cloneConfig(exampleConfig);
   const pair = chooseDefaultPair(discovery);
 
-  config.agents.codex = {
-    ...config.agents.codex,
-    ...(discovery.codex.available ? { command: discovery.codex.command } : {})
-  };
-  config.agents.claude = {
-    ...config.agents.claude,
-    ...(discovery.claude.available ? { command: discovery.claude.command } : {})
-  };
-  config.agents.gemini = {
-    ...config.agents.gemini,
-    ...(discovery.gemini.available ? { command: discovery.gemini.command } : {})
-  };
-  config.agents.antigravity = {
-    ...config.agents.antigravity,
-    ...(discovery.antigravity.available ? { command: discovery.antigravity.command } : {})
-  };
-  config.agents.opencode = {
-    ...config.agents.opencode,
-    ...(discovery.opencode.available ? { command: discovery.opencode.command } : {})
-  };
+  applyDetectedCommands(config, discovery);
+
   const ollamaAgent = config.agents["ollama-local"];
   if (ollamaAgent?.type === "ollama") {
     ollamaAgent.model = chooseDefaultOllamaModel(discovery);

@@ -21,6 +21,8 @@ import { writeDebateMarkdown } from "./output.js";
 import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./update.js";
 import { createSessionContext } from "./session.js";
 import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
+import { detectedAgentNames, detectionForCommand } from "./agentRegistry.js";
+import type { CommandDetection } from "./discovery.js";
 import type { AgentConfig, DebateOptions, PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
 
@@ -608,16 +610,7 @@ function findDetectedMissingAgents(
   config: PalabreConfig,
   discovery: Awaited<ReturnType<typeof discoverLocalTools>>
 ): string[] {
-  const detectedAgents = [
-    discovery.codex.available ? "codex" : undefined,
-    discovery.claude.available ? "claude" : undefined,
-    discovery.gemini.available ? "gemini" : undefined,
-    discovery.antigravity.available ? "antigravity" : undefined,
-    discovery.opencode.available ? "opencode" : undefined,
-    discovery.ollama.available ? "ollama-local" : undefined
-  ].filter((agent): agent is string => Boolean(agent));
-
-  return detectedAgents.filter((agentName) => !config.agents[agentName]);
+  return detectedAgentNames(discovery).filter((agentName) => !config.agents[agentName]);
 }
 /**
  * Affiche la liste des agents déclarés avec leur type, rôle, état de détection et défauts.
@@ -713,7 +706,7 @@ function formatAgentDetection(
 }
 
 /**
- * Résout l'entrée de détection correspondant à un agent CLI dans le résultat de découverte.
+ * Résout l'entrée de détection correspondant à un agent CLI.
  * Renvoie un objet `{ available: true }` pour les agents CLI non reconnus (considérés disponibles).
  * @param name - Nom de l'agent dans la config.
  * @param agentConfig - Configuration de l'agent.
@@ -723,26 +716,11 @@ function cliDetectionForAgent(
   name: string,
   agentConfig: AgentConfig,
   discovery: Awaited<ReturnType<typeof discoverLocalTools>>
-): Awaited<ReturnType<typeof discoverLocalTools>>["codex"] {
-  const command = normalizeCommandName(agentConfig.type === "cli" || agentConfig.type === "cli-pty" ? agentConfig.command : name);
-
-  if (command === "codex") return discovery.codex;
-  if (command === "claude") return discovery.claude;
-  if (command === "gemini") return discovery.gemini;
-  if (command === "agy") return discovery.antigravity;
-  if (command === "antigravity") return discovery.antigravity;
-  if (command === "opencode") return discovery.opencode;
-
-  return { available: true, command: agentConfig.type === "cli" || agentConfig.type === "cli-pty" ? agentConfig.command : name };
+): CommandDetection {
+  const command = agentConfig.type === "cli" || agentConfig.type === "cli-pty" ? agentConfig.command : name;
+  return detectionForCommand(command, discovery) ?? { available: true, command };
 }
 
-/**
- * Extrait le nom de base d'une commande en supprimant le chemin et l'extension Windows éventuelle.
- * @param command - Chemin ou nom de commande brut (ex. `C:\bin\claude.cmd`).
- */
-function normalizeCommandName(command: string): string {
-  return path.basename(command).replace(/\.(cmd|exe|ps1|bat)$/i, "").toLowerCase();
-}
 /**
  * Affiche le récapitulatif de détection locale après `palabre init`.
  * @param discovery - Résultat de la découverte locale des outils.
@@ -772,14 +750,7 @@ function formatDetectedAgentSummary(
   discovery: Awaited<ReturnType<typeof discoverLocalTools>>,
   language: NonNullable<PalabreConfig["language"]>
 ): string {
-  const names = [
-    discovery.codex.available ? "codex" : undefined,
-    discovery.claude.available ? "claude" : undefined,
-    discovery.gemini.available ? "gemini" : undefined,
-    discovery.antigravity.available ? "antigravity" : undefined,
-    discovery.opencode.available ? "opencode" : undefined,
-    discovery.ollama.available ? "ollama-local" : undefined
-  ].filter((name): name is string => Boolean(name));
+  const names = detectedAgentNames(discovery);
 
   if (names.length === 0) {
     return language === "en" ? "no agent detected" : "aucun agent détecté";

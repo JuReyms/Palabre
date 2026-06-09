@@ -1,5 +1,6 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
+import { executableExtensions } from "./exec.js";
 
 /** Résultat de la détection d'une commande dans le PATH. */
 export interface CommandDetection {
@@ -143,21 +144,6 @@ async function findExecutable(command: string): Promise<string | undefined> {
   }
 
   return undefined;
-}
-
-function executableExtensions(command: string): string[] {
-  if (path.extname(command)) {
-    return [""];
-  }
-
-  if (process.platform !== "win32") {
-    return [""];
-  }
-
-  return (process.env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD")
-    .split(";")
-    .map((extension) => extension.toLowerCase())
-    .concat(".ps1", "");
 }
 
 async function isAccessible(filePath: string): Promise<boolean> {
