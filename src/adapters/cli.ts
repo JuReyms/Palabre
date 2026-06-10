@@ -40,6 +40,10 @@ export class CliAdapter implements AgentAdapter {
   }
 
   async generate(prompt: AgentPrompt): Promise<AgentResponse> {
+    if (prompt.signal?.aborted) {
+      throw cancelledError(this.name);
+    }
+
     const renderedPrompt = formatAgentPrompt(prompt);
     const promptMode = this.config.promptMode ?? "stdin";
     const baseArgs = withModelArgs(this.config.args ?? [], this.config.model, this.config.modelArg ?? "--model");
@@ -59,6 +63,7 @@ export class CliAdapter implements AgentAdapter {
       let outputBytes = 0;
       let hardTimer: ReturnType<typeof setTimeout>;
       let idleTimer: ReturnType<typeof setTimeout> | undefined;
+      let abortListener: (() => void) | undefined;
       const maxOutputBytes = this.config.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
 
       const finish = (error?: Error) => {
@@ -66,6 +71,9 @@ export class CliAdapter implements AgentAdapter {
         settled = true;
         clearTimeout(hardTimer);
         if (idleTimer) clearTimeout(idleTimer);
+        if (abortListener) {
+          prompt.signal?.removeEventListener("abort", abortListener);
+        }
 
         if (error) {
           reject(error);
@@ -95,8 +103,14 @@ export class CliAdapter implements AgentAdapter {
         });
       };
 
+      abortListener = () => {
+        killChildProcess(child);
+        finish(cancelledError(this.name));
+      };
+      prompt.signal?.addEventListener("abort", abortListener, { once: true });
+
       hardTimer = setTimeout(() => {
-        child.kill();
+        killChildProcess(child);
         finish(new AdapterError("timeout", this.name, `${this.name} timed out after ${this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS}ms`, {
           timeoutMs: this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS
         }));
@@ -106,7 +120,7 @@ export class CliAdapter implements AgentAdapter {
         if (!this.config.idleTimeoutMs) return;
         if (idleTimer) clearTimeout(idleTimer);
         idleTimer = setTimeout(() => {
-          child.kill();
+          killChildProcess(child);
           finish(new AdapterError(
             "idle-timeout",
             this.name,
@@ -121,7 +135,7 @@ export class CliAdapter implements AgentAdapter {
       child.stdout.on("data", (chunk: Buffer) => {
         outputBytes += chunk.length;
         if (outputBytes > maxOutputBytes) {
-          child.kill();
+          killChildProcess(child);
           finish(new AdapterError("output-too-large", this.name, `${this.name} produced more than ${maxOutputBytes} bytes of output`, {
             maxOutputBytes,
             outputBytes
@@ -135,7 +149,7 @@ export class CliAdapter implements AgentAdapter {
       child.stderr.on("data", (chunk: Buffer) => {
         outputBytes += chunk.length;
         if (outputBytes > maxOutputBytes) {
-          child.kill();
+          killChildProcess(child);
           finish(new AdapterError("output-too-large", this.name, `${this.name} produced more than ${maxOutputBytes} bytes of output`, {
             maxOutputBytes,
             outputBytes
@@ -370,4 +384,23 @@ function clipLine(value: string, maxLength: number): string {
   return value.length <= maxLength
     ? value
     : `${value.slice(0, maxLength - 1)}…`;
+}
+
+function cancelledError(adapterName: string): AdapterError {
+  return new AdapterError("cancelled", adapterName, `${adapterName} cancelled by user.`);
+}
+
+function killChildProcess(child: ReturnType<typeof spawn>): void {
+  if (process.platform === "win32" && child.pid) {
+    const killer = spawn("taskkill.exe", ["/PID", String(child.pid), "/T", "/F"], {
+      windowsHide: true,
+      stdio: "ignore"
+    });
+    killer.on("error", () => {
+      child.kill();
+    });
+    return;
+  }
+
+  child.kill();
 }

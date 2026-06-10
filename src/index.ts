@@ -186,7 +186,8 @@ async function main(): Promise<void> {
     summaryModel: optionalString(parsed.flags["summary-model"]),
     summaryEnabled: !parsed.flags["no-summary"],
     earlyStopOnAgreement: !parsed.flags["no-early-stop"],
-    plainOutput: Boolean(parsed.flags.plain)
+    plainOutput: Boolean(parsed.flags.plain),
+    signal: debateAbortSignal()
   };
 
   if (parsed.flags["show-prompt"]) {
@@ -210,8 +211,20 @@ async function main(): Promise<void> {
 
   renderer.done(outputPath);
   if (result.failure) {
-    process.exitCode = 1;
+    process.exitCode = result.failure.kind === "cancelled" ? 130 : 1;
   }
+}
+
+function debateAbortSignal(): AbortSignal {
+  const controller = new AbortController();
+  const abort = () => {
+    if (!controller.signal.aborted) {
+      controller.abort();
+    }
+  };
+  process.once("SIGINT", abort);
+  process.once("SIGTERM", abort);
+  return controller.signal;
 }
 
 /**

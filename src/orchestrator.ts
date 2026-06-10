@@ -56,6 +56,20 @@ export async function runDebate(
   let stopReason: string | undefined;
 
   for (let index = 0; index < options.turns; index += 1) {
+    const cancellation = cancellationFailureIfAborted(options, messages, {
+      phase: "debate",
+      turn: index + 1
+    });
+    if (cancellation) {
+      renderer?.error(cancellation);
+      return {
+        options,
+        messages: transcript,
+        stopReason,
+        failure: cancellation
+      };
+    }
+
     const current = agents[index % agents.length];
     const peer = agents[(index + 1) % agents.length];
     const turn = index + 1;
@@ -75,7 +89,8 @@ export async function runDebate(
         language: options.language,
         session: options.session,
         files: options.files,
-        transcript
+        transcript,
+        signal: options.signal
       });
     } catch (error) {
       const failure = toDebateFailure(error, {
@@ -117,6 +132,20 @@ export async function runDebate(
 
   if (options.summaryEnabled) {
     try {
+      const cancellation = cancellationFailureIfAborted(options, messages, {
+        phase: "summary",
+        agent: options.summaryAgent ?? options.agentB,
+        turn: transcript.length + 1
+      });
+      if (cancellation) {
+        renderer?.error(cancellation);
+        return {
+          options,
+          messages: transcript,
+          stopReason,
+          failure: cancellation
+        };
+      }
       summary = await generateSummary(config, options, transcript, renderer, messages);
     } catch (error) {
       failure = toDebateFailure(error, {
@@ -236,7 +265,8 @@ async function generateSummary(
     language: options.language,
     session: options.session,
     files: options.files,
-    transcript
+    transcript,
+    signal: options.signal
   }).finally(() => renderer?.thinkingEnd());
 
   const summary: DebateSummary = {
@@ -248,6 +278,25 @@ async function generateSummary(
 
   renderer?.message(summary.content);
   return summary;
+}
+
+function cancellationFailureIfAborted(
+  options: DebateOptions,
+  messages: Messages,
+  context: Pick<DebateFailure, "phase"> & Partial<Pick<DebateFailure, "agent" | "role" | "turn">>
+): DebateFailure | undefined {
+  if (!options.signal?.aborted) {
+    return undefined;
+  }
+
+  return {
+    phase: context.phase,
+    agent: context.agent,
+    role: context.role,
+    turn: context.turn,
+    kind: "cancelled",
+    message: messages.orchestrator.cancelled
+  };
 }
 
 function toDebateFailure(

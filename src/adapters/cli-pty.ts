@@ -43,6 +43,10 @@ export class CliPtyAdapter implements AgentAdapter {
   }
 
   async generate(prompt: AgentPrompt): Promise<AgentResponse> {
+    if (prompt.signal?.aborted) {
+      throw cancelledError(this.name);
+    }
+
     const renderedPrompt = formatAgentPrompt(prompt);
     const promptMode = this.config.promptMode ?? "stdin";
     const baseArgs = withModelArgs(this.config.args ?? [], this.config.model, this.config.modelArg ?? "--model");
@@ -59,6 +63,7 @@ export class CliPtyAdapter implements AgentAdapter {
       let term: PtyProcess;
       let dataSubscription: { dispose(): void } | undefined;
       let exitSubscription: { dispose(): void } | undefined;
+      let abortListener: (() => void) | undefined;
       const maxOutputBytes = this.config.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
 
       const finish = (error?: Error, exitCode?: number, kill = true) => {
@@ -67,6 +72,9 @@ export class CliPtyAdapter implements AgentAdapter {
         clearTimeout(hardTimer);
         dataSubscription?.dispose();
         exitSubscription?.dispose();
+        if (abortListener) {
+          prompt.signal?.removeEventListener("abort", abortListener);
+        }
 
         if (kill) {
           try {
@@ -119,6 +127,11 @@ export class CliPtyAdapter implements AgentAdapter {
         }));
         return;
       }
+
+      abortListener = () => {
+        finish(cancelledError(this.name));
+      };
+      prompt.signal?.addEventListener("abort", abortListener, { once: true });
 
       hardTimer = setTimeout(() => {
         finish(new AdapterError("timeout", this.name, `${this.name} timed out after ${this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS}ms`, {
@@ -199,6 +212,10 @@ function createPtyExitError(adapterName: string, exitCode: number, raw: string):
       raw
     }
   );
+}
+
+function cancelledError(adapterName: string): AdapterError {
+  return new AdapterError("cancelled", adapterName, `${adapterName} cancelled by user.`);
 }
 
 function summarizePtyOutput(output: string): string {

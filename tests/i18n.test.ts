@@ -147,6 +147,7 @@ test("createTranslator returns localized orchestrator messages", () => {
   assert.equal(createTranslator("fr").orchestrator.earlyStop("Accord clair detecte apres un tour complet."), "Arret anticipe: Accord clair detecte apres un tour complet.");
   assert.equal(createTranslator("en").orchestrator.agreementStopReason, "Clear agreement detected after a complete round.");
   assert.equal(createTranslator("en").orchestrator.earlyStop("done"), "Early stop: done");
+  assert.equal(createTranslator("en").orchestrator.cancelled, "Debate cancelled by the user.");
   assert.equal(createTranslator("en").orchestrator.ollamaNoContext("ollama-local"), "ollama-local cannot read the filesystem. Add --files or --context to provide project context.");
   assert.equal(createTranslator("en").orchestrator.unknownSummaryAgent("ghost"), "Unknown summary agent: ghost");
 });

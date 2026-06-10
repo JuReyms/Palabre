@@ -188,6 +188,23 @@ test("CliAdapter rejects output above maxOutputBytes", async () => {
       && error.details?.maxOutputBytes === 32
   );
 });
+
+test("CliAdapter cancels a running child process when the signal aborts", async () => {
+  const controller = new AbortController();
+  const adapter = new CliAdapter("mock", cliConfig({
+    args: ["-e", "setInterval(() => {}, 1000)"],
+    timeoutMs: 30_000
+  }));
+  const run = adapter.generate(basePrompt({ signal: controller.signal }));
+
+  controller.abort();
+
+  await assert.rejects(
+    run,
+    (error) => error instanceof AdapterError && error.kind === "cancelled"
+  );
+});
+
 async function writeFakeCli(name: string, source: string): Promise<string> {
   const dir = path.join(os.tmpdir(), "palabre-cli-adapter-tests");
   await mkdir(dir, { recursive: true });

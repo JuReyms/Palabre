@@ -21,6 +21,28 @@ test("runDebate can early-stop on explicit English agreement", async () => {
   assert.equal(result.stopReason, "Clear agreement detected after a complete round.");
 });
 
+test("runDebate stops before launching the next turn when aborted", async () => {
+  const controller = new AbortController();
+  const config: PalabreConfig = {
+    agents: {
+      first: scriptedCliAgent("First point."),
+      second: scriptedCliAgent("Should not run.")
+    }
+  };
+  const options = debateOptions({
+    turns: 2,
+    summaryEnabled: false,
+    signal: controller.signal
+  });
+  controller.abort();
+
+  const result = await runDebate(config, options, undefined, createTranslator("en"));
+
+  assert.equal(result.messages.length, 0);
+  assert.equal(result.failure?.kind, "cancelled");
+  assert.equal(result.failure?.message, "Debate cancelled by the user.");
+});
+
 function scriptedCliAgent(output: string): PalabreConfig["agents"][string] {
   return {
     type: "cli",

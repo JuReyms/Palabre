@@ -112,6 +112,7 @@ export interface DebateOptions {
   summaryEnabled: boolean;
   earlyStopOnAgreement: boolean;
   plainOutput: boolean;
+  signal?: AbortSignal;
 }
 
 /** Données fournies à l'adapter pour générer une réponse. Reconstruit à chaque tour par l'orchestrateur. */
@@ -127,6 +128,7 @@ export interface AgentPrompt {
   session: SessionContext;
   files: ProjectFileContext[];
   transcript: DebateMessage[];
+  signal?: AbortSignal;
 }
 
 /**
@@ -168,6 +170,7 @@ export interface AdapterContract {
 export type AdapterFailureKind =
   | "command-not-found"
   | "spawn-failed"
+  | "cancelled"
   | "timeout"
   | "idle-timeout"
   | "output-too-large"

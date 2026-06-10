@@ -64,6 +64,10 @@ export class OllamaAdapter implements AgentAdapter {
   }
 
   async generate(prompt: AgentPrompt): Promise<AgentResponse> {
+    if (prompt.signal?.aborted) {
+      throw cancelledError(this.name);
+    }
+
     const baseUrl = normalizeBaseUrl(this.config.baseUrl ?? "http://localhost:11434");
 
     if (this.config.validateModel !== false) {
@@ -75,6 +79,8 @@ export class OllamaAdapter implements AgentAdapter {
     }
 
     const controller = new AbortController();
+    const abortListener = () => controller.abort();
+    prompt.signal?.addEventListener("abort", abortListener, { once: true });
     const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs ?? 120_000);
 
     try {
@@ -123,8 +129,14 @@ export class OllamaAdapter implements AgentAdapter {
       return {
         content
       };
+    } catch (error) {
+      if (prompt.signal?.aborted) {
+        throw cancelledError(this.name);
+      }
+      throw error;
     } finally {
       clearTimeout(timeout);
+      prompt.signal?.removeEventListener("abort", abortListener);
     }
   }
 
@@ -279,4 +291,8 @@ async function unloadModel(baseUrl: string, model: string, signal: AbortSignal):
 /** Supprime le slash final de `baseUrl` pour éviter les doubles slashs dans les URLs construites. */
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/$/, "");
+}
+
+function cancelledError(adapterName: string): AdapterError {
+  return new AdapterError("cancelled", adapterName, `${adapterName} cancelled by user.`);
 }

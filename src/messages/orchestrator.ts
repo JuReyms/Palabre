@@ -9,6 +9,7 @@ export interface OrchestratorMessages {
    * `normalizeForAgreement`. Volontairement ciblées : pas de motif trop large.
    */
   agreementPatterns: string[];
+  cancelled: string;
   ollamaNoContext(agentNames: string): string;
   unknownSummaryAgent(agentName: string): string;
 }
@@ -26,6 +27,7 @@ export const orchestratorMessages: Record<Language, OrchestratorMessages> = {
       "rien a ajouter",
       "question factuelle resolue"
     ],
+    cancelled: "Débat annulé par l'utilisateur.",
     ollamaNoContext: (agentNames) => `${agentNames} ne lit pas le filesystem. Ajoute --files ou --context pour fournir un contexte projet.`,
     unknownSummaryAgent: (agentName) => `Agent de synthese inconnu: ${agentName}`
   },
@@ -42,6 +44,7 @@ export const orchestratorMessages: Record<Language, OrchestratorMessages> = {
       "nothing to add",
       "factual question resolved"
     ],
+    cancelled: "Debate cancelled by the user.",
     ollamaNoContext: (agentNames) => `${agentNames} cannot read the filesystem. Add --files or --context to provide project context.`,
     unknownSummaryAgent: (agentName) => `Unknown summary agent: ${agentName}`
   }
