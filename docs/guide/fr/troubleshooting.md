@@ -168,6 +168,19 @@ Installez le modèle :
 ollama pull le-modele
 ```
 
+ou choisissez un modèle déjà installé pour Palabre :
+
+```bash
+palabre config --ollama-models --json
+palabre config --set-ollama-model le-modele-installe
+```
+
+Si vous voulez simplement remplacer le modèle configuré absent par un modèle installé disponible :
+
+```bash
+palabre config --sync-ollama-model
+```
+
 ou autorisez Palabre à le télécharger au lancement :
 
 ```bash

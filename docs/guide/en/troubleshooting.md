@@ -169,6 +169,19 @@ Install the model:
 ollama pull the-model
 ```
 
+or choose an already installed model for Palabre:
+
+```bash
+palabre config --ollama-models --json
+palabre config --set-ollama-model installed-model
+```
+
+If you simply want to replace the missing configured model with an available installed model:
+
+```bash
+palabre config --sync-ollama-model
+```
+
 or allow Palabre to download it at startup:
 
 ```bash

@@ -27,7 +27,10 @@ Cette page liste les commandes principales de Palabre.
 | `palabre config --summary-agent none`        | Retire l'agent de synthèse par défaut.    |
 | `palabre config --language en`               | Définit la langue de Palabre et des prompts agents. |
 | `palabre config --clear-defaults`            | Supprime les paramètres par défaut.       |
-| `palabre config --sync-agents`               | Ajoute les agents détectés manquants.     |
+| `palabre config --sync-agents`               | Ajoute les agents détectés manquants et rafraîchit les commandes connues. |
+| `palabre config --ollama-models --json`      | Liste les modèles Ollama installés et l'état du modèle configuré. |
+| `palabre config --set-ollama-model gemma4:e4b` | Définit le modèle de l'agent `ollama-local`. |
+| `palabre config --sync-ollama-model`         | Remplace le modèle Ollama configuré s'il n'est plus installé. |
 
 ## Débats
 
@@ -43,6 +46,7 @@ Cette page liste les commandes principales de Palabre.
 | Commande | Description |
 |----------|-------------|
 | `palabre presets --json` | Liste les presets et leur disponibilité locale. |
+| `palabre config --ollama-models --json` | Renvoie l'état Ollama local au format JSON v1 pour les intégrations. |
 | `palabre context scan [paths...] --json` | Renvoie les dossiers, fichiers et avertissements du scan `--context` au format JSON v1. |
 
 ## Options générales

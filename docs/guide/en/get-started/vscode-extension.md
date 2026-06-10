@@ -20,7 +20,7 @@ After installation, open the Palabre panel from the VS Code sidebar.
 The extension requires:
 
 - Palabre CLI installed on the same machine;
-- Palabre CLI `0.6.0` or newer;
+- Palabre CLI `0.7.0` or newer recommended;
 - at least two compatible agents configured or detected by Palabre.
 
 Verify the installation from a terminal:
@@ -37,6 +37,8 @@ palabre presets --json
 - workspace context selection through Palabre's official scan;
 - display of debate turns, the final summary, and errors in a VS Code interface;
 - button to open the exported `.debate.md` file;
+- stop button that cancels the Palabre process and its child agents;
+- quick settings for the default preset, summary agent, language, number of turns, agent synchronization, and the Ollama model when Ollama is available;
 - quick access to `Palabre: Run Doctor` and the Palabre Output channel when something fails.
 
 ## Quick troubleshooting

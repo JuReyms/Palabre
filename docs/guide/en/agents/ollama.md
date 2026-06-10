@@ -47,6 +47,28 @@ Choose a model appropriate for your machine. Large models may be too heavy for s
 
 In local use, the main limits come from your machine: memory, CPU/GPU, and response time. If you use a cloud, paid, or remote Ollama offering, quotas and limits come from that offering, not from Palabre.
 
+## Choose the model used by Palabre
+
+Palabre reads the model from the `ollama-local` agent in your configuration. To list installed models and check whether the configured model still exists:
+
+```bash
+palabre config --ollama-models --json
+```
+
+To change Palabre's default Ollama model:
+
+```bash
+palabre config --set-ollama-model gemma4:e4b
+```
+
+If you removed the configured model and want Palabre to pick an installed model that is available:
+
+```bash
+palabre config --sync-ollama-model
+```
+
+These commands update the Palabre configuration. For a one-off debate override, use `--model-a`, `--model-b`, or `--summary-model` depending on where the Ollama agent is used.
+
 ## Typical configuration
 
 ```json

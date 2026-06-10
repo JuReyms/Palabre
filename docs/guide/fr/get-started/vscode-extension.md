@@ -20,7 +20,7 @@ Après installation, ouvrez le panneau Palabre depuis la barre latérale de VS C
 L'extension nécessite :
 
 - Palabre CLI installé sur la même machine ;
-- Palabre CLI `0.6.0` ou plus récent ;
+- Palabre CLI `0.7.0` ou plus récent recommandé ;
 - au moins deux agents compatibles configurés ou détectés par Palabre.
 
 Vérifiez l'installation depuis un terminal :
@@ -37,6 +37,8 @@ palabre presets --json
 - sélection de contexte workspace via le scan officiel de Palabre ;
 - affichage des tours, de la synthèse et des erreurs dans une interface VS Code ;
 - bouton pour ouvrir le fichier `.debate.md` exporté ;
+- bouton d'arrêt qui annule le processus Palabre et ses agents enfants ;
+- réglages rapides pour le preset par défaut, l'agent de synthèse, la langue, le nombre de réponses, la synchronisation des agents et le modèle Ollama quand Ollama est disponible ;
 - accès rapide à `Palabre: Run Doctor` et à l'Output channel Palabre en cas d'erreur.
 
 ## Dépannage rapide

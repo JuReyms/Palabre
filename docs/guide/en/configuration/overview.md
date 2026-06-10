@@ -54,6 +54,9 @@ palabre config -t 3
 palabre config --summary-agent claude
 palabre config --clear-defaults
 palabre config --sync-agents
+palabre config --ollama-models --json
+palabre config --set-ollama-model gemma4:e4b
+palabre config --sync-ollama-model
 ```
 
 ## Go further

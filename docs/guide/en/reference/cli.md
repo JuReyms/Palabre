@@ -27,7 +27,10 @@ This page lists the main Palabre commands.
 | `palabre config --summary-agent none` | Removes the default summary agent. |
 | `palabre config --language en` | Sets the Palabre and agent prompt language. |
 | `palabre config --clear-defaults` | Removes default settings. |
-| `palabre config --sync-agents` | Adds missing detected agents. |
+| `palabre config --sync-agents` | Adds missing detected agents and refreshes known commands. |
+| `palabre config --ollama-models --json` | Lists installed Ollama models and the configured model status. |
+| `palabre config --set-ollama-model gemma4:e4b` | Sets the model for the `ollama-local` agent. |
+| `palabre config --sync-ollama-model` | Replaces the configured Ollama model if it is no longer installed. |
 
 ## Debates
 
@@ -43,6 +46,7 @@ This page lists the main Palabre commands.
 | Command | Description |
 |---------|-------------|
 | `palabre presets --json` | Lists presets and their local availability. |
+| `palabre config --ollama-models --json` | Returns local Ollama state as JSON v1 for integrations. |
 | `palabre context scan [paths...] --json` | Returns the folders, files, and warnings from the `--context` scan as JSON v1. |
 
 ## General options

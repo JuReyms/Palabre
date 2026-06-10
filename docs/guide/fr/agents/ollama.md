@@ -47,6 +47,28 @@ Adaptez le modèle à votre machine. Les gros modèles peuvent être trop lourds
 
 En usage local, les limites principales viennent de votre machine : mémoire, CPU/GPU et temps de réponse. Si vous utilisez une offre cloud, payante ou distante d'Ollama, les quotas et limites associées viennent de cette offre, pas de Palabre.
 
+## Choisir le modèle utilisé par Palabre
+
+Palabre lit le modèle dans l'agent `ollama-local` de votre configuration. Pour voir les modèles installés et savoir si le modèle configuré existe encore :
+
+```bash
+palabre config --ollama-models --json
+```
+
+Pour changer le modèle par défaut de Palabre :
+
+```bash
+palabre config --set-ollama-model gemma4:e4b
+```
+
+Si vous avez supprimé le modèle configuré et que vous voulez laisser Palabre choisir un modèle installé disponible :
+
+```bash
+palabre config --sync-ollama-model
+```
+
+Ces commandes modifient la configuration Palabre. Pour un changement ponctuel sur un débat, utilisez plutôt `--model-a`, `--model-b` ou `--summary-model` selon la place de l'agent Ollama.
+
 ## Configuration typique
 
 ```json
