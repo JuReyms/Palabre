@@ -42,6 +42,8 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
   apply: { arity: "boolean" },
   "clear-defaults": { arity: "boolean" },
   "sync-agents": { arity: "boolean" },
+  "sync-ollama-model": { arity: "boolean" },
+  "ollama-models": { arity: "boolean" },
   // Valeur unique.
   "agent-a": { arity: "single" },
   "agent-b": { arity: "single" },
@@ -49,6 +51,7 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
   language: { arity: "single" },
   "model-a": { arity: "single" },
   "model-b": { arity: "single" },
+  "set-ollama-model": { arity: "single" },
   preset: { arity: "single" },
   "summary-agent": { arity: "single" },
   "summary-model": { arity: "single" },

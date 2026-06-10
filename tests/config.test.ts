@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assertRunnableConfig, DEFAULT_OUTPUT_DIR, createConfigFromDiscovery, exampleConfig, resolveOutputDir, syncDetectedAgents } from "../src/config.js";
+import { assertRunnableConfig, DEFAULT_OUTPUT_DIR, createConfigFromDiscovery, exampleConfig, resolveOutputDir, setOllamaModel, syncDetectedAgents, syncOllamaModel } from "../src/config.js";
 import { createTranslator } from "../src/i18n.js";
 import type { ToolDiscovery } from "../src/discovery.js";
 
@@ -59,6 +59,44 @@ test("syncDetectedAgents refreshes commands for already configured known agents"
   assert.deepEqual(added, ["antigravity"]);
   assert.equal(config.agents.claude?.type === "cli" ? config.agents.claude.command : undefined, "claude");
   assert.equal(config.agents.antigravity?.type, "cli-pty");
+});
+
+test("syncOllamaModel updates a missing configured model to an installed model", () => {
+  const config = createConfigFromDiscovery(noDetectedTools());
+  const agent = config.agents["ollama-local"];
+  assert.equal(agent?.type, "ollama");
+  if (agent?.type !== "ollama") return;
+  agent.model = "missing-model:latest";
+
+  const discovery = noDetectedTools();
+  discovery.ollama = {
+    available: true,
+    commandAvailable: true,
+    baseUrl: "http://localhost:11434",
+    models: ["gemma3:4b", "gemma3:12b"]
+  };
+
+  const result = syncOllamaModel(config, discovery);
+
+  assert.deepEqual(result, {
+    previousModel: "missing-model:latest",
+    nextModel: "gemma3:4b"
+  });
+  assert.equal(agent.model, "gemma3:4b");
+});
+
+test("setOllamaModel updates the configured Ollama model", () => {
+  const config = createConfigFromDiscovery(noDetectedTools());
+  const result = setOllamaModel(config, "gemma3:12b");
+
+  assert.equal(config.agents["ollama-local"]?.type, "ollama");
+  assert.equal(
+    config.agents["ollama-local"]?.type === "ollama"
+      ? config.agents["ollama-local"].model
+      : undefined,
+    "gemma3:12b"
+  );
+  assert.equal(result?.nextModel, "gemma3:12b");
 });
 
 test("assertRunnableConfig rejects configs without a usable agents block", () => {

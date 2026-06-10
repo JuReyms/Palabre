@@ -73,6 +73,7 @@ test("createTranslator returns localized agents messages", () => {
 test("createTranslator returns localized config messages", () => {
   assert.equal(createTranslator("fr").config.syncNoMissing("palabre.config.json"), "Aucun agent détecté manquant dans palabre.config.json.");
   assert.equal(createTranslator("en").config.syncNoMissing("palabre.config.json"), "No missing detected agent in palabre.config.json.");
+  assert.equal(createTranslator("en").config.ollamaModelUpdated("palabre.config.json", "old", "new"), "Ollama model updated in palabre.config.json: old -> new.");
   assert.equal(createTranslator("en").config.defaultsSummary("codex", "claude", 4, undefined), "agents: codex <-> claude, responses: 4, summary: agent B");
   assert.equal(createTranslator("fr").config.wizardActionSyncAgents, "Synchroniser les agents détectés");
   assert.equal(createTranslator("en").config.wizardActionSyncAgents, "Sync detected agents");

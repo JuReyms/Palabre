@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, syncDetectedAgents, writeExampleConfig } from "./config.js";
+import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgents, syncOllamaModel, writeExampleConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
 import { buildContextScan } from "./contextScan.js";
 import { discoverLocalTools } from "./discovery.js";
@@ -270,6 +270,22 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   });
   const messages = createTranslator(language);
 
+  if (flags["ollama-models"]) {
+    await runOllamaModelsCommand(config, Boolean(flags.json));
+    return;
+  }
+
+  const setOllamaModelValue = optionalString(flags["set-ollama-model"]);
+  if (setOllamaModelValue !== undefined) {
+    await runSetOllamaModelCommand(configPath, config, setOllamaModelValue, messages);
+    return;
+  }
+
+  if (flags["sync-ollama-model"]) {
+    await runSyncOllamaModelCommand(configPath, config, messages);
+    return;
+  }
+
   if (flags["sync-agents"]) {
     const discovery = await discoverLocalTools();
     const addedAgents = syncDetectedAgents(config, discovery);
@@ -341,6 +357,87 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   }
 
   await runConfigWizard(configPath, config, messages);
+}
+
+async function runOllamaModelsCommand(config: PalabreConfig, json: boolean): Promise<void> {
+  const discovery = await discoverLocalTools();
+  const agent = config.agents["ollama-local"];
+  const currentModel = agent?.type === "ollama" ? agent.model : null;
+  const payload = {
+    v: 1,
+    agent: "ollama-local",
+    available: discovery.ollama.available,
+    baseUrl: discovery.ollama.baseUrl,
+    currentModel,
+    currentModelInstalled: currentModel ? discovery.ollama.models.includes(currentModel) : false,
+    installedModels: discovery.ollama.models
+  };
+
+  if (json) {
+    console.log(JSON.stringify(payload, null, 2));
+    return;
+  }
+
+  console.log(`ollama-local: ${currentModel ?? "(non configuré)"}`);
+  console.log(`Ollama API: ${discovery.ollama.available ? "joignable" : "indisponible"} (${discovery.ollama.baseUrl})`);
+  console.log(`Modèles installés: ${discovery.ollama.models.length > 0 ? discovery.ollama.models.join(", ") : "(aucun)"}`);
+}
+
+async function runSetOllamaModelCommand(
+  configPath: string,
+  config: PalabreConfig,
+  model: string,
+  messages: Messages
+): Promise<void> {
+  const trimmed = model.trim();
+
+  if (!trimmed) {
+    throw new Error(messages.common.optionRequiresValue("--set-ollama-model"));
+  }
+
+  const discovery = await discoverLocalTools();
+  const agent = config.agents["ollama-local"];
+
+  if (agent?.type !== "ollama") {
+    throw new Error(messages.config.ollamaModelNoAgent);
+  }
+
+  if (!discovery.ollama.models.includes(trimmed)) {
+    throw new Error(messages.config.ollamaModelUnavailable(trimmed));
+  }
+
+  const result = setOllamaModel(config, trimmed);
+  await writeExampleConfig(configPath, config);
+  console.log(result
+    ? messages.config.ollamaModelUpdated(configPath, result.previousModel, result.nextModel)
+    : messages.config.ollamaModelNoChange(configPath, agent.model));
+}
+
+async function runSyncOllamaModelCommand(
+  configPath: string,
+  config: PalabreConfig,
+  messages: Messages
+): Promise<void> {
+  const discovery = await discoverLocalTools();
+  const agent = config.agents["ollama-local"];
+
+  if (agent?.type !== "ollama") {
+    throw new Error(messages.config.ollamaModelNoAgent);
+  }
+
+  if (discovery.ollama.models.length === 0) {
+    throw new Error(messages.config.ollamaModelNoInstalledModels);
+  }
+
+  const result = syncOllamaModel(config, discovery);
+
+  if (!result) {
+    console.log(messages.config.ollamaModelNoChange(configPath, agent.model));
+    return;
+  }
+
+  await writeExampleConfig(configPath, config);
+  console.log(messages.config.ollamaModelUpdated(configPath, result.previousModel, result.nextModel));
 }
 /**
  * Renvoie `true` si la valeur représente une désactivation explicite (ex. "none", "0", "disabled").

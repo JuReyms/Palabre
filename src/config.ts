@@ -236,6 +236,45 @@ export function syncDetectedAgents(config: PalabreConfig, discovery: ToolDiscove
   return missingAgents;
 }
 
+export interface OllamaModelSyncResult {
+  previousModel: string;
+  nextModel: string;
+}
+
+export function syncOllamaModel(config: PalabreConfig, discovery: ToolDiscovery): OllamaModelSyncResult | undefined {
+  const agent = config.agents["ollama-local"];
+
+  if (agent?.type !== "ollama" || discovery.ollama.models.length === 0) {
+    return undefined;
+  }
+
+  if (discovery.ollama.models.includes(agent.model)) {
+    return undefined;
+  }
+
+  const previousModel = agent.model;
+  agent.model = chooseDefaultOllamaModel(discovery);
+  return {
+    previousModel,
+    nextModel: agent.model
+  };
+}
+
+export function setOllamaModel(config: PalabreConfig, model: string): OllamaModelSyncResult | undefined {
+  const agent = config.agents["ollama-local"];
+
+  if (agent?.type !== "ollama") {
+    return undefined;
+  }
+
+  const previousModel = agent.model;
+  agent.model = model;
+  return {
+    previousModel,
+    nextModel: agent.model
+  };
+}
+
 /** Écrit `config` sérialisé en JSON dans `configPath`. Crée le répertoire parent si nécessaire. */
 export async function writeExampleConfig(
   configPath = DEFAULT_CONFIG_PATH,
