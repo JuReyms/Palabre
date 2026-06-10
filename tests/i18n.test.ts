@@ -98,8 +98,16 @@ test("createTranslator returns localized update messages", () => {
     /Source repository installation detected/
   );
   assert.match(
-    createTranslator("en").update.instructions({ version: "0.4.0", projectRoot: "C:\\repo\\Palabre", sourceCheckout: false }),
+    createTranslator("en").update.instructions({ version: "0.4.0", latestVersion: "0.7.0", projectRoot: "C:\\repo\\Palabre", sourceCheckout: false }),
     /Package installation detected/
+  );
+  assert.match(
+    createTranslator("en").update.instructions({ version: "0.4.0", latestVersion: "0.7.0", projectRoot: "C:\\repo\\Palabre", sourceCheckout: false }),
+    /pnpm add --global palabre@0\.7\.0/
+  );
+  assert.match(
+    createTranslator("en").update.instructions({ version: "0.4.0", projectRoot: "C:\\repo\\Palabre", sourceCheckout: false }),
+    /pnpm view palabre version/
   );
 });
 

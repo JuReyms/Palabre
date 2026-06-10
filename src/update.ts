@@ -3,10 +3,12 @@ import { access } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Messages } from "./messages/index.js";
+import { getLatestPackageVersion } from "./version.js";
 
 /** Informations sur l'installation courante, utilisées pour adapter les instructions de mise à jour. */
 export interface UpdateInfo {
   version: string;
+  latestVersion?: string;
   projectRoot: string;
   /** `true` si le dossier parent contient un `.git` — distingue un checkout source d'une installation via npm/pnpm. */
   sourceCheckout: boolean;
@@ -18,6 +20,7 @@ export async function getUpdateInfo(version: string): Promise<UpdateInfo> {
 
   return {
     version,
+    latestVersion: await getLatestPackageVersion(),
     projectRoot,
     sourceCheckout: await exists(path.join(projectRoot, ".git"))
   };

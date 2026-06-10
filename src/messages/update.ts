@@ -6,6 +6,7 @@ export interface UpdateMessages {
   stepFailed(command: string, args: string, exitCode: string): string;
   instructions(options: {
     version: string;
+    latestVersion?: string;
     projectRoot: string;
     sourceCheckout: boolean;
   }): string;
@@ -44,6 +45,25 @@ export const updateMessages: Record<Language, UpdateMessages> = {
           "Installation package detectee.",
           "",
           "  pnpm add --global palabre@latest",
+        );
+
+        if (options.latestVersion) {
+          lines.push(
+            "",
+            "Si pnpm garde une ancienne version malgré @latest:",
+            "",
+            `  pnpm add --global palabre@${options.latestVersion}`
+          );
+        } else {
+          lines.push(
+            "",
+            "Pour verifier la derniere version disponible:",
+            "",
+            "  pnpm view palabre version"
+          );
+        }
+
+        lines.push(
           "",
           "Si tu utilises npm:",
           "",
@@ -86,6 +106,25 @@ export const updateMessages: Record<Language, UpdateMessages> = {
           "Package installation detected.",
           "",
           "  pnpm add --global palabre@latest",
+        );
+
+        if (options.latestVersion) {
+          lines.push(
+            "",
+            "If pnpm keeps an older version despite @latest:",
+            "",
+            `  pnpm add --global palabre@${options.latestVersion}`
+          );
+        } else {
+          lines.push(
+            "",
+            "To check the latest available version:",
+            "",
+            "  pnpm view palabre version"
+          );
+        }
+
+        lines.push(
           "",
           "If you use npm:",
           "",

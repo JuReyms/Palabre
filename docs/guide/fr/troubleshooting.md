@@ -238,6 +238,18 @@ Pour voir les étapes :
 palabre update
 ```
 
+Avec les versions récentes de pnpm, `palabre@latest` peut parfois rester temporairement sur une ancienne version à cause des garde-fous de chaîne d'approvisionnement. Dans ce cas, `palabre update` affiche aussi une commande avec la version exacte quand il peut lire npm :
+
+```bash
+pnpm add --global palabre@0.7.0
+```
+
+Adaptez le numéro à la version affichée par `palabre update` ou par :
+
+```bash
+pnpm view palabre version
+```
+
 Pour appliquer depuis un checkout git :
 
 ```bash
