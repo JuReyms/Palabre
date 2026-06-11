@@ -35,7 +35,11 @@ palabre agents
 
 ## What the skill adds
 
-- automatic debate triggering when the user asks to compare two approaches, get a critical review, or a contradictory second opinion;
-- selection of a complementary agent pair (proposer / reviewer);
-- targeted context injection through `--files` or `--context`;
-- retrieval of the summary and the transcript exported to `.palabre/<slug>.debate.md`.
+- automatic debate triggering when the user asks to compare two approaches, get a critical review, or a contradictory second opinion — the agent runs `palabre` without asking again, inferring the subject from context;
+- selection of a complementary agent pair (proposer / reviewer) and targeted context injection through `--files` or `--context`;
+- privacy guard: the agent warns before injecting sensitive code and can suggest a fully local pair (Ollama);
+- economy mode: recommends a local Ollama model when the topic does not warrant two premium agents;
+- language handling (`fr`/`en`) based on the user's language;
+- restitution: offers to display the full transcript directly in the conversation, or just the summary;
+- follow-up: turn actions into tasks, apply the consensus (agreed points only), dig into a disagreement, or export as a PR comment / ADR;
+- index of past debates in `.palabre/INDEX.md` to find prior decisions.

@@ -35,7 +35,11 @@ palabre agents
 
 ## Ce que le skill apporte
 
-- déclenchement automatique du débat quand l'utilisateur demande de confronter deux approches, d'obtenir une relecture critique ou une seconde opinion contradictoire ;
-- choix d'une paire d'agents complémentaires (proposeur / reviewer) ;
-- injection ciblée du contexte via `--files` ou `--context` ;
-- récupération de la synthèse et du transcript exporté dans `.palabre/<slug>.debate.md`.
+- déclenchement automatique du débat quand l'utilisateur demande de confronter deux approches, d'obtenir une relecture critique ou une seconde opinion contradictoire — l'agent lance `palabre` sans redemander, en déduisant le sujet du contexte ;
+- choix d'une paire d'agents complémentaires (proposeur / reviewer) et injection ciblée du contexte via `--files` ou `--context` ;
+- garde-fou confidentialité : l'agent prévient avant d'injecter du code sensible et peut proposer une paire 100 % locale (Ollama) ;
+- mode économique : recommandation d'un modèle local Ollama quand le sujet ne justifie pas deux agents premium ;
+- gestion de la langue (`fr`/`en`) selon la langue de l'utilisateur ;
+- restitution : proposition d'afficher le transcript complet directement dans la conversation, ou la synthèse seule ;
+- suite du débat : transformer les actions en tâches, appliquer le consensus (uniquement les points d'accord), approfondir un désaccord, ou exporter en commentaire de PR / ADR ;
+- index des débats passés dans `.palabre/INDEX.md` pour retrouver les décisions.
