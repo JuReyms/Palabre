@@ -74,6 +74,20 @@ PALABRE expose des sorties JSON versionnées pour les clients externes :
 
 Le flux NDJSON v1 est traité comme une API publique d'intégration. Les ajouts compatibles se font sans casser v1 ; les changements cassants doivent changer le champ `v`.
 
+### Skill pour agents IA
+
+PALABRE fournit un skill prêt à l'emploi qui apprend à un agent IA quand et comment lancer un débat. Il suit le standard ouvert [agentskills.io](https://agentskills.io) : il est donc portable entre Hermes Agent, Claude, Codex, Gemini CLI et tout agent compatible skills.
+
+Installation dans **Hermes Agent** :
+
+```bash
+hermes skills install JuReyms/Palabre/skills/palabre
+```
+
+Pour les autres agents (Claude desktop, Claude Code…), voir la doc : [Skill Palabre](https://palab.re/fr/get-started/skill).
+
+Le skill est versionné dans [skills/palabre](./skills/palabre).
+
 ### Confidentialité
 
 PALABRE tourne localement et n'envoie aucune donnée à un serveur appartenant à PALABRE. Les données envoyées aux agents dépendent des outils que vous utilisez : vérifiez les politiques de confidentialité de Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Ollama ou de tout autre agent configuré.
@@ -163,6 +177,20 @@ PALABRE exposes versioned JSON outputs for external clients:
 - `--renderer ndjson` or `--json` to follow a debate event by event.
 
 The NDJSON v1 stream is treated as a public integration API. Compatible additions do not break v1; breaking changes must change the `v` field.
+
+### Skill for AI agents
+
+PALABRE ships a ready-to-use skill that teaches an AI agent when and how to run a debate. It follows the open [agentskills.io](https://agentskills.io) standard, so it is portable across Hermes Agent, Claude, Codex, Gemini CLI, and any skills-compatible agent.
+
+Install it in **Hermes Agent**:
+
+```bash
+hermes skills install JuReyms/Palabre/skills/palabre
+```
+
+For other agents (Claude desktop, Claude Code…), see the docs: [Palabre skill](https://palab.re/en/get-started/skill).
+
+The skill is versioned under [skills/palabre](./skills/palabre).
 
 ### Privacy
 

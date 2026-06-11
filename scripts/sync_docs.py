@@ -20,6 +20,7 @@ ROUTE_MAP = {
     "get-started/configuration.md": "1.get-started/3.configuration.md",
     "get-started/first-debate.md": "1.get-started/4.first-debate.md",
     "get-started/vscode-extension.md": "1.get-started/5.vscode-extension.md",
+    "get-started/skill.md": "1.get-started/6.skill.md",
     "agents/overview.md": "2.agents/1.overview.md",
     "agents/claude-code.md": "2.agents/2.claude-code.md",
     "agents/codex.md": "2.agents/3.codex.md",
