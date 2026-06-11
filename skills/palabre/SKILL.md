@@ -1,11 +1,11 @@
 ---
 name: palabre
 description: Orchestrer un débat entre deux agents IA (Claude Code, Codex, Gemini, Ollama...) via la CLI Palabre pour confronter des approches techniques, obtenir une relecture critique, comparer deux modèles ou produire une synthèse consensus/désaccords/actions. Déclencher quand l'utilisateur demande de "faire débattre", "confronter deux avis", "lancer un palabre/débat", arbitrer un choix d'architecture ou de refactoring, ou demande une seconde opinion contradictoire sur du code.
-version: 1.3.0
-author: Julien (JuReyms)
+version: 1.3.1
+author: JuReyms
 metadata:
   hermes:
-    tags: [cli, ai-agents, debate, code-review, orchestration]
+    tags: [palabre, cli, ai-agents, debate, code-review, orchestration]
     category: dev-tools
     requires_toolsets: [terminal]
 ---
