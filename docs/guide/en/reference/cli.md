@@ -29,6 +29,7 @@ This page lists the main Palabre commands.
 | `palabre config --ask-summary-agent opencode` | Sets the default summary agent for ask mode. |
 | `palabre config --mode ask` | Sets the default mode (`debate` or `ask`). |
 | `palabre config --ask-agents codex claude opencode` | Sets the default ask agents, 4 maximum. |
+| `palabre config --interface tui` | Sets the default interface (`tui` or `terminal`). |
 | `palabre config --language en` | Sets the Palabre and agent prompt language. |
 | `palabre config --clear-defaults` | Removes default settings. |
 | `palabre config --sync-agents` | Adds missing detected agents and refreshes known commands. |
@@ -62,7 +63,9 @@ This page lists the main Palabre commands.
 | `-v`, `--version` | Displays the version. |
 | `--config <path>` | Uses an explicit configuration file. |
 | `--language <fr\|en>`, `--lang <fr\|en>` | Forces the Palabre and agent prompt language for this command. |
-| `--plain` | Uses raw terminal rendering. Also useful with `palabre doctor` for logs. |
+| `--tui` | Forces the TUI interface, even if configuration asks for terminal rendering. |
+| `--terminal`, `--no-tui` | Uses raw terminal rendering. Also useful with `palabre doctor` for logs. |
+| `--plain` | Historical alias for `--terminal`. |
 | `--renderer <auto\|pretty\|plain\|tui\|ndjson>` | Selects the terminal or integration renderer. `tui` enables the first full-terminal interface. |
 
 ## Debate options

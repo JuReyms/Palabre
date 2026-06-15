@@ -32,6 +32,8 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
   // Booléens : présence = vrai, aucune valeur consommée.
   help: { arity: "boolean" },
   version: { arity: "boolean" },
+  tui: { arity: "boolean" },
+  terminal: { arity: "boolean" },
   plain: { arity: "boolean" },
   json: { arity: "boolean" },
   "no-summary": { arity: "boolean" },
@@ -48,6 +50,7 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
   "agent-a": { arity: "single" },
   "agent-b": { arity: "single" },
   config: { arity: "single" },
+  interface: { arity: "single" },
   language: { arity: "single" },
   "model-a": { arity: "single" },
   "model-b": { arity: "single" },
@@ -325,7 +328,8 @@ export function normalizeFlagName(value: string): string {
     lang: "language",
     s: "topic",
     subject: "topic",
-    t: "turns"
+    t: "turns",
+    "no-tui": "terminal"
   };
 
   return aliases[value] ?? value;

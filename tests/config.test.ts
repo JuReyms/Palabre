@@ -18,6 +18,7 @@ test("resolveOutputDir preserves explicit custom output folders", () => {
 
 test("exampleConfig declares the default interface language", () => {
   assert.equal(exampleConfig.language, "fr");
+  assert.equal(exampleConfig.defaults?.interface, "tui");
 });
 
 test("createConfigFromDiscovery clears default agents when no pair is detected", () => {
@@ -28,6 +29,7 @@ test("createConfigFromDiscovery clears default agents when no pair is detected",
   assert.equal(config.defaults?.summaryAgent, undefined);
   assert.equal(config.defaults?.askSummaryAgent, undefined);
   assert.equal(config.defaults?.turns, 4);
+  assert.equal(config.defaults?.interface, "tui");
 });
 
 test("createConfigFromDiscovery applies the detected Antigravity command alias", () => {

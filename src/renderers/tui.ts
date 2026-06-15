@@ -1,6 +1,6 @@
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateStartAgentInfo, PalabreConfig, PalabreMode } from "../types.js";
+import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateStartAgentInfo, PalabreConfig, PalabreInterface, PalabreMode } from "../types.js";
 import type { Messages } from "../messages/index.js";
 
 const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
@@ -44,6 +44,7 @@ export function renderTuiHome(config: PalabreConfig, configPath: string, message
       `${bold("Ask")}              ${askAgents}`,
       `${bold("Reponses")}         ${String(defaults.turns ?? "?")}`,
       `${bold("Synthese")}         ${summary}`,
+      `${bold("Interface")}        ${defaults.interface ?? "tui"}`,
       `${bold("Config")}           ${configPath}`,
       "",
       `${bold("Sujet")}            ecris ton sujet puis Entree`,
@@ -126,10 +127,12 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
       `${bold("PALABRE")} ${dim("-")} ${accent("/config")} ${dim("-")} ${accent(mode === "ask" ? "Ask" : "Debat")}`,
       `${bold("Config")}           ${configPath}`,
       `${bold("Agents dispo")}     ${agents || "aucun"}`,
+      `${bold("Interface")}        ${defaults.interface ?? "tui"}`,
       "",
       ...modeLines,
       "",
       `${bold("/default")}         utiliser ${mode === "ask" ? "Ask" : "Debat"} par defaut`,
+      `${bold("/interface")}       /interface tui  ${dim("ou")} /interface terminal`,
       `${bold("/mode")}            changer de mode de configuration`,
       `${bold("/back")}            revenir a l'accueil`,
       `${bold("/quit")}            quitter`
@@ -153,6 +156,7 @@ export type TuiConfigInput =
   | { kind: "quit" }
   | { kind: "mode" }
   | { kind: "default-mode" }
+  | { kind: "interface"; interfaceName: PalabreInterface }
   | { kind: "agents"; agents: string[] }
   | { kind: "turns"; turns: number }
   | { kind: "summary"; agent: string | undefined }
@@ -229,6 +233,14 @@ export async function promptTuiConfigCommand(mode: PalabreMode): Promise<TuiConf
 
     if (command === "/default") {
       return { kind: "default-mode" };
+    }
+
+    if (command === "/interface") {
+      const value = parts[1];
+      if (value === "tui" || value === "terminal") {
+        return { kind: "interface", interfaceName: value };
+      }
+      return { kind: "unknown", message: "Usage: /interface <tui|terminal>" };
     }
 
     if (command === "/agents") {

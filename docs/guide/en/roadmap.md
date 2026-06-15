@@ -24,14 +24,14 @@ The main features are available:
 - diagnostics with `palabre doctor`;
 - machine-readable output with `palabre presets --json`, `palabre context scan --json`, and the NDJSON renderer;
 - structured errors for integrations, with an NDJSON versioning policy;
-- a more robust CLI parser for boolean flags such as `--plain`, `--json`, or `--no-summary`;
+- a more robust CLI parser for boolean flags such as `--terminal`, `--json`, or `--no-summary`;
 - automated tests for the CLI adapter, parser, NDJSON renderer, presets, context scan, prompts, and output configuration without calling real AI services.
 
 ## Upcoming improvements
 
 ### More useful diagnostics
 
-`palabre doctor` is the first reflex when something goes wrong. It displays a readable diagnostic by sections and keeps `--plain` for logs. Future improvements will continue to make its messages more actionable for common issues: agent not found, incomplete configuration, missing Ollama model, incorrect PATH, or provider quota reached.
+`palabre doctor` is the first reflex when something goes wrong. It displays a readable diagnostic by sections and keeps `--terminal` for logs. Future improvements will continue to make its messages more actionable for common issues: agent not found, incomplete configuration, missing Ollama model, incorrect PATH, or provider quota reached.
 
 ### More robust integrations
 

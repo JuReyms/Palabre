@@ -11,7 +11,7 @@ export interface ConfigMessages {
   ollamaModelNoInstalledModels: string;
   updated(path: string, defaults: string, language: string): string;
   cleared(path: string): string;
-  defaultsSummary(agentA: string | undefined, agentB: string | undefined, turns: number, summaryAgent: string | undefined, askSummaryAgent?: string, mode?: string, askAgents?: string[]): string;
+  defaultsSummary(agentA: string | undefined, agentB: string | undefined, turns: number, summaryAgent: string | undefined, askSummaryAgent?: string, mode?: string, askAgents?: string[], interfaceName?: string): string;
   wizardNeedsTwoAgents: string;
   wizardTitle: string;
   wizardQuitHint: string;
@@ -43,7 +43,7 @@ export interface ConfigMessages {
   wizardTurnsLabel: string;
   wizardTurnsPrompt(defaultValue: number): string;
   wizardTurnsInvalid(maxTurns: number): string;
-  wizardDefaults(defaults: { mode?: string; agentA?: string; agentB?: string; askAgents?: string[]; turns: number; summaryAgent?: string; askSummaryAgent?: string }): string;
+  wizardDefaults(defaults: { mode?: string; interfaceName?: string; agentA?: string; agentB?: string; askAgents?: string[]; turns: number; summaryAgent?: string; askSummaryAgent?: string }): string;
 }
 
 export const configMessages: Record<Language, ConfigMessages> = {
@@ -58,13 +58,14 @@ export const configMessages: Record<Language, ConfigMessages> = {
     ollamaModelNoInstalledModels: "Aucun modèle Ollama installé détecté. Action: lance `ollama pull <modèle>`.",
     updated: (path, defaults, language) => `Configuration mise à jour dans ${path}: ${defaults}, langue: ${language}.`,
     cleared: (path) => `Paramètres par défaut supprimés dans ${path}. Utilise maintenant un preset ou --agent-a/--agent-b pour lancer un débat.`,
-    defaultsSummary: (agentA, agentB, turns, summaryAgent, askSummaryAgent, mode, askAgents) => {
+    defaultsSummary: (agentA, agentB, turns, summaryAgent, askSummaryAgent, mode, askAgents, interfaceName) => {
       const modeLabel = `mode: ${mode ?? "debate"}`;
+      const interfaceLabel = `interface: ${interfaceName ?? "tui"}`;
       const pair = agentA && agentB ? `agents: ${agentA} <-> ${agentB}` : "agents: non définis";
       const askAgentsLabel = askAgents && askAgents.length > 0 ? `agents ask: ${askAgents.join(", ")}` : "agents ask: défaut";
       const summary = summaryAgent ? `synthèse débat: ${summaryAgent}` : "synthèse débat: agent B";
       const askSummary = askSummaryAgent ? `synthèse ask: ${askSummaryAgent}` : "synthèse ask: synthèse par défaut";
-      return `${modeLabel}, ${pair}, réponses: ${turns}, ${askAgentsLabel}, ${summary}, ${askSummary}`;
+      return `${modeLabel}, ${interfaceLabel}, ${pair}, réponses: ${turns}, ${askAgentsLabel}, ${summary}, ${askSummary}`;
     },
     wizardNeedsTwoAgents: "La config doit contenir au moins deux agents pour définir des paramètres par défaut.",
     wizardTitle: "PALABRE - Configuration",
@@ -97,7 +98,7 @@ export const configMessages: Record<Language, ConfigMessages> = {
     wizardTurnsLabel: "Nombre de réponses par défaut",
     wizardTurnsPrompt: (defaultValue) => `Tape le nombre total de réponses du débat (Entrée = ${defaultValue}) : `,
     wizardTurnsInvalid: (maxTurns) => `Entre un nombre entier entre 1 et ${maxTurns}, Entrée ou q.`,
-    wizardDefaults: (defaults) => `mode: ${defaults.mode ?? "debate"}, ${defaults.agentA ?? "?"} <-> ${defaults.agentB ?? "?"}, réponses: ${defaults.turns}, agents ask: ${defaults.askAgents && defaults.askAgents.length > 0 ? defaults.askAgents.join(", ") : "défaut"}${defaults.summaryAgent ? `, synthèse débat: ${defaults.summaryAgent}` : ""}${defaults.askSummaryAgent ? `, synthèse ask: ${defaults.askSummaryAgent}` : ""}`
+    wizardDefaults: (defaults) => `mode: ${defaults.mode ?? "debate"}, interface: ${defaults.interfaceName ?? "tui"}, ${defaults.agentA ?? "?"} <-> ${defaults.agentB ?? "?"}, réponses: ${defaults.turns}, agents ask: ${defaults.askAgents && defaults.askAgents.length > 0 ? defaults.askAgents.join(", ") : "défaut"}${defaults.summaryAgent ? `, synthèse débat: ${defaults.summaryAgent}` : ""}${defaults.askSummaryAgent ? `, synthèse ask: ${defaults.askSummaryAgent}` : ""}`
   },
   en: {
     createdForConfig: (path) => `${path} created. Edit the config, then run palabre config again.`,
@@ -110,13 +111,14 @@ export const configMessages: Record<Language, ConfigMessages> = {
     ollamaModelNoInstalledModels: "No installed Ollama model detected. Action: run `ollama pull <model>`.",
     updated: (path, defaults, language) => `Configuration updated in ${path}: ${defaults}, language: ${language}.`,
     cleared: (path) => `Default settings cleared in ${path}. Use a preset or --agent-a/--agent-b to start a debate now.`,
-    defaultsSummary: (agentA, agentB, turns, summaryAgent, askSummaryAgent, mode, askAgents) => {
+    defaultsSummary: (agentA, agentB, turns, summaryAgent, askSummaryAgent, mode, askAgents, interfaceName) => {
       const modeLabel = `mode: ${mode ?? "debate"}`;
+      const interfaceLabel = `interface: ${interfaceName ?? "tui"}`;
       const pair = agentA && agentB ? `agents: ${agentA} <-> ${agentB}` : "agents: not set";
       const askAgentsLabel = askAgents && askAgents.length > 0 ? `ask agents: ${askAgents.join(", ")}` : "ask agents: default";
       const summary = summaryAgent ? `debate summary: ${summaryAgent}` : "debate summary: agent B";
       const askSummary = askSummaryAgent ? `ask summary: ${askSummaryAgent}` : "ask summary: default summary";
-      return `${modeLabel}, ${pair}, responses: ${turns}, ${askAgentsLabel}, ${summary}, ${askSummary}`;
+      return `${modeLabel}, ${interfaceLabel}, ${pair}, responses: ${turns}, ${askAgentsLabel}, ${summary}, ${askSummary}`;
     },
     wizardNeedsTwoAgents: "The config must contain at least two agents to set default settings.",
     wizardTitle: "PALABRE - Configuration",
@@ -149,6 +151,6 @@ export const configMessages: Record<Language, ConfigMessages> = {
     wizardTurnsLabel: "Default number of responses",
     wizardTurnsPrompt: (defaultValue) => `Type the total number of debate responses (Enter = ${defaultValue}): `,
     wizardTurnsInvalid: (maxTurns) => `Enter an integer between 1 and ${maxTurns}, Enter, or q.`,
-    wizardDefaults: (defaults) => `mode: ${defaults.mode ?? "debate"}, ${defaults.agentA ?? "?"} <-> ${defaults.agentB ?? "?"}, responses: ${defaults.turns}, ask agents: ${defaults.askAgents && defaults.askAgents.length > 0 ? defaults.askAgents.join(", ") : "default"}${defaults.summaryAgent ? `, debate summary: ${defaults.summaryAgent}` : ""}${defaults.askSummaryAgent ? `, ask summary: ${defaults.askSummaryAgent}` : ""}`
+    wizardDefaults: (defaults) => `mode: ${defaults.mode ?? "debate"}, interface: ${defaults.interfaceName ?? "tui"}, ${defaults.agentA ?? "?"} <-> ${defaults.agentB ?? "?"}, responses: ${defaults.turns}, ask agents: ${defaults.askAgents && defaults.askAgents.length > 0 ? defaults.askAgents.join(", ") : "default"}${defaults.summaryAgent ? `, debate summary: ${defaults.summaryAgent}` : ""}${defaults.askSummaryAgent ? `, ask summary: ${defaults.askSummaryAgent}` : ""}`
   }
 };

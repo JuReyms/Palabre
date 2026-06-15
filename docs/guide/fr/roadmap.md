@@ -24,14 +24,14 @@ Les fonctionnalités principales sont disponibles :
 - diagnostic avec `palabre doctor` ;
 - sortie machine-readable avec `palabre presets --json`, `palabre context scan --json` et le renderer NDJSON ;
 - erreurs structurées pour les intégrations, avec une politique de versioning NDJSON ;
-- parser CLI plus robuste pour les flags booléens comme `--plain`, `--json` ou `--no-summary` ;
+- parser CLI plus robuste pour les flags booléens comme `--terminal`, `--json` ou `--no-summary` ;
 - tests automatisés de l'adapter CLI, du parser, du renderer NDJSON, des presets, du scan de contexte, des prompts et de la configuration de sortie, sans appeler de vrais services IA.
 
 ## Prochaines améliorations
 
 ### Diagnostic plus utile
 
-`palabre doctor` est le premier réflexe quand quelque chose ne fonctionne pas. Il affiche un diagnostic lisible par sections et garde `--plain` pour les logs. Les prochaines améliorations continueront à rendre ses messages plus actionnables pour les problèmes courants : agent introuvable, configuration incomplète, modèle Ollama manquant, PATH incorrect ou quota atteint côté provider.
+`palabre doctor` est le premier réflexe quand quelque chose ne fonctionne pas. Il affiche un diagnostic lisible par sections et garde `--terminal` pour les logs. Les prochaines améliorations continueront à rendre ses messages plus actionnables pour les problèmes courants : agent introuvable, configuration incomplète, modèle Ollama manquant, PATH incorrect ou quota atteint côté provider.
 
 ### Intégrations plus robustes
 

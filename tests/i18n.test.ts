@@ -75,11 +75,11 @@ test("createTranslator returns localized config messages", () => {
   assert.equal(createTranslator("fr").config.syncNoMissing("palabre.config.json"), "Aucun agent détecté manquant dans palabre.config.json.");
   assert.equal(createTranslator("en").config.syncNoMissing("palabre.config.json"), "No missing detected agent in palabre.config.json.");
   assert.equal(createTranslator("en").config.ollamaModelUpdated("palabre.config.json", "old", "new"), "Ollama model updated in palabre.config.json: old -> new.");
-  assert.equal(createTranslator("en").config.defaultsSummary("codex", "claude", 4, undefined), "mode: debate, agents: codex <-> claude, responses: 4, ask agents: default, debate summary: agent B, ask summary: default summary");
+  assert.equal(createTranslator("en").config.defaultsSummary("codex", "claude", 4, undefined), "mode: debate, interface: tui, agents: codex <-> claude, responses: 4, ask agents: default, debate summary: agent B, ask summary: default summary");
   assert.equal(createTranslator("fr").config.wizardActionSyncAgents, "Synchroniser les agents détectés");
   assert.equal(createTranslator("en").config.wizardActionSyncAgents, "Sync detected agents");
   assert.equal(createTranslator("en").config.wizardChoiceQuestion("Type the number of your choice", "1"), "Type the number of your choice (Enter = 1): ");
-  assert.equal(createTranslator("en").config.wizardDefaults({ agentA: "codex", agentB: "claude", turns: 4, summaryAgent: "claude", askSummaryAgent: "ollama-local" }), "mode: debate, codex <-> claude, responses: 4, ask agents: default, debate summary: claude, ask summary: ollama-local");
+  assert.equal(createTranslator("en").config.wizardDefaults({ agentA: "codex", agentB: "claude", turns: 4, summaryAgent: "claude", askSummaryAgent: "ollama-local" }), "mode: debate, interface: tui, codex <-> claude, responses: 4, ask agents: default, debate summary: claude, ask summary: ollama-local");
 });
 
 test("createTranslator returns localized presets messages", () => {

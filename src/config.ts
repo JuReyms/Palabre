@@ -18,6 +18,7 @@ export const exampleConfig: PalabreConfig = {
   language: "fr",
   outputDir: DEFAULT_OUTPUT_DIR,
   defaults: {
+    interface: "tui",
     mode: "debate",
     agentA: "codex",
     agentB: "claude",
@@ -213,6 +214,7 @@ export function createConfigFromDiscovery(discovery: ToolDiscovery): PalabreConf
   config.defaults = pair
     ? {
         ...config.defaults,
+        interface: config.defaults?.interface ?? "tui",
         mode: config.defaults?.mode ?? "debate",
         agentA: pair[0],
         agentB: pair[1],
@@ -221,6 +223,7 @@ export function createConfigFromDiscovery(discovery: ToolDiscovery): PalabreConf
         askSummaryAgent: chooseDefaultSummaryAgent(pair)
       }
     : {
+        interface: config.defaults?.interface ?? "tui",
         mode: config.defaults?.mode ?? "debate",
         turns: config.defaults?.turns,
         askAgents: detectedAgentNames(discovery).slice(0, 2)

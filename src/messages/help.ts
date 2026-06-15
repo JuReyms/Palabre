@@ -58,6 +58,7 @@ Usage:
   palabre config --ask-summary-agent <name|none>
   palabre config --mode <debate|ask>
   palabre config --ask-agents <names...>
+  palabre config --interface <tui|terminal>
   palabre config --language <fr|en>
 
 Flags:
@@ -82,7 +83,7 @@ Usage:
   palabre doctor [flags]
 
 Flags:
-  --plain              sortie simple pour logs
+  --terminal           sortie simple pour logs
   --config <path>      chemin de config explicite
   --language <fr|en>   force la langue
 `,
@@ -110,6 +111,8 @@ Flags:
   --preset <name>      preset d'agents
   --agent-a <name>     premier agent
   --agent-b <name>     second agent
+  --tui                force l'interface TUI
+  --terminal           force le rendu terminal brut
   --renderer <kind>    auto, pretty, plain, tui ou ndjson
   --show-prompt        affiche le prompt sans appeler d'agent
 `,
@@ -123,6 +126,8 @@ Usage:
 Flags:
   --agents <names...>  agents qui repondent, 4 maximum
   --summary-agent <n>  agent de synthese pour ce lancement
+  --tui                force l'interface TUI
+  --terminal           force le rendu terminal brut
   --renderer <kind>    auto, pretty, plain, tui ou ndjson
   --show-prompt        affiche le prompt sans appeler d'agent
 `
@@ -181,6 +186,7 @@ Usage:
   palabre config --ask-summary-agent <name|none>
   palabre config --mode <debate|ask>
   palabre config --ask-agents <names...>
+  palabre config --interface <tui|terminal>
   palabre config --language <fr|en>
 
 Flags:
@@ -205,7 +211,7 @@ Usage:
   palabre doctor [flags]
 
 Flags:
-  --plain              simple output for logs
+  --terminal           simple output for logs
   --config <path>      explicit config path
   --language <fr|en>   forces the language
 `,
@@ -233,6 +239,8 @@ Flags:
   --preset <name>      agent preset
   --agent-a <name>     first agent
   --agent-b <name>     second agent
+  --tui                forces the TUI interface
+  --terminal           forces raw terminal rendering
   --renderer <kind>    auto, pretty, plain, tui, or ndjson
   --show-prompt        shows the prompt without calling an agent
 `,
@@ -246,6 +254,8 @@ Usage:
 Flags:
   --agents <names...>  responding agents, 4 maximum
   --summary-agent <n>  summary agent for this run
+  --tui                forces the TUI interface
+  --terminal           forces raw terminal rendering
   --renderer <kind>    auto, pretty, plain, tui, or ndjson
   --show-prompt        shows the prompt without calling an agent
 `
@@ -291,6 +301,8 @@ Flags:
   -v, --version           affiche la version
   -s, --subject <text>    sujet du debat
   -t, --turns <number>    nombre total de reponses
+  --tui                   force l'interface TUI
+  --terminal              force le rendu terminal brut
   --language <fr|en>      force la langue
   --config <path>         chemin de config explicite
 
@@ -340,6 +352,8 @@ Flags:
   -v, --version           show version
   -s, --subject <text>    debate subject
   -t, --turns <number>    total number of responses
+  --tui                   forces the TUI interface
+  --terminal              forces raw terminal rendering
   --language <fr|en>      force language
   --config <path>         explicit config path
 

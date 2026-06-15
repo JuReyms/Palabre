@@ -14,7 +14,7 @@ palabre doctor
 Pour obtenir une sortie brute adaptée aux logs ou aux scripts :
 
 ```bash
-palabre doctor --plain
+palabre doctor --terminal
 ```
 
 ## Palabre ne trouve pas ma configuration

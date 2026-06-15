@@ -14,7 +14,7 @@ palabre doctor
 To get raw output suitable for logs or scripts:
 
 ```bash
-palabre doctor --plain
+palabre doctor --terminal
 ```
 
 ## Palabre cannot find my configuration

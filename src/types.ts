@@ -19,6 +19,9 @@ export type Language = "fr" | "en";
 /** Mode d'orchestration d'une session Palabre. */
 export type PalabreMode = "debate" | "ask";
 
+/** Interface utilisateur par défaut pour les sessions interactives. */
+export type PalabreInterface = "tui" | "terminal";
+
 /** Propriétés partagées par tous les adapters. Étendu par `CliAgentConfig` et `OllamaAgentConfig`. */
 export interface BaseAgentConfig {
   role: AgentRole;
@@ -82,6 +85,7 @@ export interface PalabreConfig {
   language?: Language;
   outputDir?: string;
   defaults?: {
+    interface?: PalabreInterface;
     mode?: PalabreMode;
     agentA?: string;
     agentB?: string;

@@ -293,6 +293,7 @@ function formatDefaults(defaults: NonNullable<PalabreConfig["defaults"]>, messag
     agentA: defaults.agentA,
     agentB: defaults.agentB,
     mode: defaults.mode,
+    interfaceName: defaults.interface,
     askAgents: defaults.askAgents,
     turns: turnsOrDefault(defaults.turns ?? DEFAULT_TURNS),
     summaryAgent: defaults.summaryAgent,

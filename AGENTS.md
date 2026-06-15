@@ -204,9 +204,9 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 ## Decisions actuelles
 
 - Utiliser `pnpm`, pas npm ou yarn.
-- Garder le coeur CLI simple avant de construire la TUI.
+- Palabre devient TUI-first : `palabre` ouvre l'accueil TUI, les commandes directes utilisent la TUI par defaut en TTY, et `--terminal` sert a retrouver le rendu brut.
 - Garder la config en JSON pour le MVP. YAML peut venir plus tard.
-- Eviter les dependances UI tant que l'orchestration n'est pas stable.
+- Eviter une dependance UI lourde tant que l'orchestration TUI native n'est pas stabilisee ; un framework comme Ink pourra etre evalue ensuite.
 - Exporter chaque session en `.debate.md` dans un dossier `.palabre/` par défaut pour éviter de polluer la racine du projet.
 - Ne pas supposer que Claude/Codex ont une API stable : les CLIs interactives doivent etre isolees derriere un adapter.
 
@@ -223,13 +223,13 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 
 La config generee conserve les blocs agents connus pour rester editable, mais ajuste `defaults.agentA` et `defaults.agentB` avec une paire detectee quand c'est possible. Au lancement, Palabre ne doit pas utiliser de fallback agent code en dur : sans preset, sans agents explicites et sans defaults de config, il doit afficher une erreur actionnable.
 
-Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` quand disponible. Ollama reste configure et accessible via presets, mais il est plutot destine aux power users ou aux roles locaux (`critic`, `scout`, `summarizer`). Les defaults utilisateur se gerent par `palabre config`, `palabre config --set-defaults <agentA> <agentB>`, `palabre config --mode <debate|ask>`, `palabre config --ask-agents <agents...>`, `palabre config --summary-agent <agent|none>`, `palabre config --ask-summary-agent <agent|none>` et `palabre config --clear-defaults`.
+Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` quand disponible. Ollama reste configure et accessible via presets, mais il est plutot destine aux power users ou aux roles locaux (`critic`, `scout`, `summarizer`). Les defaults utilisateur se gerent par `palabre config`, `palabre config --set-defaults <agentA> <agentB>`, `palabre config --mode <debate|ask>`, `palabre config --interface <tui|terminal>`, `palabre config --ask-agents <agents...>`, `palabre config --summary-agent <agent|none>`, `palabre config --ask-summary-agent <agent|none>` et `palabre config --clear-defaults`.
 
 ## New
 
 `palabre new` est l'assistant interactif de composition d'un debat ou d'une demande ask. Il detecte les outils locaux via `src/discovery.ts`, liste les agents de la config en mettant les agents detectes en premier, demande le mode, les agents puis le sujet, et laisse lancer avec les defaults ou ouvrir les options avancees.
 
-Le mode avance couvre les options courantes : tours, modeles bruts, synthese, contexte, fichiers, `--show-prompt` et `--plain`. Garder le wizard comme une couche UX fine au-dessus du parser existant : il doit remplir les memes flags que la CLI directe, pas creer un second chemin d'execution.
+Le mode avance couvre les options courantes : tours, modeles bruts, synthese, contexte, fichiers, `--show-prompt` et le rendu terminal brut via `--terminal`. Garder le wizard comme une couche UX fine au-dessus du parser existant : il doit remplir les memes flags que la CLI directe, pas creer un second chemin d'execution.
 
 Le wizard affiche une commande equivalente avant execution. Cette sortie est intentionnelle : elle aide l'utilisateur a apprendre la syntaxe directe et sert de recap leger avant de lancer.
 
@@ -503,16 +503,16 @@ Ne pas transformer l'aide principale en reference complete. Les details doivent 
 
 ## Rendu Console
 
-`src/renderers/console.ts` contient le rendu console historique, et `src/renderers/tui.ts` contient le premier rendu TUI leger activable avec `--renderer tui` :
+`src/renderers/console.ts` contient le rendu console historique, et `src/renderers/tui.ts` contient le rendu TUI leger utilise par defaut quand stdout est un TTY :
 
 - `PrettyConsoleRenderer` : en-tete, separateurs, tours, synthese structuree, couleurs ANSI si TTY.
 - `PlainConsoleRenderer` : rendu historique compatible logs.
-- `TuiRenderer` : tableau de bord plein terminal, statut d'agent en cours et sections lisibles sans dependance UI externe.
+- `TuiRenderer` : accueil `palabre`, composer slash commands, `/config`, tableau de bord plein terminal, statut d'agent en cours et sections lisibles sans dependance UI externe.
 - Etat "agent en cours" pendant les appels longs en rendu pretty.
 
-Le flag `--plain` force le rendu simple. `NO_COLOR` desactive les couleurs sans changer la structure.
+Le flag `--terminal` force le rendu simple. `--plain` reste accepte comme alias historique. `NO_COLOR` desactive les couleurs sans changer la structure.
 
-Ce n'est pas encore le vrai TUI interactif : pas de split-view, pas de scrolling controle, pas d'input humain pendant le debat.
+Le TUI actuel reste leger : pas encore de split-view, pas de scrolling controle, pas d'input humain pendant le debat. Garder la logique produit dans le CLI et eviter que les integrations compensent ces limites.
 
 ## Renderer NDJSON
 
@@ -528,7 +528,7 @@ palabre run --preset codex-claude -s "..." --json
 palabre codex-claude "..." --json -t 4
 ```
 
-Precedence des flags : `--renderer` > `--json` > `--plain` > defaut (pretty si TTY, plain sinon). `--renderer <kind>` accepte `auto | pretty | plain | tui | ndjson`. Une valeur inconnue leve une erreur listant les choix supportes.
+Precedence des flags : `--renderer` > `--json` > `--tui` / `--terminal` > `defaults.interface` > defaut (`tui` si TTY, `plain` sinon). `--plain` reste un alias legacy de `--terminal`. `--renderer <kind>` accepte `auto | pretty | plain | tui | ndjson`. Une valeur inconnue leve une erreur listant les choix supportes.
 
 ### Contrat de sortie
 

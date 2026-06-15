@@ -542,7 +542,7 @@ function appendOptionalArgs(args: string[], selection: Partial<NewCommandSelecti
   if (selection.context && selection.context.length > 0) args.push("--context", ...selection.context.map(quoteShellArg));
   if (selection.files && selection.files.length > 0) args.push("--files", ...selection.files.map(quoteShellArg));
   if (selection.showPrompt) args.push("--show-prompt");
-  if (selection.plainOutput) args.push("--plain");
+  if (selection.plainOutput) args.push("--terminal");
 }
 
 function quoteShellArg(value: string): string {

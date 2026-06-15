@@ -77,14 +77,18 @@ palabre codex-claude "Subject" --show-prompt
 
 This command displays the first turn prompt, the agents, and the summary options, then stops. This is useful for verifying the context being sent without consuming an AI request.
 
-## Terminal rendering
+## TUI interface and raw terminal rendering
 
-Before the first turn, Palabre displays a summary: subject, agents with their roles, number of turns, summary, injected context, and important options. This lets you spot a wrong agent pair or forgotten context before reading the debate.
-
-By default, Palabre uses a readable rendering with headers, separators, structured summary, and generation status.
+By default, Palabre favors the TUI interface when output is a real terminal. `palabre` opens the home screen, and a direct command such as `palabre codex-claude "Subject" -t 4` runs the session with the TUI renderer.
 
 To get raw rendering suitable for logs:
 
 ```bash
-palabre codex-claude "Subject" --plain
+palabre codex-claude "Subject" --terminal
+```
+
+To make that the default behavior:
+
+```bash
+palabre config --interface terminal
 ```

@@ -22,7 +22,7 @@ import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { detectedAgentNames, detectionForCommand } from "./agentRegistry.js";
 import { getPackageVersion } from "./version.js";
 import type { CommandDetection } from "./discovery.js";
-import type { AgentConfig, DebateOptions, PalabreConfig, PalabreMode } from "./types.js";
+import type { AgentConfig, DebateOptions, PalabreConfig, PalabreInterface, PalabreMode } from "./types.js";
 import type { Messages } from "./messages/index.js";
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
@@ -43,7 +43,7 @@ async function main(): Promise<void> {
   }
 
   if (parsed.command === "doctor") {
-    const result = await runDoctor(optionalString(parsed.flags.config), Boolean(parsed.flags.plain), optionalString(parsed.flags.language));
+    const result = await runDoctor(optionalString(parsed.flags.config), Boolean(parsed.flags.plain || parsed.flags.terminal), optionalString(parsed.flags.language));
     console.log(result.output);
     process.exitCode = result.ok ? 0 : 1;
     return;
@@ -259,7 +259,7 @@ async function main(): Promise<void> {
     summaryModel: optionalString(parsed.flags["summary-model"]),
     summaryEnabled: !parsed.flags["no-summary"],
     earlyStopOnAgreement: !parsed.flags["no-early-stop"],
-    plainOutput: Boolean(parsed.flags.plain),
+    plainOutput: Boolean(parsed.flags.plain || parsed.flags.terminal),
     signal: debateAbortSignal()
   };
 
@@ -269,7 +269,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const renderer = createRendererFromFlags(parsed.flags, options.plainOutput, messages);
+  const renderer = createRendererFromFlags(parsed.flags, options.plainOutput, config.defaults?.interface, messages);
   context.warnings.forEach((warning) => renderer.warning(warning));
   const result = options.mode === "ask"
     ? await runAsk(config, options, renderer, messages)
@@ -379,6 +379,7 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   const hasTurnsFlag = flags.turns !== undefined;
   const summaryAgentValue = optionalString(flags["summary-agent"]);
   const askSummaryAgentValue = optionalString(flags["ask-summary-agent"]);
+  const interfaceValue = optionalString(flags.interface);
   const modeValue = optionalString(flags.mode);
   const askAgentsValue = getStringListFlag(flags["ask-agents"]);
   const languageValue = explicitLanguage;
@@ -386,6 +387,7 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
     || hasTurnsFlag
     || summaryAgentValue !== undefined
     || askSummaryAgentValue !== undefined
+    || interfaceValue !== undefined
     || modeValue !== undefined
     || askAgentsValue.length > 0;
 
@@ -426,6 +428,10 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
         assertKnownAgent(config, askSummaryAgentValue, "defaults.askSummaryAgent", messages);
         nextDefaults.askSummaryAgent = askSummaryAgentValue;
       }
+    }
+
+    if (interfaceValue !== undefined) {
+      nextDefaults.interface = parseInterfaceFlag(interfaceValue, messages);
     }
 
     if (modeValue !== undefined) {
@@ -497,6 +503,13 @@ async function runTuiConfigLoop(
       config.defaults = { ...(config.defaults ?? {}), mode };
       await writeExampleConfig(configPath, config);
       notice = mode === "ask" ? "Ask devient le mode par defaut." : "Debat devient le mode par defaut.";
+      continue;
+    }
+
+    if (input.kind === "interface") {
+      config.defaults = { ...(config.defaults ?? {}), interface: input.interfaceName };
+      await writeExampleConfig(configPath, config);
+      notice = `Interface par defaut: ${input.interfaceName}.`;
       continue;
     }
 
@@ -694,7 +707,8 @@ function formatDefaultsForMessage(defaults: NonNullable<PalabreConfig["defaults"
     defaults.summaryAgent,
     defaults.askSummaryAgent,
     defaults.mode,
-    defaults.askAgents
+    defaults.askAgents,
+    defaults.interface
   );
 }
 
@@ -777,6 +791,18 @@ function parseModeFlag(value: string | undefined, messages: Messages): PalabreMo
   }
 
   throw new Error(messages.common.unknownMode(value, "debate, ask"));
+}
+
+function parseInterfaceFlag(value: string | undefined, messages: Messages): PalabreInterface {
+  if (!value) {
+    return "tui";
+  }
+
+  if (value === "tui" || value === "terminal") {
+    return value;
+  }
+
+  throw new Error(messages.common.unknownMode(value, "tui, terminal"));
 }
 
 function resolveAskAgents(explicitAgents: string[], defaultAgents: string[] | undefined, fallbackAgents: string[], messages: Messages): string[] {
@@ -885,6 +911,7 @@ type RendererKind = (typeof SUPPORTED_RENDERERS)[number];
 function createRendererFromFlags(
   flags: Record<string, string | string[] | boolean>,
   plainOutputFallback: boolean,
+  defaultInterface: PalabreInterface | undefined,
   messages: Messages,
 ) {
   const explicit = optionalString(flags.renderer);
@@ -903,13 +930,36 @@ function createRendererFromFlags(
       case "tui":
         return createTuiRenderer(messages);
       case "auto":
-        return createConsoleRenderer(plainOutputFallback, messages);
+        return createAutoRenderer(flags, plainOutputFallback, defaultInterface, messages);
     }
   }
   if (flags.json) {
     return createNdjsonRenderer();
   }
-  return createConsoleRenderer(plainOutputFallback, messages);
+  if (flags.tui) {
+    return createTuiRenderer(messages);
+  }
+  if (flags.terminal || flags.plain || plainOutputFallback || defaultInterface === "terminal") {
+    return createConsoleRenderer(true, messages);
+  }
+  return createAutoRenderer(flags, plainOutputFallback, defaultInterface, messages);
+}
+
+function createAutoRenderer(
+  flags: Record<string, string | string[] | boolean>,
+  plainOutputFallback: boolean,
+  defaultInterface: PalabreInterface | undefined,
+  messages: Messages
+) {
+  if (flags.tui) {
+    return createTuiRenderer(messages);
+  }
+
+  if (flags.terminal || flags.plain || plainOutputFallback || defaultInterface === "terminal") {
+    return createConsoleRenderer(true, messages);
+  }
+
+  return process.stdout.isTTY ? createTuiRenderer(messages) : createConsoleRenderer(true, messages);
 }
 
 function shouldOpenTuiHome(parsed: ParsedArgs): boolean {
@@ -919,7 +969,8 @@ function shouldOpenTuiHome(parsed: ParsedArgs): boolean {
     && optionalString(parsed.flags.topic) === undefined
     && optionalString(parsed.flags.renderer) === undefined
     && parsed.flags.json !== true
-    && parsed.flags.plain !== true;
+    && parsed.flags.plain !== true
+    && parsed.flags.terminal !== true;
 }
 
 /**

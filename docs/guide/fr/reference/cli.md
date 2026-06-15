@@ -29,6 +29,7 @@ Cette page liste les commandes principales de Palabre.
 | `palabre config --ask-summary-agent opencode` | Définit l'agent de synthèse par défaut du mode ask. |
 | `palabre config --mode ask`                  | Définit le mode par défaut (`debate` ou `ask`). |
 | `palabre config --ask-agents codex claude opencode` | Définit les agents par défaut du mode ask, 4 maximum. |
+| `palabre config --interface tui`             | Définit l'interface par défaut (`tui` ou `terminal`). |
 | `palabre config --language en`               | Définit la langue de Palabre et des prompts agents. |
 | `palabre config --clear-defaults`            | Supprime les paramètres par défaut.       |
 | `palabre config --sync-agents`               | Ajoute les agents détectés manquants et rafraîchit les commandes connues. |
@@ -62,7 +63,9 @@ Cette page liste les commandes principales de Palabre.
 | `-v`, `--version` | Affiche la version. |
 | `--config <path>` | Utilise un fichier de configuration explicite. |
 | `--language <fr\|en>`, `--lang <fr\|en>` | Force la langue de Palabre et des prompts agents pour la commande. |
-| `--plain` | Utilise un rendu terminal brut. Aussi utile avec `palabre doctor` pour les logs. |
+| `--tui` | Force l'interface TUI, même si la configuration demande le rendu terminal. |
+| `--terminal`, `--no-tui` | Utilise un rendu terminal brut. Aussi utile avec `palabre doctor` pour les logs. |
+| `--plain` | Alias historique de `--terminal`. |
 | `--renderer <auto\|pretty\|plain\|tui\|ndjson>` | Choisit le renderer terminal ou intégration. `tui` active la première interface terminal plein écran. |
 
 ## Options de débat

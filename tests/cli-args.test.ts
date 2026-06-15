@@ -104,6 +104,30 @@ test("--renderer tui is parsed as an explicit renderer", () => {
   assert.equal(parsed.flags.topic, "topic");
 });
 
+test("--tui and --terminal are parsed as boolean renderer shortcuts", () => {
+  const tui = parse(["--tui", "-s", "topic"]);
+  assert.equal(tui.flags.tui, true);
+  assert.equal(tui.flags.topic, "topic");
+
+  const terminal = parse(["--terminal", "-s", "topic"]);
+  assert.equal(terminal.flags.terminal, true);
+  assert.equal(terminal.flags.topic, "topic");
+});
+
+test("--no-tui aliases to --terminal", () => {
+  const parsed = parse(["--no-tui", "-s", "topic"]);
+
+  assert.equal(parsed.flags.terminal, true);
+  assert.equal(parsed.flags.topic, "topic");
+});
+
+test("--interface is parsed for config defaults", () => {
+  const parsed = parse(["config", "--interface", "terminal"]);
+
+  assert.equal(parsed.command, "config");
+  assert.equal(parsed.flags.interface, "terminal");
+});
+
 test("flag aliases normalize to their canonical name", () => {
   const parsed = parse(["--subject", "topic", "--lang", "fr", "--turns", "3"]);
 
