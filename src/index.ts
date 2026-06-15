@@ -13,6 +13,7 @@ import { runNewWizard } from "./new.js";
 import { listPresetNames, listPresetsWithAvailability, resolvePreset } from "./presets.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { createNdjsonRenderer } from "./renderers/ndjson.js";
+import { createTuiRenderer } from "./renderers/tui.js";
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./update.js";
@@ -672,7 +673,7 @@ function findRawLanguageFlag(args: string[]): string | undefined {
 }
 
 /** Liste des kinds de renderer acceptés par `--renderer`. */
-const SUPPORTED_RENDERERS = ["auto", "pretty", "plain", "ndjson"] as const;
+const SUPPORTED_RENDERERS = ["auto", "pretty", "plain", "tui", "ndjson"] as const;
 type RendererKind = (typeof SUPPORTED_RENDERERS)[number];
 
 /**
@@ -704,6 +705,8 @@ function createRendererFromFlags(
         return createConsoleRenderer(true, messages);
       case "pretty":
         return createConsoleRenderer(false, messages);
+      case "tui":
+        return createTuiRenderer(messages);
       case "auto":
         return createConsoleRenderer(plainOutputFallback, messages);
     }

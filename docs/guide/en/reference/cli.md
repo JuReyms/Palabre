@@ -62,6 +62,7 @@ This page lists the main Palabre commands.
 | `--config <path>` | Uses an explicit configuration file. |
 | `--language <fr\|en>`, `--lang <fr\|en>` | Forces the Palabre and agent prompt language for this command. |
 | `--plain` | Uses raw terminal rendering. Also useful with `palabre doctor` for logs. |
+| `--renderer <auto\|pretty\|plain\|tui\|ndjson>` | Selects the terminal or integration renderer. `tui` enables the first full-terminal interface. |
 
 ## Debate options
 

@@ -110,6 +110,7 @@ Flags:
   --preset <name>      preset d'agents
   --agent-a <name>     premier agent
   --agent-b <name>     second agent
+  --renderer <kind>    auto, pretty, plain, tui ou ndjson
   --show-prompt        affiche le prompt sans appeler d'agent
 `,
   ask: `
@@ -122,6 +123,7 @@ Usage:
 Flags:
   --agents <names...>  agents qui repondent, 4 maximum
   --summary-agent <n>  agent de synthese pour ce lancement
+  --renderer <kind>    auto, pretty, plain, tui ou ndjson
   --show-prompt        affiche le prompt sans appeler d'agent
 `
 };
@@ -231,6 +233,7 @@ Flags:
   --preset <name>      agent preset
   --agent-a <name>     first agent
   --agent-b <name>     second agent
+  --renderer <kind>    auto, pretty, plain, tui, or ndjson
   --show-prompt        shows the prompt without calling an agent
 `,
   ask: `
@@ -243,6 +246,7 @@ Usage:
 Flags:
   --agents <names...>  responding agents, 4 maximum
   --summary-agent <n>  summary agent for this run
+  --renderer <kind>    auto, pretty, plain, tui, or ndjson
   --show-prompt        shows the prompt without calling an agent
 `
 };

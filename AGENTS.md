@@ -503,10 +503,11 @@ Ne pas transformer l'aide principale en reference complete. Les details doivent 
 
 ## Rendu Console
 
-`src/renderers/console.ts` contient le premier rendu TUI leger :
+`src/renderers/console.ts` contient le rendu console historique, et `src/renderers/tui.ts` contient le premier rendu TUI leger activable avec `--renderer tui` :
 
 - `PrettyConsoleRenderer` : en-tete, separateurs, tours, synthese structuree, couleurs ANSI si TTY.
 - `PlainConsoleRenderer` : rendu historique compatible logs.
+- `TuiRenderer` : tableau de bord plein terminal, statut d'agent en cours et sections lisibles sans dependance UI externe.
 - Etat "agent en cours" pendant les appels longs en rendu pretty.
 
 Le flag `--plain` force le rendu simple. `NO_COLOR` desactive les couleurs sans changer la structure.
@@ -527,7 +528,7 @@ palabre run --preset codex-claude -s "..." --json
 palabre codex-claude "..." --json -t 4
 ```
 
-Precedence des flags : `--renderer` > `--json` > `--plain` > defaut (pretty si TTY, plain sinon). `--renderer <kind>` accepte `auto | pretty | plain | ndjson`. Une valeur inconnue leve une erreur listant les choix supportes.
+Precedence des flags : `--renderer` > `--json` > `--plain` > defaut (pretty si TTY, plain sinon). `--renderer <kind>` accepte `auto | pretty | plain | tui | ndjson`. Une valeur inconnue leve une erreur listant les choix supportes.
 
 ### Contrat de sortie
 

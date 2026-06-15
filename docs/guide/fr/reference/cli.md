@@ -62,6 +62,7 @@ Cette page liste les commandes principales de Palabre.
 | `--config <path>` | Utilise un fichier de configuration explicite. |
 | `--language <fr\|en>`, `--lang <fr\|en>` | Force la langue de Palabre et des prompts agents pour la commande. |
 | `--plain` | Utilise un rendu terminal brut. Aussi utile avec `palabre doctor` pour les logs. |
+| `--renderer <auto\|pretty\|plain\|tui\|ndjson>` | Choisit le renderer terminal ou intégration. `tui` active la première interface terminal plein écran. |
 
 ## Options de débat
 

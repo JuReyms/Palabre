@@ -48,6 +48,7 @@ test("createTranslator returns localized help text", () => {
   assert.match(createTranslator("en").help.render("codex-claude"), /https:\/\/palab\.re\/en/);
   assert.match(createTranslator("en").help.renderCommand("config") ?? "", /palabre config --language/);
   assert.match(createTranslator("en").help.renderCommand("context") ?? "", /Scans project context/);
+  assert.match(createTranslator("en").help.renderCommand("run") ?? "", /--renderer <kind>/);
 });
 
 test("createTranslator returns localized init messages", () => {

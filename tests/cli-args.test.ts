@@ -97,6 +97,13 @@ test("--ask-agents is parsed for config defaults", () => {
   assert.deepEqual(parsed.flags["ask-agents"], ["codex", "claude", "opencode"]);
 });
 
+test("--renderer tui is parsed as an explicit renderer", () => {
+  const parsed = parse(["--renderer", "tui", "-s", "topic"]);
+
+  assert.equal(parsed.flags.renderer, "tui");
+  assert.equal(parsed.flags.topic, "topic");
+});
+
 test("flag aliases normalize to their canonical name", () => {
   const parsed = parse(["--subject", "topic", "--lang", "fr", "--turns", "3"]);
 
