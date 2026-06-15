@@ -313,13 +313,13 @@ class TuiRenderer implements DebateRenderer {
   turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void {
     this.currentSection = "debate";
     this.currentAgent = agent;
-    this.promptBlock(`${agentLabel(agent)} (${role}) - ${this.messages.renderers.turn(turn, totalTurns)}`);
+    this.promptBlock(`${agentLabel(agent)} (${role}) - ${this.messages.renderers.turn(turn, totalTurns)}`, agent);
   }
 
   askResponseStart(response: number, totalResponses: number, agent: string, role: AgentRole): void {
     this.currentSection = "ask";
     this.currentAgent = agent;
-    this.promptBlock(`${agentLabel(agent)} (${role}) - reponse ${response}/${totalResponses}`);
+    this.promptBlock(`${agentLabel(agent)} (${role}) - reponse ${response}/${totalResponses}`, agent);
   }
 
   thinkingStart(agent: string, role: AgentRole): void {
@@ -365,7 +365,7 @@ class TuiRenderer implements DebateRenderer {
   summaryStart(agent: string, role: AgentRole): void {
     this.currentSection = "summary";
     this.currentAgent = agent;
-    this.promptBlock(`${this.messages.renderers.summaryTitle} - ${agent} (${role})`);
+    this.promptBlock(`${this.messages.renderers.summaryTitle} - ${agent} (${role})`, agent);
   }
 
   error(failure: DebateFailure): void {
@@ -417,10 +417,11 @@ class TuiRenderer implements DebateRenderer {
     ], width);
   }
 
-  private promptBlock(title: string): void {
+  private promptBlock(title: string, agent?: string): void {
     const viewport = viewportWidth();
     const width = this.width();
-    process.stdout.write(`\n${centerBlock(card([bold(title)], width), viewport).join("\n")}\n`);
+    const underline = underlineFor(title, width, agent);
+    process.stdout.write(`\n${centerBlock(card([bold(title), underline], width), viewport).join("\n")}\n`);
   }
 
   private formatMessage(content: string): string {
@@ -614,6 +615,12 @@ function textSurface(lines: string[], width: number, agent?: string): string[] {
     ...body.map((line) => `${border("|")} ${padRight(line, contentWidth)} ${border("|")}`),
     `${border("|")} ${" ".repeat(contentWidth)} ${border("|")}`
   ];
+}
+
+function underlineFor(title: string, width: number, agent?: string): string {
+  const length = Math.max(8, Math.min(48, visibleLength(title), width - 4));
+  const line = "-".repeat(length);
+  return agent ? agentColor(agent, line) : accent(line);
 }
 
 function row(label: string, value: string): string {

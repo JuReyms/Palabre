@@ -26,6 +26,7 @@ test("TuiRenderer renders a lightweight terminal dashboard", () => {
   assert.match(text, /PALABRE/);
   assert.match(text, /Subject: TUI test/);
   assert.match(text, /codex \(implementer\) - turn 1\/2/);
+  assert.match(text, /------------------------------/);
   assert.match(text, /Hello from codex/);
   assert.match(text, /Session terminee/);
   assert.match(text, /Export Markdown/);
