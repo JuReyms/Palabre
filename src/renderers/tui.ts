@@ -30,6 +30,7 @@ export function renderTuiHome(config: PalabreConfig, configPath: string, message
   const summary = mode === "ask"
     ? defaults.askSummaryAgent ?? defaults.summaryAgent ?? "dernier agent ask"
     : defaults.summaryAgent ?? defaults.agentB ?? "agent B";
+  const promptLabel = mode === "ask" ? "Mode ask > Sujet >" : "Mode debat > Sujet >";
 
   const lines = [
     "",
@@ -39,21 +40,24 @@ export function renderTuiHome(config: PalabreConfig, configPath: string, message
     ...centerBlock(composerCard([
       muted("Pose une question, compare plusieurs agents, exporte une synthese."),
       "",
-      `${bold("Mode actuel")}      ${accent(mode === "ask" ? "Ask" : "Debat")}`,
-      `${bold("Debat")}            ${debateAgents}`,
-      `${bold("Ask")}              ${askAgents}`,
-      `${bold("Reponses")}         ${String(defaults.turns ?? "?")}`,
-      `${bold("Synthese")}         ${summary}`,
-      `${bold("Interface")}        ${defaults.interface ?? "tui"}`,
-      `${bold("Config")}           ${configPath}`,
+      bold("Session"),
+      row("Mode actuel", accent(mode === "ask" ? "Ask" : "Debat")),
+      row("Debat", debateAgents),
+      row("Ask", askAgents),
+      row("Reponses", String(defaults.turns ?? "?")),
+      row("Synthese", summary),
+      row("Interface", defaults.interface ?? "tui"),
       "",
-      `${bold("Sujet")}            ecris ton sujet puis Entree`,
-      `${bold("/ask")}             passer en mode Ask`,
-      `${bold("/debat")}           passer en mode Debat`,
-      `${bold("/config")}          configurer Palabre`,
-      `${bold("/new")}             ouvrir l'assistant guide`,
-      `${bold("/help")}            afficher les commandes TUI`,
-      `${bold("/quit")}            quitter`
+      bold("Composer"),
+      row("Invite", `${accent(promptLabel)} ecris ton sujet puis Entree`),
+      row("/ask", "passer en mode Ask"),
+      row("/debat", "passer en mode Debat"),
+      row("/config", "configurer Palabre"),
+      row("/new", "ouvrir l'assistant guide"),
+      row("/help", "afficher les commandes TUI"),
+      row("/quit", "quitter"),
+      "",
+      row("Config", configPath)
     ], width), viewport),
     "",
     ...centerBlock([
@@ -105,37 +109,37 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
 
   const modeLines = mode === "ask"
     ? [
-        `${bold("Ask")}              ${askAgents}`,
-        `${bold("Synthese ask")}     ${summary}`,
+        row("Ask", askAgents),
+        row("Synthese ask", summary),
         "",
-        `${bold("/agents")}          /agents codex claude opencode`,
-        `${bold("/summary")}         /summary opencode  ${dim("ou")} /summary none`
+        row("/agents", "/agents codex claude opencode"),
+        row("/summary", `/summary opencode  ${dim("ou")} /summary none`)
       ]
     : [
-        `${bold("Debat")}            ${debateAgents}`,
-        `${bold("Tours")}            ${String(defaults.turns ?? "?")}`,
-        `${bold("Synthese debat")}   ${summary}`,
+        row("Debat", debateAgents),
+        row("Tours", String(defaults.turns ?? "?")),
+        row("Synthese debat", summary),
         "",
-        `${bold("/agents")}          /agents codex gemini`,
-        `${bold("/turns")}           /turns 4`,
-        `${bold("/summary")}         /summary ollama-local  ${dim("ou")} /summary none`
+        row("/agents", "/agents codex gemini"),
+        row("/turns", "/turns 4"),
+        row("/summary", `/summary ollama-local  ${dim("ou")} /summary none`)
       ];
 
   const lines = [
     "",
     ...centerBlock(card([
       `${bold("PALABRE")} ${dim("-")} ${accent("/config")} ${dim("-")} ${accent(mode === "ask" ? "Ask" : "Debat")}`,
-      `${bold("Config")}           ${configPath}`,
-      `${bold("Agents dispo")}     ${agents || "aucun"}`,
-      `${bold("Interface")}        ${defaults.interface ?? "tui"}`,
+      row("Config", configPath),
+      row("Agents dispo", agents || "aucun"),
+      row("Interface", defaults.interface ?? "tui"),
       "",
       ...modeLines,
       "",
-      `${bold("/default")}         utiliser ${mode === "ask" ? "Ask" : "Debat"} par defaut`,
-      `${bold("/interface")}       /interface tui  ${dim("ou")} /interface terminal`,
-      `${bold("/mode")}            changer de mode de configuration`,
-      `${bold("/back")}            revenir a l'accueil`,
-      `${bold("/quit")}            quitter`
+      row("/default", `utiliser ${mode === "ask" ? "Ask" : "Debat"} par defaut`),
+      row("/interface", `/interface tui  ${dim("ou")} /interface terminal`),
+      row("/mode", "changer de mode de configuration"),
+      row("/back", "revenir a l'accueil"),
+      row("/quit", "quitter")
     ], width), viewport),
     ...(state.message ? ["", ...centerBlock([state.message], viewport)] : [])
   ];
@@ -348,7 +352,7 @@ class TuiRenderer implements DebateRenderer {
 
   message(content: string): void {
     const trimmed = content.trim();
-    process.stdout.write(`${this.formatMessage(this.currentSection === "summary" ? this.formatSummary(trimmed) : trimmed)}\n\n`);
+    process.stdout.write(`${this.formatMessage(this.currentSection === "summary" ? this.formatSummary(trimmed) : trimmed)}\n`);
   }
 
   askResponseMessage(content: string): void {
@@ -367,8 +371,13 @@ class TuiRenderer implements DebateRenderer {
 
   done(outputPath: string): void {
     this.thinkingEnd();
-    this.promptBlock(this.messages.renderers.exported(outputPath));
-    process.stdout.write("\n");
+    const viewport = viewportWidth();
+    const width = this.width();
+    process.stdout.write(`\n${centerBlock(card([
+      bold("Session terminee"),
+      row("Export Markdown", outputPath),
+      dim(this.messages.renderers.exported(outputPath))
+    ], width), viewport).join("\n")}\n\n`);
   }
 
   private renderSessionHeader(options: DebateOptions, agents: DebateStartAgentInfo[]): string[] {
@@ -413,11 +422,16 @@ class TuiRenderer implements DebateRenderer {
   private promptBlock(title: string): void {
     const viewport = viewportWidth();
     const width = this.width();
-    process.stdout.write(`\n\n${centerBlock(card([bold(title)], width), viewport).join("\n")}\n\n`);
+    process.stdout.write(`\n${centerBlock(card([bold(title)], width), viewport).join("\n")}\n`);
   }
 
   private formatMessage(content: string): string {
-    return fixedWidthBlock(content.split(/\r?\n/).flatMap((line) => line ? wrapLine(line, this.width()) : [""]), viewportWidth(), this.width()).join("\n");
+    const width = this.width();
+    const contentWidth = Math.max(24, width - 4);
+    const body = content
+      .split(/\r?\n/)
+      .flatMap((line) => line ? wrapLine(line, contentWidth) : [""]);
+    return `\n${centerBlock(textSurface(body, width), viewportWidth()).join("\n")}\n`;
   }
 
   private formatSummary(content: string): string {
@@ -566,11 +580,6 @@ function centerBlock(lines: string[], width: number): string[] {
   return lines.map((line) => padLeft(line, left));
 }
 
-function fixedWidthBlock(lines: string[], viewport: number, width: number): string[] {
-  const left = Math.max(0, Math.floor((viewport - width) / 2));
-  return lines.map((line) => padLeft(line, left));
-}
-
 function card(lines: string[], width: number): string[] {
   const contentWidth = Math.max(24, width - 4);
   const body = lines.flatMap((line) => wrapLine(line, contentWidth));
@@ -597,15 +606,18 @@ function panel(lines: string[], width: number): string[] {
   ];
 }
 
-function twoColumns(left: string[], right: string[], leftWidth: number, rightWidth: number): string[] {
-  const height = Math.max(left.length, right.length);
-  const rows: string[] = [];
+function textSurface(lines: string[], width: number): string[] {
+  const contentWidth = Math.max(24, width - 4);
+  const body = lines.length > 0 ? lines : [""];
+  return [
+    `${violet("|")} ${" ".repeat(contentWidth)} ${dim("|")}`,
+    ...body.map((line) => `${violet("|")} ${padRight(line, contentWidth)} ${dim("|")}`),
+    `${violet("|")} ${" ".repeat(contentWidth)} ${dim("|")}`
+  ];
+}
 
-  for (let index = 0; index < height; index += 1) {
-    rows.push(`${padRight(left[index] ?? "", leftWidth)}  ${padRight(right[index] ?? "", rightWidth)}`);
-  }
-
-  return rows;
+function row(label: string, value: string): string {
+  return `${bold(label.padEnd(16))} ${value}`;
 }
 
 function wrapLine(value: string, width: number): string[] {

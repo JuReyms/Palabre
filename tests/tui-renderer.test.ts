@@ -27,6 +27,8 @@ test("TuiRenderer renders a lightweight terminal dashboard", () => {
   assert.match(text, /Subject: TUI test/);
   assert.match(text, /codex \(implementer\) - turn 1\/2/);
   assert.match(text, /Hello from codex/);
+  assert.match(text, /Session terminee/);
+  assert.match(text, /Export Markdown/);
   assert.match(text, /Palabre exported: out\.debate\.md/);
 });
 
@@ -63,6 +65,9 @@ test("renderTuiHome renders a Palabre launch screen", () => {
   assert.match(text, /\/help/);
   assert.match(text, /\/ask/);
   assert.match(text, /\/config/);
+  assert.match(text, /Session/);
+  assert.match(text, /Composer/);
+  assert.match(text, /Invite/);
   assert.match(text, /Config\s+palabre\.config\.json/);
   assert.doesNotMatch(text, /palabre new/);
   assert.match(text, /Mode actuel/);
