@@ -99,11 +99,17 @@ export async function runConfigWizard(configPath: string, config: PalabreConfig,
     if (summaryAgent === undefined) return;
 
     config.defaults = {
+      ...(config.defaults ?? {}),
       agentA,
       agentB,
-      ...(summaryAgent ? { summaryAgent } : {}),
       turns
     };
+
+    if (summaryAgent) {
+      config.defaults.summaryAgent = summaryAgent;
+    } else {
+      delete config.defaults.summaryAgent;
+    }
 
     await writeExampleConfig(configPath, config);
     console.log(messages.config.wizardDefaultsSet(configPath, formatDefaults(config.defaults, messages)));
@@ -286,8 +292,11 @@ function formatDefaults(defaults: NonNullable<PalabreConfig["defaults"]>, messag
   return messages.config.wizardDefaults({
     agentA: defaults.agentA,
     agentB: defaults.agentB,
+    mode: defaults.mode,
+    askAgents: defaults.askAgents,
     turns: turnsOrDefault(defaults.turns ?? DEFAULT_TURNS),
-    summaryAgent: defaults.summaryAgent
+    summaryAgent: defaults.summaryAgent,
+    askSummaryAgent: defaults.askSummaryAgent
   });
 }
 

@@ -14,9 +14,12 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
   "language": "fr",
   "outputDir": ".palabre",
   "defaults": {
+    "mode": "debate",
     "agentA": "codex",
     "agentB": "claude",
+    "askAgents": ["codex", "claude"],
     "summaryAgent": "claude",
+    "askSummaryAgent": "claude",
     "turns": 4
   },
   "agents": {
@@ -51,9 +54,12 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 
 | Champ | Type | Description |
 |-------|------|-------------|
+| `mode` | `debate` ou `ask` | Mode lancé par défaut quand aucun mode n'est fourni. |
 | `agentA` | string | Agent qui répond en premier. |
 | `agentB` | string | Agent qui répond en second. |
-| `summaryAgent` | string | Agent de synthèse finale. |
+| `askAgents` | string[] | Agents par défaut du mode ask, 4 maximum. |
+| `summaryAgent` | string | Agent de synthèse finale du mode débat, et fallback du mode ask. |
+| `askSummaryAgent` | string | Agent de synthèse finale spécifique au mode ask. |
 | `turns` | number | Nombre total de réponses, entre 1 et 20. |
 
 ## Agent CLI

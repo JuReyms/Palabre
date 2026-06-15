@@ -11,6 +11,8 @@ export interface CommonMessages {
   unknownAgentForField(field: string, agent: string, available: string): string;
   unknownAgent(agent: string): string;
   unknownRenderer(value: string, supported: string): string;
+  unknownMode(value: string, supported: string): string;
+  tooManyAskAgents(max: number): string;
   configInvalidShape(configPath: string): string;
   configMissingAgents(configPath: string): string;
   configEmptyAgents(configPath: string): string;
@@ -29,6 +31,8 @@ export const commonMessages: Record<Language, CommonMessages> = {
     unknownAgentForField: (field, agent, available) => `Agent inconnu pour ${field}: ${agent}. Agents disponibles: ${available}.`,
     unknownAgent: (agent) => `Agent inconnu: ${agent}`,
     unknownRenderer: (value, supported) => `Renderer inconnu: ${value}. Valeurs supportées: ${supported}.`,
+    unknownMode: (value, supported) => `Mode inconnu: ${value}. Valeurs supportées: ${supported}.`,
+    tooManyAskAgents: (max) => `Le mode ask accepte au maximum ${max} agents.`,
     configInvalidShape: (configPath) => `Config invalide: ${configPath} ne contient pas un objet JSON. Relance palabre init ou corrige le fichier.`,
     configMissingAgents: (configPath) => `Config invalide: ${configPath} ne déclare pas de bloc "agents". Relance palabre init ou ajoute au moins un agent.`,
     configEmptyAgents: (configPath) => `Config invalide: ${configPath} ne déclare aucun agent. Ajoute au moins un agent ou relance palabre init.`,
@@ -45,6 +49,8 @@ export const commonMessages: Record<Language, CommonMessages> = {
     unknownAgentForField: (field, agent, available) => `Unknown agent for ${field}: ${agent}. Available agents: ${available}.`,
     unknownAgent: (agent) => `Unknown agent: ${agent}`,
     unknownRenderer: (value, supported) => `Unknown renderer: ${value}. Supported values: ${supported}.`,
+    unknownMode: (value, supported) => `Unknown mode: ${value}. Supported values: ${supported}.`,
+    tooManyAskAgents: (max) => `Ask mode supports at most ${max} agents.`,
     configInvalidShape: (configPath) => `Invalid config: ${configPath} does not contain a JSON object. Run palabre init or fix the file.`,
     configMissingAgents: (configPath) => `Invalid config: ${configPath} has no "agents" block. Run palabre init or add at least one agent.`,
     configEmptyAgents: (configPath) => `Invalid config: ${configPath} declares no agent. Add at least one agent or run palabre init.`,

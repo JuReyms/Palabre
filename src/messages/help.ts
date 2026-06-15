@@ -55,6 +55,9 @@ Usage:
   palabre config --set-defaults <agentA> <agentB>
   palabre config -t <number>
   palabre config --summary-agent <name|none>
+  palabre config --ask-summary-agent <name|none>
+  palabre config --mode <debate|ask>
+  palabre config --ask-agents <names...>
   palabre config --language <fr|en>
 
 Flags:
@@ -107,6 +110,18 @@ Flags:
   --preset <name>      preset d'agents
   --agent-a <name>     premier agent
   --agent-b <name>     second agent
+  --show-prompt        affiche le prompt sans appeler d'agent
+`,
+  ask: `
+Lance une demande avec plusieurs reponses independantes.
+
+Usage:
+  palabre ask "Sujet" --agents codex claude
+  palabre run --mode ask --agents codex claude -s "Sujet"
+
+Flags:
+  --agents <names...>  agents qui repondent, 4 maximum
+  --summary-agent <n>  agent de synthese pour ce lancement
   --show-prompt        affiche le prompt sans appeler d'agent
 `
 };
@@ -161,6 +176,9 @@ Usage:
   palabre config --set-defaults <agentA> <agentB>
   palabre config -t <number>
   palabre config --summary-agent <name|none>
+  palabre config --ask-summary-agent <name|none>
+  palabre config --mode <debate|ask>
+  palabre config --ask-agents <names...>
   palabre config --language <fr|en>
 
 Flags:
@@ -214,6 +232,18 @@ Flags:
   --agent-a <name>     first agent
   --agent-b <name>     second agent
   --show-prompt        shows the prompt without calling an agent
+`,
+  ask: `
+Runs a request with several independent responses.
+
+Usage:
+  palabre ask "Subject" --agents codex claude
+  palabre run --mode ask --agents codex claude -s "Subject"
+
+Flags:
+  --agents <names...>  responding agents, 4 maximum
+  --summary-agent <n>  summary agent for this run
+  --show-prompt        shows the prompt without calling an agent
 `
 };
 
@@ -229,6 +259,7 @@ Usage:
   palabre [command]
   palabre "Sujet"
   palabre <preset> "Sujet"
+  palabre ask "Sujet" --agents codex claude
 
 Demarrage rapide:
   palabre init
@@ -239,6 +270,7 @@ Demarrage rapide:
 Commandes:
   init       Creer une configuration
   new        Assistant interactif de debat
+  ask        Demande multi-agents independante
   agents     Lister les agents configures
   presets    Lister les presets disponibles
   context    Scanner le contexte projet
@@ -274,6 +306,7 @@ Usage:
   palabre [command]
   palabre "Subject"
   palabre <preset> "Subject"
+  palabre ask "Subject" --agents codex claude
 
 Quick start:
   palabre init
@@ -284,6 +317,7 @@ Quick start:
 Commands:
   init       Create a configuration
   new        Interactive debate assistant
+  ask        Independent multi-agent request
   agents     List configured agents
   presets    List available presets
   context    Scan project context

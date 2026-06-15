@@ -4,6 +4,8 @@ import { createTranslator } from "./i18n.js";
 import type { Messages } from "./messages/index.js";
 import type { AgentConfig, PalabreConfig, DebateFailure, DebateMessage, DebateOptions, DebateRenderer, DebateSummary } from "./types.js";
 
+export const MAX_ASK_AGENTS = 4;
+
 /** Résultat retourné par `runDebate`. `stopReason` est défini uniquement en cas d'arrêt anticipé. */
 export interface DebateResult {
   options: DebateOptions;
@@ -12,6 +14,9 @@ export interface DebateResult {
   stopReason?: string;
   failure?: DebateFailure;
 }
+
+/** Résultat retourné par `runAsk`. Structurellement identique à `DebateResult`. */
+export type AskResult = DebateResult;
 
 /**
  * Point d'entrée de l'orchestration.
@@ -134,7 +139,7 @@ export async function runDebate(
     try {
       const cancellation = cancellationFailureIfAborted(options, messages, {
         phase: "summary",
-        agent: options.summaryAgent ?? options.agentB,
+        agent: resolveSummaryAgentName(options),
         turn: transcript.length + 1
       });
       if (cancellation) {
@@ -150,7 +155,7 @@ export async function runDebate(
     } catch (error) {
       failure = toDebateFailure(error, {
         phase: "summary",
-        agent: options.summaryAgent ?? options.agentB,
+        agent: resolveSummaryAgentName(options),
         turn: transcript.length + 1
       });
       renderer?.error(failure);
@@ -162,6 +167,159 @@ export async function runDebate(
     messages: transcript,
     summary,
     stopReason,
+    failure
+  };
+}
+
+/**
+ * Lance le mode ask : plusieurs agents répondent indépendamment au même sujet,
+ * puis un agent de synthèse résume fidèlement chaque réponse et les compare.
+ */
+export async function runAsk(
+  config: PalabreConfig,
+  options: DebateOptions,
+  renderer?: DebateRenderer,
+  messages: Messages = createTranslator("fr")
+): Promise<AskResult> {
+  const askAgentNames = resolveAskAgentNames(options);
+
+  if (askAgentNames.length === 0) {
+    throw new Error(messages.common.noAgentDefined("ask agent"));
+  }
+
+  if (askAgentNames.length > MAX_ASK_AGENTS) {
+    throw new Error(messages.common.tooManyAskAgents(MAX_ASK_AGENTS));
+  }
+
+  const agentEntries = askAgentNames.map((name) => {
+    const agentConfig = withRuntimeOverrides(config.agents[name], modelForAgent(options, name), options.pullModels);
+
+    if (!agentConfig) {
+      throw new Error(messages.common.unknownAgent(name));
+    }
+
+    return [name, agentConfig] as const;
+  });
+
+  warnIfOllamaHasNoContext(options, agentEntries.map(([name, agentConfig]) => [name, agentConfig]), renderer, messages);
+
+  renderer?.start(options, agentEntries.map(([name, agentConfig]) => ({
+    name,
+    role: agentConfig.role,
+    type: agentConfig.type
+  })));
+
+  const agents = agentEntries.map(([name, agentConfig]) => createAgent(name, agentConfig));
+  const transcript: DebateMessage[] = [];
+
+  for (let index = 0; index < agents.length; index += 1) {
+    const current = agents[index];
+    const response = index + 1;
+    const cancellation = cancellationFailureIfAborted(options, messages, {
+      phase: "ask",
+      agent: current.name,
+      role: current.role,
+      turn: response
+    });
+
+    if (cancellation) {
+      renderer?.error(cancellation);
+      return {
+        options,
+        messages: transcript,
+        failure: cancellation
+      };
+    }
+
+    if (renderer?.askResponseStart) {
+      renderer.askResponseStart(response, agents.length, current.name, current.role);
+    } else {
+      renderer?.turnStart(response, agents.length, current.name, current.role);
+    }
+    renderer?.thinkingStart(current.name, current.role);
+
+    let agentResponse;
+    try {
+      agentResponse = await current.generate({
+        topic: options.topic,
+        turn: response,
+        totalTurns: agents.length,
+        selfName: current.name,
+        peerName: "independent-agents",
+        selfRole: current.role,
+        mode: "ask",
+        language: options.language,
+        session: options.session,
+        files: options.files,
+        transcript: [],
+        signal: options.signal
+      });
+    } catch (error) {
+      const failure = toDebateFailure(error, {
+        phase: "ask",
+        agent: current.name,
+        role: current.role,
+        turn: response
+      });
+      renderer?.error(failure);
+      return {
+        options,
+        messages: transcript,
+        failure
+      };
+    } finally {
+      renderer?.thinkingEnd();
+    }
+
+    const message: DebateMessage = {
+      agent: current.name,
+      role: current.role,
+      content: agentResponse.content,
+      createdAt: new Date().toISOString()
+    };
+
+    transcript.push(message);
+    if (renderer?.askResponseMessage) {
+      renderer.askResponseMessage(message.content);
+    } else {
+      renderer?.message(message.content);
+    }
+  }
+
+  let summary: DebateSummary | undefined;
+  let failure: DebateFailure | undefined;
+
+  if (options.summaryEnabled) {
+    try {
+      const summaryAgentName = resolveSummaryAgentName(options);
+      const cancellation = cancellationFailureIfAborted(options, messages, {
+        phase: "summary",
+        agent: summaryAgentName,
+        turn: transcript.length + 1
+      });
+      if (cancellation) {
+        renderer?.error(cancellation);
+        return {
+          options,
+          messages: transcript,
+          failure: cancellation
+        };
+      }
+      summary = await generateSummary(config, options, transcript, renderer, messages);
+    } catch (error) {
+      failure = toDebateFailure(error, {
+        phase: "summary",
+        agent: resolveSummaryAgentName(options),
+        turn: transcript.length + 1
+      });
+      renderer?.error(failure);
+    }
+  }
+
+  return {
+    options,
+    messages: transcript,
+    summary,
     failure
   };
 }
@@ -241,7 +399,7 @@ async function generateSummary(
   renderer?: DebateRenderer,
   messages: Messages = createTranslator("fr")
 ): Promise<DebateSummary> {
-  const summaryAgentName = options.summaryAgent ?? options.agentB;
+  const summaryAgentName = resolveSummaryAgentName(options);
   const summaryModel = options.summaryModel ?? modelForAgent(options, summaryAgentName);
   const summaryConfig = withRuntimeOverrides(config.agents[summaryAgentName], summaryModel, options.pullModels);
 
@@ -257,9 +415,9 @@ async function generateSummary(
   const response = await summaryAgent.generate({
     topic: options.topic,
     turn: transcript.length + 1,
-    totalTurns: options.turns,
+    totalTurns: options.mode === "ask" ? transcript.length : options.turns,
     selfName: summaryAgent.name,
-    peerName: "transcript",
+    peerName: options.mode === "ask" ? "ask-responses" : "transcript",
     selfRole: summaryAgent.role,
     mode: "summary",
     language: options.language,
@@ -297,6 +455,26 @@ function cancellationFailureIfAborted(
     kind: "cancelled",
     message: messages.orchestrator.cancelled
   };
+}
+
+function resolveAskAgentNames(options: DebateOptions): string[] {
+  const agents = options.askAgents && options.askAgents.length > 0
+    ? options.askAgents
+    : [options.agentA, options.agentB];
+
+  return agents.filter((agent, index) => Boolean(agent) && agents.indexOf(agent) === index);
+}
+
+function resolveSummaryAgentName(options: DebateOptions): string {
+  if (options.summaryAgent) {
+    return options.summaryAgent;
+  }
+
+  if (options.mode === "ask" && options.askAgents && options.askAgents.length > 0) {
+    return options.askAgents[options.askAgents.length - 1] ?? options.agentB;
+  }
+
+  return options.agentB;
 }
 
 function toDebateFailure(

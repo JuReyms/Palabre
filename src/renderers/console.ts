@@ -37,7 +37,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
       this.c("cyan", `┌─ ${title} ${"─".repeat(Math.max(1, 54 - title.length))}`),
       this.c("cyan", `│`) + ` ${this.messages.renderers.subject(options.topic)}`,
       this.c("cyan", `│`) + ` ${this.messages.renderers.agents(formatAgentPair(options, agents))}`,
-      this.c("cyan", `│`) + ` ${this.messages.renderers.responsesSummary(options.turns, formatSummary(options, this.messages))}`,
+      this.c("cyan", `│`) + ` ${this.messages.renderers.responsesSummary(formatResponseCount(options), formatSummary(options, this.messages))}`,
       this.c("cyan", `│`) + ` ${this.messages.renderers.context(formatContext(options, this.messages))}`,
       this.c("cyan", `│`) + ` ${this.messages.renderers.options(options.earlyStopOnAgreement, options.pullModels)}`,
       this.c("cyan", `└${"─".repeat(57)}`),
@@ -61,6 +61,16 @@ class PrettyConsoleRenderer implements DebateRenderer {
     process.stdout.write([
       "",
       this.c("orange", `◆ ${agent}`) + this.dim(` · ${role} · ${this.messages.renderers.turn(turn, totalTurns)}`),
+      this.dim("─".repeat(60)),
+      ""
+    ].join("\n"));
+  }
+
+  askResponseStart(response: number, totalResponses: number, agent: string, role: AgentRole): void {
+    this.renderingSummary = false;
+    process.stdout.write([
+      "",
+      this.c("orange", `◆ ${agent}`) + this.dim(` · ${role} · réponse ${response}/${totalResponses}`),
       this.dim("─".repeat(60)),
       ""
     ].join("\n"));
@@ -103,6 +113,10 @@ class PrettyConsoleRenderer implements DebateRenderer {
   message(content: string): void {
     const trimmed = content.trim();
     process.stdout.write(`${this.renderingSummary ? this.formatSummaryMessage(trimmed) : trimmed}\n`);
+  }
+
+  askResponseMessage(content: string): void {
+    this.message(content);
   }
 
   /** Affiche l'en-tête de section synthèse et active le mode formatage de résumé. */
@@ -171,7 +185,7 @@ class PlainConsoleRenderer implements DebateRenderer {
   start(options: DebateOptions, agents: DebateStartAgentInfo[] = []): void {
     process.stdout.write(this.messages.renderers.subject(options.topic) + "\n");
     process.stdout.write(this.messages.renderers.agents(formatAgentPair(options, agents)) + "\n");
-    process.stdout.write(this.messages.renderers.responsesSummaryContext(options.turns, formatSummary(options, this.messages), formatContext(options, this.messages)) + "\n");
+    process.stdout.write(this.messages.renderers.responsesSummaryContext(formatResponseCount(options), formatSummary(options, this.messages), formatContext(options, this.messages)) + "\n");
   }
 
   /** Écrit un avertissement sur `stderr`. */
@@ -189,6 +203,10 @@ class PlainConsoleRenderer implements DebateRenderer {
     process.stdout.write(`\n[${turn}/${totalTurns}] ${agent} (${role})...\n`);
   }
 
+  askResponseStart(response: number, totalResponses: number, agent: string, role: AgentRole): void {
+    process.stdout.write(`\n[${response}/${totalResponses}] ${agent} (${role})...\n`);
+  }
+
   /** No-op : pas de spinner en mode plain. */
   thinkingStart(_agent: string, _role: AgentRole): void {}
 
@@ -198,6 +216,10 @@ class PlainConsoleRenderer implements DebateRenderer {
   /** Écrit le contenu du message agent trimé. */
   message(content: string): void {
     process.stdout.write(`${content.trim()}\n`);
+  }
+
+  askResponseMessage(content: string): void {
+    this.message(content);
   }
 
   /** Affiche l'en-tête de la section synthèse en texte brut. */
@@ -222,6 +244,14 @@ class PlainConsoleRenderer implements DebateRenderer {
  * @param agents - Infos de démarrage des agents (type, rôle, nom).
  */
 function formatAgentPair(options: DebateOptions, agents: DebateStartAgentInfo[]): string {
+  if (options.mode === "ask") {
+    if (agents.length > 0) {
+      return agents.map(formatAgentLabel).join(", ");
+    }
+
+    return (options.askAgents ?? [options.agentA, options.agentB]).join(", ");
+  }
+
   if (agents.length >= 2) {
     return `${formatAgentLabel(agents[0])} <-> ${formatAgentLabel(agents[1])}`;
   }
@@ -246,7 +276,23 @@ function formatAgentLabel(agent: DebateStartAgentInfo | undefined): string {
  * @param options - Options du débat.
  */
 function formatSummary(options: DebateOptions, messages: Messages): string {
-  return options.summaryEnabled ? options.summaryAgent ?? options.agentB : messages.renderers.disabled;
+  if (!options.summaryEnabled) {
+    return messages.renderers.disabled;
+  }
+
+  if (options.summaryAgent) {
+    return options.summaryAgent;
+  }
+
+  if (options.mode === "ask" && options.askAgents && options.askAgents.length > 0) {
+    return options.askAgents[options.askAgents.length - 1] ?? options.agentB;
+  }
+
+  return options.agentB;
+}
+
+function formatResponseCount(options: DebateOptions): number {
+  return options.mode === "ask" ? options.askAgents?.length ?? 2 : options.turns;
 }
 
 /**

@@ -26,6 +26,7 @@ test("createConfigFromDiscovery clears default agents when no pair is detected",
   assert.equal(config.defaults?.agentA, undefined);
   assert.equal(config.defaults?.agentB, undefined);
   assert.equal(config.defaults?.summaryAgent, undefined);
+  assert.equal(config.defaults?.askSummaryAgent, undefined);
   assert.equal(config.defaults?.turns, 4);
 });
 

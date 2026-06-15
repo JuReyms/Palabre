@@ -25,6 +25,9 @@ This page lists the main Palabre commands.
 | `palabre config -t 4` | Sets the default number of turns. |
 | `palabre config --summary-agent claude` | Sets the default summary agent. |
 | `palabre config --summary-agent none` | Removes the default summary agent. |
+| `palabre config --ask-summary-agent opencode` | Sets the default summary agent for ask mode. |
+| `palabre config --mode ask` | Sets the default mode (`debate` or `ask`). |
+| `palabre config --ask-agents codex claude opencode` | Sets the default ask agents, 4 maximum. |
 | `palabre config --language en` | Sets the Palabre and agent prompt language. |
 | `palabre config --clear-defaults` | Removes default settings. |
 | `palabre config --sync-agents` | Adds missing detected agents and refreshes known commands. |
@@ -40,6 +43,7 @@ This page lists the main Palabre commands.
 | `palabre -s "Subject" -t 4` | Launches with default agents. |
 | `palabre codex-claude "Subject" -t 4` | Launches with a preset. |
 | `palabre run --subject "Subject" --agent-a codex --agent-b claude` | Launches with explicit agents. |
+| `palabre ask "Subject" --agents codex claude` | Runs a request with independent responses. |
 
 ## Integrations
 
@@ -68,6 +72,8 @@ This page lists the main Palabre commands.
 | `--preset <name>` | Selects an agent pair. |
 | `--agent-a <name>` | First agent. |
 | `--agent-b <name>` | Second agent. |
+| `--mode <debate\|ask>` | Selects the orchestration mode. |
+| `--agents <names...>` | Ask mode agents, 4 maximum. |
 | `-t`, `--turns <number>` | Total number of turns, between 1 and 20. |
 | `--no-early-stop` | Disables early stopping. |
 | `--model-a <model>` | Model passed to agent A. |

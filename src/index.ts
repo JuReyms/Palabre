@@ -13,7 +13,7 @@ import { runNewWizard } from "./new.js";
 import { listPresetNames, listPresetsWithAvailability, resolvePreset } from "./presets.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { createNdjsonRenderer } from "./renderers/ndjson.js";
-import { runDebate } from "./orchestrator.js";
+import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./update.js";
 import { createSessionContext } from "./session.js";
@@ -21,7 +21,7 @@ import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { detectedAgentNames, detectionForCommand } from "./agentRegistry.js";
 import { getPackageVersion } from "./version.js";
 import type { CommandDetection } from "./discovery.js";
-import type { AgentConfig, DebateOptions, PalabreConfig } from "./types.js";
+import type { AgentConfig, DebateOptions, PalabreConfig, PalabreMode } from "./types.js";
 import type { Messages } from "./messages/index.js";
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
@@ -155,6 +155,8 @@ async function main(): Promise<void> {
     if (selection.plainOutput) parsed.flags.plain = true;
     if (selection.files.length > 0) parsed.flags.files = selection.files;
     if (selection.context.length > 0) parsed.flags.context = selection.context;
+    if (selection.mode) parsed.flags.mode = selection.mode;
+    if (selection.askAgents && selection.askAgents.length > 0) parsed.flags.agents = selection.askAgents;
   }
 
   const topic = optionalString(parsed.flags.topic) ?? "";
@@ -171,18 +173,27 @@ async function main(): Promise<void> {
     throw new Error(messages.common.topicRequired);
   }
 
+  const mode = parseModeFlag(optionalString(parsed.flags.mode) ?? config.defaults?.mode, messages);
+  const explicitAskAgents = getStringListFlag(parsed.flags.agents);
+  const askAgentSeeds = explicitAskAgents.length > 0 ? explicitAskAgents : config.defaults?.askAgents ?? [];
+  const agentA = resolveAgentName("agent A", parsed.flags["agent-a"], preset?.agentA, askAgentSeeds[0] ?? config.defaults?.agentA, messages);
+  const agentB = resolveAgentName("agent B", parsed.flags["agent-b"], preset?.agentB, askAgentSeeds[1] ?? askAgentSeeds[0] ?? config.defaults?.agentB, messages);
+  const askAgents = mode === "ask" ? resolveAskAgents(explicitAskAgents, config.defaults?.askAgents, [agentA, agentB], messages) : undefined;
+
   const options: DebateOptions = {
+    mode,
     language,
     topic,
-    agentA: resolveAgentName("agent A", parsed.flags["agent-a"], preset?.agentA, config.defaults?.agentA, messages),
-    agentB: resolveAgentName("agent B", parsed.flags["agent-b"], preset?.agentB, config.defaults?.agentB, messages),
+    agentA,
+    agentB,
+    askAgents,
     turns: parseTurnsFlag(parsed.flags.turns, config.defaults?.turns ?? DEFAULT_TURNS, "--turns", messages),
     session: createSessionContext(),
     files: context.files,
     modelA: optionalString(parsed.flags["model-a"]),
     modelB: optionalString(parsed.flags["model-b"]),
     pullModels: Boolean(parsed.flags["pull-models"]),
-    summaryAgent: optionalString(parsed.flags["summary-agent"]) ?? config.defaults?.summaryAgent,
+    summaryAgent: resolveSummaryAgentOption(parsed.flags["summary-agent"], config.defaults, mode),
     summaryModel: optionalString(parsed.flags["summary-model"]),
     summaryEnabled: !parsed.flags["no-summary"],
     earlyStopOnAgreement: !parsed.flags["no-early-stop"],
@@ -198,7 +209,9 @@ async function main(): Promise<void> {
 
   const renderer = createRendererFromFlags(parsed.flags, options.plainOutput, messages);
   context.warnings.forEach((warning) => renderer.warning(warning));
-  const result = await runDebate(config, options, renderer, messages);
+  const result = options.mode === "ask"
+    ? await runAsk(config, options, renderer, messages)
+    : await runDebate(config, options, renderer, messages);
   const outputPath = await writeDebateMarkdown(
     resolveOutputDir(config.outputDir),
     result.options,
@@ -303,8 +316,16 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   const defaultAgents = getStringListFlag(flags["set-defaults"]);
   const hasTurnsFlag = flags.turns !== undefined;
   const summaryAgentValue = optionalString(flags["summary-agent"]);
+  const askSummaryAgentValue = optionalString(flags["ask-summary-agent"]);
+  const modeValue = optionalString(flags.mode);
+  const askAgentsValue = getStringListFlag(flags["ask-agents"]);
   const languageValue = explicitLanguage;
-  const changesDefaults = defaultAgents.length > 0 || hasTurnsFlag || summaryAgentValue !== undefined;
+  const changesDefaults = defaultAgents.length > 0
+    || hasTurnsFlag
+    || summaryAgentValue !== undefined
+    || askSummaryAgentValue !== undefined
+    || modeValue !== undefined
+    || askAgentsValue.length > 0;
 
   if (changesDefaults || languageValue !== undefined) {
     const nextDefaults = { ...(config.defaults ?? {}) };
@@ -334,6 +355,23 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
         assertKnownAgent(config, summaryAgentValue, "defaults.summaryAgent", messages);
         nextDefaults.summaryAgent = summaryAgentValue;
       }
+    }
+
+    if (askSummaryAgentValue !== undefined) {
+      if (isNoneValue(askSummaryAgentValue)) {
+        delete nextDefaults.askSummaryAgent;
+      } else {
+        assertKnownAgent(config, askSummaryAgentValue, "defaults.askSummaryAgent", messages);
+        nextDefaults.askSummaryAgent = askSummaryAgentValue;
+      }
+    }
+
+    if (modeValue !== undefined) {
+      nextDefaults.mode = parseModeFlag(modeValue, messages);
+    }
+
+    if (askAgentsValue.length > 0) {
+      nextDefaults.askAgents = normalizeAskAgentsForConfig(config, askAgentsValue, messages);
     }
 
     if (languageValue !== undefined) {
@@ -457,8 +495,27 @@ function formatDefaultsForMessage(defaults: NonNullable<PalabreConfig["defaults"
     defaults.agentA,
     defaults.agentB,
     turnsOrDefault(defaults.turns),
-    defaults.summaryAgent
+    defaults.summaryAgent,
+    defaults.askSummaryAgent,
+    defaults.mode,
+    defaults.askAgents
   );
+}
+
+function normalizeAskAgentsForConfig(config: Awaited<ReturnType<typeof loadConfig>>, agents: string[], messages: Messages): string[] {
+  const unique = agents
+    .map((agent) => agent.trim())
+    .filter((agent, index, list) => agent && list.indexOf(agent) === index);
+
+  if (unique.length > MAX_ASK_AGENTS) {
+    throw new Error(messages.common.tooManyAskAgents(MAX_ASK_AGENTS));
+  }
+
+  for (const agent of unique) {
+    assertKnownAgent(config, agent, "defaults.askAgents", messages);
+  }
+
+  return unique;
 }
 /**
  * Lève une erreur si `agentName` n'est pas déclaré dans la config.
@@ -495,25 +552,71 @@ function resolveAgentName(
 
   return resolved;
 }
+
+function resolveSummaryAgentOption(
+  explicitValue: string | string[] | boolean | undefined,
+  defaults: PalabreConfig["defaults"] | undefined,
+  mode: PalabreMode
+): string | undefined {
+  const explicit = optionalString(explicitValue);
+
+  if (explicit) {
+    return explicit;
+  }
+
+  if (mode === "ask") {
+    return defaults?.askSummaryAgent ?? defaults?.summaryAgent;
+  }
+
+  return defaults?.summaryAgent;
+}
+
+function parseModeFlag(value: string | undefined, messages: Messages): PalabreMode {
+  if (!value) {
+    return "debate";
+  }
+
+  if (value === "debate" || value === "ask") {
+    return value;
+  }
+
+  throw new Error(messages.common.unknownMode(value, "debate, ask"));
+}
+
+function resolveAskAgents(explicitAgents: string[], defaultAgents: string[] | undefined, fallbackAgents: string[], messages: Messages): string[] {
+  const selected = explicitAgents.length > 0
+    ? explicitAgents
+    : defaultAgents && defaultAgents.length > 0 ? defaultAgents : fallbackAgents;
+  const unique = selected.filter((agent, index) => agent.trim() && selected.indexOf(agent) === index);
+
+  if (unique.length > MAX_ASK_AGENTS) {
+    throw new Error(messages.common.tooManyAskAgents(MAX_ASK_AGENTS));
+  }
+
+  return unique;
+}
 /**
  * Affiche un aperçu du prompt du premier tour sans appeler aucun agent (flag `--show-prompt`).
  * @param config - Config chargée.
  * @param options - Options du débat résolues.
  */
 function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, options: DebateOptions, language: string, messages: Messages): void {
-  const agentConfig = config.agents[options.agentA];
+  const previewAgent = options.mode === "ask" ? options.askAgents?.[0] ?? options.agentA : options.agentA;
+  const peerName = options.mode === "ask" ? "independent-agents" : options.agentB;
+  const agentConfig = config.agents[previewAgent];
 
   if (!agentConfig) {
-    throw new Error(messages.common.unknownAgent(options.agentA));
+    throw new Error(messages.common.unknownAgent(previewAgent));
   }
 
   const prompt = formatAgentPrompt({
     topic: options.topic,
     turn: 1,
-    totalTurns: options.turns,
-    selfName: options.agentA,
-    peerName: options.agentB,
+    totalTurns: options.mode === "ask" ? options.askAgents?.length ?? 1 : options.turns,
+    selfName: previewAgent,
+    peerName,
     selfRole: agentConfig.role,
+    mode: options.mode === "ask" ? "ask" : "debate",
     language: options.language,
     session: options.session,
     files: options.files,
@@ -521,15 +624,27 @@ function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, opti
   });
 
   console.log(messages.preview.title);
-  console.log(messages.preview.agent(options.agentA, agentConfig.role));
-  console.log(messages.preview.peer(options.agentB));
+  console.log(messages.preview.agent(previewAgent, agentConfig.role));
+  console.log(messages.preview.peer(peerName));
   console.log(messages.preview.pullModels(options.pullModels));
-  console.log(messages.preview.summary(options.summaryEnabled ? options.summaryAgent ?? options.agentB : messages.preview.disabled));
+  console.log(messages.preview.summary(options.summaryEnabled ? previewSummaryAgent(options) : messages.preview.disabled));
   console.log(messages.preview.interfaceLanguage(language));
   console.log("");
   console.log(prompt);
   console.log("");
-  console.log(messages.preview.note);
+  console.log(options.mode === "ask" ? messages.preview.askNote : messages.preview.note);
+}
+
+function previewSummaryAgent(options: DebateOptions): string {
+  if (options.summaryAgent) {
+    return options.summaryAgent;
+  }
+
+  if (options.mode === "ask" && options.askAgents && options.askAgents.length > 0) {
+    return options.askAgents[options.askAgents.length - 1] ?? options.agentB;
+  }
+
+  return options.agentB;
 }
 
 /**
@@ -721,7 +836,8 @@ function printAgents(
     config.defaults?.agentA ?? messages.agents.none,
     config.defaults?.agentB ?? messages.agents.none,
     turnsOrDefault(config.defaults?.turns),
-    config.defaults?.summaryAgent ?? messages.agents.summaryAgentB
+    config.defaults?.summaryAgent ?? messages.agents.summaryAgentB,
+    config.defaults?.askSummaryAgent
   ));
 }
 
@@ -736,6 +852,7 @@ function formatAgentDefaults(name: string, config: PalabreConfig, messages: Mess
   if (config.defaults?.agentA === name) labels.push(messages.agents.defaultAgentA);
   if (config.defaults?.agentB === name) labels.push(messages.agents.defaultAgentB);
   if (config.defaults?.summaryAgent === name) labels.push(messages.agents.defaultSummary);
+  if (config.defaults?.askSummaryAgent === name) labels.push(messages.agents.defaultAskSummary);
 
   return labels.join(", ");
 }

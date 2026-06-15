@@ -2,8 +2,10 @@ import type { Language } from "../types.js";
 
 export interface OutputMessages {
   title: string;
+  askTitle: string;
   contextTitle: string;
   exchangesTitle: string;
+  askResponsesTitle: string;
   failureTitle: string;
   finalSummaryTitle: string;
   tableField: string;
@@ -17,11 +19,14 @@ export interface OutputMessages {
   disabled: string;
   fields: {
     subject: string;
+    mode: string;
     agents: string;
     autoPullOllama: string;
     summary: string;
     requestedTurns: string;
     playedTurns: string;
+    requestedResponses: string;
+    receivedResponses: string;
     earlyStop: string;
     localDate: string;
     timeZone: string;
@@ -41,8 +46,10 @@ export interface OutputMessages {
 export const outputMessages: Record<Language, OutputMessages> = {
   fr: {
     title: "# PALABRE Debate",
+    askTitle: "# PALABRE Ask",
     contextTitle: "## Contexte",
     exchangesTitle: "## Echanges",
+    askResponsesTitle: "## Reponses des agents",
     failureTitle: "## Interruption",
     finalSummaryTitle: "## Synthese finale",
     tableField: "Champ",
@@ -56,11 +63,14 @@ export const outputMessages: Record<Language, OutputMessages> = {
     disabled: "desactivee",
     fields: {
       subject: "Sujet",
+      mode: "Mode",
       agents: "Agents",
       autoPullOllama: "Auto-pull Ollama",
       summary: "Synthese",
       requestedTurns: "Tours demandes",
       playedTurns: "Tours joues",
+      requestedResponses: "Reponses attendues",
+      receivedResponses: "Reponses recues",
       earlyStop: "Arret anticipe",
       localDate: "Date locale",
       timeZone: "Fuseau horaire",
@@ -78,8 +88,10 @@ export const outputMessages: Record<Language, OutputMessages> = {
   },
   en: {
     title: "# PALABRE Debate",
+    askTitle: "# PALABRE Ask",
     contextTitle: "## Context",
     exchangesTitle: "## Exchanges",
+    askResponsesTitle: "## Agent responses",
     failureTitle: "## Interruption",
     finalSummaryTitle: "## Final summary",
     tableField: "Field",
@@ -93,11 +105,14 @@ export const outputMessages: Record<Language, OutputMessages> = {
     disabled: "disabled",
     fields: {
       subject: "Subject",
+      mode: "Mode",
       agents: "Agents",
       autoPullOllama: "Ollama auto-pull",
       summary: "Summary",
       requestedTurns: "Requested turns",
       playedTurns: "Played turns",
+      requestedResponses: "Expected responses",
+      receivedResponses: "Received responses",
       earlyStop: "Early stop",
       localDate: "Local date",
       timeZone: "Time zone",

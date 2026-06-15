@@ -58,3 +58,33 @@ test("formatAgentPrompt localizes the summary prompt", () => {
   assert.match(prompt, /### Disagreements \/ uncertainties/);
   assert.match(prompt, /Summary:/);
 });
+
+test("formatAgentPrompt renders independent ask prompts", () => {
+  const prompt = formatAgentPrompt(basePrompt({
+    language: "en",
+    mode: "ask",
+    transcript: [{ agent: "other", role: "reviewer", content: "Should not appear", createdAt: "2026-05-13T10:00:00.000Z" }]
+  }));
+
+  assert.match(prompt, /You are codex\. You are answering this request independently\./);
+  assert.match(prompt, /Answer the request directly, without relying on other agents' answers\./);
+  assert.doesNotMatch(prompt, /Should not appear/);
+});
+
+test("formatAgentPrompt renders ask summary objectives", () => {
+  const prompt = formatAgentPrompt(basePrompt({
+    language: "en",
+    mode: "summary",
+    peerName: "ask-responses",
+    selfRole: "summarizer",
+    transcript: [{ agent: "codex", role: "implementer", content: "Codex answer", createdAt: "2026-05-13T10:00:00.000Z" }]
+  }));
+
+  assert.match(prompt, /Faithfully summarize what each agent said, agent by agent\./);
+  assert.match(prompt, /Agent responses:/);
+  assert.match(prompt, /### Faithful summary by agent/);
+  assert.match(prompt, /### Comparison/);
+  assert.match(prompt, /without turning the request into a debate/);
+  assert.doesNotMatch(prompt, /### Consensus/);
+  assert.match(prompt, /Codex answer/);
+});

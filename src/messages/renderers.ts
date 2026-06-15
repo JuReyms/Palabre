@@ -34,7 +34,7 @@ export const rendererMessages: Record<Language, RendererMessages> = {
     turn: (turn, totalTurns) => `tour ${turn}/${totalTurns}`,
     thinking: (agent, role) => `${agent} (${role}) reflechit`,
     summaryTitle: "Synthese",
-    exported: (path) => `Debat exporte: ${path}`,
+    exported: (path) => `Palabre exporte: ${path}`,
     noInjectedFiles: "aucun fichier injecté",
     injectedFiles: (count) => `${count} fichier${count > 1 ? "s" : ""} injecté${count > 1 ? "s" : ""}`
   },
@@ -52,7 +52,7 @@ export const rendererMessages: Record<Language, RendererMessages> = {
     turn: (turn, totalTurns) => `turn ${turn}/${totalTurns}`,
     thinking: (agent, role) => `${agent} (${role}) is thinking`,
     summaryTitle: "Summary",
-    exported: (path) => `Debate exported: ${path}`,
+    exported: (path) => `Palabre exported: ${path}`,
     noInjectedFiles: "no injected files",
     injectedFiles: (count) => `${count} injected file${count > 1 ? "s" : ""}`
   }

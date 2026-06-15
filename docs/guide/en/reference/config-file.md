@@ -14,9 +14,12 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
   "language": "en",
   "outputDir": ".palabre",
   "defaults": {
+    "mode": "debate",
     "agentA": "codex",
     "agentB": "claude",
+    "askAgents": ["codex", "claude"],
     "summaryAgent": "claude",
+    "askSummaryAgent": "claude",
     "turns": 4
   },
   "agents": {
@@ -51,9 +54,12 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `mode` | `debate` or `ask` | Default mode when no mode is provided. |
 | `agentA` | string | Agent that responds first. |
 | `agentB` | string | Agent that responds second. |
-| `summaryAgent` | string | Final summary agent. |
+| `askAgents` | string[] | Default ask mode agents, 4 maximum. |
+| `summaryAgent` | string | Final summary agent for debate mode, and fallback for ask mode. |
+| `askSummaryAgent` | string | Ask-specific final summary agent. |
 | `turns` | number | Total number of turns, between 1 and 20. |
 
 ## CLI agent

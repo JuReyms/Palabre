@@ -223,11 +223,11 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 
 La config generee conserve les blocs agents connus pour rester editable, mais ajuste `defaults.agentA` et `defaults.agentB` avec une paire detectee quand c'est possible. Au lancement, Palabre ne doit pas utiliser de fallback agent code en dur : sans preset, sans agents explicites et sans defaults de config, il doit afficher une erreur actionnable.
 
-Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` quand disponible. Ollama reste configure et accessible via presets, mais il est plutot destine aux power users ou aux roles locaux (`critic`, `scout`, `summarizer`). Les defaults utilisateur se gerent par `palabre config`, `palabre config --set-defaults <agentA> <agentB>` et `palabre config --clear-defaults`.
+Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` quand disponible. Ollama reste configure et accessible via presets, mais il est plutot destine aux power users ou aux roles locaux (`critic`, `scout`, `summarizer`). Les defaults utilisateur se gerent par `palabre config`, `palabre config --set-defaults <agentA> <agentB>`, `palabre config --mode <debate|ask>`, `palabre config --ask-agents <agents...>`, `palabre config --summary-agent <agent|none>`, `palabre config --ask-summary-agent <agent|none>` et `palabre config --clear-defaults`.
 
 ## New
 
-`palabre new` est l'assistant interactif de composition d'un debat. Il detecte les outils locaux via `src/discovery.ts`, liste les agents de la config en mettant les agents detectes en premier, demande le sujet, puis laisse lancer avec les defaults ou ouvrir les options avancees.
+`palabre new` est l'assistant interactif de composition d'un debat ou d'une demande ask. Il detecte les outils locaux via `src/discovery.ts`, liste les agents de la config en mettant les agents detectes en premier, demande le mode, les agents puis le sujet, et laisse lancer avec les defaults ou ouvrir les options avancees.
 
 Le mode avance couvre les options courantes : tours, modeles bruts, synthese, contexte, fichiers, `--show-prompt` et `--plain`. Garder le wizard comme une couche UX fine au-dessus du parser existant : il doit remplir les memes flags que la CLI directe, pas creer un second chemin d'execution.
 
@@ -337,7 +337,12 @@ Erreurs connues classees :
 
 ## Orchestration
 
-Le moteur actuel alterne simplement entre deux agents pendant `turns` tours :
+Le moteur supporte deux modes :
+
+- `debate` : alterne entre deux agents pendant `turns` tours.
+- `ask` : fait répondre plusieurs agents indépendamment au même sujet, puis synthétise leurs réponses.
+
+Le mode `debate` alterne simplement entre deux agents pendant `turns` tours :
 
 1. Render du prompt avec le sujet, les fichiers de contexte et l'historique.
 2. Appel de l'agent courant.
@@ -353,6 +358,19 @@ Les futures evolutions possibles :
 - modes a trois agents ;
 - budgets de tours par role.
 
+### Mode ask
+
+`palabre ask "Sujet"` ou `palabre run --mode ask --agents <agents...> -s "Sujet"` lance une demande parallèle logique : chaque agent reçoit le même sujet et le même contexte, sans transcript des autres agents. Le MVP exécute les agents séquentiellement pour garder l'annulation, les logs et les quotas simples.
+
+Limites actuelles :
+
+- 1 à 4 agents via `--agents`.
+- Sans `--agents`, Palabre utilise `defaults.askAgents` si défini, sinon la paire `agentA/agentB`.
+- `palabre config --mode ask` peut faire d'ask le mode par defaut, et `palabre config --ask-agents codex claude opencode` definit la liste ask par defaut.
+- La synthese utilise `--summary-agent`, puis `defaults.askSummaryAgent`, puis `defaults.summaryAgent`, puis le dernier agent ask.
+- Le rendu console affiche par défaut la synthèse et les réponses complètes de chaque agent.
+- L'export Markdown utilise l'extension `.ask.md`.
+
 ### Arret anticipe
 
 Par defaut, `--turns` est une limite haute entre 1 et 20 reponses. `runDebate` peut arreter le debat apres un tour complet quand le dernier message contient un signal d'accord explicite, par exemple `accord complet`, `aucun desaccord`, `rien a trancher` ou `rien a ajouter`.
@@ -361,13 +379,18 @@ Le flag `--no-early-stop` force tous les tours demandes. Garder cette heuristiqu
 
 ### Synthese finale
 
-La synthese finale est activee par defaut. Elle utilise `defaults.summaryAgent` quand il existe, sinon `agentB`. `--summary-agent` garde la priorite.
+La synthese finale est activee par defaut. En mode `debate`, elle utilise `defaults.summaryAgent` quand il existe, sinon `agentB`. En mode `ask`, elle utilise `defaults.askSummaryAgent` quand il existe, sinon `defaults.summaryAgent`, sinon le dernier agent ask. `--summary-agent` garde toujours la priorite pour le lancement courant.
 
 Options :
 
 - `--summary-agent <name>` : agent de config utilise apres le debat, prioritaire sur `defaults.summaryAgent`.
 - `--summary-model <model>` : modele brut transmis a l'agent de synthese.
 - `--no-summary` : desactive la phase de synthese.
+
+Config :
+
+- `defaults.summaryAgent` : agent de synthese par defaut du mode `debate`, et fallback du mode `ask`.
+- `defaults.askSummaryAgent` : agent de synthese par defaut specifique au mode `ask`.
 
 Le prompt de synthese est un mode dedie dans `formatAgentPrompt` (`mode: "summary"`). Il recoit le sujet, les fichiers de contexte et tout le transcript. Il demande quatre sections: consensus, desaccords/incertitudes, actions proposees, puis une conclusion courte en prose.
 
@@ -441,7 +464,7 @@ Si une CLI utilise un nom d'option different, ajouter `modelArg` dans la config 
 
 ## Prompt Preview
 
-`--show-prompt` affiche le prompt exact du premier tour, puis termine sans appeler d'agent. Les tours suivants ne peuvent pas etre connus sans executer le debat, car ils dependent du transcript reel.
+`--show-prompt` affiche le prompt exact du premier tour en mode `debate`, ou le prompt indépendant du premier agent en mode `ask`, puis termine sans appeler d'agent. En mode `debate`, les tours suivants ne peuvent pas etre connus sans executer le debat, car ils dependent du transcript reel. En mode `ask`, la synthese ne peut pas etre connue sans les reponses reelles des agents.
 
 ## Internationalisation
 
@@ -519,22 +542,24 @@ Types d'evenements emis aujourd'hui :
 
 | Type | Quand | Champs |
 | --- | --- | --- |
-| `start` | une fois, au demarrage du debat | `topic`, `turns`, `agents[]` (`name`, `role`, `type`), `summaryEnabled`, `summaryAgent`, `earlyStop`, `filesCount`, `session` (`startedAt`, `localDate`, `timeZone`, `cwd`) |
+| `start` | une fois, au demarrage de la session | `mode` (`debate` ou `ask`), `topic`, `turns`, `agents[]` (`name`, `role`, `type`), `summaryEnabled`, `summaryAgent`, `earlyStop`, `filesCount`, `session` (`startedAt`, `localDate`, `timeZone`, `cwd`) |
 | `notice` | message informatif | `message` |
 | `warning` | avertissement | `message` |
 | `turn-start` | debut d'un tour | `turn`, `totalTurns`, `agent`, `role` |
+| `ask-response-start` | debut d'une reponse agent en mode `ask` | `response`, `totalResponses`, `agent`, `role` |
 | `thinking-start` | agent en cours de generation | `agent`, `role` |
 | `thinking-end` | fin de generation | (aucun) |
 | `message` | contenu d'un message de debat | `turn`, `agent`, `role`, `content` |
+| `ask-response` | contenu d'une reponse agent en mode `ask` | `response`, `agent`, `role`, `content` |
 | `summary-start` | debut de la synthese finale | `agent`, `role` |
 | `summary-message` | contenu de la synthese | `agent`, `role`, `content` |
-| `error` | erreur runtime structurée pendant le debat ou la synthese | `phase` (`debate` ou `summary`), `kind`, `message`, optionnels `agent`, `role`, `turn`, `details` |
-| `done` | export du `.debate.md` ecrit | `outputPath` |
+| `error` | erreur runtime structurée pendant le debat, ask ou la synthese | `phase` (`debate`, `ask` ou `summary`), `kind`, `message`, optionnels `agent`, `role`, `turn`, `details` |
+| `done` | export du `.debate.md` ou `.ask.md` ecrit | `outputPath` |
 
 Exemple de session minimale :
 
 ```json
-{"v":1,"type":"start","topic":"...","turns":2,"agents":[{"name":"codex","role":"implementer","type":"cli"},{"name":"claude","role":"reviewer","type":"cli"}],"summaryEnabled":true,"summaryAgent":"claude","earlyStop":true,"filesCount":0,"session":{"startedAt":"...","localDate":"...","timeZone":"...","cwd":"..."}}
+{"v":1,"type":"start","mode":"debate","topic":"...","turns":2,"agents":[{"name":"codex","role":"implementer","type":"cli"},{"name":"claude","role":"reviewer","type":"cli"}],"summaryEnabled":true,"summaryAgent":"claude","earlyStop":true,"filesCount":0,"session":{"startedAt":"...","localDate":"...","timeZone":"...","cwd":"..."}}
 {"v":1,"type":"turn-start","turn":1,"totalTurns":2,"agent":"codex","role":"implementer"}
 {"v":1,"type":"thinking-start","agent":"codex","role":"implementer"}
 {"v":1,"type":"thinking-end"}

@@ -9,6 +9,7 @@ export interface PreviewMessages {
   disabled: string;
   interfaceLanguage(language: string): string;
   note: string;
+  askNote: string;
 }
 
 export const previewMessages: Record<Language, PreviewMessages> = {
@@ -20,7 +21,8 @@ export const previewMessages: Record<Language, PreviewMessages> = {
     summary: (value) => `Synthèse: ${value}`,
     disabled: "désactivée",
     interfaceLanguage: (language) => `Langue: ${language}`,
-    note: "Note: seuls les prompts du premier tour sont exacts sans exécuter les agents. Les tours suivants incluent le transcript réel."
+    note: "Note: seuls les prompts du premier tour sont exacts sans exécuter les agents. Les tours suivants incluent le transcript réel.",
+    askNote: "Note: en mode ask, chaque agent reçoit un prompt indépendant. La synthèse reçoit ensuite toutes les réponses réelles."
   },
   en: {
     title: "# Prompt preview",
@@ -30,6 +32,7 @@ export const previewMessages: Record<Language, PreviewMessages> = {
     summary: (value) => `Summary: ${value}`,
     disabled: "disabled",
     interfaceLanguage: (language) => `Language: ${language}`,
-    note: "Note: only first-turn prompts are exact without running agents. Later turns include the real transcript."
+    note: "Note: only first-turn prompts are exact without running agents. Later turns include the real transcript.",
+    askNote: "Note: in ask mode, each agent receives an independent prompt. The summary later receives all real responses."
   }
 };

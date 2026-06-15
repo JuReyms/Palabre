@@ -16,6 +16,9 @@ export type CliPromptMode = "stdin" | "argument";
 /** Langue de l'interface Palabre. Distincte de la future langue demandée aux agents pour le débat. */
 export type Language = "fr" | "en";
 
+/** Mode d'orchestration d'une session Palabre. */
+export type PalabreMode = "debate" | "ask";
+
 /** Propriétés partagées par tous les adapters. Étendu par `CliAgentConfig` et `OllamaAgentConfig`. */
 export interface BaseAgentConfig {
   role: AgentRole;
@@ -79,9 +82,12 @@ export interface PalabreConfig {
   language?: Language;
   outputDir?: string;
   defaults?: {
+    mode?: PalabreMode;
     agentA?: string;
     agentB?: string;
+    askAgents?: string[];
     summaryAgent?: string;
+    askSummaryAgent?: string;
     turns?: number;
   };
   agents: Record<string, AgentConfig>;
@@ -97,10 +103,12 @@ export interface DebateMessage {
 
 /** Paramètres complets d'une session de débat. Transmis à travers toutes les couches sans mutation. */
 export interface DebateOptions {
+  mode: PalabreMode;
   language: Language;
   topic: string;
   agentA: string;
   agentB: string;
+  askAgents?: string[];
   turns: number;
   session: SessionContext;
   files: ProjectFileContext[];
@@ -124,7 +132,7 @@ export interface AgentPrompt {
   selfName: string;
   peerName: string;
   selfRole: AgentRole;
-  mode?: "debate" | "summary";
+  mode?: "debate" | "ask" | "summary";
   session: SessionContext;
   files: ProjectFileContext[];
   transcript: DebateMessage[];
@@ -222,7 +230,7 @@ export interface DebateSummary {
 }
 
 /** Phase stable où une erreur runtime a interrompu le débat. */
-export type DebateFailurePhase = "debate" | "summary";
+export type DebateFailurePhase = "debate" | "ask" | "summary";
 
 /** Erreur runtime structurée exposée aux renderers et intégrations. */
 export interface DebateFailure {
@@ -248,9 +256,11 @@ export interface DebateRenderer {
   notice(message: string): void;
   warning(message: string): void;
   turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void;
+  askResponseStart?(response: number, totalResponses: number, agent: string, role: AgentRole): void;
   thinkingStart(agent: string, role: AgentRole): void;
   thinkingEnd(): void;
   message(content: string): void;
+  askResponseMessage?(content: string): void;
   summaryStart(agent: string, role: AgentRole): void;
   error(failure: DebateFailure): void;
   done(outputPath: string): void;

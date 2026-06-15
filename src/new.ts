@@ -4,7 +4,7 @@ import { isAgentDetected } from "./agentRegistry.js";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { findPresetNameForPair } from "./presets.js";
 import { MAX_TURNS, turnsOrDefault, validateTurns } from "./limits.js";
-import type { AgentConfig, PalabreConfig } from "./types.js";
+import type { AgentConfig, PalabreConfig, PalabreMode } from "./types.js";
 import type { Messages } from "./messages/index.js";
 
 /**
@@ -12,8 +12,10 @@ import type { Messages } from "./messages/index.js";
  * Structurellement identique aux flags CLI : le wizard ne crée pas un second chemin d'exécution.
  */
 export interface NewCommandSelection {
+  mode?: PalabreMode;
   agentA: string;
   agentB: string;
+  askAgents?: string[];
   topic: string;
   modelA?: string;
   modelB?: string;
@@ -60,6 +62,83 @@ export async function runNewWizard(config: PalabreConfig, messages: Messages): P
     console.log(messages.new.defaultHint);
     console.log("");
 
+    const mode = await askMode(rl, config.defaults?.mode ?? "debate", messages);
+    if (!mode) return undefined;
+
+    if (mode === "ask") {
+      const askAgents = await askAgentList(rl, choices, config.defaults?.askAgents ?? defaultAskAgents(config), messages);
+      if (!askAgents) return undefined;
+
+      const [agentA, agentB] = [askAgents[0], askAgents[1] ?? askAgents[0]];
+      if (!agentA || !agentB) return undefined;
+
+      const topic = await askRequiredText(rl, messages.new.topic, messages);
+      if (!topic) return undefined;
+
+      printCommandPreview({ mode, agentA, agentB, askAgents, topic }, messages);
+      console.log(messages.new.advancedHint);
+      const launchMinimal = await askYesNo(rl, messages.new.launchMinimal, true, messages);
+      if (launchMinimal === undefined) return undefined;
+
+      if (launchMinimal) {
+        return {
+          mode,
+          agentA,
+          agentB,
+          askAgents,
+          topic,
+          files: [],
+          context: [],
+          showPrompt: false,
+          plainOutput: false
+        };
+      }
+
+      const summaryEnabled = await askYesNo(rl, messages.new.summaryEnabled, true, messages);
+      if (summaryEnabled === undefined) return undefined;
+
+      let summaryAgent: string | undefined;
+      let summaryModel: string | undefined;
+      if (summaryEnabled) {
+        summaryAgent = await askAgent(
+          rl,
+          choices,
+          messages.new.summaryAgent,
+          config.defaults?.askSummaryAgent ?? config.defaults?.summaryAgent ?? askAgents[askAgents.length - 1],
+          messages
+        );
+        if (!summaryAgent) return undefined;
+
+        summaryModel = await askOptionalText(rl, messages.new.summaryModelFor(summaryAgent));
+        if (summaryModel === undefined) return undefined;
+      }
+
+      const context = splitPaths(await askOptionalText(rl, messages.new.contextPaths));
+      const files = splitPaths(await askOptionalText(rl, messages.new.filesPaths));
+      const showPrompt = await askYesNo(rl, messages.new.showPrompt, false, messages);
+      if (showPrompt === undefined) return undefined;
+
+      const plainOutput = await askYesNo(rl, messages.new.plainOutput, false, messages);
+      if (plainOutput === undefined) return undefined;
+
+      const selection = {
+        mode,
+        agentA,
+        agentB,
+        askAgents,
+        topic,
+        summaryAgent,
+        summaryModel,
+        summaryEnabled,
+        files,
+        context,
+        showPrompt,
+        plainOutput
+      };
+      printCommandPreview(selection, messages);
+      return selection;
+    }
+
     const agentA = await askAgent(rl, choices, messages.new.agentA, config.defaults?.agentA, messages);
     if (!agentA) return undefined;
 
@@ -76,11 +155,12 @@ export async function runNewWizard(config: PalabreConfig, messages: Messages): P
 
     if (launchMinimal) {
       return {
-        agentA,
-        agentB,
-        topic,
-        files: [],
-        context: [],
+      agentA,
+      agentB,
+      topic,
+      mode,
+      files: [],
+      context: [],
         showPrompt: false,
         plainOutput: false
       };
@@ -120,6 +200,7 @@ export async function runNewWizard(config: PalabreConfig, messages: Messages): P
       agentA,
       agentB,
       topic,
+      mode,
       modelA,
       modelB,
       turns,
@@ -135,6 +216,42 @@ export async function runNewWizard(config: PalabreConfig, messages: Messages): P
     return selection;
   } finally {
     rl.close();
+  }
+}
+
+async function askMode(
+  rl: Questioner,
+  defaultMode: PalabreMode,
+  messages: Messages
+): Promise<PalabreMode | undefined> {
+  const choices: Array<{ value: PalabreMode; label: string }> = [
+    { value: "debate", label: messages.new.modeDebate },
+    { value: "ask", label: messages.new.modeAsk }
+  ];
+  const fallback = choices.find((choice) => choice.value === defaultMode)?.value ?? "debate";
+
+  console.log(messages.new.mode);
+  choices.forEach((choice, index) => {
+    const marker = choice.value === fallback ? "(*)" : "   ";
+    console.log(`  ${index + 1}) ${marker} ${choice.label}`);
+  });
+
+  while (true) {
+    const answer = await rl.question(`${messages.new.mode} [${fallback}]: `);
+    const value = answer.trim().toLowerCase();
+
+    if (isQuit(value)) return undefined;
+    if (!value) return fallback;
+
+    const number = Number(value);
+    if (Number.isInteger(number) && number >= 1 && number <= choices.length) {
+      return choices[number - 1]?.value;
+    }
+
+    if (value === "debate" || value === "débat" || value === "debat") return "debate";
+    if (value === "ask" || value === "demande" || value === "question") return "ask";
+
+    console.log(messages.new.invalidModeChoice);
   }
 }
 
@@ -231,6 +348,56 @@ async function askAgent(
   }
 }
 
+async function askAgentList(
+  rl: Questioner,
+  choices: AgentChoice[],
+  defaultNames: string[],
+  messages: Messages
+): Promise<string[] | undefined> {
+  const availableNames = choices.map((choice) => choice.name);
+  const fallback = uniqueNames(defaultNames.filter((name) => availableNames.includes(name))).slice(0, 4);
+  const defaultSelection = fallback.length > 0 ? fallback : availableNames.slice(0, Math.min(2, availableNames.length));
+
+  console.log(messages.new.askAgents);
+  choices.forEach((choice, index) => {
+    const marker = defaultSelection.includes(choice.name) ? "(*)" : "   ";
+    console.log(`  ${index + 1}) ${marker} ${choice.name} - ${choice.status}`);
+  });
+
+  while (true) {
+    const answer = await rl.question(`${messages.new.askAgentsPrompt(defaultSelection.join(" "))}: `);
+    const value = answer.trim();
+
+    if (isQuit(value)) return undefined;
+    if (!value) return defaultSelection;
+
+    const tokens = value.split(/[,\s]+/).map((token) => token.trim()).filter(Boolean);
+    const resolved = uniqueNames(tokens.map((token) => {
+      const number = Number(token);
+      if (Number.isInteger(number) && number >= 1 && number <= choices.length) {
+        return choices[number - 1]?.name;
+      }
+      return token;
+    }).filter((name): name is string => Boolean(name)));
+
+    if (resolved.length === 0) {
+      console.log(messages.new.invalidAskAgentsChoice);
+      continue;
+    }
+
+    if (resolved.length > 4) {
+      console.log(messages.common.tooManyAskAgents(4));
+      continue;
+    }
+
+    if (resolved.every((name) => availableNames.includes(name))) {
+      return resolved;
+    }
+
+    console.log(messages.new.invalidAskAgentsChoice);
+  }
+}
+
 async function askRequiredText(rl: Questioner, label: string, messages: Messages): Promise<string | undefined> {
   while (true) {
     const answer = await rl.question(`${label}: `);
@@ -304,6 +471,14 @@ function splitPaths(value: string | undefined): string[] {
     .filter(Boolean) ?? [];
 }
 
+function defaultAskAgents(config: PalabreConfig): string[] {
+  return [config.defaults?.agentA, config.defaults?.agentB].filter((agent): agent is string => Boolean(agent));
+}
+
+function uniqueNames(names: string[]): string[] {
+  return names.filter((name, index) => names.indexOf(name) === index);
+}
+
 function isQuit(value: string): boolean {
   return ["q", "quit", "exit"].includes(value.toLowerCase());
 }
@@ -326,15 +501,26 @@ function printCommandPreview(selection: Partial<NewCommandSelection> & Pick<NewC
 function buildExplicitCommand(selection: Partial<NewCommandSelection> & Pick<NewCommandSelection, "agentA" | "agentB" | "topic">): string {
   const args = ["palabre"];
 
-  args.push("--agent-a", selection.agentA);
-  args.push("--agent-b", selection.agentB);
-  args.push(quoteShellArg(selection.topic));
+  if (selection.mode === "ask") {
+    args.push("ask", quoteShellArg(selection.topic));
+    const askAgents = selection.askAgents && selection.askAgents.length > 0 ? selection.askAgents : [selection.agentA, selection.agentB];
+    args.push("--agents", ...askAgents);
+  } else {
+    args.push("--agent-a", selection.agentA);
+    args.push("--agent-b", selection.agentB);
+    args.push(quoteShellArg(selection.topic));
+  }
+
   appendOptionalArgs(args, selection);
 
   return args.join(" ");
 }
 
 function buildShortCommand(selection: Partial<NewCommandSelection> & Pick<NewCommandSelection, "agentA" | "agentB" | "topic">): string | undefined {
+  if (selection.mode === "ask") {
+    return undefined;
+  }
+
   const presetName = findPresetNameForPair(selection.agentA, selection.agentB);
 
   if (!presetName) {

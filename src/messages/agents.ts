@@ -7,7 +7,8 @@ export interface AgentsMessages {
   defaultAgentA: string;
   defaultAgentB: string;
   defaultSummary: string;
-  defaults(agentA: string, agentB: string, turns: number, summaryAgent: string): string;
+  defaultAskSummary: string;
+  defaults(agentA: string, agentB: string, turns: number, summaryAgent: string, askSummaryAgent?: string): string;
   none: string;
   summaryAgentB: string;
   model(model: string): string;
@@ -27,7 +28,8 @@ export const agentsMessages: Record<Language, AgentsMessages> = {
     defaultAgentA: "agent A par défaut",
     defaultAgentB: "agent B par défaut",
     defaultSummary: "synthèse par défaut",
-    defaults: (agentA, agentB, turns, summaryAgent) => `Défauts: ${agentA} <-> ${agentB}, réponses: ${turns}, synthèse: ${summaryAgent}`,
+    defaultAskSummary: "synthèse ask par défaut",
+    defaults: (agentA, agentB, turns, summaryAgent, askSummaryAgent) => `Défauts: ${agentA} <-> ${agentB}, réponses: ${turns}, synthèse débat: ${summaryAgent}${askSummaryAgent ? `, synthèse ask: ${askSummaryAgent}` : ""}`,
     none: "aucun",
     summaryAgentB: "agent B",
     model: (model) => `modèle: ${model}`,
@@ -45,7 +47,8 @@ export const agentsMessages: Record<Language, AgentsMessages> = {
     defaultAgentA: "default agent A",
     defaultAgentB: "default agent B",
     defaultSummary: "default summary",
-    defaults: (agentA, agentB, turns, summaryAgent) => `Defaults: ${agentA} <-> ${agentB}, responses: ${turns}, summary: ${summaryAgent}`,
+    defaultAskSummary: "default ask summary",
+    defaults: (agentA, agentB, turns, summaryAgent, askSummaryAgent) => `Defaults: ${agentA} <-> ${agentB}, responses: ${turns}, debate summary: ${summaryAgent}${askSummaryAgent ? `, ask summary: ${askSummaryAgent}` : ""}`,
     none: "none",
     summaryAgentB: "agent B",
     model: (model) => `model: ${model}`,

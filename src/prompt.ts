@@ -4,13 +4,17 @@ import type { AgentPrompt, DebateMessage, ProjectFileContext } from "./types.js"
 
 /**
  * Formate le prompt complet transmis à l'adapter.
- * Dispatche vers le format de synthèse si `input.mode === "summary"`, sinon construit le prompt de débat standard.
+ * Dispatche vers le format ask ou synthèse si demandé, sinon construit le prompt de débat standard.
  */
 export function formatAgentPrompt(input: AgentPrompt): string {
   const messages = createTranslator(input.language ?? "fr").prompt;
 
   if (input.mode === "summary") {
     return formatSummaryPrompt(input, messages);
+  }
+
+  if (input.mode === "ask") {
+    return formatAskPrompt(input, messages);
   }
 
   const transcript = formatTranscript(input.transcript);
@@ -48,14 +52,45 @@ export function formatAgentPrompt(input: AgentPrompt): string {
     .join("\n");
 }
 
+/** Formate le prompt d'une réponse indépendante en mode ask. */
+function formatAskPrompt(input: AgentPrompt, messages: PromptMessages): string {
+  return [
+    messages.subject(input.topic),
+    "",
+    messages.askIntro(input.selfName),
+    messages.role(input.selfName, input.selfRole),
+    messages.roleInstruction(input.selfRole),
+    "",
+    messages.sessionTitle,
+    messages.sessionSource,
+    messages.localDate(input.session.localDate),
+    messages.timeZone(input.session.timeZone),
+    messages.cwd(input.session.cwd),
+    messages.sessionStartedAt(input.session.startedAt),
+    "",
+    messages.responseLanguageInstruction,
+    "",
+    messages.objectiveTitle,
+    ...messages.askObjectives,
+    "",
+    input.files.length > 0 ? messages.fileContextTitle : "",
+    formatFileContext(input.files),
+    input.files.length > 0 ? "" : "",
+    messages.answerTitle
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 /** Formate le prompt de synthèse finale. Impose un format structuré : Consensus / Désaccords / Actions / Conclusion. */
 function formatSummaryPrompt(input: AgentPrompt, messages: PromptMessages): string {
   const transcript = formatTranscript(input.transcript);
+  const isAskSummary = input.peerName === "ask-responses";
 
   return [
     messages.subject(input.topic),
     "",
-    messages.summaryIntro(input.selfName),
+    isAskSummary ? messages.askSummaryIntro(input.selfName) : messages.summaryIntro(input.selfName),
     messages.role(input.selfName, input.selfRole),
     messages.roleInstruction("summarizer"),
     "",
@@ -69,29 +104,49 @@ function formatSummaryPrompt(input: AgentPrompt, messages: PromptMessages): stri
     messages.responseLanguageInstruction,
     "",
     messages.objectiveTitle,
-    ...messages.summaryObjectives,
+    ...(isAskSummary ? messages.askSummaryObjectives : messages.summaryObjectives),
     "",
     input.files.length > 0 ? messages.fileContextTitle : "",
     formatFileContext(input.files),
     input.files.length > 0 ? "" : "",
-    messages.transcriptTitle,
+    isAskSummary ? messages.askResponsesTitle : messages.transcriptTitle,
     transcript || messages.noMessage,
     "",
     messages.expectedFormatTitle,
+    ...(isAskSummary ? askSummaryHeadings(messages) : debateSummaryHeadings(messages)),
+    "",
+    isAskSummary ? messages.askFinalProseInstruction : messages.finalProseInstruction,
+    "",
+    messages.summaryAnswerTitle
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function debateSummaryHeadings(messages: PromptMessages): string[] {
+  return [
     messages.consensusHeading,
     "",
     messages.disagreementsHeading,
     "",
     messages.actionsHeading,
     "",
-    messages.conclusionHeading,
+    messages.conclusionHeading
+  ];
+}
+
+function askSummaryHeadings(messages: PromptMessages): string[] {
+  return [
+    messages.askAgentSummariesHeading,
     "",
-    messages.finalProseInstruction,
+    messages.askComparisonHeading,
     "",
-    messages.summaryAnswerTitle
-  ]
-    .filter(Boolean)
-    .join("\n");
+    messages.askWatchpointsHeading,
+    "",
+    messages.actionsHeading,
+    "",
+    messages.conclusionHeading
+  ];
 }
 
 /** Formate les fichiers projet en blocs de code annotés pour l'injection dans le prompt. */

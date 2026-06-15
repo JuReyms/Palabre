@@ -36,6 +36,7 @@ function captureStdout(): { lines: string[]; restore: () => void } {
 
 function baseOptions(overrides: Partial<DebateOptions> = {}): DebateOptions {
   return {
+    mode: "debate",
     language: "fr",
     topic: "Test",
     agentA: "codex",
@@ -74,6 +75,7 @@ test("NdjsonRenderer emits start event with schema version and metadata", () => 
   const event = JSON.parse(capture.lines[0]!);
   assert.equal(event.v, 1);
   assert.equal(event.type, "start");
+  assert.equal(event.mode, "debate");
   assert.equal(event.topic, "Test");
   assert.equal(event.turns, 2);
   assert.deepEqual(event.agents, [
@@ -86,6 +88,47 @@ test("NdjsonRenderer emits start event with schema version and metadata", () => 
   assert.equal(event.filesCount, 0);
   assert.equal(event.session.cwd, "/tmp/test");
 });
+
+test("NdjsonRenderer emits ask response events", () => {
+  const capture = captureStdout();
+  try {
+    const renderer = new NdjsonRenderer();
+    renderer.askResponseStart(1, 2, "codex", "implementer");
+    renderer.askResponseMessage("Ask body");
+  } finally {
+    capture.restore();
+  }
+
+  const events = capture.lines.map((line) => JSON.parse(line));
+  assert.equal(events[0].type, "ask-response-start");
+  assert.equal(events[0].response, 1);
+  assert.equal(events[0].totalResponses, 2);
+  assert.equal(events[1].type, "ask-response");
+  assert.equal(events[1].agent, "codex");
+  assert.equal(events[1].content, "Ask body");
+});
+
+test("NdjsonRenderer uses the last ask agent as summary fallback", () => {
+  const capture = captureStdout();
+  try {
+    const renderer = new NdjsonRenderer();
+    renderer.start(baseOptions({
+      mode: "ask",
+      askAgents: ["codex", "claude", "opencode"],
+      summaryAgent: undefined
+    }), [
+      { name: "codex", role: "implementer", type: "cli" },
+      { name: "claude", role: "reviewer", type: "cli" },
+      { name: "opencode", role: "reviewer", type: "cli" }
+    ]);
+  } finally {
+    capture.restore();
+  }
+
+  const event = JSON.parse(capture.lines[0]!);
+  assert.equal(event.summaryAgent, "opencode");
+});
+
 
 test("NdjsonRenderer emits message in debate section after turn-start", () => {
   const capture = captureStdout();

@@ -6,6 +6,7 @@ import type { DebateOptions } from "../src/types.js";
 
 function baseOptions(overrides: Partial<DebateOptions> = {}): DebateOptions {
   return {
+    mode: "debate",
     language: "fr",
     topic: "Choose a cache strategy",
     agentA: "codex",
@@ -43,6 +44,49 @@ test("renderDebateMarkdown localizes export metadata", () => {
   assert.match(markdown, /No file context injected\./);
   assert.match(markdown, /## Final summary/);
   assert.match(markdown, /_Summary disabled\._/);
+});
+
+test("renderDebateMarkdown renders ask mode with agent responses", () => {
+  const markdown = renderDebateMarkdown(
+    baseOptions({
+      mode: "ask",
+      askAgents: ["codex", "claude"],
+      summaryEnabled: true,
+      summaryAgent: "claude"
+    }),
+    [
+      {
+        agent: "codex",
+        role: "implementer",
+        content: "Codex answer",
+        createdAt: "2026-05-13T10:01:00.000Z"
+      },
+      {
+        agent: "claude",
+        role: "reviewer",
+        content: "Claude answer",
+        createdAt: "2026-05-13T10:02:00.000Z"
+      }
+    ],
+    {
+      agent: "claude",
+      role: "reviewer",
+      content: "Faithful summary",
+      createdAt: "2026-05-13T10:03:00.000Z"
+    },
+    undefined,
+    createTranslator("en")
+  );
+
+  assert.match(markdown, /^# PALABRE Ask/);
+  assert.match(markdown, /\| Mode \| ask \|/);
+  assert.match(markdown, /\| Agents \| codex, claude \|/);
+  assert.match(markdown, /\| Expected responses \| 2 \|/);
+  assert.match(markdown, /\| Received responses \| 2 \|/);
+  assert.match(markdown, /## Agent responses/);
+  assert.match(markdown, /Codex answer/);
+  assert.match(markdown, /Claude answer/);
+  assert.match(markdown, /Faithful summary/);
 });
 
 test("renderDebateMarkdown includes interruption metadata", () => {

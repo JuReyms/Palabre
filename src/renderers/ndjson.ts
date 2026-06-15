@@ -25,7 +25,7 @@ import type {
  */
 export class NdjsonRenderer implements DebateRenderer {
   private readonly schemaVersion = 1;
-  private currentSection: "debate" | "summary" = "debate";
+  private currentSection: "debate" | "ask" | "summary" = "debate";
   private currentTurn = 0;
   private currentAgent: string | null = null;
   private currentRole: AgentRole | null = null;
@@ -34,12 +34,13 @@ export class NdjsonRenderer implements DebateRenderer {
   start(options: DebateOptions, agents: DebateStartAgentInfo[] = []): void {
     this.emit({
       type: "start",
+      mode: options.mode,
       topic: options.topic,
       turns: options.turns,
       agents: agents.map((a) => ({ name: a.name, role: a.role, type: a.type })),
       summaryEnabled: options.summaryEnabled,
       summaryAgent: options.summaryEnabled
-        ? options.summaryAgent ?? options.agentB
+        ? resolveSummaryAgent(options)
         : null,
       earlyStop: options.earlyStopOnAgreement,
       filesCount: options.files.length,
@@ -71,6 +72,14 @@ export class NdjsonRenderer implements DebateRenderer {
     this.emit({ type: "turn-start", turn, totalTurns, agent, role });
   }
 
+  askResponseStart(response: number, totalResponses: number, agent: string, role: AgentRole): void {
+    this.currentSection = "ask";
+    this.currentTurn = response;
+    this.currentAgent = agent;
+    this.currentRole = role;
+    this.emit({ type: "ask-response-start", response, totalResponses, agent, role });
+  }
+
   /**
    * Émet `thinking-start`. Les consommateurs UI peuvent l'utiliser pour un
    * indicateur "agent en cours" ; les consommateurs purement data peuvent
@@ -98,6 +107,14 @@ export class NdjsonRenderer implements DebateRenderer {
         role: this.currentRole,
         content,
       });
+    } else if (this.currentSection === "ask") {
+      this.emit({
+        type: "ask-response",
+        response: this.currentTurn,
+        agent: this.currentAgent,
+        role: this.currentRole,
+        content,
+      });
     } else {
       this.emit({
         type: "message",
@@ -107,6 +124,10 @@ export class NdjsonRenderer implements DebateRenderer {
         content,
       });
     }
+  }
+
+  askResponseMessage(content: string): void {
+    this.message(content);
   }
 
   /** Émet `summary-start` et bascule la section courante en synthèse. */
@@ -133,6 +154,18 @@ export class NdjsonRenderer implements DebateRenderer {
       JSON.stringify({ v: this.schemaVersion, ...event }) + "\n",
     );
   }
+}
+
+function resolveSummaryAgent(options: DebateOptions): string {
+  if (options.summaryAgent) {
+    return options.summaryAgent;
+  }
+
+  if (options.mode === "ask" && options.askAgents && options.askAgents.length > 0) {
+    return options.askAgents[options.askAgents.length - 1] ?? options.agentB;
+  }
+
+  return options.agentB;
 }
 
 /** Factory pratique pour conserver la symétrie avec `createConsoleRenderer`. */

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { runDebate } from "../src/orchestrator.js";
+import { runAsk, runDebate } from "../src/orchestrator.js";
 import { createTranslator } from "../src/i18n.js";
 import type { DebateOptions, PalabreConfig, SessionContext } from "../src/types.js";
 
@@ -43,6 +43,29 @@ test("runDebate stops before launching the next turn when aborted", async () => 
   assert.equal(result.failure?.message, "Debate cancelled by the user.");
 });
 
+test("runAsk collects independent responses before summary", async () => {
+  const config: PalabreConfig = {
+    agents: {
+      first: scriptedCliAgent("First answer."),
+      second: scriptedCliAgent("Second answer."),
+      summary: scriptedCliAgent("Summary answer.")
+    }
+  };
+  const result = await runAsk(config, debateOptions({
+    mode: "ask",
+    agentA: "first",
+    agentB: "second",
+    askAgents: ["first", "second"],
+    summaryAgent: "summary",
+    summaryEnabled: true
+  }), undefined, createTranslator("en"));
+
+  assert.deepEqual(result.messages.map((message) => message.agent), ["first", "second"]);
+  assert.deepEqual(result.messages.map((message) => message.content), ["First answer.", "Second answer."]);
+  assert.equal(result.summary?.agent, "summary");
+  assert.equal(result.summary?.content, "Summary answer.");
+});
+
 function scriptedCliAgent(output: string): PalabreConfig["agents"][string] {
   return {
     type: "cli",
@@ -55,6 +78,7 @@ function scriptedCliAgent(output: string): PalabreConfig["agents"][string] {
 
 function debateOptions(overrides: Partial<DebateOptions> = {}): DebateOptions {
   return {
+    mode: "debate",
     language: "fr",
     topic: "Test topic",
     agentA: "first",

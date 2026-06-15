@@ -51,14 +51,18 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
   language: { arity: "single" },
   "model-a": { arity: "single" },
   "model-b": { arity: "single" },
+  mode: { arity: "single" },
   "set-ollama-model": { arity: "single" },
   preset: { arity: "single" },
   "summary-agent": { arity: "single" },
+  "ask-summary-agent": { arity: "single" },
   "summary-model": { arity: "single" },
   topic: { arity: "single" },
   turns: { arity: "single" },
   renderer: { arity: "single" },
   // Valeurs multiples.
+  agents: { arity: "multi", max: 4 },
+  "ask-agents": { arity: "multi", max: 4 },
   "set-defaults": { arity: "multi", max: 2 },
   files: { arity: "multi" },
   context: { arity: "multi" }
@@ -67,6 +71,7 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
 /** Commandes acceptées comme premier argument positionnel. */
 const COMMANDS = new Set([
   "run",
+  "ask",
   "new",
   "init",
   "setup",
@@ -212,9 +217,18 @@ export function parseArgs(args: string[], messages: Messages): ParsedArgs {
 
   if (command === "run") {
     applyRunPositionals(positionals, flags, presets, commandExplicit, COMMANDS, messages);
+  } else if (command === "ask") {
+    flags.mode = "ask";
+    applyTopicPositionals(positionals, flags);
   }
 
   return { command, commandExplicit, positionals, flags };
+}
+
+function applyTopicPositionals(positionals: string[], flags: Record<string, string | string[] | boolean>): void {
+  if (positionals.length > 0) {
+    flags.topic ??= positionals.join(" ");
+  }
 }
 
 /**

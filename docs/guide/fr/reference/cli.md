@@ -25,6 +25,9 @@ Cette page liste les commandes principales de Palabre.
 | `palabre config -t 4`                        | Définit le nombre de réponses par défaut. |
 | `palabre config --summary-agent claude`      | Définit l'agent de synthèse par défaut.   |
 | `palabre config --summary-agent none`        | Retire l'agent de synthèse par défaut.    |
+| `palabre config --ask-summary-agent opencode` | Définit l'agent de synthèse par défaut du mode ask. |
+| `palabre config --mode ask`                  | Définit le mode par défaut (`debate` ou `ask`). |
+| `palabre config --ask-agents codex claude opencode` | Définit les agents par défaut du mode ask, 4 maximum. |
 | `palabre config --language en`               | Définit la langue de Palabre et des prompts agents. |
 | `palabre config --clear-defaults`            | Supprime les paramètres par défaut.       |
 | `palabre config --sync-agents`               | Ajoute les agents détectés manquants et rafraîchit les commandes connues. |
@@ -40,6 +43,7 @@ Cette page liste les commandes principales de Palabre.
 | `palabre -s "Sujet" -t 4` | Lance avec les agents par défaut. |
 | `palabre codex-claude "Sujet" -t 4` | Lance avec un preset. |
 | `palabre run --subject "Sujet" --agent-a codex --agent-b claude` | Lance avec des agents explicites. |
+| `palabre ask "Sujet" --agents codex claude` | Lance une demande avec des réponses indépendantes. |
 
 ## Intégrations
 
@@ -68,6 +72,8 @@ Cette page liste les commandes principales de Palabre.
 | `--preset <name>` | Choisit une paire d'agents. |
 | `--agent-a <name>` | Premier agent. |
 | `--agent-b <name>` | Second agent. |
+| `--mode <debate\|ask>` | Choisit le mode d'orchestration. |
+| `--agents <names...>` | Agents du mode ask, 4 maximum. |
 | `-t`, `--turns <number>` | Nombre total de réponses, entre 1 et 20. |
 | `--no-early-stop` | Désactive l'arrêt anticipé. |
 | `--model-a <model>` | Modèle transmis à l'agent A. |

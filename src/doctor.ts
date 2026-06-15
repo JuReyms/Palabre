@@ -134,6 +134,10 @@ async function inspectConfig(config: PalabreConfig, lines: DiagnosticLine[], t: 
     lines.push(warn(t.doctor.summaryAgentMissing));
   }
 
+  if (config.defaults?.askSummaryAgent) {
+    inspectDefaultAgent("defaults.askSummaryAgent", config.defaults.askSummaryAgent, config, lines, t);
+  }
+
   await inspectOutputDir(config.outputDir, lines, t);
 }
 

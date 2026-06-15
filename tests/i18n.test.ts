@@ -65,7 +65,7 @@ test("createTranslator returns localized init messages", () => {
 test("createTranslator returns localized agents messages", () => {
   assert.equal(createTranslator("fr").agents.title, "Agents déclarés:");
   assert.equal(createTranslator("en").agents.title, "Declared agents:");
-  assert.equal(createTranslator("en").agents.defaults("codex", "claude", 4, "claude"), "Defaults: codex <-> claude, responses: 4, summary: claude");
+  assert.equal(createTranslator("en").agents.defaults("codex", "claude", 4, "claude", "ollama-local"), "Defaults: codex <-> claude, responses: 4, debate summary: claude, ask summary: ollama-local");
   assert.equal(createTranslator("en").agents.command("codex", "gpt-5.5"), "command: codex | model: gpt-5.5");
   assert.equal(createTranslator("en").agents.missingModel("gemma4:e4b"), "missing model (gemma4:e4b)");
 });
@@ -74,11 +74,11 @@ test("createTranslator returns localized config messages", () => {
   assert.equal(createTranslator("fr").config.syncNoMissing("palabre.config.json"), "Aucun agent détecté manquant dans palabre.config.json.");
   assert.equal(createTranslator("en").config.syncNoMissing("palabre.config.json"), "No missing detected agent in palabre.config.json.");
   assert.equal(createTranslator("en").config.ollamaModelUpdated("palabre.config.json", "old", "new"), "Ollama model updated in palabre.config.json: old -> new.");
-  assert.equal(createTranslator("en").config.defaultsSummary("codex", "claude", 4, undefined), "agents: codex <-> claude, responses: 4, summary: agent B");
+  assert.equal(createTranslator("en").config.defaultsSummary("codex", "claude", 4, undefined), "mode: debate, agents: codex <-> claude, responses: 4, ask agents: default, debate summary: agent B, ask summary: default summary");
   assert.equal(createTranslator("fr").config.wizardActionSyncAgents, "Synchroniser les agents détectés");
   assert.equal(createTranslator("en").config.wizardActionSyncAgents, "Sync detected agents");
   assert.equal(createTranslator("en").config.wizardChoiceQuestion("Type the number of your choice", "1"), "Type the number of your choice (Enter = 1): ");
-  assert.equal(createTranslator("en").config.wizardDefaults({ agentA: "codex", agentB: "claude", turns: 4, summaryAgent: "claude" }), "codex <-> claude, responses: 4, summary: claude");
+  assert.equal(createTranslator("en").config.wizardDefaults({ agentA: "codex", agentB: "claude", turns: 4, summaryAgent: "claude", askSummaryAgent: "ollama-local" }), "mode: debate, codex <-> claude, responses: 4, ask agents: default, debate summary: claude, ask summary: ollama-local");
 });
 
 test("createTranslator returns localized presets messages", () => {
@@ -125,6 +125,7 @@ test("createTranslator returns localized new wizard messages", () => {
   assert.equal(createTranslator("fr").new.title, "PALABRE - ASSISTANT DE CONFIGURATION");
   assert.equal(createTranslator("en").new.title, "PALABRE - SETUP ASSISTANT");
   assert.equal(createTranslator("en").new.detectedCli("reviewer"), "cli/reviewer detected");
+  assert.equal(createTranslator("en").new.modeAsk, "Request with independent responses");
   assert.equal(createTranslator("en").new.modelFor("codex"), "Model for codex (optional)");
   assert.equal(createTranslator("en").new.yesNoSuffix(false), "y/N");
   assert.equal(createTranslator("en").new.cancelled, "Debate creation cancelled.");
@@ -135,7 +136,7 @@ test("createTranslator returns localized console renderer messages", () => {
   assert.equal(createTranslator("en").renderers.subject("Test subject"), "Subject: Test subject");
   assert.equal(createTranslator("en").renderers.responsesSummaryContext(4, "claude", "no injected files"), "Responses: 4 | Summary: claude | Context: no injected files");
   assert.equal(createTranslator("en").renderers.options(true, false), "Options: early stop enabled, Ollama auto-pull disabled");
-  assert.equal(createTranslator("en").renderers.exported("out.md"), "Debate exported: out.md");
+  assert.equal(createTranslator("en").renderers.exported("out.md"), "Palabre exported: out.md");
 });
 
 test("createTranslator returns localized context messages", () => {

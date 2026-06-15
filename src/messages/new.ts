@@ -6,8 +6,13 @@ export interface NewMessages {
   title: string;
   quitHint: string;
   defaultHint: string;
+  mode: string;
+  modeDebate: string;
+  modeAsk: string;
   agentA: string;
   agentB: string;
+  askAgents: string;
+  askAgentsPrompt(defaultValue: string): string;
   topic: string;
   advancedHint: string;
   launchMinimal: string;
@@ -24,7 +29,9 @@ export interface NewMessages {
   ollamaUnreachable(role: string): string;
   detectedCli(role: string): string;
   missingCli(role: string): string;
+  invalidModeChoice: string;
   invalidAgentChoice: string;
+  invalidAskAgentsChoice: string;
   requiredField: string;
   invalidTurns(maxTurns: number): string;
   invalidYesNo: string;
@@ -40,8 +47,13 @@ export const newMessages: Record<Language, NewMessages> = {
     title: "PALABRE - ASSISTANT DE CONFIGURATION",
     quitHint: "À tout moment: Ctrl+C pour interrompre, ou tape q, quit ou exit dans un prompt pour quitter.",
     defaultHint: "Appuie sur Entrée pour accepter un choix par défaut (*).",
+    mode: "Mode",
+    modeDebate: "Débat entre deux agents",
+    modeAsk: "Demande avec réponses indépendantes",
     agentA: "Agent A",
     agentB: "Agent B",
+    askAgents: "Agents qui répondront indépendamment",
+    askAgentsPrompt: (defaultValue) => `Agents ask, noms ou numéros séparés par des espaces (Entrée = ${defaultValue})`,
     topic: "Sujet",
     advancedHint: "Réponds non pour choisir le nombre de réponses, les modèles, la synthèse et le contexte.",
     launchMinimal: "Lancer maintenant avec les options par défaut ?",
@@ -58,7 +70,9 @@ export const newMessages: Record<Language, NewMessages> = {
     ollamaUnreachable: (role) => `ollama/${role} non joignable`,
     detectedCli: (role) => `cli/${role} détecté`,
     missingCli: (role) => `cli/${role} non détecté`,
+    invalidModeChoice: "Choix invalide. Tape 1, 2, débat, ask, Entrée ou q.",
     invalidAgentChoice: "Choix invalide. Tape un numéro, un nom d'agent, Entrée ou q.",
+    invalidAskAgentsChoice: "Choix invalide. Tape un à quatre numéros ou noms d'agents, séparés par des espaces, Entrée ou q.",
     requiredField: "Ce champ est requis pour lancer un débat.",
     invalidTurns: (maxTurns) => `Entre un nombre entier entre 1 et ${maxTurns}, Entrée ou q.`,
     invalidYesNo: "Réponds par oui, non, Entrée ou q.",
@@ -72,8 +86,13 @@ export const newMessages: Record<Language, NewMessages> = {
     title: "PALABRE - SETUP ASSISTANT",
     quitHint: "At any time: Ctrl+C to interrupt, or type q, quit, or exit in a prompt to leave.",
     defaultHint: "Press Enter to accept a default choice (*).",
+    mode: "Mode",
+    modeDebate: "Debate between two agents",
+    modeAsk: "Request with independent responses",
     agentA: "Agent A",
     agentB: "Agent B",
+    askAgents: "Agents that will answer independently",
+    askAgentsPrompt: (defaultValue) => `Ask agents, names or numbers separated by spaces (Enter = ${defaultValue})`,
     topic: "Subject",
     advancedHint: "Answer no to choose the number of responses, models, summary, and context.",
     launchMinimal: "Launch now with default options?",
@@ -90,7 +109,9 @@ export const newMessages: Record<Language, NewMessages> = {
     ollamaUnreachable: (role) => `ollama/${role} unreachable`,
     detectedCli: (role) => `cli/${role} detected`,
     missingCli: (role) => `cli/${role} not detected`,
+    invalidModeChoice: "Invalid choice. Type 1, 2, debate, ask, Enter, or q.",
     invalidAgentChoice: "Invalid choice. Type a number, an agent name, Enter, or q.",
+    invalidAskAgentsChoice: "Invalid choice. Type one to four agent numbers or names separated by spaces, Enter, or q.",
     requiredField: "This field is required to start a debate.",
     invalidTurns: (maxTurns) => `Enter an integer between 1 and ${maxTurns}, Enter, or q.`,
     invalidYesNo: "Answer yes, no, Enter, or q.",

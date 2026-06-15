@@ -18,7 +18,8 @@ export async function writeDebateMarkdown(
   failure?: DebateFailure
 ): Promise<string> {
   const safeDate = new Date().toISOString().replace(/[:.]/g, "-");
-  const fileName = `palabre-${slugifyTopic(options.topic)}-${safeDate}.debate.md`;
+  const extension = options.mode === "ask" ? "ask" : "debate";
+  const fileName = `palabre-${slugifyTopic(options.topic)}-${safeDate}.${extension}.md`;
   const filePath = path.resolve(outputDir, fileName);
 
   await mkdir(path.dirname(filePath), { recursive: true });
@@ -53,7 +54,7 @@ export function renderDebateMarkdown(
   failure?: DebateFailure
 ): string {
   const lines = [
-    messages.output.title,
+    options.mode === "ask" ? messages.output.askTitle : messages.output.title,
     "",
     ...renderSessionHeader(options, debateMessages, stopReason, messages),
     "",
@@ -61,7 +62,7 @@ export function renderDebateMarkdown(
     "",
     ...renderFileList(options.files, messages),
     "",
-    messages.output.exchangesTitle,
+    options.mode === "ask" ? messages.output.askResponsesTitle : messages.output.exchangesTitle,
     ""
   ];
 
@@ -133,12 +134,19 @@ function renderSessionHeader(
 ): string[] {
   const rows = [
     [messages.output.fields.subject, options.topic],
-    [messages.output.fields.agents, `${options.agentA} <-> ${options.agentB}`],
+    [messages.output.fields.mode, options.mode],
+    [messages.output.fields.agents, formatAgentsForHeader(options)],
     [messages.output.fields.autoPullOllama, options.pullModels ? messages.output.yes : messages.output.no],
-    [messages.output.fields.summary, options.summaryEnabled ? options.summaryAgent ?? options.agentB : messages.output.disabled],
-    [messages.output.fields.requestedTurns, String(options.turns)],
-    [messages.output.fields.playedTurns, String(debateMessages.length)],
-    [messages.output.fields.earlyStop, stopReason ?? messages.output.no],
+    [messages.output.fields.summary, options.summaryEnabled ? formatSummaryAgent(options) : messages.output.disabled],
+    [
+      options.mode === "ask" ? messages.output.fields.requestedResponses : messages.output.fields.requestedTurns,
+      String(options.mode === "ask" ? options.askAgents?.length ?? debateMessages.length : options.turns)
+    ],
+    [
+      options.mode === "ask" ? messages.output.fields.receivedResponses : messages.output.fields.playedTurns,
+      String(debateMessages.length)
+    ],
+    [messages.output.fields.earlyStop, options.mode === "debate" ? stopReason ?? messages.output.no : messages.output.no],
     [messages.output.fields.localDate, options.session.localDate],
     [messages.output.fields.timeZone, options.session.timeZone],
     [messages.output.fields.cwd, options.session.cwd],
@@ -162,4 +170,24 @@ function renderFileList(files: DebateOptions["files"], messages: Messages): stri
   }
 
   return files.map((file) => `- \`${file.path}\` (${file.sizeBytes} ${messages.output.fileSizeUnit})`);
+}
+
+function formatSummaryAgent(options: DebateOptions): string {
+  if (options.summaryAgent) {
+    return options.summaryAgent;
+  }
+
+  if (options.mode === "ask" && options.askAgents && options.askAgents.length > 0) {
+    return options.askAgents[options.askAgents.length - 1] ?? options.agentB;
+  }
+
+  return options.agentB;
+}
+
+function formatAgentsForHeader(options: DebateOptions): string {
+  if (options.mode === "ask") {
+    return (options.askAgents && options.askAgents.length > 0 ? options.askAgents : [options.agentA, options.agentB]).join(", ");
+  }
+
+  return `${options.agentA} <-> ${options.agentB}`;
 }

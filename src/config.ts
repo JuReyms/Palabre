@@ -18,9 +18,12 @@ export const exampleConfig: PalabreConfig = {
   language: "fr",
   outputDir: DEFAULT_OUTPUT_DIR,
   defaults: {
+    mode: "debate",
     agentA: "codex",
     agentB: "claude",
+    askAgents: ["codex", "claude"],
     summaryAgent: "claude",
+    askSummaryAgent: "claude",
     turns: 4
   },
   agents: {
@@ -210,11 +213,18 @@ export function createConfigFromDiscovery(discovery: ToolDiscovery): PalabreConf
   config.defaults = pair
     ? {
         ...config.defaults,
+        mode: config.defaults?.mode ?? "debate",
         agentA: pair[0],
         agentB: pair[1],
-        summaryAgent: chooseDefaultSummaryAgent(pair)
+        askAgents: pair,
+        summaryAgent: chooseDefaultSummaryAgent(pair),
+        askSummaryAgent: chooseDefaultSummaryAgent(pair)
       }
-    : { turns: config.defaults?.turns };
+    : {
+        mode: config.defaults?.mode ?? "debate",
+        turns: config.defaults?.turns,
+        askAgents: detectedAgentNames(discovery).slice(0, 2)
+      };
 
   return config;
 }

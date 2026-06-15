@@ -71,6 +71,32 @@ test("a known preset positional becomes the preset, the rest becomes the subject
   assert.equal(parsed.flags.topic, "quel jour sommes nous ?");
 });
 
+test("ask command treats positionals as the subject", () => {
+  const parsed = parse(["ask", "compare les options"]);
+
+  assert.equal(parsed.command, "ask");
+  assert.equal(parsed.flags.mode, "ask");
+  assert.equal(parsed.flags.topic, "compare les options");
+});
+
+test("--mode and --agents are parsed for ask sessions", () => {
+  const parsed = parse(["--mode", "ask", "--agents", "codex", "claude", "ollama-local", "--ask-summary-agent", "claude", "-s", "topic"]);
+
+  assert.equal(parsed.command, "run");
+  assert.equal(parsed.flags.mode, "ask");
+  assert.deepEqual(parsed.flags.agents, ["codex", "claude", "ollama-local"]);
+  assert.equal(parsed.flags["ask-summary-agent"], "claude");
+  assert.equal(parsed.flags.topic, "topic");
+});
+
+test("--ask-agents is parsed for config defaults", () => {
+  const parsed = parse(["config", "--mode", "ask", "--ask-agents", "codex", "claude", "opencode"]);
+
+  assert.equal(parsed.command, "config");
+  assert.equal(parsed.flags.mode, "ask");
+  assert.deepEqual(parsed.flags["ask-agents"], ["codex", "claude", "opencode"]);
+});
+
 test("flag aliases normalize to their canonical name", () => {
   const parsed = parse(["--subject", "topic", "--lang", "fr", "--turns", "3"]);
 
