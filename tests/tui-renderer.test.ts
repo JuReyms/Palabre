@@ -30,6 +30,30 @@ test("TuiRenderer renders a lightweight terminal dashboard", () => {
   assert.match(text, /Session terminee/);
   assert.match(text, /Export Markdown/);
   assert.match(text, /Palabre exported: out\.debate\.md/);
+  assert.equal(text.match(/out\.debate\.md/g)?.length, 1);
+});
+
+test("TuiRenderer warns when a PTY agent may open a terminal window", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    const renderer = createTuiRenderer(createTranslator("fr"));
+    renderer.start(baseOptions(), [
+      { name: "antigravity", role: "reviewer", type: "cli-pty" },
+      { name: "codex", role: "implementer", type: "cli" }
+    ]);
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /pseudo-terminal/);
+  assert.match(text, /fenetre peut apparaitre brievement/);
 });
 
 test("renderTuiHome renders a Palabre launch screen", () => {

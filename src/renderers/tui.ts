@@ -285,6 +285,7 @@ class TuiRenderer implements DebateRenderer {
   private spinner?: ReturnType<typeof setInterval>;
   private spinnerFrame = 0;
   private currentSection: "debate" | "ask" | "summary" = "debate";
+  private currentAgent?: string;
   private readonly frames = ["-", "\\", "|", "/"];
 
   constructor(
@@ -311,11 +312,13 @@ class TuiRenderer implements DebateRenderer {
 
   turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void {
     this.currentSection = "debate";
+    this.currentAgent = agent;
     this.promptBlock(`${agentLabel(agent)} (${role}) - ${this.messages.renderers.turn(turn, totalTurns)}`);
   }
 
   askResponseStart(response: number, totalResponses: number, agent: string, role: AgentRole): void {
     this.currentSection = "ask";
+    this.currentAgent = agent;
     this.promptBlock(`${agentLabel(agent)} (${role}) - reponse ${response}/${totalResponses}`);
   }
 
@@ -361,6 +364,7 @@ class TuiRenderer implements DebateRenderer {
 
   summaryStart(agent: string, role: AgentRole): void {
     this.currentSection = "summary";
+    this.currentAgent = agent;
     this.promptBlock(`${this.messages.renderers.summaryTitle} - ${agent} (${role})`);
   }
 
@@ -375,8 +379,7 @@ class TuiRenderer implements DebateRenderer {
     const width = this.width();
     process.stdout.write(`\n${centerBlock(card([
       bold("Session terminee"),
-      row("Export Markdown", outputPath),
-      dim(this.messages.renderers.exported(outputPath))
+      this.messages.renderers.exported(outputPath)
     ], width), viewport).join("\n")}\n\n`);
   }
 
@@ -390,7 +393,8 @@ class TuiRenderer implements DebateRenderer {
         this.messages.renderers.subject(options.topic),
         this.messages.renderers.agents(formatAgents(options, agents)),
         this.messages.renderers.responsesSummary(formatResponseCount(options), formatSummary(options, this.messages)),
-        this.messages.renderers.context(formatContext(options, this.messages))
+        this.messages.renderers.context(formatContext(options, this.messages)),
+        ...formatPtyNotice(agents)
       ], width)
     ];
 
@@ -409,13 +413,7 @@ class TuiRenderer implements DebateRenderer {
       "",
       `${accent("1")} ${options.mode === "ask" ? "Collecter les reponses" : "Lancer le debat"}`,
       `${accent("2")} ${options.summaryEnabled ? "Synthese comparative" : "Synthese desactivee"}`,
-      `${accent("3")} Export Markdown`,
-      "",
-      bold("Agents"),
-      formatAgentNames(options),
-      "",
-      bold("Contexte"),
-      options.files.length === 0 ? dim("aucun fichier injecte") : `${options.files.length} fichier(s)`
+      `${accent("3")} Export Markdown`
     ], width);
   }
 
@@ -431,7 +429,7 @@ class TuiRenderer implements DebateRenderer {
     const body = content
       .split(/\r?\n/)
       .flatMap((line) => line ? wrapLine(line, contentWidth) : [""]);
-    return `\n${centerBlock(textSurface(body, width), viewportWidth()).join("\n")}\n`;
+    return `\n${centerBlock(textSurface(body, width, this.currentAgent), viewportWidth()).join("\n")}\n`;
   }
 
   private formatSummary(content: string): string {
@@ -486,10 +484,11 @@ function formatAgent(agent: DebateStartAgentInfo | undefined): string {
   return agent ? `${agentLabel(agent.name)} (${agent.role}, ${agent.type})` : "?";
 }
 
-function formatAgentNames(options: DebateOptions): string {
-  return options.mode === "ask" && options.askAgents && options.askAgents.length > 0
-    ? options.askAgents.join(", ")
-    : `${options.agentA} <-> ${options.agentB}`;
+function formatPtyNotice(agents: DebateStartAgentInfo[]): string[] {
+  const ptyAgents = agents.filter((agent) => agent.type === "cli-pty").map((agent) => agent.name);
+  return ptyAgents.length > 0
+    ? ["", `${orange("Note:")} ${ptyAgents.join(", ")} utilise un pseudo-terminal; une fenetre peut apparaitre brievement.`]
+    : [];
 }
 
 function formatSummary(options: DebateOptions, messages: Messages): string {
@@ -606,13 +605,14 @@ function panel(lines: string[], width: number): string[] {
   ];
 }
 
-function textSurface(lines: string[], width: number): string[] {
+function textSurface(lines: string[], width: number, agent?: string): string[] {
   const contentWidth = Math.max(24, width - 4);
   const body = lines.length > 0 ? lines : [""];
+  const border = agent ? (value: string) => agentColor(agent, value) : violet;
   return [
-    `${violet("|")} ${" ".repeat(contentWidth)} ${dim("|")}`,
-    ...body.map((line) => `${violet("|")} ${padRight(line, contentWidth)} ${dim("|")}`),
-    `${violet("|")} ${" ".repeat(contentWidth)} ${dim("|")}`
+    `${border("|")} ${" ".repeat(contentWidth)} ${border("|")}`,
+    ...body.map((line) => `${border("|")} ${padRight(line, contentWidth)} ${border("|")}`),
+    `${border("|")} ${" ".repeat(contentWidth)} ${border("|")}`
   ];
 }
 
