@@ -1,4 +1,6 @@
-import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateStartAgentInfo } from "../types.js";
+import { createInterface } from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
+import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateStartAgentInfo, PalabreConfig, PalabreMode } from "../types.js";
 import type { Messages } from "../messages/index.js";
 
 const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
@@ -7,6 +9,253 @@ const supportsInteractiveOutput = Boolean(process.stdout.isTTY);
 /** Cree le premier renderer TUI leger, sans dependance UI externe. */
 export function createTuiRenderer(messages: Messages): DebateRenderer {
   return new TuiRenderer(messages, supportsColor, supportsInteractiveOutput);
+}
+
+/** Affiche l'ecran d'accueil TUI lance par `palabre` sans sujet. */
+export function renderTuiHome(config: PalabreConfig, configPath: string, messages: Messages, state: { mode?: PalabreMode; version?: string } = {}): void {
+  if (supportsInteractiveOutput) {
+    clearScreen();
+  }
+
+  const viewport = viewportWidth();
+  const width = surfaceWidth();
+  const defaults = config.defaults ?? {};
+  const mode = state.mode ?? defaults.mode ?? "debate";
+  const debateAgents = defaults.agentA && defaults.agentB
+    ? `${defaults.agentA} <-> ${defaults.agentB}`
+    : "non definis";
+  const askAgents = defaults.askAgents && defaults.askAgents.length > 0
+    ? defaults.askAgents.join(", ")
+    : debateAgents.replace(" <-> ", ", ");
+  const summary = mode === "ask"
+    ? defaults.askSummaryAgent ?? defaults.summaryAgent ?? "dernier agent ask"
+    : defaults.summaryAgent ?? defaults.agentB ?? "agent B";
+
+  const lines = [
+    "",
+    ...centerLogo(viewport),
+    ...centerBlock([dim(`v${state.version ?? "0.0.0"}`)], viewport),
+    "",
+    ...centerBlock(composerCard([
+      muted("Pose une question, compare plusieurs agents, exporte une synthese."),
+      "",
+      `${bold("Mode actuel")}      ${accent(mode === "ask" ? "Ask" : "Debat")}`,
+      `${bold("Debat")}            ${debateAgents}`,
+      `${bold("Ask")}              ${askAgents}`,
+      `${bold("Reponses")}         ${String(defaults.turns ?? "?")}`,
+      `${bold("Synthese")}         ${summary}`,
+      `${bold("Config")}           ${configPath}`,
+      "",
+      `${bold("Sujet")}            ecris ton sujet puis Entree`,
+      `${bold("/ask")}             passer en mode Ask`,
+      `${bold("/debat")}           passer en mode Debat`,
+      `${bold("/config")}          configurer Palabre`,
+      `${bold("/new")}             ouvrir l'assistant guide`,
+      `${bold("/help")}            afficher les commandes TUI`,
+      `${bold("/quit")}            quitter`
+    ], width), viewport),
+    "",
+    ...centerBlock([
+      `${orange("* Tip")} Utilise --context <dossier> ou --files <fichier> pour donner du contexte.`
+    ], viewport)
+  ];
+
+  process.stdout.write(lines.join("\n") + "\n");
+}
+
+/** Affiche l'aide interne du composer TUI. */
+export function renderTuiHelp(): void {
+  const viewport = viewportWidth();
+  const width = surfaceWidth();
+  process.stdout.write([
+    "",
+    ...centerBlock(card([
+      bold("Commandes TUI"),
+      `${accent("/ask")}      passer en mode Ask pour collecter plusieurs reponses independantes`,
+      `${accent("/debat")}    passer en mode Debat pour lancer une conversation entre deux agents`,
+      `${accent("/config")}   configurer Palabre sans sortir de la TUI`,
+      `${accent("/new")}      ouvrir l'assistant guide`,
+      `${accent("/help")}     afficher cette aide`,
+      `${accent("/quit")}     quitter la TUI`,
+      "",
+      dim("Tout autre texte est utilise comme demande a envoyer aux agents.")
+    ], Math.min(width, 78)), viewport),
+    ""
+  ].join("\n"));
+}
+
+/** Affiche l'ecran de config natif TUI, adapte au mode courant. */
+export function renderTuiConfig(config: PalabreConfig, configPath: string, mode: PalabreMode, state: { message?: string } = {}): void {
+  if (supportsInteractiveOutput) {
+    clearScreen();
+  }
+
+  const viewport = viewportWidth();
+  const width = surfaceWidth();
+  const defaults = config.defaults ?? {};
+  const agents = Object.keys(config.agents).join(", ");
+  const debateAgents = defaults.agentA && defaults.agentB ? `${defaults.agentA} <-> ${defaults.agentB}` : "non definis";
+  const askAgents = defaults.askAgents && defaults.askAgents.length > 0
+    ? defaults.askAgents.join(", ")
+    : debateAgents.replace(" <-> ", ", ");
+  const summary = mode === "ask"
+    ? defaults.askSummaryAgent ?? defaults.summaryAgent ?? "dernier agent ask"
+    : defaults.summaryAgent ?? defaults.agentB ?? "agent B";
+
+  const modeLines = mode === "ask"
+    ? [
+        `${bold("Ask")}              ${askAgents}`,
+        `${bold("Synthese ask")}     ${summary}`,
+        "",
+        `${bold("/agents")}          /agents codex claude opencode`,
+        `${bold("/summary")}         /summary opencode  ${dim("ou")} /summary none`
+      ]
+    : [
+        `${bold("Debat")}            ${debateAgents}`,
+        `${bold("Tours")}            ${String(defaults.turns ?? "?")}`,
+        `${bold("Synthese debat")}   ${summary}`,
+        "",
+        `${bold("/agents")}          /agents codex gemini`,
+        `${bold("/turns")}           /turns 4`,
+        `${bold("/summary")}         /summary ollama-local  ${dim("ou")} /summary none`
+      ];
+
+  const lines = [
+    "",
+    ...centerBlock(card([
+      `${bold("PALABRE")} ${dim("-")} ${accent("/config")} ${dim("-")} ${accent(mode === "ask" ? "Ask" : "Debat")}`,
+      `${bold("Config")}           ${configPath}`,
+      `${bold("Agents dispo")}     ${agents || "aucun"}`,
+      "",
+      ...modeLines,
+      "",
+      `${bold("/default")}         utiliser ${mode === "ask" ? "Ask" : "Debat"} par defaut`,
+      `${bold("/mode")}            changer de mode de configuration`,
+      `${bold("/back")}            revenir a l'accueil`,
+      `${bold("/quit")}            quitter`
+    ], width), viewport),
+    ...(state.message ? ["", ...centerBlock([state.message], viewport)] : [])
+  ];
+
+  process.stdout.write(lines.join("\n") + "\n");
+}
+
+export type TuiHomeInput =
+  | { kind: "topic"; topic: string }
+  | { kind: "new" }
+  | { kind: "config" }
+  | { kind: "mode"; mode: PalabreMode }
+  | { kind: "help" }
+  | undefined;
+
+export type TuiConfigInput =
+  | { kind: "back" }
+  | { kind: "quit" }
+  | { kind: "mode" }
+  | { kind: "default-mode" }
+  | { kind: "agents"; agents: string[] }
+  | { kind: "turns"; turns: number }
+  | { kind: "summary"; agent: string | undefined }
+  | { kind: "unknown"; message: string };
+
+/** Lit une demande depuis l'accueil TUI. Retourne undefined si l'utilisateur quitte. */
+export async function promptTuiHomeTopic(mode: PalabreMode = "debate"): Promise<TuiHomeInput> {
+  if (!input.isTTY) {
+    return undefined;
+  }
+
+  const rl = createInterface({ input, output });
+  try {
+    const answer = await rl.question(tuiPrompt(mode));
+    const value = answer.trim();
+    const command = value.toLowerCase();
+    if (!value || command === "/quit" || command === "/q" || command === "/exit") {
+      return undefined;
+    }
+
+    if (command === "/new") {
+      return { kind: "new" };
+    }
+
+    if (command === "/config") {
+      return { kind: "config" };
+    }
+
+    if (command === "/ask") {
+      return { kind: "mode", mode: "ask" };
+    }
+
+    if (command === "/debat" || command === "/débat" || command === "/debate") {
+      return { kind: "mode", mode: "debate" };
+    }
+
+    if (command === "/help" || command === "/h" || command === "/?") {
+      return { kind: "help" };
+    }
+
+    if (value.startsWith("/")) {
+      return { kind: "help" };
+    }
+
+    return { kind: "topic", topic: value };
+  } finally {
+    rl.close();
+  }
+}
+
+/** Lit une commande depuis l'ecran de config TUI. */
+export async function promptTuiConfigCommand(mode: PalabreMode): Promise<TuiConfigInput> {
+  if (!input.isTTY) {
+    return { kind: "back" };
+  }
+
+  const rl = createInterface({ input, output });
+  try {
+    const answer = await rl.question(tuiPrompt(mode, "Config"));
+    const parts = answer.trim().split(/\s+/).filter(Boolean);
+    const command = parts[0]?.toLowerCase();
+
+    if (!command || command === "/back" || command === "/b") {
+      return { kind: "back" };
+    }
+
+    if (command === "/quit" || command === "/q" || command === "/exit") {
+      return { kind: "quit" };
+    }
+
+    if (command === "/mode") {
+      return { kind: "mode" };
+    }
+
+    if (command === "/default") {
+      return { kind: "default-mode" };
+    }
+
+    if (command === "/agents") {
+      return parts.length > 1
+        ? { kind: "agents", agents: parts.slice(1) }
+        : { kind: "unknown", message: "Usage: /agents <agent...>" };
+    }
+
+    if (command === "/turns") {
+      const turns = Number(parts[1]);
+      return Number.isInteger(turns)
+        ? { kind: "turns", turns }
+        : { kind: "unknown", message: "Usage: /turns <nombre>" };
+    }
+
+    if (command === "/summary") {
+      const value = parts[1];
+      if (!value) {
+        return { kind: "unknown", message: "Usage: /summary <agent|none>" };
+      }
+      return { kind: "summary", agent: isNoneValue(value) ? undefined : value };
+    }
+
+    return { kind: "unknown", message: "Commande inconnue. Utilise /back pour revenir." };
+  } finally {
+    rl.close();
+  }
 }
 
 /**
@@ -30,25 +279,10 @@ class TuiRenderer implements DebateRenderer {
 
   start(options: DebateOptions, agents: DebateStartAgentInfo[] = []): void {
     if (this.interactive) {
-      process.stdout.write("\u001b[2J\u001b[H");
+      clearScreen();
     }
 
-    const width = this.width();
-    const title = options.mode === "ask" ? "PALABRE TUI - ASK" : "PALABRE TUI - DEBAT";
-    const lines = [
-      this.bar(width),
-      this.center(title, width),
-      this.bar(width),
-      this.row(this.messages.renderers.subject(options.topic), width),
-      this.row(this.messages.renderers.agents(formatAgents(options, agents)), width),
-      this.row(this.messages.renderers.responsesSummary(formatResponseCount(options), formatSummary(options, this.messages)), width),
-      this.row(this.messages.renderers.context(formatContext(options, this.messages)), width),
-      this.row(this.messages.renderers.options(options.earlyStopOnAgreement, options.pullModels), width),
-      this.bar(width),
-      ""
-    ];
-
-    process.stdout.write(lines.join("\n"));
+    process.stdout.write(this.renderSessionHeader(options, agents).join("\n") + "\n");
   }
 
   notice(message: string): void {
@@ -61,12 +295,12 @@ class TuiRenderer implements DebateRenderer {
 
   turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void {
     this.currentSection = "debate";
-    this.section(`${agent} (${role}) - ${this.messages.renderers.turn(turn, totalTurns)}`);
+    this.promptBlock(`${agentLabel(agent)} (${role}) - ${this.messages.renderers.turn(turn, totalTurns)}`);
   }
 
   askResponseStart(response: number, totalResponses: number, agent: string, role: AgentRole): void {
     this.currentSection = "ask";
-    this.section(`${agent} (${role}) - reponse ${response}/${totalResponses}`);
+    this.promptBlock(`${agentLabel(agent)} (${role}) - reponse ${response}/${totalResponses}`);
   }
 
   thinkingStart(agent: string, role: AgentRole): void {
@@ -82,7 +316,7 @@ class TuiRenderer implements DebateRenderer {
     const render = () => {
       const frame = this.frames[this.spinnerFrame % this.frames.length];
       this.spinnerFrame += 1;
-      process.stdout.write(`\r${this.c("cyan", frame)} ${text}...`);
+      process.stdout.write(`\r\u001b[2K${surfacePadding()}${agentColor(agent, frame)} ${text}...`);
     };
 
     render();
@@ -102,7 +336,7 @@ class TuiRenderer implements DebateRenderer {
 
   message(content: string): void {
     const trimmed = content.trim();
-    process.stdout.write(`${this.currentSection === "summary" ? this.formatSummary(trimmed) : trimmed}\n`);
+    process.stdout.write(`${this.formatMessage(this.currentSection === "summary" ? this.formatSummary(trimmed) : trimmed)}\n\n`);
   }
 
   askResponseMessage(content: string): void {
@@ -111,7 +345,7 @@ class TuiRenderer implements DebateRenderer {
 
   summaryStart(agent: string, role: AgentRole): void {
     this.currentSection = "summary";
-    this.section(`${this.messages.renderers.summaryTitle} - ${agent} (${role})`);
+    this.promptBlock(`${this.messages.renderers.summaryTitle} - ${agent} (${role})`);
   }
 
   error(failure: DebateFailure): void {
@@ -121,19 +355,57 @@ class TuiRenderer implements DebateRenderer {
 
   done(outputPath: string): void {
     this.thinkingEnd();
-    this.section(this.messages.renderers.exported(outputPath));
+    this.promptBlock(this.messages.renderers.exported(outputPath));
     process.stdout.write("\n");
   }
 
-  private section(title: string): void {
+  private renderSessionHeader(options: DebateOptions, agents: DebateStartAgentInfo[]): string[] {
+    const viewport = viewportWidth();
     const width = this.width();
-    process.stdout.write([
+    const mode = options.mode === "ask" ? "ASK" : "DEBAT";
+    const main = [
+      ...card([
+        `${bold("PALABRE")} ${dim("-")} ${accent(mode)}`,
+        this.messages.renderers.subject(options.topic),
+        this.messages.renderers.agents(formatAgents(options, agents)),
+        this.messages.renderers.responsesSummary(formatResponseCount(options), formatSummary(options, this.messages)),
+        this.messages.renderers.context(formatContext(options, this.messages))
+      ], width)
+    ];
+
+    return [
+      ...centerBlock(main, viewport),
       "",
-      this.c("cyan", this.bar(width)),
-      this.c("cyan", this.row(title, width)),
-      this.c("cyan", this.bar(width)),
+      ...centerBlock(this.planPanel(options, width), viewport),
       ""
-    ].join("\n"));
+    ];
+  }
+
+  private planPanel(options: DebateOptions, width: number): string[] {
+    return panel([
+      bold("Plan de session"),
+      dim(options.session.localDate),
+      "",
+      `${accent("1")} ${options.mode === "ask" ? "Collecter les reponses" : "Lancer le debat"}`,
+      `${accent("2")} ${options.summaryEnabled ? "Synthese comparative" : "Synthese desactivee"}`,
+      `${accent("3")} Export Markdown`,
+      "",
+      bold("Agents"),
+      formatAgentNames(options),
+      "",
+      bold("Contexte"),
+      options.files.length === 0 ? dim("aucun fichier injecte") : `${options.files.length} fichier(s)`
+    ], width);
+  }
+
+  private promptBlock(title: string): void {
+    const viewport = viewportWidth();
+    const width = this.width();
+    process.stdout.write(`\n\n${centerBlock(card([bold(title)], width), viewport).join("\n")}\n\n`);
+  }
+
+  private formatMessage(content: string): string {
+    return fixedWidthBlock(content.split(/\r?\n/).flatMap((line) => line ? wrapLine(line, this.width()) : [""]), viewportWidth(), this.width()).join("\n");
   }
 
   private formatSummary(content: string): string {
@@ -156,26 +428,7 @@ class TuiRenderer implements DebateRenderer {
   }
 
   private width(): number {
-    return Math.max(52, Math.min(process.stdout.columns || 80, 100));
-  }
-
-  private bar(width: number): string {
-    return `+${"-".repeat(width - 2)}+`;
-  }
-
-  private row(value: string, width: number): string {
-    const contentWidth = width - 4;
-    const clean = stripAnsi(value).replace(/\s+/g, " ").trim();
-    const clipped = clean.length > contentWidth ? `${clean.slice(0, Math.max(0, contentWidth - 1))}.` : clean;
-    return `| ${clipped.padEnd(contentWidth)} |`;
-  }
-
-  private center(value: string, width: number): string {
-    const contentWidth = width - 4;
-    const clean = stripAnsi(value).trim();
-    const left = Math.max(0, Math.floor((contentWidth - clean.length) / 2));
-    const right = Math.max(0, contentWidth - clean.length - left);
-    return `| ${" ".repeat(left)}${clean}${" ".repeat(right)} |`;
+    return surfaceWidth();
   }
 
   private c(color: keyof typeof codes, value: string): string {
@@ -204,7 +457,13 @@ function formatAgents(options: DebateOptions, agents: DebateStartAgentInfo[]): s
 }
 
 function formatAgent(agent: DebateStartAgentInfo | undefined): string {
-  return agent ? `${agent.name} (${agent.role}, ${agent.type})` : "?";
+  return agent ? `${agentLabel(agent.name)} (${agent.role}, ${agent.type})` : "?";
+}
+
+function formatAgentNames(options: DebateOptions): string {
+  return options.mode === "ask" && options.askAgents && options.askAgents.length > 0
+    ? options.askAgents.join(", ")
+    : `${options.agentA} <-> ${options.agentB}`;
 }
 
 function formatSummary(options: DebateOptions, messages: Messages): string {
@@ -246,12 +505,222 @@ function stripAnsi(value: string): string {
   return value.replace(/\u001b\[[0-9;?]*[A-Za-z]/g, "");
 }
 
+function clearScreen(): void {
+  process.stdout.write("\u001bc\u001b[?25h");
+}
+
+function surfaceWidth(): number {
+  return Math.max(72, Math.min(viewportWidth() - 8, 96));
+}
+
+function viewportWidth(): number {
+  return Math.max(72, Math.min(process.stdout.columns || 100, 180));
+}
+
+function tuiPrompt(mode: PalabreMode, labelPrefix = "Sujet"): string {
+  const label = mode === "ask" ? "Mode ask" : "Mode debat";
+  return `\n${surfacePadding()}${accent(label)} ${dim(">")} ${bold(labelPrefix)} ${dim(">")} `;
+}
+
+function surfacePadding(): string {
+  return " ".repeat(Math.max(0, Math.floor((viewportWidth() - surfaceWidth()) / 2)));
+}
+
+function isNoneValue(value: string): boolean {
+  return ["none", "aucun", "off", "non", "0", "disabled"].includes(value.toLowerCase());
+}
+
+function centerLogo(width: number): string[] {
+  return [
+    ...logo(),
+    "",
+    dim("Conversations entre agents IA")
+  ].map((line) => padLeft(line, Math.max(0, Math.floor((width - visibleLength(line)) / 2))));
+}
+
+function logo(): string[] {
+  return [
+    "██████   █████  ██       █████  ██████  ██████  ███████",
+    "██   ██ ██   ██ ██      ██   ██ ██   ██ ██   ██ ██     ",
+    "██████  ███████ ██      ███████ ██████  ██████  █████  ",
+    "██      ██   ██ ██      ██   ██ ██   ██ ██   ██ ██     ",
+    "██      ██   ██ ███████ ██   ██ ██████  ██   ██ ███████"
+  ].map((line) => supportsColor ? `${codes.violet}${line}${codes.reset}` : line);
+}
+
+function centerBlock(lines: string[], width: number): string[] {
+  const blockWidth = Math.max(...lines.map(visibleLength), 0);
+  const left = Math.max(0, Math.floor((width - blockWidth) / 2));
+  return lines.map((line) => padLeft(line, left));
+}
+
+function fixedWidthBlock(lines: string[], viewport: number, width: number): string[] {
+  const left = Math.max(0, Math.floor((viewport - width) / 2));
+  return lines.map((line) => padLeft(line, left));
+}
+
+function card(lines: string[], width: number): string[] {
+  const contentWidth = Math.max(24, width - 4);
+  const body = lines.flatMap((line) => wrapLine(line, contentWidth));
+  return body.map((line) => `${violet("|")} ${padRight(line, contentWidth)} ${dim("|")}`);
+}
+
+function composerCard(lines: string[], width: number): string[] {
+  const contentWidth = Math.max(24, width - 4);
+  const body = lines.flatMap((line) => wrapLine(line, contentWidth));
+  return [
+    `${violet("|")} ${" ".repeat(contentWidth)} ${dim("|")}`,
+    ...body.map((line) => `${violet("|")} ${padRight(line, contentWidth)} ${dim("|")}`),
+    `${violet("|")} ${" ".repeat(contentWidth)} ${dim("|")}`
+  ];
+}
+
+function panel(lines: string[], width: number): string[] {
+  const contentWidth = Math.max(18, width - 4);
+  const body = lines.flatMap((line) => wrapLine(line, contentWidth));
+  return [
+    `${dim("+")}${dim("-".repeat(contentWidth + 2))}${dim("+")}`,
+    ...body.map((line) => `${dim("|")} ${padRight(line, contentWidth)} ${dim("|")}`),
+    `${dim("+")}${dim("-".repeat(contentWidth + 2))}${dim("+")}`
+  ];
+}
+
+function twoColumns(left: string[], right: string[], leftWidth: number, rightWidth: number): string[] {
+  const height = Math.max(left.length, right.length);
+  const rows: string[] = [];
+
+  for (let index = 0; index < height; index += 1) {
+    rows.push(`${padRight(left[index] ?? "", leftWidth)}  ${padRight(right[index] ?? "", rightWidth)}`);
+  }
+
+  return rows;
+}
+
+function wrapLine(value: string, width: number): string[] {
+  const clean = value.replace(/\r?\n/g, " ");
+  if (visibleLength(clean) <= width) {
+    return [clean];
+  }
+
+  const words = clean.split(/\s+/);
+  const lines: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (visibleLength(next) <= width) {
+      current = next;
+    } else {
+      if (current) lines.push(current);
+      current = word;
+    }
+  }
+
+  if (current) lines.push(current);
+  return lines;
+}
+
+function padLeft(value: string, width: number): string {
+  return `${" ".repeat(width)}${value}`;
+}
+
+function padRight(value: string, width: number): string {
+  const missing = Math.max(0, width - visibleLength(value));
+  return `${value}${" ".repeat(missing)}`;
+}
+
+function visibleLength(value: string): number {
+  return stripAnsi(value).length;
+}
+
+function bold(value: string): string {
+  return supportsColor ? `${codes.bright}${value}${codes.reset}` : value;
+}
+
+function dim(value: string): string {
+  return supportsColor ? `${codes.dim}${value}${codes.reset}` : value;
+}
+
+function accent(value: string): string {
+  return supportsColor ? `${codes.violet}${value}${codes.reset}` : value;
+}
+
+function violet(value: string): string {
+  return supportsColor ? `${codes.violet}${value}${codes.reset}` : value;
+}
+
+function orange(value: string): string {
+  return supportsColor ? `${codes.orange}${value}${codes.reset}` : value;
+}
+
+function muted(value: string): string {
+  return supportsColor ? `${codes.gray}${value}${codes.reset}` : value;
+}
+
+function agentLabel(agent: string): string {
+  return supportsColor ? `${agentAnsi(agent)}${agent}${codes.reset}` : agent;
+}
+
+function agentColor(agent: string, value: string): string {
+  return supportsColor ? `${agentAnsi(agent)}${value}${codes.reset}` : value;
+}
+
+function agentAnsi(agent: string): string {
+  const normalized = agent.toLowerCase();
+  const color = agentColors[normalized] ?? hashedAgentColor(normalized);
+  return `\u001b[38;2;${color[0]};${color[1]};${color[2]}m`;
+}
+
+function hashedAgentColor(agent: string): [number, number, number] {
+  let hash = 0;
+  for (let index = 0; index < agent.length; index += 1) {
+    hash = (hash * 31 + agent.charCodeAt(index)) | 0;
+  }
+
+  const hue = Math.abs(hash) % 360;
+  return hslToRgb(hue, 55, 55);
+}
+
+function hslToRgb(hue: number, saturation: number, lightness: number): [number, number, number] {
+  const s = saturation / 100;
+  const l = lightness / 100;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs((hue / 60) % 2 - 1));
+  const m = l - c / 2;
+  const [r, g, b] = hue < 60 ? [c, x, 0]
+    : hue < 120 ? [x, c, 0]
+      : hue < 180 ? [0, c, x]
+        : hue < 240 ? [0, x, c]
+          : hue < 300 ? [x, 0, c]
+            : [c, 0, x];
+
+  return [
+    Math.round((r + m) * 255),
+    Math.round((g + m) * 255),
+    Math.round((b + m) * 255)
+  ];
+}
+
+const agentColors: Record<string, [number, number, number]> = {
+  antigravity: [76, 141, 255],
+  claude: [222, 115, 86],
+  gemini: [71, 150, 227],
+  codex: [136, 82, 197],
+  opencode: [80, 168, 103],
+  "ollama-local": [179, 176, 31],
+  ollama: [179, 176, 31]
+};
+
 const codes = {
   reset: "\u001b[0m",
+  bright: "\u001b[1m",
   dim: "\u001b[2m",
+  violet: "\u001b[38;5;141m",
   cyan: "\u001b[36m",
+  gray: "\u001b[38;5;244m",
   green: "\u001b[32m",
   magenta: "\u001b[35m",
+  orange: "\u001b[38;5;214m",
   red: "\u001b[31m",
   yellow: "\u001b[33m"
 };

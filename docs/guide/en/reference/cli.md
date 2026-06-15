@@ -10,6 +10,7 @@ This page lists the main Palabre commands.
 | Command | Description |
 |---------|-------------|
 | `palabre init` | Creates the global configuration and detects agents. |
+| `palabre` | Opens the TUI home screen with useful commands and defaults. |
 | `palabre init --local` | Creates a configuration in the current folder. |
 | `palabre doctor` | Displays a diagnostic by sections: configuration, local tools, agents, and items to check. |
 | `palabre agents` | Lists declared agents and their local detection. |

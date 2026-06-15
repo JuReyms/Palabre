@@ -10,6 +10,7 @@ Cette page liste les commandes principales de Palabre.
 | Commande | Description |
 |----------|-------------|
 | `palabre init` | Crée la configuration globale et détecte les agents. |
+| `palabre` | Ouvre l'écran d'accueil TUI avec les commandes utiles et les defaults. |
 | `palabre init --local` | Crée une configuration dans le dossier courant. |
 | `palabre doctor` | Affiche un diagnostic par sections : configuration, outils locaux, agents et points à vérifier. |
 | `palabre agents` | Liste les agents déclarés et leur détection locale. |

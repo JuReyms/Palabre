@@ -7,13 +7,13 @@ import { runDoctor } from "./doctor.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
 import { runConfigWizard } from "./configWizard.js";
 import { createTranslator, DEFAULT_LANGUAGE, parseLanguage, resolveLanguage } from "./i18n.js";
-import { DEFAULT_TURNS, parseTurnsFlag, turnsOrDefault } from "./limits.js";
+import { DEFAULT_TURNS, parseTurnsFlag, turnsOrDefault, validateTurns } from "./limits.js";
 import { formatAgentPrompt } from "./prompt.js";
 import { runNewWizard } from "./new.js";
 import { listPresetNames, listPresetsWithAvailability, resolvePreset } from "./presets.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { createNdjsonRenderer } from "./renderers/ndjson.js";
-import { createTuiRenderer } from "./renderers/tui.js";
+import { createTuiRenderer, promptTuiConfigCommand, promptTuiHomeTopic, renderTuiConfig, renderTuiHelp, renderTuiHome } from "./renderers/tui.js";
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./update.js";
@@ -134,6 +134,67 @@ async function main(): Promise<void> {
   const messages = createTranslator(language);
 
   assertRunnableConfig(config, messages, configPath);
+
+  if (shouldOpenTuiHome(parsed)) {
+    let tuiMode = config.defaults?.mode ?? "debate";
+    const tuiVersion = await getPackageVersion();
+
+    for (;;) {
+      renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion });
+      const tuiInput = await promptTuiHomeTopic(tuiMode);
+      if (!tuiInput) {
+        return;
+      }
+
+      if (tuiInput.kind === "help") {
+        renderTuiHelp();
+        const nextInput = await promptTuiHomeTopic(tuiMode);
+        if (!nextInput) {
+          return;
+        }
+
+        if (nextInput.kind === "help") {
+          continue;
+        }
+
+        if (nextInput.kind === "mode") {
+          tuiMode = nextInput.mode;
+          continue;
+        }
+
+        if (nextInput.kind === "config") {
+          const result = await runTuiConfigLoop(configPath, config, messages, tuiMode);
+          if (result.quit) return;
+          tuiMode = result.mode;
+          continue;
+        }
+
+        if (nextInput.kind === "new") {
+          parsed.command = "new";
+          parsed.commandExplicit = true;
+        } else {
+          parsed.flags.topic = nextInput.topic;
+        }
+      } else if (tuiInput.kind === "mode") {
+        tuiMode = tuiInput.mode;
+        continue;
+      } else if (tuiInput.kind === "config") {
+        const result = await runTuiConfigLoop(configPath, config, messages, tuiMode);
+        if (result.quit) return;
+        tuiMode = result.mode;
+        continue;
+      } else if (tuiInput.kind === "new") {
+        parsed.command = "new";
+        parsed.commandExplicit = true;
+      } else {
+        parsed.flags.topic = tuiInput.topic;
+      }
+
+      parsed.flags.mode = tuiMode;
+      parsed.flags.renderer = "tui";
+      break;
+    }
+  }
 
   if (parsed.command === "new") {
     const selection = await runNewWizard(config, messages);
@@ -396,6 +457,140 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   }
 
   await runConfigWizard(configPath, config, messages);
+}
+
+async function runTuiConfigLoop(
+  configPath: string,
+  config: PalabreConfig,
+  messages: Messages,
+  initialMode: PalabreMode
+): Promise<{ mode: PalabreMode; quit: boolean }> {
+  let mode = initialMode;
+  let notice: string | undefined;
+
+  for (;;) {
+    renderTuiConfig(config, configPath, mode, { message: notice });
+    notice = undefined;
+
+    const input = await promptTuiConfigCommand(mode);
+
+    if (input.kind === "quit") {
+      return { mode, quit: true };
+    }
+
+    if (input.kind === "back") {
+      return { mode, quit: false };
+    }
+
+    if (input.kind === "unknown") {
+      notice = input.message;
+      continue;
+    }
+
+    if (input.kind === "mode") {
+      mode = mode === "ask" ? "debate" : "ask";
+      notice = mode === "ask" ? "Configuration Ask." : "Configuration Debat.";
+      continue;
+    }
+
+    if (input.kind === "default-mode") {
+      config.defaults = { ...(config.defaults ?? {}), mode };
+      await writeExampleConfig(configPath, config);
+      notice = mode === "ask" ? "Ask devient le mode par defaut." : "Debat devient le mode par defaut.";
+      continue;
+    }
+
+    if (input.kind === "agents") {
+      try {
+        if (mode === "ask") {
+          const agents = normalizeTuiAskAgents(config, input.agents, messages);
+          config.defaults = { ...(config.defaults ?? {}), askAgents: agents };
+          await writeExampleConfig(configPath, config);
+          notice = `Agents Ask mis a jour: ${agents.join(", ")}.`;
+        } else {
+          const [agentA, agentB] = normalizeTuiDebateAgents(config, input.agents, messages);
+          config.defaults = { ...(config.defaults ?? {}), agentA, agentB };
+          await writeExampleConfig(configPath, config);
+          notice = `Agents Debat mis a jour: ${agentA} <-> ${agentB}.`;
+        }
+      } catch (error) {
+        notice = error instanceof Error ? error.message : String(error);
+      }
+      continue;
+    }
+
+    if (input.kind === "turns") {
+      if (mode === "ask") {
+        notice = "En mode Ask, le nombre de reponses depend des agents selectionnes avec /agents.";
+        continue;
+      }
+
+      try {
+        validateTurns(input.turns, "--turns", messages);
+        config.defaults = { ...(config.defaults ?? {}), turns: input.turns };
+        await writeExampleConfig(configPath, config);
+        notice = `Tours mis a jour: ${input.turns}.`;
+      } catch (error) {
+        notice = error instanceof Error ? error.message : String(error);
+      }
+      continue;
+    }
+
+    if (input.kind === "summary") {
+      try {
+        const nextDefaults = { ...(config.defaults ?? {}) };
+        if (input.agent !== undefined) {
+          assertKnownAgent(config, input.agent, mode === "ask" ? "defaults.askSummaryAgent" : "defaults.summaryAgent", messages);
+        }
+
+        if (mode === "ask") {
+          if (input.agent === undefined) {
+            delete nextDefaults.askSummaryAgent;
+            notice = "Synthese Ask revenue au fallback.";
+          } else {
+            nextDefaults.askSummaryAgent = input.agent;
+            notice = `Synthese Ask: ${input.agent}.`;
+          }
+        } else if (input.agent === undefined) {
+          delete nextDefaults.summaryAgent;
+          notice = "Synthese Debat revenue au fallback.";
+        } else {
+          nextDefaults.summaryAgent = input.agent;
+          notice = `Synthese Debat: ${input.agent}.`;
+        }
+
+        config.defaults = nextDefaults;
+        await writeExampleConfig(configPath, config);
+      } catch (error) {
+        notice = error instanceof Error ? error.message : String(error);
+      }
+    }
+  }
+}
+
+function normalizeTuiDebateAgents(config: PalabreConfig, agents: string[], messages: Messages): [string, string] {
+  const unique = agents.map((agent) => agent.trim()).filter((agent, index, list) => agent && list.indexOf(agent) === index);
+  if (unique.length !== 2) {
+    throw new Error("Usage: /agents <agentA> <agentB>");
+  }
+
+  assertKnownAgent(config, unique[0]!, "defaults.agentA", messages);
+  assertKnownAgent(config, unique[1]!, "defaults.agentB", messages);
+  return [unique[0]!, unique[1]!];
+}
+
+function normalizeTuiAskAgents(config: PalabreConfig, agents: string[], messages: Messages): string[] {
+  const unique = agents.map((agent) => agent.trim()).filter((agent, index, list) => agent && list.indexOf(agent) === index);
+  if (unique.length === 0) {
+    throw new Error("Usage: /agents <agent...>");
+  }
+
+  if (unique.length > MAX_ASK_AGENTS) {
+    throw new Error(messages.common.tooManyAskAgents(MAX_ASK_AGENTS));
+  }
+
+  unique.forEach((agent) => assertKnownAgent(config, agent, "defaults.askAgents", messages));
+  return unique;
 }
 
 async function runOllamaModelsCommand(config: PalabreConfig, json: boolean): Promise<void> {
@@ -715,6 +910,16 @@ function createRendererFromFlags(
     return createNdjsonRenderer();
   }
   return createConsoleRenderer(plainOutputFallback, messages);
+}
+
+function shouldOpenTuiHome(parsed: ParsedArgs): boolean {
+  return parsed.command === "run"
+    && !parsed.commandExplicit
+    && parsed.positionals.length === 0
+    && optionalString(parsed.flags.topic) === undefined
+    && optionalString(parsed.flags.renderer) === undefined
+    && parsed.flags.json !== true
+    && parsed.flags.plain !== true;
 }
 
 /**

@@ -89,9 +89,11 @@ export const promptMessages: Record<Language, PromptMessages> = {
     ],
     askObjectives: [
       "- Reponds directement a la demande, sans t'appuyer sur les reponses des autres agents.",
+      "- Si la demande est factuelle ou simple, donne une reponse factuelle et simple.",
+      "- N'ajoute pas une revue de risques, des tests ou des actions techniques si la demande ne les appelle pas explicitement.",
       "- Apporte une reponse utile, concrete et exploitable.",
       "- Signale les incertitudes, hypotheses et points a verifier.",
-      "- Respecte ton role et le contexte fourni."
+      "- Utilise ton role comme une perspective secondaire, sans transformer la nature de la demande."
     ],
     summaryObjectives: [
       "- Resume le consensus en points concrets.",
@@ -153,9 +155,11 @@ export const promptMessages: Record<Language, PromptMessages> = {
     ],
     askObjectives: [
       "- Answer the request directly, without relying on other agents' answers.",
+      "- If the request is factual or simple, give a factual and simple answer.",
+      "- Do not add a risk review, tests, or technical actions unless the request explicitly calls for them.",
       "- Provide a useful, concrete, and actionable response.",
       "- Call out uncertainties, assumptions, and points to verify.",
-      "- Respect your role and the provided context."
+      "- Use your role as a secondary perspective without changing the nature of the request."
     ],
     summaryObjectives: [
       "- Summarize the consensus into concrete points.",

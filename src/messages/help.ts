@@ -259,6 +259,7 @@ PALABRE
 Debats entre agents IA dans votre terminal.
 
 Usage:
+  palabre
   palabre [flags]
   palabre [command]
   palabre "Sujet"
@@ -267,6 +268,7 @@ Usage:
 
 Demarrage rapide:
   palabre init
+  palabre
   palabre new
   palabre "Faut-il ajouter une TUI a Palabre ?"
   palabre codex-claude "Comparer deux solutions" -t 4
@@ -306,6 +308,7 @@ PALABRE
 Debates between AI agents in your terminal.
 
 Usage:
+  palabre
   palabre [flags]
   palabre [command]
   palabre "Subject"
@@ -314,6 +317,7 @@ Usage:
 
 Quick start:
   palabre init
+  palabre
   palabre new
   palabre "Should Palabre add a TUI?"
   palabre codex-claude "Compare two solutions" -t 4
