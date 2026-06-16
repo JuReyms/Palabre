@@ -68,6 +68,7 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
   lines.push(formatCommand("Gemini CLI", discovery.gemini.available, discovery.gemini.command, discovery.gemini.path, t));
   lines.push(formatCommand("Antigravity CLI", discovery.antigravity.available, discovery.antigravity.command, discovery.antigravity.path, t));
   lines.push(formatCommand("OpenCode CLI", discovery.opencode.available, discovery.opencode.command, discovery.opencode.path, t));
+  lines.push(formatCommand("Mistral Vibe CLI", discovery.vibe.available, discovery.vibe.command, discovery.vibe.path, t));
   lines.push(discovery.ollama.available
     ? ok(t.doctor.ollamaReachable(discovery.ollama.baseUrl, discovery.ollama.models.length))
     : warn(discovery.ollama.commandAvailable

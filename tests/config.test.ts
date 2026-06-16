@@ -126,6 +126,7 @@ function noDetectedTools(): ToolDiscovery {
     gemini: { available: false, command: "gemini" },
     antigravity: { available: false, command: "agy" },
     opencode: { available: false, command: "opencode" },
+    vibe: { available: false, command: "vibe" },
     ollama: {
       available: false,
       commandAvailable: false,

@@ -7,7 +7,7 @@ This page gives an overview of the planned evolution of Palabre. It helps users 
 
 ## Available today
 
-Palabre already lets you run debates between two agents installed on your machine: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, or Ollama.
+Palabre already lets you run debates between two agents installed on your machine: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe, or Ollama.
 
 The main features are available:
 

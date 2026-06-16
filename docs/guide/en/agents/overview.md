@@ -7,7 +7,7 @@ A Palabre agent is a configuration entry that describes how to call an AI.
 
 Palabre supports two agent families:
 
-- CLI agents, such as Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, or OpenCode;
+- CLI agents, such as Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, or Mistral Vibe;
 - local agents, such as Ollama via its HTTP API.
 
 ## CLI agents

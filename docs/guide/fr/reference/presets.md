@@ -25,6 +25,8 @@ Cette commande équivaut à choisir `codex` en agent A et `claude` en agent B.
 | `claude-antigravity` | Comparaison Claude / Antigravity. |
 | `codex-opencode` | Codex face à OpenCode. |
 | `opencode-claude` | OpenCode face à Claude. |
+| `codex-vibe` | Codex face à Mistral Vibe. |
+| `vibe-claude` | Mistral Vibe en premier, Claude en relecture. |
 | `codex-ollama` | Agent CLI puissant face à modèle local. |
 | `ollama-claude` | Modèle local en premier, Claude en relecture. |
 

@@ -757,6 +757,7 @@ const agentColors: Record<string, [number, number, number]> = {
   gemini: [71, 150, 227],
   codex: [136, 82, 197],
   opencode: [80, 168, 103],
+  vibe: [234, 92, 126],
   "ollama-local": [179, 176, 31],
   ollama: [179, 176, 31]
 };

@@ -39,18 +39,22 @@ const PRIMARY_PRESETS = [
   "claude-antigravity",
   "opencode-antigravity",
   "codex-opencode",
-  "claude-opencode"
+  "claude-opencode",
+  "codex-vibe",
+  "vibe-claude"
 ];
 const LEGACY_GEMINI_PRESETS = [
   "codex-gemini",
   "claude-gemini",
   "gemini-opencode",
-  "gemini-antigravity"
+  "gemini-antigravity",
+  "gemini-vibe"
 ];
 const OLLAMA_PRESETS = [
   "codex-ollama",
   "claude-ollama",
   "opencode-ollama",
+  "vibe-ollama",
   "antigravity-ollama"
 ];
 const FORBIDDEN_OUTPUT_PATTERNS = [

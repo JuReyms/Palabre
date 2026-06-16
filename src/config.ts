@@ -101,6 +101,23 @@ export const exampleConfig: PalabreConfig = {
       role: "reviewer",
       tier: "primary"
     },
+    vibe: {
+      type: "cli",
+      command: "vibe",
+      args: [
+        "--output",
+        "text",
+        "--agent",
+        "plan",
+        "--trust",
+        "--prompt"
+      ],
+      promptMode: "argument",
+      modelArg: "--model",
+      shell: process.platform === "win32",
+      role: "reviewer",
+      tier: "primary"
+    },
     "ollama-local": {
       type: "ollama",
       baseUrl: "http://localhost:11434",
@@ -307,7 +324,7 @@ function chooseDefaultOllamaModel(discovery: ToolDiscovery): string {
 }
 
 function chooseDefaultSummaryAgent(pair: [string, string]): string {
-  for (const preferred of ["claude", "codex", "antigravity", "gemini"]) {
+  for (const preferred of ["claude", "codex", "antigravity", "vibe", "gemini"]) {
     if (pair.includes(preferred)) {
       return preferred;
     }
@@ -333,6 +350,10 @@ function chooseDefaultPair(discovery: ToolDiscovery): [string, string] | undefin
     return ["opencode", "ollama-local"];
   }
 
+  if (discovery.vibe.available && discovery.ollama.available) {
+    return ["vibe", "ollama-local"];
+  }
+
   if (discovery.antigravity.available && discovery.ollama.available) {
     return ["antigravity", "ollama-local"];
   }
@@ -346,6 +367,7 @@ function chooseDefaultPair(discovery: ToolDiscovery): [string, string] | undefin
     discovery.claude.available ? "claude" : undefined,
     discovery.antigravity.available ? "antigravity" : undefined,
     discovery.opencode.available ? "opencode" : undefined,
+    discovery.vibe.available ? "vibe" : undefined,
     discovery.gemini.available ? "gemini" : undefined
   ].filter((agent): agent is string => Boolean(agent));
 

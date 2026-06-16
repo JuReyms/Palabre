@@ -27,7 +27,7 @@ export const initMessages: Record<Language, InitMessages> = {
     ollamaMissing: "non détecté",
     ollamaDetected: (modelCount) => `détectée (${modelCount} modèle${modelCount > 1 ? "s" : ""})`,
     defaults: (agentA, agentB) => `Défauts: ${agentA} <-> ${agentB}`,
-    noDefaultPair: (detectedAgents) => `Défauts: ${detectedAgents}. Palabre a besoin d'au moins deux agents.\nAgents compatibles: Codex CLI, Claude CLI, Gemini CLI, Antigravity CLI, OpenCode CLI, Ollama local.\nGuide: https://palab.re/fr/agents/overview`,
+    noDefaultPair: (detectedAgents) => `Défauts: ${detectedAgents}. Palabre a besoin d'au moins deux agents.\nAgents compatibles: Codex CLI, Claude CLI, Gemini CLI, Antigravity CLI, OpenCode CLI, Mistral Vibe CLI, Ollama local.\nGuide: https://palab.re/fr/agents/overview`,
     languageHint: (language) => `Langue: ${language}\nEnglish > palabre config --language en`
   },
   en: {
@@ -41,7 +41,7 @@ export const initMessages: Record<Language, InitMessages> = {
     ollamaMissing: "not detected",
     ollamaDetected: (modelCount) => `detected (${modelCount} model${modelCount > 1 ? "s" : ""})`,
     defaults: (agentA, agentB) => `Defaults: ${agentA} <-> ${agentB}`,
-    noDefaultPair: (detectedAgents) => `Defaults: ${detectedAgents}. Palabre needs at least two agents.\nCompatible agents: Codex CLI, Claude CLI, Gemini CLI, Antigravity CLI, OpenCode CLI, local Ollama.\nGuide: https://palab.re/en/agents/overview`,
+    noDefaultPair: (detectedAgents) => `Defaults: ${detectedAgents}. Palabre needs at least two agents.\nCompatible agents: Codex CLI, Claude CLI, Gemini CLI, Antigravity CLI, OpenCode CLI, Mistral Vibe CLI, local Ollama.\nGuide: https://palab.re/en/agents/overview`,
     languageHint: (language) => `Language: ${language}\nFrançais > palabre config --language fr`
   }
 };

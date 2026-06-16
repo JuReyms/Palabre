@@ -8,7 +8,7 @@ description: Installer Palabre depuis npm, vérifier la commande et préparer le
 Palabre nécessite :
 
 - Node.js 20 ou plus ;
-- au moins deux agents déjà installés sur votre machine parmi Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode ou Ollama.
+- au moins deux agents déjà installés sur votre machine parmi Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe ou Ollama.
 
 Vous pouvez utiliser Palabre avec un seul agent configuré, mais l'intérêt principal est de faire dialoguer deux agents.
 
@@ -55,6 +55,7 @@ Pages utiles :
 - [Gemini](/fr/agents/gemini)
 - [Antigravity](/fr/agents/antigravity)
 - [OpenCode](/fr/agents/opencode)
+- [Mistral Vibe](/fr/agents/vibe)
 - [Ollama](/fr/agents/ollama)
 
 ## Étape suivante

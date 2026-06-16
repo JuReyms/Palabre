@@ -28,6 +28,7 @@ export interface ToolDiscovery {
   gemini: CommandDetection;
   antigravity: CommandDetection;
   opencode: CommandDetection;
+  vibe: CommandDetection;
   ollama: OllamaDetection;
 }
 
@@ -37,12 +38,13 @@ export interface ToolDiscovery {
  * Antigravity est exposé selon les installations sous `agy` ou `antigravity`.
  */
 export async function discoverLocalTools(): Promise<ToolDiscovery> {
-  const [codex, claude, gemini, antigravity, opencode, ollamaCommand] = await Promise.all([
+  const [codex, claude, gemini, antigravity, opencode, vibe, ollamaCommand] = await Promise.all([
     detectCommand("codex"),
     detectFirstCommand(process.platform === "win32" ? ["claude.exe", "claude"] : ["claude"]),
     detectCommand("gemini"),
     detectFirstCommand(["agy", "antigravity"]),
     detectCommand("opencode"),
+    detectCommand("vibe"),
     detectCommand("ollama")
   ]);
 
@@ -54,6 +56,7 @@ export async function discoverLocalTools(): Promise<ToolDiscovery> {
     gemini,
     antigravity,
     opencode,
+    vibe,
     ollama: {
       ...ollamaServer,
       commandAvailable: ollamaCommand.available

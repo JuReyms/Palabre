@@ -12,6 +12,7 @@ function discovery(overrides: Partial<ToolDiscovery> = {}): ToolDiscovery {
     gemini: { available: false, command: "gemini" },
     antigravity: { available: false, command: "agy" },
     opencode: { available: false, command: "opencode" },
+    vibe: { available: false, command: "vibe" },
     ollama: {
       available: true,
       commandAvailable: true,

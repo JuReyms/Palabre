@@ -25,9 +25,9 @@ test("detectionForCommand resolves both Antigravity aliases and ignores custom c
 });
 
 test("detectedAgentNames lists detected agents in canonical order", () => {
-  const discovery = discoveryWith({ codex: true, opencode: true, ollama: true });
+  const discovery = discoveryWith({ codex: true, opencode: true, vibe: true, ollama: true });
 
-  assert.deepEqual(detectedAgentNames(discovery), ["codex", "opencode", "ollama-local"]);
+  assert.deepEqual(detectedAgentNames(discovery), ["codex", "opencode", "vibe", "ollama-local"]);
 });
 
 test("isAgentDetected reflects discovery, and treats unknown CLIs as available", () => {
@@ -43,7 +43,7 @@ test("isAgentDetected reflects discovery, and treats unknown CLIs as available",
   assert.equal(isAgentDetected("custom", customCli, discovery), true);
 });
 
-function discoveryWith(available: Partial<Record<"codex" | "claude" | "gemini" | "antigravity" | "opencode" | "ollama", boolean>>): ToolDiscovery {
+function discoveryWith(available: Partial<Record<"codex" | "claude" | "gemini" | "antigravity" | "opencode" | "vibe" | "ollama", boolean>>): ToolDiscovery {
   const cli = (command: string, ok?: boolean) => ({ available: Boolean(ok), command });
 
   return {
@@ -52,6 +52,7 @@ function discoveryWith(available: Partial<Record<"codex" | "claude" | "gemini" |
     gemini: cli("gemini", available.gemini),
     antigravity: cli("agy", available.antigravity),
     opencode: cli("opencode", available.opencode),
+    vibe: cli("vibe", available.vibe),
     ollama: {
       available: Boolean(available.ollama),
       commandAvailable: Boolean(available.ollama),

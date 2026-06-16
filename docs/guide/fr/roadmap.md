@@ -7,7 +7,7 @@ Cette page donne une vue d'ensemble des évolutions prévues pour Palabre. Elle 
 
 ## Disponible aujourd'hui
 
-Palabre permet déjà de lancer des débats entre deux agents installés sur votre machine : Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode ou Ollama.
+Palabre permet déjà de lancer des débats entre deux agents installés sur votre machine : Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe ou Ollama.
 
 Les fonctionnalités principales sont disponibles :
 

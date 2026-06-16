@@ -15,7 +15,7 @@ interface KnownCliAgent {
   /** Noms de commande reconnus (après `normalizeCommandName`) qui mappent vers cet agent. */
   commandAliases: readonly string[];
   /** Clé correspondante dans `ToolDiscovery`. */
-  discoveryKey: "codex" | "claude" | "gemini" | "antigravity" | "opencode";
+  discoveryKey: "codex" | "claude" | "gemini" | "antigravity" | "opencode" | "vibe";
 }
 
 /**
@@ -28,7 +28,8 @@ const KNOWN_CLI_AGENTS: readonly KnownCliAgent[] = [
   { configKey: "claude", commandAliases: ["claude"], discoveryKey: "claude" },
   { configKey: "gemini", commandAliases: ["gemini"], discoveryKey: "gemini" },
   { configKey: "antigravity", commandAliases: ["agy", "antigravity"], discoveryKey: "antigravity" },
-  { configKey: "opencode", commandAliases: ["opencode"], discoveryKey: "opencode" }
+  { configKey: "opencode", commandAliases: ["opencode"], discoveryKey: "opencode" },
+  { configKey: "vibe", commandAliases: ["vibe"], discoveryKey: "vibe" }
 ];
 
 /** Clé de config de l'agent Ollama local par défaut. */
@@ -61,7 +62,7 @@ export function detectionForCommand(command: string, discovery: ToolDiscovery): 
 
 /**
  * Liste les clés d'agents connus effectivement détectés localement, dans
- * l'ordre canonique (`codex`, `claude`, `gemini`, `antigravity`, `opencode`,
+ * l'ordre canonique (`codex`, `claude`, `gemini`, `antigravity`, `opencode`, `vibe`,
  * puis `ollama-local`).
  */
 export function detectedAgentNames(discovery: ToolDiscovery): string[] {

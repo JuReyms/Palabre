@@ -55,9 +55,9 @@ test("createTranslator returns localized init messages", () => {
   assert.equal(createTranslator("fr").init.localDetectionTitle, "Détection locale:");
   assert.equal(createTranslator("en").init.localDetectionTitle, "Local detection:");
   assert.equal(createTranslator("en").init.configCreated("x.json"), "x.json created.");
-  assert.match(createTranslator("fr").init.noDefaultPair("un seul agent détecté (codex)"), /Agents compatibles: Codex CLI/);
+  assert.match(createTranslator("fr").init.noDefaultPair("un seul agent détecté (codex)"), /Mistral Vibe CLI/);
   assert.match(createTranslator("fr").init.noDefaultPair("un seul agent détecté (codex)"), /https:\/\/palab\.re\/fr\/agents\/overview/);
-  assert.match(createTranslator("en").init.noDefaultPair("only one agent detected (codex)"), /Compatible agents: Codex CLI/);
+  assert.match(createTranslator("en").init.noDefaultPair("only one agent detected (codex)"), /Mistral Vibe CLI/);
   assert.match(createTranslator("en").init.noDefaultPair("only one agent detected (codex)"), /https:\/\/palab\.re\/en\/agents\/overview/);
   assert.equal(createTranslator("fr").init.languageHint("fr"), "Langue: fr\nEnglish > palabre config --language en");
   assert.equal(createTranslator("en").init.languageHint("en"), "Language: en\nFrançais > palabre config --language fr");
@@ -87,7 +87,7 @@ test("createTranslator returns localized presets messages", () => {
   assert.equal(createTranslator("en").presets.title, "Available presets:");
   assert.equal(createTranslator("en").presets.unavailable("command not detected for opencode: opencode"), "unavailable (command not detected for opencode: opencode)");
   assert.equal(createTranslator("en").presets.missingOllamaModel("ollama-local", "gemma4:e4b"), "missing Ollama model for ollama-local: gemma4:e4b");
-  assert.equal(createTranslator("en").presets.total(30), "Total: 30 preset(s). Use --json for machine-readable output.");
+  assert.equal(createTranslator("en").presets.total(42), "Total: 42 preset(s). Use --json for machine-readable output.");
 });
 
 test("createTranslator returns localized update messages", () => {

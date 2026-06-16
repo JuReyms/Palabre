@@ -127,28 +127,34 @@ Les CLIs custom declarees par l'utilisateur (non listees dans le registre) reste
 
 Un preset choisit une paire d'agents. Il ne choisit pas les modeles. La source de verite est `src/presets.ts`.
 
-Presets CLI ↔ CLI (20) :
+Presets CLI ↔ CLI (30) :
 
 - `codex-claude`, `claude-codex`
 - `codex-gemini`, `gemini-codex`
 - `codex-opencode`, `opencode-codex`
+- `codex-vibe`, `vibe-codex`
 - `codex-antigravity`, `antigravity-codex`
 - `claude-gemini`, `gemini-claude`
 - `claude-opencode`, `opencode-claude`
+- `claude-vibe`, `vibe-claude`
 - `claude-antigravity`, `antigravity-claude`
 - `gemini-opencode`, `opencode-gemini`
+- `gemini-vibe`, `vibe-gemini`
 - `gemini-antigravity`, `antigravity-gemini`
 - `opencode-antigravity`, `antigravity-opencode`
+- `opencode-vibe`, `vibe-opencode`
+- `antigravity-vibe`, `vibe-antigravity`
 
-Presets CLI ↔ Ollama local (10) :
+Presets CLI ↔ Ollama local (12) :
 
 - `codex-ollama`, `ollama-codex`
 - `claude-ollama`, `ollama-claude`
 - `gemini-ollama`, `ollama-gemini`
 - `opencode-ollama`, `ollama-opencode`
+- `vibe-ollama`, `ollama-vibe`
 - `antigravity-ollama`, `ollama-antigravity`
 
-Total : 30 presets. Toute paire X-Y a sa variante inversee Y-X. La variante inversee differe surtout par "qui parle en premier" — les roles restent ceux configures dans la config utilisateur, pas determines par la position.
+Total : 42 presets. Toute paire X-Y a sa variante inversee Y-X. La variante inversee differe surtout par "qui parle en premier" — les roles restent ceux configures dans la config utilisateur, pas determines par la position.
 
 Les modeles restent ceux des CLIs ou de la config, sauf override explicite par `--model-a` ou `--model-b`.
 
@@ -218,6 +224,7 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 - `claude.exe` puis `claude` sur Windows, `claude` ailleurs
 - `gemini`
 - `agy` (Antigravity CLI)
+- `vibe` (Mistral Vibe CLI)
 - `ollama`
 - l'API Ollama locale via `GET http://localhost:11434/api/tags`
 
@@ -255,6 +262,7 @@ Pour une installation package, la commande affiche les commandes `pnpm add --glo
 - Codex : `codex exec ... -`
 - Claude : `claude --print`
 - Gemini : `gemini --prompt -`
+- Mistral Vibe : `vibe --output text --agent plan --trust --prompt <prompt>`
 
 Antigravity utilise un adapter separe :
 
@@ -606,7 +614,7 @@ Avant de publier une version CLI ou extension, lancer en plus le smoke test reel
 pnpm smoke:real-presets -- --keep-going
 ```
 
-Ce script compile `scripts/smoke_real_presets.ts`, lit `palabre presets --json`, lance les presets prioritaires disponibles avec de vrais agents, puis verifie le contrat NDJSON, l'export `.debate.md`, les messages agents non vides et l'absence de bruit connu comme les sorties `taskkill` Windows. Il est volontairement hors `pnpm test`, car il peut consommer des quotas Codex/Claude/Antigravity/OpenCode et depend de l'authentification locale.
+Ce script compile `scripts/smoke_real_presets.ts`, lit `palabre presets --json`, lance les presets prioritaires disponibles avec de vrais agents, puis verifie le contrat NDJSON, l'export `.debate.md`, les messages agents non vides et l'absence de bruit connu comme les sorties `taskkill` Windows. Il est volontairement hors `pnpm test`, car il peut consommer des quotas Codex/Claude/Antigravity/OpenCode/Mistral Vibe et depend de l'authentification locale.
 
 Options utiles :
 

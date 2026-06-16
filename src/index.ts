@@ -1188,6 +1188,7 @@ function printInitDiscovery(
   console.log(`- Gemini CLI: ${formatCommandDetection(discovery.gemini, messages)}`);
   console.log(`- Antigravity CLI: ${formatCommandDetection(discovery.antigravity, messages)}`);
   console.log(`- OpenCode CLI: ${formatCommandDetection(discovery.opencode, messages)}`);
+  console.log(`- Mistral Vibe CLI: ${formatCommandDetection(discovery.vibe, messages)}`);
   console.log(`- Ollama API: ${formatOllamaDetection(discovery.ollama, messages)}`);
   console.log("");
   console.log(config.defaults?.agentA && config.defaults.agentB
