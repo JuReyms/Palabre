@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createTuiRenderer, renderTuiHelp, renderTuiHome } from "../src/renderers/tui.js";
+import { createTuiRenderer, renderTuiComposer, renderTuiHelp, renderTuiHome } from "../src/renderers/tui.js";
 import { createTranslator } from "../src/i18n.js";
 import type { DebateOptions } from "../src/types.js";
 
@@ -119,6 +119,48 @@ test("renderTuiHelp renders slash commands", () => {
   assert.match(text, /\/debat/);
   assert.match(text, /\/config/);
   assert.match(text, /\/quit/);
+});
+
+test("renderTuiComposer renders a framed subject input hint", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    renderTuiComposer("ask", "Sujet", { force: true });
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /Mode ask/);
+  assert.match(text, /Sujet/);
+  assert.match(text, /Ecris ton sujet/);
+  assert.match(text, /\/config/);
+});
+
+test("renderTuiComposer renders config commands in config mode", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    renderTuiComposer("debate", "Config", { force: true });
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /Config/);
+  assert.match(text, /commande de configuration/);
+  assert.match(text, /\/agents/);
+  assert.match(text, /\/back/);
 });
 
 function baseOptions(): DebateOptions {

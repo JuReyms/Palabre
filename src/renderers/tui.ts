@@ -49,7 +49,8 @@ export function renderTuiHome(config: PalabreConfig, configPath: string, message
       row("Interface", defaults.interface ?? "tui"),
       "",
       bold("Composer"),
-      row("Invite", `${accent(promptLabel)} ecris ton sujet puis Entree`),
+      row("Invite", accent(promptLabel)),
+      row("Action", "ecris ton sujet puis Entree"),
       row("/ask", "passer en mode Ask"),
       row("/debat", "passer en mode Debat"),
       row("/config", "configurer Palabre"),
@@ -85,6 +86,21 @@ export function renderTuiHelp(): void {
       "",
       dim("Tout autre texte est utilise comme demande a envoyer aux agents.")
     ], Math.min(width, 78)), viewport),
+    ""
+  ].join("\n"));
+}
+
+/** Affiche un composer visuel juste avant la vraie ligne readline. */
+export function renderTuiComposer(mode: PalabreMode, labelPrefix = "Sujet", options: { force?: boolean } = {}): void {
+  if (!options.force && !input.isTTY) {
+    return;
+  }
+
+  const viewport = viewportWidth();
+  const width = surfaceWidth();
+  process.stdout.write([
+    "",
+    ...centerBlock(composerInputBox(mode, labelPrefix, width), viewport),
     ""
   ].join("\n"));
 }
@@ -174,6 +190,7 @@ export async function promptTuiHomeTopic(mode: PalabreMode = "debate"): Promise<
 
   const rl = createInterface({ input, output });
   try {
+    renderTuiComposer(mode);
     const answer = await rl.question(tuiPrompt(mode));
     const value = answer.trim();
     const command = value.toLowerCase();
@@ -219,6 +236,7 @@ export async function promptTuiConfigCommand(mode: PalabreMode): Promise<TuiConf
 
   const rl = createInterface({ input, output });
   try {
+    renderTuiComposer(mode, "Config");
     const answer = await rl.question(tuiPrompt(mode, "Config"));
     const parts = answer.trim().split(/\s+/).filter(Boolean);
     const command = parts[0]?.toLowerCase();
@@ -594,6 +612,19 @@ function composerCard(lines: string[], width: number): string[] {
     ...body.map((line) => `${violet("|")} ${padRight(line, contentWidth)} ${dim("|")}`),
     `${violet("|")} ${" ".repeat(contentWidth)} ${dim("|")}`
   ];
+}
+
+function composerInputBox(mode: PalabreMode, labelPrefix: string, width: number): string[] {
+  const label = mode === "ask" ? "Mode ask" : "Mode debat";
+  const commandHint = labelPrefix === "Config"
+    ? "/agents  /summary  /default  /mode  /back"
+    : "/ask  /debat  /config  /new  /help  /quit";
+
+  return composerCard([
+    `${accent(label)} ${dim(">")} ${bold(labelPrefix)}`,
+    dim(labelPrefix === "Config" ? "Tape une commande de configuration, puis Entree." : "Ecris ton sujet, puis Entree."),
+    dim(commandHint)
+  ], width);
 }
 
 function panel(lines: string[], width: number): string[] {
