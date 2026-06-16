@@ -37,16 +37,14 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
     ...centerBlock([dim(`v${state.version ?? "0.0.0"}`)], viewport),
     "",
     ...centerBlock(composerCard([
-      muted("Pose une question, compare plusieurs agents, exporte une synthese."),
-      "",
       `${accent(mode === "ask" ? "Ask" : "Debat")} ${dim("·")} ${mode === "ask" ? askAgents : debateAgents}`,
       `${dim("Synthese")} ${summary}${mode === "debate" ? `${dim(" · Reponses")} ${String(defaults.turns ?? "?")}` : ""}`,
       "",
       `${accent("/help")} commandes   ${accent("/config")} reglages   ${accent(mode === "ask" ? "/debat" : "/ask")} changer de mode`
-    ], width), viewport),
+    ], width, "center"), viewport),
     "",
     ...centerBlock([
-      `${orange("* Tip")} Ajoute du contexte avec --context <dossier> ou --files <fichier>.`
+      dim("* Tip Ajoute du contexte avec --context <dossier> ou --files <fichier>.")
     ], viewport)
   ];
 
@@ -167,16 +165,13 @@ export type TuiConfigInput =
   | { kind: "unknown"; message: string };
 
 /** Lit une demande depuis l'accueil TUI. Retourne undefined si l'utilisateur quitte. */
-export async function promptTuiHomeTopic(mode: PalabreMode = "debate", options: { showComposer?: boolean } = {}): Promise<TuiHomeInput> {
+export async function promptTuiHomeTopic(mode: PalabreMode = "debate", _options: { showComposer?: boolean } = {}): Promise<TuiHomeInput> {
   if (!input.isTTY) {
     return undefined;
   }
 
   const rl = createInterface({ input, output });
   try {
-    if (options.showComposer !== false) {
-      renderTuiComposer(mode);
-    }
     const answer = await rl.question(tuiPrompt(mode));
     const value = answer.trim();
     const command = value.toLowerCase();
@@ -549,7 +544,16 @@ function viewportWidth(): number {
 
 function tuiPrompt(mode: PalabreMode, labelPrefix = "Sujet"): string {
   const label = mode === "ask" ? "Mode ask" : "Mode debat";
-  return `\n${surfacePadding()}${accent(label)} ${dim(">")} ${bold(labelPrefix)} ${dim(">")} `;
+  const padding = surfacePadding();
+  return [
+    "",
+    promptRuleLine(),
+    `${padding}${accent(label)} ${dim(">")} ${bold(labelPrefix)} ${dim(">")} `
+  ].join("\n");
+}
+
+function promptRuleLine(): string {
+  return `${surfacePadding()}${violet("-".repeat(surfaceWidth()))}`;
 }
 
 function surfacePadding(): string {
@@ -564,18 +568,17 @@ function centerLogo(width: number): string[] {
   return [
     ...logo(),
     "",
-    dim("Conversations entre agents IA")
+    bold("Orchestrez des conversations entre agents IA")
   ].map((line) => padLeft(line, Math.max(0, Math.floor((width - visibleLength(line)) / 2))));
 }
 
 function logo(): string[] {
   return [
-    "██████   █████  ██       █████  ██████  ██████  ███████",
-    "██   ██ ██   ██ ██      ██   ██ ██   ██ ██   ██ ██     ",
-    "██████  ███████ ██      ███████ ██████  ██████  █████  ",
-    "██      ██   ██ ██      ██   ██ ██   ██ ██   ██ ██     ",
-    "██      ██   ██ ███████ ██   ██ ██████  ██   ██ ███████"
-  ].map((line) => supportsColor ? `${codes.violet}${line}${codes.reset}` : line);
+    " ___  ___  _    ___  ___  ___  ___ ",
+    "| _ \\| _ || |  | _ || _ )| _ \\| __|",
+    "|  _/|   || |_ |   || _ \\|   /| _| ",
+    "|_|  |_|_||___||_|_||___/|_|_\\|___|"
+  ].map((line) => supportsColor ? `${codes.logoViolet}${line}${codes.reset}` : line);
 }
 
 function centerBlock(lines: string[], width: number): string[] {
@@ -590,27 +593,26 @@ function card(lines: string[], width: number): string[] {
   return body.map((line) => `${violet("|")} ${padRight(line, contentWidth)} ${dim("|")}`);
 }
 
-function composerCard(lines: string[], width: number): string[] {
+function composerCard(lines: string[], width: number, align: "left" | "center" = "left"): string[] {
   const contentWidth = Math.max(24, width - 4);
   const body = lines.flatMap((line) => wrapLine(line, contentWidth));
   return [
     `${violet("|")} ${" ".repeat(contentWidth)} ${dim("|")}`,
-    ...body.map((line) => `${violet("|")} ${padRight(line, contentWidth)} ${dim("|")}`),
+    ...body.map((line) => `${violet("|")} ${padRight(align === "center" ? centerLine(line, contentWidth) : line, contentWidth)} ${dim("|")}`),
     `${violet("|")} ${" ".repeat(contentWidth)} ${dim("|")}`
   ];
 }
 
+function centerLine(line: string, width: number): string {
+  const left = Math.max(0, Math.floor((width - visibleLength(line)) / 2));
+  return `${" ".repeat(left)}${line}`;
+}
+
 function composerInputBox(mode: PalabreMode, labelPrefix: string, width: number): string[] {
   const label = mode === "ask" ? "Mode ask" : "Mode debat";
-  const commandHint = labelPrefix === "Config"
-    ? "/agents  /summary  /default  /mode  /back"
-    : "/ask  /debat  /config  /new  /help  /quit";
-
   return composerCard([
-    `${accent(label)} ${dim(">")} ${bold(labelPrefix)}`,
-    dim(labelPrefix === "Config" ? "Tape une commande de configuration, puis Entree." : "Ecris ton sujet, puis Entree."),
-    dim(commandHint)
-  ], width);
+    `${accent(label)} ${dim(">")} ${bold(labelPrefix)} ${dim(">")}`
+  ], width, "center");
 }
 
 function panel(lines: string[], width: number): string[] {
@@ -763,6 +765,7 @@ const codes = {
   reset: "\u001b[0m",
   bright: "\u001b[1m",
   dim: "\u001b[2m",
+  logoViolet: "\u001b[38;2;109;40;217m",
   violet: "\u001b[38;5;141m",
   cyan: "\u001b[36m",
   gray: "\u001b[38;5;244m",

@@ -83,8 +83,8 @@ test("renderTuiHome renders a Palabre launch screen", () => {
   }
 
   const text = output.join("");
-  assert.match(text, /██████/);
-  assert.match(text, /Conversations entre agents IA/);
+  assert.match(text, /___/);
+  assert.match(text, /Orchestrez des conversations entre agents IA/);
   assert.match(text, /v0\.7\.0/);
   assert.match(text, /\/help/);
   assert.match(text, /\/debat/);
@@ -137,8 +137,8 @@ test("renderTuiComposer renders a framed subject input hint", () => {
   const text = output.join("");
   assert.match(text, /Mode ask/);
   assert.match(text, /Sujet/);
-  assert.match(text, /Ecris ton sujet/);
-  assert.match(text, /\/config/);
+  assert.doesNotMatch(text, /Ecris ton sujet/);
+  assert.doesNotMatch(text, /\/config/);
 });
 
 test("renderTuiComposer renders config commands in config mode", () => {
@@ -156,10 +156,11 @@ test("renderTuiComposer renders config commands in config mode", () => {
   }
 
   const text = output.join("");
+  assert.match(text, /Mode debat/);
   assert.match(text, /Config/);
-  assert.match(text, /commande de configuration/);
-  assert.match(text, /\/agents/);
-  assert.match(text, /\/back/);
+  assert.doesNotMatch(text, /commande de configuration/);
+  assert.doesNotMatch(text, /\/agents/);
+  assert.doesNotMatch(text, /\/back/);
 });
 
 function baseOptions(): DebateOptions {
