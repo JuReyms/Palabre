@@ -12,7 +12,7 @@ export function createTuiRenderer(messages: Messages): DebateRenderer {
 }
 
 /** Affiche l'ecran d'accueil TUI lance par `palabre` sans sujet. */
-export function renderTuiHome(config: PalabreConfig, configPath: string, messages: Messages, state: { mode?: PalabreMode; version?: string } = {}): void {
+export function renderTuiHome(config: PalabreConfig, _configPath: string, messages: Messages, state: { mode?: PalabreMode; version?: string } = {}): void {
   if (supportsInteractiveOutput) {
     clearScreen();
   }
@@ -30,7 +30,6 @@ export function renderTuiHome(config: PalabreConfig, configPath: string, message
   const summary = mode === "ask"
     ? defaults.askSummaryAgent ?? defaults.summaryAgent ?? "dernier agent ask"
     : defaults.summaryAgent ?? defaults.agentB ?? "agent B";
-  const promptLabel = mode === "ask" ? "Mode ask > Sujet >" : "Mode debat > Sujet >";
 
   const lines = [
     "",
@@ -40,29 +39,14 @@ export function renderTuiHome(config: PalabreConfig, configPath: string, message
     ...centerBlock(composerCard([
       muted("Pose une question, compare plusieurs agents, exporte une synthese."),
       "",
-      bold("Session"),
-      row("Mode actuel", accent(mode === "ask" ? "Ask" : "Debat")),
-      row("Debat", debateAgents),
-      row("Ask", askAgents),
-      row("Reponses", String(defaults.turns ?? "?")),
-      row("Synthese", summary),
-      row("Interface", defaults.interface ?? "tui"),
+      `${accent(mode === "ask" ? "Ask" : "Debat")} ${dim("·")} ${mode === "ask" ? askAgents : debateAgents}`,
+      `${dim("Synthese")} ${summary}${mode === "debate" ? `${dim(" · Reponses")} ${String(defaults.turns ?? "?")}` : ""}`,
       "",
-      bold("Composer"),
-      row("Invite", accent(promptLabel)),
-      row("Action", "ecris ton sujet puis Entree"),
-      row("/ask", "passer en mode Ask"),
-      row("/debat", "passer en mode Debat"),
-      row("/config", "configurer Palabre"),
-      row("/new", "ouvrir l'assistant guide"),
-      row("/help", "afficher les commandes TUI"),
-      row("/quit", "quitter"),
-      "",
-      row("Config", configPath)
+      `${accent("/help")} commandes   ${accent("/config")} reglages   ${accent(mode === "ask" ? "/debat" : "/ask")} changer de mode`
     ], width), viewport),
     "",
     ...centerBlock([
-      `${orange("* Tip")} Utilise --context <dossier> ou --files <fichier> pour donner du contexte.`
+      `${orange("* Tip")} Ajoute du contexte avec --context <dossier> ou --files <fichier>.`
     ], viewport)
   ];
 
@@ -183,14 +167,16 @@ export type TuiConfigInput =
   | { kind: "unknown"; message: string };
 
 /** Lit une demande depuis l'accueil TUI. Retourne undefined si l'utilisateur quitte. */
-export async function promptTuiHomeTopic(mode: PalabreMode = "debate"): Promise<TuiHomeInput> {
+export async function promptTuiHomeTopic(mode: PalabreMode = "debate", options: { showComposer?: boolean } = {}): Promise<TuiHomeInput> {
   if (!input.isTTY) {
     return undefined;
   }
 
   const rl = createInterface({ input, output });
   try {
-    renderTuiComposer(mode);
+    if (options.showComposer !== false) {
+      renderTuiComposer(mode);
+    }
     const answer = await rl.question(tuiPrompt(mode));
     const value = answer.trim();
     const command = value.toLowerCase();

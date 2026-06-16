@@ -86,16 +86,15 @@ test("renderTuiHome renders a Palabre launch screen", () => {
   assert.match(text, /██████/);
   assert.match(text, /Conversations entre agents IA/);
   assert.match(text, /v0\.7\.0/);
-  assert.match(text, /\/new/);
   assert.match(text, /\/help/);
-  assert.match(text, /\/ask/);
+  assert.match(text, /\/debat/);
   assert.match(text, /\/config/);
-  assert.match(text, /Session/);
-  assert.match(text, /Composer/);
-  assert.match(text, /Invite/);
-  assert.match(text, /Config\s+palabre\.config\.json/);
+  assert.doesNotMatch(text, /\/new/);
+  assert.doesNotMatch(text, /Session/);
+  assert.doesNotMatch(text, /Composer/);
+  assert.doesNotMatch(text, /Invite/);
+  assert.doesNotMatch(text, /Config\s+palabre\.config\.json/);
   assert.doesNotMatch(text, /palabre new/);
-  assert.match(text, /Mode actuel/);
   assert.match(text, /opencode/);
 });
 

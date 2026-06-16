@@ -141,7 +141,7 @@ async function main(): Promise<void> {
 
     for (;;) {
       renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion });
-      const tuiInput = await promptTuiHomeTopic(tuiMode);
+      const tuiInput = await promptTuiHomeTopic(tuiMode, { showComposer: false });
       if (!tuiInput) {
         return;
       }
