@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Installer Palabre depuis npm, vérifier la commande et préparer les agents IA utilisés par les débats.
+description: Installer Palabre depuis npm, vérifier la commande et préparer les agents IA utilisés par les débats et demandes Ask.
 ---
 
 ## Prérequis

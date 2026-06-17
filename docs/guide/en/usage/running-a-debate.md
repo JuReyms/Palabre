@@ -1,6 +1,6 @@
 ---
-title: Running a debate
-description: Choose agents, turns, presets, and main options to start a Palabre debate.
+title: Debate and Ask
+description: Choose Debate or Ask mode, agents, roles, turns, and main options to start a Palabre session.
 ---
 
 ## TUI home screen
@@ -20,6 +20,19 @@ From this screen:
 - use `/config` to change settings without leaving the TUI.
 
 `palabre new` remains available as the historical guided assistant.
+
+## Debate mode
+
+`debate` mode makes two agents talk turn by turn. It is the right choice when you want to confront two viewpoints, build real contradiction, request a critical review, or turn a fuzzy topic into a decision.
+
+Each turn receives:
+
+- the subject;
+- the session context;
+- files or folders injected with `--files` or `--context`;
+- the history already produced by the agents.
+
+At the end, Palabre asks for a final summary. This summary covers the consensus, disagreements or uncertainties, proposed actions, and a short conclusion.
 
 ## With default agents
 
@@ -53,6 +66,8 @@ palabre ask "Compare these two options" --agents codex claude opencode
 
 Ask mode sends the same subject and context to several agents, without a shared transcript between them. Each agent answers alone. Then the summary agent faithfully summarizes what each agent said and compares the responses.
 
+Ask is useful when you want to compare several independent answers, get multiple formulations, check whether agents converge without influencing each other, or ask several profiles to analyze the same request in parallel.
+
 Without `--agents`, Palabre uses `defaults.askAgents` if defined, otherwise the default debate pair.
 
 Ask mode accepts 1 to 4 agents:
@@ -62,6 +77,15 @@ palabre ask "Which approach should we choose?" --agents codex claude opencode ge
 ```
 
 The export uses the `.ask.md` extension.
+
+`--turns` does not control the number of responses in Ask mode: the number of responses depends on the selected agents. To change the default Ask agents:
+
+```bash
+palabre config --ask-agents codex claude opencode
+palabre config --ask-summary-agent opencode
+```
+
+From the TUI home screen, `/ask` switches to Ask mode, `/agents` chooses active agents, and `/roles` applies roles.
 
 ## Number of turns
 

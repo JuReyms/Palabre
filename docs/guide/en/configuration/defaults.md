@@ -71,6 +71,15 @@ palabre config --language en
 
 The configured language controls the Palabre interface and the prompts sent to agents. You can override it for one command with `--language <fr|en>`, `--lang <fr|en>`, or the `PALABRE_LANGUAGE` environment variable.
 
+In the TUI, open `/config`, then use:
+
+```text
+/language fr
+/language en
+```
+
+The `/lang fr` alias is also accepted.
+
 ## Set the default interface
 
 ```bash

@@ -47,6 +47,22 @@ Cette page liste les commandes principales de Palabre.
 | `palabre run --subject "Sujet" --agent-a codex --agent-b claude` | Lance avec des agents explicites. |
 | `palabre ask "Sujet" --agents codex claude` | Lance une demande avec des réponses indépendantes. |
 
+## Commandes TUI
+
+Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le contexte.
+
+| Commande | Description |
+|----------|-------------|
+| `/ask` | Passe l'accueil TUI en mode Ask. |
+| `/debat` | Passe l'accueil TUI en mode débat. |
+| `/agents` | Affiche les agents disponibles ou modifie les agents actifs si des noms sont fournis. |
+| `/roles` | Affiche les rôles disponibles ou modifie les rôles actifs si des rôles sont fournis. |
+| `/config` | Ouvre les réglages TUI. |
+| `/language fr`, `/language en` | Change la langue depuis `/config`. Alias : `/lang`, `/langue`. |
+| `/interface tui`, `/interface terminal` | Change l'interface par défaut depuis `/config`. |
+| `/back` | Revient à l'écran précédent. |
+| `/quit` | Quitte la TUI. |
+
 ## Intégrations
 
 | Commande | Description |

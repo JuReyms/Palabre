@@ -15,6 +15,7 @@ import { promptMessages, type PromptMessages } from "./prompt.js";
 import { presetsMessages, type PresetsMessages } from "./presets.js";
 import { previewMessages, type PreviewMessages } from "./preview.js";
 import { rendererMessages, type RendererMessages } from "./renderers.js";
+import { tuiMessages, type TuiMessages } from "./tui.js";
 import { updateMessages, type UpdateMessages } from "./update.js";
 
 export interface Messages {
@@ -34,6 +35,7 @@ export interface Messages {
   presets: PresetsMessages;
   preview: PreviewMessages;
   renderers: RendererMessages;
+  tui: TuiMessages;
   update: UpdateMessages;
 }
 
@@ -55,6 +57,7 @@ export function createTranslator(language: Language): Messages {
     presets: presetsMessages[language],
     preview: previewMessages[language],
     renderers: rendererMessages[language],
+    tui: tuiMessages[language],
     update: updateMessages[language]
   };
 }

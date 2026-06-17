@@ -47,6 +47,22 @@ This page lists the main Palabre commands.
 | `palabre run --subject "Subject" --agent-a codex --agent-b claude` | Launches with explicit agents. |
 | `palabre ask "Subject" --agents codex claude` | Runs a request with independent responses. |
 
+## TUI Commands
+
+These commands are available from the TUI home screen or from `/config` depending on context.
+
+| Command | Description |
+|---------|-------------|
+| `/ask` | Switches the TUI home screen to Ask mode. |
+| `/debat` | Switches the TUI home screen to debate mode. |
+| `/agents` | Displays available agents or updates active agents when names are provided. |
+| `/roles` | Displays available roles or updates active roles when roles are provided. |
+| `/config` | Opens TUI settings. |
+| `/language fr`, `/language en` | Changes the language from `/config`. Alias: `/lang`. |
+| `/interface tui`, `/interface terminal` | Changes the default interface from `/config`. |
+| `/back` | Goes back to the previous screen. |
+| `/quit` | Exits the TUI. |
+
 ## Integrations
 
 | Command | Description |

@@ -28,8 +28,8 @@ test("TuiRenderer renders a lightweight terminal dashboard", () => {
   assert.match(text, /codex \(implementer\) - turn 1\/2/);
   assert.match(text, /------------------------------/);
   assert.match(text, /Hello from codex/);
-  assert.match(text, /Session terminee/);
-  assert.match(text, /Export Markdown/);
+  assert.match(text, /Session complete/);
+  assert.match(text, /Markdown export/);
   assert.match(text, /Palabre exported: out\.debate\.md/);
   assert.equal(text.match(/out\.debate\.md/g)?.length, 1);
 });
@@ -88,9 +88,10 @@ test("renderTuiHome renders a Palabre launch screen", () => {
 
   const text = output.join("");
   assert.match(text, /___/);
-  assert.match(text, /Orchestrez des conversations entre agents IA/);
+  assert.match(text, /Orchestrate conversations between AI agents/);
   assert.match(text, /v0\.7\.0/);
-  assert.match(text, /Dossier /);
+  assert.match(text, /Folder /);
+  assert.match(text, /https:\/\/palab\.re\/en/);
   assert.match(text, /\/help/);
   assert.match(text, /\/roles/);
   assert.match(text, /\/debat/);
@@ -115,7 +116,7 @@ test("renderTuiHelp renders slash commands", () => {
   }) as typeof process.stdout.write;
 
   try {
-    renderTuiHelp();
+    renderTuiHelp(createTranslator("fr"));
   } finally {
     process.stdout.write = originalWrite;
   }
@@ -138,16 +139,16 @@ test("renderTuiRolesHelp renders available roles", () => {
   }) as typeof process.stdout.write;
 
   try {
-    renderTuiRolesHelp("debate");
+    renderTuiRolesHelp("debate", createTranslator("fr"));
   } finally {
     process.stdout.write = originalWrite;
   }
 
   const text = output.join("");
-  assert.match(text, /Rôles Palabre/);
+  assert.match(text, /Roles Palabre/);
   assert.match(text, /implementer/);
   assert.match(text, /critic/);
-  assert.match(text, /Exemple: Mode debat > Roles > implementer critic/);
+  assert.match(text, /Exemple: Debat > Roles > implementer critic/);
 });
 
 test("renderTuiAgentsHelp renders configured agents", () => {
@@ -172,7 +173,7 @@ test("renderTuiAgentsHelp renders configured agents", () => {
         claude: { type: "cli", command: "claude", role: "critic" },
         opencode: { type: "cli", command: "opencode", role: "reviewer" }
       }
-    }, "debate");
+    }, "debate", createTranslator("fr"));
   } finally {
     process.stdout.write = originalWrite;
   }
@@ -183,7 +184,7 @@ test("renderTuiAgentsHelp renders configured agents", () => {
   assert.match(text, /codex <-> claude/);
   assert.match(text, /Agents disponibles/);
   assert.match(text, /opencode/);
-  assert.match(text, /Exemple: Mode debat > Agents > codex claude/);
+  assert.match(text, /Exemple: Debat > Agents > codex claude/);
 });
 
 test("renderTuiConfig keeps the Palabre brand header", () => {
@@ -209,21 +210,25 @@ test("renderTuiConfig keeps the Palabre brand header", () => {
         claude: { type: "cli", command: "claude", role: "critic" },
         opencode: { type: "cli", command: "opencode", role: "summarizer" }
       }
-    }, "palabre.config.json", "debate");
+    }, "palabre.config.json", "debate", createTranslator("en"));
   } finally {
     process.stdout.write = originalWrite;
   }
 
   const text = output.join("");
   assert.match(text, /___/);
-  assert.match(text, /Orchestrez des conversations entre agents IA/);
-  assert.match(text, /Configuration Palabre/);
-  assert.match(text, /Agents actifs/);
-  assert.match(text, /Agents dispo/);
-  assert.match(text, /Config actuelle/);
-  assert.match(text, /Commandes disponibles/);
+  assert.match(text, /Orchestrate conversations between AI agents/);
+  assert.match(text, /Palabre Configuration/);
+  assert.match(text, /Active agents/);
+  assert.match(text, /Agents/);
+  assert.match(text, /Language/);
+  assert.match(text, /\/language/);
+  assert.match(text, /Current config/);
+  assert.match(text, /Available commands/);
   assert.match(text, /\/back/);
-  assert.match(text, /Debat/);
+  assert.match(text, /Debate/);
+  assert.doesNotMatch(text, /Langue/);
+  assert.doesNotMatch(text, /Commandes disponibles/);
 });
 
 test("renderTuiComposer renders a framed subject input hint", () => {
@@ -235,7 +240,7 @@ test("renderTuiComposer renders a framed subject input hint", () => {
   }) as typeof process.stdout.write;
 
   try {
-    renderTuiComposer("ask", "Sujet", { force: true });
+    renderTuiComposer("ask", createTranslator("fr"), "Sujet", { force: true });
   } finally {
     process.stdout.write = originalWrite;
   }
@@ -256,7 +261,7 @@ test("renderTuiComposer renders config commands in config mode", () => {
   }) as typeof process.stdout.write;
 
   try {
-    renderTuiComposer("debate", "Config", { force: true });
+    renderTuiComposer("debate", createTranslator("fr"), "Config", { force: true });
   } finally {
     process.stdout.write = originalWrite;
   }

@@ -127,11 +127,11 @@ async function main(): Promise<void> {
   }
 
   const config = await loadConfig(configPath);
-  const language = resolveLanguage({
+  let language = resolveLanguage({
     explicitLanguage: optionalString(parsed.flags.language),
     configLanguage: config.language
   });
-  const messages = createTranslator(language);
+  let messages = createTranslator(language);
 
   assertRunnableConfig(config, messages, configPath);
 
@@ -142,15 +142,15 @@ async function main(): Promise<void> {
 
     for (;;) {
       renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion });
-      const tuiInput = await promptTuiHomeTopic(tuiMode, { notice: tuiNotice });
+      const tuiInput = await promptTuiHomeTopic(tuiMode, messages, { notice: tuiNotice });
       tuiNotice = undefined;
       if (!tuiInput) {
         return;
       }
 
       if (tuiInput.kind === "help") {
-        renderTuiHelp();
-        const nextInput = await promptTuiHomeTopic(tuiMode);
+        renderTuiHelp(messages);
+        const nextInput = await promptTuiHomeTopic(tuiMode, messages);
         if (!nextInput) {
           return;
         }
@@ -182,6 +182,8 @@ async function main(): Promise<void> {
           const result = await runTuiConfigLoop(configPath, config, messages, tuiMode);
           if (result.quit) return;
           tuiMode = result.mode;
+          language = resolveLanguage({ explicitLanguage: optionalString(parsed.flags.language), configLanguage: config.language });
+          messages = createTranslator(language);
           continue;
         }
 
@@ -208,6 +210,8 @@ async function main(): Promise<void> {
         const result = await runTuiConfigLoop(configPath, config, messages, tuiMode);
         if (result.quit) return;
         tuiMode = result.mode;
+        language = resolveLanguage({ explicitLanguage: optionalString(parsed.flags.language), configLanguage: config.language });
+        messages = createTranslator(language);
         continue;
       } else if (tuiInput.kind === "new") {
         parsed.command = "new";
@@ -499,12 +503,13 @@ async function runTuiConfigLoop(
 ): Promise<{ mode: PalabreMode; quit: boolean }> {
   let mode = initialMode;
   let notice: string | undefined;
+  let currentMessages = messages;
 
   for (;;) {
-    renderTuiConfig(config, configPath, mode, { message: notice });
+    renderTuiConfig(config, configPath, mode, currentMessages, { message: notice });
     notice = undefined;
 
-    const input = await promptTuiConfigCommand(mode);
+    const input = await promptTuiConfigCommand(mode, currentMessages);
 
     if (input.kind === "quit") {
       return { mode, quit: true };
@@ -521,21 +526,29 @@ async function runTuiConfigLoop(
 
     if (input.kind === "mode") {
       mode = mode === "ask" ? "debate" : "ask";
-      notice = mode === "ask" ? "Configuration Ask." : "Configuration Debat.";
+      notice = mode === "ask" ? currentMessages.tui.askConfigMode : currentMessages.tui.debateConfigMode;
       continue;
     }
 
     if (input.kind === "default-mode") {
       config.defaults = { ...(config.defaults ?? {}), mode };
       await writeExampleConfig(configPath, config);
-      notice = mode === "ask" ? "Ask devient le mode par defaut." : "Debat devient le mode par defaut.";
+      notice = mode === "ask" ? currentMessages.tui.askDefaultMode : currentMessages.tui.debateDefaultMode;
       continue;
     }
 
     if (input.kind === "interface") {
       config.defaults = { ...(config.defaults ?? {}), interface: input.interfaceName };
       await writeExampleConfig(configPath, config);
-      notice = `Interface par defaut: ${input.interfaceName}.`;
+      notice = currentMessages.tui.interfaceDefault(input.interfaceName);
+      continue;
+    }
+
+    if (input.kind === "language") {
+      config.language = parseLanguage(input.language, "--language");
+      await writeExampleConfig(configPath, config);
+      currentMessages = createTranslator(config.language ?? DEFAULT_LANGUAGE);
+      notice = currentMessages.tui.languageUpdated(input.language);
       continue;
     }
 
@@ -543,25 +556,25 @@ async function runTuiConfigLoop(
       try {
         const agentsInput = input.agents.length > 0
           ? { kind: "agents" as const, agents: input.agents }
-          : await promptTuiAgentsWizard(config, mode);
+          : await promptTuiAgentsWizard(config, mode, currentMessages);
         if (agentsInput.kind === "quit") {
           return { mode, quit: true };
         }
         if (agentsInput.kind === "back" || agentsInput.agents.length === 0) {
-          notice = "Agents inchanges.";
+          notice = currentMessages.tui.agentsUnchanged;
           continue;
         }
 
         if (mode === "ask") {
-          const agents = normalizeTuiAskAgents(config, agentsInput.agents, messages);
+          const agents = normalizeTuiAskAgents(config, agentsInput.agents, currentMessages);
           config.defaults = { ...(config.defaults ?? {}), askAgents: agents };
           await writeExampleConfig(configPath, config);
-          notice = `Agents Ask mis a jour: ${agents.join(", ")}.`;
+          notice = currentMessages.tui.askAgentsUpdated(agents.join(", "));
         } else {
-          const [agentA, agentB] = normalizeTuiDebateAgents(config, agentsInput.agents, messages);
+          const [agentA, agentB] = normalizeTuiDebateAgents(config, agentsInput.agents, currentMessages);
           config.defaults = { ...(config.defaults ?? {}), agentA, agentB };
           await writeExampleConfig(configPath, config);
-          notice = `Agents Debat mis a jour: ${agentA} <-> ${agentB}.`;
+          notice = currentMessages.tui.debateAgentsUpdated(`${agentA} <-> ${agentB}`);
         }
       } catch (error) {
         notice = error instanceof Error ? error.message : String(error);
@@ -573,15 +586,15 @@ async function runTuiConfigLoop(
       try {
         const rolesInput = input.roles.length > 0
           ? { kind: "roles" as const, roles: input.roles }
-          : await promptTuiRolesWizard(config, mode);
+          : await promptTuiRolesWizard(config, mode, currentMessages);
         if (rolesInput.kind === "quit") {
           return { mode, quit: true };
         }
         if (rolesInput.kind === "back" || rolesInput.roles.length === 0) {
-          notice = "Roles inchanges.";
+          notice = currentMessages.tui.rolesUnchanged;
           continue;
         }
-        notice = applyTuiRoles(config, mode, rolesInput.roles);
+        notice = applyTuiRoles(config, mode, rolesInput.roles, currentMessages);
         await writeExampleConfig(configPath, config);
       } catch (error) {
         notice = error instanceof Error ? error.message : String(error);
@@ -591,15 +604,15 @@ async function runTuiConfigLoop(
 
     if (input.kind === "turns") {
       if (mode === "ask") {
-        notice = "En mode Ask, le nombre de reponses depend des agents selectionnes avec /agents.";
+        notice = currentMessages.tui.askTurnsNotice;
         continue;
       }
 
       try {
-        validateTurns(input.turns, "--turns", messages);
+        validateTurns(input.turns, "--turns", currentMessages);
         config.defaults = { ...(config.defaults ?? {}), turns: input.turns };
         await writeExampleConfig(configPath, config);
-        notice = `Tours mis a jour: ${input.turns}.`;
+        notice = currentMessages.tui.turnsUpdated(input.turns);
       } catch (error) {
         notice = error instanceof Error ? error.message : String(error);
       }
@@ -610,23 +623,23 @@ async function runTuiConfigLoop(
       try {
         const nextDefaults = { ...(config.defaults ?? {}) };
         if (input.agent !== undefined) {
-          assertKnownAgent(config, input.agent, mode === "ask" ? "defaults.askSummaryAgent" : "defaults.summaryAgent", messages);
+          assertKnownAgent(config, input.agent, mode === "ask" ? "defaults.askSummaryAgent" : "defaults.summaryAgent", currentMessages);
         }
 
         if (mode === "ask") {
           if (input.agent === undefined) {
             delete nextDefaults.askSummaryAgent;
-            notice = "Synthese Ask revenue au fallback.";
+            notice = currentMessages.tui.askSummaryFallback;
           } else {
             nextDefaults.askSummaryAgent = input.agent;
-            notice = `Synthese Ask: ${input.agent}.`;
+            notice = currentMessages.tui.askSummaryAgent(input.agent);
           }
         } else if (input.agent === undefined) {
           delete nextDefaults.summaryAgent;
-          notice = "Synthese Debat revenue au fallback.";
+          notice = currentMessages.tui.debateSummaryFallback;
         } else {
           nextDefaults.summaryAgent = input.agent;
-          notice = `Synthese Debat: ${input.agent}.`;
+          notice = currentMessages.tui.debateSummaryAgent(input.agent);
         }
 
         config.defaults = nextDefaults;
@@ -641,7 +654,7 @@ async function runTuiConfigLoop(
 function normalizeTuiDebateAgents(config: PalabreConfig, agents: string[], messages: Messages): [string, string] {
   const unique = agents.map((agent) => agent.trim()).filter((agent, index, list) => agent && list.indexOf(agent) === index);
   if (unique.length !== 2) {
-    throw new Error("Usage: /agents <agentA> <agentB>");
+    throw new Error(messages.tui.debateAgentsUsage);
   }
 
   assertKnownAgent(config, unique[0]!, "defaults.agentA", messages);
@@ -652,7 +665,7 @@ function normalizeTuiDebateAgents(config: PalabreConfig, agents: string[], messa
 function normalizeTuiAskAgents(config: PalabreConfig, agents: string[], messages: Messages): string[] {
   const unique = agents.map((agent) => agent.trim()).filter((agent, index, list) => agent && list.indexOf(agent) === index);
   if (unique.length === 0) {
-    throw new Error("Usage: /agents <agent...>");
+    throw new Error(messages.tui.askAgentsUsage);
   }
 
   if (unique.length > MAX_ASK_AGENTS) {
@@ -673,7 +686,7 @@ async function runTuiAgentsWizard(
   try {
     const agentsInput = inlineAgents.length > 0
       ? { kind: "agents" as const, agents: inlineAgents }
-      : await promptTuiAgentsWizard(config, mode);
+      : await promptTuiAgentsWizard(config, mode, messages);
     if (agentsInput.kind === "quit") {
       return { quit: true };
     }
@@ -685,32 +698,32 @@ async function runTuiAgentsWizard(
     await writeExampleConfig(configPath, config);
     return { notice, quit: false };
   } catch (error) {
-    return { notice: `Erreur agents: ${error instanceof Error ? error.message : String(error)}`, quit: false };
+    return { notice: messages.tui.agentsError(error instanceof Error ? error.message : String(error)), quit: false };
   }
 }
 
 async function runTuiRolesWizard(
   configPath: string,
   config: PalabreConfig,
-  _messages: Messages,
+  messages: Messages,
   mode: PalabreMode,
   inlineRoles: string[] = []
 ): Promise<{ notice?: string; quit: boolean }> {
   try {
     const rolesInput = inlineRoles.length > 0
       ? { kind: "roles" as const, roles: inlineRoles }
-      : await promptTuiRolesWizard(config, mode);
+      : await promptTuiRolesWizard(config, mode, messages);
     if (rolesInput.kind === "quit") {
       return { quit: true };
     }
     if (rolesInput.kind === "back" || rolesInput.roles.length === 0) {
       return { quit: false };
     }
-    const notice = applyTuiRoles(config, mode, rolesInput.roles);
+    const notice = applyTuiRoles(config, mode, rolesInput.roles, messages);
     await writeExampleConfig(configPath, config);
     return { notice, quit: false };
   } catch (error) {
-    return { notice: `Erreur roles: ${error instanceof Error ? error.message : String(error)}`, quit: false };
+    return { notice: messages.tui.rolesError(error instanceof Error ? error.message : String(error)), quit: false };
   }
 }
 
@@ -718,28 +731,28 @@ function applyTuiAgents(config: PalabreConfig, mode: PalabreMode, agentNames: st
   if (mode === "ask") {
     const agents = normalizeTuiAskAgents(config, agentNames, messages);
     config.defaults = { ...(config.defaults ?? {}), askAgents: agents };
-    return `Agents Ask mis a jour: ${agents.join(", ")}.`;
+    return messages.tui.askAgentsUpdated(agents.join(", "));
   }
 
   const [agentA, agentB] = normalizeTuiDebateAgents(config, agentNames, messages);
   config.defaults = { ...(config.defaults ?? {}), agentA, agentB };
-  return `Agents Debat mis a jour: ${agentA} <-> ${agentB}.`;
+  return messages.tui.debateAgentsUpdated(`${agentA} <-> ${agentB}`);
 }
 
-function applyTuiRoles(config: PalabreConfig, mode: PalabreMode, roleNames: string[]): string {
+function applyTuiRoles(config: PalabreConfig, mode: PalabreMode, roleNames: string[], messages: Messages): string {
   const agents = activeAgentsForMode(config, mode);
   if (agents.length === 0) {
-    throw new Error(mode === "ask" ? "Aucun agent Ask configure." : "Agents Debat non definis.");
+    throw new Error(mode === "ask" ? messages.tui.noAskAgentsConfigured : messages.tui.noDebateAgentsConfigured);
   }
 
-  const roles = normalizeTuiRoles(roleNames, agents, mode);
+  const roles = normalizeTuiRoles(roleNames, agents, mode, messages);
   agents.forEach((agent, index) => {
     config.agents[agent]!.role = roles[index]!;
   });
 
   return mode === "ask"
-    ? `Roles Ask mis a jour: ${roles.join(", ")}.`
-    : `Roles Debat mis a jour: ${roles.join(" <-> ")}.`;
+    ? messages.tui.askRolesUpdated(roles.join(", "))
+    : messages.tui.debateRolesUpdated(roles.join(" <-> "));
 }
 
 function activeAgentsForMode(config: PalabreConfig, mode: PalabreMode): string[] {
@@ -754,21 +767,21 @@ function activeAgentsForMode(config: PalabreConfig, mode: PalabreMode): string[]
   return [defaults.agentA, defaults.agentB].filter((agent): agent is string => Boolean(agent && config.agents[agent]));
 }
 
-function normalizeTuiRoles(roleNames: string[], agents: string[], mode: PalabreMode): AgentRole[] {
+function normalizeTuiRoles(roleNames: string[], agents: string[], mode: PalabreMode, messages: Messages): AgentRole[] {
   const roles = roleNames.map((role) => role.trim().toLowerCase()).filter(Boolean);
   const expectedCount = agents.length;
   if (roles.length < expectedCount) {
     const agentLabel = mode === "ask"
       ? agents.join(", ")
       : agents.join(" <-> ");
-    throw new Error(`${roles.length} role(s) saisi(s), ${expectedCount} attendu(s). Saisis au moins ${expectedCount} roles pour: ${agentLabel}.`);
+    throw new Error(messages.tui.rolesCountError(roles.length, expectedCount, agentLabel));
   }
 
   return roles.slice(0, expectedCount).map((role) => {
     if (isAgentRole(role)) {
       return role;
     }
-    throw new Error(`Role inconnu: ${role}. Roles disponibles: ${VALID_AGENT_ROLES.join(", ")}.`);
+    throw new Error(messages.tui.unknownRole(role, VALID_AGENT_ROLES.join(", ")));
   });
 }
 

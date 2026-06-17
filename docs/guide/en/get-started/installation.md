@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Install Palabre from npm, verify the command, and prepare the AI agents used by debates.
+description: Install Palabre from npm, verify the command, and prepare the AI agents used by debates and Ask requests.
 ---
 
 ## Prerequisites

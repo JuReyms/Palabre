@@ -53,6 +53,7 @@ Commandes directes utiles :
 palabre config --set-defaults codex claude --summary-agent claude -t 4
 palabre config --mode ask --ask-agents codex claude opencode --ask-summary-agent opencode
 palabre config --interface tui
+palabre config --language en
 palabre config -t 3
 palabre config --summary-agent claude
 palabre config --clear-defaults
@@ -61,6 +62,8 @@ palabre config --ollama-models --json
 palabre config --set-ollama-model gemma4:e4b
 palabre config --sync-ollama-model
 ```
+
+Dans la TUI, les mêmes réglages courants sont accessibles depuis `/config` avec des commandes comme `/agents`, `/roles`, `/summary`, `/turns`, `/interface`, `/language`, `/mode` et `/default`.
 
 ## Aller plus loin
 

@@ -93,4 +93,4 @@ Cette commande ajoute les agents détectés manquants sans écraser vos réglage
 
 ## Étape suivante
 
-Vous pouvez maintenant [lancer un premier débat](/fr/get-started/first-debate).
+Vous pouvez maintenant [lancer une première session](/fr/get-started/first-debate).

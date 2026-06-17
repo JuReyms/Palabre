@@ -1,6 +1,6 @@
 ---
-title: Lancer un débat
-description: Choisir les agents, les réponses, les presets et les options principales pour lancer un débat Palabre.
+title: Débat et Ask
+description: Choisir le mode débat ou Ask, les agents, les rôles, les réponses et les options principales pour lancer une session Palabre.
 ---
 
 ## Accueil TUI
@@ -20,6 +20,19 @@ Depuis cet écran :
 - utilisez `/config` pour modifier les réglages sans quitter la TUI.
 
 `palabre new` reste disponible comme assistant guidé historique.
+
+## Mode Débat
+
+Le mode `debate` fait dialoguer deux agents tour à tour. C'est le bon choix quand vous voulez confronter deux points de vue, faire monter une contradiction, demander une revue critique ou transformer un sujet flou en décision.
+
+Chaque tour reçoit :
+
+- le sujet ;
+- le contexte de session ;
+- les fichiers ou dossiers injectés avec `--files` ou `--context` ;
+- l'historique déjà produit par les agents.
+
+À la fin, Palabre demande une synthèse finale. Cette synthèse résume le consensus, les désaccords ou incertitudes, les actions proposées et une conclusion courte.
 
 ## Avec les agents par défaut
 
@@ -53,6 +66,8 @@ palabre ask "Compare ces deux options" --agents codex claude opencode
 
 Le mode Ask envoie le même sujet et le même contexte à plusieurs agents, sans transcript partagé entre eux. Chaque agent répond seul. Ensuite, l'agent de synthèse résume fidèlement ce que chaque agent a dit et compare les réponses.
 
+Ask est utile quand vous voulez comparer plusieurs réponses indépendantes, obtenir plusieurs formulations, vérifier si des agents convergent sans s'influencer, ou demander une analyse parallèle à plusieurs profils.
+
 Sans `--agents`, Palabre utilise `defaults.askAgents` si défini, sinon la paire de débat par défaut.
 
 Le mode Ask accepte 1 à 4 agents :
@@ -62,6 +77,15 @@ palabre ask "Quelle approche choisir ?" --agents codex claude opencode gemini
 ```
 
 L'export utilise l'extension `.ask.md`.
+
+`--turns` ne pilote pas le nombre de réponses en mode Ask : le nombre de réponses dépend des agents sélectionnés. Pour changer les agents Ask par défaut :
+
+```bash
+palabre config --ask-agents codex claude opencode
+palabre config --ask-summary-agent opencode
+```
+
+Depuis l'accueil TUI, `/ask` passe en mode Ask, `/agents` choisit les agents actifs et `/roles` applique les rôles.
 
 ## Nombre de réponses
 

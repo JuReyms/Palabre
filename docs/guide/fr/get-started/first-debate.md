@@ -1,6 +1,6 @@
 ---
-title: Lancer un premier débat
-description: Lancer un premier débat depuis l'accueil TUI ou une commande courte, puis retrouver l'export Markdown.
+title: Lancer une première session
+description: Lancer un premier débat ou une demande Ask depuis l'accueil TUI ou une commande courte, puis retrouver l'export Markdown.
 ---
 
 ```bash
@@ -9,7 +9,7 @@ palabre
 
 Dans un terminal interactif, `palabre` ouvre l'accueil TUI. Il affiche le mode courant, les agents, les rôles, l'agent de synthèse, le dossier courant et les commandes utiles.
 
-Tapez simplement votre sujet dans le champ `Mode debat > Sujet >`, puis appuyez sur Entrée.
+Tapez simplement votre sujet dans le champ `Mode debat > Sujet >`, puis appuyez sur Entrée. Pour obtenir plusieurs réponses indépendantes au lieu d'une conversation, utilisez `/ask` avant de saisir le sujet.
 
 Commandes utiles depuis l'accueil :
 
@@ -36,7 +36,7 @@ palabre -s "Critique ce plan technique" -t 4
 palabre ask "Compare ces deux approches" --agents codex claude opencode
 ```
 
-En mode Ask, les agents répondent indépendamment au même sujet. La synthèse résume fidèlement chaque réponse et les compare. L'export utilise l'extension `.ask.md`.
+En mode Ask, les agents répondent indépendamment au même sujet, sans voir les réponses des autres. La synthèse résume fidèlement chaque réponse et les compare. L'export utilise l'extension `.ask.md`.
 
 ## Lancer avec un preset
 
@@ -80,4 +80,4 @@ Pendant la session, Palabre affiche les réponses dans le terminal. À la fin, i
 
 Par défaut, l'[export](/fr/usage/exports) est créé dans un dossier `.palabre/` sous le dossier depuis lequel vous lancez la commande. À la fin du débat, Palabre affiche le chemin complet du fichier exporté dans le terminal.
 
-Pour aller plus loin, consultez [Lancer un débat](/fr/usage/running-a-debate), [Contexte et fichiers](/fr/usage/context-and-files) et [Synthèses](/fr/usage/summaries).
+Pour aller plus loin, consultez [Débat et Ask](/fr/usage/running-a-debate), [Contexte et fichiers](/fr/usage/context-and-files) et [Synthèses](/fr/usage/summaries).

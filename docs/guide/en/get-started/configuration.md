@@ -93,4 +93,4 @@ This command adds missing detected agents without overwriting your existing sett
 
 ## Next step
 
-You can now [start your first debate](/en/get-started/first-debate).
+You can now [start your first session](/en/get-started/first-debate).

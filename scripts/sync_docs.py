@@ -28,6 +28,7 @@ ROUTE_MAP = {
     "agents/antigravity.md": "2.agents/5.antigravity.md",
     "agents/opencode.md": "2.agents/6.opencode.md",
     "agents/ollama.md": "2.agents/7.ollama.md",
+    "agents/vibe.md": "2.agents/8.vibe.md",
     "usage/running-a-debate.md": "3.usage/1.running-a-debate.md",
     "usage/context-and-files.md": "3.usage/2.context-and-files.md",
     "usage/summaries.md": "3.usage/3.summaries.md",
@@ -76,7 +77,28 @@ def sync_page(locale: str, route: str, numbered_route: str) -> None:
     print(f"OK: {source} -> {output.relative_to('dist')}")
 
 
+def validate_route_map() -> None:
+    mapped_routes = set(ROUTE_MAP)
+    for locale in LOCALES:
+        root = Path("docs") / "guide" / locale
+        source_routes = {
+            str(path.relative_to(root)).replace("\\", "/")
+            for path in root.rglob("*.md")
+        }
+        missing = sorted(source_routes - mapped_routes)
+        extra = sorted(route for route in mapped_routes if not (root / route).exists())
+        if missing:
+            raise SystemExit(
+                f"Missing ROUTE_MAP entries for {locale}: {', '.join(missing)}"
+            )
+        if extra:
+            raise SystemExit(
+                f"ROUTE_MAP entries without {locale} source: {', '.join(extra)}"
+            )
+
+
 def main() -> None:
+    validate_route_map()
     for locale in LOCALES:
         for route, numbered_route in ROUTE_MAP.items():
             sync_page(locale, route, numbered_route)

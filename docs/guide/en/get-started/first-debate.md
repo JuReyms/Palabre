@@ -1,6 +1,6 @@
 ---
-title: Your first debate
-description: Start a first debate from the TUI home screen or a short command, then find the Markdown export.
+title: Your first session
+description: Start a first debate or Ask request from the TUI home screen or a short command, then find the Markdown export.
 ---
 
 ```bash
@@ -9,7 +9,7 @@ palabre
 
 In an interactive terminal, `palabre` opens the TUI home screen. It shows the current mode, agents, roles, summary agent, current folder, and useful commands.
 
-Type your subject in the `Mode debat > Sujet >` field, then press Enter.
+Type your subject in the `Mode debate > Subject >` field, then press Enter. To collect several independent answers instead of a conversation, use `/ask` before entering the subject.
 
 Useful commands from the home screen:
 
@@ -36,7 +36,7 @@ palabre -s "Critique this technical plan" -t 4
 palabre ask "Compare these two approaches" --agents codex claude opencode
 ```
 
-In Ask mode, agents answer the same subject independently. The summary faithfully summarizes each response and compares them. The export uses the `.ask.md` extension.
+In Ask mode, agents answer the same subject independently, without seeing each other's responses. The summary faithfully summarizes each response and compares them. The export uses the `.ask.md` extension.
 
 ## Launch with a preset
 
@@ -80,4 +80,4 @@ During the session, Palabre displays responses in the terminal. At the end, it e
 
 By default, the [export](/en/usage/exports) is created in a `.palabre/` folder under the folder from which you run the command. At the end of the debate, Palabre displays the full path of the exported file in the terminal.
 
-To go further, see [Running a debate](/en/usage/running-a-debate), [Context and files](/en/usage/context-and-files), and [Summaries](/en/usage/summaries).
+To go further, see [Debate and Ask](/en/usage/running-a-debate), [Context and files](/en/usage/context-and-files), and [Summaries](/en/usage/summaries).

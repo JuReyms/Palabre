@@ -71,6 +71,15 @@ palabre config --language en
 
 La langue configurée contrôle l'interface Palabre et les prompts envoyés aux agents. Vous pouvez la forcer pour une commande avec `--language <fr|en>`, `--lang <fr|en>` ou la variable d'environnement `PALABRE_LANGUAGE`.
 
+Dans la TUI, ouvrez `/config`, puis utilisez :
+
+```text
+/language fr
+/language en
+```
+
+Les alias `/lang fr` et `/langue fr` sont aussi acceptés.
+
 ## Définir l'interface par défaut
 
 ```bash
