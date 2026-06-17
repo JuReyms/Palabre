@@ -7,19 +7,21 @@ Cette page donne une vue d'ensemble des évolutions prévues pour Palabre. Elle 
 
 ## Disponible aujourd'hui
 
-Palabre permet déjà de lancer des débats entre deux agents installés sur votre machine : Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe ou Ollama.
+Palabre permet déjà de lancer des débats entre deux agents installés sur votre machine, ou des demandes Ask où plusieurs agents répondent indépendamment avant une synthèse comparative : Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe ou Ollama.
 
 Les fonctionnalités principales sont disponibles :
 
 - configuration globale ou locale ;
 - détection des agents installés ;
+- interface TUI-first avec `palabre`, `/agents`, `/roles` et `/config` ;
 - assistant interactif `palabre new` ;
+- mode `ask` avec 1 à 4 agents et export `.ask.md` ;
 - presets comme `codex-claude`, `claude-gemini`, `codex-antigravity` ou `opencode-ollama` ;
 - interface et prompts en français ou en anglais avec `--language`, `--lang`, `PALABRE_LANGUAGE` ou la configuration ;
 - ajout de contexte avec `--files` ou `--context` ;
 - prévisualisation du scan de contexte avec `palabre context scan --json` pour les intégrations ;
 - synthèse finale avec consensus, désaccords, actions proposées et conclusion ;
-- export Markdown `.debate.md` avec nom basé sur le sujet ;
+- export Markdown `.debate.md` ou `.ask.md` avec nom basé sur le sujet ;
 - export partiel conservé si un agent plante pendant le débat ou la synthèse ;
 - diagnostic avec `palabre doctor` ;
 - sortie machine-readable avec `palabre presets --json`, `palabre context scan --json` et le renderer NDJSON ;
@@ -39,7 +41,7 @@ Palabre expose déjà des contrats JSON pour les presets, le scan de contexte et
 
 ### Configuration plus simple
 
-La commande `palabre config` couvre déjà les réglages courants : agents par défaut, nombre de réponses, agent de synthèse et synchronisation des agents installés après l'initialisation. Les prochaines améliorations viseront surtout des messages plus clairs, de meilleures validations et une expérience plus guidée.
+La commande `palabre config` et la vue TUI `/config` couvrent déjà les réglages courants : agents par défaut, rôles, nombre de réponses, agent de synthèse, mode par défaut, interface par défaut et synchronisation des agents installés après l'initialisation. Les prochaines améliorations viseront surtout des messages plus clairs, de meilleures validations et des wizards plus complets pour les choix qui méritent de la découverte.
 
 
 ### Conversation après le débat
@@ -59,7 +61,7 @@ Ces sujets sont envisagés après stabilisation du CLI :
 - provider compatible OpenAI local pour LM Studio, LocalAI, vLLM ou équivalent ;
 - maintenance continue de la documentation française et anglaise ;
 - interface CLI multilingue français/anglais à continuer d'affiner, avec un futur choix interactif de langue pendant l'initialisation ;
-- vrai TUI interactif avec scrolling, pause et reprise ;
+- TUI plus avancée avec scrolling, panneaux persistants, pause et reprise ;
 - affichage fiable des modèles quand Palabre pourra les connaître sans bruit inutile.
 
 ## Philosophie

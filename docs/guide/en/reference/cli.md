@@ -41,7 +41,7 @@ This page lists the main Palabre commands.
 
 | Command | Description |
 |---------|-------------|
-| `palabre new` | Opens the debate creation assistant. |
+| `palabre new` | Opens the guided assistant for a debate or Ask request. |
 | `palabre -s "Subject" -t 4` | Launches with default agents. |
 | `palabre codex-claude "Subject" -t 4` | Launches with a preset. |
 | `palabre run --subject "Subject" --agent-a codex --agent-b claude` | Launches with explicit agents. |
@@ -66,13 +66,13 @@ This page lists the main Palabre commands.
 | `--tui` | Forces the TUI interface, even if configuration asks for terminal rendering. |
 | `--terminal`, `--no-tui` | Uses raw terminal rendering. Also useful with `palabre doctor` for logs. |
 | `--plain` | Historical alias for `--terminal`. |
-| `--renderer <auto\|pretty\|plain\|tui\|ndjson>` | Selects the terminal or integration renderer. `tui` enables the first full-terminal interface. |
+| `--renderer <auto\|pretty\|plain\|tui\|ndjson>` | Selects the terminal or integration renderer. `tui` enables the full-terminal interface. |
 
 ## Debate options
 
 | Option | Description |
 |--------|-------------|
-| `-s`, `--subject <text>` | Debate subject. |
+| `-s`, `--subject <text>` | Session subject. |
 | `--topic <text>` | Compatible alias for `--subject`. |
 | `--preset <name>` | Selects an agent pair. |
 | `--agent-a <name>` | First agent. |

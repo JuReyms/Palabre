@@ -3,7 +3,7 @@ title: Configuration
 description: Comprendre le fichier de configuration Palabre et les commandes disponibles pour le créer ou le modifier.
 ---
 
-La configuration indique à Palabre quels agents existent, quels agents utiliser par défaut et où écrire les exports. Si `outputDir` n'est pas défini, les fichiers `.debate.md` sont créés dans le dossier `.palabre/` par défaut.
+La configuration indique à Palabre quels agents existent, quels agents utiliser par défaut et où écrire les exports. Si `outputDir` n'est pas défini, les fichiers `.debate.md` et `.ask.md` sont créés dans le dossier `.palabre/` par défaut.
 
 ## Créer une configuration
 
@@ -32,11 +32,12 @@ Cela crée :
 ## Voir la configuration utile
 
 ```bash
+palabre
 palabre agents
 palabre doctor
 ```
 
-`palabre agents` affiche les agents déclarés et leur détection locale. `palabre doctor` vérifie les erreurs courantes.
+Depuis l'accueil TUI, `/config` affiche les réglages courants et `/agents` liste les agents disponibles. Hors TUI, `palabre agents` affiche les agents déclarés et leur détection locale. `palabre doctor` vérifie les erreurs courantes.
 
 ## Modifier les paramètres courants
 
@@ -44,12 +45,14 @@ palabre doctor
 palabre config
 ```
 
-L'assistant permet de définir ou supprimer les paramètres par défaut. Les commandes directes ci-dessous permettent de modifier un seul réglage sans repasser par tout l'assistant.
+Dans la TUI, `/config` permet de définir ou supprimer les paramètres par défaut sans quitter Palabre. Les commandes directes ci-dessous permettent aussi de modifier un seul réglage depuis le terminal ou un script.
 
 Commandes directes utiles :
 
 ```bash
 palabre config --set-defaults codex claude --summary-agent claude -t 4
+palabre config --mode ask --ask-agents codex claude opencode --ask-summary-agent opencode
+palabre config --interface tui
 palabre config -t 3
 palabre config --summary-agent claude
 palabre config --clear-defaults

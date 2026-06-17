@@ -31,6 +31,30 @@ Si aucun agent de synthèse n'est défini, Palabre utilise l'agent B. Pour retir
 palabre config --summary-agent none
 ```
 
+## Définir les agents Ask par défaut
+
+```bash
+palabre config --ask-agents codex claude opencode
+```
+
+Le mode Ask accepte 1 à 4 agents. Sans ce réglage, Palabre utilise la paire de débat par défaut.
+
+Pour choisir un agent de synthèse spécifique au mode Ask :
+
+```bash
+palabre config --ask-summary-agent opencode
+```
+
+Ce réglage est séparé de `--summary-agent`, afin de pouvoir garder une synthèse différente entre débat et Ask.
+
+## Définir le mode par défaut
+
+```bash
+palabre config --mode ask
+```
+
+Les valeurs acceptées sont `debate` et `ask`. Dans la TUI, vous pouvez aussi changer de mode avec `/ask` ou `/debat`.
+
 ## Définir le nombre de réponses
 
 ```bash

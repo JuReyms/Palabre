@@ -1,11 +1,14 @@
 ---
 title: Exports
-description: Learn where Palabre writes Markdown exports and what they contain after a debate.
+description: Learn where Palabre writes Markdown exports and what they contain after a debate or Ask request.
 ---
 
-Each debate generates a `.debate.md` file in the folder defined by `outputDir`.
+Each session generates a Markdown export in the folder defined by `outputDir`:
 
-By default, exports are grouped in a `.palabre/` folder under the directory from which you run `palabre`. At the end of the debate, the terminal displays a `Debate exported:` line followed by the full path to the file.
+- `.debate.md` for a debate;
+- `.ask.md` for an Ask request.
+
+By default, exports are grouped in a `.palabre/` folder under the directory from which you run `palabre`. At the end of the session, the terminal displays a `Palabre exported:` line followed by the full path to the file.
 
 ## Export contents
 
@@ -13,7 +16,7 @@ The file contains:
 
 - a header table with the subject, agents, models, local date, and timezone;
 - the list of files injected into the context;
-- the full transcript;
+- the full debate transcript, or the independent agent responses in Ask mode;
 - the final summary if it is enabled.
 
 ## File name
@@ -22,9 +25,10 @@ The name contains a short version of the subject and a timestamp. This makes deb
 
 ```text
 palabre-critique-this-technical-plan-2026-05-06T08-52-43-000Z.debate.md
+palabre-compare-these-approaches-2026-05-06T08-52-43-000Z.ask.md
 ```
 
-If the subject contains no usable characters, Palabre uses `debate` as the short name.
+If the subject contains no usable characters, Palabre uses `debate` or `ask` as the short name depending on the mode.
 
 ## Final summary
 

@@ -24,7 +24,7 @@ La plupart des réglages courants peuvent se faire avec `palabre config`. Cette 
 
 | Champ | Description |
 |-------|-------------|
-| `outputDir` | Dossier de destination des exports `.debate.md`. |
+| `outputDir` | Dossier de destination des exports `.debate.md` et `.ask.md`. |
 | `defaults.agentA` | Agent qui répond en premier par défaut. |
 | `defaults.agentB` | Agent qui répond en second par défaut. |
 | `defaults.summaryAgent` | Agent utilisé pour la synthèse finale par défaut. |

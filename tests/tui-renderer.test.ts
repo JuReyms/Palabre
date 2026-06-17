@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createTuiRenderer, renderTuiComposer, renderTuiHelp, renderTuiHome } from "../src/renderers/tui.js";
+import { createTuiRenderer, renderTuiAgentsHelp, renderTuiComposer, renderTuiConfig, renderTuiHelp, renderTuiHome, renderTuiRolesHelp } from "../src/renderers/tui.js";
 import { createTranslator } from "../src/i18n.js";
 import type { DebateOptions } from "../src/types.js";
 
@@ -76,7 +76,11 @@ test("renderTuiHome renders a Palabre launch screen", () => {
         askSummaryAgent: "opencode",
         turns: 2
       },
-      agents: {}
+      agents: {
+        codex: { type: "cli", command: "codex", role: "architect" },
+        claude: { type: "cli", command: "claude", role: "critic" },
+        opencode: { type: "cli", command: "opencode", role: "implementer" }
+      }
     }, "palabre.config.json", createTranslator("en"), { version: "0.7.0" });
   } finally {
     process.stdout.write = originalWrite;
@@ -86,9 +90,13 @@ test("renderTuiHome renders a Palabre launch screen", () => {
   assert.match(text, /___/);
   assert.match(text, /Orchestrez des conversations entre agents IA/);
   assert.match(text, /v0\.7\.0/);
+  assert.match(text, /Dossier /);
   assert.match(text, /\/help/);
+  assert.match(text, /\/roles/);
   assert.match(text, /\/debat/);
   assert.match(text, /\/config/);
+  assert.match(text, /Roles/);
+  assert.match(text, /architect, critic, implementer/);
   assert.doesNotMatch(text, /\/new/);
   assert.doesNotMatch(text, /Session/);
   assert.doesNotMatch(text, /Composer/);
@@ -116,8 +124,106 @@ test("renderTuiHelp renders slash commands", () => {
   assert.match(text, /Commandes TUI/);
   assert.match(text, /\/ask/);
   assert.match(text, /\/debat/);
+  assert.match(text, /\/roles/);
   assert.match(text, /\/config/);
   assert.match(text, /\/quit/);
+});
+
+test("renderTuiRolesHelp renders available roles", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    renderTuiRolesHelp("debate");
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /Rôles Palabre/);
+  assert.match(text, /implementer/);
+  assert.match(text, /critic/);
+  assert.match(text, /Exemple: Mode debat > Roles > implementer critic/);
+});
+
+test("renderTuiAgentsHelp renders configured agents", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    renderTuiAgentsHelp({
+      language: "en",
+      defaults: {
+        mode: "debate",
+        agentA: "codex",
+        agentB: "claude",
+        turns: 2
+      },
+      agents: {
+        codex: { type: "cli", command: "codex", role: "implementer" },
+        claude: { type: "cli", command: "claude", role: "critic" },
+        opencode: { type: "cli", command: "opencode", role: "reviewer" }
+      }
+    }, "debate");
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /Agents Palabre/);
+  assert.match(text, /Agents actifs/);
+  assert.match(text, /codex <-> claude/);
+  assert.match(text, /Agents disponibles/);
+  assert.match(text, /opencode/);
+  assert.match(text, /Exemple: Mode debat > Agents > codex claude/);
+});
+
+test("renderTuiConfig keeps the Palabre brand header", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    renderTuiConfig({
+      language: "en",
+      defaults: {
+        mode: "debate",
+        agentA: "codex",
+        agentB: "claude",
+        summaryAgent: "opencode",
+        turns: 2
+      },
+      agents: {
+        codex: { type: "cli", command: "codex", role: "implementer" },
+        claude: { type: "cli", command: "claude", role: "critic" },
+        opencode: { type: "cli", command: "opencode", role: "summarizer" }
+      }
+    }, "palabre.config.json", "debate");
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /___/);
+  assert.match(text, /Orchestrez des conversations entre agents IA/);
+  assert.match(text, /Configuration Palabre/);
+  assert.match(text, /Agents actifs/);
+  assert.match(text, /Agents dispo/);
+  assert.match(text, /Config actuelle/);
+  assert.match(text, /Commandes disponibles/);
+  assert.match(text, /\/back/);
+  assert.match(text, /Debat/);
 });
 
 test("renderTuiComposer renders a framed subject input hint", () => {

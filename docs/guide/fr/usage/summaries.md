@@ -3,7 +3,7 @@ title: Synthèses
 description: Comprendre la synthèse finale, choisir l'agent de synthèse et désactiver la synthèse si nécessaire.
 ---
 
-À la fin d'un débat, Palabre peut demander à un agent de produire une synthèse finale.
+À la fin d'un débat ou d'une demande Ask, Palabre peut demander à un agent de produire une synthèse finale.
 
 ## Format de synthèse
 
@@ -18,12 +18,20 @@ Les trois premières sections sont structurées en listes. `Conclusion` est un c
 
 ## Agent de synthèse
 
-Palabre utilise `defaults.summaryAgent` quand il existe. Sinon, il utilise l'agent B.
+En mode débat, Palabre utilise `defaults.summaryAgent` quand il existe. Sinon, il utilise l'agent B.
+
+En mode Ask, Palabre utilise `defaults.askSummaryAgent` quand il existe, puis `defaults.summaryAgent`, puis le dernier agent Ask.
 
 Pour choisir l'agent de synthèse sur une commande :
 
 ```bash
 palabre codex-claude "Critique ce plan" --summary-agent claude
+```
+
+Pour configurer un agent de synthèse spécifique au mode Ask :
+
+```bash
+palabre config --ask-summary-agent opencode
 ```
 
 Pour choisir aussi le modèle :
@@ -42,4 +50,4 @@ palabre codex-claude "Critique ce plan" --no-summary
 
 Dans le terminal, le rendu standard met en forme les titres de synthèse pour les rendre plus faciles à scanner.
 
-Dans l'export `.debate.md`, la synthèse finale est séparée du transcript par une ligne horizontale et commence par une table indiquant l'agent, le rôle et la date de production.
+Dans l'export `.debate.md` ou `.ask.md`, la synthèse finale est séparée du transcript ou des réponses par une ligne horizontale et commence par une table indiquant l'agent, le rôle et la date de production.

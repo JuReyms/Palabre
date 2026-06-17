@@ -41,7 +41,7 @@ Cette page liste les commandes principales de Palabre.
 
 | Commande | Description |
 |----------|-------------|
-| `palabre new` | Ouvre l'assistant de création de débat. |
+| `palabre new` | Ouvre l'assistant guidé de création d'un débat ou d'une demande Ask. |
 | `palabre -s "Sujet" -t 4` | Lance avec les agents par défaut. |
 | `palabre codex-claude "Sujet" -t 4` | Lance avec un preset. |
 | `palabre run --subject "Sujet" --agent-a codex --agent-b claude` | Lance avec des agents explicites. |
@@ -66,13 +66,13 @@ Cette page liste les commandes principales de Palabre.
 | `--tui` | Force l'interface TUI, même si la configuration demande le rendu terminal. |
 | `--terminal`, `--no-tui` | Utilise un rendu terminal brut. Aussi utile avec `palabre doctor` pour les logs. |
 | `--plain` | Alias historique de `--terminal`. |
-| `--renderer <auto\|pretty\|plain\|tui\|ndjson>` | Choisit le renderer terminal ou intégration. `tui` active la première interface terminal plein écran. |
+| `--renderer <auto\|pretty\|plain\|tui\|ndjson>` | Choisit le renderer terminal ou intégration. `tui` active l'interface terminal plein écran. |
 
 ## Options de débat
 
 | Option | Description |
 |--------|-------------|
-| `-s`, `--subject <text>` | Sujet du débat. |
+| `-s`, `--subject <text>` | Sujet de la session. |
 | `--topic <text>` | Alias compatible de `--subject`. |
 | `--preset <name>` | Choisit une paire d'agents. |
 | `--agent-a <name>` | Premier agent. |

@@ -1,13 +1,24 @@
 ---
 title: Your first debate
-description: Start a first debate with the interactive assistant or a short command, then find the Markdown export.
+description: Start a first debate from the TUI home screen or a short command, then find the Markdown export.
 ---
 
 ```bash
-palabre new
+palabre
 ```
 
-The `palabre new` command is an interactive assistant that lists available agents, asks for a subject, displays the equivalent command, and can launch the debate as soon as the minimum information is provided.
+In an interactive terminal, `palabre` opens the TUI home screen. It shows the current mode, agents, roles, summary agent, current folder, and useful commands.
+
+Type your subject in the `Mode debat > Sujet >` field, then press Enter.
+
+Useful commands from the home screen:
+
+- `/ask` switches to Ask mode;
+- `/agents` displays available agents and lets you choose the active agents;
+- `/roles` displays available roles and lets you apply them;
+- `/config` opens settings without leaving the TUI.
+
+`palabre new` remains available if you prefer a guided assistant that also displays the equivalent command.
 
 ## Launch with default agents
 
@@ -18,6 +29,14 @@ palabre -s "Critique this technical plan" -t 4
 ```
 
 `-s` sets the subject. `-t 4` requests four turns in total, not four turns per agent.
+
+## Launch an Ask request
+
+```bash
+palabre ask "Compare these two approaches" --agents codex claude opencode
+```
+
+In Ask mode, agents answer the same subject independently. The summary faithfully summarizes each response and compares them. The export uses the `.ask.md` extension.
 
 ## Launch with a preset
 
@@ -51,11 +70,11 @@ palabre codex-claude "Review this module" --files src/auth.ts README.md -t 2
 
 ## Read the result
 
-During the debate, Palabre displays responses in the terminal. At the end, it exports a `.debate.md` file containing:
+During the session, Palabre displays responses in the terminal. At the end, it exports a `.debate.md` file for a debate or `.ask.md` for an Ask request, containing:
 
 - session information;
 - injected file context;
-- the full transcript;
+- the full debate transcript, or the independent agent responses in Ask mode;
 - the final summary;
 - a short prose conclusion.
 

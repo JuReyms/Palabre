@@ -3,13 +3,23 @@ title: Lancer un débat
 description: Choisir les agents, les réponses, les presets et les options principales pour lancer un débat Palabre.
 ---
 
-## Mode guidé
+## Accueil TUI
 
 ```bash
-palabre new
+palabre
 ```
 
-L'assistant de Palabre vous aide à choisir les agents, préparer le sujet et les options principales. C'est le meilleur point de départ si vous découvrez Palabre.
+L'accueil TUI est le point de départ recommandé. Il affiche les agents actifs, les rôles, la synthèse, le dossier courant et les commandes utiles.
+
+Depuis cet écran :
+
+- tapez un sujet pour lancer le mode courant ;
+- utilisez `/ask` ou `/debat` pour changer de mode ;
+- utilisez `/agents` pour choisir les agents ;
+- utilisez `/roles` pour appliquer des rôles ;
+- utilisez `/config` pour modifier les réglages sans quitter la TUI.
+
+`palabre new` reste disponible comme assistant guidé historique.
 
 ## Avec les agents par défaut
 
@@ -34,6 +44,24 @@ palabre run --subject "Critique ce plan" --agent-a codex --agent-b claude --turn
 ```
 
 Cette forme est plus longue, mais elle rend la commande totalement explicite.
+
+## Mode Ask
+
+```bash
+palabre ask "Compare ces deux options" --agents codex claude opencode
+```
+
+Le mode Ask envoie le même sujet et le même contexte à plusieurs agents, sans transcript partagé entre eux. Chaque agent répond seul. Ensuite, l'agent de synthèse résume fidèlement ce que chaque agent a dit et compare les réponses.
+
+Sans `--agents`, Palabre utilise `defaults.askAgents` si défini, sinon la paire de débat par défaut.
+
+Le mode Ask accepte 1 à 4 agents :
+
+```bash
+palabre ask "Quelle approche choisir ?" --agents codex claude opencode gemini
+```
+
+L'export utilise l'extension `.ask.md`.
 
 ## Nombre de réponses
 

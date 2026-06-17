@@ -1,13 +1,24 @@
 ---
 title: Lancer un premier débat
-description: Lancer un premier débat avec l'assistant interactif ou une commande courte, puis retrouver l'export Markdown.
+description: Lancer un premier débat depuis l'accueil TUI ou une commande courte, puis retrouver l'export Markdown.
 ---
 
 ```bash
-palabre new
+palabre
 ```
 
-La commande `palabre new` est un assistant interactif qui liste les agents disponibles, demande un sujet, affiche la commande équivalente, puis peut lancer le débat dès que les informations minimales sont renseignées.
+Dans un terminal interactif, `palabre` ouvre l'accueil TUI. Il affiche le mode courant, les agents, les rôles, l'agent de synthèse, le dossier courant et les commandes utiles.
+
+Tapez simplement votre sujet dans le champ `Mode debat > Sujet >`, puis appuyez sur Entrée.
+
+Commandes utiles depuis l'accueil :
+
+- `/ask` passe en mode Ask ;
+- `/agents` affiche les agents disponibles et permet de choisir les agents actifs ;
+- `/roles` affiche les rôles disponibles et permet de les appliquer ;
+- `/config` ouvre les réglages sans sortir de la TUI.
+
+`palabre new` reste disponible si vous préférez un assistant guidé qui affiche aussi la commande équivalente.
 
 ## Lancer avec les agents par défaut
 
@@ -18,6 +29,14 @@ palabre -s "Critique ce plan technique" -t 4
 ```
 
 `-s` indique le sujet. `-t 4` demande quatre réponses au total, pas quatre réponses par agent.
+
+## Lancer une demande Ask
+
+```bash
+palabre ask "Compare ces deux approches" --agents codex claude opencode
+```
+
+En mode Ask, les agents répondent indépendamment au même sujet. La synthèse résume fidèlement chaque réponse et les compare. L'export utilise l'extension `.ask.md`.
 
 ## Lancer avec un preset
 
@@ -51,11 +70,11 @@ palabre codex-claude "Relis ce module" --files src/auth.ts README.md -t 2
 
 ## Lire le résultat
 
-Pendant le débat, Palabre affiche les réponses dans le terminal. À la fin, il exporte un fichier `.debate.md` avec :
+Pendant la session, Palabre affiche les réponses dans le terminal. À la fin, il exporte un fichier `.debate.md` pour un débat ou `.ask.md` pour une demande Ask, avec :
 
 - les informations de session ;
 - le contexte fichier injecté ;
-- le transcript complet ;
+- le transcript complet du débat, ou les réponses indépendantes des agents en mode Ask ;
 - la synthèse finale ;
 - une conclusion courte en prose.
 

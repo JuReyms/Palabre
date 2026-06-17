@@ -31,6 +31,30 @@ If no summary agent is defined, Palabre uses agent B. To remove this setting wit
 palabre config --summary-agent none
 ```
 
+## Set default Ask agents
+
+```bash
+palabre config --ask-agents codex claude opencode
+```
+
+Ask mode accepts 1 to 4 agents. Without this setting, Palabre uses the default debate pair.
+
+To choose a summary agent specific to Ask mode:
+
+```bash
+palabre config --ask-summary-agent opencode
+```
+
+This setting is separate from `--summary-agent`, so debate and Ask can use different summary agents.
+
+## Set the default mode
+
+```bash
+palabre config --mode ask
+```
+
+Accepted values are `debate` and `ask`. In the TUI, you can also switch mode with `/ask` or `/debat`.
+
 ## Set the number of turns
 
 ```bash

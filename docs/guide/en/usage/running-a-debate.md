@@ -3,13 +3,23 @@ title: Running a debate
 description: Choose agents, turns, presets, and main options to start a Palabre debate.
 ---
 
-## Guided mode
+## TUI home screen
 
 ```bash
-palabre new
+palabre
 ```
 
-Palabre's assistant helps you choose agents, prepare the subject, and set the main options. This is the best starting point if you are new to Palabre.
+The TUI home screen is the recommended starting point. It shows active agents, roles, summary, current folder, and useful commands.
+
+From this screen:
+
+- type a subject to launch the current mode;
+- use `/ask` or `/debat` to switch mode;
+- use `/agents` to choose agents;
+- use `/roles` to apply roles;
+- use `/config` to change settings without leaving the TUI.
+
+`palabre new` remains available as the historical guided assistant.
 
 ## With default agents
 
@@ -34,6 +44,24 @@ palabre run --subject "Critique this plan" --agent-a codex --agent-b claude --tu
 ```
 
 This form is longer, but makes the command fully explicit.
+
+## Ask mode
+
+```bash
+palabre ask "Compare these two options" --agents codex claude opencode
+```
+
+Ask mode sends the same subject and context to several agents, without a shared transcript between them. Each agent answers alone. Then the summary agent faithfully summarizes what each agent said and compares the responses.
+
+Without `--agents`, Palabre uses `defaults.askAgents` if defined, otherwise the default debate pair.
+
+Ask mode accepts 1 to 4 agents:
+
+```bash
+palabre ask "Which approach should we choose?" --agents codex claude opencode gemini
+```
+
+The export uses the `.ask.md` extension.
 
 ## Number of turns
 

@@ -3,9 +3,14 @@ title: Introduction
 description: Understand what Palabre does, how it orchestrates your AI agents, and what privacy guarantees it provides.
 ---
 
-Palabre is a debate orchestrator between AI agents already installed on your machine.
+Palabre is a CLI/TUI orchestrator for AI agents already installed on your machine.
 
-The goal is simple: you give a subject, Palabre has two assistants dialogue, displays their responses in the terminal, then exports the full transcript with a final summary.
+The goal is simple: you give a subject, Palabre orchestrates the agents, displays their responses in the terminal, then exports the full transcript with a final summary.
+
+Two modes are available:
+
+- `debate`: two agents take turns discussing a subject;
+- `ask`: several agents answer the same request independently, then a summary agent faithfully summarizes each response and compares them.
 
 Palabre does not replace Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe, or Ollama. It drives them. You therefore keep your tools, subscriptions, default models, and terminal habits.
 
@@ -18,6 +23,7 @@ Privacy therefore depends on the agents selected. Before sending code, documents
 Palabre is useful for:
 
 - comparing two agents on the same question;
+- comparing several independent answers with Ask mode;
 - getting a critical review of an idea;
 - pitting a local Ollama model against a more powerful CLI;
 - producing a shareable Markdown transcript;
@@ -28,11 +34,13 @@ Palabre is useful for:
 Palabre:
 
 - detects CLIs available on your machine;
+- opens a TUI by default with `palabre` in an interactive terminal;
 - launches agents in batch mode;
 - injects the subject, session context, and debate history into each turn;
+- can run Ask requests without conversation between agents;
 - can add project files or folders to the context;
 - generates a final summary;
-- exports the session to a `.debate.md` file.
+- exports the session to a `.debate.md` or `.ask.md` file.
 
 ## What Palabre does not do
 

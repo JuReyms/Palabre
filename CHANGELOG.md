@@ -4,9 +4,28 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-06-17
+
+### Added
+
+- Mode `ask` : plusieurs agents peuvent répondre indépendamment au même sujet avant une synthèse comparative fidèle.
+- Interface TUI-first : `palabre` ouvre un accueil interactif avec composer, mode courant, agents, rôles, synthèse, dossier courant et version.
+- Configuration TUI native : `/config` permet de régler les agents, rôles, synthèse, tours, mode et interface sans sortir de Palabre.
+- Commandes TUI `/agents` et `/roles` avec vue d'aide/wizard quand elles sont lancées sans arguments, et commande rapide quand les valeurs sont fournies directement.
+- Affichage des agents disponibles dans la vue `/config`.
+- Options CLI `--tui`, `--terminal` et `defaults.interface` pour choisir l'interface par défaut.
+
 ### Changed
 
+- Les sessions interactives utilisent la TUI par défaut quand stdout est un terminal.
+- Les rôles deviennent plus visibles dans l'accueil, la config et les exports TUI.
+- `Ctrl+C` dans les wizards TUI remonte d'un niveau comme `/back`, et un double `Ctrl+C` quitte directement.
 - `palabre update` affiche aussi une commande pnpm avec la version npm exacte quand elle est disponible, afin de contourner les cas ou `palabre@latest` reste temporairement sur une ancienne version avec les politiques de securite pnpm recentes.
+
+### Fixed
+
+- Le rendu TUI evite les doublons d'export Markdown en fin de session.
+- Les réponses et synthèses TUI utilisent une largeur plus cohérente et des séparateurs colorés par agent.
 
 ## [0.7.0] - 2026-06-10
 

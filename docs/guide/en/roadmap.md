@@ -7,19 +7,21 @@ This page gives an overview of the planned evolution of Palabre. It helps users 
 
 ## Available today
 
-Palabre already lets you run debates between two agents installed on your machine: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe, or Ollama.
+Palabre already lets you run debates between two agents installed on your machine, or Ask requests where several agents answer independently before a comparative summary: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe, or Ollama.
 
 The main features are available:
 
 - global or local configuration;
 - detection of installed agents;
+- TUI-first interface with `palabre`, `/agents`, `/roles`, and `/config`;
 - interactive assistant `palabre new`;
+- `ask` mode with 1 to 4 agents and `.ask.md` export;
 - presets such as `codex-claude`, `claude-gemini`, `codex-antigravity`, or `opencode-ollama`;
 - French or English interface and prompts through `--language`, `--lang`, `PALABRE_LANGUAGE`, or configuration;
 - adding context with `--files` or `--context`;
 - previewing the context scan with `palabre context scan --json` for integrations;
 - final summary with consensus, disagreements, proposed actions, and conclusion;
-- Markdown export `.debate.md` with a name based on the subject;
+- Markdown export `.debate.md` or `.ask.md` with a name based on the subject;
 - partial export preserved if an agent fails during the debate or final summary;
 - diagnostics with `palabre doctor`;
 - machine-readable output with `palabre presets --json`, `palabre context scan --json`, and the NDJSON renderer;
@@ -39,7 +41,7 @@ Palabre already exposes JSON contracts for presets, context scanning, and NDJSON
 
 ### Simpler configuration
 
-The `palabre config` command already covers common settings: default agents, number of turns, summary agent, and synchronization of installed agents after initialization. Future improvements will focus on clearer messages, better validation, and a more guided experience.
+The `palabre config` command and the TUI `/config` view already cover common settings: default agents, roles, number of turns, summary agent, default mode, default interface, and synchronization of installed agents after initialization. Future improvements will focus on clearer messages, better validation, and richer wizards for choices that benefit from discovery.
 
 ### Conversation after the debate
 
@@ -58,7 +60,7 @@ These topics are considered after the CLI stabilizes:
 - OpenAI-compatible local provider for LM Studio, LocalAI, vLLM, or equivalent;
 - ongoing maintenance of the French and English documentation;
 - continued refinement of the multilingual French/English CLI interface, with a future interactive language choice during initialization;
-- real interactive TUI with scrolling, pause, and resume;
+- more advanced TUI with scrolling, persistent panes, pause, and resume;
 - reliable model display when Palabre can know them without unnecessary noise.
 
 ## Philosophy

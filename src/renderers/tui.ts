@@ -27,6 +27,15 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
   const askAgents = defaults.askAgents && defaults.askAgents.length > 0
     ? defaults.askAgents.join(", ")
     : debateAgents.replace(" <-> ", ", ");
+  const debateRoles = defaults.agentA && defaults.agentB
+    ? `${roleFor(config, defaults.agentA)} <-> ${roleFor(config, defaults.agentB)}`
+    : "non definis";
+  const askAgentNames = defaults.askAgents && defaults.askAgents.length > 0
+    ? defaults.askAgents
+    : [defaults.agentA, defaults.agentB].filter((agent): agent is string => Boolean(agent));
+  const askRoles = askAgentNames.length > 0
+    ? askAgentNames.map((agent) => roleFor(config, agent)).join(", ")
+    : debateRoles.replace(" <-> ", ", ");
   const summary = mode === "ask"
     ? defaults.askSummaryAgent ?? defaults.summaryAgent ?? "dernier agent ask"
     : defaults.summaryAgent ?? defaults.agentB ?? "agent B";
@@ -38,9 +47,11 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
     "",
     ...centerBlock(composerCard([
       `${accent(mode === "ask" ? "Ask" : "Debat")} ${dim("·")} ${mode === "ask" ? askAgents : debateAgents}`,
-      `${dim("Synthese")} ${summary}${mode === "debate" ? `${dim(" · Reponses")} ${String(defaults.turns ?? "?")}` : ""}`,
+      `${accent("Roles")} ${dim("·")} ${mode === "ask" ? askRoles : debateRoles}`,
+      `${accent("Synthese")} ${dim("·")} ${summary}${mode === "debate" ? ` ${dim("·")} ${accent("Reponses")} ${String(defaults.turns ?? "?")}` : ""}`,
+      `${accent("Dossier")} ${dim("·")} ${compactPath(process.cwd(), Math.min(width - 4, viewport - 12))}`,
       "",
-      `${accent("/help")} commandes   ${accent("/config")} reglages   ${accent(mode === "ask" ? "/debat" : "/ask")} changer de mode`
+      `${accent("/help")} ${dim("commandes")}   ${accent("/roles")} ${dim("roles")}   ${accent("/config")} ${dim("reglages")}   ${accent(mode === "ask" ? "/debat" : "/ask")} ${dim("changer de mode")}`
     ], width, "center"), viewport),
     "",
     ...centerBlock([
@@ -61,6 +72,8 @@ export function renderTuiHelp(): void {
       bold("Commandes TUI"),
       `${accent("/ask")}      passer en mode Ask pour collecter plusieurs reponses independantes`,
       `${accent("/debat")}    passer en mode Debat pour lancer une conversation entre deux agents`,
+      `${accent("/agents")}   afficher et choisir les agents actifs`,
+      `${accent("/roles")}    afficher les roles disponibles`,
       `${accent("/config")}   configurer Palabre sans sortir de la TUI`,
       `${accent("/new")}      ouvrir l'assistant guide`,
       `${accent("/help")}     afficher cette aide`,
@@ -70,6 +83,130 @@ export function renderTuiHelp(): void {
     ], Math.min(width, 78)), viewport),
     ""
   ].join("\n"));
+}
+
+/** Affiche l'aide rapide des agents configures. */
+export function renderTuiAgentsHelp(config: PalabreConfig, mode: PalabreMode): void {
+  const viewport = viewportWidth();
+  const width = surfaceWidth();
+  const activeAgents = activeAgentNamesForMode(config, mode);
+  const separator = mode === "ask" ? ", " : " <-> ";
+  const exampleAgents = exampleAgentsForMode(config, mode);
+  process.stdout.write([
+    "",
+    ...centerBlock(card([
+      bold("Agents Palabre"),
+      "",
+      row("Mode actif", mode === "ask" ? "Ask" : "Debat"),
+      row("Agents actifs", activeAgents.length > 0 ? activeAgents.join(separator) : "non definis"),
+      "",
+      bold("Agents disponibles"),
+      "",
+      ...agentInventoryRows(config),
+      "",
+      dim(`Exemple: ${mode === "ask" ? "Mode ask" : "Mode debat"} > Agents > ${exampleAgents.join(" ")}`)
+    ], Math.min(width, 82)), viewport),
+    ""
+  ].join("\n"));
+}
+
+/** Affiche l'aide rapide des roles disponibles. */
+export function renderTuiRolesHelp(mode: PalabreMode, config?: PalabreConfig): void {
+  const viewport = viewportWidth();
+  const width = surfaceWidth();
+  const currentRoles = config ? roleLineForMode(config, mode) : undefined;
+  const activeAgents = config ? activeAgentNamesForMode(config, mode) : [];
+  const expectedCount = activeAgents.length || (mode === "ask" ? 3 : 2);
+  const exampleRoles = exampleRolesForMode(mode, expectedCount);
+  process.stdout.write([
+    "",
+    ...centerBlock(card([
+      bold("Rôles Palabre"),
+      "",
+      ...(activeAgents.length > 0 ? [row("Agents actifs", activeAgents.join(mode === "ask" ? ", " : " <-> "))] : []),
+      ...(currentRoles ? [row("Config actuelle", currentRoles), ""] : []),
+      bold("Roles disponibles"),
+      "",
+      row("implementer", "propose une solution concrete"),
+      row("critic", "challenge les hypotheses et demande des preuves"),
+      row("architect", "structure les options et compromis"),
+      row("scout", "explore les pistes et inconnues"),
+      row("reviewer", "cherche risques et tests manquants"),
+      row("summarizer", "synthetise fidelement"),
+      "",
+      dim(`Exemple: ${mode === "ask" ? "Mode ask" : "Mode debat"} > Roles > ${exampleRoles.join(" ")}`)
+    ], Math.min(width, 82)), viewport),
+    ""
+  ].join("\n"));
+}
+
+export type TuiRolesWizardInput =
+  | { kind: "roles"; roles: string[] }
+  | { kind: "back" }
+  | { kind: "quit" };
+
+export type TuiAgentsWizardInput =
+  | { kind: "agents"; agents: string[] }
+  | { kind: "back" }
+  | { kind: "quit" };
+
+/** Assistant minimal pour modifier les agents du mode courant. */
+export async function promptTuiAgentsWizard(config: PalabreConfig, mode: PalabreMode): Promise<TuiAgentsWizardInput> {
+  if (!input.isTTY) {
+    return { kind: "back" };
+  }
+
+  renderTuiAgentsHelp(config, mode);
+  const rl = createInterface({ input, output });
+  try {
+    const result = await questionWithInterrupt(rl, tuiPrompt(mode, "Agents"));
+    if (result.kind === "quit") {
+      return { kind: "quit" };
+    }
+    if (result.kind === "back") {
+      return { kind: "back" };
+    }
+    const value = result.value.trim();
+    if (!value || value === "/back") {
+      return { kind: "back" };
+    }
+    if (value === "/quit" || value === "/q") {
+      return { kind: "quit" };
+    }
+    return { kind: "agents", agents: value.split(/\s+/).filter(Boolean) };
+  } finally {
+    rl.close();
+  }
+}
+
+/** Assistant minimal pour modifier les roles du mode courant. */
+export async function promptTuiRolesWizard(config: PalabreConfig, mode: PalabreMode): Promise<TuiRolesWizardInput> {
+  if (!input.isTTY) {
+    return { kind: "back" };
+  }
+
+  renderTuiRolesHelp(mode, config);
+  const rl = createInterface({ input, output });
+  try {
+    const result = await questionWithInterrupt(rl, tuiPrompt(mode, "Roles"));
+    if (result.kind === "quit") {
+      return { kind: "quit" };
+    }
+    if (result.kind === "back") {
+      return { kind: "back" };
+    }
+    const answer = result.value;
+    const value = answer.trim();
+    if (!value || value === "/back") {
+      return { kind: "back" };
+    }
+    if (value === "/quit" || value === "/q") {
+      return { kind: "quit" };
+    }
+    return { kind: "roles", roles: value.split(/\s+/).filter(Boolean) };
+  } finally {
+    rl.close();
+  }
 }
 
 /** Affiche un composer visuel juste avant la vraie ligne readline. */
@@ -96,42 +233,55 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
   const viewport = viewportWidth();
   const width = surfaceWidth();
   const defaults = config.defaults ?? {};
-  const agents = Object.keys(config.agents).join(", ");
   const debateAgents = defaults.agentA && defaults.agentB ? `${defaults.agentA} <-> ${defaults.agentB}` : "non definis";
   const askAgents = defaults.askAgents && defaults.askAgents.length > 0
     ? defaults.askAgents.join(", ")
     : debateAgents.replace(" <-> ", ", ");
+  const debateRoles = defaults.agentA && defaults.agentB ? `${roleFor(config, defaults.agentA)} <-> ${roleFor(config, defaults.agentB)}` : "non definis";
+  const askRoles = roleLineForMode(config, "ask");
   const summary = mode === "ask"
     ? defaults.askSummaryAgent ?? defaults.summaryAgent ?? "dernier agent ask"
     : defaults.summaryAgent ?? defaults.agentB ?? "agent B";
 
-  const modeLines = mode === "ask"
+  const currentLines = mode === "ask"
     ? [
-        row("Ask", askAgents),
-        row("Synthese ask", summary),
+        row("Agents actifs", askAgents),
+        row("Config actuelle", askRoles),
+        row("Synthese", summary),
+        "",
+        bold("Commandes disponibles"),
         "",
         row("/agents", "/agents codex claude opencode"),
+        row("/roles", "/roles architect critic scout"),
         row("/summary", `/summary opencode  ${dim("ou")} /summary none`)
       ]
     : [
-        row("Debat", debateAgents),
-        row("Tours", String(defaults.turns ?? "?")),
-        row("Synthese debat", summary),
+        row("Agents actifs", debateAgents),
+        row("Config actuelle", debateRoles),
+        row("Synthese", summary),
+        row("Reponses", String(defaults.turns ?? "?")),
+        "",
+        bold("Commandes disponibles"),
         "",
         row("/agents", "/agents codex gemini"),
+        row("/roles", "/roles implementer critic"),
         row("/turns", "/turns 4"),
         row("/summary", `/summary ollama-local  ${dim("ou")} /summary none`)
       ];
 
   const lines = [
     "",
+    ...centerLogo(viewport),
+    "",
     ...centerBlock(card([
-      `${bold("PALABRE")} ${dim("-")} ${accent("/config")} ${dim("-")} ${accent(mode === "ask" ? "Ask" : "Debat")}`,
-      row("Config", configPath),
-      row("Agents dispo", agents || "aucun"),
-      row("Interface", defaults.interface ?? "tui"),
+      bold("Configuration Palabre"),
       "",
-      ...modeLines,
+      row("Mode actif", mode === "ask" ? "Ask" : "Debat"),
+      row("Config", configPath),
+      row("Interface", defaults.interface ?? "tui"),
+      row("Agents dispo", agentInventoryLine(config)),
+      "",
+      ...currentLines,
       "",
       row("/default", `utiliser ${mode === "ask" ? "Ask" : "Debat"} par defaut`),
       row("/interface", `/interface tui  ${dim("ou")} /interface terminal`),
@@ -151,6 +301,8 @@ export type TuiHomeInput =
   | { kind: "config" }
   | { kind: "mode"; mode: PalabreMode }
   | { kind: "help" }
+  | { kind: "agents"; agents: string[] }
+  | { kind: "roles"; roles: string[] }
   | undefined;
 
 export type TuiConfigInput =
@@ -160,21 +312,71 @@ export type TuiConfigInput =
   | { kind: "default-mode" }
   | { kind: "interface"; interfaceName: PalabreInterface }
   | { kind: "agents"; agents: string[] }
+  | { kind: "roles"; roles: string[] }
   | { kind: "turns"; turns: number }
   | { kind: "summary"; agent: string | undefined }
   | { kind: "unknown"; message: string };
 
+type TuiQuestionResult =
+  | { kind: "answer"; value: string }
+  | { kind: "back" }
+  | { kind: "quit" };
+
+let lastTuiInterruptAt = 0;
+const doubleInterruptMs = 1200;
+
+function nextInterruptKind(): "back" | "quit" {
+  const now = Date.now();
+  const kind = now - lastTuiInterruptAt <= doubleInterruptMs ? "quit" : "back";
+  lastTuiInterruptAt = now;
+  return kind;
+}
+
+function questionWithInterrupt(rl: ReturnType<typeof createInterface>, prompt: string): Promise<TuiQuestionResult> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => rl.off("SIGINT", onSigint);
+    const settle = (result: TuiQuestionResult) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(result);
+    };
+    const onSigint = () => {
+      const kind = nextInterruptKind();
+      rl.close();
+      settle({ kind });
+    };
+
+    rl.once("SIGINT", onSigint);
+    rl.question(prompt).then(
+      (value) => settle({ kind: "answer", value }),
+      (error) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(error);
+      }
+    );
+  });
+}
+
 /** Lit une demande depuis l'accueil TUI. Retourne undefined si l'utilisateur quitte. */
-export async function promptTuiHomeTopic(mode: PalabreMode = "debate", _options: { showComposer?: boolean } = {}): Promise<TuiHomeInput> {
+export async function promptTuiHomeTopic(mode: PalabreMode = "debate", options: { showComposer?: boolean; notice?: string } = {}): Promise<TuiHomeInput> {
   if (!input.isTTY) {
     return undefined;
   }
 
   const rl = createInterface({ input, output });
   try {
-    const answer = await rl.question(tuiPrompt(mode));
+    const result = await questionWithInterrupt(rl, tuiPrompt(mode, "Sujet", options.notice));
+    if (result.kind !== "answer") {
+      return undefined;
+    }
+    const answer = result.value;
     const value = answer.trim();
-    const command = value.toLowerCase();
+    const parts = value.split(/\s+/).filter(Boolean);
+    const command = parts[0]?.toLowerCase() ?? "";
     if (!value || command === "/quit" || command === "/q" || command === "/exit") {
       return undefined;
     }
@@ -187,6 +389,10 @@ export async function promptTuiHomeTopic(mode: PalabreMode = "debate", _options:
       return { kind: "config" };
     }
 
+    if (command === "/agents") {
+      return { kind: "agents", agents: parts.slice(1) };
+    }
+
     if (command === "/ask") {
       return { kind: "mode", mode: "ask" };
     }
@@ -197,6 +403,10 @@ export async function promptTuiHomeTopic(mode: PalabreMode = "debate", _options:
 
     if (command === "/help" || command === "/h" || command === "/?") {
       return { kind: "help" };
+    }
+
+    if (command === "/roles" || command === "/role") {
+      return { kind: "roles", roles: parts.slice(1) };
     }
 
     if (value.startsWith("/")) {
@@ -218,7 +428,14 @@ export async function promptTuiConfigCommand(mode: PalabreMode): Promise<TuiConf
   const rl = createInterface({ input, output });
   try {
     renderTuiComposer(mode, "Config");
-    const answer = await rl.question(tuiPrompt(mode, "Config"));
+    const result = await questionWithInterrupt(rl, tuiPrompt(mode, "Config"));
+    if (result.kind === "quit") {
+      return { kind: "quit" };
+    }
+    if (result.kind === "back") {
+      return { kind: "back" };
+    }
+    const answer = result.value;
     const parts = answer.trim().split(/\s+/).filter(Boolean);
     const command = parts[0]?.toLowerCase();
 
@@ -249,7 +466,11 @@ export async function promptTuiConfigCommand(mode: PalabreMode): Promise<TuiConf
     if (command === "/agents") {
       return parts.length > 1
         ? { kind: "agents", agents: parts.slice(1) }
-        : { kind: "unknown", message: "Usage: /agents <agent...>" };
+        : { kind: "agents", agents: [] };
+    }
+
+    if (command === "/roles" || command === "/role") {
+      return { kind: "roles", roles: parts.slice(1) };
     }
 
     if (command === "/turns") {
@@ -542,13 +763,19 @@ function viewportWidth(): number {
   return Math.max(72, Math.min(process.stdout.columns || 100, 180));
 }
 
-function tuiPrompt(mode: PalabreMode, labelPrefix = "Sujet"): string {
+function tuiPrompt(mode: PalabreMode, labelPrefix = "Sujet", notice?: string): string {
   const label = mode === "ask" ? "Mode ask" : "Mode debat";
   const padding = surfacePadding();
+  const promptLine = `${padding}${accent(label)} ${dim(">")} ${bold(labelPrefix)} ${dim(">")} `;
   return [
     "",
     promptRuleLine(),
-    `${padding}${accent(label)} ${dim(">")} ${bold(labelPrefix)} ${dim(">")} `
+    ...(notice ? [
+      `${padding}${accent(label)} ${dim(">")} ${bold(labelPrefix)} ${dim(">")}`,
+      ...promptNoticeLines(notice),
+      ""
+    ] : []),
+    promptLine
   ].join("\n");
 }
 
@@ -556,8 +783,88 @@ function promptRuleLine(): string {
   return `${surfacePadding()}${violet("-".repeat(surfaceWidth()))}`;
 }
 
+function promptNoticeLines(notice: string): string[] {
+  const padding = surfacePadding();
+  const contentWidth = surfaceWidth();
+  return [
+    `${padding}${dim("-".repeat(contentWidth))}`,
+    ...wrapLine(notice, contentWidth).map((line) => `${padding}${line}`)
+  ];
+}
+
 function surfacePadding(): string {
   return " ".repeat(Math.max(0, Math.floor((viewportWidth() - surfaceWidth()) / 2)));
+}
+
+function compactPath(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  const marker = "...";
+  const tailLength = Math.max(12, maxLength - marker.length);
+  return `${marker}${value.slice(-tailLength)}`;
+}
+
+function roleFor(config: PalabreConfig, agent: string): AgentRole | "role inconnu" {
+  return config.agents[agent]?.role ?? "role inconnu";
+}
+
+function roleLineForMode(config: PalabreConfig, mode: PalabreMode): string {
+  const agents = activeAgentNamesForMode(config, mode);
+  if (mode === "ask") {
+    return agents.length > 0 ? agents.map((agent) => roleFor(config, agent)).join(", ") : "non definis";
+  }
+
+  return agents.length === 2
+    ? `${roleFor(config, agents[0]!)} <-> ${roleFor(config, agents[1]!)}`
+    : "non definis";
+}
+
+function activeAgentNamesForMode(config: PalabreConfig, mode: PalabreMode): string[] {
+  const defaults = config.defaults ?? {};
+  if (mode === "ask") {
+    const agents = defaults.askAgents && defaults.askAgents.length > 0
+      ? defaults.askAgents
+      : [defaults.agentA, defaults.agentB].filter((agent): agent is string => Boolean(agent));
+    return agents.filter((agent) => Boolean(config.agents[agent]));
+  }
+
+  return [defaults.agentA, defaults.agentB].filter((agent): agent is string => Boolean(agent && config.agents[agent]));
+}
+
+function agentInventoryLine(config: PalabreConfig): string {
+  const agents = Object.keys(config.agents).sort();
+  return agents.length > 0 ? agents.map(agentLabel).join(", ") : "aucun";
+}
+
+function agentInventoryRows(config: PalabreConfig): string[] {
+  const entries = Object.entries(config.agents).sort(([agentA], [agentB]) => agentA.localeCompare(agentB));
+  if (entries.length === 0) {
+    return [dim("aucun agent configure")];
+  }
+
+  return entries.map(([name, agent]) => row(name, `${agent.type} ${dim("·")} ${agent.role}`));
+}
+
+function exampleAgentsForMode(config: PalabreConfig, mode: PalabreMode): string[] {
+  const activeAgents = activeAgentNamesForMode(config, mode);
+  if (activeAgents.length > 0) {
+    return activeAgents;
+  }
+
+  const available = Object.keys(config.agents).sort();
+  return mode === "ask" ? available.slice(0, 3) : available.slice(0, 2);
+}
+
+function exampleRolesForMode(mode: PalabreMode, count: number): AgentRole[] {
+  const roles: AgentRole[] = mode === "ask"
+    ? ["critic", "implementer", "scout", "architect"]
+    : ["implementer", "critic"];
+  while (roles.length < count) {
+    roles.push("reviewer");
+  }
+  return roles.slice(0, count);
 }
 
 function isNoneValue(value: string): boolean {
@@ -590,16 +897,16 @@ function centerBlock(lines: string[], width: number): string[] {
 function card(lines: string[], width: number): string[] {
   const contentWidth = Math.max(24, width - 4);
   const body = lines.flatMap((line) => wrapLine(line, contentWidth));
-  return body.map((line) => `${violet("|")} ${padRight(line, contentWidth)} ${dim("|")}`);
+  return body.map((line) => `${dim("|")} ${padRight(line, contentWidth)} ${dim("|")}`);
 }
 
 function composerCard(lines: string[], width: number, align: "left" | "center" = "left"): string[] {
   const contentWidth = Math.max(24, width - 4);
   const body = lines.flatMap((line) => wrapLine(line, contentWidth));
   return [
-    `${violet("|")} ${" ".repeat(contentWidth)} ${dim("|")}`,
-    ...body.map((line) => `${violet("|")} ${padRight(align === "center" ? centerLine(line, contentWidth) : line, contentWidth)} ${dim("|")}`),
-    `${violet("|")} ${" ".repeat(contentWidth)} ${dim("|")}`
+    `${dim("|")} ${" ".repeat(contentWidth)} ${dim("|")}`,
+    ...body.map((line) => `${dim("|")} ${padRight(align === "center" ? centerLine(line, contentWidth) : line, contentWidth)} ${dim("|")}`),
+    `${dim("|")} ${" ".repeat(contentWidth)} ${dim("|")}`
   ];
 }
 
@@ -766,7 +1073,7 @@ const codes = {
   reset: "\u001b[0m",
   bright: "\u001b[1m",
   dim: "\u001b[2m",
-  logoViolet: "\u001b[38;2;109;40;217m",
+  logoViolet: "\u001b[38;2;167;139;250m",
   violet: "\u001b[38;5;141m",
   cyan: "\u001b[36m",
   gray: "\u001b[38;5;244m",

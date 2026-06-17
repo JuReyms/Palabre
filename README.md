@@ -13,9 +13,9 @@
 
 ## Français
 
-PALABRE est un orchestrateur CLI qui fait dialoguer plusieurs agents IA installés sur votre machine : Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode et Ollama.
+PALABRE est un orchestrateur CLI/TUI qui fait travailler plusieurs agents IA installés sur votre machine : Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode et Ollama.
 
-Il ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos modèles par défaut, vos habitudes de terminal et vos fichiers en local. PALABRE exporte ensuite le débat en Markdown.
+Il ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos modèles par défaut, vos habitudes de terminal et vos fichiers en local. PALABRE peut lancer un débat entre deux agents ou une demande Ask où plusieurs agents répondent indépendamment avant une synthèse comparative. Il exporte ensuite la session en Markdown.
 
 ### Documentation
 
@@ -39,19 +39,22 @@ palabre --help
 ```bash
 palabre init
 palabre doctor
-palabre new
+palabre
 ```
 
 Exemples directs :
 
 ```bash
 palabre codex-claude "Critique ce plan" -t 4
+palabre ask "Compare ces deux approches" --agents codex claude opencode
 palabre -s "Compare ces deux approches" -t 2
 palabre codex-claude "Relis cette architecture" --context src docs
 palabre claude-ollama "Critique ce fichier" --files README.md
 palabre codex-claude "Preview" --context src --show-prompt
 palabre context scan src docs --json
 ```
+
+Dans un terminal interactif, Palabre utilise l'interface TUI par défaut. `palabre` ouvre l'accueil, `/agents` et `/roles` aident à choisir la configuration courante, et `--terminal` force l'ancien rendu brut adapté aux logs.
 
 ### Agents supportés
 
@@ -117,9 +120,9 @@ MIT. Voir [LICENSE](./LICENSE).
 
 ## English
 
-PALABRE is a CLI orchestrator that lets multiple AI agents installed on your machine talk to each other: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, and Ollama.
+PALABRE is a CLI/TUI orchestrator that lets multiple AI agents installed on your machine work together: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, and Ollama.
 
-It does not replace your tools: it drives them. You keep your subscriptions, default models, terminal habits, and local files. PALABRE then exports the debate as Markdown.
+It does not replace your tools: it drives them. You keep your subscriptions, default models, terminal habits, and local files. PALABRE can run a debate between two agents or an Ask request where several agents answer independently before a comparative summary. It then exports the session as Markdown.
 
 ### Documentation
 
@@ -143,19 +146,22 @@ palabre --help
 ```bash
 palabre init
 palabre doctor
-palabre new
+palabre
 ```
 
 Direct examples:
 
 ```bash
 palabre codex-claude "Review this plan" -t 4
+palabre ask "Compare these two approaches" --agents codex claude opencode
 palabre -s "Compare these two approaches" -t 2
 palabre codex-claude "Review this architecture" --context src docs
 palabre claude-ollama "Review this file" --files README.md
 palabre codex-claude "Preview" --context src --show-prompt
 palabre context scan src docs --json
 ```
+
+In an interactive terminal, Palabre uses the TUI by default. `palabre` opens the home screen, `/agents` and `/roles` help you choose the active setup, and `--terminal` forces the older raw rendering suitable for logs.
 
 ### Supported Agents
 
