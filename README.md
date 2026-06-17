@@ -7,7 +7,7 @@
   <a href="https://palab.re"><img src="https://img.shields.io/badge/docs-palab.re-18181B?logo=netlify&logoColor=7C3AED" alt="Documentation"></a>
 </p>
 
-![PALABRE](docs/assets/palabre-logo-text-og.png)
+![Palabre CLI orchestrating a debate between AI agents](docs/assets/palabre-cli-orchestre-debates-between-AI-agents.png)
 
 [English](#english) | [Français](#français)
 
@@ -118,6 +118,8 @@ Public roadmap: [docs/guide/fr/roadmap.md](./docs/guide/fr/roadmap.md). Changes:
 ### License
 
 MIT. See [LICENSE](./LICENSE).
+
+![PALABRE](docs/assets/palabre-logo-text-og.png)
 
 ## Français
 
