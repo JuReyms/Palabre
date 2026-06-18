@@ -23,7 +23,7 @@ Vérifiez ensuite que la commande fonctionne :
 gemini --version
 ```
 
-Si Gemini a été installé après `palabre init`, synchronisez la configuration :
+Si Gemini a été installé après votre première configuration Palabre, relancez `palabre` ou synchronisez explicitement :
 
 ```bash
 palabre config --sync-agents

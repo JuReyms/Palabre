@@ -19,7 +19,7 @@ CLI reference: [https://opencode.ai/docs/cli/](https://opencode.ai/docs/cli/)
 opencode --version
 ```
 
-If OpenCode was installed after `palabre init`, synchronize the configuration:
+If OpenCode was installed after your first Palabre configuration, open `palabre` again or synchronize explicitly:
 
 ```bash
 palabre config --sync-agents

@@ -7,7 +7,10 @@ export interface HelpMessages {
 
 const frCommandHelp: Record<string, string> = {
   init: `
-Initialise une configuration Palabre.
+Initialise explicitement une configuration Palabre.
+
+Note:
+  palabre sans argument cree deja la configuration globale au premier lancement TUI.
 
 Usage:
   palabre init [flags]
@@ -63,7 +66,7 @@ Usage:
 
 Flags:
   --clear-defaults     supprime les parametres par defaut
-  --sync-agents        ajoute les agents detectes manquants
+  --sync-agents        ajoute les agents detectes manquants et rafraichit les commandes connues
   --config <path>      chemin de config explicite
 `,
   new: `
@@ -135,7 +138,10 @@ Flags:
 
 const enCommandHelp: Record<string, string> = {
   init: `
-Initializes a Palabre configuration.
+Explicitly initializes a Palabre configuration.
+
+Note:
+  palabre without arguments already creates the global configuration on first TUI launch.
 
 Usage:
   palabre init [flags]
@@ -191,7 +197,7 @@ Usage:
 
 Flags:
   --clear-defaults     clears default settings
-  --sync-agents        adds missing detected agents
+  --sync-agents        adds missing detected agents and refreshes known commands
   --config <path>      explicit config path
 `,
   new: `
@@ -277,14 +283,13 @@ Usage:
   palabre ask "Sujet" --agents codex claude
 
 Demarrage rapide:
-  palabre init
   palabre
   palabre new
   palabre "Faut-il ajouter une TUI a Palabre ?"
   palabre codex-claude "Comparer deux solutions" -t 4
 
 Commandes:
-  init       Creer une configuration
+  init       Creer explicitement une configuration
   new        Assistant interactif de debat
   ask        Demande multi-agents independante
   agents     Lister les agents configures
@@ -328,14 +333,13 @@ Usage:
   palabre ask "Subject" --agents codex claude
 
 Quick start:
-  palabre init
   palabre
   palabre new
   palabre "Should Palabre add a TUI?"
   palabre codex-claude "Compare two solutions" -t 4
 
 Commands:
-  init       Create a configuration
+  init       Explicitly create a configuration
   new        Interactive debate assistant
   ask        Independent multi-agent request
   agents     List configured agents

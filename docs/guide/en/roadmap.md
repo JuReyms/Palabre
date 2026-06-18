@@ -13,6 +13,7 @@ The main features are available:
 
 - global or local configuration;
 - detection of installed agents;
+- automatic global configuration on first TUI launch, with conservative refresh of detected known agents;
 - TUI-first interface with `palabre`, `/agents`, `/roles`, and `/config`;
 - interactive assistant `palabre new`;
 - `ask` mode with 1 to 4 agents and `.ask.md` export;
@@ -27,6 +28,7 @@ The main features are available:
 - machine-readable output with `palabre presets --json`, `palabre context scan --json`, and the NDJSON renderer;
 - structured errors for integrations, with an NDJSON versioning policy;
 - a more robust CLI parser for boolean flags such as `--terminal`, `--json`, or `--no-summary`;
+- stricter runtime contracts: non-zero CLI exits are rejected, Ollama pull progress stays off NDJSON stdout, and missing `--context` paths are reported as warnings;
 - automated tests for the CLI adapter, parser, NDJSON renderer, presets, context scan, prompts, and output configuration without calling real AI services.
 
 ## Upcoming improvements
@@ -41,7 +43,7 @@ Palabre already exposes JSON contracts for presets, context scanning, and NDJSON
 
 ### Simpler configuration
 
-The `palabre config` command and the TUI `/config` view already cover common settings: default agents, roles, number of turns, summary agent, default mode, default interface, and synchronization of installed agents after initialization. Future improvements will focus on clearer messages, better validation, and richer wizards for choices that benefit from discovery.
+The `palabre config` command, the TUI `/config` view, first-run configuration, and known-agent synchronization already cover common settings: default agents, roles, number of turns, summary agent, default mode, default interface, and detected agent refresh. Future improvements will focus on clearer messages, better validation, and richer wizards for choices that benefit from discovery.
 
 ### Conversation after the debate
 
@@ -59,7 +61,7 @@ These topics are considered after the CLI stabilizes:
 - resuming a debate from an existing transcript;
 - OpenAI-compatible local provider for LM Studio, LocalAI, vLLM, or equivalent;
 - ongoing maintenance of the French and English documentation;
-- continued refinement of the multilingual French/English CLI interface, with a future interactive language choice during initialization;
+- continued refinement of the multilingual French/English CLI interface, with a future interactive language choice in first-run or configuration flows;
 - more advanced TUI with scrolling, persistent panes, pause, and resume;
 - reliable model display when Palabre can know them without unnecessary noise.
 

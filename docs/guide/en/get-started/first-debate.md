@@ -7,7 +7,9 @@ description: Start a first debate or Ask request from the TUI home screen or a s
 palabre
 ```
 
-In an interactive terminal, `palabre` opens the TUI home screen. It shows the current mode, agents, roles, summary agent, current folder, and useful commands.
+In an interactive terminal, `palabre` opens the TUI home screen. On first launch, it creates `~/.palabre/palabre.config.json` if no config exists yet, detects installed agents, then shows the current mode, agents, roles, summary agent, current folder, and useful commands.
+
+Each time the TUI home screen starts, Palabre refreshes known detected agents in the config. It can add newly installed known agents and update known command names, but it keeps custom agents and user choices intact.
 
 Type your subject in the `Mode debate > Subject >` field, then press Enter. To collect several independent answers instead of a conversation, use `/ask` before entering the subject.
 

@@ -13,7 +13,7 @@ Installez et configurez Mistral Vibe hors de Palabre, puis vérifiez que la comm
 vibe --version
 ```
 
-Si Mistral Vibe a été installé après `palabre init`, synchronisez la configuration :
+Si Mistral Vibe a été installé après votre première configuration Palabre, relancez `palabre` ou synchronisez explicitement :
 
 ```bash
 palabre config --sync-agents

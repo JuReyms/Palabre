@@ -60,4 +60,6 @@ Useful pages:
 
 ## Next step
 
-Now proceed to [the first configuration](/en/get-started/configuration). If you use VS Code, you can also install the [Palabre extension](/en/get-started/vscode-extension). To drive Palabre from an AI agent, install the [Palabre skill](/en/get-started/skill).
+Now run `palabre` in an interactive terminal. On first launch, Palabre creates the global configuration if needed, detects installed agents, and opens the TUI home screen.
+
+For explicit setup, scripts, or a project-local configuration, see [the configuration guide](/en/get-started/configuration). If you use VS Code, you can also install the [Palabre extension](/en/get-started/vscode-extension). To drive Palabre from an AI agent, install the [Palabre skill](/en/get-started/skill).

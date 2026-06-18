@@ -26,7 +26,7 @@ Utilisez `--files` quand vous savez exactement quels fichiers doivent être envo
 palabre codex-claude "Critique cette architecture" --context src docs
 ```
 
-`--context` ignore les dossiers techniques courants comme `.git`, `node_modules` et `dist`. Il garde les fichiers texte connus et affiche des avertissements pour les fichiers ignorés.
+`--context` ignore les dossiers techniques courants comme `.git`, `node_modules` et `dist`. Il garde les fichiers texte connus et affiche des avertissements pour les fichiers ignorés, les extensions non supportées, les fichiers trop gros et les chemins manquants. Ces avertissements n'arrêtent pas la session.
 
 ## Prévisualiser le scan en JSON
 

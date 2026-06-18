@@ -218,7 +218,9 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 
 ## Init et discovery
 
-`palabre init` utilise `src/discovery.ts` pour detecter :
+`palabre` est l'entree recommandee de premiere utilisation. Quand il ouvre l'accueil TUI et qu'aucune configuration n'existe, Palabre cree automatiquement la config globale, detecte les agents locaux et continue dans la TUI. `palabre init` reste disponible pour un setup explicite, et `palabre init --local` cree une config de projet.
+
+`palabre init` et le premier lancement TUI utilisent `src/discovery.ts` pour detecter :
 
 - `codex`
 - `claude.exe` puis `claude` sur Windows, `claude` ailleurs
@@ -228,7 +230,9 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 - `ollama`
 - l'API Ollama locale via `GET http://localhost:11434/api/tags`
 
-La config generee conserve les blocs agents connus pour rester editable, mais ajuste `defaults.agentA` et `defaults.agentB` avec une paire detectee quand c'est possible. Au lancement, Palabre ne doit pas utiliser de fallback agent code en dur : sans preset, sans agents explicites et sans defaults de config, il doit afficher une erreur actionnable.
+La config generee conserve les blocs agents connus pour rester editable, mais ajuste `defaults.agentA` et `defaults.agentB` avec une paire detectee quand c'est possible. A chaque ouverture de l'accueil TUI, Palabre synchronise prudemment les agents connus detectes : il ajoute les agents connus manquants et rafraichit les noms de commande connus, sans toucher aux agents custom, aux roles, aux modeles ni aux defaults utilisateur. `palabre config --sync-agents` applique la meme logique explicitement.
+
+Au lancement, Palabre ne doit pas utiliser de fallback agent code en dur : sans preset, sans agents explicites et sans defaults de config, il doit afficher une erreur actionnable.
 
 Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` quand disponible. Ollama reste configure et accessible via presets, mais il est plutot destine aux power users ou aux roles locaux (`critic`, `scout`, `summarizer`). Les defaults utilisateur se gerent par `palabre config`, `palabre config --set-defaults <agentA> <agentB>`, `palabre config --mode <debate|ask>`, `palabre config --interface <tui|terminal>`, `palabre config --ask-agents <agents...>`, `palabre config --summary-agent <agent|none>`, `palabre config --ask-summary-agent <agent|none>` et `palabre config --clear-defaults`.
 
@@ -285,6 +289,8 @@ Il supporte :
 
 `maxOutputBytes` protege le CLI contre les agents qui produisent une sortie enorme ou partent en boucle. Par defaut, les adapters CLI et PTY coupent a 50 Mio et levent `AdapterError("output-too-large")`.
 
+Les adapters CLI et PTY doivent rejeter tout exit code non nul, meme si la CLI a ecrit une sortie partielle sur stdout ou dans le PTY. Une sortie partielle issue d'un process en erreur ne doit pas etre traitee comme une reponse valide.
+
 Erreurs connues classees :
 
 - `command-not-found`
@@ -334,7 +340,9 @@ Options Ollama supportees :
 - `unloadOtherModels` : detecte les modeles charges via `GET /api/ps` et decharge les autres modeles avec `POST /api/generate` + `keep_alive: 0`.
 - `keepAlive` : transmis a Ollama sous forme `keep_alive`.
 
-Au `palabre init`, si Ollama expose déjà des modèles installés via `/api/tags`, la config générée choisit le modèle installé en priorité (en conservant `nemotron-3-nano:4b` s'il est présent). Sinon, elle retombe sur `nemotron-3-nano:4b` comme fallback léger. Eviter les gros modeles dans les tests automatises ou repetes.
+Au `palabre init` et au premier lancement TUI, si Ollama expose déjà des modèles installés via `/api/tags`, la config générée choisit le modèle installé en priorité (en conservant `nemotron-3-nano:4b` s'il est présent). Sinon, elle retombe sur `nemotron-3-nano:4b` comme fallback léger. Eviter les gros modeles dans les tests automatises ou repetes.
+
+La progression d'un pull Ollama (`--pull-models` ou `autoPullModel`) doit rester sur stderr. Stdout appartient aux renderers, notamment NDJSON, et ne doit jamais recevoir de lignes non JSON pendant un flux machine-readable.
 
 Erreurs connues classees :
 
@@ -443,6 +451,7 @@ Comportement `--context` :
 
 - Accepte des fichiers et dossiers.
 - Parcourt les dossiers recursivement.
+- Transforme les chemins absents ou inaccessibles en warnings, sans interrompre la session.
 - Ignore par defaut `.git`, `.gitignore`, `.tmp`, `.pnpm-store`, `node_modules` et `dist`.
 - Applique les regles simples du `.gitignore` racine : lignes vides/commentaires ignores, negations non supportees, glob `*` basique.
 - Garde seulement les extensions texte connues.

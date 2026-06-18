@@ -13,6 +13,7 @@ Les fonctionnalités principales sont disponibles :
 
 - configuration globale ou locale ;
 - détection des agents installés ;
+- configuration globale automatique au premier lancement TUI, avec rafraîchissement prudent des agents connus détectés ;
 - interface TUI-first avec `palabre`, `/agents`, `/roles` et `/config` ;
 - assistant interactif `palabre new` ;
 - mode `ask` avec 1 à 4 agents et export `.ask.md` ;
@@ -27,6 +28,7 @@ Les fonctionnalités principales sont disponibles :
 - sortie machine-readable avec `palabre presets --json`, `palabre context scan --json` et le renderer NDJSON ;
 - erreurs structurées pour les intégrations, avec une politique de versioning NDJSON ;
 - parser CLI plus robuste pour les flags booléens comme `--terminal`, `--json` ou `--no-summary` ;
+- contrats runtime plus stricts : les exits CLI non nuls sont rejetés, la progression de pull Ollama reste hors stdout NDJSON, et les chemins `--context` manquants deviennent des warnings ;
 - tests automatisés de l'adapter CLI, du parser, du renderer NDJSON, des presets, du scan de contexte, des prompts et de la configuration de sortie, sans appeler de vrais services IA.
 
 ## Prochaines améliorations
@@ -41,7 +43,7 @@ Palabre expose déjà des contrats JSON pour les presets, le scan de contexte et
 
 ### Configuration plus simple
 
-La commande `palabre config` et la vue TUI `/config` couvrent déjà les réglages courants : agents par défaut, rôles, nombre de réponses, agent de synthèse, mode par défaut, interface par défaut et synchronisation des agents installés après l'initialisation. Les prochaines améliorations viseront surtout des messages plus clairs, de meilleures validations et des wizards plus complets pour les choix qui méritent de la découverte.
+La commande `palabre config`, la vue TUI `/config`, la configuration de premier lancement et la synchronisation des agents connus couvrent déjà les réglages courants : agents par défaut, rôles, nombre de réponses, agent de synthèse, mode par défaut, interface par défaut et rafraîchissement des agents détectés. Les prochaines améliorations viseront surtout des messages plus clairs, de meilleures validations et des wizards plus complets pour les choix qui méritent de la découverte.
 
 
 ### Conversation après le débat
@@ -60,7 +62,7 @@ Ces sujets sont envisagés après stabilisation du CLI :
 - reprise d'un débat depuis un transcript existant ;
 - provider compatible OpenAI local pour LM Studio, LocalAI, vLLM ou équivalent ;
 - maintenance continue de la documentation française et anglaise ;
-- interface CLI multilingue français/anglais à continuer d'affiner, avec un futur choix interactif de langue pendant l'initialisation ;
+- interface CLI multilingue français/anglais à continuer d'affiner, avec un futur choix interactif de langue dans les flows de premier lancement ou de configuration ;
 - TUI plus avancée avec scrolling, panneaux persistants, pause et reprise ;
 - affichage fiable des modèles quand Palabre pourra les connaître sans bruit inutile.
 

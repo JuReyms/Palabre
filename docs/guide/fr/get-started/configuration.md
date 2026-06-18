@@ -3,13 +3,31 @@ title: Première configuration
 description: Créer une configuration Palabre, détecter les agents installés et définir des paramètres par défaut utiles.
 ---
 
-## Initialiser Palabre
+## Première configuration automatique
+
+Dans un terminal interactif, le plus simple est de lancer :
+
+```bash
+palabre
+```
+
+Si aucune configuration n'existe encore, Palabre crée la configuration globale :
+
+```text
+~/.palabre/palabre.config.json
+```
+
+Il détecte les outils disponibles localement, choisit des paramètres utiles quand c'est possible, puis ouvre l'accueil TUI.
+
+## Initialisation explicite
+
+Vous pouvez toujours initialiser Palabre explicitement :
 
 ```bash
 palabre init
 ```
 
-Cette commande crée une configuration globale dans :
+Cette commande crée la même configuration globale :
 
 ```text
 ~/.palabre/palabre.config.json
@@ -17,6 +35,12 @@ Cette commande crée une configuration globale dans :
 
 Elle détecte aussi les outils disponibles localement : Codex, Claude, Gemini, Antigravity, OpenCode et Ollama.
 Après la création, Palabre affiche la langue active et la commande rapide pour basculer vers l'autre langue.
+
+Pour une configuration propre au projet courant :
+
+```bash
+palabre init --local
+```
 
 ## Choisir la langue
 
@@ -89,7 +113,7 @@ Si vous installez Antigravity, OpenCode, Gemini ou Ollama après avoir créé la
 palabre config --sync-agents
 ```
 
-Cette commande ajoute les agents détectés manquants sans écraser vos réglages existants.
+Cette commande ajoute les agents connus détectés manquants et rafraîchit les noms de commandes connus sans écraser vos agents custom ni vos defaults existants. L'accueil TUI effectue la même synchronisation prudente automatiquement au démarrage.
 
 ## Étape suivante
 

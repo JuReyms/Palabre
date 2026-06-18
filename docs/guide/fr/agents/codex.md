@@ -19,7 +19,7 @@ Dépôt GitHub : [https://github.com/openai/codex](https://github.com/openai/cod
 codex --version
 ```
 
-Si Codex a été installé après `palabre init`, synchronisez la configuration :
+Si Codex a été installé après votre première configuration Palabre, relancez `palabre` ou synchronisez explicitement :
 
 ```bash
 palabre config --sync-agents

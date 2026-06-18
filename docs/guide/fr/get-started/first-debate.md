@@ -7,7 +7,9 @@ description: Lancer un premier débat ou une demande Ask depuis l'accueil TUI ou
 palabre
 ```
 
-Dans un terminal interactif, `palabre` ouvre l'accueil TUI. Il affiche le mode courant, les agents, les rôles, l'agent de synthèse, le dossier courant et les commandes utiles.
+Dans un terminal interactif, `palabre` ouvre l'accueil TUI. Au premier lancement, il crée `~/.palabre/palabre.config.json` si aucune config n'existe encore, détecte les agents installés, puis affiche le mode courant, les agents, les rôles, l'agent de synthèse, le dossier courant et les commandes utiles.
+
+À chaque ouverture de l'accueil TUI, Palabre rafraîchit les agents connus détectés dans la config. Il peut ajouter les nouveaux agents connus installés et mettre à jour les noms de commandes connus, tout en conservant les agents custom et les choix utilisateur.
 
 Tapez simplement votre sujet dans le champ `Mode debat > Sujet >`, puis appuyez sur Entrée. Pour obtenir plusieurs réponses indépendantes au lieu d'une conversation, utilisez `/ask` avant de saisir le sujet.
 

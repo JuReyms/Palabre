@@ -7,6 +7,14 @@ La configuration indique à Palabre quels agents existent, quels agents utiliser
 
 ## Créer une configuration
 
+Dans un terminal interactif, `palabre` crée automatiquement la configuration globale au premier lancement quand elle n'existe pas encore, puis ouvre l'accueil TUI :
+
+```bash
+palabre
+```
+
+La commande explicite reste disponible pour les scripts, la CI, ou quand vous voulez créer une config sans entrer dans la TUI :
+
 ```bash
 palabre init
 ```
@@ -38,6 +46,8 @@ palabre doctor
 ```
 
 Depuis l'accueil TUI, `/config` affiche les réglages courants et `/agents` liste les agents disponibles. Hors TUI, `palabre agents` affiche les agents déclarés et leur détection locale. `palabre doctor` vérifie les erreurs courantes.
+
+Au démarrage de l'accueil TUI, Palabre synchronise prudemment les agents connus détectés : il peut ajouter les agents connus manquants et rafraîchir les noms de commandes connus, mais il n'écrase pas les agents custom, les rôles, les modèles ni les defaults utilisateur.
 
 ## Modifier les paramètres courants
 

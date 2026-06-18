@@ -4,6 +4,23 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Added
+
+- Premier lancement TUI : `palabre` crée maintenant la configuration globale si aucune config n'existe, puis ouvre directement l'accueil.
+- Accueil TUI : synchronisation prudente des agents connus détectés à chaque ouverture, avec ajout des agents manquants et rafraîchissement des commandes connues.
+
+### Changed
+
+- `palabre config --sync-agents` persiste aussi les rafraîchissements de commandes connues même lorsqu'aucun nouvel agent n'est ajouté.
+- Les guides et l'aide CLI recommandent désormais `palabre` comme entrée de première utilisation, avec `palabre init` réservé au setup explicite ou local.
+
+### Fixed
+
+- Adapters CLI et PTY : un exit code non nul est maintenant rejeté même si l'agent a écrit une sortie partielle.
+- Adapter Ollama : la progression de `--pull-models` est écrite sur stderr afin de préserver stdout pour le NDJSON.
+- `--context` : les chemins absents ou inaccessibles produisent un warning au lieu d'interrompre la session.
+- Parser CLI : `--agents` et `palabre config --ask-agents` conservent toutes les valeurs afin que la validation métier signale correctement le dépassement de 4 agents.
+
 ## [0.8.0] - 2026-06-17
 
 ### Added

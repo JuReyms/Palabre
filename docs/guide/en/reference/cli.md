@@ -9,8 +9,8 @@ This page lists the main Palabre commands.
 
 | Command | Description |
 |---------|-------------|
-| `palabre init` | Creates the global configuration and detects agents. |
-| `palabre` | Opens the TUI home screen with useful commands and defaults. |
+| `palabre` | Opens the TUI home screen, creates the global configuration on first launch, and refreshes detected known agents. |
+| `palabre init` | Explicitly creates the global configuration and detects agents. |
 | `palabre init --local` | Creates a configuration in the current folder. |
 | `palabre doctor` | Displays a diagnostic by sections: configuration, local tools, agents, and items to check. |
 | `palabre agents` | Lists declared agents and their local detection. |
@@ -18,6 +18,8 @@ This page lists the main Palabre commands.
 | `palabre context scan --json` | Previews the project context Palabre would retain. |
 
 ## Configuration
+
+The TUI home screen performs the same conservative known-agent synchronization as `palabre config --sync-agents`: it adds newly detected known agents and refreshes known command names while preserving custom agents and user defaults.
 
 | Command | Description |
 |---------|-------------|

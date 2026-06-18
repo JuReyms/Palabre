@@ -7,6 +7,14 @@ The configuration tells Palabre which agents exist, which agents to use by defau
 
 ## Create a configuration
 
+In an interactive terminal, `palabre` creates the global configuration automatically on first launch when none exists, then opens the TUI home screen:
+
+```bash
+palabre
+```
+
+The explicit command remains available for scripts, CI, or when you want to create a config without entering the TUI:
+
 ```bash
 palabre init
 ```
@@ -38,6 +46,8 @@ palabre doctor
 ```
 
 From the TUI home screen, `/config` shows current settings and `/agents` lists available agents. Outside the TUI, `palabre agents` displays declared agents and their local detection. `palabre doctor` checks for common errors.
+
+When the TUI home screen starts, Palabre conservatively synchronizes known detected agents: it can add missing known agents and refresh known command names, but it does not overwrite custom agents, roles, models, or user defaults.
 
 ## Modify common settings
 

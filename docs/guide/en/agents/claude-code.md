@@ -21,7 +21,7 @@ claude --version
 
 On Windows, the detected command may be `claude.exe`.
 
-If Claude Code was installed after `palabre init`, synchronize the configuration:
+If Claude Code was installed after your first Palabre configuration, open `palabre` again or synchronize explicitly:
 
 ```bash
 palabre config --sync-agents

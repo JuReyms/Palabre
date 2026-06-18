@@ -13,7 +13,7 @@ Install and configure Mistral Vibe outside Palabre, then verify that the command
 vibe --version
 ```
 
-If Mistral Vibe was installed after `palabre init`, synchronize the configuration:
+If Mistral Vibe was installed after your first Palabre configuration, open `palabre` again or synchronize explicitly:
 
 ```bash
 palabre config --sync-agents

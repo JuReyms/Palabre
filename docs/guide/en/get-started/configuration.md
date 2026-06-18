@@ -3,13 +3,31 @@ title: First configuration
 description: Create a Palabre configuration, detect installed agents, and set useful default settings.
 ---
 
-## Initialize Palabre
+## Automatic first configuration
+
+In an interactive terminal, the simplest first step is:
+
+```bash
+palabre
+```
+
+If no configuration exists yet, Palabre creates the global configuration at:
+
+```text
+~/.palabre/palabre.config.json
+```
+
+It detects locally available tools, chooses useful defaults when possible, then opens the TUI home screen.
+
+## Explicit initialization
+
+You can still initialize Palabre explicitly:
 
 ```bash
 palabre init
 ```
 
-This command creates a global configuration at:
+This creates the same global configuration:
 
 ```text
 ~/.palabre/palabre.config.json
@@ -17,6 +35,12 @@ This command creates a global configuration at:
 
 It also detects locally available tools: Codex, Claude, Gemini, Antigravity, OpenCode, and Ollama.
 After creation, Palabre shows the active language and the quick command to switch to the other language.
+
+For a configuration specific to the current project:
+
+```bash
+palabre init --local
+```
 
 ## Choose the language
 
@@ -89,7 +113,7 @@ If you install Antigravity, OpenCode, Gemini, or Ollama after creating the confi
 palabre config --sync-agents
 ```
 
-This command adds missing detected agents without overwriting your existing settings.
+This command adds missing detected known agents and refreshes known command names without overwriting your custom agents or existing defaults. The TUI home screen performs the same conservative synchronization automatically when it starts.
 
 ## Next step
 

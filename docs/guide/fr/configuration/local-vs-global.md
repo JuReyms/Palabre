@@ -7,6 +7,8 @@ Palabre peut utiliser une configuration globale pour tous vos projets, ou une co
 
 ## Configuration globale
 
+Dans un terminal interactif, `palabre` crée automatiquement cette configuration globale au premier lancement.
+
 ```bash
 palabre init
 ```
@@ -17,7 +19,7 @@ Fichier créé :
 ~/.palabre/palabre.config.json
 ```
 
-Utilisez cette option si vous voulez les mêmes agents par défaut partout.
+Utilisez `palabre init` explicitement si vous voulez préparer la config globale sans ouvrir la TUI, ou si vous voulez les mêmes agents par défaut partout.
 
 ## Configuration locale
 

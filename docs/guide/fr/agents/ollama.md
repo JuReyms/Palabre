@@ -25,7 +25,7 @@ ou :
 ollama ls
 ```
 
-Si Ollama a été installé après `palabre init`, synchronisez la configuration :
+Si Ollama a été installé après votre première configuration Palabre, relancez `palabre` ou synchronisez explicitement :
 
 ```bash
 palabre config --sync-agents

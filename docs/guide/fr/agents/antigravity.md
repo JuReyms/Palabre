@@ -15,7 +15,7 @@ Installez Antigravity CLI depuis la documentation officielle de Google, puis vé
 agy --help
 ```
 
-Si Antigravity a été installé après `palabre init`, synchronisez la configuration :
+Si Antigravity a été installé après votre première configuration Palabre, relancez `palabre` ou synchronisez explicitement :
 
 ```bash
 palabre config --sync-agents
