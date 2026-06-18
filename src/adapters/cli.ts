@@ -52,7 +52,8 @@ export class CliAdapter implements AgentAdapter {
       : baseArgs;
 
     return new Promise<AgentResponse>((resolve, reject) => {
-      const child = spawn(this.config.command, args, {
+      const spawnCommand = shellCommandForSpawn(this.config.command, args, this.config.shell ?? false);
+      const child = spawn(spawnCommand.command, spawnCommand.args, {
         stdio: ["pipe", "pipe", "pipe"],
         shell: this.config.shell ?? false
       });
@@ -384,6 +385,27 @@ function clipLine(value: string, maxLength: number): string {
   return value.length <= maxLength
     ? value
     : `${value.slice(0, maxLength - 1)}…`;
+}
+
+function shellCommandForSpawn(command: string, args: string[], shell: boolean): { command: string; args: string[] } {
+  if (!shell || process.platform !== "win32") {
+    return { command, args };
+  }
+
+  return {
+    command: [command, ...args].map(quoteWindowsShellArg).join(" "),
+    args: []
+  };
+}
+
+function quoteWindowsShellArg(value: string): string {
+  if (value.length === 0) {
+    return "\"\"";
+  }
+
+  return `"${value
+    .replace(/(\\*)"/g, "$1$1\\\"")
+    .replace(/(\\+)$/g, "$1$1")}"`;
 }
 
 function cancelledError(adapterName: string): AdapterError {

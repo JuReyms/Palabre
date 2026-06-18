@@ -64,6 +64,18 @@ test("CliAdapter can pass the rendered prompt as an argument", async () => {
   assert.match(response.content, /Sujet: Sujet argument/);
 });
 
+test("CliAdapter preserves an argument prompt with spaces when shell is enabled", async () => {
+  const adapter = new CliAdapter("mock", cliConfig({
+    args: ["-e", "process.stdout.write(process.argv.at(-1) ?? '')"],
+    promptMode: "argument",
+    shell: true
+  }));
+
+  const response = await adapter.generate(basePrompt({ topic: "Sujet avec espaces" }));
+
+  assert.match(response.content, /Sujet: Sujet avec espaces/);
+});
+
 test("CliAdapter inserts model arguments before the stdin marker", async () => {
   const fakeCliPath = await writeFakeCli("print-argv", "process.stdout.write(JSON.stringify(process.argv.slice(2)));");
   const adapter = new CliAdapter("mock", cliConfig({
