@@ -65,29 +65,43 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
 
 /** Affiche l'aide interne du composer TUI. */
 export function renderTuiHelp(messages: Messages): void {
+  if (supportsInteractiveOutput) {
+    clearScreen();
+  }
+
   const viewport = viewportWidth();
   const width = surfaceWidth();
   process.stdout.write([
     "",
+    ...centerLogo(viewport, messages),
+    "",
     ...centerBlock(card([
       bold(messages.tui.helpTitle),
-      `${accent("/ask")}      ${messages.tui.helpAsk}`,
-      `${accent("/debat")}    ${messages.tui.helpDebate}`,
-      `${accent("/agents")}   ${messages.tui.helpAgents}`,
-      `${accent("/roles")}    ${messages.tui.helpRoles}`,
-      `${accent("/config")}   ${messages.tui.helpConfig}`,
-      `${accent("/new")}      ${messages.tui.helpNew}`,
-      `${accent("/help")}     ${messages.tui.helpHelp}`,
-      `${accent("/quit")}     ${messages.tui.helpQuit}`,
+      "",
+      row("/ask", messages.tui.helpAsk),
+      row("/debat", messages.tui.helpDebate),
+      "",
+      row("/agents", messages.tui.helpAgents),
+      row("/roles", messages.tui.helpRoles),
+      row("/config", messages.tui.helpConfig),
+      "",
+      row("/new", messages.tui.helpNew),
+      row("/retry", messages.tui.helpRetry),
+      row("/help", messages.tui.helpHelp),
+      row("/quit", messages.tui.helpQuit),
       "",
       dim(messages.tui.helpFallback)
-    ], Math.min(width, 78)), viewport),
+    ], width), viewport),
     ""
   ].join("\n"));
 }
 
 /** Affiche l'aide rapide des agents configures. */
 export function renderTuiAgentsHelp(config: PalabreConfig, mode: PalabreMode, messages: Messages): void {
+  if (supportsInteractiveOutput) {
+    clearScreen();
+  }
+
   const viewport = viewportWidth();
   const width = surfaceWidth();
   const activeAgents = activeAgentNamesForMode(config, mode);
@@ -106,13 +120,17 @@ export function renderTuiAgentsHelp(config: PalabreConfig, mode: PalabreMode, me
       ...agentInventoryRows(config, messages),
       "",
       dim(`${messages.tui.example}: ${messages.tui.modeLabel(mode)} > ${messages.tui.agentsPrompt} > ${exampleAgents.join(" ")}`)
-    ], Math.min(width, 82)), viewport),
+    ], width), viewport),
     ""
   ].join("\n"));
 }
 
 /** Affiche l'aide rapide des roles disponibles. */
 export function renderTuiRolesHelp(mode: PalabreMode, messages: Messages, config?: PalabreConfig): void {
+  if (supportsInteractiveOutput) {
+    clearScreen();
+  }
+
   const viewport = viewportWidth();
   const width = surfaceWidth();
   const currentRoles = config ? roleLineForMode(config, mode, messages) : undefined;
@@ -120,6 +138,8 @@ export function renderTuiRolesHelp(mode: PalabreMode, messages: Messages, config
   const expectedCount = activeAgents.length || (mode === "ask" ? 3 : 2);
   const exampleRoles = exampleRolesForMode(mode, expectedCount);
   process.stdout.write([
+    "",
+    ...centerLogo(viewport, messages),
     "",
     ...centerBlock(card([
       bold(messages.tui.rolesTitle),
@@ -254,9 +274,9 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
         "",
         bold(messages.tui.availableCommands),
         "",
-        row("/agents", "/agents codex claude opencode"),
-        row("/roles", "/roles architect critic scout"),
-        row("/summary", `/summary opencode  ${dim(messages.tui.or)} /summary none`)
+        row("/agents", messages.tui.askAgentsUsage),
+        row("/roles", messages.tui.rolesUsage),
+        row("/summary", messages.tui.summaryUsage)
       ]
     : [
         row(messages.tui.activeAgents, debateAgents),
@@ -266,10 +286,10 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
         "",
         bold(messages.tui.availableCommands),
         "",
-        row("/agents", "/agents codex gemini"),
-        row("/roles", "/roles implementer critic"),
-        row("/turns", "/turns 4"),
-        row("/summary", `/summary ollama-local  ${dim(messages.tui.or)} /summary none`)
+        row("/agents", messages.tui.debateAgentsUsage),
+        row("/roles", messages.tui.rolesUsage),
+        row("/turns", messages.tui.turnsUsage),
+        row("/summary", messages.tui.summaryUsage)
       ];
 
   const lines = [
@@ -294,8 +314,8 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
         row("/ollama-model", messages.tui.ollamaModelUsage),
         row("/ollama-sync", messages.tui.ollamaSyncCommand)
       ] : []),
-      row("/interface", `/interface tui  ${dim(messages.tui.or)} /interface terminal`),
-      row("/language", `/language fr  ${dim(messages.tui.or)} /language en`),
+      row("/interface", messages.tui.interfaceUsage),
+      row("/language", messages.tui.languageUsage),
       row("/mode", messages.tui.modeConfigCommand),
       row("/back", messages.tui.backCommand),
       row("/quit", messages.tui.quitCommand)
@@ -309,6 +329,7 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
 export type TuiHomeInput =
   | { kind: "topic"; topic: string }
   | { kind: "new" }
+  | { kind: "retry" }
   | { kind: "config" }
   | { kind: "mode"; mode: PalabreMode }
   | { kind: "help" }
@@ -400,6 +421,10 @@ export async function promptTuiHomeTopic(mode: PalabreMode = "debate", messages:
       return { kind: "new" };
     }
 
+    if (command === "/retry") {
+      return { kind: "retry" };
+    }
+
     if (command === "/config") {
       return { kind: "config" };
     }
@@ -442,7 +467,6 @@ export async function promptTuiConfigCommand(mode: PalabreMode, messages: Messag
 
   const rl = createInterface({ input, output });
   try {
-    renderTuiComposer(mode, messages, messages.tui.configPrompt);
     const result = await questionWithInterrupt(rl, tuiPrompt(mode, messages.tui.configPrompt, messages));
     if (result.kind === "quit") {
       return { kind: "quit" };
@@ -633,7 +657,12 @@ class TuiRenderer implements DebateRenderer {
 
   error(failure: DebateFailure): void {
     this.thinkingEnd();
-    process.stderr.write(`\n${this.c("red", this.messages.common.errorPrefix)} ${formatFailureLocation(failure, this.messages)}: ${failure.message}\n`);
+    const viewport = viewportWidth();
+    const width = this.width();
+    process.stderr.write(`\n${centerBlock(card([
+      this.c("red", this.messages.common.errorPrefix),
+      `${formatFailureLocation(failure, this.messages)}: ${failure.message}`
+    ], width), viewport).join("\n")}\n`);
   }
 
   done(outputPath: string): void {
@@ -652,7 +681,7 @@ class TuiRenderer implements DebateRenderer {
     const mode = messagesModeLabel(this.messages, options.mode).toUpperCase();
     const main = [
       ...card([
-        `${bold("PALABRE")} ${dim("-")} ${accent(mode)}`,
+        accent(mode),
         this.messages.renderers.subject(options.topic),
         this.messages.renderers.agents(formatAgents(options, agents)),
         this.messages.renderers.responsesSummary(formatResponseCount(options), formatSummary(options, this.messages)),
@@ -662,6 +691,8 @@ class TuiRenderer implements DebateRenderer {
     ];
 
     return [
+      ...centerLogo(viewport, this.messages),
+      "",
       ...centerBlock(main, viewport),
       "",
       ...centerBlock(this.planPanel(options, width), viewport),
@@ -807,14 +838,14 @@ function viewportWidth(): number {
 }
 
 function tuiPrompt(mode: PalabreMode, labelPrefix: string, messages: Messages, notice?: string): string {
-  const label = promptModeLabel(mode, messages);
+  const label = promptTrail(mode, labelPrefix, messages);
   const padding = surfacePadding();
-  const promptLine = `${padding}${accent(label)} ${dim(">")} ${bold(labelPrefix)} ${dim(">")} `;
+  const promptLine = `${padding}${label} ${dim(">")} `;
   return [
     "",
     promptRuleLine(),
     ...(notice ? [
-      `${padding}${accent(label)} ${dim(">")} ${bold(labelPrefix)} ${dim(">")}`,
+      `${padding}${label} ${dim(">")}`,
       ...promptNoticeLines(notice),
       ""
     ] : []),
@@ -841,6 +872,14 @@ function surfacePadding(): string {
 
 function promptModeLabel(mode: PalabreMode, messages: Messages): string {
   return `Mode ${messages.tui.modeValue(mode).toLowerCase()}`;
+}
+
+function promptTrail(mode: PalabreMode, labelPrefix: string, messages: Messages): string {
+  const parts = [bold("Palabre"), accent(promptModeLabel(mode, messages))];
+  if (labelPrefix !== messages.tui.subject) {
+    parts.push(bold(labelPrefix));
+  }
+  return parts.join(` ${dim(">")} `);
 }
 
 function messagesModeLabel(messages: Messages, mode: PalabreMode): string {
@@ -971,9 +1010,8 @@ function centerLine(line: string, width: number): string {
 }
 
 function composerInputBox(mode: PalabreMode, labelPrefix: string, width: number, messages: Messages): string[] {
-  const label = promptModeLabel(mode, messages);
   return composerCard([
-    `${accent(label)} ${dim(">")} ${bold(labelPrefix)} ${dim(">")}`
+    `${promptTrail(mode, labelPrefix, messages)} ${dim(">")}`
   ], width, "center");
 }
 

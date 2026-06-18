@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createTuiRenderer, renderTuiAgentsHelp, renderTuiComposer, renderTuiConfig, renderTuiHelp, renderTuiHome, renderTuiRolesHelp } from "../src/renderers/tui.js";
 import { createTranslator } from "../src/i18n.js";
-import type { DebateOptions } from "../src/types.js";
+import type { DebateFailure, DebateOptions } from "../src/types.js";
 
 test("TuiRenderer renders a lightweight terminal dashboard", () => {
   const output: string[] = [];
@@ -23,7 +23,8 @@ test("TuiRenderer renders a lightweight terminal dashboard", () => {
   }
 
   const text = output.join("");
-  assert.match(text, /PALABRE/);
+  assert.match(text, /___/);
+  assert.match(text, /DEBATE/);
   assert.match(text, /Subject: TUI test/);
   assert.match(text, /codex \(implementer\) - turn 1\/2/);
   assert.match(text, /------------------------------/);
@@ -55,6 +56,34 @@ test("TuiRenderer warns when a PTY agent may open a terminal window", () => {
   const text = output.join("");
   assert.match(text, /pseudo-terminal/);
   assert.match(text, /fenetre peut apparaitre brievement/);
+});
+
+test("TuiRenderer renders runtime errors as a centered card", () => {
+  const output: string[] = [];
+  const originalWrite = process.stderr.write;
+  process.stderr.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stderr.write;
+
+  try {
+    const renderer = createTuiRenderer(createTranslator("en"));
+    const failure: DebateFailure = {
+      phase: "debate",
+      agent: "gemini",
+      role: "implementer",
+      turn: 4,
+      kind: "unknown",
+      message: "gemini cancelled by user."
+    };
+    renderer.error(failure);
+  } finally {
+    process.stderr.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /\| Error/);
+  assert.match(text, /\| gemini \(implementer, turn 4\): gemini cancelled by user\./);
 });
 
 test("renderTuiHome renders a Palabre launch screen", () => {
@@ -122,12 +151,18 @@ test("renderTuiHelp renders slash commands", () => {
   }
 
   const text = output.join("");
+  assert.match(text, /___/);
   assert.match(text, /Commandes TUI/);
   assert.match(text, /\/ask/);
+  assert.match(text, /mode Ask/);
   assert.match(text, /\/debat/);
   assert.match(text, /\/roles/);
   assert.match(text, /\/config/);
+  assert.match(text, /\/retry/);
+  assert.match(text, /relancer la derniere session/);
   assert.match(text, /\/quit/);
+  assert.match(text, /Tape un sujet ou une commande/);
+  assert.doesNotMatch(text, /plusieurs reponses independantes/);
 });
 
 test("renderTuiRolesHelp renders available roles", () => {
@@ -145,6 +180,7 @@ test("renderTuiRolesHelp renders available roles", () => {
   }
 
   const text = output.join("");
+  assert.match(text, /___/);
   assert.match(text, /Roles Palabre/);
   assert.match(text, /implementer/);
   assert.match(text, /critic/);
@@ -231,6 +267,13 @@ test("renderTuiConfig keeps the Palabre brand header", () => {
   assert.match(text, /\/ollama/);
   assert.match(text, /\/ollama-model/);
   assert.match(text, /\/ollama-sync/);
+  assert.match(text, /Usage: \/agents <agentA> <agentB>/);
+  assert.match(text, /Usage: \/roles <role\.\.\.>/);
+  assert.match(text, /Usage: \/turns <number>/);
+  assert.match(text, /Usage: \/summary <agent\|none>/);
+  assert.match(text, /Usage: \/ollama-model <model>/);
+  assert.match(text, /Usage: \/interface <tui\|terminal>/);
+  assert.match(text, /Usage: \/language <fr\|en>/);
   assert.match(text, /\/back/);
   assert.match(text, /Debate/);
   assert.doesNotMatch(text, /Langue/);
@@ -252,8 +295,9 @@ test("renderTuiComposer renders a framed subject input hint", () => {
   }
 
   const text = output.join("");
+  assert.match(text, /Palabre/);
   assert.match(text, /Mode ask/);
-  assert.match(text, /Sujet/);
+  assert.doesNotMatch(text, /Sujet/);
   assert.doesNotMatch(text, /Ecris ton sujet/);
   assert.doesNotMatch(text, /\/config/);
 });
@@ -273,6 +317,7 @@ test("renderTuiComposer renders config commands in config mode", () => {
   }
 
   const text = output.join("");
+  assert.match(text, /Palabre/);
   assert.match(text, /Mode debat/);
   assert.match(text, /Config/);
   assert.doesNotMatch(text, /commande de configuration/);

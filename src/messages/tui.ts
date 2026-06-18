@@ -23,9 +23,11 @@ export interface TuiMessages {
   helpRoles: string;
   helpConfig: string;
   helpNew: string;
+  helpRetry: string;
   helpHelp: string;
   helpQuit: string;
   helpFallback: string;
+  retryUnavailable: string;
   agentsTitle: string;
   activeMode: string;
   activeAgents: string;
@@ -70,6 +72,9 @@ export interface TuiMessages {
   turnsUsage: string;
   summaryUsage: string;
   ollamaModelUsage: string;
+  interfaceUsage: string;
+  languageUsage: string;
+  rolesUsage: string;
   ollamaInfoCommand: string;
   ollamaSyncCommand: string;
   interfaceDefault(value: string): string;
@@ -120,15 +125,17 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     changeMode: "changer de mode",
     tipContext: "* Tip Ajoute du contexte avec --context <dossier> ou --files <fichier>.",
     helpTitle: "Commandes TUI",
-    helpAsk: "passer en mode Ask pour collecter plusieurs reponses independantes",
-    helpDebate: "passer en mode Debat pour lancer une conversation entre deux agents",
-    helpAgents: "afficher et choisir les agents actifs",
-    helpRoles: "afficher les roles disponibles",
-    helpConfig: "configurer Palabre sans sortir de la TUI",
-    helpNew: "ouvrir l'assistant guide",
-    helpHelp: "afficher cette aide",
-    helpQuit: "quitter la TUI",
-    helpFallback: "Tout autre texte est utilise comme demande a envoyer aux agents.",
+    helpAsk: "mode Ask",
+    helpDebate: "mode Debat",
+    helpAgents: "choisir les agents",
+    helpRoles: "choisir les roles",
+    helpConfig: "reglages",
+    helpNew: "assistant guide",
+    helpRetry: "relancer la derniere session",
+    helpHelp: "aide",
+    helpQuit: "quitter",
+    helpFallback: "Tape un sujet ou une commande.",
+    retryUnavailable: "Aucune session a relancer pour le moment.",
     agentsTitle: "Agents Palabre",
     activeMode: "Mode actif",
     activeAgents: "Agents actifs",
@@ -173,6 +180,9 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     turnsUsage: "Usage: /turns <nombre>",
     summaryUsage: "Usage: /summary <agent|none>",
     ollamaModelUsage: "Usage: /ollama-model <modele>",
+    interfaceUsage: "Usage: /interface <tui|terminal>",
+    languageUsage: "Usage: /language <fr|en>",
+    rolesUsage: "Usage: /roles <role...>",
     ollamaInfoCommand: "afficher modeles installes",
     ollamaSyncCommand: "choisir un modele installe disponible",
     interfaceDefault: (value) => `Interface par defaut: ${value}.`,
@@ -221,15 +231,17 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     changeMode: "change mode",
     tipContext: "* Tip Add context with --context <folder> or --files <file>.",
     helpTitle: "TUI Commands",
-    helpAsk: "switch to Ask mode to collect independent responses",
-    helpDebate: "switch to Debate mode for a conversation between two agents",
-    helpAgents: "show and choose active agents",
-    helpRoles: "show available roles",
-    helpConfig: "configure Palabre without leaving the TUI",
-    helpNew: "open the guided assistant",
-    helpHelp: "show this help",
-    helpQuit: "quit the TUI",
-    helpFallback: "Any other text is used as the request sent to agents.",
+    helpAsk: "Ask mode",
+    helpDebate: "Debate mode",
+    helpAgents: "choose agents",
+    helpRoles: "choose roles",
+    helpConfig: "settings",
+    helpNew: "guided assistant",
+    helpRetry: "rerun the last session",
+    helpHelp: "help",
+    helpQuit: "quit",
+    helpFallback: "Type a topic or a command.",
+    retryUnavailable: "No session to retry yet.",
     agentsTitle: "Palabre Agents",
     activeMode: "Active mode",
     activeAgents: "Active agents",
@@ -274,6 +286,9 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     turnsUsage: "Usage: /turns <number>",
     summaryUsage: "Usage: /summary <agent|none>",
     ollamaModelUsage: "Usage: /ollama-model <model>",
+    interfaceUsage: "Usage: /interface <tui|terminal>",
+    languageUsage: "Usage: /language <fr|en>",
+    rolesUsage: "Usage: /roles <role...>",
     ollamaInfoCommand: "show installed models",
     ollamaSyncCommand: "choose an available installed model",
     interfaceDefault: (value) => `Default interface: ${value}.`,

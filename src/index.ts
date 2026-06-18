@@ -13,7 +13,7 @@ import { runNewWizard } from "./new.js";
 import { listPresetNames, listPresetsWithAvailability, resolvePreset } from "./presets.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { createNdjsonRenderer } from "./renderers/ndjson.js";
-import { createTuiRenderer, promptTuiAgentsWizard, promptTuiConfigCommand, promptTuiHomeTopic, promptTuiRolesWizard, renderTuiConfig, renderTuiHelp, renderTuiHome, renderTuiRolesHelp } from "./renderers/tui.js";
+import { createTuiRenderer, promptTuiAgentsWizard, promptTuiConfigCommand, promptTuiHomeTopic, promptTuiRolesWizard, renderTuiConfig, renderTuiHelp, renderTuiHome, renderTuiRolesHelp, type TuiHomeInput } from "./renderers/tui.js";
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./update.js";
@@ -143,94 +143,86 @@ async function main(): Promise<void> {
 
   assertRunnableConfig(config, messages, configPath);
 
+  let stayInTuiAfterSession = false;
+  let tuiMode = config.defaults?.mode ?? "debate";
+  let tuiVersion = "";
+
+  const handleTuiHomeInput = async (tuiInput: TuiHomeInput): Promise<"continue" | "run" | "retry" | "quit"> => {
+    if (!tuiInput) {
+      return "quit";
+    }
+
+    if (tuiInput.kind === "help") {
+      renderTuiHelp(messages);
+      const nextInput = await promptTuiHomeTopic(tuiMode, messages);
+      return handleTuiHomeInput(nextInput);
+    }
+
+    if (tuiInput.kind === "roles") {
+      const result = await runTuiRolesWizard(configPath, config, messages, tuiMode, tuiInput.roles);
+      if (result.quit) return "quit";
+      tuiNotice = result.notice;
+      return "continue";
+    }
+
+    if (tuiInput.kind === "agents") {
+      const result = await runTuiAgentsWizard(configPath, config, messages, tuiMode, tuiInput.agents);
+      if (result.quit) return "quit";
+      tuiNotice = result.notice;
+      return "continue";
+    }
+
+    if (tuiInput.kind === "mode") {
+      tuiMode = tuiInput.mode;
+      return "continue";
+    }
+
+    if (tuiInput.kind === "config") {
+      const result = await runTuiConfigLoop(configPath, config, messages, tuiMode);
+      if (result.quit) return "quit";
+      tuiMode = result.mode;
+      language = resolveLanguage({ explicitLanguage: optionalString(parsed.flags.language), configLanguage: config.language });
+      messages = createTranslator(language);
+      return "continue";
+    }
+
+    if (tuiInput.kind === "new") {
+      parsed.command = "new";
+      parsed.commandExplicit = true;
+      delete parsed.flags.topic;
+      return "run";
+    }
+
+    if (tuiInput.kind === "retry") {
+      if (!optionalString(parsed.flags.topic)) {
+        tuiNotice = messages.tui.retryUnavailable;
+        return "continue";
+      }
+      return "retry";
+    }
+
+    parsed.command = "";
+    parsed.commandExplicit = false;
+    parsed.flags.topic = tuiInput.topic;
+    return "run";
+  };
+
   if (shouldOpenTuiHome(parsed)) {
     const syncResult = await syncInteractiveDetectedAgents(configPath, config);
     if (!tuiNotice && syncResult.addedAgents.length > 0) {
       tuiNotice = messages.config.syncAdded(configPath, syncResult.addedAgents.join(", "));
     }
 
-    let tuiMode = config.defaults?.mode ?? "debate";
-    const tuiVersion = await getPackageVersion();
+    stayInTuiAfterSession = true;
+    tuiVersion = await getPackageVersion();
 
     for (;;) {
       renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion });
       const tuiInput = await promptTuiHomeTopic(tuiMode, messages, { notice: tuiNotice });
       tuiNotice = undefined;
-      if (!tuiInput) {
-        return;
-      }
-
-      if (tuiInput.kind === "help") {
-        renderTuiHelp(messages);
-        const nextInput = await promptTuiHomeTopic(tuiMode, messages);
-        if (!nextInput) {
-          return;
-        }
-
-        if (nextInput.kind === "help") {
-          continue;
-        }
-
-        if (nextInput.kind === "roles") {
-          const result = await runTuiRolesWizard(configPath, config, messages, tuiMode, nextInput.roles);
-          if (result.quit) return;
-          tuiNotice = result.notice;
-          continue;
-        }
-
-        if (nextInput.kind === "agents") {
-          const result = await runTuiAgentsWizard(configPath, config, messages, tuiMode, nextInput.agents);
-          if (result.quit) return;
-          tuiNotice = result.notice;
-          continue;
-        }
-
-        if (nextInput.kind === "mode") {
-          tuiMode = nextInput.mode;
-          continue;
-        }
-
-        if (nextInput.kind === "config") {
-          const result = await runTuiConfigLoop(configPath, config, messages, tuiMode);
-          if (result.quit) return;
-          tuiMode = result.mode;
-          language = resolveLanguage({ explicitLanguage: optionalString(parsed.flags.language), configLanguage: config.language });
-          messages = createTranslator(language);
-          continue;
-        }
-
-        if (nextInput.kind === "new") {
-          parsed.command = "new";
-          parsed.commandExplicit = true;
-        } else {
-          parsed.flags.topic = nextInput.topic;
-        }
-      } else if (tuiInput.kind === "mode") {
-        tuiMode = tuiInput.mode;
-        continue;
-      } else if (tuiInput.kind === "roles") {
-        const result = await runTuiRolesWizard(configPath, config, messages, tuiMode, tuiInput.roles);
-        if (result.quit) return;
-        tuiNotice = result.notice;
-        continue;
-      } else if (tuiInput.kind === "agents") {
-        const result = await runTuiAgentsWizard(configPath, config, messages, tuiMode, tuiInput.agents);
-        if (result.quit) return;
-        tuiNotice = result.notice;
-        continue;
-      } else if (tuiInput.kind === "config") {
-        const result = await runTuiConfigLoop(configPath, config, messages, tuiMode);
-        if (result.quit) return;
-        tuiMode = result.mode;
-        language = resolveLanguage({ explicitLanguage: optionalString(parsed.flags.language), configLanguage: config.language });
-        messages = createTranslator(language);
-        continue;
-      } else if (tuiInput.kind === "new") {
-        parsed.command = "new";
-        parsed.commandExplicit = true;
-      } else {
-        parsed.flags.topic = tuiInput.topic;
-      }
+      const action = await handleTuiHomeInput(tuiInput);
+      if (action === "quit") return;
+      if (action === "continue") continue;
 
       parsed.flags.mode = tuiMode;
       parsed.flags.renderer = "tui";
@@ -238,97 +230,123 @@ async function main(): Promise<void> {
     }
   }
 
-  if (parsed.command === "new") {
-    const selection = await runNewWizard(config, messages);
+  for (;;) {
+    if (parsed.command === "new") {
+      const selection = await runNewWizard(config, messages);
 
-    if (!selection) {
-      console.log(messages.new.cancelled);
+      if (!selection) {
+        console.log(messages.new.cancelled);
+        return;
+      }
+
+      parsed.flags["agent-a"] = selection.agentA;
+      parsed.flags["agent-b"] = selection.agentB;
+      parsed.flags.topic = selection.topic;
+      if (selection.modelA) parsed.flags["model-a"] = selection.modelA;
+      if (selection.modelB) parsed.flags["model-b"] = selection.modelB;
+      if (selection.turns) parsed.flags.turns = String(selection.turns);
+      if (selection.summaryAgent) parsed.flags["summary-agent"] = selection.summaryAgent;
+      if (selection.summaryModel) parsed.flags["summary-model"] = selection.summaryModel;
+      if (selection.summaryEnabled === false) parsed.flags["no-summary"] = true;
+      if (selection.showPrompt) parsed.flags["show-prompt"] = true;
+      if (selection.plainOutput) parsed.flags.plain = true;
+      if (selection.files.length > 0) parsed.flags.files = selection.files;
+      if (selection.context.length > 0) parsed.flags.context = selection.context;
+      if (selection.mode) parsed.flags.mode = selection.mode;
+      if (selection.askAgents && selection.askAgents.length > 0) parsed.flags.agents = selection.askAgents;
+      parsed.command = "";
+      parsed.commandExplicit = false;
+    }
+
+    const topic = optionalString(parsed.flags.topic) ?? "";
+    const context = await loadProjectInputs(
+      getStringListFlag(parsed.flags.files),
+      getStringListFlag(parsed.flags.context),
+      process.cwd(),
+      messages
+    );
+    const presetName = optionalString(parsed.flags.preset);
+    const preset = presetName ? resolvePreset(presetName, messages) : undefined;
+
+    if (!topic) {
+      throw new Error(messages.common.topicRequired);
+    }
+
+    const mode = parseModeFlag(optionalString(parsed.flags.mode) ?? config.defaults?.mode, messages);
+    const explicitAskAgents = getStringListFlag(parsed.flags.agents);
+    const askAgentSeeds = explicitAskAgents.length > 0 ? explicitAskAgents : config.defaults?.askAgents ?? [];
+    const agentA = resolveAgentName("agent A", parsed.flags["agent-a"], preset?.agentA, askAgentSeeds[0] ?? config.defaults?.agentA, messages);
+    const agentB = resolveAgentName("agent B", parsed.flags["agent-b"], preset?.agentB, askAgentSeeds[1] ?? askAgentSeeds[0] ?? config.defaults?.agentB, messages);
+    const askAgents = mode === "ask" ? resolveAskAgents(explicitAskAgents, config.defaults?.askAgents, [agentA, agentB], messages) : undefined;
+
+    const options: DebateOptions = {
+      mode,
+      language,
+      topic,
+      agentA,
+      agentB,
+      askAgents,
+      turns: parseTurnsFlag(parsed.flags.turns, config.defaults?.turns ?? DEFAULT_TURNS, "--turns", messages),
+      session: createSessionContext(),
+      files: context.files,
+      modelA: optionalString(parsed.flags["model-a"]),
+      modelB: optionalString(parsed.flags["model-b"]),
+      pullModels: Boolean(parsed.flags["pull-models"]),
+      summaryAgent: resolveSummaryAgentOption(parsed.flags["summary-agent"], config.defaults, mode),
+      summaryModel: optionalString(parsed.flags["summary-model"]),
+      summaryEnabled: !parsed.flags["no-summary"],
+      earlyStopOnAgreement: !parsed.flags["no-early-stop"],
+      plainOutput: Boolean(parsed.flags.plain || parsed.flags.terminal),
+      signal: debateAbortSignal()
+    };
+
+    if (parsed.flags["show-prompt"]) {
+      printContextWarnings(context.warnings, messages);
+      printPromptPreview(config, options, language, messages);
       return;
     }
 
-    parsed.flags["agent-a"] = selection.agentA;
-    parsed.flags["agent-b"] = selection.agentB;
-    parsed.flags.topic = selection.topic;
-    if (selection.modelA) parsed.flags["model-a"] = selection.modelA;
-    if (selection.modelB) parsed.flags["model-b"] = selection.modelB;
-    if (selection.turns) parsed.flags.turns = String(selection.turns);
-    if (selection.summaryAgent) parsed.flags["summary-agent"] = selection.summaryAgent;
-    if (selection.summaryModel) parsed.flags["summary-model"] = selection.summaryModel;
-    if (selection.summaryEnabled === false) parsed.flags["no-summary"] = true;
-    if (selection.showPrompt) parsed.flags["show-prompt"] = true;
-    if (selection.plainOutput) parsed.flags.plain = true;
-    if (selection.files.length > 0) parsed.flags.files = selection.files;
-    if (selection.context.length > 0) parsed.flags.context = selection.context;
-    if (selection.mode) parsed.flags.mode = selection.mode;
-    if (selection.askAgents && selection.askAgents.length > 0) parsed.flags.agents = selection.askAgents;
-  }
+    process.exitCode = undefined;
+    const renderer = createRendererFromFlags(parsed.flags, options.plainOutput, config.defaults?.interface, messages);
+    context.warnings.forEach((warning) => renderer.warning(warning));
+    const result = options.mode === "ask"
+      ? await runAsk(config, options, renderer, messages)
+      : await runDebate(config, options, renderer, messages);
+    const outputPath = await writeDebateMarkdown(
+      resolveOutputDir(config.outputDir),
+      result.options,
+      result.messages,
+      result.summary,
+      result.stopReason,
+      messages,
+      result.failure
+    );
 
-  const topic = optionalString(parsed.flags.topic) ?? "";
-  const context = await loadProjectInputs(
-    getStringListFlag(parsed.flags.files),
-    getStringListFlag(parsed.flags.context),
-    process.cwd(),
-    messages
-  );
-  const presetName = optionalString(parsed.flags.preset);
-  const preset = presetName ? resolvePreset(presetName, messages) : undefined;
+    renderer.done(outputPath);
+    if (result.failure) {
+      process.exitCode = result.failure.kind === "cancelled" ? 130 : 1;
+    }
 
-  if (!topic) {
-    throw new Error(messages.common.topicRequired);
-  }
+    if (!stayInTuiAfterSession) {
+      return;
+    }
 
-  const mode = parseModeFlag(optionalString(parsed.flags.mode) ?? config.defaults?.mode, messages);
-  const explicitAskAgents = getStringListFlag(parsed.flags.agents);
-  const askAgentSeeds = explicitAskAgents.length > 0 ? explicitAskAgents : config.defaults?.askAgents ?? [];
-  const agentA = resolveAgentName("agent A", parsed.flags["agent-a"], preset?.agentA, askAgentSeeds[0] ?? config.defaults?.agentA, messages);
-  const agentB = resolveAgentName("agent B", parsed.flags["agent-b"], preset?.agentB, askAgentSeeds[1] ?? askAgentSeeds[0] ?? config.defaults?.agentB, messages);
-  const askAgents = mode === "ask" ? resolveAskAgents(explicitAskAgents, config.defaults?.askAgents, [agentA, agentB], messages) : undefined;
+    tuiMode = mode;
+    for (;;) {
+      const nextInput = await promptTuiHomeTopic(tuiMode, messages, { notice: tuiNotice });
+      tuiNotice = undefined;
+      const action = await handleTuiHomeInput(nextInput);
+      if (action === "quit") return;
+      if (action === "continue") continue;
+      if (action === "retry") {
+        parsed.flags.renderer = "tui";
+        break;
+      }
 
-  const options: DebateOptions = {
-    mode,
-    language,
-    topic,
-    agentA,
-    agentB,
-    askAgents,
-    turns: parseTurnsFlag(parsed.flags.turns, config.defaults?.turns ?? DEFAULT_TURNS, "--turns", messages),
-    session: createSessionContext(),
-    files: context.files,
-    modelA: optionalString(parsed.flags["model-a"]),
-    modelB: optionalString(parsed.flags["model-b"]),
-    pullModels: Boolean(parsed.flags["pull-models"]),
-    summaryAgent: resolveSummaryAgentOption(parsed.flags["summary-agent"], config.defaults, mode),
-    summaryModel: optionalString(parsed.flags["summary-model"]),
-    summaryEnabled: !parsed.flags["no-summary"],
-    earlyStopOnAgreement: !parsed.flags["no-early-stop"],
-    plainOutput: Boolean(parsed.flags.plain || parsed.flags.terminal),
-    signal: debateAbortSignal()
-  };
-
-  if (parsed.flags["show-prompt"]) {
-    printContextWarnings(context.warnings, messages);
-    printPromptPreview(config, options, language, messages);
-    return;
-  }
-
-  const renderer = createRendererFromFlags(parsed.flags, options.plainOutput, config.defaults?.interface, messages);
-  context.warnings.forEach((warning) => renderer.warning(warning));
-  const result = options.mode === "ask"
-    ? await runAsk(config, options, renderer, messages)
-    : await runDebate(config, options, renderer, messages);
-  const outputPath = await writeDebateMarkdown(
-    resolveOutputDir(config.outputDir),
-    result.options,
-    result.messages,
-    result.summary,
-    result.stopReason,
-    messages,
-    result.failure
-  );
-
-  renderer.done(outputPath);
-  if (result.failure) {
-    process.exitCode = result.failure.kind === "cancelled" ? 130 : 1;
+      parsed.flags.mode = tuiMode;
+      parsed.flags.renderer = "tui";
+      break;
+    }
   }
 }
 
