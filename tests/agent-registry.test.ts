@@ -43,13 +43,12 @@ test("isAgentDetected reflects discovery, and treats unknown CLIs as available",
   assert.equal(isAgentDetected("custom", customCli, discovery), true);
 });
 
-function discoveryWith(available: Partial<Record<"codex" | "claude" | "gemini" | "antigravity" | "opencode" | "vibe" | "ollama", boolean>>): ToolDiscovery {
+function discoveryWith(available: Partial<Record<"codex" | "claude" | "antigravity" | "opencode" | "vibe" | "ollama", boolean>>): ToolDiscovery {
   const cli = (command: string, ok?: boolean) => ({ available: Boolean(ok), command });
 
   return {
     codex: cli("codex", available.codex),
     claude: cli("claude", available.claude),
-    gemini: cli("gemini", available.gemini),
     antigravity: cli("agy", available.antigravity),
     opencode: cli("opencode", available.opencode),
     vibe: cli("vibe", available.vibe),

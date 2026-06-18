@@ -15,6 +15,7 @@ Cette page liste les commandes principales de Palabre.
 | `palabre doctor` | Affiche un diagnostic par sections : configuration, outils locaux, agents et points à vérifier. |
 | `palabre agents` | Liste les agents déclarés et leur détection locale. |
 | `palabre -a` | Raccourci de `palabre agents`. |
+| `palabre history`, `palabre historique` | Liste les derniers exports Markdown Palabre. |
 | `palabre context scan --json` | Prévisualise le contexte projet que Palabre retiendrait. |
 
 ## Configuration
@@ -60,6 +61,7 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 | `/agents` | Affiche les agents disponibles ou modifie les agents actifs si des noms sont fournis. |
 | `/roles` | Affiche les rôles disponibles ou modifie les rôles actifs si des rôles sont fournis. |
 | `/config` | Ouvre les réglages TUI. |
+| `/historique` | Affiche les derniers exports Markdown. Alias : `/history`. |
 | `/ollama` | Affiche le modèle Ollama configuré et les modèles installés depuis `/config`. |
 | `/ollama-model <modele>` | Change le modèle configuré de `ollama-local` depuis `/config`. |
 | `/ollama-sync` | Remplace le modèle Ollama configuré par un modèle installé quand le modèle courant est absent. |
@@ -73,6 +75,7 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 | Commande | Description |
 |----------|-------------|
 | `palabre presets --json` | Liste les presets et leur disponibilité locale. |
+| `palabre history --json` | Liste les derniers exports Markdown au format JSON v1. |
 | `palabre config --ollama-models --json` | Renvoie l'état Ollama local au format JSON v1 pour les intégrations. |
 | `palabre context scan [paths...] --json` | Renvoie les dossiers, fichiers et avertissements du scan `--context` au format JSON v1. |
 

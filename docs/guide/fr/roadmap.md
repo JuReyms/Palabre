@@ -7,7 +7,7 @@ Cette page donne une vue d'ensemble des évolutions prévues pour Palabre. Elle 
 
 ## Disponible aujourd'hui
 
-Palabre permet déjà de lancer des débats entre deux agents installés sur votre machine, ou des demandes Ask où plusieurs agents répondent indépendamment avant une synthèse comparative : Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe ou Ollama.
+Palabre permet déjà de lancer des débats entre deux agents installés sur votre machine, ou des demandes Ask où plusieurs agents répondent indépendamment avant une synthèse comparative : Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe ou Ollama.
 
 Les fonctionnalités principales sont disponibles :
 
@@ -17,7 +17,7 @@ Les fonctionnalités principales sont disponibles :
 - interface TUI-first avec `palabre`, `/agents`, `/roles` et `/config` ;
 - assistant interactif `palabre new` ;
 - mode `ask` avec 1 à 4 agents et export `.ask.md` ;
-- presets comme `codex-claude`, `claude-gemini`, `codex-antigravity` ou `opencode-ollama` ;
+- presets comme `codex-claude`, `claude-antigravity`, `codex-antigravity` ou `opencode-ollama` ;
 - interface et prompts en français ou en anglais avec `--language`, `--lang`, `PALABRE_LANGUAGE` ou la configuration ;
 - ajout de contexte avec `--files` ou `--context` ;
 - prévisualisation du scan de contexte avec `palabre context scan --json` pour les intégrations ;

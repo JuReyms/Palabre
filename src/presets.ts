@@ -78,30 +78,6 @@ const presets: Record<string, AgentPairPreset> = {
     agentA: "antigravity",
     agentB: "claude"
   },
-  "gemini-opencode": {
-    agentA: "gemini",
-    agentB: "opencode"
-  },
-  "opencode-gemini": {
-    agentA: "opencode",
-    agentB: "gemini"
-  },
-  "gemini-vibe": {
-    agentA: "gemini",
-    agentB: "vibe"
-  },
-  "vibe-gemini": {
-    agentA: "vibe",
-    agentB: "gemini"
-  },
-  "gemini-antigravity": {
-    agentA: "gemini",
-    agentB: "antigravity"
-  },
-  "antigravity-gemini": {
-    agentA: "antigravity",
-    agentB: "gemini"
-  },
   "opencode-antigravity": {
     agentA: "opencode",
     agentB: "antigravity"
@@ -158,14 +134,6 @@ const presets: Record<string, AgentPairPreset> = {
     agentA: "ollama-local",
     agentB: "claude"
   },
-  "gemini-ollama": {
-    agentA: "gemini",
-    agentB: "ollama-local"
-  },
-  "ollama-gemini": {
-    agentA: "ollama-local",
-    agentB: "gemini"
-  },
   "antigravity-ollama": {
     agentA: "antigravity",
     agentB: "ollama-local"
@@ -173,22 +141,6 @@ const presets: Record<string, AgentPairPreset> = {
   "ollama-antigravity": {
     agentA: "ollama-local",
     agentB: "antigravity"
-  },
-  "codex-gemini": {
-    agentA: "codex",
-    agentB: "gemini"
-  },
-  "gemini-codex": {
-    agentA: "gemini",
-    agentB: "codex"
-  },
-  "claude-gemini": {
-    agentA: "claude",
-    agentB: "gemini"
-  },
-  "gemini-claude": {
-    agentA: "gemini",
-    agentB: "claude"
   }
 };
 

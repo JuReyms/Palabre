@@ -35,7 +35,7 @@ Si Claude atteint une limite, Palabre affiche une erreur courte et vous pouvez a
 
 ## Windows
 
-Claude fonctionne souvent mieux avec `claude.exe` et `shell: false`, car ce binaire est généralement directement exécutable. Cette différence avec Codex, Gemini ou OpenCode vient du fait que ces derniers sont souvent des wrappers npm ou PowerShell sur Windows.
+Claude fonctionne souvent mieux avec `claude.exe` et `shell: false`, car ce binaire est généralement directement exécutable. Cette différence avec Codex ou OpenCode vient du fait que ces derniers sont souvent des wrappers npm ou PowerShell sur Windows.
 
 ## Configuration typique
 

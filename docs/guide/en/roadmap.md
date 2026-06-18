@@ -7,7 +7,7 @@ This page gives an overview of the planned evolution of Palabre. It helps users 
 
 ## Available today
 
-Palabre already lets you run debates between two agents installed on your machine, or Ask requests where several agents answer independently before a comparative summary: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe, or Ollama.
+Palabre already lets you run debates between two agents installed on your machine, or Ask requests where several agents answer independently before a comparative summary: Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe, or Ollama.
 
 The main features are available:
 
@@ -17,7 +17,7 @@ The main features are available:
 - TUI-first interface with `palabre`, `/agents`, `/roles`, and `/config`;
 - interactive assistant `palabre new`;
 - `ask` mode with 1 to 4 agents and `.ask.md` export;
-- presets such as `codex-claude`, `claude-gemini`, `codex-antigravity`, or `opencode-ollama`;
+- presets such as `codex-claude`, `claude-antigravity`, `codex-antigravity`, or `opencode-ollama`;
 - French or English interface and prompts through `--language`, `--lang`, `PALABRE_LANGUAGE`, or configuration;
 - adding context with `--files` or `--context`;
 - previewing the context scan with `palabre context scan --json` for integrations;

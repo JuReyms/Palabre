@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createTuiRenderer, renderTuiAgentsHelp, renderTuiComposer, renderTuiConfig, renderTuiHelp, renderTuiHome, renderTuiRolesHelp } from "../src/renderers/tui.js";
+import { createTuiRenderer, renderTuiAgentsHelp, renderTuiComposer, renderTuiConfig, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiRolesHelp } from "../src/renderers/tui.js";
 import { createTranslator } from "../src/i18n.js";
 import type { DebateFailure, DebateOptions } from "../src/types.js";
 
@@ -70,11 +70,11 @@ test("TuiRenderer renders runtime errors as a centered card", () => {
     const renderer = createTuiRenderer(createTranslator("en"));
     const failure: DebateFailure = {
       phase: "debate",
-      agent: "gemini",
+      agent: "antigravity",
       role: "implementer",
       turn: 4,
       kind: "unknown",
-      message: "gemini cancelled by user."
+      message: "antigravity cancelled by user."
     };
     renderer.error(failure);
   } finally {
@@ -83,7 +83,7 @@ test("TuiRenderer renders runtime errors as a centered card", () => {
 
   const text = output.join("");
   assert.match(text, /\| Error/);
-  assert.match(text, /\| gemini \(implementer, turn 4\): gemini cancelled by user\./);
+  assert.match(text, /\| antigravity \(implementer, turn 4\): antigravity cancelled by user\./);
 });
 
 test("renderTuiHome renders a Palabre launch screen", () => {
@@ -160,9 +160,43 @@ test("renderTuiHelp renders slash commands", () => {
   assert.match(text, /\/config/);
   assert.match(text, /\/retry/);
   assert.match(text, /relancer la derniere session/);
+  assert.match(text, /\/historique/);
   assert.match(text, /\/quit/);
   assert.match(text, /Tape un sujet ou une commande/);
   assert.doesNotMatch(text, /plusieurs reponses independantes/);
+});
+
+test("renderTuiHistory renders recent exports", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    renderTuiHistory([{
+      fileName: "palabre-verifier-l-historique-2026-06-18T10-00-00-000Z.debate.md",
+      path: "C:\\repo\\.palabre\\palabre-verifier-l-historique-2026-06-18T10-00-00-000Z.debate.md",
+      mode: "debate",
+      topic: "Verifier l'historique",
+      agents: "codex <-> claude",
+      date: "2026-06-18",
+      count: "2/4",
+      mtimeMs: 1
+    }], createTranslator("fr"));
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /Historique Palabre/);
+  assert.match(text, /Mode debat/);
+  assert.match(text, /Fichier/);
+  assert.match(text, /Verifier l'historique/);
+  assert.match(text, /codex <-> claude/);
+  assert.match(text, /Tours\s+2\/4/);
+  assert.match(text, /palabre-verifier-l-historique/);
 });
 
 test("renderTuiRolesHelp renders available roles", () => {
@@ -215,6 +249,8 @@ test("renderTuiAgentsHelp renders configured agents", () => {
   }
 
   const text = output.join("");
+  assert.match(text, /___/);
+  assert.match(text, /Orchestrez des conversations entre agents IA/);
   assert.match(text, /Agents Palabre/);
   assert.match(text, /Agents actifs/);
   assert.match(text, /codex <-> claude/);
@@ -245,6 +281,7 @@ test("renderTuiConfig keeps the Palabre brand header", () => {
         codex: { type: "cli", command: "codex", role: "implementer" },
         claude: { type: "cli", command: "claude", role: "critic" },
         opencode: { type: "cli", command: "opencode", role: "summarizer" },
+        gemini: { type: "cli", command: "gemini", role: "reviewer" },
         "ollama-local": { type: "ollama", baseUrl: "http://localhost:11434", model: "llama3.2:3b", role: "critic" }
       }
     }, "palabre.config.json", "debate", createTranslator("en"));
@@ -260,7 +297,6 @@ test("renderTuiConfig keeps the Palabre brand header", () => {
   assert.match(text, /Agents/);
   assert.match(text, /Language/);
   assert.match(text, /\/language/);
-  assert.match(text, /Current config/);
   assert.match(text, /Available commands/);
   assert.match(text, /Ollama model/);
   assert.match(text, /llama3\.2:3b/);
@@ -269,13 +305,17 @@ test("renderTuiConfig keeps the Palabre brand header", () => {
   assert.match(text, /\/ollama-sync/);
   assert.match(text, /Usage: \/agents <agentA> <agentB>/);
   assert.match(text, /Usage: \/roles <role\.\.\.>/);
-  assert.match(text, /Usage: \/turns <number>/);
+  assert.match(text, /Usage: \/turns <turns>/);
   assert.match(text, /Usage: \/summary <agent\|none>/);
   assert.match(text, /Usage: \/ollama-model <model>/);
   assert.match(text, /Usage: \/interface <tui\|terminal>/);
   assert.match(text, /Usage: \/language <fr\|en>/);
   assert.match(text, /\/back/);
   assert.match(text, /Debate/);
+  assert.match(text, /Roles\s+implementer <-> critic/);
+  assert.doesNotMatch(text, /gemini/);
+  assert.doesNotMatch(text, /\/default/);
+  assert.doesNotMatch(text, /Current config/);
   assert.doesNotMatch(text, /Langue/);
   assert.doesNotMatch(text, /Commandes disponibles/);
 });

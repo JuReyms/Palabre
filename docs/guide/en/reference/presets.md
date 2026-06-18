@@ -19,8 +19,6 @@ This command is equivalent to choosing `codex` as agent A and `claude` as agent 
 |--------|-------------|
 | `codex-claude` | Codex proposes, Claude reviews. |
 | `claude-codex` | Claude proposes, Codex reviews. |
-| `codex-gemini` | Codex vs. Gemini comparison. |
-| `claude-gemini` | Claude vs. Gemini comparison. |
 | `codex-antigravity` | Codex vs. Antigravity comparison. |
 | `claude-antigravity` | Claude vs. Antigravity comparison. |
 | `codex-opencode` | Codex vs. OpenCode. |

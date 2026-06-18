@@ -135,7 +135,7 @@ Actions:
 - run `palabre doctor` again;
 - fix `command` in the configuration if the command has a different name.
 
-On Windows, npm or PowerShell wrappers such as `codex`, `gemini`, `opencode`, and `vibe` may require `shell: true` in the configuration.
+On Windows, npm or PowerShell wrappers such as `codex`, `opencode`, and `vibe` may require `shell: true` in the configuration.
 
 Claude often works better with `claude.exe` and `shell: false`.
 

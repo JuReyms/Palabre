@@ -87,6 +87,8 @@ const COMMANDS = new Set([
   "agents",
   "preset",
   "presets",
+  "history",
+  "historique",
   "context"
 ]);
 

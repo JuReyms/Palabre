@@ -65,7 +65,6 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
   lines.push(info(t.doctor.localTools, "tools"));
   lines.push(formatCommand("Codex CLI", discovery.codex.available, discovery.codex.command, discovery.codex.path, t));
   lines.push(formatCommand("Claude CLI", discovery.claude.available, discovery.claude.command, discovery.claude.path, t));
-  lines.push(formatCommand("Gemini CLI", discovery.gemini.available, discovery.gemini.command, discovery.gemini.path, t));
   lines.push(formatCommand("Antigravity CLI", discovery.antigravity.available, discovery.antigravity.command, discovery.antigravity.path, t));
   lines.push(formatCommand("OpenCode CLI", discovery.opencode.available, discovery.opencode.command, discovery.opencode.path, t));
   lines.push(formatCommand("Mistral Vibe CLI", discovery.vibe.available, discovery.vibe.command, discovery.vibe.path, t));

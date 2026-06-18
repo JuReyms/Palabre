@@ -35,7 +35,7 @@ If Claude hits a limit, Palabre displays a short error and you can wait for your
 
 ## Windows
 
-Claude often works better with `claude.exe` and `shell: false`, since this binary is generally directly executable. This difference from Codex, Gemini, or OpenCode comes from the fact that those are often npm or PowerShell wrappers on Windows.
+Claude often works better with `claude.exe` and `shell: false`, since this binary is generally directly executable. This difference from Codex or OpenCode comes from the fact that those are often npm or PowerShell wrappers on Windows.
 
 ## Typical configuration
 

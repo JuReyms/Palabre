@@ -25,5 +25,7 @@ palabre.config.json
 docs/ressources/
 
 ## archive
-docs/archive/
+docs/archive/*
+!docs/archive/gemini-en.md
+!docs/archive/gemini-fr.md
 docs/palabre.zip

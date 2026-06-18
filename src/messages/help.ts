@@ -40,6 +40,28 @@ Flags:
   --json               sortie structuree pour integrations
   --config <path>      chemin de config explicite
 `,
+  history: `
+Liste les derniers exports Palabre.
+
+Usage:
+  palabre history [flags]
+  palabre historique [flags]
+
+Flags:
+  --json               sortie structuree pour integrations
+  --config <path>      chemin de config explicite
+`,
+  historique: `
+Liste les derniers exports Palabre.
+
+Usage:
+  palabre history [flags]
+  palabre historique [flags]
+
+Flags:
+  --json               sortie structuree pour integrations
+  --config <path>      chemin de config explicite
+`,
   context: `
 Scanne le contexte projet avec les memes regles que --context.
 
@@ -171,6 +193,28 @@ Flags:
   --json               structured output for integrations
   --config <path>      explicit config path
 `,
+  history: `
+Lists recent Palabre exports.
+
+Usage:
+  palabre history [flags]
+  palabre historique [flags]
+
+Flags:
+  --json               structured output for integrations
+  --config <path>      explicit config path
+`,
+  historique: `
+Lists recent Palabre exports.
+
+Usage:
+  palabre history [flags]
+  palabre historique [flags]
+
+Flags:
+  --json               structured output for integrations
+  --config <path>      explicit config path
+`,
   context: `
 Scans project context with the same rules as --context.
 
@@ -294,6 +338,7 @@ Commandes:
   ask        Demande multi-agents independante
   agents     Lister les agents configures
   presets    Lister les presets disponibles
+  history    Lister les derniers exports
   context    Scanner le contexte projet
   config     Modifier les parametres par defaut
   doctor     Verifier la config et les outils locaux
@@ -344,6 +389,7 @@ Commands:
   ask        Independent multi-agent request
   agents     List configured agents
   presets    List available presets
+  history    List recent exports
   context    Scan project context
   config     Edit default settings
   doctor     Check config and local tools

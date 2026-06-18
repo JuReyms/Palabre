@@ -13,7 +13,7 @@
 
 ## English
 
-PALABRE is a CLI/TUI orchestrator that lets multiple AI agents installed on your machine work together: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe, and Ollama.
+PALABRE is a CLI/TUI orchestrator that lets multiple AI agents installed on your machine work together: Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe, and Ollama.
 
 It does not replace your tools: it drives them. You keep your subscriptions, default models, terminal habits, and local files. PALABRE can run a debate between two agents or an Ask request where several agents answer independently before a comparative summary. It then exports the session as Markdown.
 
@@ -59,7 +59,6 @@ In an interactive terminal, Palabre uses the TUI by default. `palabre` opens the
 
 - Claude Code via `claude --print`
 - Codex CLI via `codex exec`
-- Gemini CLI via `gemini --prompt -`
 - Antigravity CLI via `agy --print` in a pseudo-terminal
 - OpenCode via `opencode run`
 - Mistral Vibe via `vibe --output text --agent plan --trust --prompt`
@@ -79,7 +78,7 @@ The NDJSON v1 stream is treated as a public integration API. Compatible addition
 
 ### Skill for AI agents
 
-PALABRE ships a ready-to-use skill that teaches an AI agent when and how to run Palabre sessions. It follows the open [agentskills.io](https://agentskills.io) standard, so it is portable across Hermes Agent, Claude, Codex, Gemini CLI, and any skills-compatible agent.
+PALABRE ships a ready-to-use skill that teaches an AI agent when and how to run Palabre sessions. It follows the open [agentskills.io](https://agentskills.io) standard, so it is portable across Hermes Agent, Claude, Codex, and any skills-compatible agent.
 
 Install it in **Hermes Agent**:
 
@@ -93,7 +92,7 @@ The skill is versioned under [skills/palabre](./skills/palabre).
 
 ### Privacy
 
-PALABRE runs locally and does not send data to a PALABRE-owned server. Data sent to agents depends on the tools you use: check the privacy policies of Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe, Ollama, or any custom agent you configure.
+PALABRE runs locally and does not send data to a PALABRE-owned server. Data sent to agents depends on the tools you use: check the privacy policies of Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe, Ollama, or any custom agent you configure.
 
 If an agent fails during the debate or final summary, PALABRE keeps the partial Markdown export with an interruption section whenever possible.
 
@@ -122,7 +121,7 @@ MIT. See [LICENSE](./LICENSE).
 
 ## Français
 
-PALABRE est un orchestrateur CLI/TUI qui fait travailler plusieurs agents IA installés sur votre machine : Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe et Ollama.
+PALABRE est un orchestrateur CLI/TUI qui fait travailler plusieurs agents IA installés sur votre machine : Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe et Ollama.
 
 Il ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos modèles par défaut, vos habitudes de terminal et vos fichiers en local. PALABRE peut lancer un débat entre deux agents ou une demande Ask où plusieurs agents répondent indépendamment avant une synthèse comparative. Il exporte ensuite la session en Markdown.
 
@@ -168,7 +167,6 @@ Dans un terminal interactif, Palabre utilise l'interface TUI par défaut. `palab
 
 - Claude Code via `claude --print`
 - Codex CLI via `codex exec`
-- Gemini CLI via `gemini --prompt -`
 - Antigravity CLI via `agy --print` en pseudo-terminal
 - OpenCode via `opencode run`
 - Mistral Vibe via `vibe --output text --agent plan --trust --prompt`
@@ -188,7 +186,7 @@ Le flux NDJSON v1 est traité comme une API publique d'intégration. Les ajouts 
 
 ### Skill pour agents IA
 
-PALABRE fournit un skill prêt à l'emploi qui apprend à un agent IA quand et comment lancer des sessions Palabre. Il suit le standard ouvert [agentskills.io](https://agentskills.io) : il est donc portable entre Hermes Agent, Claude, Codex, Gemini CLI et tout agent compatible skills.
+PALABRE fournit un skill prêt à l'emploi qui apprend à un agent IA quand et comment lancer des sessions Palabre. Il suit le standard ouvert [agentskills.io](https://agentskills.io) : il est donc portable entre Hermes Agent, Claude, Codex et tout agent compatible skills.
 
 Installation dans **Hermes Agent** :
 
@@ -202,7 +200,7 @@ Le skill est versionné dans [skills/palabre](./skills/palabre).
 
 ### Confidentialité
 
-PALABRE tourne localement et n'envoie aucune donnée à un serveur appartenant à PALABRE. Les données envoyées aux agents dépendent des outils que vous utilisez : vérifiez les politiques de confidentialité de Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe, Ollama ou de tout autre agent configuré.
+PALABRE tourne localement et n'envoie aucune donnée à un serveur appartenant à PALABRE. Les données envoyées aux agents dépendent des outils que vous utilisez : vérifiez les politiques de confidentialité de Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe, Ollama ou de tout autre agent configuré.
 
 Si un agent échoue pendant le débat ou la synthèse, PALABRE conserve l'export Markdown partiel avec une section d'interruption quand c'est possible.
 

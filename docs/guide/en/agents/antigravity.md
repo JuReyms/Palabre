@@ -5,7 +5,7 @@ description: Configure Antigravity CLI in Palabre with the experimental PTY adap
 
 Antigravity CLI can be used as a Palabre agent through the `agy` command.
 
-Unlike batch agents such as Gemini CLI, Antigravity needs the `cli-pty` adapter: in testing, `agy --print` answers in a real console but does not produce capturable stdout when launched with plain Node pipes.
+Antigravity needs the `cli-pty` adapter: in testing, `agy --print` answers in a real console but does not produce capturable stdout when launched with plain Node pipes.
 
 ## Installation
 
@@ -26,6 +26,8 @@ palabre config --sync-agents
 Google says Gemini CLI will stop serving requests for free individual users and Google AI Pro/Ultra users on June 18, 2026, while Enterprise customers keep access according to their licenses.
 
 Official reference: [Transitioning Gemini CLI to Antigravity CLI](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/)
+
+Palabre no longer generates Gemini CLI in new configurations and no longer exposes it in presets. The old Gemini notes are kept in `docs/archive/gemini-en.md` for context.
 
 ## JSON Configuration
 

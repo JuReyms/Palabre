@@ -11,14 +11,16 @@ import { DEFAULT_TURNS, parseTurnsFlag, turnsOrDefault, validateTurns } from "./
 import { formatAgentPrompt } from "./prompt.js";
 import { runNewWizard } from "./new.js";
 import { listPresetNames, listPresetsWithAvailability, resolvePreset } from "./presets.js";
+import { listHistoryEntries } from "./history.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { createNdjsonRenderer } from "./renderers/ndjson.js";
-import { createTuiRenderer, promptTuiAgentsWizard, promptTuiConfigCommand, promptTuiHomeTopic, promptTuiRolesWizard, renderTuiConfig, renderTuiHelp, renderTuiHome, renderTuiRolesHelp, type TuiHomeInput } from "./renderers/tui.js";
+import { createTuiRenderer, promptTuiAgentsWizard, promptTuiConfigCommand, promptTuiHomeTopic, promptTuiRolesWizard, renderTuiConfig, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiRolesHelp, type TuiHomeInput } from "./renderers/tui.js";
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./update.js";
 import { createSessionContext } from "./session.js";
 import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
+import { clearTuiRunOverrides } from "./tuiState.js";
 import { detectedAgentNames, detectionForCommand } from "./agentRegistry.js";
 import { getPackageVersion } from "./version.js";
 import type { CommandDetection } from "./discovery.js";
@@ -61,6 +63,11 @@ async function main(): Promise<void> {
 
   if (parsed.command === "presets" || parsed.command === "preset") {
     await runPresetsCommand(parsed.flags);
+    return;
+  }
+
+  if (parsed.command === "history" || parsed.command === "historique") {
+    await runHistoryCommand(parsed.flags);
     return;
   }
 
@@ -144,6 +151,8 @@ async function main(): Promise<void> {
   assertRunnableConfig(config, messages, configPath);
 
   let stayInTuiAfterSession = false;
+  let hasCompletedTuiSession = false;
+  let resetTuiRunOverridesOnNextTopic = false;
   let tuiMode = config.defaults?.mode ?? "debate";
   let tuiVersion = "";
 
@@ -154,6 +163,12 @@ async function main(): Promise<void> {
 
     if (tuiInput.kind === "help") {
       renderTuiHelp(messages);
+      const nextInput = await promptTuiHomeTopic(tuiMode, messages);
+      return handleTuiHomeInput(nextInput);
+    }
+
+    if (tuiInput.kind === "history") {
+      renderTuiHistory(await listHistoryEntries(resolveOutputDir(config.outputDir)), messages);
       const nextInput = await promptTuiHomeTopic(tuiMode, messages);
       return handleTuiHomeInput(nextInput);
     }
@@ -169,6 +184,7 @@ async function main(): Promise<void> {
       const result = await runTuiAgentsWizard(configPath, config, messages, tuiMode, tuiInput.agents);
       if (result.quit) return "quit";
       tuiNotice = result.notice;
+      resetTuiRunOverridesOnNextTopic ||= Boolean(result.changedRunDefaults);
       return "continue";
     }
 
@@ -181,6 +197,7 @@ async function main(): Promise<void> {
       const result = await runTuiConfigLoop(configPath, config, messages, tuiMode);
       if (result.quit) return "quit";
       tuiMode = result.mode;
+      resetTuiRunOverridesOnNextTopic ||= result.changedRunDefaults;
       language = resolveLanguage({ explicitLanguage: optionalString(parsed.flags.language), configLanguage: config.language });
       messages = createTranslator(language);
       return "continue";
@@ -203,6 +220,10 @@ async function main(): Promise<void> {
 
     parsed.command = "";
     parsed.commandExplicit = false;
+    if (hasCompletedTuiSession || resetTuiRunOverridesOnNextTopic) {
+      clearTuiRunOverrides(parsed.flags);
+      resetTuiRunOverridesOnNextTopic = false;
+    }
     parsed.flags.topic = tuiInput.topic;
     return "run";
   };
@@ -323,6 +344,7 @@ async function main(): Promise<void> {
     );
 
     renderer.done(outputPath);
+    hasCompletedTuiSession = stayInTuiAfterSession;
     if (result.failure) {
       process.exitCode = result.failure.kind === "cancelled" ? 130 : 1;
     }
@@ -532,10 +554,11 @@ async function runTuiConfigLoop(
   config: PalabreConfig,
   messages: Messages,
   initialMode: PalabreMode
-): Promise<{ mode: PalabreMode; quit: boolean }> {
+): Promise<{ mode: PalabreMode; quit: boolean; changedRunDefaults: boolean }> {
   let mode = initialMode;
   let notice: string | undefined;
   let currentMessages = messages;
+  let changedRunDefaults = false;
 
   for (;;) {
     renderTuiConfig(config, configPath, mode, currentMessages, { message: notice });
@@ -544,11 +567,11 @@ async function runTuiConfigLoop(
     const input = await promptTuiConfigCommand(mode, currentMessages);
 
     if (input.kind === "quit") {
-      return { mode, quit: true };
+      return { mode, quit: true, changedRunDefaults };
     }
 
     if (input.kind === "back") {
-      return { mode, quit: false };
+      return { mode, quit: false, changedRunDefaults };
     }
 
     if (input.kind === "unknown") {
@@ -558,13 +581,17 @@ async function runTuiConfigLoop(
 
     if (input.kind === "mode") {
       mode = mode === "ask" ? "debate" : "ask";
-      notice = mode === "ask" ? currentMessages.tui.askConfigMode : currentMessages.tui.debateConfigMode;
+      config.defaults = { ...(config.defaults ?? {}), mode };
+      await writeExampleConfig(configPath, config);
+      changedRunDefaults = true;
+      notice = mode === "ask" ? currentMessages.tui.askDefaultMode : currentMessages.tui.debateDefaultMode;
       continue;
     }
 
     if (input.kind === "default-mode") {
       config.defaults = { ...(config.defaults ?? {}), mode };
       await writeExampleConfig(configPath, config);
+      changedRunDefaults = true;
       notice = mode === "ask" ? currentMessages.tui.askDefaultMode : currentMessages.tui.debateDefaultMode;
       continue;
     }
@@ -590,7 +617,7 @@ async function runTuiConfigLoop(
           ? { kind: "agents" as const, agents: input.agents }
           : await promptTuiAgentsWizard(config, mode, currentMessages);
         if (agentsInput.kind === "quit") {
-          return { mode, quit: true };
+          return { mode, quit: true, changedRunDefaults };
         }
         if (agentsInput.kind === "back" || agentsInput.agents.length === 0) {
           notice = currentMessages.tui.agentsUnchanged;
@@ -601,11 +628,13 @@ async function runTuiConfigLoop(
           const agents = normalizeTuiAskAgents(config, agentsInput.agents, currentMessages);
           config.defaults = { ...(config.defaults ?? {}), askAgents: agents };
           await writeExampleConfig(configPath, config);
+          changedRunDefaults = true;
           notice = currentMessages.tui.askAgentsUpdated(agents.join(", "));
         } else {
           const [agentA, agentB] = normalizeTuiDebateAgents(config, agentsInput.agents, currentMessages);
           config.defaults = { ...(config.defaults ?? {}), agentA, agentB };
           await writeExampleConfig(configPath, config);
+          changedRunDefaults = true;
           notice = currentMessages.tui.debateAgentsUpdated(`${agentA} <-> ${agentB}`);
         }
       } catch (error) {
@@ -620,7 +649,7 @@ async function runTuiConfigLoop(
           ? { kind: "roles" as const, roles: input.roles }
           : await promptTuiRolesWizard(config, mode, currentMessages);
         if (rolesInput.kind === "quit") {
-          return { mode, quit: true };
+          return { mode, quit: true, changedRunDefaults };
         }
         if (rolesInput.kind === "back" || rolesInput.roles.length === 0) {
           notice = currentMessages.tui.rolesUnchanged;
@@ -644,6 +673,7 @@ async function runTuiConfigLoop(
         validateTurns(input.turns, "--turns", currentMessages);
         config.defaults = { ...(config.defaults ?? {}), turns: input.turns };
         await writeExampleConfig(configPath, config);
+        changedRunDefaults = true;
         notice = currentMessages.tui.turnsUpdated(input.turns);
       } catch (error) {
         notice = error instanceof Error ? error.message : String(error);
@@ -676,6 +706,7 @@ async function runTuiConfigLoop(
 
         config.defaults = nextDefaults;
         await writeExampleConfig(configPath, config);
+        changedRunDefaults = true;
       } catch (error) {
         notice = error instanceof Error ? error.message : String(error);
       }
@@ -694,6 +725,7 @@ async function runTuiConfigLoop(
     if (input.kind === "ollama-model") {
       try {
         notice = await setTuiOllamaModel(configPath, config, input.model, currentMessages);
+        changedRunDefaults = true;
       } catch (error) {
         notice = error instanceof Error ? error.message : String(error);
       }
@@ -703,6 +735,7 @@ async function runTuiConfigLoop(
     if (input.kind === "ollama-sync") {
       try {
         notice = await syncTuiOllamaModel(configPath, config, currentMessages);
+        changedRunDefaults = true;
       } catch (error) {
         notice = error instanceof Error ? error.message : String(error);
       }
@@ -820,23 +853,23 @@ async function runTuiAgentsWizard(
   messages: Messages,
   mode: PalabreMode,
   inlineAgents: string[] = []
-): Promise<{ notice?: string; quit: boolean }> {
+): Promise<{ notice?: string; quit: boolean; changedRunDefaults: boolean }> {
   try {
     const agentsInput = inlineAgents.length > 0
       ? { kind: "agents" as const, agents: inlineAgents }
       : await promptTuiAgentsWizard(config, mode, messages);
     if (agentsInput.kind === "quit") {
-      return { quit: true };
+      return { quit: true, changedRunDefaults: false };
     }
     if (agentsInput.kind === "back" || agentsInput.agents.length === 0) {
-      return { quit: false };
+      return { quit: false, changedRunDefaults: false };
     }
 
     const notice = applyTuiAgents(config, mode, agentsInput.agents, messages);
     await writeExampleConfig(configPath, config);
-    return { notice, quit: false };
+    return { notice, quit: false, changedRunDefaults: true };
   } catch (error) {
-    return { notice: messages.tui.agentsError(error instanceof Error ? error.message : String(error)), quit: false };
+    return { notice: messages.tui.agentsError(error instanceof Error ? error.message : String(error)), quit: false, changedRunDefaults: false };
   }
 }
 
@@ -1336,6 +1369,37 @@ async function runPresetsCommand(flags: Record<string, string | string[] | boole
   console.log(messages.presets.total(presets.length));
 }
 
+async function runHistoryCommand(flags: Record<string, string | string[] | boolean>): Promise<void> {
+  const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
+  const config = await configExists(configPath)
+    ? await loadConfig(configPath)
+    : undefined;
+  const language = resolveLanguage({
+    explicitLanguage: optionalString(flags.language),
+    configLanguage: config?.language
+  });
+  const messages = createTranslator(language);
+  const entries = await listHistoryEntries(resolveOutputDir(config?.outputDir));
+
+  if (flags.json) {
+    process.stdout.write(JSON.stringify({ v: 1, history: entries }) + "\n");
+    return;
+  }
+
+  console.log(messages.tui.historyTitle);
+  console.log("");
+
+  if (entries.length === 0) {
+    console.log(messages.tui.historyEmpty);
+    return;
+  }
+
+  for (const entry of entries) {
+    console.log(`- ${entry.date || entry.fileName} | ${entry.mode} | ${entry.topic}`);
+    console.log(`  ${entry.path}`);
+  }
+}
+
 async function runContextCommand(flags: Record<string, string | string[] | boolean>, positionals: string[]): Promise<void> {
   const language = resolveLanguage({ explicitLanguage: optionalString(flags.language) });
   const messages = createTranslator(language);
@@ -1508,7 +1572,6 @@ function printInitDiscovery(
   console.log(messages.init.localDetectionTitle);
   console.log(`- Codex CLI: ${formatCommandDetection(discovery.codex, messages)}`);
   console.log(`- Claude CLI: ${formatCommandDetection(discovery.claude, messages)}`);
-  console.log(`- Gemini CLI: ${formatCommandDetection(discovery.gemini, messages)}`);
   console.log(`- Antigravity CLI: ${formatCommandDetection(discovery.antigravity, messages)}`);
   console.log(`- OpenCode CLI: ${formatCommandDetection(discovery.opencode, messages)}`);
   console.log(`- Mistral Vibe CLI: ${formatCommandDetection(discovery.vibe, messages)}`);

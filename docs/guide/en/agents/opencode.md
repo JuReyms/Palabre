@@ -5,7 +5,7 @@ description: Configure OpenCode in Palabre and use it as a CLI agent in a debate
 
 OpenCode is a development assistance CLI. Depending on your local configuration, it can use different models and providers.
 
-Palabre can use it as a CLI agent in the same way as Codex, Claude, or Gemini.
+Palabre can use it as a CLI agent in the same way as Codex, Claude, or Antigravity.
 
 ## Install before Palabre
 

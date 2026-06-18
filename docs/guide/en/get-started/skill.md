@@ -5,7 +5,7 @@ description: Install the Palabre skill to run debates directly from a skills-com
 
 Palabre ships a ready-to-use skill that teaches an AI agent when and how to orchestrate a debate with the Palabre CLI. The agent then knows how to frame a subject, pick an agent pair, inject context, and retrieve the exported summary.
 
-The skill follows the open [agentskills.io](https://agentskills.io) standard, so it is portable across Hermes Agent, Claude, Codex, Gemini CLI, and any skills-compatible agent.
+The skill follows the open [agentskills.io](https://agentskills.io) standard, so it is portable across Hermes Agent, Claude, Codex, and any skills-compatible agent.
 
 The skill does not replace the CLI: it drives `palabre` locally. Palabre CLI remains the source of truth for agents, presets, and exports.
 

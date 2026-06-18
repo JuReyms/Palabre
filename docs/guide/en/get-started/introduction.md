@@ -12,11 +12,11 @@ Two modes are available:
 - `debate`: two agents take turns discussing a subject;
 - `ask`: several agents answer the same request independently, then a summary agent faithfully summarizes each response and compares them.
 
-Palabre does not replace Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe, or Ollama. It drives them. You therefore keep your tools, subscriptions, default models, and terminal habits.
+Palabre does not replace Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe, or Ollama. It drives them. You therefore keep your tools, subscriptions, default models, and terminal habits.
 
 Palabre runs locally on your machine. It does not send any data to a server owned by Palabre. Prompts, files, and transcripts are only transmitted to the agents you choose to use.
 
-Privacy therefore depends on the agents selected. Before sending code, documents, or sensitive data to Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe, Ollama, or any other configured agent, check their own privacy policies and your account settings.
+Privacy therefore depends on the agents selected. Before sending code, documents, or sensitive data to Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe, Ollama, or any other configured agent, check their own privacy policies and your account settings.
 
 ## What is Palabre for?
 

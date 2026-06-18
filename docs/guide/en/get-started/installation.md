@@ -8,7 +8,7 @@ description: Install Palabre from npm, verify the command, and prepare the AI ag
 Palabre requires:
 
 - Node.js 20 or higher;
-- at least one agent already installed on your machine among Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe, or Ollama.
+- at least one agent already installed on your machine among Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe, or Ollama.
 
 Two or more agents are recommended: debates need a pair, and Ask mode is most useful when comparing several independent answers.
 
@@ -44,7 +44,7 @@ Throughout the rest of this documentation, examples always use the final user co
 
 Palabre drives external tools. Install and authenticate the agents you want to use before launching Palabre.
 
-**OpenCode** and **Gemini** can be used for free with certain models and limits specific to their providers, while **Claude Code** and **Codex** require a subscription.
+**OpenCode**, **Mistral Vibe**, and **Ollama** can be used with models or limits specific to their providers, while **Claude Code** and **Codex** generally require a subscription.
 
 **Ollama** is free for local use. If you use a cloud or remote offering, quotas and limits come from that offering, not from Palabre.
 
@@ -52,7 +52,6 @@ Useful pages:
 
 - [Claude Code](/en/agents/claude-code)
 - [Codex](/en/agents/codex)
-- [Gemini](/en/agents/gemini)
 - [Antigravity](/en/agents/antigravity)
 - [OpenCode](/en/agents/opencode)
 - [Mistral Vibe](/en/agents/vibe)

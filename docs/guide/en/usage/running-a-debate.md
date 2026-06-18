@@ -17,6 +17,7 @@ From this screen:
 - use `/ask` or `/debat` to switch mode;
 - use `/agents` to choose agents;
 - use `/roles` to apply roles;
+- use `/historique` to find recent exports;
 - use `/config` to change settings without leaving the TUI.
 
 `palabre new` remains available as the historical guided assistant.
@@ -73,7 +74,7 @@ Without `--agents`, Palabre uses `defaults.askAgents` if defined, otherwise the 
 Ask mode accepts 1 to 4 agents:
 
 ```bash
-palabre ask "Which approach should we choose?" --agents codex claude opencode gemini
+palabre ask "Which approach should we choose?" --agents codex claude opencode antigravity
 ```
 
 The export uses the `.ask.md` extension.

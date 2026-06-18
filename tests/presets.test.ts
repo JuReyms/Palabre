@@ -9,7 +9,6 @@ function discovery(overrides: Partial<ToolDiscovery> = {}): ToolDiscovery {
   return {
     codex: { available: true, command: "codex", path: "C:/bin/codex.cmd" },
     claude: { available: true, command: "claude.exe", path: "C:/bin/claude.exe" },
-    gemini: { available: false, command: "gemini" },
     antigravity: { available: false, command: "agy" },
     opencode: { available: false, command: "opencode" },
     vibe: { available: false, command: "vibe" },

@@ -1,7 +1,9 @@
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { pathToFileURL } from "node:url";
 import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateStartAgentInfo, Language, PalabreConfig, PalabreInterface, PalabreMode } from "../types.js";
 import type { Messages } from "../messages/index.js";
+import type { HistoryEntry } from "../history.js";
 
 const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
 const supportsInteractiveOutput = Boolean(process.stdout.isTTY);
@@ -87,6 +89,7 @@ export function renderTuiHelp(messages: Messages): void {
       "",
       row("/new", messages.tui.helpNew),
       row("/retry", messages.tui.helpRetry),
+      row("/historique", messages.tui.helpHistory),
       row("/help", messages.tui.helpHelp),
       row("/quit", messages.tui.helpQuit),
       "",
@@ -108,6 +111,8 @@ export function renderTuiAgentsHelp(config: PalabreConfig, mode: PalabreMode, me
   const separator = mode === "ask" ? ", " : " <-> ";
   const exampleAgents = exampleAgentsForMode(config, mode);
   process.stdout.write([
+    "",
+    ...centerLogo(viewport, messages),
     "",
     ...centerBlock(card([
       bold(messages.tui.agentsTitle),
@@ -157,6 +162,40 @@ export function renderTuiRolesHelp(mode: PalabreMode, messages: Messages, config
       "",
       dim(`${messages.tui.example}: ${messages.tui.modeLabel(mode)} > ${messages.tui.rolesPrompt} > ${exampleRoles.join(" ")}`)
     ], Math.min(width, 82)), viewport),
+    ""
+  ].join("\n"));
+}
+
+/** Affiche les derniers exports Palabre disponibles. */
+export function renderTuiHistory(entries: HistoryEntry[], messages: Messages): void {
+  if (supportsInteractiveOutput) {
+    clearScreen();
+  }
+
+  const viewport = viewportWidth();
+  const width = surfaceWidth();
+  const rows = entries.length === 0
+    ? [dim(messages.tui.historyEmpty)]
+    : entries.flatMap((entry) => [
+        row(messages.tui.historyMode(entry.mode), entry.topic),
+        row(messages.tui.activeAgents, entry.agents || messages.tui.noValue),
+        ...(entry.count ? [row(messages.tui.historyCount(entry.mode), entry.count)] : []),
+        row(messages.tui.historyFile, terminalLink(entry.path, compactFileName(entry.fileName, width - 22))),
+        ...(entry.date ? [row("Date", entry.date)] : []),
+        ""
+      ]).slice(0, -1);
+
+  process.stdout.write([
+    "",
+    ...centerLogo(viewport, messages),
+    "",
+    ...centerBlock(card([
+      bold(messages.tui.historyTitle),
+      "",
+      ...rows,
+      "",
+      dim(messages.tui.historyOpenHint)
+    ], width), viewport),
     ""
   ].join("\n"));
 }
@@ -269,7 +308,7 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
   const currentLines = mode === "ask"
     ? [
         row(messages.tui.activeAgents, askAgents),
-        row(messages.tui.currentConfig, askRoles),
+        row(messages.tui.roles, askRoles),
         row(messages.tui.summary, summary),
         "",
         bold(messages.tui.availableCommands),
@@ -280,7 +319,7 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
       ]
     : [
         row(messages.tui.activeAgents, debateAgents),
-        row(messages.tui.currentConfig, debateRoles),
+        row(messages.tui.roles, debateRoles),
         row(messages.tui.summary, summary),
         row(messages.tui.responses, String(defaults.turns ?? "?")),
         "",
@@ -308,15 +347,17 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
       "",
       ...currentLines,
       "",
-      row("/default", messages.tui.defaultModeCommand(mode)),
+      row("/mode", messages.tui.modeConfigCommand),
+      "",
       ...(ollamaModel ? [
         row("/ollama", messages.tui.ollamaInfoCommand),
         row("/ollama-model", messages.tui.ollamaModelUsage),
-        row("/ollama-sync", messages.tui.ollamaSyncCommand)
+        row("/ollama-sync", messages.tui.ollamaSyncCommand),
+        ""
       ] : []),
       row("/interface", messages.tui.interfaceUsage),
       row("/language", messages.tui.languageUsage),
-      row("/mode", messages.tui.modeConfigCommand),
+      "",
       row("/back", messages.tui.backCommand),
       row("/quit", messages.tui.quitCommand)
     ], width), viewport),
@@ -330,6 +371,7 @@ export type TuiHomeInput =
   | { kind: "topic"; topic: string }
   | { kind: "new" }
   | { kind: "retry" }
+  | { kind: "history" }
   | { kind: "config" }
   | { kind: "mode"; mode: PalabreMode }
   | { kind: "help" }
@@ -423,6 +465,10 @@ export async function promptTuiHomeTopic(mode: PalabreMode = "debate", messages:
 
     if (command === "/retry") {
       return { kind: "retry" };
+    }
+
+    if (command === "/historique" || command === "/history") {
+      return { kind: "history" };
     }
 
     if (command === "/config") {
@@ -822,7 +868,9 @@ function formatFailureLocation(failure: DebateFailure, messages: Messages): stri
 }
 
 function stripAnsi(value: string): string {
-  return value.replace(/\u001b\[[0-9;?]*[A-Za-z]/g, "");
+  return value
+    .replace(/\u001b\][^\u001b]*(?:\u0007|\u001b\\)/g, "")
+    .replace(/\u001b\[[0-9;?]*[A-Za-z]/g, "");
 }
 
 function clearScreen(): void {
@@ -896,6 +944,25 @@ function compactPath(value: string, maxLength: number): string {
   return `${marker}${value.slice(-tailLength)}`;
 }
 
+function compactFileName(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  const extension = value.match(/\.(debate|ask)\.md$/i)?.[0] ?? "";
+  const marker = "...";
+  const headLength = Math.max(12, maxLength - marker.length - extension.length);
+  return `${value.slice(0, headLength)}${marker}${extension}`;
+}
+
+function terminalLink(filePath: string, label: string): string {
+  if (!supportsInteractiveOutput) {
+    return label;
+  }
+
+  return `\u001b]8;;${pathToFileURL(filePath).href}\u001b\\${label}\u001b]8;;\u001b\\`;
+}
+
 function roleFor(config: PalabreConfig, agent: string, messages: Messages): AgentRole | string {
   return config.agents[agent]?.role ?? messages.tui.noValue;
 }
@@ -924,17 +991,26 @@ function activeAgentNamesForMode(config: PalabreConfig, mode: PalabreMode): stri
 }
 
 function agentInventoryLine(config: PalabreConfig, messages: Messages): string {
-  const agents = Object.keys(config.agents).sort();
+  const agents = Object.entries(config.agents)
+    .filter(([name]) => !isRetiredAgentName(name))
+    .map(([name]) => name)
+    .sort();
   return agents.length > 0 ? agents.map(agentLabel).join(", ") : messages.tui.noValue;
 }
 
 function agentInventoryRows(config: PalabreConfig, messages: Messages): string[] {
-  const entries = Object.entries(config.agents).sort(([agentA], [agentB]) => agentA.localeCompare(agentB));
+  const entries = Object.entries(config.agents)
+    .filter(([name]) => !isRetiredAgentName(name))
+    .sort(([agentA], [agentB]) => agentA.localeCompare(agentB));
   if (entries.length === 0) {
     return [dim(messages.tui.noConfiguredAgents)];
   }
 
   return entries.map(([name, agent]) => row(name, `${agent.type} ${dim("·")} ${agent.role}`));
+}
+
+function isRetiredAgentName(name: string): boolean {
+  return name === "gemini";
 }
 
 function exampleAgentsForMode(config: PalabreConfig, mode: PalabreMode): string[] {
@@ -1154,7 +1230,6 @@ function hslToRgb(hue: number, saturation: number, lightness: number): [number, 
 const agentColors: Record<string, [number, number, number]> = {
   antigravity: [76, 141, 255],
   claude: [222, 115, 86],
-  gemini: [71, 150, 227],
   codex: [136, 82, 197],
   opencode: [80, 168, 103],
   vibe: [234, 92, 126],

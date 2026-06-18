@@ -15,6 +15,7 @@ This page lists the main Palabre commands.
 | `palabre doctor` | Displays a diagnostic by sections: configuration, local tools, agents, and items to check. |
 | `palabre agents` | Lists declared agents and their local detection. |
 | `palabre -a` | Shortcut for `palabre agents`. |
+| `palabre history`, `palabre historique` | Lists recent Palabre Markdown exports. |
 | `palabre context scan --json` | Previews the project context Palabre would retain. |
 
 ## Configuration
@@ -60,6 +61,7 @@ These commands are available from the TUI home screen or from `/config` dependin
 | `/agents` | Displays available agents or updates active agents when names are provided. |
 | `/roles` | Displays available roles or updates active roles when roles are provided. |
 | `/config` | Opens TUI settings. |
+| `/historique` | Shows recent Markdown exports. Alias: `/history`. |
 | `/ollama` | Displays the configured Ollama model and installed models from `/config`. |
 | `/ollama-model <model>` | Changes the configured `ollama-local` model from `/config`. |
 | `/ollama-sync` | Replaces the configured Ollama model with an installed model when the current one is missing. |
@@ -73,6 +75,7 @@ These commands are available from the TUI home screen or from `/config` dependin
 | Command | Description |
 |---------|-------------|
 | `palabre presets --json` | Lists presets and their local availability. |
+| `palabre history --json` | Lists recent Markdown exports as JSON v1. |
 | `palabre config --ollama-models --json` | Returns local Ollama state as JSON v1 for integrations. |
 | `palabre context scan [paths...] --json` | Returns the folders, files, and warnings from the `--context` scan as JSON v1. |
 

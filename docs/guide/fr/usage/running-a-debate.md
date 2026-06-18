@@ -17,6 +17,7 @@ Depuis cet écran :
 - utilisez `/ask` ou `/debat` pour changer de mode ;
 - utilisez `/agents` pour choisir les agents ;
 - utilisez `/roles` pour appliquer des rôles ;
+- utilisez `/historique` pour retrouver les derniers exports ;
 - utilisez `/config` pour modifier les réglages sans quitter la TUI.
 
 `palabre new` reste disponible comme assistant guidé historique.
@@ -73,7 +74,7 @@ Sans `--agents`, Palabre utilise `defaults.askAgents` si défini, sinon la paire
 Le mode Ask accepte 1 à 4 agents :
 
 ```bash
-palabre ask "Quelle approche choisir ?" --agents codex claude opencode gemini
+palabre ask "Quelle approche choisir ?" --agents codex claude opencode antigravity
 ```
 
 L'export utilise l'extension `.ask.md`.

@@ -7,7 +7,7 @@ Un agent Palabre est une entrée de configuration qui décrit comment appeler un
 
 Palabre supporte deux familles d'agents :
 
-- les agents CLI, comme Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode ou Mistral Vibe ;
+- les agents CLI, comme Claude Code, Codex CLI, Antigravity CLI, OpenCode ou Mistral Vibe ;
 - les agents locaux, comme Ollama via son API HTTP.
 
 ## Agents CLI

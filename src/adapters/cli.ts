@@ -6,7 +6,7 @@ import { DEFAULT_MAX_OUTPUT_BYTES, DEFAULT_TIMEOUT_MS, withModelArgs } from "./c
 import { cleanTerminalOutput } from "./terminal.js";
 
 /**
- * Adapter pour les CLIs batch (Codex, Claude, Gemini…).
+ * Adapter pour les CLIs batch (Codex, Claude, OpenCode, Vibe...).
  * Lance un sous-processus, injecte le prompt via stdin ou argument, capture stdout.
  * Garantit : rejection des sorties vides (sauf `allowEmptyOutput`), des timeouts et des exit codes non nuls sans stdout.
  */

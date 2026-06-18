@@ -24,9 +24,16 @@ export interface TuiMessages {
   helpConfig: string;
   helpNew: string;
   helpRetry: string;
+  helpHistory: string;
   helpHelp: string;
   helpQuit: string;
   helpFallback: string;
+  historyTitle: string;
+  historyEmpty: string;
+  historyOpenHint: string;
+  historyFile: string;
+  historyMode(mode: PalabreMode): string;
+  historyCount(mode: PalabreMode): string;
   retryUnavailable: string;
   agentsTitle: string;
   activeMode: string;
@@ -50,7 +57,6 @@ export interface TuiMessages {
   availableCommands: string;
   noConfiguredAgents: string;
   or: string;
-  defaultModeCommand(mode: PalabreMode): string;
   modeConfigCommand: string;
   backCommand: string;
   quitCommand: string;
@@ -117,7 +123,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     roles: "Roles",
     summary: "Synthese",
     ollamaModel: "Modele Ollama",
-    responses: "Reponses",
+    responses: "Tours",
     folder: "Dossier",
     docs: "Docs",
     commands: "commandes",
@@ -132,9 +138,16 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     helpConfig: "reglages",
     helpNew: "assistant guide",
     helpRetry: "relancer la derniere session",
+    helpHistory: "voir les derniers exports",
     helpHelp: "aide",
     helpQuit: "quitter",
     helpFallback: "Tape un sujet ou une commande.",
+    historyTitle: "Historique Palabre",
+    historyEmpty: "Aucun export trouve pour le moment.",
+    historyOpenHint: "Le chemin du fichier est cliquable dans les terminaux compatibles.",
+    historyFile: "Fichier",
+    historyMode: (mode) => mode === "ask" ? "Mode ask" : "Mode debat",
+    historyCount: (mode) => mode === "ask" ? "Reponses" : "Tours",
     retryUnavailable: "Aucune session a relancer pour le moment.",
     agentsTitle: "Agents Palabre",
     activeMode: "Mode actif",
@@ -158,8 +171,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     availableCommands: "Commandes disponibles",
     noConfiguredAgents: "aucun agent configure",
     or: "ou",
-    defaultModeCommand: (mode) => `utiliser ${mode === "ask" ? "Ask" : "Debat"} par defaut`,
-    modeConfigCommand: "changer de mode de configuration",
+    modeConfigCommand: "basculer et definir par defaut",
     backCommand: "revenir a l'accueil",
     quitCommand: "quitter",
     subject: "Sujet",
@@ -177,7 +189,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     planExport: "Export Markdown",
     ptyNotice: (agents) => `Note: ${agents} utilise un pseudo-terminal; une fenetre peut apparaitre brievement.`,
     unknownCommand: "Commande inconnue. Utilise /back pour revenir.",
-    turnsUsage: "Usage: /turns <nombre>",
+    turnsUsage: "Usage: /turns <tours>",
     summaryUsage: "Usage: /summary <agent|none>",
     ollamaModelUsage: "Usage: /ollama-model <modele>",
     interfaceUsage: "Usage: /interface <tui|terminal>",
@@ -223,7 +235,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     roles: "Roles",
     summary: "Summary",
     ollamaModel: "Ollama model",
-    responses: "Responses",
+    responses: "Turns",
     folder: "Folder",
     docs: "Docs",
     commands: "commands",
@@ -238,9 +250,16 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     helpConfig: "settings",
     helpNew: "guided assistant",
     helpRetry: "rerun the last session",
+    helpHistory: "show recent exports",
     helpHelp: "help",
     helpQuit: "quit",
     helpFallback: "Type a topic or a command.",
+    historyTitle: "Palabre History",
+    historyEmpty: "No export found yet.",
+    historyOpenHint: "The file path is clickable in compatible terminals.",
+    historyFile: "File",
+    historyMode: (mode) => mode === "ask" ? "Ask mode" : "Debate mode",
+    historyCount: (mode) => mode === "ask" ? "Responses" : "Turns",
     retryUnavailable: "No session to retry yet.",
     agentsTitle: "Palabre Agents",
     activeMode: "Active mode",
@@ -264,8 +283,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     availableCommands: "Available commands",
     noConfiguredAgents: "no configured agent",
     or: "or",
-    defaultModeCommand: (mode) => `use ${mode === "ask" ? "Ask" : "Debate"} as default`,
-    modeConfigCommand: "change configuration mode",
+    modeConfigCommand: "switch and set as default",
     backCommand: "return to home",
     quitCommand: "quit",
     subject: "Subject",
@@ -283,7 +301,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     planExport: "Markdown export",
     ptyNotice: (agents) => `Note: ${agents} uses a pseudo-terminal; a window may briefly appear.`,
     unknownCommand: "Unknown command. Use /back to return.",
-    turnsUsage: "Usage: /turns <number>",
+    turnsUsage: "Usage: /turns <turns>",
     summaryUsage: "Usage: /summary <agent|none>",
     ollamaModelUsage: "Usage: /ollama-model <model>",
     interfaceUsage: "Usage: /interface <tui|terminal>",

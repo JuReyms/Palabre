@@ -127,34 +127,30 @@ Les CLIs custom declarees par l'utilisateur (non listees dans le registre) reste
 
 Un preset choisit une paire d'agents. Il ne choisit pas les modeles. La source de verite est `src/presets.ts`.
 
-Presets CLI ↔ CLI (30) :
+Presets CLI ↔ CLI (20) :
 
 - `codex-claude`, `claude-codex`
-- `codex-gemini`, `gemini-codex`
 - `codex-opencode`, `opencode-codex`
 - `codex-vibe`, `vibe-codex`
 - `codex-antigravity`, `antigravity-codex`
-- `claude-gemini`, `gemini-claude`
 - `claude-opencode`, `opencode-claude`
 - `claude-vibe`, `vibe-claude`
 - `claude-antigravity`, `antigravity-claude`
-- `gemini-opencode`, `opencode-gemini`
-- `gemini-vibe`, `vibe-gemini`
-- `gemini-antigravity`, `antigravity-gemini`
 - `opencode-antigravity`, `antigravity-opencode`
 - `opencode-vibe`, `vibe-opencode`
 - `antigravity-vibe`, `vibe-antigravity`
 
-Presets CLI ↔ Ollama local (12) :
+Presets CLI ↔ Ollama local (10) :
 
 - `codex-ollama`, `ollama-codex`
 - `claude-ollama`, `ollama-claude`
-- `gemini-ollama`, `ollama-gemini`
 - `opencode-ollama`, `ollama-opencode`
 - `vibe-ollama`, `ollama-vibe`
 - `antigravity-ollama`, `ollama-antigravity`
 
-Total : 42 presets. Toute paire X-Y a sa variante inversee Y-X. La variante inversee differe surtout par "qui parle en premier" — les roles restent ceux configures dans la config utilisateur, pas determines par la position.
+Total : 30 presets. Toute paire X-Y a sa variante inversee Y-X. La variante inversee differe surtout par "qui parle en premier" — les roles restent ceux configures dans la config utilisateur, pas determines par la position.
+
+Gemini CLI est archive cote Palabre depuis la transition Google vers Antigravity CLI pour les utilisateurs individuels. Les configs utilisateur existantes peuvent encore declarer une CLI custom `gemini`, mais Palabre ne la genere plus, ne la detecte plus comme agent connu et ne l'expose plus dans les presets actifs.
 
 Les modeles restent ceux des CLIs ou de la config, sauf override explicite par `--model-a` ou `--model-b`.
 
@@ -224,7 +220,6 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 
 - `codex`
 - `claude.exe` puis `claude` sur Windows, `claude` ailleurs
-- `gemini`
 - `agy` (Antigravity CLI)
 - `vibe` (Mistral Vibe CLI)
 - `ollama`
@@ -265,7 +260,6 @@ Pour une installation package, la commande affiche les commandes `pnpm add --glo
 
 - Codex : `codex exec ... -`
 - Claude : `claude --print`
-- Gemini : `gemini --prompt -`
 - Mistral Vibe : `vibe --output text --agent plan --trust --prompt <prompt>`
 
 Antigravity utilise un adapter separe :
@@ -434,7 +428,7 @@ Le MVP fournit deux entrees de contexte :
 
 Important :
 
-- Les agents `cli` et `cli-pty` sont executes depuis le dossier courant. Codex, Claude, Gemini ou Antigravity peuvent donc inspecter le workspace si leur CLI le permet.
+- Les agents `cli` et `cli-pty` sont executes depuis le dossier courant. Codex, Claude, Antigravity, OpenCode ou Mistral Vibe peuvent donc inspecter le workspace si leur CLI le permet.
 - Ce comportement appartient aux CLIs externes, pas au contrat Palabre.
 - L'adapter `ollama` ne lit jamais le filesystem directement. Il ne voit que le prompt, les fichiers retenus par `--files` ou `--context`, et le transcript fournis par Palabre.
 - Si aucun contexte n'est fourni a Palabre, Ollama ne voit pas le contenu du projet.
@@ -505,8 +499,8 @@ Les messages traduisibles vivent dans `src/messages/`, decoupes par domaine (`co
 Le parser accepte deux formes equivalentes pour lancer un debat :
 
 ```bash
-palabre run --preset claude-gemini --subject "quel jour sommes nous ?" --turns 4
-palabre claude-gemini "quel jour sommes nous ?" -t 4
+palabre run --preset claude-antigravity --subject "quel jour sommes nous ?" --turns 4
+palabre claude-antigravity "quel jour sommes nous ?" -t 4
 palabre -s "quel jour sommes nous ?" -t 2
 ```
 
@@ -524,7 +518,7 @@ Ne pas transformer l'aide principale en reference complete. Les details doivent 
 
 - `PrettyConsoleRenderer` : en-tete, separateurs, tours, synthese structuree, couleurs ANSI si TTY.
 - `PlainConsoleRenderer` : rendu historique compatible logs.
-- `TuiRenderer` : accueil `palabre`, composer slash commands, `/config`, tableau de bord plein terminal, statut d'agent en cours et sections lisibles sans dependance UI externe. Depuis `/config`, `/ollama`, `/ollama-model <modele>` et `/ollama-sync` exposent le choix du modele `ollama-local` sans sortir de la TUI.
+- `TuiRenderer` : accueil `palabre`, composer slash commands, `/config`, `/historique`, tableau de bord plein terminal, statut d'agent en cours et sections lisibles sans dependance UI externe. Depuis `/config`, `/ollama`, `/ollama-model <modele>` et `/ollama-sync` exposent le choix du modele `ollama-local` sans sortir de la TUI.
 - Etat "agent en cours" pendant les appels longs en rendu pretty.
 
 Le flag `--terminal` force le rendu simple. `--plain` reste accepte comme alias historique. `NO_COLOR` desactive les couleurs sans changer la structure.
@@ -627,14 +621,13 @@ Ce script compile `scripts/smoke_real_presets.ts`, lit `palabre presets --json`,
 
 Options utiles :
 
-- `--include-gemini` : inclut Gemini, considere comme legacy car Antigravity doit le remplacer dans les presets prioritaires.
 - `--include-ollama` : inclut les presets Ollama disponibles.
 - `--all-available` : teste toutes les paires disponibles en premiere direction seulement.
 - `--turns <n>` et `--topic <texte>` : ajustent la duree et le sujet du debat de smoke.
 
 Quand un changement touche l'adapter CLI, lancer `pnpm test`. Ces tests compilent `src/` et `tests/` via `tsconfig.test.json` dans `.tmp/test-dist`, puis utilisent `node:test` avec des CLIs mockees. Garder les tests automatises sous `tests/` et completer par un smoke test manuel avec une vraie CLI seulement quand le comportement depend d'un outil externe.
 
-Les erreurs CLI doivent rester actionnables. En particulier, les limites d'usage et quotas Codex/Claude/Gemini/Antigravity doivent etre classees comme `usage-limit` et ne pas recopier tout le prompt ou les logs bruts dans le message utilisateur.
+Les erreurs CLI doivent rester actionnables. En particulier, les limites d'usage et quotas Codex/Claude/Antigravity doivent etre classees comme `usage-limit` et ne pas recopier tout le prompt ou les logs bruts dans le message utilisateur.
 
 Quand un changement touche Ollama, verifier que l'erreur est lisible si Ollama n'est pas lance ou si le modele manque.
 
@@ -644,7 +637,6 @@ Combinaisons validees localement :
 - changement Ollama `nemotron-3-nano:4b` vers `gemma4:e4b` avec dechargement de l'ancien modele
 - `codex exec ↔ ollama`
 - `claude --print ↔ ollama`
-- `gemini --prompt - ↔ ollama`
 - `agy --print ↔ ollama`
 - `codex exec ↔ claude --print`
 - `--show-prompt` avec `--files`
@@ -655,7 +647,7 @@ Combinaisons validees localement :
 - arret anticipe sur accord clair
 - syntaxe courte `palabre preset "sujet" -t 4`
 - alias sujet `palabre -s "sujet" -t 2`
-- detection des limites d'usage CLI type Codex/Claude/Gemini/Antigravity par simulation stderr
+- detection des limites d'usage CLI type Codex/Claude/Antigravity par simulation stderr
 - `init` avec config globale et `init --local` dans un dossier temporaire pour verifier la detection locale
 - `update` en mode instructions
 - etat "agent en cours" en rendu pretty

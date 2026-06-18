@@ -33,7 +33,7 @@ This creates the same global configuration:
 ~/.palabre/palabre.config.json
 ```
 
-It also detects locally available tools: Codex, Claude, Gemini, Antigravity, OpenCode, and Ollama.
+It also detects locally available tools: Codex, Claude, Antigravity, OpenCode, Mistral Vibe, and Ollama.
 After creation, Palabre shows the active language and the quick command to switch to the other language.
 
 For a configuration specific to the current project:
@@ -107,7 +107,7 @@ Here:
 
 ## Add agents detected later
 
-If you install Antigravity, OpenCode, Gemini, or Ollama after creating the configuration:
+If you install Antigravity, OpenCode, Mistral Vibe, or Ollama after creating the configuration:
 
 ```bash
 palabre config --sync-agents

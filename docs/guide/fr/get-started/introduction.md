@@ -12,11 +12,11 @@ Deux modes sont disponibles :
 - `debate` : deux agents dialoguent tour à tour sur un sujet ;
 - `ask` : plusieurs agents répondent indépendamment à la même demande, puis un agent de synthèse résume fidèlement chaque réponse et les compare.
 
-Palabre ne remplace pas Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe ou Ollama. Il les pilote. Vous gardez donc vos outils, vos abonnements, vos modèles par défaut et vos habitudes de terminal.
+Palabre ne remplace pas Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe ou Ollama. Il les pilote. Vous gardez donc vos outils, vos abonnements, vos modèles par défaut et vos habitudes de terminal.
 
 Palabre s'exécute localement sur votre machine. Il n'envoie aucune donnée à un serveur appartenant à Palabre. Les prompts, fichiers et transcripts sont transmis uniquement aux agents que vous choisissez d'utiliser.
 
-La confidentialité dépend donc des agents sélectionnés. Avant d'envoyer du code, des documents ou des données sensibles à Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, OpenCode, Mistral Vibe, Ollama ou tout autre agent configuré, vérifiez leurs propres politiques de confidentialité et les paramètres de votre compte.
+La confidentialité dépend donc des agents sélectionnés. Avant d'envoyer du code, des documents ou des données sensibles à Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe, Ollama ou tout autre agent configuré, vérifiez leurs propres politiques de confidentialité et les paramètres de votre compte.
 
 ## À quoi sert Palabre ?
 

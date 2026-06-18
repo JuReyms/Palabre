@@ -39,23 +39,6 @@
       "role": "reviewer",
       "tier": "primary"
     },
-    "gemini": {
-      "type": "cli",
-      "command": "gemini",
-      "args": [
-        "--output-format",
-        "text",
-        "--approval-mode",
-        "plan",
-        "--skip-trust",
-        "--prompt",
-        "-"
-      ],
-      "promptMode": "stdin",
-      "shell": true,
-      "role": "reviewer",
-      "tier": "primary"
-    },
     "opencode": {
       "type": "cli",
       "command": "opencode",

@@ -19,8 +19,6 @@ Cette commande équivaut à choisir `codex` en agent A et `claude` en agent B.
 |--------|---------------|
 | `codex-claude` | Codex propose, Claude relit. |
 | `claude-codex` | Claude propose, Codex relit. |
-| `codex-gemini` | Comparaison Codex / Gemini. |
-| `claude-gemini` | Comparaison Claude / Gemini. |
 | `codex-antigravity` | Comparaison Codex / Antigravity. |
 | `claude-antigravity` | Comparaison Claude / Antigravity. |
 | `codex-opencode` | Codex face à OpenCode. |

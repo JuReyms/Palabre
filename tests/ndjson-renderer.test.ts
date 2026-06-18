@@ -231,11 +231,11 @@ test("NdjsonRenderer emits structured error events", () => {
     const renderer = new NdjsonRenderer();
     renderer.error({
       phase: "summary",
-      agent: "gemini",
+      agent: "antigravity",
       role: "reviewer",
       turn: 3,
       kind: "non-zero-exit",
-      message: "gemini exited with code 1",
+      message: "antigravity exited with code 1",
       details: { exitCode: 1 },
     });
   } finally {
@@ -246,7 +246,7 @@ test("NdjsonRenderer emits structured error events", () => {
   assert.equal(event.v, 1);
   assert.equal(event.type, "error");
   assert.equal(event.phase, "summary");
-  assert.equal(event.agent, "gemini");
+  assert.equal(event.agent, "antigravity");
   assert.equal(event.kind, "non-zero-exit");
   assert.equal(event.details.exitCode, 1);
 });
