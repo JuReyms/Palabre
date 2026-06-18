@@ -661,8 +661,101 @@ async function runTuiConfigLoop(
       } catch (error) {
         notice = error instanceof Error ? error.message : String(error);
       }
+      continue;
+    }
+
+    if (input.kind === "ollama-info") {
+      try {
+        notice = await formatTuiOllamaInfo(config, currentMessages);
+      } catch (error) {
+        notice = error instanceof Error ? error.message : String(error);
+      }
+      continue;
+    }
+
+    if (input.kind === "ollama-model") {
+      try {
+        notice = await setTuiOllamaModel(configPath, config, input.model, currentMessages);
+      } catch (error) {
+        notice = error instanceof Error ? error.message : String(error);
+      }
+      continue;
+    }
+
+    if (input.kind === "ollama-sync") {
+      try {
+        notice = await syncTuiOllamaModel(configPath, config, currentMessages);
+      } catch (error) {
+        notice = error instanceof Error ? error.message : String(error);
+      }
+      continue;
     }
   }
+}
+
+async function formatTuiOllamaInfo(config: PalabreConfig, messages: Messages): Promise<string> {
+  const discovery = await discoverLocalTools();
+  const agent = config.agents["ollama-local"];
+
+  if (agent?.type !== "ollama") {
+    throw new Error(messages.config.ollamaModelNoAgent);
+  }
+
+  if (!discovery.ollama.available) {
+    return messages.tui.ollamaUnavailable(discovery.ollama.baseUrl);
+  }
+
+  const installed = discovery.ollama.models.length > 0
+    ? discovery.ollama.models.join(", ")
+    : messages.config.ollamaModelNoInstalledModels;
+  const api = `${discovery.ollama.baseUrl}`;
+  return messages.tui.ollamaInfo(agent.model, installed, api);
+}
+
+async function setTuiOllamaModel(configPath: string, config: PalabreConfig, model: string, messages: Messages): Promise<string> {
+  const trimmed = model.trim();
+  if (!trimmed) {
+    throw new Error(messages.tui.ollamaModelUsage);
+  }
+
+  const discovery = await discoverLocalTools();
+  const agent = config.agents["ollama-local"];
+
+  if (agent?.type !== "ollama") {
+    throw new Error(messages.config.ollamaModelNoAgent);
+  }
+
+  if (!discovery.ollama.models.includes(trimmed)) {
+    throw new Error(messages.config.ollamaModelUnavailable(trimmed));
+  }
+
+  const result = setOllamaModel(config, trimmed);
+  await writeExampleConfig(configPath, config);
+  return result
+    ? messages.config.ollamaModelUpdated(configPath, result.previousModel, result.nextModel)
+    : messages.config.ollamaModelNoChange(configPath, agent.model);
+}
+
+async function syncTuiOllamaModel(configPath: string, config: PalabreConfig, messages: Messages): Promise<string> {
+  const discovery = await discoverLocalTools();
+  const agent = config.agents["ollama-local"];
+
+  if (agent?.type !== "ollama") {
+    throw new Error(messages.config.ollamaModelNoAgent);
+  }
+
+  if (discovery.ollama.models.length === 0) {
+    throw new Error(messages.config.ollamaModelNoInstalledModels);
+  }
+
+  const result = syncOllamaModel(config, discovery);
+
+  if (!result) {
+    return messages.config.ollamaModelNoChange(configPath, agent.model);
+  }
+
+  await writeExampleConfig(configPath, config);
+  return messages.config.ollamaModelUpdated(configPath, result.previousModel, result.nextModel);
 }
 
 async function syncInteractiveDetectedAgents(configPath: string, config: PalabreConfig): Promise<{ addedAgents: string[] }> {

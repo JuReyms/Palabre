@@ -60,6 +60,9 @@ These commands are available from the TUI home screen or from `/config` dependin
 | `/agents` | Displays available agents or updates active agents when names are provided. |
 | `/roles` | Displays available roles or updates active roles when roles are provided. |
 | `/config` | Opens TUI settings. |
+| `/ollama` | Displays the configured Ollama model and installed models from `/config`. |
+| `/ollama-model <model>` | Changes the configured `ollama-local` model from `/config`. |
+| `/ollama-sync` | Replaces the configured Ollama model with an installed model when the current one is missing. |
 | `/language fr`, `/language en` | Changes the language from `/config`. Alias: `/lang`. |
 | `/interface tui`, `/interface terminal` | Changes the default interface from `/config`. |
 | `/back` | Goes back to the previous screen. |

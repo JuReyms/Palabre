@@ -8,6 +8,7 @@ export interface TuiMessages {
   lastAskAgent: string;
   roles: string;
   summary: string;
+  ollamaModel: string;
   responses: string;
   folder: string;
   docs: string;
@@ -68,6 +69,9 @@ export interface TuiMessages {
   unknownCommand: string;
   turnsUsage: string;
   summaryUsage: string;
+  ollamaModelUsage: string;
+  ollamaInfoCommand: string;
+  ollamaSyncCommand: string;
   interfaceDefault(value: string): string;
   languageUpdated(value: string): string;
   askConfigMode: string;
@@ -82,6 +86,8 @@ export interface TuiMessages {
   debateSummaryFallback: string;
   askSummaryAgent(value: string): string;
   debateSummaryAgent(value: string): string;
+  ollamaInfo(current: string, installed: string, api: string): string;
+  ollamaUnavailable(baseUrl: string): string;
   askAgentsUpdated(value: string): string;
   debateAgentsUpdated(value: string): string;
   askRolesUpdated(value: string): string;
@@ -105,6 +111,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     lastAskAgent: "dernier agent ask",
     roles: "Roles",
     summary: "Synthese",
+    ollamaModel: "Modele Ollama",
     responses: "Reponses",
     folder: "Dossier",
     docs: "Docs",
@@ -165,6 +172,9 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     unknownCommand: "Commande inconnue. Utilise /back pour revenir.",
     turnsUsage: "Usage: /turns <nombre>",
     summaryUsage: "Usage: /summary <agent|none>",
+    ollamaModelUsage: "Usage: /ollama-model <modele>",
+    ollamaInfoCommand: "afficher modeles installes",
+    ollamaSyncCommand: "choisir un modele installe disponible",
     interfaceDefault: (value) => `Interface par defaut: ${value}.`,
     languageUpdated: (value) => `Langue mise a jour: ${value}.`,
     askConfigMode: "Configuration Ask.",
@@ -179,6 +189,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     debateSummaryFallback: "Synthese Debat revenue au fallback.",
     askSummaryAgent: (value) => `Synthese Ask: ${value}.`,
     debateSummaryAgent: (value) => `Synthese Debat: ${value}.`,
+    ollamaInfo: (current, installed, api) => `Ollama ${api}. Modele actuel: ${current}. Modeles installes: ${installed}.`,
+    ollamaUnavailable: (baseUrl) => `API Ollama indisponible (${baseUrl}). Lance ollama serve puis reessaie /ollama.`,
     askAgentsUpdated: (value) => `Agents Ask mis a jour: ${value}.`,
     debateAgentsUpdated: (value) => `Agents Debat mis a jour: ${value}.`,
     askRolesUpdated: (value) => `Roles Ask mis a jour: ${value}.`,
@@ -200,6 +212,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     lastAskAgent: "last ask agent",
     roles: "Roles",
     summary: "Summary",
+    ollamaModel: "Ollama model",
     responses: "Responses",
     folder: "Folder",
     docs: "Docs",
@@ -260,6 +273,9 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     unknownCommand: "Unknown command. Use /back to return.",
     turnsUsage: "Usage: /turns <number>",
     summaryUsage: "Usage: /summary <agent|none>",
+    ollamaModelUsage: "Usage: /ollama-model <model>",
+    ollamaInfoCommand: "show installed models",
+    ollamaSyncCommand: "choose an available installed model",
     interfaceDefault: (value) => `Default interface: ${value}.`,
     languageUpdated: (value) => `Language updated: ${value}.`,
     askConfigMode: "Ask configuration.",
@@ -274,6 +290,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     debateSummaryFallback: "Debate summary returned to fallback.",
     askSummaryAgent: (value) => `Ask summary: ${value}.`,
     debateSummaryAgent: (value) => `Debate summary: ${value}.`,
+    ollamaInfo: (current, installed, api) => `Ollama ${api}. Current model: ${current}. Installed models: ${installed}.`,
+    ollamaUnavailable: (baseUrl) => `Ollama API unavailable (${baseUrl}). Run ollama serve, then try /ollama again.`,
     askAgentsUpdated: (value) => `Ask agents updated: ${value}.`,
     debateAgentsUpdated: (value) => `Debate agents updated: ${value}.`,
     askRolesUpdated: (value) => `Ask roles updated: ${value}.`,

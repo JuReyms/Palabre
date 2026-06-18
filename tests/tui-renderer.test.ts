@@ -208,7 +208,8 @@ test("renderTuiConfig keeps the Palabre brand header", () => {
       agents: {
         codex: { type: "cli", command: "codex", role: "implementer" },
         claude: { type: "cli", command: "claude", role: "critic" },
-        opencode: { type: "cli", command: "opencode", role: "summarizer" }
+        opencode: { type: "cli", command: "opencode", role: "summarizer" },
+        "ollama-local": { type: "ollama", baseUrl: "http://localhost:11434", model: "llama3.2:3b", role: "critic" }
       }
     }, "palabre.config.json", "debate", createTranslator("en"));
   } finally {
@@ -225,6 +226,11 @@ test("renderTuiConfig keeps the Palabre brand header", () => {
   assert.match(text, /\/language/);
   assert.match(text, /Current config/);
   assert.match(text, /Available commands/);
+  assert.match(text, /Ollama model/);
+  assert.match(text, /llama3\.2:3b/);
+  assert.match(text, /\/ollama/);
+  assert.match(text, /\/ollama-model/);
+  assert.match(text, /\/ollama-sync/);
   assert.match(text, /\/back/);
   assert.match(text, /Debate/);
   assert.doesNotMatch(text, /Langue/);

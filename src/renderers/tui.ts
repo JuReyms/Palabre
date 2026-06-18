@@ -243,6 +243,8 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
   const summary = mode === "ask"
     ? defaults.askSummaryAgent ?? defaults.summaryAgent ?? messages.tui.lastAskAgent
     : defaults.summaryAgent ?? defaults.agentB ?? messages.tui.noValue;
+  const ollamaAgent = config.agents["ollama-local"];
+  const ollamaModel = ollamaAgent?.type === "ollama" ? ollamaAgent.model : undefined;
 
   const currentLines = mode === "ask"
     ? [
@@ -282,10 +284,16 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
       row(messages.tui.interface, defaults.interface ?? "tui"),
       row(messages.tui.language, config.language ?? "fr"),
       row(messages.tui.availableAgentsShort, agentInventoryLine(config, messages)),
+      ...(ollamaModel ? [row(messages.tui.ollamaModel, ollamaModel)] : []),
       "",
       ...currentLines,
       "",
       row("/default", messages.tui.defaultModeCommand(mode)),
+      ...(ollamaModel ? [
+        row("/ollama", messages.tui.ollamaInfoCommand),
+        row("/ollama-model", messages.tui.ollamaModelUsage),
+        row("/ollama-sync", messages.tui.ollamaSyncCommand)
+      ] : []),
       row("/interface", `/interface tui  ${dim(messages.tui.or)} /interface terminal`),
       row("/language", `/language fr  ${dim(messages.tui.or)} /language en`),
       row("/mode", messages.tui.modeConfigCommand),
@@ -319,6 +327,9 @@ export type TuiConfigInput =
   | { kind: "roles"; roles: string[] }
   | { kind: "turns"; turns: number }
   | { kind: "summary"; agent: string | undefined }
+  | { kind: "ollama-info" }
+  | { kind: "ollama-model"; model: string }
+  | { kind: "ollama-sync" }
   | { kind: "unknown"; message: string };
 
 type TuiQuestionResult =
@@ -498,6 +509,26 @@ export async function promptTuiConfigCommand(mode: PalabreMode, messages: Messag
         return { kind: "unknown", message: messages.tui.summaryUsage };
       }
       return { kind: "summary", agent: isNoneValue(value) ? undefined : value };
+    }
+
+    if (command === "/ollama") {
+      const value = parts[1];
+      return value ? { kind: "ollama-model", model: value } : { kind: "ollama-info" };
+    }
+
+    if (command === "/ollama-model") {
+      const value = parts[1];
+      return value ? { kind: "ollama-model", model: value } : { kind: "unknown", message: messages.tui.ollamaModelUsage };
+    }
+
+    if (command === "/model") {
+      const [first, second] = parts.slice(1);
+      const value = first === "ollama-local" ? second : first;
+      return value ? { kind: "ollama-model", model: value } : { kind: "unknown", message: messages.tui.ollamaModelUsage };
+    }
+
+    if (command === "/ollama-sync") {
+      return { kind: "ollama-sync" };
     }
 
     return { kind: "unknown", message: messages.tui.unknownCommand };
