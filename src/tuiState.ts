@@ -26,3 +26,15 @@ export function clearTuiRunOverrides(flags: Record<string, TuiFlagValue>): void 
     delete flags[flag];
   }
 }
+
+export function askAgentSeedsForMode(
+  mode: "ask" | "debate",
+  explicitAskAgents: string[],
+  defaultAskAgents: string[] | undefined
+): string[] {
+  if (mode !== "ask") {
+    return [];
+  }
+
+  return explicitAskAgents.length > 0 ? explicitAskAgents : defaultAskAgents ?? [];
+}

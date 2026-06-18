@@ -20,7 +20,7 @@ import { writeDebateMarkdown } from "./output.js";
 import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./update.js";
 import { createSessionContext } from "./session.js";
 import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
-import { clearTuiRunOverrides } from "./tuiState.js";
+import { askAgentSeedsForMode, clearTuiRunOverrides } from "./tuiState.js";
 import { detectedAgentNames, detectionForCommand } from "./agentRegistry.js";
 import { getPackageVersion } from "./version.js";
 import type { CommandDetection } from "./discovery.js";
@@ -295,7 +295,7 @@ async function main(): Promise<void> {
 
     const mode = parseModeFlag(optionalString(parsed.flags.mode) ?? config.defaults?.mode, messages);
     const explicitAskAgents = getStringListFlag(parsed.flags.agents);
-    const askAgentSeeds = explicitAskAgents.length > 0 ? explicitAskAgents : config.defaults?.askAgents ?? [];
+    const askAgentSeeds = askAgentSeedsForMode(mode, explicitAskAgents, config.defaults?.askAgents);
     const agentA = resolveAgentName("agent A", parsed.flags["agent-a"], preset?.agentA, askAgentSeeds[0] ?? config.defaults?.agentA, messages);
     const agentB = resolveAgentName("agent B", parsed.flags["agent-b"], preset?.agentB, askAgentSeeds[1] ?? askAgentSeeds[0] ?? config.defaults?.agentB, messages);
     const askAgents = mode === "ask" ? resolveAskAgents(explicitAskAgents, config.defaults?.askAgents, [agentA, agentB], messages) : undefined;
