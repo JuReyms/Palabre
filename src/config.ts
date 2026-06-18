@@ -271,6 +271,22 @@ export interface OllamaModelSyncResult {
   nextModel: string;
 }
 
+export interface DetectedAgentsSyncResult {
+  addedAgents: string[];
+  changed: boolean;
+}
+
+export function syncDetectedAgentsDetailed(config: PalabreConfig, discovery: ToolDiscovery): DetectedAgentsSyncResult {
+  const before = JSON.stringify(config.agents);
+  const addedAgents = syncDetectedAgents(config, discovery);
+  const changed = JSON.stringify(config.agents) !== before;
+
+  return {
+    addedAgents,
+    changed
+  };
+}
+
 export function syncOllamaModel(config: PalabreConfig, discovery: ToolDiscovery): OllamaModelSyncResult | undefined {
   const agent = config.agents["ollama-local"];
 

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assertRunnableConfig, DEFAULT_OUTPUT_DIR, createConfigFromDiscovery, exampleConfig, resolveOutputDir, setOllamaModel, syncDetectedAgents, syncOllamaModel } from "../src/config.js";
+import { assertRunnableConfig, DEFAULT_OUTPUT_DIR, createConfigFromDiscovery, exampleConfig, resolveOutputDir, setOllamaModel, syncDetectedAgents, syncDetectedAgentsDetailed, syncOllamaModel } from "../src/config.js";
 import { createTranslator } from "../src/i18n.js";
 import type { ToolDiscovery } from "../src/discovery.js";
 
@@ -62,6 +62,47 @@ test("syncDetectedAgents refreshes commands for already configured known agents"
   assert.deepEqual(added, ["antigravity"]);
   assert.equal(config.agents.claude?.type === "cli" ? config.agents.claude.command : undefined, "claude");
   assert.equal(config.agents.antigravity?.type, "cli-pty");
+});
+
+test("syncDetectedAgentsDetailed reports command refreshes without new agents", () => {
+  const discovery = noDetectedTools();
+  discovery.claude = { available: true, command: "claude", path: "C:/bin/claude.cmd" };
+  const config = createConfigFromDiscovery(noDetectedTools());
+  const claude = config.agents.claude;
+
+  assert.equal(claude?.type, "cli");
+  if (claude?.type === "cli") {
+    claude.command = "claude.exe";
+  }
+
+  const result = syncDetectedAgentsDetailed(config, discovery);
+
+  assert.deepEqual(result.addedAgents, []);
+  assert.equal(result.changed, true);
+  assert.equal(config.agents.claude?.type === "cli" ? config.agents.claude.command : undefined, "claude");
+});
+
+test("syncDetectedAgentsDetailed leaves custom CLI agents untouched", () => {
+  const discovery = noDetectedTools();
+  discovery.codex = { available: true, command: "codex", path: "C:/bin/codex.cmd" };
+  const config = createConfigFromDiscovery(noDetectedTools());
+  const codex = config.agents.codex;
+  assert.equal(codex?.type, "cli");
+  if (codex?.type === "cli") {
+    codex.command = "old-codex";
+  }
+  config.agents.custom = {
+    type: "cli",
+    command: "my-custom-agent",
+    role: "reviewer"
+  };
+
+  const result = syncDetectedAgentsDetailed(config, discovery);
+
+  assert.equal(result.changed, true);
+  assert.deepEqual(result.addedAgents, []);
+  assert.equal(config.agents.custom?.type === "cli" ? config.agents.custom.command : undefined, "my-custom-agent");
+  assert.equal(config.agents.codex?.type === "cli" ? config.agents.codex.command : undefined, "codex");
 });
 
 test("syncOllamaModel updates a missing configured model to an installed model", () => {

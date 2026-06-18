@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgents, syncOllamaModel, writeExampleConfig } from "./config.js";
+import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeExampleConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
 import { buildContextScan } from "./contextScan.js";
 import { discoverLocalTools } from "./discovery.js";
@@ -113,20 +113,28 @@ async function main(): Promise<void> {
   }
 
   const configPath = optionalString(parsed.flags.config) ?? await resolveDefaultConfigPath();
+  let config: PalabreConfig;
+  let tuiNotice: string | undefined;
 
   if (!(await configExists(configPath))) {
-    const config = createConfigFromDiscovery(await discoverLocalTools());
+    config = createConfigFromDiscovery(await discoverLocalTools());
     config.language = resolveLanguage({
       explicitLanguage: optionalString(parsed.flags.language),
       configLanguage: config.language
     });
     const messages = createTranslator(config.language);
     await writeExampleConfig(configPath, config);
-    console.log(messages.init.editConfigThenRerun(configPath));
-    return;
+
+    if (!shouldOpenTuiHome(parsed)) {
+      console.log(messages.init.editConfigThenRerun(configPath));
+      return;
+    }
+
+    tuiNotice = messages.init.configCreated(configPath);
+  } else {
+    config = await loadConfig(configPath);
   }
 
-  const config = await loadConfig(configPath);
   let language = resolveLanguage({
     explicitLanguage: optionalString(parsed.flags.language),
     configLanguage: config.language
@@ -136,9 +144,13 @@ async function main(): Promise<void> {
   assertRunnableConfig(config, messages, configPath);
 
   if (shouldOpenTuiHome(parsed)) {
+    const syncResult = await syncInteractiveDetectedAgents(configPath, config);
+    if (!tuiNotice && syncResult.addedAgents.length > 0) {
+      tuiNotice = messages.config.syncAdded(configPath, syncResult.addedAgents.join(", "));
+    }
+
     let tuiMode = config.defaults?.mode ?? "debate";
     const tuiVersion = await getPackageVersion();
-    let tuiNotice: string | undefined;
 
     for (;;) {
       renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion });
@@ -393,15 +405,17 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
 
   if (flags["sync-agents"]) {
     const discovery = await discoverLocalTools();
-    const addedAgents = syncDetectedAgents(config, discovery);
+    const result = syncDetectedAgentsDetailed(config, discovery);
 
-    if (addedAgents.length === 0) {
+    if (!result.changed) {
       console.log(messages.config.syncNoMissing(configPath));
       return;
     }
 
     await writeExampleConfig(configPath, config);
-    console.log(messages.config.syncAdded(configPath, addedAgents.join(", ")));
+    console.log(result.addedAgents.length > 0
+      ? messages.config.syncAdded(configPath, result.addedAgents.join(", "))
+      : messages.config.syncRefreshed(configPath));
     return;
   }
 
@@ -649,6 +663,19 @@ async function runTuiConfigLoop(
       }
     }
   }
+}
+
+async function syncInteractiveDetectedAgents(configPath: string, config: PalabreConfig): Promise<{ addedAgents: string[] }> {
+  const discovery = await discoverLocalTools();
+  const result = syncDetectedAgentsDetailed(config, discovery);
+
+  if (result.changed) {
+    await writeExampleConfig(configPath, config);
+  }
+
+  return {
+    addedAgents: result.addedAgents
+  };
 }
 
 function normalizeTuiDebateAgents(config: PalabreConfig, agents: string[], messages: Messages): [string, string] {

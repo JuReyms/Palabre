@@ -4,6 +4,7 @@ export interface ConfigMessages {
   createdForConfig(path: string): string;
   syncNoMissing(path: string): string;
   syncAdded(path: string, agents: string): string;
+  syncRefreshed(path: string): string;
   ollamaModelNoChange(path: string, model: string | undefined): string;
   ollamaModelUpdated(path: string, previousModel: string, nextModel: string): string;
   ollamaModelUnavailable(model: string): string;
@@ -51,6 +52,7 @@ export const configMessages: Record<Language, ConfigMessages> = {
     createdForConfig: (path) => `${path} créé. Édite la config puis relance palabre config.`,
     syncNoMissing: (path) => `Aucun agent détecté manquant dans ${path}.`,
     syncAdded: (path, agents) => `Agents ajoutés dans ${path}: ${agents}.`,
+    syncRefreshed: (path) => `Agents détectés rafraîchis dans ${path}.`,
     ollamaModelNoChange: (path, model) => `Modèle Ollama inchangé dans ${path}: ${model ?? "aucun"}.`,
     ollamaModelUpdated: (path, previousModel, nextModel) => `Modèle Ollama mis à jour dans ${path}: ${previousModel} -> ${nextModel}.`,
     ollamaModelUnavailable: (model) => `Modèle Ollama non installé: ${model}. Action: choisis un modèle installé ou lance \`ollama pull ${model}\`.`,
@@ -104,6 +106,7 @@ export const configMessages: Record<Language, ConfigMessages> = {
     createdForConfig: (path) => `${path} created. Edit the config, then run palabre config again.`,
     syncNoMissing: (path) => `No missing detected agent in ${path}.`,
     syncAdded: (path, agents) => `Agents added to ${path}: ${agents}.`,
+    syncRefreshed: (path) => `Detected agents refreshed in ${path}.`,
     ollamaModelNoChange: (path, model) => `Ollama model unchanged in ${path}: ${model ?? "none"}.`,
     ollamaModelUpdated: (path, previousModel, nextModel) => `Ollama model updated in ${path}: ${previousModel} -> ${nextModel}.`,
     ollamaModelUnavailable: (model) => `Ollama model is not installed: ${model}. Action: choose an installed model or run \`ollama pull ${model}\`.`,
