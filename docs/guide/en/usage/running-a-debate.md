@@ -112,13 +112,13 @@ palabre codex-claude "Subject" -t 4 --no-early-stop
 Palabre does not list CLI models, as they change frequently. It simply passes the value to the agent. If the model does not exist or is not authorized by your account, the CLI will return the error.
 
 ```bash
-palabre codex-claude "Subject" --model-a gpt-5.5 --model-b opus-4.7
+palabre codex-claude "Subject" --model-a <codex-model> --model-b <claude-model>
 ```
 
 For Ollama:
 
 ```bash
-palabre codex-ollama "Subject" --model-b gemma4:e4b
+palabre codex-ollama "Subject" --model-b <installed-ollama-model>
 ```
 
 ## Preview without calling AI

@@ -25,13 +25,19 @@ Message typique :
 [ERREUR] Config absente: ...
 ```
 
-Créez une configuration :
+Dans un terminal interactif, le plus simple est de laisser Palabre créer la configuration globale :
+
+```bash
+palabre
+```
+
+Pour les scripts ou un setup sans ouvrir la TUI, initialisez explicitement :
 
 ```bash
 palabre init
 ```
 
-ou une configuration locale au projet courant :
+Pour une configuration locale au projet courant :
 
 ```bash
 palabre init --local
@@ -81,13 +87,13 @@ Message typique :
 [WARN] Agent(s) detecte(s) mais absent(s) de la config: opencode.
 ```
 
-Synchronisez les agents détectés :
+Relancez `palabre` pour laisser la TUI synchroniser les agents connus détectés, ou synchronisez explicitement :
 
 ```bash
 palabre config --sync-agents
 ```
 
-Cette commande ajoute les agents manquants sans écraser vos réglages existants.
+Cette commande ajoute les agents connus manquants et rafraîchit les noms de commandes connus sans écraser vos réglages existants.
 
 ## Le nombre de réponses par défaut est invalide
 
@@ -112,6 +118,7 @@ Message typique :
 ```
 
 Corrigez `outputDir` dans `palabre.config.json`, ou supprimez ce champ pour écrire les exports dans le dossier `.palabre/` par défaut.
+
 ## Une CLI est introuvable
 
 Message typique :
@@ -241,7 +248,7 @@ palabre update
 Avec les versions récentes de pnpm, `palabre@latest` peut parfois rester temporairement sur une ancienne version à cause des garde-fous de chaîne d'approvisionnement. Dans ce cas, `palabre update` affiche aussi une commande avec la version exacte quand il peut lire npm :
 
 ```bash
-pnpm add --global palabre@0.7.0
+pnpm add --global palabre@0.8.0
 ```
 
 Adaptez le numéro à la version affichée par `palabre update` ou par :

@@ -25,13 +25,19 @@ Typical message:
 [ERROR] Config missing: ...
 ```
 
-Create a configuration:
+In an interactive terminal, the simplest fix is to let Palabre create the global configuration:
+
+```bash
+palabre
+```
+
+For scripts or setup without opening the TUI, initialize explicitly:
 
 ```bash
 palabre init
 ```
 
-or a configuration local to the current project:
+For a configuration local to the current project:
 
 ```bash
 palabre init --local
@@ -81,13 +87,13 @@ Typical message:
 [WARN] Agent(s) detected but missing from config: opencode.
 ```
 
-Synchronize detected agents:
+Open `palabre` again to let the TUI synchronize detected known agents, or synchronize explicitly:
 
 ```bash
 palabre config --sync-agents
 ```
 
-This command adds missing agents without overwriting your existing settings.
+This command adds missing known agents and refreshes known command names without overwriting your existing settings.
 
 ## The default number of turns is invalid
 
@@ -242,7 +248,7 @@ palabre update
 With recent pnpm versions, `palabre@latest` can temporarily stay on an older version because of supply-chain safeguards. In that case, `palabre update` also prints a command with the exact version when it can read npm:
 
 ```bash
-pnpm add --global palabre@0.7.0
+pnpm add --global palabre@0.8.0
 ```
 
 Adapt the number to the version printed by `palabre update` or by:

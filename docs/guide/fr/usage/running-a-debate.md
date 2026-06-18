@@ -112,13 +112,13 @@ palabre codex-claude "Sujet" -t 4 --no-early-stop
 Palabre ne liste pas les modèles des CLIs, car ils changent souvent. Il transmet simplement la valeur à l'agent. Si le modèle n'existe pas ou n'est pas autorisé par votre compte, la CLI renverra l'erreur.
 
 ```bash
-palabre codex-claude "Sujet" --model-a gpt-5.5 --model-b opus-4.7
+palabre codex-claude "Sujet" --model-a <modele-codex> --model-b <modele-claude>
 ```
 
 Pour Ollama :
 
 ```bash
-palabre codex-ollama "Sujet" --model-b gemma4:e4b
+palabre codex-ollama "Sujet" --model-b <modele-ollama-installe>
 ```
 
 ## Prévisualiser sans appeler d'IA

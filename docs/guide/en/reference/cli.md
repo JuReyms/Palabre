@@ -36,7 +36,7 @@ The TUI home screen performs the same conservative known-agent synchronization a
 | `palabre config --clear-defaults` | Removes default settings. |
 | `palabre config --sync-agents` | Adds missing detected agents and refreshes known commands. |
 | `palabre config --ollama-models --json` | Lists installed Ollama models and the configured model status. |
-| `palabre config --set-ollama-model gemma4:e4b` | Sets the model for the `ollama-local` agent. |
+| `palabre config --set-ollama-model <model>` | Sets the model for the `ollama-local` agent. |
 | `palabre config --sync-ollama-model` | Replaces the configured Ollama model if it is no longer installed. |
 
 ## Debates

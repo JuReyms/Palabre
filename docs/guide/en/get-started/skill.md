@@ -22,7 +22,7 @@ For other agents (Claude desktop, Claude Code…), follow that agent's own skill
 ## Requirements
 
 - Palabre CLI installed on the same machine (`npm install -g palabre`);
-- at least two compatible agents configured or detected by Palabre;
+- at least one compatible agent configured or detected by Palabre; two or more are recommended for comparisons;
 - a host agent compatible with the agentskills.io standard.
 
 Verify the installation from a terminal:
@@ -42,4 +42,4 @@ palabre agents
 - language handling (`fr`/`en`) based on the user's language;
 - restitution: offers to display the full transcript directly in the conversation, or just the summary;
 - follow-up: turn actions into tasks, apply the consensus (agreed points only), dig into a disagreement, or export as a PR comment / ADR;
-- index of past debates in `.palabre/INDEX.md` to find prior decisions.
+- compatibility with integrations that maintain their own debate index, such as a VS Code extension index in `.palabre/`.

@@ -16,7 +16,22 @@ Most common settings can be done with `palabre config`. This page covers cases w
     "summaryAgent": "claude",
     "turns": 4
   },
-  "agents": {}
+  "agents": {
+    "codex": {
+      "type": "cli",
+      "command": "codex",
+      "args": ["exec", "-"],
+      "promptMode": "stdin",
+      "role": "implementer"
+    },
+    "claude": {
+      "type": "cli",
+      "command": "claude",
+      "args": ["--print"],
+      "promptMode": "stdin",
+      "role": "reviewer"
+    }
+  }
 }
 ```
 
@@ -29,7 +44,7 @@ Most common settings can be done with `palabre config`. This page covers cases w
 | `defaults.agentB` | Agent that responds second by default. |
 | `defaults.summaryAgent` | Agent used for the final summary by default. |
 | `defaults.turns` | Total number of turns, between 1 and 20. |
-| `agents` | List of available agents. |
+| `agents` | List of available agents. It must contain at least one usable agent. |
 
 ## CLI agent
 
@@ -65,7 +80,7 @@ Useful options:
 "ollama-local": {
   "type": "ollama",
   "baseUrl": "http://localhost:11434",
-  "model": "gemma4:e4b",
+  "model": "<installed-ollama-model>",
   "role": "critic",
   "validateModel": true,
   "unloadOtherModels": true

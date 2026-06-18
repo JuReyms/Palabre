@@ -37,7 +37,7 @@ palabre config --ask-summary-agent opencode
 Pour choisir aussi le modèle :
 
 ```bash
-palabre codex-ollama "Critique ce plan" --summary-agent ollama-local --summary-model gemma4:e4b
+palabre codex-ollama "Critique ce plan" --summary-agent ollama-local --summary-model <modele-ollama-installe>
 ```
 
 ## Désactiver la synthèse

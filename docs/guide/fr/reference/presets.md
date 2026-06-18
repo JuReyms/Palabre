@@ -37,13 +37,13 @@ Cette commande équivaut à choisir `codex` en agent A et `claude` en agent B.
 Les modèles peuvent être transmis sans que Palabre les liste :
 
 ```bash
-palabre codex-claude "Sujet" --model-a gpt-5.5 --model-b opus-4.7
+palabre codex-claude "Sujet" --model-a <modele-codex> --model-b <modele-claude>
 ```
 
 Pour Ollama :
 
 ```bash
-palabre codex-ollama "Sujet" --model-b gemma4:e4b
+palabre codex-ollama "Sujet" --model-b <modele-ollama-installe>
 ```
 
 ## Quand utiliser un preset ?

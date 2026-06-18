@@ -16,7 +16,22 @@ La plupart des réglages courants peuvent se faire avec `palabre config`. Cette 
     "summaryAgent": "claude",
     "turns": 4
   },
-  "agents": {}
+  "agents": {
+    "codex": {
+      "type": "cli",
+      "command": "codex",
+      "args": ["exec", "-"],
+      "promptMode": "stdin",
+      "role": "implementer"
+    },
+    "claude": {
+      "type": "cli",
+      "command": "claude",
+      "args": ["--print"],
+      "promptMode": "stdin",
+      "role": "reviewer"
+    }
+  }
 }
 ```
 
@@ -29,7 +44,7 @@ La plupart des réglages courants peuvent se faire avec `palabre config`. Cette 
 | `defaults.agentB` | Agent qui répond en second par défaut. |
 | `defaults.summaryAgent` | Agent utilisé pour la synthèse finale par défaut. |
 | `defaults.turns` | Nombre total de réponses, entre 1 et 20. |
-| `agents` | Liste des agents disponibles. |
+| `agents` | Liste des agents disponibles. Elle doit contenir au moins un agent utilisable. |
 
 ## Agent CLI
 
@@ -65,7 +80,7 @@ Options utiles :
 "ollama-local": {
   "type": "ollama",
   "baseUrl": "http://localhost:11434",
-  "model": "gemma4:e4b",
+  "model": "<modele-ollama-installe>",
   "role": "critic",
   "validateModel": true,
   "unloadOtherModels": true

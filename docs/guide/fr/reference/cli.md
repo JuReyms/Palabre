@@ -36,7 +36,7 @@ L'accueil TUI applique la même synchronisation prudente des agents connus que `
 | `palabre config --clear-defaults`            | Supprime les paramètres par défaut.       |
 | `palabre config --sync-agents`               | Ajoute les agents détectés manquants et rafraîchit les commandes connues. |
 | `palabre config --ollama-models --json`      | Liste les modèles Ollama installés et l'état du modèle configuré. |
-| `palabre config --set-ollama-model gemma4:e4b` | Définit le modèle de l'agent `ollama-local`. |
+| `palabre config --set-ollama-model <modele>` | Définit le modèle de l'agent `ollama-local`. |
 | `palabre config --sync-ollama-model`         | Remplace le modèle Ollama configuré s'il n'est plus installé. |
 
 ## Débats

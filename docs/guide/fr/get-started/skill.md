@@ -22,7 +22,7 @@ Pour les autres agents (Claude desktop, Claude Code…), suivez la procédure d'
 ## Prérequis
 
 - Palabre CLI installé sur la même machine (`npm install -g palabre`) ;
-- au moins deux agents compatibles configurés ou détectés par Palabre ;
+- au moins un agent compatible configuré ou détecté par Palabre ; deux ou plus sont recommandés pour les comparaisons ;
 - un agent hôte compatible avec le standard agentskills.io.
 
 Vérifiez l'installation depuis un terminal :
@@ -42,4 +42,4 @@ palabre agents
 - gestion de la langue (`fr`/`en`) selon la langue de l'utilisateur ;
 - restitution : proposition d'afficher le transcript complet directement dans la conversation, ou la synthèse seule ;
 - suite du débat : transformer les actions en tâches, appliquer le consensus (uniquement les points d'accord), approfondir un désaccord, ou exporter en commentaire de PR / ADR ;
-- index des débats passés dans `.palabre/INDEX.md` pour retrouver les décisions.
+- compatibilité avec les intégrations qui maintiennent leur propre index de débats, par exemple un index d'extension VS Code dans `.palabre/`.

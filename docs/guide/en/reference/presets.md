@@ -37,13 +37,13 @@ This command is equivalent to choosing `codex` as agent A and `claude` as agent 
 Models can be passed without Palabre listing them:
 
 ```bash
-palabre codex-claude "Subject" --model-a gpt-5.5 --model-b opus-4.7
+palabre codex-claude "Subject" --model-a <codex-model> --model-b <claude-model>
 ```
 
 For Ollama:
 
 ```bash
-palabre codex-ollama "Subject" --model-b gemma4:e4b
+palabre codex-ollama "Subject" --model-b <installed-ollama-model>
 ```
 
 ## When to use a preset?

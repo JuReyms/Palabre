@@ -37,7 +37,7 @@ palabre config --ask-summary-agent opencode
 To also choose the model:
 
 ```bash
-palabre codex-ollama "Critique this plan" --summary-agent ollama-local --summary-model gemma4:e4b
+palabre codex-ollama "Critique this plan" --summary-agent ollama-local --summary-model <installed-ollama-model>
 ```
 
 ## Disable the summary

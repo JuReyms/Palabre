@@ -50,4 +50,4 @@ Palabre also does not keep an interactive session open with the CLIs. Each respo
 
 ## Next
 
-Start by [installing Palabre](/en/get-started/installation), then proceed to [the first configuration](/en/get-started/configuration).
+Start by [installing Palabre](/en/get-started/installation), then [run your first session](/en/get-started/first-debate). The [configuration guide](/en/get-started/configuration) explains the details when you want more control.
