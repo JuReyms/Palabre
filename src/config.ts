@@ -2,7 +2,7 @@ import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { applyDetectedCommands, detectedAgentNames } from "./agentRegistry.js";
-import type { PalabreConfig } from "./types.js";
+import type { CliAgentConfig, PalabreConfig } from "./types.js";
 import type { ToolDiscovery } from "./discovery.js";
 import type { Messages } from "./messages/index.js";
 
@@ -90,8 +90,6 @@ export const exampleConfig: PalabreConfig = {
       args: [
         "--output",
         "text",
-        "--agent",
-        "plan",
         "--trust",
         "--prompt"
       ],
@@ -241,12 +239,31 @@ export function syncDetectedAgents(config: PalabreConfig, discovery: ToolDiscove
   const missingAgents = detectedAgentNames(discovery).filter((agentName) => !config.agents[agentName]);
 
   applyDetectedCommands(config, discovery);
+  migrateKnownAgentDefaults(config);
 
   for (const agentName of missingAgents) {
     config.agents[agentName] = discoveredConfig.agents[agentName];
   }
 
   return missingAgents;
+}
+
+function migrateKnownAgentDefaults(config: PalabreConfig): void {
+  migrateVibePlanAgent(config);
+}
+
+function migrateVibePlanAgent(config: PalabreConfig): void {
+  const agent = config.agents.vibe;
+
+  if (agent?.type !== "cli" || !isLegacyVibePlanArgs(agent.args)) {
+    return;
+  }
+
+  agent.args = ["--output", "text", "--trust", "--prompt"];
+}
+
+function isLegacyVibePlanArgs(args: CliAgentConfig["args"]): boolean {
+  return JSON.stringify(args) === JSON.stringify(["--output", "text", "--agent", "plan", "--trust", "--prompt"]);
 }
 
 export interface OllamaModelSyncResult {

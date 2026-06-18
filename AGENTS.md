@@ -260,7 +260,7 @@ Pour une installation package, la commande affiche les commandes `pnpm add --glo
 
 - Codex : `codex exec ... -`
 - Claude : `claude --print`
-- Mistral Vibe : `vibe --output text --agent plan --trust --prompt <prompt>`
+- Mistral Vibe : `vibe --output text --trust --prompt <prompt>`
 
 Antigravity utilise un adapter separe :
 

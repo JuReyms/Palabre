@@ -105,6 +105,46 @@ test("syncDetectedAgentsDetailed leaves custom CLI agents untouched", () => {
   assert.equal(config.agents.codex?.type === "cli" ? config.agents.codex.command : undefined, "codex");
 });
 
+test("syncDetectedAgentsDetailed migrates legacy Vibe plan args", () => {
+  const discovery = noDetectedTools();
+  discovery.vibe = { available: true, command: "vibe", path: "C:/bin/vibe.cmd" };
+  const config = createConfigFromDiscovery(noDetectedTools());
+  const vibe = config.agents.vibe;
+
+  assert.equal(vibe?.type, "cli");
+  if (vibe?.type === "cli") {
+    vibe.args = ["--output", "text", "--agent", "plan", "--trust", "--prompt"];
+  }
+
+  const result = syncDetectedAgentsDetailed(config, discovery);
+
+  assert.equal(result.changed, true);
+  assert.deepEqual(
+    config.agents.vibe?.type === "cli" ? config.agents.vibe.args : undefined,
+    ["--output", "text", "--trust", "--prompt"]
+  );
+});
+
+test("syncDetectedAgentsDetailed preserves custom Vibe args", () => {
+  const discovery = noDetectedTools();
+  discovery.vibe = { available: true, command: "vibe", path: "C:/bin/vibe.cmd" };
+  const config = createConfigFromDiscovery(noDetectedTools());
+  const vibe = config.agents.vibe;
+
+  assert.equal(vibe?.type, "cli");
+  if (vibe?.type === "cli") {
+    vibe.args = ["--output", "json", "--trust", "--prompt"];
+  }
+
+  const result = syncDetectedAgentsDetailed(config, discovery);
+
+  assert.equal(result.changed, false);
+  assert.deepEqual(
+    config.agents.vibe?.type === "cli" ? config.agents.vibe.args : undefined,
+    ["--output", "json", "--trust", "--prompt"]
+  );
+});
+
 test("syncOllamaModel updates a missing configured model to an installed model", () => {
   const config = createConfigFromDiscovery(noDetectedTools());
   const agent = config.agents["ollama-local"];

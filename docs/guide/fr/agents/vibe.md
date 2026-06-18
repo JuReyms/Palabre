@@ -33,7 +33,7 @@ Palabre ne choisit pas le modèle Mistral Vibe à votre place. Vibe utilise sa p
 "vibe": {
   "type": "cli",
   "command": "vibe",
-  "args": ["--output", "text", "--agent", "plan", "--trust", "--prompt"],
+  "args": ["--output", "text", "--trust", "--prompt"],
   "promptMode": "argument",
   "modelArg": "--model",
   "shell": true,

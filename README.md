@@ -61,7 +61,7 @@ In an interactive terminal, Palabre uses the TUI by default. `palabre` opens the
 - Codex CLI via `codex exec`
 - Antigravity CLI via `agy --print` in a pseudo-terminal
 - OpenCode via `opencode run`
-- Mistral Vibe via `vibe --output text --agent plan --trust --prompt`
+- Mistral Vibe via `vibe --output text --trust --prompt`
 - Ollama via the local HTTP API
 
 PALABRE does not list models: they change often and depend on each CLI or user account. `--model-a`, `--model-b`, and `--summary-model` simply pass the raw value to the selected agent.
@@ -169,7 +169,7 @@ Dans un terminal interactif, Palabre utilise l'interface TUI par défaut. `palab
 - Codex CLI via `codex exec`
 - Antigravity CLI via `agy --print` en pseudo-terminal
 - OpenCode via `opencode run`
-- Mistral Vibe via `vibe --output text --agent plan --trust --prompt`
+- Mistral Vibe via `vibe --output text --trust --prompt`
 - Ollama via l'API locale HTTP
 
 PALABRE ne liste pas les modèles : ils changent souvent et dépendent de chaque CLI ou compte utilisateur. `--model-a`, `--model-b` et `--summary-model` transmettent simplement la valeur brute à l'agent concerné.

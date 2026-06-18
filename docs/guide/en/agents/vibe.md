@@ -33,7 +33,7 @@ Palabre does not choose the Mistral Vibe model for you. Vibe uses its own defaul
 "vibe": {
   "type": "cli",
   "command": "vibe",
-  "args": ["--output", "text", "--agent", "plan", "--trust", "--prompt"],
+  "args": ["--output", "text", "--trust", "--prompt"],
   "promptMode": "argument",
   "modelArg": "--model",
   "shell": true,
