@@ -117,7 +117,12 @@ async function addContextPaths(paths: string[], cwd: string, state: LoadState): 
 
   for (const inputPath of uniquePaths) {
     const absolutePath = path.resolve(cwd, inputPath);
-    const fileStat = await stat(absolutePath);
+    const fileStat = await stat(absolutePath).catch(() => undefined);
+
+    if (!fileStat) {
+      state.warnings.push(state.messages.context.ignoredNotFileOrDirectory(inputPath));
+      continue;
+    }
 
     if (fileStat.isFile()) {
       await addContextFile(absolutePath, cwd, state);

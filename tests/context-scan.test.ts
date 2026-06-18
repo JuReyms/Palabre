@@ -41,3 +41,14 @@ test("buildContextScan defaults to the current folder when no path is provided",
   assert.deepEqual(result.scanned, ["."]);
   assert.equal(result.items.find((item) => item.kind === "file")?.path, "README.md");
 });
+
+test("buildContextScan reports missing context paths as warnings", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "palabre-context-scan-missing-"));
+
+  const result = await buildContextScan(["missing.md"], root, createTranslator("en"));
+
+  assert.deepEqual(result.scanned, ["missing.md"]);
+  assert.deepEqual(result.items, []);
+  assert.equal(result.warnings.length, 1);
+  assert.match(result.warnings[0] ?? "", /missing\.md/);
+});

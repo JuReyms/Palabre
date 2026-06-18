@@ -168,7 +168,7 @@ export class CliAdapter implements AgentAdapter {
         }));
       });
       const finishFromExitCode = (code: number | null) => {
-        if (code && code !== 0 && !stdout.trim()) {
+        if (code && code !== 0) {
           finish(createCliExitError(this.name, code, stderr));
           return;
         }

@@ -89,6 +89,14 @@ test("--mode and --agents are parsed for ask sessions", () => {
   assert.equal(parsed.flags.topic, "topic");
 });
 
+test("--agents keeps all values so command validation can report too many agents", () => {
+  const parsed = parse(["--mode", "ask", "--agents", "a", "b", "c", "d", "e", "-s", "topic"]);
+
+  assert.deepEqual(parsed.flags.agents, ["a", "b", "c", "d", "e"]);
+  assert.equal(parsed.flags.topic, "topic");
+  assert.deepEqual(parsed.positionals, []);
+});
+
 test("--ask-agents is parsed for config defaults", () => {
   const parsed = parse(["config", "--mode", "ask", "--ask-agents", "codex", "claude", "opencode"]);
 

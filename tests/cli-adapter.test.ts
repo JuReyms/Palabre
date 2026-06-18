@@ -104,6 +104,17 @@ test("CliAdapter classifies non-zero exits with no stdout", async () => {
   );
 });
 
+test("CliAdapter rejects non-zero exits even when stdout has content", async () => {
+  const adapter = new CliAdapter("mock", cliConfig({
+    args: ["-e", "process.stdout.write('partial answer'); process.exit(3)"]
+  }));
+
+  await assert.rejects(
+    adapter.generate(basePrompt()),
+    (error) => error instanceof AdapterError && error.kind === "non-zero-exit"
+  );
+});
+
 test("CliAdapter classifies usage limit errors", async () => {
   const adapter = new CliAdapter("mock", cliConfig({
     args: ["-e", "process.stderr.write('ERROR: usage limit reached. Try again later.'); process.exit(1)"]

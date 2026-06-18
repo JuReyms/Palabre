@@ -93,7 +93,7 @@ export class CliPtyAdapter implements AgentAdapter {
 
         const content = cleanTerminalOutput(output);
 
-        if (exitCode && exitCode !== 0 && !content) {
+        if (exitCode && exitCode !== 0) {
           reject(createPtyExitError(this.name, exitCode, output));
           return;
         }

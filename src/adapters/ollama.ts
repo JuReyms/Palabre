@@ -163,7 +163,7 @@ export class OllamaAdapter implements AgentAdapter {
       );
     }
 
-    process.stdout.write(`\n[ollama] Modele absent, telechargement: ${this.config.model}\n`);
+    process.stderr.write(`\n[ollama] Modele absent, telechargement: ${this.config.model}\n`);
     await this.pullModel(baseUrl);
 
     if (!(await this.isModelAvailable(baseUrl))) {

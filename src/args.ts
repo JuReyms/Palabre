@@ -64,8 +64,8 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
   turns: { arity: "single" },
   renderer: { arity: "single" },
   // Valeurs multiples.
-  agents: { arity: "multi", max: 4 },
-  "ask-agents": { arity: "multi", max: 4 },
+  agents: { arity: "multi" },
+  "ask-agents": { arity: "multi" },
   "set-defaults": { arity: "multi", max: 2 },
   files: { arity: "multi" },
   context: { arity: "multi" }
