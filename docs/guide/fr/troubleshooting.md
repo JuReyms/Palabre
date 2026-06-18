@@ -248,7 +248,7 @@ palabre update
 Avec les versions récentes de pnpm, `palabre@latest` peut parfois rester temporairement sur une ancienne version à cause des garde-fous de chaîne d'approvisionnement. Dans ce cas, `palabre update` affiche aussi une commande avec la version exacte quand il peut lire npm :
 
 ```bash
-pnpm add --global palabre@0.8.0
+pnpm add --global palabre@0.8.1
 ```
 
 Adaptez le numéro à la version affichée par `palabre update` ou par :

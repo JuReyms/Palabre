@@ -20,7 +20,7 @@ After installation, open the Palabre panel from the VS Code sidebar.
 The extension requires:
 
 - Palabre CLI installed on the same machine;
-- Palabre CLI `0.8.0` or newer recommended;
+- Palabre CLI `0.8.1` or newer recommended;
 - at least one compatible agent configured or detected by Palabre; two or more are recommended for comparisons.
 
 Verify the installation from a terminal:

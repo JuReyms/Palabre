@@ -20,7 +20,7 @@ Après installation, ouvrez le panneau Palabre depuis la barre latérale de VS C
 L'extension nécessite :
 
 - Palabre CLI installé sur la même machine ;
-- Palabre CLI `0.8.0` ou plus récent recommandé ;
+- Palabre CLI `0.8.1` ou plus récent recommandé ;
 - au moins un agent compatible configuré ou détecté par Palabre ; deux ou plus sont recommandés pour les comparaisons.
 
 Vérifiez l'installation depuis un terminal :
