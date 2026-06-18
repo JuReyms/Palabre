@@ -63,7 +63,25 @@ test("runAsk collects independent responses before summary", async () => {
   assert.deepEqual(result.messages.map((message) => message.agent), ["first", "second"]);
   assert.deepEqual(result.messages.map((message) => message.content), ["First answer.", "Second answer."]);
   assert.equal(result.summary?.agent, "summary");
+  assert.equal(result.summary?.role, "summarizer");
   assert.equal(result.summary?.content, "Summary answer.");
+});
+
+test("runDebate exposes summarizer as the runtime summary role", async () => {
+  const config: PalabreConfig = {
+    agents: {
+      first: scriptedCliAgent("First point."),
+      second: scriptedCliAgent("Second point."),
+      vibe: { ...scriptedCliAgent("Summary answer."), role: "critic" }
+    }
+  };
+  const result = await runDebate(config, debateOptions({
+    summaryAgent: "vibe",
+    summaryEnabled: true
+  }), undefined, createTranslator("en"));
+
+  assert.equal(result.summary?.agent, "vibe");
+  assert.equal(result.summary?.role, "summarizer");
 });
 
 function scriptedCliAgent(output: string): PalabreConfig["agents"][string] {

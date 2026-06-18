@@ -2,7 +2,7 @@ import { createAgent } from "./adapters/index.js";
 import { AdapterError } from "./errors.js";
 import { createTranslator } from "./i18n.js";
 import type { Messages } from "./messages/index.js";
-import type { AgentConfig, PalabreConfig, DebateFailure, DebateMessage, DebateOptions, DebateRenderer, DebateSummary } from "./types.js";
+import type { AgentConfig, AgentRole, PalabreConfig, DebateFailure, DebateMessage, DebateOptions, DebateRenderer, DebateSummary } from "./types.js";
 
 export const MAX_ASK_AGENTS = 4;
 
@@ -140,6 +140,7 @@ export async function runDebate(
       const cancellation = cancellationFailureIfAborted(options, messages, {
         phase: "summary",
         agent: resolveSummaryAgentName(options),
+        role: summaryRole(),
         turn: transcript.length + 1
       });
       if (cancellation) {
@@ -156,6 +157,7 @@ export async function runDebate(
       failure = toDebateFailure(error, {
         phase: "summary",
         agent: resolveSummaryAgentName(options),
+        role: summaryRole(),
         turn: transcript.length + 1
       });
       renderer?.error(failure);
@@ -295,6 +297,7 @@ export async function runAsk(
       const cancellation = cancellationFailureIfAborted(options, messages, {
         phase: "summary",
         agent: summaryAgentName,
+        role: summaryRole(),
         turn: transcript.length + 1
       });
       if (cancellation) {
@@ -310,6 +313,7 @@ export async function runAsk(
       failure = toDebateFailure(error, {
         phase: "summary",
         agent: resolveSummaryAgentName(options),
+        role: summaryRole(),
         turn: transcript.length + 1
       });
       renderer?.error(failure);
@@ -408,9 +412,10 @@ async function generateSummary(
   }
 
   const summaryAgent = createAgent(summaryAgentName, summaryConfig);
+  const role = summaryRole();
 
-  renderer?.summaryStart(summaryAgent.name, summaryAgent.role);
-  renderer?.thinkingStart(summaryAgent.name, summaryAgent.role);
+  renderer?.summaryStart(summaryAgent.name, role);
+  renderer?.thinkingStart(summaryAgent.name, role);
 
   const response = await summaryAgent.generate({
     topic: options.topic,
@@ -418,7 +423,7 @@ async function generateSummary(
     totalTurns: options.mode === "ask" ? transcript.length : options.turns,
     selfName: summaryAgent.name,
     peerName: options.mode === "ask" ? "ask-responses" : "transcript",
-    selfRole: summaryAgent.role,
+    selfRole: role,
     mode: "summary",
     language: options.language,
     session: options.session,
@@ -429,13 +434,17 @@ async function generateSummary(
 
   const summary: DebateSummary = {
     agent: summaryAgent.name,
-    role: summaryAgent.role,
+    role,
     content: response.content,
     createdAt: new Date().toISOString()
   };
 
   renderer?.message(summary.content);
   return summary;
+}
+
+function summaryRole(): AgentRole {
+  return "summarizer";
 }
 
 function cancellationFailureIfAborted(
