@@ -180,12 +180,13 @@ export function renderTuiHistory(entries: HistoryEntry[], messages: Messages): v
     ? [dim(messages.tui.historyEmpty)]
     : entries.flatMap((entry) => {
       const folderPath = path.dirname(entry.path);
+      const folderLabel = folderPath === "." ? dirnamePortable(entry.path) : folderPath;
       return [
         row(messages.tui.historyMode(entry.mode), entry.topic),
         row(messages.tui.activeAgents, entry.agents || messages.tui.noValue),
         ...(entry.count ? [row(messages.tui.historyCount(entry.mode), entry.count)] : []),
         row(messages.tui.historyFile, terminalLink(entry.path, compactFileName(entry.fileName, width - 24))),
-        row(messages.tui.folder, terminalLink(folderPath, compactPath(folderPath, width - 24))),
+        row(messages.tui.folder, terminalLink(folderPath, compactPath(folderLabel, width - 24))),
         ...(entry.date ? [row("Date", entry.date)] : []),
         ""
       ];
@@ -944,6 +945,11 @@ function compactPath(value: string, maxLength: number): string {
   const marker = "...";
   const tailLength = Math.max(12, maxLength - marker.length);
   return `${marker}${value.slice(-tailLength)}`;
+}
+
+function dirnamePortable(value: string): string {
+  const separatorIndex = Math.max(value.lastIndexOf("/"), value.lastIndexOf("\\"));
+  return separatorIndex > 0 ? value.slice(0, separatorIndex) : path.dirname(value);
 }
 
 function compactFileName(value: string, maxLength: number): string {

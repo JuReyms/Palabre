@@ -388,8 +388,15 @@ function clipLine(value: string, maxLength: number): string {
 }
 
 function shellCommandForSpawn(command: string, args: string[], shell: boolean): { command: string; args: string[] } {
-  if (!shell || process.platform !== "win32") {
+  if (!shell) {
     return { command, args };
+  }
+
+  if (process.platform !== "win32") {
+    return {
+      command: [command, ...args].map(quotePosixShellArg).join(" "),
+      args: []
+    };
   }
 
   return {
@@ -406,6 +413,14 @@ function quoteWindowsShellArg(value: string): string {
   return `"${value
     .replace(/(\\*)"/g, "$1$1\\\"")
     .replace(/(\\+)$/g, "$1$1")}"`;
+}
+
+function quotePosixShellArg(value: string): string {
+  if (value.length === 0) {
+    return "''";
+  }
+
+  return `'${value.replace(/'/g, "'\\''")}'`;
 }
 
 function cancelledError(adapterName: string): AdapterError {

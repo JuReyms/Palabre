@@ -24,7 +24,6 @@ ROUTE_MAP = {
     "agents/overview.md": "2.agents/1.overview.md",
     "agents/claude-code.md": "2.agents/2.claude-code.md",
     "agents/codex.md": "2.agents/3.codex.md",
-    "agents/gemini.md": "2.agents/4.gemini.md",
     "agents/antigravity.md": "2.agents/5.antigravity.md",
     "agents/opencode.md": "2.agents/6.opencode.md",
     "agents/ollama.md": "2.agents/7.ollama.md",
