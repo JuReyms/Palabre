@@ -8,7 +8,7 @@ Chaque session génère un export Markdown dans le dossier défini par `outputDi
 - `.debate.md` pour un débat ;
 - `.ask.md` pour une demande Ask.
 
-Par défaut, les exports sont regroupés dans un dossier `.palabre/` sous le dossier depuis lequel vous lancez `palabre`. À la fin de la session, le terminal affiche une ligne `Palabre exporte:` suivie du chemin complet du fichier.
+Par défaut, les exports sont regroupés dans un dossier `.palabre/` sous le dossier depuis lequel vous lancez `palabre`. À la fin d'une session TUI, Palabre affiche le fichier exporté et son dossier avec des liens cliquables dans les terminaux compatibles. La commande `/history` permet de retrouver les derniers exports depuis l'accueil TUI.
 
 ## Contenu de l'export
 
@@ -51,3 +51,13 @@ Dans la configuration avancée :
 ```
 
 Les prochains exports seront placés dans ce dossier.
+
+## Historique
+
+Depuis la TUI :
+
+```text
+/history
+```
+
+La vue historique affiche les derniers exports `.debate.md` et `.ask.md`, leur mode, les agents, le nombre de tours ou réponses, le fichier et le dossier de sortie. Hors TUI, utilisez `palabre history` ou `palabre history --json`.

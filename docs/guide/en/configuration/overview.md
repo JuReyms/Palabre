@@ -73,7 +73,7 @@ palabre config --set-ollama-model <installed-ollama-model>
 palabre config --sync-ollama-model
 ```
 
-In the TUI, the same common settings are available from `/config` with commands such as `/agents`, `/roles`, `/summary`, `/turns`, `/interface`, `/language`, `/mode`, `/default`, `/ollama`, `/ollama-model <model>`, and `/ollama-sync`.
+In the TUI, the same common settings are available from `/config` with commands such as `/agents`, `/roles`, `/summary`, `/turns`, `/interface`, `/language`, `/mode`, `/ollama`, `/ollama-model <model>`, and `/ollama-sync`. Use `/home` to return to the home screen.
 
 ## Go further
 

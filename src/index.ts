@@ -173,6 +173,10 @@ async function main(): Promise<void> {
       return handleTuiHomeInput(nextInput);
     }
 
+    if (tuiInput.kind === "home") {
+      return "continue";
+    }
+
     if (tuiInput.kind === "roles") {
       const result = await runTuiRolesWizard(configPath, config, messages, tuiMode, tuiInput.roles);
       if (result.quit) return "quit";
@@ -359,7 +363,10 @@ async function main(): Promise<void> {
       tuiNotice = undefined;
       const action = await handleTuiHomeInput(nextInput);
       if (action === "quit") return;
-      if (action === "continue") continue;
+      if (action === "continue") {
+        renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion });
+        continue;
+      }
       if (action === "retry") {
         parsed.flags.renderer = "tui";
         break;

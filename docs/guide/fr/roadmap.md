@@ -14,7 +14,7 @@ Les fonctionnalités principales sont disponibles :
 - configuration globale ou locale ;
 - détection des agents installés ;
 - configuration globale automatique au premier lancement TUI, avec rafraîchissement prudent des agents connus détectés ;
-- interface TUI-first avec `palabre`, `/agents`, `/roles` et `/config` ;
+- interface TUI-first avec `palabre`, `/agents`, `/roles`, `/config`, `/history` et `/home` ;
 - assistant interactif `palabre new` ;
 - mode `ask` avec 1 à 4 agents et export `.ask.md` ;
 - presets comme `codex-claude`, `claude-antigravity`, `codex-antigravity` ou `opencode-ollama` ;
@@ -23,6 +23,7 @@ Les fonctionnalités principales sont disponibles :
 - prévisualisation du scan de contexte avec `palabre context scan --json` pour les intégrations ;
 - synthèse finale avec consensus, désaccords, actions proposées et conclusion ;
 - export Markdown `.debate.md` ou `.ask.md` avec nom basé sur le sujet ;
+- historique local des exports avec `palabre history`, `palabre history --json` et `/history` dans la TUI ;
 - export partiel conservé si un agent plante pendant le débat ou la synthèse ;
 - diagnostic avec `palabre doctor` ;
 - sortie machine-readable avec `palabre presets --json`, `palabre context scan --json` et le renderer NDJSON ;
@@ -43,7 +44,7 @@ Palabre expose déjà des contrats JSON pour les presets, le scan de contexte et
 
 ### Configuration plus simple
 
-La commande `palabre config`, la vue TUI `/config`, la configuration de premier lancement et la synchronisation des agents connus couvrent déjà les réglages courants : agents par défaut, rôles, nombre de réponses, agent de synthèse, mode par défaut, interface par défaut et rafraîchissement des agents détectés. Les prochaines améliorations viseront surtout des messages plus clairs, de meilleures validations et des wizards plus complets pour les choix qui méritent de la découverte.
+La commande `palabre config`, la vue TUI `/config`, la configuration de premier lancement et la synchronisation des agents connus couvrent déjà les réglages courants : agents par défaut, rôles, nombre de tours, agent de synthèse, mode par défaut, interface par défaut et rafraîchissement des agents détectés. Les prochaines améliorations viseront surtout des messages plus clairs, de meilleures validations et des wizards plus complets pour les choix qui méritent de la découverte.
 
 
 ### Conversation après le débat
@@ -58,7 +59,6 @@ Les tests reproductibles couvrent déjà l'adapter CLI, le renderer NDJSON, la d
 
 Ces sujets sont envisagés après stabilisation du CLI :
 
-- historique local des débats ;
 - reprise d'un débat depuis un transcript existant ;
 - provider compatible OpenAI local pour LM Studio, LocalAI, vLLM ou équivalent ;
 - maintenance continue de la documentation française et anglaise ;

@@ -53,7 +53,7 @@ palabre codex-claude "Preview" --context src --show-prompt
 palabre context scan src docs --json
 ```
 
-In an interactive terminal, Palabre uses the TUI by default. `palabre` opens the home screen, creates the global config on first launch when needed, and refreshes detected known agents before showing the UI. `/ask` switches from debate to independent answers, `/agents` and `/roles` help you choose the active setup, and `--terminal` forces the older raw rendering suitable for logs. `palabre init` remains available for explicit setup, especially with `--local`.
+In an interactive terminal, Palabre uses the TUI by default. `palabre` opens the home screen, creates the global config on first launch when needed, and refreshes detected known agents before showing the UI. `/ask` switches from debate to independent answers, `/agents` and `/roles` help you choose the active setup, `/history` shows recent exports, and `/home` returns to the home screen. `--terminal` forces the older raw rendering suitable for logs. `palabre init` remains available for explicit setup, especially with `--local`.
 
 ### Supported Agents
 
@@ -161,7 +161,7 @@ palabre codex-claude "Preview" --context src --show-prompt
 palabre context scan src docs --json
 ```
 
-Dans un terminal interactif, Palabre utilise l'interface TUI par défaut. `palabre` ouvre l'accueil, crée la config globale au premier lancement si nécessaire, et rafraîchit les agents connus détectés avant d'afficher l'interface. `/ask` passe du débat aux réponses indépendantes, `/agents` et `/roles` aident à choisir la configuration courante, et `--terminal` force l'ancien rendu brut adapté aux logs. `palabre init` reste disponible pour un setup explicite, notamment avec `--local`.
+Dans un terminal interactif, Palabre utilise l'interface TUI par défaut. `palabre` ouvre l'accueil, crée la config globale au premier lancement si nécessaire, et rafraîchit les agents connus détectés avant d'afficher l'interface. `/ask` passe du débat aux réponses indépendantes, `/agents` et `/roles` aident à choisir la configuration courante, `/history` affiche les derniers exports, et `/home` revient à l'accueil. `--terminal` force l'ancien rendu brut adapté aux logs. `palabre init` reste disponible pour un setup explicite, notamment avec `--local`.
 
 ### Agents supportés
 

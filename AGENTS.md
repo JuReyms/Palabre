@@ -518,7 +518,7 @@ Ne pas transformer l'aide principale en reference complete. Les details doivent 
 
 - `PrettyConsoleRenderer` : en-tete, separateurs, tours, synthese structuree, couleurs ANSI si TTY.
 - `PlainConsoleRenderer` : rendu historique compatible logs.
-- `TuiRenderer` : accueil `palabre`, composer slash commands, `/config`, `/historique`, tableau de bord plein terminal, statut d'agent en cours et sections lisibles sans dependance UI externe. Depuis `/config`, `/ollama`, `/ollama-model <modele>` et `/ollama-sync` exposent le choix du modele `ollama-local` sans sortir de la TUI.
+- `TuiRenderer` : accueil `palabre`, composer slash commands, `/config`, `/history`, `/home`, tableau de bord plein terminal, statut d'agent en cours et sections lisibles sans dependance UI externe. Depuis `/config`, `/ollama`, `/ollama-model <modele>` et `/ollama-sync` exposent le choix du modele `ollama-local` sans sortir de la TUI.
 - Etat "agent en cours" pendant les appels longs en rendu pretty.
 
 Le flag `--terminal` force le rendu simple. `--plain` reste accepte comme alias historique. `NO_COLOR` desactive les couleurs sans changer la structure.

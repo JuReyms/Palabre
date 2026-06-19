@@ -90,7 +90,8 @@ export function renderTuiHelp(messages: Messages): void {
       "",
       row("/new", messages.tui.helpNew),
       row("/retry", messages.tui.helpRetry),
-      row("/historique", messages.tui.helpHistory),
+      row("/history", messages.tui.helpHistory),
+      row("/home", messages.tui.backCommand),
       row("/help", messages.tui.helpHelp),
       row("/quit", messages.tui.helpQuit),
       "",
@@ -177,20 +178,24 @@ export function renderTuiHistory(entries: HistoryEntry[], messages: Messages): v
   const width = surfaceWidth();
   const rows = entries.length === 0
     ? [dim(messages.tui.historyEmpty)]
-    : entries.flatMap((entry) => [
+    : entries.flatMap((entry) => {
+      const folderPath = path.dirname(entry.path);
+      return [
         row(messages.tui.historyMode(entry.mode), entry.topic),
         row(messages.tui.activeAgents, entry.agents || messages.tui.noValue),
         ...(entry.count ? [row(messages.tui.historyCount(entry.mode), entry.count)] : []),
-        row(messages.tui.historyFile, terminalLink(entry.path, compactFileName(entry.fileName, width - 22))),
+        row(messages.tui.historyFile, terminalLink(entry.path, compactFileName(entry.fileName, width - 24))),
+        row(messages.tui.folder, terminalLink(folderPath, compactPath(folderPath, width - 24))),
         ...(entry.date ? [row("Date", entry.date)] : []),
         ""
-      ]).slice(0, -1);
+      ];
+    }).slice(0, -1);
 
   process.stdout.write([
     "",
     ...centerLogo(viewport, messages),
     "",
-    ...centerBlock(card([
+    ...centerBlock(panel([
       bold(messages.tui.historyTitle),
       "",
       ...rows,
@@ -228,7 +233,7 @@ export async function promptTuiAgentsWizard(config: PalabreConfig, mode: Palabre
       return { kind: "back" };
     }
     const value = result.value.trim();
-    if (!value || value === "/back") {
+    if (!value || value === "/home" || value === "/back") {
       return { kind: "back" };
     }
     if (value === "/quit" || value === "/q") {
@@ -258,7 +263,7 @@ export async function promptTuiRolesWizard(config: PalabreConfig, mode: PalabreM
     }
     const answer = result.value;
     const value = answer.trim();
-    if (!value || value === "/back") {
+    if (!value || value === "/home" || value === "/back") {
       return { kind: "back" };
     }
     if (value === "/quit" || value === "/q") {
@@ -359,7 +364,7 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
       row("/interface", messages.tui.interfaceUsage),
       row("/language", messages.tui.languageUsage),
       "",
-      row("/back", messages.tui.backCommand),
+      row("/home", messages.tui.backCommand),
       row("/quit", messages.tui.quitCommand)
     ], width), viewport),
     ...(state.message ? ["", ...centerBlock([state.message], viewport)] : [])
@@ -373,6 +378,7 @@ export type TuiHomeInput =
   | { kind: "new" }
   | { kind: "retry" }
   | { kind: "history" }
+  | { kind: "home" }
   | { kind: "config" }
   | { kind: "mode"; mode: PalabreMode }
   | { kind: "help" }
@@ -472,6 +478,10 @@ export async function promptTuiHomeTopic(mode: PalabreMode = "debate", messages:
       return { kind: "history" };
     }
 
+    if (command === "/home" || command === "/back" || command === "/b") {
+      return { kind: "home" };
+    }
+
     if (command === "/config") {
       return { kind: "config" };
     }
@@ -525,7 +535,7 @@ export async function promptTuiConfigCommand(mode: PalabreMode, messages: Messag
     const parts = answer.trim().split(/\s+/).filter(Boolean);
     const command = parts[0]?.toLowerCase();
 
-    if (!command || command === "/back" || command === "/b") {
+    if (!command || command === "/home" || command === "/back" || command === "/b") {
       return { kind: "back" };
     }
 
@@ -637,7 +647,11 @@ class TuiRenderer implements DebateRenderer {
   }
 
   notice(message: string): void {
-    process.stdout.write(`${this.c("green", this.messages.renderers.infoPrefix)} ${message}\n`);
+    const viewport = viewportWidth();
+    const width = this.width();
+    process.stdout.write(`\n${centerBlock(card([
+      `${this.c("green", this.messages.renderers.infoPrefix)} ${message}`
+    ], width), viewport).join("\n")}\n`);
   }
 
   warning(message: string): void {
@@ -720,8 +734,11 @@ class TuiRenderer implements DebateRenderer {
     const fileName = path.basename(outputPath);
     process.stdout.write(`\n${centerBlock(panel([
       bold(this.messages.tui.sessionDone),
+      "",
       row(this.messages.tui.historyFile, terminalLink(outputPath, compactFileName(fileName, width - 24))),
-      row(this.messages.tui.folder, terminalLink(folderPath, compactPath(folderPath, width - 24)))
+      row(this.messages.tui.folder, terminalLink(folderPath, compactPath(folderPath, width - 24))),
+      "",
+      dim(this.messages.tui.sessionHistoryHint)
     ], width), viewport).join("\n")}\n\n`);
   }
 
@@ -882,7 +899,7 @@ function tuiPrompt(mode: PalabreMode, labelPrefix: string, messages: Messages, n
       ...promptNoticeLines(notice),
       ""
     ] : []),
-    promptLine
+    promptLine,
   ].join("\n");
 }
 

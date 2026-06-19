@@ -1,9 +1,9 @@
 ---
 title: Paramètres par défaut
-description: Définir ou supprimer les agents, le nombre de réponses et la synthèse utilisés par défaut.
+description: Définir ou supprimer les agents, le nombre de tours et la synthèse utilisés par défaut.
 ---
 
-Les paramètres par défaut sont utilisés quand vous lancez un débat sans préciser tous les agents ou toutes les options. Ils peuvent être partiels : vous pouvez définir seulement le nombre de réponses, seulement la synthèse, ou une paire d'agents complète.
+Les paramètres par défaut sont utilisés quand vous lancez un débat sans préciser tous les agents ou toutes les options. Ils peuvent être partiels : vous pouvez définir seulement le nombre de tours, seulement la synthèse, ou une paire d'agents complète.
 
 ## Définir les agents par défaut
 
@@ -55,13 +55,13 @@ palabre config --mode ask
 
 Les valeurs acceptées sont `debate` et `ask`. Dans la TUI, vous pouvez aussi changer de mode avec `/ask` ou `/debat`.
 
-## Définir le nombre de réponses
+## Définir le nombre de tours
 
 ```bash
 palabre config -t 4
 ```
 
-`turns` est le nombre total de réponses du débat. Palabre accepte une valeur entre 1 et 20.
+`turns` est le nombre total de tours du débat. Palabre accepte une valeur entre 1 et 20.
 
 ## Définir la langue
 

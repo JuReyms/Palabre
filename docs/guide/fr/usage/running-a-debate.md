@@ -17,7 +17,7 @@ Depuis cet écran :
 - utilisez `/ask` ou `/debat` pour changer de mode ;
 - utilisez `/agents` pour choisir les agents ;
 - utilisez `/roles` pour appliquer des rôles ;
-- utilisez `/historique` pour retrouver les derniers exports ;
+- utilisez `/history` pour retrouver les derniers exports ;
 - utilisez `/config` pour modifier les réglages sans quitter la TUI.
 
 `palabre new` reste disponible comme assistant guidé historique.
@@ -86,7 +86,7 @@ palabre config --ask-agents codex claude opencode
 palabre config --ask-summary-agent opencode
 ```
 
-Depuis l'accueil TUI, `/ask` passe en mode Ask, `/agents` choisit les agents actifs et `/roles` applique les rôles.
+Depuis l'accueil TUI, `/ask` passe en mode Ask, `/agents` choisit les agents actifs, `/roles` applique les rôles et `/home` revient à l'accueil depuis les vues secondaires.
 
 ## Nombre de réponses
 

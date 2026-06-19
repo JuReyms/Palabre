@@ -17,7 +17,7 @@ From this screen:
 - use `/ask` or `/debat` to switch mode;
 - use `/agents` to choose agents;
 - use `/roles` to apply roles;
-- use `/historique` to find recent exports;
+- use `/history` to find recent exports;
 - use `/config` to change settings without leaving the TUI.
 
 `palabre new` remains available as the historical guided assistant.
@@ -86,7 +86,7 @@ palabre config --ask-agents codex claude opencode
 palabre config --ask-summary-agent opencode
 ```
 
-From the TUI home screen, `/ask` switches to Ask mode, `/agents` chooses active agents, and `/roles` applies roles.
+From the TUI home screen, `/ask` switches to Ask mode, `/agents` chooses active agents, `/roles` applies roles, and `/home` returns to the home screen from secondary views.
 
 ## Number of turns
 

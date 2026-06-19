@@ -32,6 +32,7 @@ test("TuiRenderer renders a lightweight terminal dashboard", () => {
   assert.match(text, /Session complete/);
   assert.match(text, /File\s+out\.debate\.md/);
   assert.match(text, /Folder\s+\./);
+  assert.match(text, /Find your exports again with \/history\./);
   assert.equal(text.match(/out\.debate\.md/g)?.length, 1);
 });
 
@@ -85,6 +86,25 @@ test("TuiRenderer renders runtime errors as a centered card", () => {
   const text = output.join("");
   assert.match(text, /\| Error/);
   assert.match(text, /\| antigravity \(implementer, turn 4\): antigravity cancelled by user\./);
+});
+
+test("TuiRenderer renders notices as centered cards", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    const renderer = createTuiRenderer(createTranslator("fr"));
+    renderer.notice("Arret anticipe: Accord clair detecte apres un tour complet.");
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /\| Info: Arret anticipe: Accord clair detecte apres un tour complet\./);
 });
 
 test("renderTuiHome renders a Palabre launch screen", () => {
@@ -161,7 +181,8 @@ test("renderTuiHelp renders slash commands", () => {
   assert.match(text, /\/config/);
   assert.match(text, /\/retry/);
   assert.match(text, /relancer la derniere session/);
-  assert.match(text, /\/historique/);
+  assert.match(text, /\/history/);
+  assert.match(text, /\/home/);
   assert.match(text, /\/quit/);
   assert.match(text, /Tape un sujet ou une commande/);
   assert.doesNotMatch(text, /plusieurs reponses independantes/);
@@ -194,10 +215,12 @@ test("renderTuiHistory renders recent exports", () => {
   assert.match(text, /Historique Palabre/);
   assert.match(text, /Mode debat/);
   assert.match(text, /Fichier/);
+  assert.match(text, /Dossier/);
   assert.match(text, /Verifier l'historique/);
   assert.match(text, /codex <-> claude/);
   assert.match(text, /Tours\s+2\/4/);
   assert.match(text, /palabre-verifier-l-historique/);
+  assert.match(text, /C:\\repo\\.palabre/);
 });
 
 test("renderTuiRolesHelp renders available roles", () => {
@@ -311,7 +334,7 @@ test("renderTuiConfig keeps the Palabre brand header", () => {
   assert.match(text, /Usage: \/ollama-model <model>/);
   assert.match(text, /Usage: \/interface <tui\|terminal>/);
   assert.match(text, /Usage: \/language <fr\|en>/);
-  assert.match(text, /\/back/);
+  assert.match(text, /\/home/);
   assert.match(text, /Debate/);
   assert.match(text, /Roles\s+implementer <-> critic/);
   assert.doesNotMatch(text, /gemini/);

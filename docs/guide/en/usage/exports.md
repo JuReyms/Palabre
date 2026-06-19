@@ -8,7 +8,7 @@ Each session generates a Markdown export in the folder defined by `outputDir`:
 - `.debate.md` for a debate;
 - `.ask.md` for an Ask request.
 
-By default, exports are grouped in a `.palabre/` folder under the directory from which you run `palabre`. At the end of the session, the terminal displays a `Palabre exported:` line followed by the full path to the file.
+By default, exports are grouped in a `.palabre/` folder under the directory from which you run `palabre`. At the end of a TUI session, Palabre displays the exported file and its folder with clickable links in compatible terminals. The `/history` command lets you find recent exports again from the TUI home screen.
 
 ## Export contents
 
@@ -51,3 +51,13 @@ In the advanced configuration:
 ```
 
 Future exports will be placed in this folder.
+
+## History
+
+From the TUI:
+
+```text
+/history
+```
+
+The history view displays recent `.debate.md` and `.ask.md` exports, their mode, agents, turn or response count, file, and output folder. Outside the TUI, use `palabre history` or `palabre history --json`.

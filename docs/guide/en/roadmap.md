@@ -14,7 +14,7 @@ The main features are available:
 - global or local configuration;
 - detection of installed agents;
 - automatic global configuration on first TUI launch, with conservative refresh of detected known agents;
-- TUI-first interface with `palabre`, `/agents`, `/roles`, and `/config`;
+- TUI-first interface with `palabre`, `/agents`, `/roles`, `/config`, `/history`, and `/home`;
 - interactive assistant `palabre new`;
 - `ask` mode with 1 to 4 agents and `.ask.md` export;
 - presets such as `codex-claude`, `claude-antigravity`, `codex-antigravity`, or `opencode-ollama`;
@@ -23,6 +23,7 @@ The main features are available:
 - previewing the context scan with `palabre context scan --json` for integrations;
 - final summary with consensus, disagreements, proposed actions, and conclusion;
 - Markdown export `.debate.md` or `.ask.md` with a name based on the subject;
+- local export history with `palabre history`, `palabre history --json`, and `/history` in the TUI;
 - partial export preserved if an agent fails during the debate or final summary;
 - diagnostics with `palabre doctor`;
 - machine-readable output with `palabre presets --json`, `palabre context scan --json`, and the NDJSON renderer;
@@ -57,7 +58,6 @@ Reproducible tests already cover the CLI adapter, the NDJSON renderer, preset av
 
 These topics are considered after the CLI stabilizes:
 
-- local debate history;
 - resuming a debate from an existing transcript;
 - OpenAI-compatible local provider for LM Studio, LocalAI, vLLM, or equivalent;
 - ongoing maintenance of the French and English documentation;

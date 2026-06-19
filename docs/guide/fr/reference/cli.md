@@ -26,7 +26,7 @@ L'accueil TUI applique la même synchronisation prudente des agents connus que `
 | -------------------------------------------- | ----------------------------------------- |
 | `palabre config`                             | Ouvre l'assistant de configuration.       |
 | `palabre config --set-defaults codex claude` | Définit les agents par défaut.            |
-| `palabre config -t 4`                        | Définit le nombre de réponses par défaut. |
+| `palabre config -t 4`                        | Définit le nombre de tours par défaut. |
 | `palabre config --summary-agent claude`      | Définit l'agent de synthèse par défaut.   |
 | `palabre config --summary-agent none`        | Retire l'agent de synthèse par défaut.    |
 | `palabre config --ask-summary-agent opencode` | Définit l'agent de synthèse par défaut du mode ask. |
@@ -61,13 +61,13 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 | `/agents` | Affiche les agents disponibles ou modifie les agents actifs si des noms sont fournis. |
 | `/roles` | Affiche les rôles disponibles ou modifie les rôles actifs si des rôles sont fournis. |
 | `/config` | Ouvre les réglages TUI. |
-| `/historique` | Affiche les derniers exports Markdown. Alias : `/history`. |
+| `/history` | Affiche les derniers exports Markdown. Alias : `/historique`. |
 | `/ollama` | Affiche le modèle Ollama configuré et les modèles installés depuis `/config`. |
 | `/ollama-model <modele>` | Change le modèle configuré de `ollama-local` depuis `/config`. |
 | `/ollama-sync` | Remplace le modèle Ollama configuré par un modèle installé quand le modèle courant est absent. |
 | `/language fr`, `/language en` | Change la langue depuis `/config`. Alias : `/lang`, `/langue`. |
 | `/interface tui`, `/interface terminal` | Change l'interface par défaut depuis `/config`. |
-| `/back` | Revient à l'écran précédent. |
+| `/home` | Revient à l'accueil TUI. Alias : `/back`. |
 | `/quit` | Quitte la TUI. |
 
 ## Intégrations

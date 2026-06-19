@@ -73,7 +73,7 @@ palabre config --set-ollama-model <modele-ollama-installe>
 palabre config --sync-ollama-model
 ```
 
-Dans la TUI, les mêmes réglages courants sont accessibles depuis `/config` avec des commandes comme `/agents`, `/roles`, `/summary`, `/turns`, `/interface`, `/language`, `/mode`, `/default`, `/ollama`, `/ollama-model <modele>` et `/ollama-sync`.
+Dans la TUI, les mêmes réglages courants sont accessibles depuis `/config` avec des commandes comme `/agents`, `/roles`, `/summary`, `/turns`, `/interface`, `/language`, `/mode`, `/ollama`, `/ollama-model <modele>` et `/ollama-sync`. Utilisez `/home` pour revenir à l'accueil.
 
 ## Aller plus loin
 

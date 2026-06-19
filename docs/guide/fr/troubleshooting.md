@@ -9,7 +9,7 @@ Commencez par lancer le diagnostic :
 palabre doctor
 ```
 
-`doctor` ne lance aucun agent IA. Il affiche un diagnostic par sections : configuration, outils locaux, agents et points à vérifier. Il contrôle les agents déclarés, les paramètres par défaut, le nombre de réponses, `outputDir`, les CLIs disponibles, Ollama et les modèles configurés.
+`doctor` ne lance aucun agent IA. Il affiche un diagnostic par sections : configuration, outils locaux, agents et points à vérifier. Il contrôle les agents déclarés, les paramètres par défaut, le nombre de tours, `outputDir`, les CLIs disponibles, Ollama et les modèles configurés.
 
 Pour obtenir une sortie brute adaptée aux logs ou aux scripts :
 
@@ -95,7 +95,7 @@ palabre config --sync-agents
 
 Cette commande ajoute les agents connus manquants et rafraîchit les noms de commandes connus sans écraser vos réglages existants.
 
-## Le nombre de réponses par défaut est invalide
+## Le nombre de tours par défaut est invalide
 
 Message typique :
 

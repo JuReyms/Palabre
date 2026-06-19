@@ -65,6 +65,7 @@ export interface TuiMessages {
   agentsPrompt: string;
   rolesPrompt: string;
   sessionDone: string;
+  sessionHistoryHint: string;
   askResponse(response: number, totalResponses: number): string;
   turnLabel(turn: number): string;
   planTitle: string;
@@ -179,6 +180,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     agentsPrompt: "Agents",
     rolesPrompt: "Roles",
     sessionDone: "Session terminee",
+    sessionHistoryHint: "Retrouvez vos exports avec /history.",
     askResponse: (response, totalResponses) => `reponse ${response}/${totalResponses}`,
     turnLabel: (turn) => `tour ${turn}`,
     planTitle: "Plan de session",
@@ -188,7 +190,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     planSummaryDisabled: "Synthese desactivee",
     planExport: "Export Markdown",
     ptyNotice: (agents) => `Note: ${agents} utilise un pseudo-terminal; une fenetre peut apparaitre brievement.`,
-    unknownCommand: "Commande inconnue. Utilise /back pour revenir.",
+    unknownCommand: "Commande inconnue. Utilise /home pour revenir.",
     turnsUsage: "Usage: /turns <tours>",
     summaryUsage: "Usage: /summary <agent|none>",
     ollamaModelUsage: "Usage: /ollama-model <modele>",
@@ -291,6 +293,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     agentsPrompt: "Agents",
     rolesPrompt: "Roles",
     sessionDone: "Session complete",
+    sessionHistoryHint: "Find your exports again with /history.",
     askResponse: (response, totalResponses) => `response ${response}/${totalResponses}`,
     turnLabel: (turn) => `turn ${turn}`,
     planTitle: "Session plan",
@@ -300,7 +303,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     planSummaryDisabled: "Summary disabled",
     planExport: "Markdown export",
     ptyNotice: (agents) => `Note: ${agents} uses a pseudo-terminal; a window may briefly appear.`,
-    unknownCommand: "Unknown command. Use /back to return.",
+    unknownCommand: "Unknown command. Use /home to return.",
     turnsUsage: "Usage: /turns <turns>",
     summaryUsage: "Usage: /summary <agent|none>",
     ollamaModelUsage: "Usage: /ollama-model <model>",

@@ -38,7 +38,7 @@ palabre presets --json
 - affichage des réponses, de la synthèse et des erreurs dans une interface VS Code ;
 - bouton pour ouvrir le fichier `.debate.md` ou `.ask.md` exporté ;
 - bouton d'arrêt qui annule le processus Palabre et ses agents enfants ;
-- réglages rapides pour le preset par défaut, l'agent de synthèse, la langue, le nombre de réponses, la synchronisation des agents et le modèle Ollama quand Ollama est disponible ;
+- réglages rapides pour le preset par défaut, l'agent de synthèse, la langue, le nombre de tours, la synchronisation des agents et le modèle Ollama quand Ollama est disponible ;
 - accès rapide à `Palabre: Run Doctor` et à l'Output channel Palabre en cas d'erreur.
 
 ## Dépannage rapide
