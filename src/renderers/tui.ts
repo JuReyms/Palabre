@@ -1,5 +1,6 @@
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateStartAgentInfo, Language, PalabreConfig, PalabreInterface, PalabreMode } from "../types.js";
 import type { Messages } from "../messages/index.js";
@@ -715,9 +716,12 @@ class TuiRenderer implements DebateRenderer {
     this.thinkingEnd();
     const viewport = viewportWidth();
     const width = this.width();
-    process.stdout.write(`\n${centerBlock(card([
+    const folderPath = path.dirname(outputPath);
+    const fileName = path.basename(outputPath);
+    process.stdout.write(`\n${centerBlock(panel([
       bold(this.messages.tui.sessionDone),
-      this.messages.renderers.exported(outputPath)
+      row(this.messages.tui.historyFile, terminalLink(outputPath, compactFileName(fileName, width - 24))),
+      row(this.messages.tui.folder, terminalLink(folderPath, compactPath(folderPath, width - 24)))
     ], width), viewport).join("\n")}\n\n`);
   }
 
@@ -725,36 +729,20 @@ class TuiRenderer implements DebateRenderer {
     const viewport = viewportWidth();
     const width = this.width();
     const mode = messagesModeLabel(this.messages, options.mode).toUpperCase();
-    const main = [
-      ...card([
-        accent(mode),
-        this.messages.renderers.subject(options.topic),
-        this.messages.renderers.agents(formatAgents(options, agents)),
-        this.messages.renderers.responsesSummary(formatResponseCount(options), formatSummary(options, this.messages)),
-        this.messages.renderers.context(formatContext(options, this.messages)),
-        ...formatPtyNotice(agents, this.messages)
-      ], width)
-    ];
+    const main = panel([
+      accent(mode),
+      this.messages.renderers.subject(options.topic),
+      this.messages.renderers.agents(formatAgents(options, agents)),
+      formatSessionProgress(options, this.messages),
+      this.messages.renderers.context(formatContext(options, this.messages))
+    ], width);
 
     return [
       ...centerLogo(viewport, this.messages),
       "",
       ...centerBlock(main, viewport),
-      "",
-      ...centerBlock(this.planPanel(options, width), viewport),
       ""
     ];
-  }
-
-  private planPanel(options: DebateOptions, width: number): string[] {
-    return panel([
-      bold(this.messages.tui.planTitle),
-      dim(options.session.localDate),
-      "",
-      `${accent("1")} ${options.mode === "ask" ? this.messages.tui.planCollectAsk : this.messages.tui.planLaunchDebate}`,
-      `${accent("2")} ${options.summaryEnabled ? this.messages.tui.planSummaryComparative : this.messages.tui.planSummaryDisabled}`,
-      `${accent("3")} ${this.messages.tui.planExport}`
-    ], width);
   }
 
   private promptBlock(title: string, agent?: string): void {
@@ -822,14 +810,7 @@ function formatAgents(options: DebateOptions, agents: DebateStartAgentInfo[]): s
 }
 
 function formatAgent(agent: DebateStartAgentInfo | undefined): string {
-  return agent ? `${agentLabel(agent.name)} (${agent.role}, ${agent.type})` : "?";
-}
-
-function formatPtyNotice(agents: DebateStartAgentInfo[], messages: Messages): string[] {
-  const ptyAgents = agents.filter((agent) => agent.type === "cli-pty").map((agent) => agent.name);
-  return ptyAgents.length > 0
-    ? ["", orange(messages.tui.ptyNotice(ptyAgents.join(", ")))]
-    : [];
+  return agent ? `${agentLabel(agent.name)} (${agent.role})` : "?";
 }
 
 function formatSummary(options: DebateOptions, messages: Messages): string {
@@ -850,6 +831,10 @@ function formatSummary(options: DebateOptions, messages: Messages): string {
 
 function formatResponseCount(options: DebateOptions): number {
   return options.mode === "ask" ? options.askAgents?.length ?? 2 : options.turns;
+}
+
+function formatSessionProgress(options: DebateOptions, messages: Messages): string {
+  return `${messages.tui.historyCount(options.mode)}: ${formatResponseCount(options)} | ${messages.tui.summary}: ${formatSummary(options, messages)}`;
 }
 
 function formatContext(options: DebateOptions, messages: Messages): string {
@@ -1173,10 +1158,6 @@ function accent(value: string): string {
 
 function violet(value: string): string {
   return supportsColor ? `${codes.violet}${value}${codes.reset}` : value;
-}
-
-function orange(value: string): string {
-  return supportsColor ? `${codes.orange}${value}${codes.reset}` : value;
 }
 
 function muted(value: string): string {

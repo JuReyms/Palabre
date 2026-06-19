@@ -30,12 +30,12 @@ test("TuiRenderer renders a lightweight terminal dashboard", () => {
   assert.match(text, /------------------------------/);
   assert.match(text, /Hello from codex/);
   assert.match(text, /Session complete/);
-  assert.match(text, /Markdown export/);
-  assert.match(text, /Palabre exported: out\.debate\.md/);
+  assert.match(text, /File\s+out\.debate\.md/);
+  assert.match(text, /Folder\s+\./);
   assert.equal(text.match(/out\.debate\.md/g)?.length, 1);
 });
 
-test("TuiRenderer warns when a PTY agent may open a terminal window", () => {
+test("TuiRenderer keeps session header user-facing", () => {
   const output: string[] = [];
   const originalWrite = process.stdout.write;
   process.stdout.write = ((chunk: string | Uint8Array) => {
@@ -54,8 +54,9 @@ test("TuiRenderer warns when a PTY agent may open a terminal window", () => {
   }
 
   const text = output.join("");
-  assert.match(text, /pseudo-terminal/);
-  assert.match(text, /fenetre peut apparaitre brievement/);
+  assert.match(text, /Agents: antigravity \(reviewer\) <-> codex \(implementer\)/);
+  assert.match(text, /Tours: 2 \| Synthese: claude/);
+  assert.doesNotMatch(text, /cli-pty|pseudo-terminal|Plan de session/);
 });
 
 test("TuiRenderer renders runtime errors as a centered card", () => {
