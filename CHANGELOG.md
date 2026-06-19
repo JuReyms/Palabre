@@ -4,16 +4,23 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-06-19
+
 ### Added
 
 - Premier lancement TUI : `palabre` crée maintenant la configuration globale si aucune config n'existe, puis ouvre directement l'accueil.
 - Accueil TUI : synchronisation prudente des agents connus détectés à chaque ouverture, avec ajout des agents manquants et rafraîchissement des commandes connues.
 - Configuration TUI : `/ollama`, `/ollama-model <model>` et `/ollama-sync` permettent de consulter et changer le modèle `ollama-local` sans quitter Palabre.
+- TUI : `/history` affiche les derniers exports Markdown, avec liens fichier/dossier quand le terminal les supporte.
+- TUI : `/home` ramène à l'accueil depuis les vues secondaires et après une session.
 
 ### Changed
 
 - `palabre config --sync-agents` persiste aussi les rafraîchissements de commandes connues même lorsqu'aucun nouvel agent n'est ajouté.
 - Les guides et l'aide CLI recommandent désormais `palabre` comme entrée de première utilisation, avec `palabre init` réservé au setup explicite ou local.
+- Les cartes TUI de session, de fin de session, d'historique et d'aide utilisent un rendu plus homogène et gardent le header Palabre.
+- Les synthèses exposent le rôle runtime `summarizer`, même si l'agent configuré possède un autre rôle par défaut.
+- Vibe n'utilise plus le mode `plan` par défaut pour éviter des réponses mal adaptées à Palabre.
 
 ### Fixed
 
@@ -21,6 +28,9 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 - Adapter Ollama : la progression de `--pull-models` est écrite sur stderr afin de préserver stdout pour le NDJSON.
 - `--context` : les chemins absents ou inaccessibles produisent un warning au lieu d'interrompre la session.
 - Parser CLI : `--agents` et `palabre config --ask-agents` conservent toutes les valeurs afin que la validation métier signale correctement le dépassement de 4 agents.
+- Débat TUI : les defaults Ask ne contaminent plus le lancement d'un débat.
+- Windows : les arguments des agents CLI sont quotés plus strictement quand ils passent par le shell.
+- TUI : les messages d'erreur et d'arrêt anticipé sont centrés comme les autres cartes runtime.
 
 ## [0.8.0] - 2026-06-17
 
