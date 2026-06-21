@@ -4,6 +4,7 @@ import {
   detectedAgentNames,
   detectionForCommand,
   isAgentDetected,
+  isRetiredAgentName,
   normalizeCommandName
 } from "../src/agentRegistry.js";
 import type { ToolDiscovery } from "../src/discovery.js";
@@ -24,6 +25,11 @@ test("detectionForCommand resolves both Antigravity aliases and ignores custom c
   assert.equal(detectionForCommand("my-custom-cli", discovery), undefined);
 });
 
+test("isRetiredAgentName keeps archived agents out of active inventories", () => {
+  assert.equal(isRetiredAgentName("gemini"), true);
+  assert.equal(isRetiredAgentName("Gemini"), true);
+  assert.equal(isRetiredAgentName("antigravity"), false);
+});
 test("detectedAgentNames lists detected agents in canonical order", () => {
   const discovery = discoveryWith({ codex: true, opencode: true, vibe: true, ollama: true });
 

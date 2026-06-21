@@ -29,6 +29,7 @@ Usage:
 Flags:
   --config <path>      chemin de config explicite
   --language <fr|en>   force la langue
+  --json               sortie JSON pour les integrations
 `,
   presets: `
 Liste les presets de paires d'agents.
@@ -182,6 +183,7 @@ Usage:
 Flags:
   --config <path>      explicit config path
   --language <fr|en>   forces the language
+  --json               JSON output for integrations
 `,
   presets: `
 Lists agent-pair presets.

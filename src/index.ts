@@ -10,7 +10,7 @@ import { createTranslator, DEFAULT_LANGUAGE, parseLanguage, resolveLanguage } fr
 import { DEFAULT_TURNS, parseTurnsFlag, turnsOrDefault, validateTurns } from "./limits.js";
 import { formatAgentPrompt } from "./prompt.js";
 import { runNewWizard } from "./new.js";
-import { listPresetNames, listPresetsWithAvailability, resolvePreset } from "./presets.js";
+import { listAgentsWithAvailability, listPresetNames, listPresetsWithAvailability, resolvePreset } from "./presets.js";
 import { listHistoryEntries } from "./history.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { createNdjsonRenderer } from "./renderers/ndjson.js";
@@ -21,7 +21,7 @@ import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./up
 import { createSessionContext } from "./session.js";
 import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { askAgentSeedsForMode, clearTuiRunOverrides } from "./tuiState.js";
-import { detectedAgentNames, detectionForCommand } from "./agentRegistry.js";
+import { detectedAgentNames, detectionForCommand, isRetiredAgentName } from "./agentRegistry.js";
 import { getPackageVersion } from "./version.js";
 import type { CommandDetection } from "./discovery.js";
 import type { AgentConfig, AgentRole, DebateOptions, PalabreConfig, PalabreInterface, PalabreMode } from "./types.js";
@@ -410,6 +410,20 @@ async function runAgentsCommand(flags: Record<string, string | string[] | boolea
   });
   const messages = createTranslator(language);
   const discovery = await discoverLocalTools();
+  if (flags.json) {
+    const fallbackAskAgents = [config.defaults?.agentA, config.defaults?.agentB]
+      .filter((name): name is string => typeof name === "string" && !isRetiredAgentName(name));
+    process.stdout.write(JSON.stringify({
+      v: 1,
+      agents: listAgentsWithAvailability(config, discovery, messages),
+      defaults: {
+        askAgents: config.defaults?.askAgents?.length
+          ? config.defaults.askAgents.filter((name) => !isRetiredAgentName(name))
+          : fallbackAskAgents
+      }
+    }) + "\n");
+    return;
+  }
   printAgents(configPath, config, discovery, messages);
 }
 /**
@@ -1466,7 +1480,9 @@ function printAgents(
   discovery: Awaited<ReturnType<typeof discoverLocalTools>>,
   messages: Messages
 ): void {
-  const entries = Object.entries(config.agents).sort(([left], [right]) => left.localeCompare(right));
+  const entries = Object.entries(config.agents)
+    .filter(([name]) => !isRetiredAgentName(name))
+    .sort(([left], [right]) => left.localeCompare(right));
 
   console.log(messages.agents.config(configPath));
   console.log("");
@@ -1688,4 +1704,3 @@ function safeStartupLanguage(args: string[]) {
     return DEFAULT_LANGUAGE;
   }
 }
-

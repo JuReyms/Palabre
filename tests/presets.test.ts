@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { exampleConfig } from "../src/config.js";
 import { createTranslator } from "../src/i18n.js";
-import { listPresetsWithAvailability, resolvePreset } from "../src/presets.js";
+import { listAgentsWithAvailability, listPresetsWithAvailability, resolvePreset } from "../src/presets.js";
 import type { ToolDiscovery } from "../src/discovery.js";
 
 function discovery(overrides: Partial<ToolDiscovery> = {}): ToolDiscovery {
@@ -60,6 +60,35 @@ test("listPresetsWithAvailability localizes unavailable reasons", () => {
 
   assert.equal(codexOpencode?.available, false);
   assert.equal(codexOpencode?.unavailableReasons[0], "command not detected for opencode: opencode");
+});
+
+test("listAgentsWithAvailability exposes active configured agents with CLI-owned availability", () => {
+  const config = structuredClone(exampleConfig);
+  config.agents.gemini = {
+    type: "cli",
+    command: "gemini",
+    role: "reviewer"
+  };
+  config.agents.custom = {
+    type: "cli",
+    command: "custom-agent",
+    role: "scout"
+  };
+  const agents = listAgentsWithAvailability(config, discovery());
+
+  assert.equal(agents.some((agent) => agent.name === "gemini"), false);
+  assert.equal(agents.find((agent) => agent.name === "claude")?.available, true);
+  assert.equal(agents.find((agent) => agent.name === "opencode")?.available, false);
+  assert.match(
+    agents.find((agent) => agent.name === "opencode")?.unavailableReason ?? "",
+    /opencode/
+  );
+  assert.deepEqual(agents.find((agent) => agent.name === "custom"), {
+    name: "custom",
+    type: "cli",
+    role: "scout",
+    available: true
+  });
 });
 
 test("resolvePreset localizes unknown preset errors", () => {

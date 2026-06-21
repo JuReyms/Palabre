@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateStartAgentInfo, Language, PalabreConfig, PalabreInterface, PalabreMode } from "../types.js";
 import type { Messages } from "../messages/index.js";
 import type { HistoryEntry } from "../history.js";
+import { isRetiredAgentName } from "../agentRegistry.js";
 
 const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
 const supportsInteractiveOutput = Boolean(process.stdout.isTTY);
@@ -992,10 +993,12 @@ function activeAgentNamesForMode(config: PalabreConfig, mode: PalabreMode): stri
     const agents = defaults.askAgents && defaults.askAgents.length > 0
       ? defaults.askAgents
       : [defaults.agentA, defaults.agentB].filter((agent): agent is string => Boolean(agent));
-    return agents.filter((agent) => Boolean(config.agents[agent]));
+    return agents.filter((agent) => Boolean(config.agents[agent]) && !isRetiredAgentName(agent));
   }
 
-  return [defaults.agentA, defaults.agentB].filter((agent): agent is string => Boolean(agent && config.agents[agent]));
+  return [defaults.agentA, defaults.agentB].filter((agent): agent is string =>
+    typeof agent === "string" && Boolean(config.agents[agent]) && !isRetiredAgentName(agent)
+  );
 }
 
 function agentInventoryLine(config: PalabreConfig, messages: Messages): string {
@@ -1017,17 +1020,13 @@ function agentInventoryRows(config: PalabreConfig, messages: Messages): string[]
   return entries.map(([name, agent]) => row(name, `${agent.type} ${dim("·")} ${agent.role}`));
 }
 
-function isRetiredAgentName(name: string): boolean {
-  return name === "gemini";
-}
-
 function exampleAgentsForMode(config: PalabreConfig, mode: PalabreMode): string[] {
   const activeAgents = activeAgentNamesForMode(config, mode);
   if (activeAgents.length > 0) {
     return activeAgents;
   }
 
-  const available = Object.keys(config.agents).sort();
+  const available = Object.keys(config.agents).filter((agent) => !isRetiredAgentName(agent)).sort();
   return mode === "ask" ? available.slice(0, 3) : available.slice(0, 2);
 }
 

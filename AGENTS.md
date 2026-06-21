@@ -156,7 +156,18 @@ Les modeles restent ceux des CLIs ou de la config, sauf override explicite par `
 
 A chaque ajout de preset dans `src/presets.ts`, refleter dans cette section. L'extension VS Code (`Palabre-vscode`) consomme `palabre presets --json` au demarrage et n'a donc plus besoin d'etre synchronisee manuellement.
 
-### Commande `palabre presets`
+### Commandes `palabre agents` et `palabre presets`
+
+Liste les agents configurés pour les intégrations :
+
+```bash
+palabre agents --json
+```
+
+Le schéma JSON v1 exclut les agents retirés encore présents dans les anciennes configs (actuellement Gemini) et expose `agents[]` avec `name`, `type`, `role`,
+`available` et `unavailableReason` quand nécessaire, ainsi que
+`defaults.askAgents`. La disponibilité vient de la même logique CLI que les
+presets ; une intégration ne doit pas la recalculer.
 
 Liste les presets disponibles.
 

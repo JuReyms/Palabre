@@ -4,6 +4,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Added
+
+- `palabre agents --json` expose un contrat v1 pour les intégrations avec les agents configurés actifs, leur disponibilité locale et la sélection Ask par défaut ; les agents retirés comme Gemini restent exclus même s'ils existent dans une ancienne config.
+
 ## [0.8.1] - 2026-06-19
 
 ### Added

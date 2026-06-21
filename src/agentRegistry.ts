@@ -31,6 +31,13 @@ const KNOWN_CLI_AGENTS: readonly KnownCliAgent[] = [
   { configKey: "vibe", commandAliases: ["vibe"], discoveryKey: "vibe" }
 ];
 
+/** Agents retirés conservés uniquement pour lire les anciennes configurations. */
+const RETIRED_AGENT_NAMES = new Set(["gemini"]);
+
+/** Indique qu'un nom d'agent ne doit plus être proposé ni exposé aux intégrations. */
+export function isRetiredAgentName(name: string): boolean {
+  return RETIRED_AGENT_NAMES.has(name.toLowerCase());
+}
 /** Clé de config de l'agent Ollama local par défaut. */
 export const OLLAMA_AGENT_KEY = "ollama-local";
 

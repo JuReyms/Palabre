@@ -1,4 +1,4 @@
-import { detectionForCommand } from "./agentRegistry.js";
+import { detectionForCommand, isRetiredAgentName } from "./agentRegistry.js";
 import type { ToolDiscovery } from "./discovery.js";
 import type { PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
@@ -19,6 +19,15 @@ export interface PresetAvailability extends PresetInfo {
   available: boolean;
   missingAgents: string[];
   unavailableReasons: string[];
+}
+
+/** Agent configuré enrichi avec sa disponibilité locale pour les intégrations. */
+export interface AgentAvailability {
+  name: string;
+  type: PalabreConfig["agents"][string]["type"];
+  role: PalabreConfig["agents"][string]["role"];
+  available: boolean;
+  unavailableReason?: string;
 }
 
 const presets: Record<string, AgentPairPreset> = {
@@ -189,6 +198,27 @@ export function listPresetsWithAvailability(config: PalabreConfig, discovery: To
       unavailableReasons: unavailable.map((check) => check.reason)
     };
   });
+}
+
+/**
+ * Retourne tous les agents de la config avec la même disponibilité que celle
+ * utilisée pour les presets. Les intégrations ne doivent pas réimplémenter la
+ * découverte des commandes ou des modèles Ollama.
+ */
+export function listAgentsWithAvailability(config: PalabreConfig, discovery: ToolDiscovery, messages?: Messages): AgentAvailability[] {
+  return Object.entries(config.agents)
+    .filter(([name]) => !isRetiredAgentName(name))
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([name, agentConfig]) => {
+      const check = checkAgentAvailability(name, config, discovery, messages);
+      return {
+        name,
+        type: agentConfig.type,
+        role: agentConfig.role,
+        available: check.available,
+        ...(check.available ? {} : { unavailableReason: check.reason })
+      };
+    });
 }
 
 /** Recherche inverse : retourne le nom du preset correspondant à une paire `(agentA, agentB)`, ou `undefined`. */
