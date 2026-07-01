@@ -1,3 +1,5 @@
+/** @file Contrats partagés entre modules : agents, config, options de débat et résultats de session. */
+
 /** Rôle fonctionnel de l'agent dans le débat. Non décoratif : guide les prompts et les modes d'orchestration futurs. */
 export type AgentRole =
   | "implementer"

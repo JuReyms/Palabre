@@ -1,3 +1,4 @@
+/** @file Rendu des prompts agent (débat, ask, synthèse) avec contexte de session, fichiers et transcript. */
 import { createTranslator } from "./i18n.js";
 import type { PromptMessages } from "./messages/prompt.js";
 import type { AgentPrompt, DebateMessage, ProjectFileContext } from "./types.js";

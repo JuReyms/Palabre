@@ -1,3 +1,4 @@
+/** @file Contrôleur des interactions TUI qui lisent et persistent la configuration Palabre. */
 import { setOllamaBaseUrl, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeExampleConfig } from "./config.js";
 import { discoverLocalToolsForConfig } from "./discovery.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
@@ -7,6 +8,16 @@ import { DEFAULT_OLLAMA_BASE_URL, normalizeOllamaBaseUrl, OllamaUrlError, resolv
 import { promptTuiAgentsWizard, promptTuiConfigCommand, promptTuiRolesWizard, renderTuiConfig } from "./renderers/tui.js";
 import type { AgentRole, PalabreConfig, PalabreMode } from "./types.js";
 import type { Messages } from "./messages/index.js";
+
+/**
+ * Exécute la boucle `/config` jusqu'au retour à l'accueil ou à la fermeture.
+ *
+ * @param configPath - Fichier de configuration à persister après chaque changement.
+ * @param config - Configuration chargée et mutée en mémoire.
+ * @param messages - Dictionnaire actif, remplacé si la langue change.
+ * @param initialMode - Mode affiché à l'ouverture de la vue.
+ * @returns Le mode final et les indicateurs de sortie ou de defaults modifiés.
+ */
 export async function runTuiConfigLoop(
   configPath: string,
   config: PalabreConfig,
@@ -212,6 +223,7 @@ export async function runTuiConfigLoop(
   }
 }
 
+/** Normalise et persiste l'URL de tous les agents Ollama configurés. */
 async function setTuiOllamaUrl(
   configPath: string,
   config: PalabreConfig,
@@ -236,6 +248,7 @@ function isDefaultOllamaUrl(value: string): boolean {
   return ["default", "defaut", "défaut", "local", "localhost"].includes(value.trim().toLowerCase());
 }
 
+/** Interroge le serveur Ollama effectif et formate son état pour une notice TUI. */
 async function formatTuiOllamaInfo(config: PalabreConfig, messages: Messages): Promise<string> {
   const discovery = await discoverLocalToolsForConfig(config);
   const agent = config.agents["ollama-local"];
@@ -255,6 +268,7 @@ async function formatTuiOllamaInfo(config: PalabreConfig, messages: Messages): P
   return messages.tui.ollamaInfo(agent.model, installed, api);
 }
 
+/** Valide un modèle Ollama installé avant de le persister. */
 async function setTuiOllamaModel(configPath: string, config: PalabreConfig, model: string, messages: Messages): Promise<string> {
   const trimmed = model.trim();
   if (!trimmed) {
@@ -279,6 +293,7 @@ async function setTuiOllamaModel(configPath: string, config: PalabreConfig, mode
     : messages.config.ollamaModelNoChange(configPath, agent.model);
 }
 
+/** Remplace le modèle Ollama absent par le fallback installé choisi par la config. */
 async function syncTuiOllamaModel(configPath: string, config: PalabreConfig, messages: Messages): Promise<string> {
   const discovery = await discoverLocalToolsForConfig(config);
   const agent = config.agents["ollama-local"];
@@ -301,6 +316,13 @@ async function syncTuiOllamaModel(configPath: string, config: PalabreConfig, mes
   return messages.config.ollamaModelUpdated(configPath, result.previousModel, result.nextModel);
 }
 
+/**
+ * Synchronise les agents connus détectés avant l'affichage de l'accueil TUI.
+ *
+ * @param configPath - Fichier à réécrire uniquement si la synchronisation change la config.
+ * @param config - Configuration chargée et mise à jour en mémoire.
+ * @returns Les noms des agents nouvellement ajoutés, utilisés pour la notice d'accueil.
+ */
 export async function syncInteractiveDetectedAgents(configPath: string, config: PalabreConfig): Promise<{ addedAgents: string[] }> {
   const discovery = await discoverLocalToolsForConfig(config);
   const result = syncDetectedAgentsDetailed(config, discovery);
@@ -339,6 +361,16 @@ function normalizeTuiAskAgents(config: PalabreConfig, agents: string[], messages
   return unique;
 }
 
+/**
+ * Exécute le wizard d'agents ou applique directement les noms fournis.
+ *
+ * @param configPath - Fichier de configuration à persister.
+ * @param config - Configuration chargée et modifiée en mémoire.
+ * @param messages - Dictionnaire localisé de la vue.
+ * @param mode - Mode dont les agents actifs doivent être modifiés.
+ * @param inlineAgents - Noms fournis directement après la commande `/agents`.
+ * @returns Une notice utilisateur et les indicateurs de sortie/changement.
+ */
 export async function runTuiAgentsWizard(
   configPath: string,
   config: PalabreConfig,
@@ -365,6 +397,16 @@ export async function runTuiAgentsWizard(
   }
 }
 
+/**
+ * Exécute le wizard de rôles ou applique directement les rôles fournis.
+ *
+ * @param configPath - Fichier de configuration à persister.
+ * @param config - Configuration chargée et modifiée en mémoire.
+ * @param messages - Dictionnaire localisé de la vue.
+ * @param mode - Mode déterminant la liste d'agents concernés.
+ * @param inlineRoles - Rôles fournis directement après la commande `/roles`.
+ * @returns Une notice utilisateur et l'indicateur de fermeture de la TUI.
+ */
 export async function runTuiRolesWizard(
   configPath: string,
   config: PalabreConfig,
@@ -390,6 +432,7 @@ export async function runTuiRolesWizard(
   }
 }
 
+/** Valide puis applique les agents actifs du mode courant. */
 function applyTuiAgents(config: PalabreConfig, mode: PalabreMode, agentNames: string[], messages: Messages): string {
   if (mode === "ask") {
     const agents = normalizeTuiAskAgents(config, agentNames, messages);
@@ -402,6 +445,7 @@ function applyTuiAgents(config: PalabreConfig, mode: PalabreMode, agentNames: st
   return messages.tui.debateAgentsUpdated(`${agentA} <-> ${agentB}`);
 }
 
+/** Associe les rôles saisis aux agents actifs du mode courant. */
 function applyTuiRoles(config: PalabreConfig, mode: PalabreMode, roleNames: string[], messages: Messages): string {
   const agents = activeAgentsForMode(config, mode);
   if (agents.length === 0) {
@@ -430,6 +474,7 @@ function activeAgentsForMode(config: PalabreConfig, mode: PalabreMode): string[]
   return [defaults.agentA, defaults.agentB].filter((agent): agent is string => Boolean(agent && config.agents[agent]));
 }
 
+/** Valide les rôles connus et conserve exactement le nombre attendu. */
 function normalizeTuiRoles(roleNames: string[], agents: string[], mode: PalabreMode, messages: Messages): AgentRole[] {
   const roles = roleNames.map((role) => role.trim().toLowerCase()).filter(Boolean);
   const expectedCount = agents.length;
@@ -459,6 +504,8 @@ function assertKnownAgent(config: PalabreConfig, agentName: string, fieldName: s
     throw new Error(messages.common.unknownAgentForField(fieldName, agentName, Object.keys(config.agents).join(", ")));
   }
 }
+
+/** Convertit les erreurs adapter et URL stables en message localisé pour la TUI. */
 function formatTuiRuntimeError(error: unknown, messages: Messages): string {
   if (error instanceof AdapterError) return formatAdapterError(error, messages);
   if (error instanceof OllamaUrlError) {

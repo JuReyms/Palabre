@@ -1,3 +1,4 @@
+/** @file Résolution centralisée des flags et defaults en options runtime immuables. */
 import { getStringListFlag } from "./args.js";
 import { DEFAULT_TURNS, MAX_ASK_AGENTS, parseTurnsFlag } from "./limits.js";
 import { normalizeOllamaBaseUrl } from "./ollamaUrl.js";
@@ -8,6 +9,7 @@ import type { DebateOptions, Language, PalabreConfig, PalabreMode, ProjectFileCo
 import type { Messages } from "./messages/index.js";
 import { optionalString, type CommandFlags } from "./commands/shared.js";
 
+/** Entrées déjà chargées par le point d'entrée avant la résolution métier. */
 interface ResolveRunOptionsInput {
   flags: CommandFlags;
   config: PalabreConfig;
@@ -18,7 +20,17 @@ interface ResolveRunOptionsInput {
   signal?: AbortSignal;
 }
 
-/** Resolves flags and defaults into complete orchestrator options. */
+/**
+ * Construit le contrat complet transmis à l'orchestrateur.
+ *
+ * La priorité est : flags explicites, preset, defaults de configuration, puis
+ * fallbacks propres au mode. La fonction ne modifie ni les flags ni la config.
+ *
+ * @param input - Configuration, flags, contexte et signal de la session.
+ * @param messages - Dictionnaire localisé utilisé pour les erreurs de validation.
+ * @returns Des options complètes, avec agent de synthèse déjà résolu.
+ * @throws {Error} Si le mode, les agents, le nombre de tours ou l'URL Ollama sont invalides.
+ */
 export function resolveRunOptions(input: ResolveRunOptionsInput, messages: Messages): DebateOptions {
   const { flags, config, language, topic, files, preset, signal } = input;
   const mode = parseModeFlag(optionalString(flags.mode) ?? config.defaults?.mode, messages);
@@ -52,12 +64,14 @@ export function resolveRunOptions(input: ResolveRunOptionsInput, messages: Messa
   };
 }
 
+/** Résout un agent selon la priorité flag > preset > default configuré. */
 function resolveAgentName(label: string, explicitValue: string | string[] | boolean | undefined, presetValue: string | undefined, defaultValue: string | undefined, messages: Messages): string {
   const resolved = optionalString(explicitValue) ?? presetValue ?? defaultValue;
   if (!resolved) throw new Error(messages.common.noAgentDefined(label));
   return resolved;
 }
 
+/** Résout une seule fois l'agent de synthèse avant l'entrée dans l'orchestrateur. */
 function resolveSummaryAgent(explicitValue: string | string[] | boolean | undefined, defaults: PalabreConfig["defaults"] | undefined, mode: PalabreMode, askAgents: string[] | undefined, agentB: string): string {
   const explicit = optionalString(explicitValue);
   if (explicit) return explicit;
@@ -65,12 +79,14 @@ function resolveSummaryAgent(explicitValue: string | string[] | boolean | undefi
   return defaults?.summaryAgent ?? agentB;
 }
 
+/** Valide le mode demandé et applique `debate` quand aucune valeur n'est fournie. */
 function parseModeFlag(value: string | undefined, messages: Messages): PalabreMode {
   if (!value) return "debate";
   if (value === "debate" || value === "ask") return value;
   throw new Error(messages.common.unknownMode(value, "debate, ask"));
 }
 
+/** Déduplique les agents Ask et applique la limite produit sans modifier les listes sources. */
 function resolveAskAgents(explicitAgents: string[], defaultAgents: string[] | undefined, fallbackAgents: string[], messages: Messages): string[] {
   const selected = explicitAgents.length > 0 ? explicitAgents : defaultAgents && defaultAgents.length > 0 ? defaultAgents : fallbackAgents;
   const unique = selected.filter((agent, index) => agent.trim() && selected.indexOf(agent) === index);

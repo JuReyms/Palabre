@@ -1,3 +1,4 @@
+/** @file Résolution d'extensions exécutables partagée entre discovery et l'adapter PTY. */
 import path from "node:path";
 
 /**

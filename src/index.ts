@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+/**
+ * @file Point d'entrée CLI de Palabre : parsing des arguments, dispatch vers les
+ * commandes leaf (`agents`, `presets`, `history`, `context`, `update`, `init`, `config`),
+ * résolution de la config/langue, boucle TUI d'accueil et lancement d'un débat ou d'une
+ * requête `ask` via l'orchestrateur.
+ */
 import { assertRunnableConfig, configExists, createConfigFromDiscovery, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeExampleConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
 import { discoverLocalTools, discoverLocalToolsForConfig } from "./discovery.js";
@@ -350,6 +356,7 @@ async function main(): Promise<void> {
   }
 }
 
+/** Construit un signal d'annulation déclenché sur `SIGINT`/`SIGTERM` pour interrompre un débat en cours. */
 function debateAbortSignal(): AbortSignal {
   const controller = new AbortController();
   const abort = () => {
@@ -506,6 +513,11 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   await runConfigWizard(configPath, config, messages);
 }
 
+/**
+ * Affiche l'état de l'agent Ollama local (modèle courant, disponibilité de l'API, modèles installés).
+ * @param config - Config chargée.
+ * @param json - Si `true`, affiche le résultat en JSON plutôt qu'en texte lisible.
+ */
 async function runOllamaModelsCommand(config: PalabreConfig, json: boolean): Promise<void> {
   const discovery = await discoverLocalToolsForConfig(config);
   const agent = config.agents["ollama-local"];
@@ -530,6 +542,12 @@ async function runOllamaModelsCommand(config: PalabreConfig, json: boolean): Pro
   console.log(`Modèles installés: ${discovery.ollama.models.length > 0 ? discovery.ollama.models.join(", ") : "(aucun)"}`);
 }
 
+/**
+ * Change le modèle configuré pour l'agent `ollama-local` après vérification qu'il est bien installé.
+ * @param configPath - Chemin du fichier de config à mettre à jour.
+ * @param config - Config chargée.
+ * @param model - Nom du modèle Ollama à définir.
+ */
 async function runSetOllamaModelCommand(
   configPath: string,
   config: PalabreConfig,
@@ -560,6 +578,11 @@ async function runSetOllamaModelCommand(
     : messages.config.ollamaModelNoChange(configPath, agent.model));
 }
 
+/**
+ * Aligne automatiquement le modèle de l'agent `ollama-local` sur un modèle réellement installé.
+ * @param configPath - Chemin du fichier de config à mettre à jour.
+ * @param config - Config chargée.
+ */
 async function runSyncOllamaModelCommand(
   configPath: string,
   config: PalabreConfig,
@@ -612,6 +635,11 @@ function formatDefaultsForMessage(defaults: NonNullable<PalabreConfig["defaults"
   );
 }
 
+/**
+ * Déduplique et valide une liste d'agents `ask` fournie via `--ask-agents`.
+ * @param agents - Noms d'agents bruts, éventuellement en doublon.
+ * @throws Si la liste dépasse `MAX_ASK_AGENTS` ou référence un agent inconnu de la config.
+ */
 function normalizeAskAgentsForConfig(config: Awaited<ReturnType<typeof loadConfig>>, agents: string[], messages: Messages): string[] {
   const unique = agents
     .map((agent) => agent.trim())
@@ -638,6 +666,10 @@ function assertKnownAgent(config: Awaited<ReturnType<typeof loadConfig>>, agentN
     throw new Error(messages.common.unknownAgentForField(fieldName, agentName, Object.keys(config.agents).join(", ")));
   }
 }
+/**
+ * Résout la valeur de `--mode`/`config --mode` en `PalabreMode`, `"debate"` par défaut.
+ * @throws Si `value` n'est ni `debate` ni `ask`.
+ */
 function parseModeFlag(value: string | undefined, messages: Messages): PalabreMode {
   if (!value) {
     return "debate";
@@ -650,6 +682,10 @@ function parseModeFlag(value: string | undefined, messages: Messages): PalabreMo
   throw new Error(messages.common.unknownMode(value, "debate, ask"));
 }
 
+/**
+ * Résout la valeur de `--interface`/`config --interface` en `PalabreInterface`, `"tui"` par défaut.
+ * @throws Si `value` n'est ni `tui` ni `terminal`.
+ */
 function parseInterfaceFlag(value: string | undefined, messages: Messages): PalabreInterface {
   if (!value) {
     return "tui";
@@ -771,6 +807,10 @@ function createRendererFromFlags(
   return createAutoRenderer(flags, plainOutputFallback, defaultInterface, messages);
 }
 
+/**
+ * Choix du renderer par défaut (`--renderer auto`) : TUI si les flags/config le demandent
+ * ou si stdout est un TTY, rendu console plain sinon.
+ */
 function createAutoRenderer(
   flags: Record<string, string | string[] | boolean>,
   plainOutputFallback: boolean,
@@ -788,6 +828,11 @@ function createAutoRenderer(
   return process.stdout.isTTY ? createTuiRenderer(messages) : createConsoleRenderer(true, messages);
 }
 
+/**
+ * Détermine si l'accueil TUI doit s'ouvrir : commande `run` implicite, sans sujet, preset
+ * ni flag de rendu déjà fourni. Toute intention explicite de lancer directement un débat
+ * (topic, `--renderer`, `--json`, `--plain`, `--terminal`) désactive l'accueil.
+ */
 function shouldOpenTuiHome(parsed: ParsedArgs): boolean {
   return parsed.command === "run"
     && !parsed.commandExplicit
@@ -816,6 +861,11 @@ function printHelp(messages: Messages, command?: string): void {
   console.log(commandHelp ?? messages.help.render(listPresetNames().join(", ")));
 }
 
+/**
+ * Résout la commande cible pour l'aide contextuelle (`palabre <cmd> --help`), en normalisant
+ * les alias (`agent` -> `agents`, `preset` -> `presets`, `setup` -> `init`).
+ * @returns `undefined` pour `help`/`run`, qui utilisent l'aide générale.
+ */
 function commandHelpTarget(parsed: ParsedArgs): string | undefined {
   if (parsed.command === "help" || parsed.command === "run") {
     return undefined;
@@ -845,6 +895,10 @@ async function resolveCommandMessages(flags: Record<string, string | string[] | 
   return createTranslator(resolveLanguage({ explicitLanguage, configLanguage }));
 }
 
+/**
+ * Formate une erreur non gérée remontée jusqu'au point d'entrée en message lisible,
+ * en spécialisant `AdapterError` et `OllamaUrlError` pour rester actionnable.
+ */
 function formatRuntimeError(error: unknown, messages: Messages): string {
   if (error instanceof AdapterError) {
     return formatAdapterError(error, messages);
@@ -865,6 +919,10 @@ main().catch((error: unknown) => {
   process.exitCode = 1;
 });
 
+/**
+ * Variante de `findRawLanguageFlag` + `resolveLanguage` qui ne peut pas lever, utilisée dans
+ * le gestionnaire d'erreur global où la config n'est pas forcément chargée.
+ */
 function safeStartupLanguage(args: string[]) {
   try {
     return resolveLanguage({ explicitLanguage: findRawLanguageFlag(args) });

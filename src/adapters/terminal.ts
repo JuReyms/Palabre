@@ -1,3 +1,5 @@
+/** @file Nettoyage des séquences ANSI/OSC partagé par les adapters CLI et PTY. */
+
 /** Retire les séquences de contrôle ANSI/OSC et normalise les retours ligne d'une sortie terminal. */
 export function cleanTerminalOutput(output: string): string {
   return output

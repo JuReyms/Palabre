@@ -1,3 +1,4 @@
+/** @file Boucle d'orchestration des modes `debate` et `ask` : tours, arrêt anticipé et synthèse finale. */
 import { createAgent } from "./adapters/index.js";
 import { AdapterError } from "./errors.js";
 import { createTranslator } from "./i18n.js";

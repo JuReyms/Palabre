@@ -1,3 +1,4 @@
+/** @file Assemble le dictionnaire `Messages` complet (un domaine par surface CLI) pour une langue donnée. */
 import type { Language } from "../types.js";
 import { adapterErrorMessages, type AdapterErrorMessages } from "./adapter-errors.js";
 import { agentsMessages, type AgentsMessages } from "./agents.js";
@@ -18,6 +19,7 @@ import { rendererMessages, type RendererMessages } from "./renderers.js";
 import { tuiMessages, type TuiMessages } from "./tui.js";
 import { updateMessages, type UpdateMessages } from "./update.js";
 
+/** Dictionnaire complet des messages traduits, un domaine par surface CLI (voir AGENTS.md, section "Internationalisation"). */
 export interface Messages {
   adapterErrors: AdapterErrorMessages;
   agents: AgentsMessages;
@@ -39,6 +41,7 @@ export interface Messages {
   update: UpdateMessages;
 }
 
+/** Construit le dictionnaire `Messages` pour `language`, en assemblant chaque domaine indépendamment. */
 export function createTranslator(language: Language): Messages {
   return {
     adapterErrors: adapterErrorMessages[language],

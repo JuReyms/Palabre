@@ -1,3 +1,4 @@
+/** @file Renderer NDJSON machine-readable, contrat public versionné pour les intégrations out-of-process (voir AGENTS.md, section "Renderer NDJSON"). */
 import type {
   AgentRole,
   DebateOptions,

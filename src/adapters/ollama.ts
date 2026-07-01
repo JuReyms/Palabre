@@ -1,3 +1,4 @@
+/** @file Adapter Ollama HTTP : validation/pull de modèle, déchargement des autres modèles chargés, appel `/api/chat`. */
 import { AdapterError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
 import { formatAgentPrompt } from "../prompt.js";
@@ -208,6 +209,7 @@ export class OllamaAdapter implements AgentAdapter {
       .filter((modelName): modelName is string => Boolean(modelName)) ?? [];
   }
 
+  /** Déclenche `POST /api/pull` et attend sa fin ; timeout dédié `pullTimeoutMs` (30 min par défaut). */
   private async pullModel(baseUrl: string): Promise<void> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.pullTimeoutMs ?? 1_800_000);
@@ -240,6 +242,7 @@ export class OllamaAdapter implements AgentAdapter {
     }
   }
 
+  /** Décharge séquentiellement, via `GET /api/ps`, tout modèle chargé autre que celui de cet agent. */
   private async unloadOtherRunningModels(baseUrl: string): Promise<void> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs ?? 120_000);

@@ -1,8 +1,10 @@
+/** @file Factory d'adapters : mappe un `AgentConfig` vers l'implémentation `cli`/`cli-pty`/`ollama` correspondante. */
 import { CliAdapter } from "./cli.js";
 import { CliPtyAdapter } from "./cli-pty.js";
 import { OllamaAdapter } from "./ollama.js";
 import type { AgentAdapter, AgentConfig } from "../types.js";
 
+/** Options de session transmises aux adapters à la création, indépendantes de la config agent persistée. */
 export interface AgentRuntimeOptions {
   ollamaUrl?: string;
 }

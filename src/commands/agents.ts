@@ -1,3 +1,4 @@
+/** @file Commande palabre agents et contrat JSON v1 pour les integrations. */
 import { configExists, loadConfig, resolveDefaultConfigPath } from "../config.js";
 import { discoverLocalToolsForConfig, type CommandDetection, type ToolDiscovery } from "../discovery.js";
 import { createTranslator, resolveLanguage } from "../i18n.js";
@@ -8,7 +9,12 @@ import type { AgentConfig, PalabreConfig } from "../types.js";
 import type { Messages } from "../messages/index.js";
 import { optionalString, type CommandFlags } from "./shared.js";
 
-/** Exécute `palabre agents` en sortie humaine ou JSON versionné. */
+/**
+ * Liste les agents configurés avec leur disponibilité calculée par le CLI.
+ * @param flags - Flags de langue, config, URL Ollama et format JSON.
+ * @returns Une promesse résolue après écriture de la sortie.
+ * @throws {Error} Si aucune configuration n'est disponible.
+ */
 export async function runAgentsCommand(flags: CommandFlags): Promise<void> {
   const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
   if (!(await configExists(configPath))) {

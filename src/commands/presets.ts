@@ -1,10 +1,15 @@
+/** @file Commande de decouverte des presets et de leur disponibilite. */
 import { configExists, createConfigFromDiscovery, loadConfig, resolveDefaultConfigPath } from "../config.js";
 import { discoverLocalTools, discoverLocalToolsForConfig } from "../discovery.js";
 import { createTranslator, resolveLanguage } from "../i18n.js";
 import { listPresetsWithAvailability } from "../presets.js";
 import { optionalString, type CommandFlags } from "./shared.js";
 
-/** Exécute `palabre presets` en sortie humaine ou JSON versionné. */
+/**
+ * Liste les presets enrichis avec la disponibilité issue de la config et de la discovery.
+ * @param flags - Flags de config, langue, URL Ollama et format JSON.
+ * @returns Une promesse résolue après écriture de la liste.
+ */
 export async function runPresetsCommand(flags: CommandFlags): Promise<void> {
   const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
   const ollamaUrl = optionalString(flags["ollama-url"]);

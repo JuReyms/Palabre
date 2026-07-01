@@ -1,3 +1,4 @@
+/** @file Adapter CLI batch minimal : spawn, injection du prompt, capture stdout, classement des erreurs connues. */
 import { spawn } from "node:child_process";
 import { AdapterError } from "../errors.js";
 import { formatAgentPrompt } from "../prompt.js";
@@ -192,6 +193,11 @@ function cleanCliOutput(output: string): string {
   return stripWindowsTaskkillNoise(cleanTerminalOutput(output));
 }
 
+/**
+ * Retire les lignes de statut `taskkill` (FR/EN) que Windows peut mélanger à la sortie
+ * d'une CLI tuée après timeout ou annulation. Sans ce filtre, ce bruit contaminerait
+ * la réponse agent capturée sur stdout.
+ */
 function stripWindowsTaskkillNoise(output: string): string {
   const lines = output.split("\n");
   const kept: string[] = [];
@@ -290,6 +296,7 @@ function createKnownCliError(adapterName: string, exitCode: number | undefined, 
   return undefined;
 }
 
+/** Cherche dans stderr une ligne signalant un modèle non supporté, pour classer l'erreur en `unsupported-model`. */
 function extractUnsupportedModelMessage(stderr: string): string | undefined {
   const lines = uniqueNonEmptyLines(stderr);
   const match = lines.find((line) => isUnsupportedModelLine(line));
@@ -319,6 +326,7 @@ function extractJsonErrorMessage(line: string): string | undefined {
   const match = line.match(/"message"\s*:\s*"([^"]+)"/);
   return match?.[1];
 }
+/** Cherche dans stderr une ligne signalant un quota/rate-limit connu, pour classer l'erreur en `usage-limit`. */
 function extractUsageLimitMessage(stderr: string): string | undefined {
   const lines = uniqueNonEmptyLines(stderr);
   const match = lines.find((line) => isUsageLimitLine(line));
@@ -387,6 +395,10 @@ function clipLine(value: string, maxLength: number): string {
     : `${value.slice(0, maxLength - 1)}…`;
 }
 
+/**
+ * Recompose `command`/`args` en une seule ligne de commande quotée quand `shell: true` est requis
+ * (ex. wrappers npm shimmés sur Windows où `spawn` direct renvoie `EPERM`/`EINVAL`).
+ */
 function shellCommandForSpawn(command: string, args: string[], shell: boolean): { command: string; args: string[] } {
   if (!shell) {
     return { command, args };
@@ -427,6 +439,11 @@ function cancelledError(adapterName: string): AdapterError {
   return new AdapterError("cancelled", adapterName, `${adapterName} cancelled by user.`);
 }
 
+/**
+ * Termine le process et ses enfants (`/T`) sur Windows via `taskkill.exe`, car `child.kill()` seul
+ * ne tue pas les sous-processus d'un wrapper npm/shim. `taskkill` est lancé en fire-and-forget :
+ * seul son échec de spawn déclenche un `child.kill()` de repli, sans attendre sa fin.
+ */
 function killChildProcess(child: ReturnType<typeof spawn>): void {
   if (process.platform === "win32" && child.pid) {
     const killer = spawn("taskkill.exe", ["/PID", String(child.pid), "/T", "/F"], {

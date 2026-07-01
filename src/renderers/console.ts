@@ -1,3 +1,4 @@
+/** @file Renderers console historiques : `PrettyConsoleRenderer` (TTY, spinner, couleurs) et `PlainConsoleRenderer` (logs bruts). */
 import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateStartAgentInfo } from "../types.js";
 import type { Messages } from "../messages/index.js";
 

@@ -1,3 +1,4 @@
+/** @file Erreur adapter typée (`AdapterError`) et formatage localisé avec suggestion actionnable. */
 import type { AdapterFailureKind } from "./types.js";
 import { createTranslator } from "./i18n.js";
 import type { Messages } from "./messages/index.js";

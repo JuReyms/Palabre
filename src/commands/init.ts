@@ -1,3 +1,4 @@
+/** @file Initialisation explicite de configuration globale ou locale. */
 import { configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, writeExampleConfig } from "../config.js";
 import { discoverLocalTools, type CommandDetection, type ToolDiscovery } from "../discovery.js";
 import { detectedAgentNames } from "../agentRegistry.js";
@@ -6,7 +7,11 @@ import type { PalabreConfig } from "../types.js";
 import type { Messages } from "../messages/index.js";
 import { optionalString, type CommandFlags } from "./shared.js";
 
-/** Exécute `palabre init` ou son alias `setup`. */
+/**
+ * Crée une configuration à partir des outils détectés localement.
+ * @param flags - Flags de chemin, portée locale, langue et URL Ollama.
+ * @returns Une promesse résolue après création et affichage du récapitulatif.
+ */
 export async function runInitCommand(flags: CommandFlags): Promise<void> {
   const configPath = optionalString(flags.config) ?? (flags.local ? DEFAULT_CONFIG_PATH : GLOBAL_CONFIG_PATH);
   const startupMessages = createTranslator(resolveLanguage({ explicitLanguage: optionalString(flags.language) }));

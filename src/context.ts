@@ -1,3 +1,4 @@
+/** @file Chargement du contexte projet : `--files` strict et `--context` tolérant avec règles `.gitignore` simplifiées. */
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import type { ProjectFileContext } from "./types.js";

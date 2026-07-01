@@ -1,3 +1,4 @@
+/** @file Construit le contexte de session factuel (date, fuseau, dossier) injecté dans chaque prompt agent. */
 import path from "node:path";
 import type { SessionContext } from "./types.js";
 

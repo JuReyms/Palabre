@@ -1,3 +1,4 @@
+/** @file Assistant interactif `palabre new` : compose les mêmes flags qu'un lancement direct, sans second chemin d'exécution. */
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { isAgentDetected } from "./agentRegistry.js";

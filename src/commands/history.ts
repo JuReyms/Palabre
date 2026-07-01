@@ -1,9 +1,14 @@
+/** @file Commande de consultation des exports Markdown recents. */
 import { configExists, loadConfig, resolveDefaultConfigPath, resolveOutputDir } from "../config.js";
 import { listHistoryEntries } from "../history.js";
 import { createTranslator, resolveLanguage } from "../i18n.js";
 import { optionalString, type CommandFlags } from "./shared.js";
 
-/** Exécute `palabre history` en sortie humaine ou JSON versionné. */
+/**
+ * Liste les exports du dossier de sortie configuré.
+ * @param flags - Flags de config, langue et format JSON.
+ * @returns Une promesse résolue après écriture de l'historique.
+ */
 export async function runHistoryCommand(flags: CommandFlags): Promise<void> {
   const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
   const config = await configExists(configPath) ? await loadConfig(configPath) : undefined;

@@ -1,3 +1,4 @@
+/** @file Parseur d'arguments CLI : table d'arité des flags, syntaxe courte preset/sujet, alias `-s`/`--topic`. */
 import { listPresetNames } from "./presets.js";
 import type { Messages } from "./messages/index.js";
 

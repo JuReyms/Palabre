@@ -1,15 +1,24 @@
+/** @file Résolution et normalisation de l'URL du serveur Ollama, avec erreurs typées `OllamaUrlError`. */
 import type { PalabreConfig } from "./types.js";
 
+/** Serveur Ollama utilisé quand aucune autre source (flag, env, config) n'est fournie. */
 export const DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434";
 
+/** Sources d'URL à combiner par ordre de priorité dans `resolveOllamaBaseUrl`. */
 export interface OllamaUrlSources {
   cliUrl?: string;
   configUrl?: string;
   envUrl?: string;
 }
 
+/** Catégorie d'échec de validation d'une URL Ollama, utilisée par les appelants pour choisir un message localisé. */
 export type OllamaUrlErrorKind = "empty" | "invalid" | "protocol";
 
+/**
+ * Erreur levée par `normalizeOllamaBaseUrl` quand la valeur fournie n'est pas une URL HTTP(S) exploitable.
+ * Le message du constructeur est un texte technique de repli non localisé ; les appelants CLI/TUI
+ * doivent reformater `kind`/`value`/`protocol` via les messages traduits plutôt que d'afficher ce message brut.
+ */
 export class OllamaUrlError extends Error {
   constructor(
     readonly kind: OllamaUrlErrorKind,

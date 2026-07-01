@@ -716,6 +716,8 @@ Mettre en place et maintenir des JSDoc sur les API internes qui servent de contr
 
 Les commentaires doivent expliquer le contrat, les invariants et les limites utiles. Eviter les commentaires qui paraphrasent simplement le code.
 
+Regle d'entretien : chaque fichier TypeScript modifie doit faire l'objet d'une revue JSDoc dans le meme changement. Au minimum, maintenir une description de module (`@file`) et documenter les types/fonctions exportes ; documenter aussi les fonctions internes quand leur priorite, leurs effets de bord, leurs erreurs ou leurs fallbacks ne sont pas evidents. Si une API documentee change de comportement, sa JSDoc doit etre mise a jour avant le commit.
+
 ## Releases
 
 Les releases sont gerees via des tags Git. Deux workflows GitHub Actions sont en place :

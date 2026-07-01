@@ -1,9 +1,13 @@
+/** @file Résolution de la langue d'interface (fr/en) selon la précédence flag > env > config > défaut. */
 import type { Language } from "./types.js";
 import { createTranslator } from "./messages/index.js";
 
+/** Langue utilisée quand aucune source explicite (flag, env, config) n'en fournit une valide. */
 export const DEFAULT_LANGUAGE: Language = "fr";
+/** Langues acceptées par `parseLanguage`/`resolveLanguage`. */
 export const SUPPORTED_LANGUAGES = ["fr", "en"] as const;
 
+/** Sources de langue à combiner, dans l'ordre de précédence documenté sur `resolveLanguage`. */
 interface ResolveLanguageOptions {
   explicitLanguage?: string;
   configLanguage?: string;

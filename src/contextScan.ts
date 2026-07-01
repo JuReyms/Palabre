@@ -1,8 +1,10 @@
+/** @file Contrat JSON v1 de `palabre context scan --json`, consommé par les intégrations. */
 import path from "node:path";
 import { loadProjectInputs } from "./context.js";
 import { createTranslator } from "./i18n.js";
 import type { Messages } from "./messages/index.js";
 
+/** Entrée de fichier du scan, avec sa taille en octets côté disque. */
 export interface ContextScanFileItem {
   kind: "file";
   path: string;
@@ -10,6 +12,7 @@ export interface ContextScanFileItem {
   sizeBytes: number;
 }
 
+/** Entrée de dossier du scan, agrégeant le nombre de fichiers texte retenus en dessous. */
 export interface ContextScanFolderItem {
   kind: "folder";
   path: string;
@@ -17,8 +20,10 @@ export interface ContextScanFolderItem {
   filesCount: number;
 }
 
+/** Union discriminée par `kind`, utilisée telle quelle dans `items[]`. */
 export type ContextScanItem = ContextScanFolderItem | ContextScanFileItem;
 
+/** Contrat JSON v1 renvoyé par `palabre context scan --json` (voir AGENTS.md, section "Contexte projet"). */
 export interface ContextScanResult {
   v: 1;
   root: string;
@@ -28,10 +33,10 @@ export interface ContextScanResult {
 }
 
 /**
- * Builds the machine-readable context preview used by integrations.
+ * Construit l'aperçu de contexte lisible par une machine, utilisé par les intégrations.
  *
- * The scan intentionally reuses the same tolerant loader as `--context`, so
- * the returned files are the files Palabre would actually inject into a debate.
+ * Le scan réutilise volontairement le même chargeur tolérant que `--context`, afin que
+ * les fichiers renvoyés soient exactement ceux que Palabre injecterait dans un débat.
  */
 export async function buildContextScan(
   scanPaths: string[],

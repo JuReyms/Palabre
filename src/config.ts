@@ -1,3 +1,4 @@
+/** @file Chargement, génération et validation de la config Palabre, ainsi que la synchronisation des agents/modèles Ollama détectés. */
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -266,16 +267,22 @@ function isLegacyVibePlanArgs(args: CliAgentConfig["args"]): boolean {
   return JSON.stringify(args) === JSON.stringify(["--output", "text", "--agent", "plan", "--trust", "--prompt"]);
 }
 
+/** Résultat d'un changement de modèle Ollama, utilisé pour formater une notice utilisateur. */
 export interface OllamaModelSyncResult {
   previousModel: string;
   nextModel: string;
 }
 
+/** Résultat détaillé de `syncDetectedAgents`, distinguant les agents ajoutés du reste (roles/args migrés). */
 export interface DetectedAgentsSyncResult {
   addedAgents: string[];
   changed: boolean;
 }
 
+/**
+ * Variante de `syncDetectedAgents` qui indique aussi si la config a changé,
+ * même quand aucun agent n'a été ajouté (ex. migration d'arguments legacy).
+ */
 export function syncDetectedAgentsDetailed(config: PalabreConfig, discovery: ToolDiscovery): DetectedAgentsSyncResult {
   const before = JSON.stringify(config.agents);
   const addedAgents = syncDetectedAgents(config, discovery);
@@ -287,6 +294,12 @@ export function syncDetectedAgentsDetailed(config: PalabreConfig, discovery: Too
   };
 }
 
+/**
+ * Bascule le modèle de l'agent `ollama-local` vers un modèle installé si celui configuré
+ * ne l'est pas. Mute `config` directement.
+ * @returns `undefined` si l'agent n'est pas de type `ollama`, si aucun modèle n'est installé,
+ * ou si le modèle configuré est déjà installé.
+ */
 export function syncOllamaModel(config: PalabreConfig, discovery: ToolDiscovery): OllamaModelSyncResult | undefined {
   const agent = config.agents["ollama-local"];
 
@@ -306,6 +319,11 @@ export function syncOllamaModel(config: PalabreConfig, discovery: ToolDiscovery)
   };
 }
 
+/**
+ * Force le modèle de l'agent `ollama-local` à `model`, sans vérifier qu'il est installé.
+ * Mute `config` directement.
+ * @returns `undefined` si l'agent n'est pas de type `ollama`.
+ */
 export function setOllamaModel(config: PalabreConfig, model: string): OllamaModelSyncResult | undefined {
   const agent = config.agents["ollama-local"];
 

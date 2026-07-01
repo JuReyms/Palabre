@@ -1,8 +1,12 @@
+/** @file Limites produit sur le nombre de tours et d'agents `ask`, et parsing/validation de `--turns`. */
 import { createTranslator } from "./i18n.js";
 import type { Messages } from "./messages/index.js";
 
+/** Nombre de tours par défaut quand `--turns` n'est pas fourni. */
 export const DEFAULT_TURNS = 4;
+/** Nombre maximal d'agents acceptés par `--agents` en mode `ask`. */
 export const MAX_ASK_AGENTS = 4;
+/** Borne haute produit pour `--turns`, au-delà considérée comme une erreur d'utilisation. */
 export const MAX_TURNS = 20;
 
 /** Convertit `value` en nombre et valide la plage [1, `MAX_TURNS`]. Lève une erreur si invalide. */

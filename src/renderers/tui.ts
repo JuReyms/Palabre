@@ -1,3 +1,4 @@
+/** @file Rendu TUI par défaut (accueil, composer, `/config`, `/history`) et son renderer d'événements de débat. */
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import path from "node:path";
@@ -231,11 +232,13 @@ export function renderTuiHistory(entries: HistoryEntry[], messages: Messages): v
   ].join("\n"));
 }
 
+/** Résultat de `promptTuiRolesWizard` : rôles saisis, retour à l'accueil, ou fermeture de la TUI. */
 export type TuiRolesWizardInput =
   | { kind: "roles"; roles: string[] }
   | { kind: "back" }
   | { kind: "quit" };
 
+/** Résultat de `promptTuiAgentsWizard` : agents saisis, retour à l'accueil, ou fermeture de la TUI. */
 export type TuiAgentsWizardInput =
   | { kind: "agents"; agents: string[] }
   | { kind: "back" }
@@ -403,6 +406,7 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
   process.stdout.write(lines.join("\n") + "\n");
 }
 
+/** Résultat de `promptTuiHomeTopic` : action choisie depuis l'accueil, `undefined` si l'utilisateur quitte. */
 export type TuiHomeInput =
   | { kind: "topic"; topic: string }
   | { kind: "new" }
@@ -417,6 +421,7 @@ export type TuiHomeInput =
   | { kind: "roles"; roles: string[] }
   | undefined;
 
+/** Résultat de `promptTuiConfigCommand` : commande `/config` reconnue, ou `unknown` avec un message d'erreur. */
 export type TuiConfigInput =
   | { kind: "back" }
   | { kind: "quit" }
@@ -434,6 +439,7 @@ export type TuiConfigInput =
   | { kind: "ollama-sync" }
   | { kind: "unknown"; message: string };
 
+/** Parse `/ollama-url <url>` : renvoie `unknown` avec le message d'usage si l'argument est absent. */
 export function parseTuiOllamaUrlCommand(parts: string[], messages: Messages): TuiConfigInput {
   const value = parts[1];
   return value ? { kind: "ollama-url", url: value } : { kind: "unknown", message: messages.tui.ollamaUrlUsage };

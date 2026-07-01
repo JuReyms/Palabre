@@ -1,3 +1,4 @@
+/** @file Détection locale des CLIs agents et d'Ollama, utilisée par `init`, `doctor`, `presets` et l'accueil TUI. */
 import { access } from "node:fs/promises";
 import path from "node:path";
 import { executableExtensions } from "./exec.js";

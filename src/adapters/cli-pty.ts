@@ -1,3 +1,4 @@
+/** @file Adapter pseudo-terminal (`node-pty`) pour les CLIs qui exigent une vraie console (ex. Antigravity `agy`). */
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { AdapterError } from "../errors.js";
@@ -162,6 +163,10 @@ export class CliPtyAdapter implements AgentAdapter {
   }
 }
 
+/**
+ * Résout le chemin absolu de l'exécutable dans le `PATH`, requis par `node-pty` qui ne fait pas
+ * lui-même cette résolution comme `child_process.spawn`. Retourne `command` tel quel si rien n'est trouvé.
+ */
 function resolveExecutable(command: string): string {
   if (path.isAbsolute(command) || command.includes("\\") || command.includes("/")) {
     return command;
@@ -182,6 +187,11 @@ function resolveExecutable(command: string): string {
   return command;
 }
 
+/**
+ * Force la libération des ressources internes ConPTY sur Windows après `term.kill()`, qui ne les
+ * relâche pas toujours. Accède à des champs privés non documentés de `node-pty` : purement
+ * best-effort, toute erreur est avalée sans remonter à l'appelant.
+ */
 function cleanupPty(term: PtyProcess): void {
   const maybeTerm = term as unknown as {
     _agent?: {
@@ -202,6 +212,7 @@ function cleanupPty(term: PtyProcess): void {
   }
 }
 
+/** Construit une `AdapterError` `non-zero-exit` à partir de la sortie brute fusionnée du PTY. */
 function createPtyExitError(adapterName: string, exitCode: number, raw: string): AdapterError {
   return new AdapterError(
     "non-zero-exit",

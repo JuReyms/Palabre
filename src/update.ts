@@ -1,3 +1,4 @@
+/** @file Détection du mode d'installation et application du workflow de mise à jour pour un checkout source. */
 import { spawn } from "node:child_process";
 import { access } from "node:fs/promises";
 import path from "node:path";

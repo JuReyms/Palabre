@@ -1,3 +1,4 @@
+/** @file Wizard interactif `palabre config` (sans sous-commande) pour éditer les defaults au clavier. */
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { syncDetectedAgents, writeExampleConfig } from "./config.js";

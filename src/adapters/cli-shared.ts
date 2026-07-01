@@ -1,3 +1,5 @@
+/** @file Constantes et utilitaires partagés entre les adapters `cli` et `cli-pty`. */
+
 /** Limite de sortie par défaut des adapters CLI/PTY : 50 Mio avant `output-too-large`. */
 export const DEFAULT_MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
 

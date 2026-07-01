@@ -1,3 +1,4 @@
+/** @file Diagnostic `palabre doctor` : vérifie config, agents détectés et connectivité Ollama. */
 import path from "node:path";
 import { stat } from "node:fs/promises";
 import { configExists, loadConfig, resolveDefaultConfigPath, resolveOutputDir } from "./config.js";

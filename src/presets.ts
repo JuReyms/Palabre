@@ -1,3 +1,4 @@
+/** @file Source de vérité des presets de paires d'agents et de leur disponibilité calculée. */
 import { detectionForCommand, isRetiredAgentName } from "./agentRegistry.js";
 import type { ToolDiscovery } from "./discovery.js";
 import type { PalabreConfig } from "./types.js";

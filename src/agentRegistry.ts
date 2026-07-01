@@ -1,3 +1,4 @@
+/** @file Source de vérité unique reliant les agents CLI connus à leur détection locale (voir AGENTS.md, section "Registre d'agents connus"). */
 import type { CommandDetection, ToolDiscovery } from "./discovery.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
 

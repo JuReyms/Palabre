@@ -1,3 +1,4 @@
+/** @file Export Markdown `.debate.md`/`.ask.md` : transcript, table de métadonnées et synthèse finale. */
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createTranslator } from "./i18n.js";

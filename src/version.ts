@@ -1,3 +1,4 @@
+/** @file Version locale courante et dernière version publiée npm, pour `--version` et la notice de mise à jour TUI. */
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

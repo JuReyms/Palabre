@@ -1,8 +1,14 @@
+/** @file Commande palabre context scan et rendu de son contrat versionne. */
 import { buildContextScan } from "../contextScan.js";
 import { createTranslator, resolveLanguage } from "../i18n.js";
 import { optionalString, type CommandFlags } from "./shared.js";
 
-/** Exécute `palabre context scan` en sortie humaine ou JSON versionné. */
+/**
+ * Scanne les chemins demandés avec les mêmes règles que `--context`.
+ * @param flags - Flags de langue et de format JSON.
+ * @param positionals - Sous-commande puis chemins à scanner.
+ * @returns Une promesse résolue après écriture du résultat et des warnings.
+ */
 export async function runContextCommand(flags: CommandFlags, positionals: string[]): Promise<void> {
   const messages = createTranslator(resolveLanguage({ explicitLanguage: optionalString(flags.language) }));
   const subcommand = positionals[0] ?? "scan";
