@@ -554,7 +554,10 @@ Le design TUI suit quelques regles fixes definies dans `tui-theme.ts` :
 - le logo 5 lignes est reserve a l'accueil ; les autres ecrans utilisent `brandHeader`, une ligne de titre accentuee suivie d'une regle horizontale ;
 - les blocs label/valeur passent par `rows()` (colonne de labels adaptative) quand un label peut depasser 16 caracteres ;
 - les couleurs semantiques passent par les tokens `success`/`warning`/`danger` du theme, et les marqueurs d'etat par `glyphs().check`/`glyphs().cross` ;
-- le spinner utilise les frames braille avec repli ASCII.
+- le spinner utilise les frames braille avec repli ASCII ;
+- les messages de debat/ask utilisent `accentBar` : en-tete du tour (titre souligne) et contenu dans un meme bloc, delimite par la seule barre laterale gauche a la couleur de l'agent — pas de cadre ferme pour les blocs qui s'enchainent ;
+- la zone de saisie integre le fil d'Ariane dans la regle violette (`labeledRule`) et reduit la ligne de saisie au marqueur `❯` ;
+- tout le contenu est aligne a gauche, y compris dans les boites — pas de centrage partiel.
 
 Le TUI actuel reste leger : pas encore de split-view, pas de scrolling controle, pas d'input humain pendant le debat. Garder la logique produit dans le CLI et eviter que les integrations compensent ces limites.
 

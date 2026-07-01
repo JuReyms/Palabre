@@ -79,7 +79,7 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
       `${accent(messages.tui.docs)} ${dim("·")} ${documentationUrl(config)}`,
       "",
       `${accent("/help")} ${dim(messages.tui.commands)}   ${accent("/roles")} ${dim(messages.tui.roles.toLowerCase())}   ${accent("/config")} ${dim(messages.tui.settings)}   ${accent(mode === "ask" ? "/debat" : "/ask")} ${dim(messages.tui.changeMode)}`
-    ], width, "center")),
+    ], width)),
     "",
     ...padBlock([
       dim(messages.tui.tipContext)
@@ -321,9 +321,9 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
     ...padBlock([brandHeader(messages.tui.configTitle)]),
     "",
     ...padBlock(generalBox),
-    ...(ollamaBox.length > 0 ? ["", ...padBlock(ollamaBox)] : []),
     "",
     ...padBlock(sessionBox),
+    ...(ollamaBox.length > 0 ? ["", ...padBlock(ollamaBox)] : []),
     "",
     ...padBlock(commandRows),
     ...(state.message ? ["", ...padBlock([state.message])] : [])

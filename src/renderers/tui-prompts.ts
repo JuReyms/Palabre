@@ -14,6 +14,7 @@ import {
   composerCard,
   dim,
   glyphs,
+  labeledRule,
   padBlock,
   surfacePadding,
   surfaceWidth,
@@ -369,33 +370,25 @@ export function renderTuiComposer(mode: PalabreMode, messages: Messages, labelPr
   ].join("\n"));
 }
 
+/**
+ * Zone de saisie : fil d'Ariane intégré à la règle violette, puis ligne de saisie
+ * réduite au marqueur `❯` — le contexte vit dans la règle, pas devant le curseur.
+ */
 function tuiPrompt(mode: PalabreMode, labelPrefix: string, messages: Messages, notice?: string): string {
-  const label = promptTrail(mode, labelPrefix, messages);
   const padding = surfacePadding();
-  const promptLine = `${padding}${label} ${dim(">")} `;
+  const promptLine = `${padding}${accent(glyphs().prompt)} `;
   return [
     "",
-    promptRuleLine(),
-    ...(notice ? [
-      `${padding}${label} ${dim(">")}`,
-      ...promptNoticeLines(notice),
-      ""
-    ] : []),
+    `${padding}${labeledRule(promptTrail(mode, labelPrefix, messages), violet)}`,
+    ...(notice ? promptNoticeLines(notice) : []),
     promptLine,
   ].join("\n");
-}
-
-function promptRuleLine(): string {
-  return `${surfacePadding()}${violet(glyphs().h.repeat(surfaceWidth()))}`;
 }
 
 function promptNoticeLines(notice: string): string[] {
   const padding = surfacePadding();
   const contentWidth = surfaceWidth();
-  return [
-    `${padding}${dim(glyphs().h.repeat(contentWidth))}`,
-    ...wrapLine(notice, contentWidth).map((line) => `${padding}${line}`)
-  ];
+  return wrapLine(notice, contentWidth).map((line) => `${padding}${line}`);
 }
 
 function promptModeLabel(mode: PalabreMode, messages: Messages): string {
@@ -407,13 +400,13 @@ function promptTrail(mode: PalabreMode, labelPrefix: string, messages: Messages)
   if (labelPrefix !== messages.tui.subject) {
     parts.push(bold(labelPrefix));
   }
-  return parts.join(` ${dim(">")} `);
+  return parts.join(` ${dim(glyphs().pointer)} `);
 }
 
 function composerInputBox(mode: PalabreMode, labelPrefix: string, width: number, messages: Messages): string[] {
   return composerCard([
-    `${promptTrail(mode, labelPrefix, messages)} ${dim(">")}`
-  ], width, "center");
+    `${promptTrail(mode, labelPrefix, messages)} ${accent(glyphs().prompt)}`
+  ], width);
 }
 
 function isNoneValue(value: string): boolean {

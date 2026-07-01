@@ -13,7 +13,7 @@ export const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_CO
 /** `true` si stdout permet un rendu interactif (clear screen, spinner, liens OSC 8). */
 export const supportsInteractiveOutput = Boolean(process.stdout.isTTY);
 
-/** Jeu de glyphes du rendu : tracé de boîtes, marqueurs d'état et frames de spinner. */
+/** Jeu de glyphes du rendu : tracé de boîtes, séparateurs de prompt, marqueurs d'état et frames de spinner. */
 export interface GlyphSet {
   h: string;
   v: string;
@@ -21,6 +21,8 @@ export interface GlyphSet {
   tr: string;
   bl: string;
   br: string;
+  pointer: string;
+  prompt: string;
   check: string;
   cross: string;
   spinner: string[];
@@ -33,6 +35,8 @@ const unicodeGlyphs: GlyphSet = {
   tr: "┐",
   bl: "└",
   br: "┘",
+  pointer: "›",
+  prompt: "❯",
   check: "✓",
   cross: "✗",
   spinner: ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
@@ -45,6 +49,8 @@ const asciiGlyphs: GlyphSet = {
   tr: "+",
   bl: "+",
   br: "+",
+  pointer: ">",
+  prompt: ">",
   check: "√",
   cross: "x",
   spinner: ["-", "\\", "|", "/"]
@@ -181,8 +187,6 @@ interface FrameOptions {
   border?: (value: string) => string;
   /** Ajoute une ligne vide en haut et en bas du contenu. */
   padY?: boolean;
-  /** Centre chaque ligne de contenu dans la boîte. */
-  center?: boolean;
 }
 
 /**
@@ -205,7 +209,7 @@ function frame(lines: string[], width: number, options: FrameOptions = {}): stri
 
   return [
     top,
-    ...inner.map((line) => `${paint(g.v)} ${padRight(options.center ? centerLine(line, contentWidth) : line, contentWidth)} ${paint(g.v)}`),
+    ...inner.map((line) => `${paint(g.v)} ${padRight(line, contentWidth)} ${paint(g.v)}`),
     bottom
   ];
 }
@@ -215,14 +219,9 @@ export function card(lines: string[], width: number, title?: string): string[] {
   return frame(lines, width, { title });
 }
 
-/** Boîte "héro" de l'accueil : contenu centré et respirations verticales. */
-export function composerCard(lines: string[], width: number, align: "left" | "center" = "left"): string[] {
-  return frame(lines, width, { padY: true, center: align === "center" });
-}
-
-function centerLine(line: string, width: number): string {
-  const left = Math.max(0, Math.floor((width - visibleLength(line)) / 2));
-  return `${" ".repeat(left)}${line}`;
+/** Boîte "héro" de l'accueil : même cadre que `card` avec respirations verticales. */
+export function composerCard(lines: string[], width: number): string[] {
+  return frame(lines, width, { padY: true });
 }
 
 /** Panneau de session et d'historique ; même cadre que `card`, titre optionnel. */
@@ -230,10 +229,26 @@ export function panel(lines: string[], width: number, title?: string): string[] 
   return frame(lines, width, { title });
 }
 
-/** Surface de texte bordée à la couleur de l'agent (contenu des messages de débat). */
-export function textSurface(lines: string[], width: number, agent?: string): string[] {
-  const border = agent ? (value: string) => agentColor(agent, value) : violet;
-  return frame(lines, width, { border, padY: true });
+/**
+ * Bloc à barre latérale gauche seule, à la couleur de l'agent : utilisé pour les
+ * messages de débat/ask, moins chargé qu'un cadre fermé quand les blocs s'enchaînent.
+ */
+export function accentBar(lines: string[], width: number, agent?: string): string[] {
+  const g = glyphs();
+  const paint = agent ? (value: string) => agentColor(agent, value) : violet;
+  const contentWidth = Math.max(24, width - 2);
+  const body = lines.flatMap((line) => line ? wrapLine(line, contentWidth) : [""]);
+  return (body.length > 0 ? body : [""]).map((line) => `${paint(g.v)} ${line}`);
+}
+
+/**
+ * Règle horizontale portant un label : `── Label ──────`.
+ * Sert de séparateur de zone de saisie avec le fil d'Ariane intégré.
+ */
+export function labeledRule(label: string, paint: (value: string) => string = dim): string {
+  const g = glyphs();
+  const fill = Math.max(0, surfaceWidth() - visibleLength(label) - 4);
+  return `${paint(g.h.repeat(2))} ${label} ${paint(g.h.repeat(fill))}`;
 }
 
 /** Trait de soulignement d'un titre, à la couleur de l'agent quand elle est connue. */

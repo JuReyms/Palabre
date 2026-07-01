@@ -8,6 +8,7 @@ import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateSta
 import type { Messages } from "../messages/index.js";
 import {
   accent,
+  accentBar,
   agentColor,
   agentLabel,
   bold,
@@ -29,10 +30,8 @@ import {
   surfacePadding,
   surfaceWidth,
   terminalLink,
-  textSurface,
   underlineFor,
-  warning,
-  wrapLine
+  warning
 } from "./tui-theme.js";
 
 /** Cree le premier renderer TUI leger, sans dependance UI externe. */
@@ -52,6 +51,8 @@ class TuiRenderer implements DebateRenderer {
   private spinnerFrame = 0;
   private currentSection: "debate" | "ask" | "summary" = "debate";
   private currentAgent?: string;
+  /** Titre du tour en attente, rendu en tête du prochain bloc `message`. */
+  private pendingHeader?: string;
 
   constructor(
     private readonly messages: Messages,
@@ -81,13 +82,13 @@ class TuiRenderer implements DebateRenderer {
   turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void {
     this.currentSection = "debate";
     this.currentAgent = agent;
-    this.promptBlock(`${agentLabel(agent)} (${role}) - ${this.messages.renderers.turn(turn, totalTurns)}`, agent);
+    this.pendingHeader = `${agentLabel(agent)} (${role}) - ${this.messages.renderers.turn(turn, totalTurns)}`;
   }
 
   askResponseStart(response: number, totalResponses: number, agent: string, role: AgentRole): void {
     this.currentSection = "ask";
     this.currentAgent = agent;
-    this.promptBlock(`${agentLabel(agent)} (${role}) - ${this.messages.tui.askResponse(response, totalResponses)}`, agent);
+    this.pendingHeader = `${agentLabel(agent)} (${role}) - ${this.messages.tui.askResponse(response, totalResponses)}`;
   }
 
   thinkingStart(agent: string, role: AgentRole): void {
@@ -134,7 +135,7 @@ class TuiRenderer implements DebateRenderer {
   summaryStart(agent: string, role: AgentRole): void {
     this.currentSection = "summary";
     this.currentAgent = agent;
-    this.promptBlock(`${this.messages.renderers.summaryTitle} - ${agent} (${role})`, agent);
+    this.pendingHeader = `${this.messages.renderers.summaryTitle} - ${agentLabel(agent)} (${role})`;
   }
 
   error(failure: DebateFailure): void {
@@ -181,19 +182,18 @@ class TuiRenderer implements DebateRenderer {
     ];
   }
 
-  private promptBlock(title: string, agent?: string): void {
-    const width = this.width();
-    const underline = underlineFor(title, width, agent);
-    process.stdout.write(`\n${padBlock(card([bold(title), underline], width)).join("\n")}\n`);
-  }
-
+  /**
+   * Bloc de message unique : en-tête du tour (titre souligné) et contenu dans le même
+   * bloc, délimité par la seule barre latérale gauche à la couleur de l'agent.
+   */
   private formatMessage(content: string): string {
     const width = this.width();
-    const contentWidth = Math.max(24, width - 4);
-    const body = content
-      .split(/\r?\n/)
-      .flatMap((line) => line ? wrapLine(line, contentWidth) : [""]);
-    return `\n${padBlock(textSurface(body, width, this.currentAgent)).join("\n")}\n`;
+    const header = this.pendingHeader
+      ? [bold(this.pendingHeader), underlineFor(this.pendingHeader, width, this.currentAgent), ""]
+      : [];
+    this.pendingHeader = undefined;
+    const body = content.split(/\r?\n/);
+    return `\n${padBlock(accentBar([...header, ...body], width, this.currentAgent)).join("\n")}\n`;
   }
 
   private formatSummary(content: string): string {
