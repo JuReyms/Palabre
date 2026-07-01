@@ -4,6 +4,26 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-07-02
+
+<!-- social: A redesigned TUI, inline context from the composer, localized adapter errors, and safer Antigravity quota detection. -->
+
+### Added
+
+- Le composer de l'accueil TUI accepte `--context <chemins...>` et `--files <chemins...>` à la fin du sujet, puis confirme les fichiers injectés dans l'en-tête de session.
+
+### Changed
+
+- Le rendu TUI adopte un design unifié avec logo d'accueil, écrans spécialisés, cadres cohérents, couleurs sémantiques et blocs de conversation alignés à gauche.
+- Le renderer TUI historique est découpé en modules dédiés au thème, aux écrans, aux prompts et aux événements de session.
+- Les messages des adapters et de `palabre config --ollama-models` utilisent désormais les dictionnaires FR/EN.
+- Les duplications de l'orchestrateur, des adapters et du point d'entrée CLI sont factorisées sans modifier les contrats publics.
+
+### Fixed
+
+- L'adapter PTY classe les diagnostics autonomes de quota Antigravity en `usage-limit`, y compris avec un exit code 0, sans confondre une réponse normale qui explique les rate limits.
+- Le repli `PALABRE_ASCII=1` utilise uniquement des glyphes ASCII, y compris pour le marqueur de succès.
+
 ## [0.9.1] - 2026-07-01
 
 <!-- social: A cleaner CLI architecture with centralized summary resolution and stronger regression coverage. -->

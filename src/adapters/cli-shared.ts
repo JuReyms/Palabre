@@ -21,6 +21,26 @@ export function extractUsageLimitMessage(text: string): string | undefined {
   return clipLine(stripLogPrefix(match), 500);
 }
 
+/**
+ * Détecte un diagnostic de quota dans un flux PTY fusionné sans interpréter une
+ * réponse normale qui mentionnerait simplement les notions de quota ou rate-limit.
+ * Les motifs acceptés sont des erreurs machine ou des messages de quota autonomes.
+ */
+export function extractPtyUsageLimitMessage(text: string): string | undefined {
+  const match = uniqueNonEmptyLines(text).find((line) => {
+    const cleaned = stripLogPrefix(line);
+    const normalized = cleaned.toLowerCase();
+    const hasErrorPrefix = /^(error|fatal|warning)\s*:/i.test(line.trim());
+
+    return /^individual quota reached(?:[.!:]|$)/i.test(cleaned)
+      || /\b(resource_exhausted|insufficient_quota)\b/i.test(cleaned)
+      || /\bhttp\s*429\b/i.test(cleaned)
+      || /^too many requests(?:[.!:]|$)/i.test(cleaned)
+      || (hasErrorPrefix && isUsageLimitLine(normalized));
+  });
+
+  return match ? clipLine(stripLogPrefix(match), 500) : undefined;
+}
 function isUsageLimitLine(line: string): boolean {
   const normalized = line.toLowerCase();
 

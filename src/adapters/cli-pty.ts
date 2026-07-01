@@ -7,7 +7,7 @@ import { executableExtensions } from "../exec.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliPtyAgentConfig } from "../types.js";
-import { DEFAULT_MAX_OUTPUT_BYTES, DEFAULT_TIMEOUT_MS, extractUsageLimitMessage, withModelArgs } from "./cli-shared.js";
+import { DEFAULT_MAX_OUTPUT_BYTES, DEFAULT_TIMEOUT_MS, extractPtyUsageLimitMessage, withModelArgs } from "./cli-shared.js";
 import { cleanTerminalOutput } from "./terminal.js";
 
 type PtyProcess = ReturnType<typeof import("node-pty").spawn>;
@@ -97,11 +97,10 @@ export class CliPtyAdapter implements AgentAdapter {
 
         const content = cleanTerminalOutput(output);
 
-        // Le PTY fusionne stdout/stderr : un quota atteint (ex. Antigravity) peut arriver
-        // avec exit code 0 et une simple ligne d'avertissement. Le garde-fou de taille évite
-        // de classer en usage-limit une vraie réponse qui ne ferait que citer un rate-limit.
-        const usageLimitMessage = extractUsageLimitMessage(content);
-        if (usageLimitMessage && content.length <= 400) {
+        // Le PTY fusionne stdout/stderr : seuls les diagnostics autonomes ou machine
+        // sont acceptés pour éviter de rejeter une réponse normale parlant de rate-limit.
+        const usageLimitMessage = extractPtyUsageLimitMessage(content);
+        if (usageLimitMessage) {
           reject(new AdapterError("usage-limit", this.name, errorMessages.usageLimit(this.name, usageLimitMessage), {
             ...(exitCode === undefined || exitCode === 0 ? {} : { exitCode }),
             raw: output

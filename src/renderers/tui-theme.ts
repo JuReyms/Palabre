@@ -51,7 +51,7 @@ const asciiGlyphs: GlyphSet = {
   br: "+",
   pointer: ">",
   prompt: ">",
-  check: "√",
+  check: "v",
   cross: "x",
   spinner: ["-", "\\", "|", "/"]
 };

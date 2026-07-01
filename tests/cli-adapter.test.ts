@@ -1,9 +1,11 @@
+/** @file Tests des contrats de l'adapter CLI et des diagnostics partagés CLI/PTY. */
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { CliAdapter } from "../src/adapters/cli.js";
+import { extractPtyUsageLimitMessage } from "../src/adapters/cli-shared.js";
 import { AdapterError } from "../src/errors.js";
 import type { AgentPrompt, CliAgentConfig } from "../src/types.js";
 
@@ -138,6 +140,19 @@ test("CliAdapter classifies usage limit errors", async () => {
   );
 });
 
+test("PTY quota detection accepts standalone Antigravity diagnostics", () => {
+  assert.match(
+    extractPtyUsageLimitMessage("Individual quota reached. Please upgrade your subscription.") ?? "",
+    /Individual quota reached/
+  );
+});
+
+test("PTY quota detection preserves normal answers discussing rate limits", () => {
+  assert.equal(
+    extractPtyUsageLimitMessage("A rate limit controls how often a client may call an API."),
+    undefined
+  );
+});
 test("CliAdapter classifies Antigravity individual quota errors", async () => {
   const adapter = new CliAdapter("antigravity", cliConfig({
     args: ["-e", "process.stderr.write('Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 155h5m13s.'); process.exit(1)"]

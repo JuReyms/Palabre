@@ -1,3 +1,4 @@
+/** @file Tests du renderer, des écrans, prompts et glyphes de repli du TUI. */
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createTuiRenderer, parseComposerTopic, parseTuiOllamaUrlCommand, renderTuiAgentsHelp, renderTuiComposer, renderTuiConfig, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiRolesHelp, renderTuiUpdate } from "../src/renderers/tui.js";
@@ -34,6 +35,8 @@ test("TuiRenderer renders a lightweight terminal dashboard", () => {
   assert.match(text, /------------------------------/);
   assert.match(text, /Hello from codex/);
   assert.match(text, /Session complete/);
+  assert.match(text, /v Session complete/);
+  assert.doesNotMatch(text, /√/);
   assert.match(text, /Folder: C:\\repo/);
   assert.match(text, /Exported file\s+out\.debate\.md/);
   assert.match(text, /Export folder\s+\./);
