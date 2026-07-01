@@ -56,6 +56,10 @@ export interface TuiMessages {
   configTitle: string;
   /** Titre de la section des reglages generaux de l'ecran /config. */
   configSectionGeneral: string;
+  /** Label du fichier exporte dans le panneau de fin de session. */
+  exportedFile: string;
+  /** Label du dossier d'export dans le panneau de fin de session. */
+  exportedFolder: string;
   configFile: string;
   interface: string;
   language: string;
@@ -179,6 +183,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     roleSummarizer: "synthetise fidelement",
     configTitle: "Configuration Palabre",
     configSectionGeneral: "Général",
+    exportedFile: "Fichier exporté",
+    exportedFolder: "Dossier d'export",
     configFile: "Config",
     interface: "Interface",
     language: "Langue",
@@ -300,6 +306,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     roleSummarizer: "summarizes faithfully",
     configTitle: "Palabre Configuration",
     configSectionGeneral: "General",
+    exportedFile: "Exported file",
+    exportedFolder: "Export folder",
     configFile: "Config",
     interface: "Interface",
     language: "Language",

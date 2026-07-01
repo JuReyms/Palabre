@@ -24,7 +24,7 @@ import {
 
 /** Résultat de `promptTuiHomeTopic` : action choisie depuis l'accueil, `undefined` si l'utilisateur quitte. */
 export type TuiHomeInput =
-  | { kind: "topic"; topic: string }
+  | { kind: "topic"; topic: string; files?: string[]; context?: string[] }
   | { kind: "new" }
   | { kind: "retry" }
   | { kind: "history" }
@@ -71,6 +71,42 @@ export type TuiAgentsWizardInput =
 export function parseTuiOllamaUrlCommand(parts: string[], messages: Messages): TuiConfigInput {
   const value = parts[1];
   return value ? { kind: "ollama-url", url: value } : { kind: "unknown", message: messages.tui.ollamaUrlUsage };
+}
+
+/**
+ * Extrait les options de contexte inline (`--context <chemins...>`, `--files <chemins...>`)
+ * d'un sujet tapé dans le composer, comme le suggère le tip de l'accueil. Les chemins
+ * suivent leur flag jusqu'au prochain token commençant par `--`. Limite assumée du MVP :
+ * les chemins contenant des espaces ne sont pas supportés dans cette syntaxe inline.
+ */
+export function parseComposerTopic(value: string): { topic: string; files: string[]; context: string[] } {
+  const topicTokens: string[] = [];
+  const files: string[] = [];
+  const context: string[] = [];
+  let collector: string[] | undefined;
+
+  for (const token of value.split(/\s+/).filter(Boolean)) {
+    if (token === "--context") {
+      collector = context;
+      continue;
+    }
+
+    if (token === "--files" || token === "--file") {
+      collector = files;
+      continue;
+    }
+
+    if (token.startsWith("--")) {
+      // Flag inconnu : rendu au sujet tel quel pour rester visible et sans surprise.
+      collector = undefined;
+      topicTokens.push(token);
+      continue;
+    }
+
+    (collector ?? topicTokens).push(token);
+  }
+
+  return { topic: topicTokens.join(" "), files, context };
 }
 
 type TuiQuestionResult =
@@ -185,7 +221,13 @@ export async function promptTuiHomeTopic(mode: PalabreMode = "debate", messages:
       return { kind: "help" };
     }
 
-    return { kind: "topic", topic: value };
+    const composerInput = parseComposerTopic(value);
+    return {
+      kind: "topic",
+      topic: composerInput.topic,
+      ...(composerInput.files.length > 0 ? { files: composerInput.files } : {}),
+      ...(composerInput.context.length > 0 ? { context: composerInput.context } : {})
+    };
   } finally {
     rl.close();
   }

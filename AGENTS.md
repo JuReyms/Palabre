@@ -542,7 +542,7 @@ Ne pas transformer l'aide principale en reference complete. Les details doivent 
 
 - `PrettyConsoleRenderer` : en-tete, separateurs, tours, synthese structuree, couleurs ANSI si TTY.
 - `PlainConsoleRenderer` : rendu historique compatible logs.
-- `TuiRenderer` : accueil `palabre`, composer slash commands, `/config`, `/history`, `/home`, tableau de bord plein terminal, statut d'agent en cours et sections lisibles sans dependance UI externe. Depuis `/config`, `/ollama`, `/ollama-url <url|default>`, `/ollama-model <modele>` et `/ollama-sync` exposent l'adresse et le choix du modele Ollama sans sortir de la TUI.
+- `TuiRenderer` : accueil `palabre`, composer slash commands, `/config`, `/history`, `/home`, tableau de bord plein terminal, statut d'agent en cours et sections lisibles sans dependance UI externe. Depuis `/config`, `/ollama`, `/ollama-url <url|default>`, `/ollama-model <modele>` et `/ollama-sync` exposent l'adresse et le choix du modele Ollama sans sortir de la TUI. Le composer de l'accueil accepte `--context <chemins...>` et `--files <chemins...>` en fin de sujet (`parseComposerTopic`) : les chemins sont retires du sujet et injectes comme contexte ; les chemins avec espaces ne sont pas supportes dans cette syntaxe inline.
 - Etat "agent en cours" pendant les appels longs en rendu pretty.
 
 Le flag `--terminal` force le rendu simple. `--plain` reste accepte comme alias historique. `NO_COLOR` desactive les couleurs sans changer la structure.

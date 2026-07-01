@@ -28,6 +28,16 @@ palabre codex-claude "Critique cette architecture" --context src docs
 
 `--context` ignore les dossiers techniques courants comme `.git`, `node_modules` et `dist`. Il garde les fichiers texte connus et affiche des avertissements pour les fichiers ignorés, les extensions non supportées, les fichiers trop gros et les chemins manquants. Ces avertissements n'arrêtent pas la session.
 
+## Depuis l'accueil TUI
+
+Les mêmes options fonctionnent directement dans le composer de l'accueil, à la fin du sujet :
+
+```text
+Critique cette architecture --context src docs
+```
+
+Palabre retire `--context` et `--files` du sujet et injecte les fichiers correspondants. Les chemins contenant des espaces ne sont pas supportés dans cette syntaxe inline : utilisez la ligne de commande classique dans ce cas. L'en-tête de session confirme le nombre de fichiers injectés sur la ligne `Contexte`.
+
 ## Prévisualiser le scan en JSON
 
 ```bash

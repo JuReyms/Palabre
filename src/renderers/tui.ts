@@ -15,6 +15,7 @@ export {
   renderTuiUpdate
 } from "./tui-screens.js";
 export {
+  parseComposerTopic,
   parseTuiOllamaUrlCommand,
   promptTuiAgentsWizard,
   promptTuiConfigCommand,

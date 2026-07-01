@@ -28,6 +28,16 @@ palabre codex-claude "Critique this architecture" --context src docs
 
 `--context` ignores common technical folders such as `.git`, `node_modules`, and `dist`. It keeps known text files and displays warnings for ignored files, unsupported extensions, oversized files, and missing paths. These warnings do not stop the session.
 
+## From the TUI home
+
+The same options work directly in the home composer, at the end of the subject:
+
+```text
+Critique this architecture --context src docs
+```
+
+Palabre strips `--context` and `--files` from the subject and injects the matching files. Paths containing spaces are not supported in this inline syntax: use the regular command line in that case. The session header confirms the number of injected files on the `Context` line.
+
 ## Preview the scan as JSON
 
 ```bash

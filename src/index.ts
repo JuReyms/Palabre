@@ -216,6 +216,12 @@ async function main(): Promise<void> {
         return "retry";
       }
 
+      if (!input.topic) {
+        // Saisie réduite à des flags inline (ex. "--context src") : re-prompter au lieu de sortir en erreur.
+        tuiNotice = messages.common.topicRequired;
+        return "continue";
+      }
+
       parsed.command = "";
       parsed.commandExplicit = false;
       if (hasCompletedTuiSession || resetTuiRunOverridesOnNextTopic) {
@@ -223,6 +229,12 @@ async function main(): Promise<void> {
         resetTuiRunOverridesOnNextTopic = false;
       }
       parsed.flags.topic = input.topic;
+      if (input.files && input.files.length > 0) {
+        parsed.flags.files = input.files;
+      }
+      if (input.context && input.context.length > 0) {
+        parsed.flags.context = input.context;
+      }
       return "run";
     }
   };

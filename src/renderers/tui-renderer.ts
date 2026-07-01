@@ -4,7 +4,7 @@
  * synthèse structurée et panneau de fin avec liens vers l'export.
  */
 import path from "node:path";
-import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateStartAgentInfo, PalabreMode } from "../types.js";
+import type { AdapterFailureKind, AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateStartAgentInfo, PalabreMode } from "../types.js";
 import type { Messages } from "../messages/index.js";
 import {
   accent,
@@ -141,9 +141,11 @@ class TuiRenderer implements DebateRenderer {
   error(failure: DebateFailure): void {
     this.thinkingEnd();
     const width = this.width();
+    const hint = this.messages.adapterErrors.hint(failure.kind as AdapterFailureKind);
     process.stderr.write(`\n${padBlock(card([
       danger(`${glyphs().cross} ${this.messages.common.errorPrefix}`),
-      `${formatFailureLocation(failure, this.messages)}: ${failure.message}`
+      `${formatFailureLocation(failure, this.messages)}: ${failure.message}`,
+      ...(hint ? ["", dim(`${this.messages.adapterErrors.suggestionPrefix}: ${hint}`)] : [])
     ], width)).join("\n")}\n`);
   }
 
@@ -155,8 +157,8 @@ class TuiRenderer implements DebateRenderer {
     process.stdout.write(`\n${padBlock(panel([
       `${success(glyphs().check)} ${bold(this.messages.tui.sessionDone)}`,
       "",
-      row(this.messages.tui.historyFile, terminalLink(outputPath, compactFileName(fileName, width - 24))),
-      row(this.messages.tui.folder, terminalLink(folderPath, compactPath(folderPath, width - 24))),
+      row(this.messages.tui.exportedFile, terminalLink(outputPath, compactFileName(fileName, width - 24))),
+      row(this.messages.tui.exportedFolder, terminalLink(folderPath, compactPath(folderPath, width - 24))),
       "",
       dim(this.messages.tui.sessionHistoryHint)
     ], width)).join("\n")}\n\n`);
@@ -170,7 +172,8 @@ class TuiRenderer implements DebateRenderer {
       this.messages.renderers.subject(options.topic),
       this.messages.renderers.agents(formatAgents(options, agents)),
       formatSessionProgress(options, this.messages),
-      this.messages.renderers.context(formatContext(options, this.messages))
+      this.messages.renderers.context(formatContext(options, this.messages)),
+      this.messages.renderers.workingFolder(compactPath(options.session.cwd, Math.max(24, width - 14)))
     ], width);
 
     return [

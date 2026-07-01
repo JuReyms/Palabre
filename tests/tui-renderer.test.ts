@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createTuiRenderer, parseTuiOllamaUrlCommand, renderTuiAgentsHelp, renderTuiComposer, renderTuiConfig, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiRolesHelp, renderTuiUpdate } from "../src/renderers/tui.js";
+import { createTuiRenderer, parseComposerTopic, parseTuiOllamaUrlCommand, renderTuiAgentsHelp, renderTuiComposer, renderTuiConfig, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiRolesHelp, renderTuiUpdate } from "../src/renderers/tui.js";
 import { createTranslator } from "../src/i18n.js";
 import type { DebateFailure, DebateOptions } from "../src/types.js";
 
@@ -34,8 +34,9 @@ test("TuiRenderer renders a lightweight terminal dashboard", () => {
   assert.match(text, /------------------------------/);
   assert.match(text, /Hello from codex/);
   assert.match(text, /Session complete/);
-  assert.match(text, /File\s+out\.debate\.md/);
-  assert.match(text, /Folder\s+\./);
+  assert.match(text, /Folder: C:\\repo/);
+  assert.match(text, /Exported file\s+out\.debate\.md/);
+  assert.match(text, /Export folder\s+\./);
   assert.match(text, /Find your exports again with \/history\./);
   assert.equal(text.match(/out\.debate\.md/g)?.length, 1);
 });
@@ -307,6 +308,34 @@ test("renderTuiAgentsHelp renders configured agents", () => {
   assert.match(text, /Exemple: Debat > Agents > codex claude/);
 });
 
+
+test("parseComposerTopic extracts inline context and files from the subject", () => {
+  assert.deepEqual(parseComposerTopic("comment améliorer --context src\\renderers\\tui.ts"), {
+    topic: "comment améliorer",
+    files: [],
+    context: ["src\\renderers\\tui.ts"]
+  });
+  assert.deepEqual(parseComposerTopic("sujet simple"), {
+    topic: "sujet simple",
+    files: [],
+    context: []
+  });
+  assert.deepEqual(parseComposerTopic("audit du module --files a.ts b.ts --context docs"), {
+    topic: "audit du module",
+    files: ["a.ts", "b.ts"],
+    context: ["docs"]
+  });
+  assert.deepEqual(parseComposerTopic("--context src"), {
+    topic: "",
+    files: [],
+    context: ["src"]
+  });
+  assert.deepEqual(parseComposerTopic("sujet avec --turns 6 dedans"), {
+    topic: "sujet avec --turns 6 dedans",
+    files: [],
+    context: []
+  });
+});
 
 test("parseTuiOllamaUrlCommand parses an address and reports missing values", () => {
   const messages = createTranslator("en");

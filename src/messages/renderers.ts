@@ -6,6 +6,7 @@ export interface RendererMessages {
   responsesSummaryContext(turns: number, summary: string, context: string): string;
   responsesSummary(turns: number, summary: string): string;
   context(context: string): string;
+  workingFolder(path: string): string;
   options(earlyStop: boolean, pullModels: boolean): string;
   enabled: string;
   disabled: string;
@@ -26,6 +27,7 @@ export const rendererMessages: Record<Language, RendererMessages> = {
     responsesSummaryContext: (turns, summary, context) => `Réponses: ${turns} | Synthèse: ${summary} | Contexte: ${context}`,
     responsesSummary: (turns, summary) => `Réponses: ${turns} | Synthèse: ${summary}`,
     context: (context) => `Contexte: ${context}`,
+    workingFolder: (path) => `Dossier: ${path}`,
     options: (earlyStop, pullModels) => `Options: arrêt anticipé ${earlyStop ? "activé" : "désactivé"}, auto-pull Ollama ${pullModels ? "activé" : "désactivé"}`,
     enabled: "activé",
     disabled: "désactivée",
@@ -44,6 +46,7 @@ export const rendererMessages: Record<Language, RendererMessages> = {
     responsesSummaryContext: (turns, summary, context) => `Responses: ${turns} | Summary: ${summary} | Context: ${context}`,
     responsesSummary: (turns, summary) => `Responses: ${turns} | Summary: ${summary}`,
     context: (context) => `Context: ${context}`,
+    workingFolder: (path) => `Folder: ${path}`,
     options: (earlyStop, pullModels) => `Options: early stop ${earlyStop ? "enabled" : "disabled"}, Ollama auto-pull ${pullModels ? "enabled" : "disabled"}`,
     enabled: "enabled",
     disabled: "disabled",
