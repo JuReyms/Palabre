@@ -62,6 +62,7 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 | `/roles` | Affiche les rôles disponibles ou modifie les rôles actifs si des rôles sont fournis. |
 | `/config` | Ouvre les réglages TUI. |
 | `/history` | Affiche les derniers exports Markdown. Alias : `/historique`. |
+| `/update` | Vérifie la version npm et affiche les instructions de mise à jour adaptées. |
 | `/ollama` | Affiche le modèle Ollama configuré et les modèles installés depuis `/config`. |
 | `/ollama-url <url|default>` | Configure l'adresse de tous les agents Ollama depuis `/config`. |
 | `/ollama-model <modele>` | Change le modèle configuré de `ollama-local` depuis `/config`. |

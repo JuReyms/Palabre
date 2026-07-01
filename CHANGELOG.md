@@ -4,9 +4,18 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-07-01
+
 ### Added
 
 - `palabre agents --json` expose un contrat v1 pour les intégrations avec les agents configurés actifs, leur disponibilité locale et la sélection Ask par défaut ; les agents retirés comme Gemini restent exclus même s'ils existent dans une ancienne config.
+- Ollama distant : `--ollama-url`, `OLLAMA_HOST` et `palabre config --ollama-url` permettent de surcharger ou de persister l'adresse du serveur, avec normalisation et validation des URL.
+- Configuration TUI : `/ollama-url <url|default>` modifie l'adresse de tous les agents Ollama sans éditer le JSON.
+- Accueil TUI : vérification de la dernière version npm à chaque ouverture, avertissement non bloquant et commande `/update` affichant les instructions adaptées.
+
+### Fixed
+
+- Discovery, presets et doctor évaluent chaque agent Ollama avec son propre serveur et ses propres modèles, au lieu de réutiliser la détection de `ollama-local`.
 
 ## [0.8.1] - 2026-06-19
 
