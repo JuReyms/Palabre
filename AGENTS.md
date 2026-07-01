@@ -547,6 +547,15 @@ Ne pas transformer l'aide principale en reference complete. Les details doivent 
 
 Le flag `--terminal` force le rendu simple. `--plain` reste accepte comme alias historique. `NO_COLOR` desactive les couleurs sans changer la structure.
 
+Le design TUI suit quelques regles fixes definies dans `tui-theme.ts` :
+
+- toute la sortie est ancree a gauche avec une gouttiere fixe (pas de centrage dependant de la largeur du terminal) ;
+- une seule famille de boites (cadre ferme, titre optionnel integre a la bordure haute), tracee en Unicode (`┌─┐│└┘`) avec repli ASCII automatique quand le terminal ne le supporte pas ou si `PALABRE_ASCII=1` est defini — les tests TUI forcent ce repli pour rester deterministes ;
+- le logo 5 lignes est reserve a l'accueil ; les autres ecrans utilisent `brandHeader`, une ligne de titre accentuee suivie d'une regle horizontale ;
+- les blocs label/valeur passent par `rows()` (colonne de labels adaptative) quand un label peut depasser 16 caracteres ;
+- les couleurs semantiques passent par les tokens `success`/`warning`/`danger` du theme, et les marqueurs d'etat par `glyphs().check`/`glyphs().cross` ;
+- le spinner utilise les frames braille avec repli ASCII.
+
 Le TUI actuel reste leger : pas encore de split-view, pas de scrolling controle, pas d'input humain pendant le debat. Garder la logique produit dans le CLI et eviter que les integrations compensent ces limites.
 
 ## Renderer NDJSON

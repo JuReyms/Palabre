@@ -13,21 +13,24 @@ import {
   accent,
   agentLabel,
   bold,
+  brandHeader,
   card,
-  centerBlock,
-  centerLogo,
   clearScreen,
   compactFileName,
   compactPath,
   composerCard,
   dim,
   dirnamePortable,
+  logoBlock,
+  padBlock,
   panel,
   row,
+  rows,
   supportsInteractiveOutput,
   surfaceWidth,
   terminalLink,
-  viewportWidth
+  viewportWidth,
+  type RowEntry
 } from "./tui-theme.js";
 
 /** Affiche l'ecran d'accueil TUI lance par `palabre` sans sujet. */
@@ -65,10 +68,10 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
 
   const lines = [
     "",
-    ...centerLogo(viewport, messages),
-    ...centerBlock(versionLines, viewport),
+    ...padBlock(logoBlock(messages)),
+    ...padBlock(versionLines),
     "",
-    ...centerBlock(composerCard([
+    ...padBlock(composerCard([
       `${accent(messages.tui.modeValue(mode))} ${dim("·")} ${mode === "ask" ? askAgents : debateAgents}`,
       `${accent(messages.tui.roles)} ${dim("·")} ${mode === "ask" ? askRoles : debateRoles}`,
       `${accent(messages.tui.summary)} ${dim("·")} ${summary}${mode === "debate" ? ` ${dim("·")} ${accent(messages.tui.responses)} ${String(defaults.turns ?? "?")}` : ""}`,
@@ -76,29 +79,28 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
       `${accent(messages.tui.docs)} ${dim("·")} ${documentationUrl(config)}`,
       "",
       `${accent("/help")} ${dim(messages.tui.commands)}   ${accent("/roles")} ${dim(messages.tui.roles.toLowerCase())}   ${accent("/config")} ${dim(messages.tui.settings)}   ${accent(mode === "ask" ? "/debat" : "/ask")} ${dim(messages.tui.changeMode)}`
-    ], width, "center"), viewport),
+    ], width, "center")),
     "",
-    ...centerBlock([
+    ...padBlock([
       dim(messages.tui.tipContext)
-    ], viewport)
+    ])
   ];
 
   process.stdout.write(lines.join("\n") + "\n");
 }
 
 /** Affiche les instructions de mise a jour sans quitter le TUI. */
-export function renderTuiUpdate(instructions: string, messages: Messages): void {
+export function renderTuiUpdate(instructions: string, _messages: Messages): void {
   if (supportsInteractiveOutput) {
     clearScreen();
   }
 
-  const viewport = viewportWidth();
   const width = surfaceWidth();
   process.stdout.write([
     "",
-    ...centerLogo(viewport, messages),
+    ...padBlock([brandHeader()]),
     "",
-    ...centerBlock(card(instructions.split(/\r?\n/), width), viewport),
+    ...padBlock(card(instructions.split(/\r?\n/), width)),
     ""
   ].join("\n"));
 }
@@ -109,15 +111,12 @@ export function renderTuiHelp(messages: Messages): void {
     clearScreen();
   }
 
-  const viewport = viewportWidth();
   const width = surfaceWidth();
   process.stdout.write([
     "",
-    ...centerLogo(viewport, messages),
+    ...padBlock([brandHeader(messages.tui.helpTitle)]),
     "",
-    ...centerBlock(card([
-      bold(messages.tui.helpTitle),
-      "",
+    ...padBlock(card([
       row("/ask", messages.tui.helpAsk),
       row("/debat", messages.tui.helpDebate),
       "",
@@ -134,7 +133,7 @@ export function renderTuiHelp(messages: Messages): void {
       row("/quit", messages.tui.helpQuit),
       "",
       dim(messages.tui.helpFallback)
-    ], width), viewport),
+    ], width)),
     ""
   ].join("\n"));
 }
@@ -145,18 +144,15 @@ export function renderTuiAgentsHelp(config: PalabreConfig, mode: PalabreMode, me
     clearScreen();
   }
 
-  const viewport = viewportWidth();
   const width = surfaceWidth();
   const activeAgents = activeAgentNamesForMode(config, mode);
   const separator = mode === "ask" ? ", " : " <-> ";
   const exampleAgents = exampleAgentsForMode(config, mode);
   process.stdout.write([
     "",
-    ...centerLogo(viewport, messages),
+    ...padBlock([brandHeader(messages.tui.agentsTitle)]),
     "",
-    ...centerBlock(card([
-      bold(messages.tui.agentsTitle),
-      "",
+    ...padBlock(card([
       row(messages.tui.activeMode, messages.tui.modeValue(mode)),
       row(messages.tui.activeAgents, activeAgents.length > 0 ? activeAgents.join(separator) : messages.tui.noValue),
       "",
@@ -165,7 +161,7 @@ export function renderTuiAgentsHelp(config: PalabreConfig, mode: PalabreMode, me
       ...agentInventoryRows(config, messages),
       "",
       dim(`${messages.tui.example}: ${messages.tui.modeLabel(mode)} > ${messages.tui.agentsPrompt} > ${exampleAgents.join(" ")}`)
-    ], width), viewport),
+    ], width)),
     ""
   ].join("\n"));
 }
@@ -176,7 +172,6 @@ export function renderTuiRolesHelp(mode: PalabreMode, messages: Messages, config
     clearScreen();
   }
 
-  const viewport = viewportWidth();
   const width = surfaceWidth();
   const currentRoles = config ? roleLineForMode(config, mode, messages) : undefined;
   const activeAgents = config ? activeAgentNamesForMode(config, mode) : [];
@@ -184,11 +179,9 @@ export function renderTuiRolesHelp(mode: PalabreMode, messages: Messages, config
   const exampleRoles = exampleRolesForMode(mode, expectedCount);
   process.stdout.write([
     "",
-    ...centerLogo(viewport, messages),
+    ...padBlock([brandHeader(messages.tui.rolesTitle)]),
     "",
-    ...centerBlock(card([
-      bold(messages.tui.rolesTitle),
-      "",
+    ...padBlock(card([
       ...(activeAgents.length > 0 ? [row(messages.tui.activeAgents, activeAgents.join(mode === "ask" ? ", " : " <-> "))] : []),
       ...(currentRoles ? [row(messages.tui.currentConfig, currentRoles), ""] : []),
       bold(messages.tui.availableRoles),
@@ -201,7 +194,7 @@ export function renderTuiRolesHelp(mode: PalabreMode, messages: Messages, config
       row("summarizer", messages.tui.roleSummarizer),
       "",
       dim(`${messages.tui.example}: ${messages.tui.modeLabel(mode)} > ${messages.tui.rolesPrompt} > ${exampleRoles.join(" ")}`)
-    ], Math.min(width, 82)), viewport),
+    ], Math.min(width, 82))),
     ""
   ].join("\n"));
 }
@@ -212,9 +205,8 @@ export function renderTuiHistory(entries: HistoryEntry[], messages: Messages): v
     clearScreen();
   }
 
-  const viewport = viewportWidth();
   const width = surfaceWidth();
-  const rows = entries.length === 0
+  const entryRows = entries.length === 0
     ? [dim(messages.tui.historyEmpty)]
     : entries.flatMap((entry) => {
       const folderPath = path.dirname(entry.path);
@@ -232,15 +224,13 @@ export function renderTuiHistory(entries: HistoryEntry[], messages: Messages): v
 
   process.stdout.write([
     "",
-    ...centerLogo(viewport, messages),
+    ...padBlock([brandHeader(messages.tui.historyTitle)]),
     "",
-    ...centerBlock(panel([
-      bold(messages.tui.historyTitle),
-      "",
-      ...rows,
+    ...padBlock(panel([
+      ...entryRows,
       "",
       dim(messages.tui.historyOpenHint)
-    ], width), viewport),
+    ], width)),
     ""
   ].join("\n"));
 }
@@ -251,7 +241,6 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
     clearScreen();
   }
 
-  const viewport = viewportWidth();
   const width = surfaceWidth();
   const defaults = config.defaults ?? {};
   const debateAgents = defaults.agentA && defaults.agentB ? `${defaults.agentA} <-> ${defaults.agentB}` : messages.tui.noValue;
@@ -265,69 +254,79 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
     : defaults.summaryAgent ?? defaults.agentB ?? messages.tui.noValue;
   const ollamaAgent = config.agents["ollama-local"];
   const ollamaModel = ollamaAgent?.type === "ollama" ? ollamaAgent.model : undefined;
-
   const ollamaUrl = ollamaAgent?.type === "ollama" ? ollamaAgent.baseUrl ?? DEFAULT_OLLAMA_BASE_URL : undefined;
   const ollamaEffectiveUrl = ollamaUrl ? safeEffectiveOllamaUrl(ollamaUrl) : undefined;
-  const currentLines = mode === "ask"
+
+  const generalBox = card(rows([
+    [messages.tui.activeMode, messages.tui.modeValue(mode)],
+    [messages.tui.configFile, configPath],
+    [messages.tui.interface, defaults.interface ?? "tui"],
+    [messages.tui.language, config.language ?? "fr"],
+    [messages.tui.availableAgentsShort, agentInventoryLine(config, messages)]
+  ]), width, messages.tui.configSectionGeneral);
+
+  const ollamaBox = ollamaModel
+    ? card(rows([
+        [messages.tui.ollamaModel, ollamaModel] as const,
+        ...(ollamaUrl ? [[messages.tui.ollamaUrl, ollamaUrl] as const] : []),
+        ...(ollamaEffectiveUrl && ollamaEffectiveUrl !== ollamaUrl ? [[messages.tui.ollamaUrlEffective, ollamaEffectiveUrl] as const] : [])
+      ]), width, "Ollama")
+    : [];
+
+  const sessionEntries: RowEntry[] = mode === "ask"
     ? [
-        row(messages.tui.activeAgents, askAgents),
-        row(messages.tui.roles, askRoles),
-        row(messages.tui.summary, summary),
-        "",
-        bold(messages.tui.availableCommands),
-        "",
-        row("/agents", messages.tui.askAgentsUsage),
-        row("/roles", messages.tui.rolesUsage),
-        row("/summary", messages.tui.summaryUsage)
+        [messages.tui.activeAgents, askAgents],
+        [messages.tui.roles, askRoles],
+        [messages.tui.summary, summary]
       ]
     : [
-        row(messages.tui.activeAgents, debateAgents),
-        row(messages.tui.roles, debateRoles),
-        row(messages.tui.summary, summary),
-        row(messages.tui.responses, String(defaults.turns ?? "?")),
-        "",
-        bold(messages.tui.availableCommands),
-        "",
-        row("/agents", messages.tui.debateAgentsUsage),
-        row("/roles", messages.tui.rolesUsage),
-        row("/turns", messages.tui.turnsUsage),
-        row("/summary", messages.tui.summaryUsage)
+        [messages.tui.activeAgents, debateAgents],
+        [messages.tui.roles, debateRoles],
+        [messages.tui.summary, summary],
+        [messages.tui.responses, String(defaults.turns ?? "?")]
       ];
+  const sessionBox = card(rows(sessionEntries), width, messages.tui.modeValue(mode));
+
+  const commandRows = [
+    bold(messages.tui.availableCommands),
+    "",
+    ...(mode === "ask"
+      ? [
+          row("/agents", messages.tui.askAgentsUsage),
+          row("/roles", messages.tui.rolesUsage),
+          row("/summary", messages.tui.summaryUsage)
+        ]
+      : [
+          row("/agents", messages.tui.debateAgentsUsage),
+          row("/roles", messages.tui.rolesUsage),
+          row("/turns", messages.tui.turnsUsage),
+          row("/summary", messages.tui.summaryUsage)
+        ]),
+    row("/mode", messages.tui.modeConfigCommand),
+    ...(ollamaModel ? [
+      row("/ollama", messages.tui.ollamaInfoCommand),
+      row("/ollama-model", messages.tui.ollamaModelUsage),
+      row("/ollama-url", messages.tui.ollamaUrlCommand),
+      row("/ollama-sync", messages.tui.ollamaSyncCommand)
+    ] : []),
+    row("/interface", messages.tui.interfaceUsage),
+    row("/language", messages.tui.languageUsage),
+    "",
+    row("/home", messages.tui.backCommand),
+    row("/quit", messages.tui.quitCommand)
+  ];
 
   const lines = [
     "",
-    ...centerLogo(viewport, messages),
+    ...padBlock([brandHeader(messages.tui.configTitle)]),
     "",
-    ...centerBlock(card([
-      bold(messages.tui.configTitle),
-      "",
-      row(messages.tui.activeMode, messages.tui.modeValue(mode)),
-      row(messages.tui.configFile, configPath),
-      row(messages.tui.interface, defaults.interface ?? "tui"),
-      row(messages.tui.language, config.language ?? "fr"),
-      row(messages.tui.availableAgentsShort, agentInventoryLine(config, messages)),
-      ...(ollamaModel ? [row(messages.tui.ollamaModel, ollamaModel)] : []),
-      ...(ollamaUrl ? [row(messages.tui.ollamaUrl, ollamaUrl)] : []),
-      ...(ollamaEffectiveUrl && ollamaEffectiveUrl !== ollamaUrl ? [row(messages.tui.ollamaUrlEffective, ollamaEffectiveUrl)] : []),
-      "",
-      ...currentLines,
-      "",
-      row("/mode", messages.tui.modeConfigCommand),
-      "",
-      ...(ollamaModel ? [
-        row("/ollama", messages.tui.ollamaInfoCommand),
-        row("/ollama-model", messages.tui.ollamaModelUsage),
-        row("/ollama-url", messages.tui.ollamaUrlCommand),
-        row("/ollama-sync", messages.tui.ollamaSyncCommand),
-        ""
-      ] : []),
-      row("/interface", messages.tui.interfaceUsage),
-      row("/language", messages.tui.languageUsage),
-      "",
-      row("/home", messages.tui.backCommand),
-      row("/quit", messages.tui.quitCommand)
-    ], width), viewport),
-    ...(state.message ? ["", ...centerBlock([state.message], viewport)] : [])
+    ...padBlock(generalBox),
+    ...(ollamaBox.length > 0 ? ["", ...padBlock(ollamaBox)] : []),
+    "",
+    ...padBlock(sessionBox),
+    "",
+    ...padBlock(commandRows),
+    ...(state.message ? ["", ...padBlock([state.message])] : [])
   ];
 
   process.stdout.write(lines.join("\n") + "\n");

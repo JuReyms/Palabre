@@ -11,16 +11,19 @@ import {
   agentColor,
   agentLabel,
   bold,
+  brandHeader,
   card,
-  centerBlock,
-  centerLogo,
   clearScreen,
   codes,
   compactFileName,
   compactPath,
+  danger,
   dim,
+  glyphs,
+  padBlock,
   panel,
   row,
+  success,
   supportsColor,
   supportsInteractiveOutput,
   surfacePadding,
@@ -28,7 +31,7 @@ import {
   terminalLink,
   textSurface,
   underlineFor,
-  viewportWidth,
+  warning,
   wrapLine
 } from "./tui-theme.js";
 
@@ -49,7 +52,6 @@ class TuiRenderer implements DebateRenderer {
   private spinnerFrame = 0;
   private currentSection: "debate" | "ask" | "summary" = "debate";
   private currentAgent?: string;
-  private readonly frames = ["-", "\\", "|", "/"];
 
   constructor(
     private readonly messages: Messages,
@@ -66,15 +68,14 @@ class TuiRenderer implements DebateRenderer {
   }
 
   notice(message: string): void {
-    const viewport = viewportWidth();
     const width = this.width();
-    process.stdout.write(`\n${centerBlock(card([
-      `${this.c("green", this.messages.renderers.infoPrefix)} ${message}`
-    ], width), viewport).join("\n")}\n`);
+    process.stdout.write(`\n${padBlock(card([
+      `${success(this.messages.renderers.infoPrefix)} ${message}`
+    ], width)).join("\n")}\n`);
   }
 
   warning(message: string): void {
-    process.stderr.write(`${this.c("yellow", this.messages.renderers.warningPrefix)} ${message}\n`);
+    process.stderr.write(`${warning(this.messages.renderers.warningPrefix)} ${message}\n`);
   }
 
   turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void {
@@ -99,8 +100,9 @@ class TuiRenderer implements DebateRenderer {
     }
 
     process.stdout.write("\u001b[?25l");
+    const frames = glyphs().spinner;
     const render = () => {
-      const frame = this.frames[this.spinnerFrame % this.frames.length];
+      const frame = frames[this.spinnerFrame % frames.length];
       this.spinnerFrame += 1;
       process.stdout.write(`\r\u001b[2K${surfacePadding()}${agentColor(agent, frame)} ${text}...`);
     };
@@ -137,32 +139,29 @@ class TuiRenderer implements DebateRenderer {
 
   error(failure: DebateFailure): void {
     this.thinkingEnd();
-    const viewport = viewportWidth();
     const width = this.width();
-    process.stderr.write(`\n${centerBlock(card([
-      this.c("red", this.messages.common.errorPrefix),
+    process.stderr.write(`\n${padBlock(card([
+      danger(`${glyphs().cross} ${this.messages.common.errorPrefix}`),
       `${formatFailureLocation(failure, this.messages)}: ${failure.message}`
-    ], width), viewport).join("\n")}\n`);
+    ], width)).join("\n")}\n`);
   }
 
   done(outputPath: string): void {
     this.thinkingEnd();
-    const viewport = viewportWidth();
     const width = this.width();
     const folderPath = path.dirname(outputPath);
     const fileName = path.basename(outputPath);
-    process.stdout.write(`\n${centerBlock(panel([
-      bold(this.messages.tui.sessionDone),
+    process.stdout.write(`\n${padBlock(panel([
+      `${success(glyphs().check)} ${bold(this.messages.tui.sessionDone)}`,
       "",
       row(this.messages.tui.historyFile, terminalLink(outputPath, compactFileName(fileName, width - 24))),
       row(this.messages.tui.folder, terminalLink(folderPath, compactPath(folderPath, width - 24))),
       "",
       dim(this.messages.tui.sessionHistoryHint)
-    ], width), viewport).join("\n")}\n\n`);
+    ], width)).join("\n")}\n\n`);
   }
 
   private renderSessionHeader(options: DebateOptions, agents: DebateStartAgentInfo[]): string[] {
-    const viewport = viewportWidth();
     const width = this.width();
     const mode = messagesModeLabel(this.messages, options.mode).toUpperCase();
     const main = panel([
@@ -174,18 +173,18 @@ class TuiRenderer implements DebateRenderer {
     ], width);
 
     return [
-      ...centerLogo(viewport, this.messages),
       "",
-      ...centerBlock(main, viewport),
+      ...padBlock([brandHeader()]),
+      "",
+      ...padBlock(main),
       ""
     ];
   }
 
   private promptBlock(title: string, agent?: string): void {
-    const viewport = viewportWidth();
     const width = this.width();
     const underline = underlineFor(title, width, agent);
-    process.stdout.write(`\n${centerBlock(card([bold(title), underline], width), viewport).join("\n")}\n`);
+    process.stdout.write(`\n${padBlock(card([bold(title), underline], width)).join("\n")}\n`);
   }
 
   private formatMessage(content: string): string {
@@ -194,7 +193,7 @@ class TuiRenderer implements DebateRenderer {
     const body = content
       .split(/\r?\n/)
       .flatMap((line) => line ? wrapLine(line, contentWidth) : [""]);
-    return `\n${centerBlock(textSurface(body, width, this.currentAgent), viewportWidth()).join("\n")}\n`;
+    return `\n${padBlock(textSurface(body, width, this.currentAgent)).join("\n")}\n`;
   }
 
   private formatSummary(content: string): string {

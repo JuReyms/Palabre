@@ -1,6 +1,7 @@
 /**
- * @file Primitives visuelles du TUI : détection couleur/TTY, largeurs de surface,
- * boîtes (card, panel, composer), wrapping, liens terminal, palette agents et codes ANSI.
+ * @file Primitives visuelles du TUI : détection couleur/TTY/Unicode, glyphes avec repli
+ * ASCII (`PALABRE_ASCII=1`), cadre de boîte unifié, gouttière d'ancrage gauche, en-tête
+ * de marque compact, colonnes label/valeur adaptatives, tokens sémantiques et palette agents.
  * Aucune logique produit ici : les écrans, prompts et le renderer consomment ces briques.
  */
 import path from "node:path";
@@ -11,6 +12,72 @@ import type { Messages } from "../messages/index.js";
 export const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
 /** `true` si stdout permet un rendu interactif (clear screen, spinner, liens OSC 8). */
 export const supportsInteractiveOutput = Boolean(process.stdout.isTTY);
+
+/** Jeu de glyphes du rendu : tracé de boîtes, marqueurs d'état et frames de spinner. */
+export interface GlyphSet {
+  h: string;
+  v: string;
+  tl: string;
+  tr: string;
+  bl: string;
+  br: string;
+  check: string;
+  cross: string;
+  spinner: string[];
+}
+
+const unicodeGlyphs: GlyphSet = {
+  h: "─",
+  v: "│",
+  tl: "┌",
+  tr: "┐",
+  bl: "└",
+  br: "┘",
+  check: "✓",
+  cross: "✗",
+  spinner: ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+};
+
+const asciiGlyphs: GlyphSet = {
+  h: "-",
+  v: "|",
+  tl: "+",
+  tr: "+",
+  bl: "+",
+  br: "+",
+  check: "√",
+  cross: "x",
+  spinner: ["-", "\\", "|", "/"]
+};
+
+/**
+ * Retourne le jeu de glyphes actif. Résolu paresseusement à chaque appel pour que
+ * `PALABRE_ASCII=1` (et les tests) puissent forcer le repli ASCII sans réimporter le module.
+ */
+export function glyphs(): GlyphSet {
+  return unicodeSupported() ? unicodeGlyphs : asciiGlyphs;
+}
+
+/**
+ * Heuristique de support Unicode inspirée de `figures`/`ora` : hors Windows, seul le
+ * TTY console `TERM=linux` pose problème ; sur Windows, Windows Terminal, ConEmu,
+ * VS Code et les shells posant `TERM` gèrent le tracé Unicode. `PALABRE_ASCII` force le repli.
+ */
+function unicodeSupported(): boolean {
+  const env = process.env;
+  if (env.PALABRE_ASCII) {
+    return false;
+  }
+
+  if (process.platform !== "win32") {
+    return env.TERM !== "linux";
+  }
+
+  return Boolean(env.WT_SESSION)
+    || env.ConEmuANSI === "ON"
+    || env.TERM_PROGRAM === "vscode"
+    || Boolean(env.TERM);
+}
 
 /** Efface l'écran et restaure le curseur. À n'appeler que si `supportsInteractiveOutput`. */
 export function clearScreen(): void {
@@ -27,9 +94,12 @@ export function viewportWidth(): number {
   return Math.max(72, Math.min(process.stdout.columns || 100, 180));
 }
 
-/** Marge gauche qui centre la surface de contenu dans le viewport. */
+/**
+ * Gouttière fixe à gauche de toute la sortie TUI. L'ancrage gauche remplace
+ * l'ancien centrage : le rendu reste stable quelle que soit la largeur du terminal.
+ */
 export function surfacePadding(): string {
-  return " ".repeat(Math.max(0, Math.floor((viewportWidth() - surfaceWidth()) / 2)));
+  return "  ";
 }
 
 /** Compacte un chemin trop long en gardant la fin (`...suffixe`). */
@@ -70,13 +140,22 @@ export function terminalLink(filePath: string, label: string): string {
   return `\u001b]8;;${pathToFileURL(filePath).href}\u001b\\${label}\u001b]8;;\u001b\\`;
 }
 
-/** Logo Palabre + tagline, centrés dans `width`. */
-export function centerLogo(width: number, messages: Messages): string[] {
+/** Logo Palabre + tagline, réservés à l'écran d'accueil. */
+export function logoBlock(messages: Messages): string[] {
   return [
     ...logo(),
     "",
     bold(messages.tui.tagline)
-  ].map((line) => padLeft(line, Math.max(0, Math.floor((width - visibleLength(line)) / 2))));
+  ];
+}
+
+/**
+ * Ligne de marque compacte des écrans hors accueil : titre accentué suivi d'une
+ * règle horizontale jusqu'à la largeur de surface. Remplace le logo 5 lignes.
+ */
+export function brandHeader(title = "PALABRE"): string {
+  const rule = Math.max(0, surfaceWidth() - visibleLength(title) - 1);
+  return `${accent(bold(title))} ${dim(glyphs().h.repeat(rule))}`;
 }
 
 function logo(): string[] {
@@ -88,29 +167,57 @@ function logo(): string[] {
   ].map((line) => supportsColor ? `${codes.logoViolet}${line}${codes.reset}` : line);
 }
 
-/** Centre horizontalement un bloc de lignes déjà rendues dans `width`. */
-export function centerBlock(lines: string[], width: number): string[] {
-  const blockWidth = Math.max(...lines.map(visibleLength), 0);
-  const left = Math.max(0, Math.floor((width - blockWidth) / 2));
-  return lines.map((line) => padLeft(line, left));
+/** Ancre un bloc de lignes à la gouttière gauche fixe. */
+export function padBlock(lines: string[]): string[] {
+  const gutter = surfacePadding();
+  return lines.map((line) => `${gutter}${line}`);
 }
 
-/** Boîte simple bordée de `|`, avec wrapping du contenu. */
-export function card(lines: string[], width: number): string[] {
-  const contentWidth = Math.max(24, width - 4);
-  const body = lines.flatMap((line) => wrapLine(line, contentWidth));
-  return body.map((line) => `${dim("|")} ${padRight(line, contentWidth)} ${dim("|")}`);
+/** Options du cadre unifié `frame`. */
+interface FrameOptions {
+  /** Titre intégré dans la bordure haute : `┌─ Titre ────┐`. */
+  title?: string;
+  /** Peinture de la bordure ; `dim` par défaut. */
+  border?: (value: string) => string;
+  /** Ajoute une ligne vide en haut et en bas du contenu. */
+  padY?: boolean;
+  /** Centre chaque ligne de contenu dans la boîte. */
+  center?: boolean;
 }
 
-/** Variante de `card` avec lignes vides haut/bas et alignement optionnel centré. */
-export function composerCard(lines: string[], width: number, align: "left" | "center" = "left"): string[] {
-  const contentWidth = Math.max(24, width - 4);
-  const body = lines.flatMap((line) => wrapLine(line, contentWidth));
+/**
+ * Cadre fermé unique de tout le TUI (`┌─┐ │ └─┘`, repli ASCII `+-+ | +-+`).
+ * Toutes les boîtes (`card`, `panel`, `composerCard`, `textSurface`) en dérivent
+ * pour garantir un style homogène.
+ */
+function frame(lines: string[], width: number, options: FrameOptions = {}): string[] {
+  const g = glyphs();
+  const paint = options.border ?? dim;
+  const contentWidth = Math.max(18, width - 4);
+  const wrapped = lines.flatMap((line) => wrapLine(line, contentWidth));
+  const body = wrapped.length > 0 ? wrapped : [""];
+  const inner = options.padY ? ["", ...body, ""] : body;
+  const titleLength = options.title ? visibleLength(options.title) + 2 : 0;
+  const top = options.title
+    ? `${paint(`${g.tl}${g.h}`)} ${bold(options.title)} ${paint(`${g.h.repeat(Math.max(0, contentWidth - titleLength + 1))}${g.tr}`)}`
+    : paint(`${g.tl}${g.h.repeat(contentWidth + 2)}${g.tr}`);
+  const bottom = paint(`${g.bl}${g.h.repeat(contentWidth + 2)}${g.br}`);
+
   return [
-    `${dim("|")} ${" ".repeat(contentWidth)} ${dim("|")}`,
-    ...body.map((line) => `${dim("|")} ${padRight(align === "center" ? centerLine(line, contentWidth) : line, contentWidth)} ${dim("|")}`),
-    `${dim("|")} ${" ".repeat(contentWidth)} ${dim("|")}`
+    top,
+    ...inner.map((line) => `${paint(g.v)} ${padRight(options.center ? centerLine(line, contentWidth) : line, contentWidth)} ${paint(g.v)}`),
+    bottom
   ];
+}
+
+/** Boîte de contenu standard, avec titre optionnel intégré à la bordure. */
+export function card(lines: string[], width: number, title?: string): string[] {
+  return frame(lines, width, { title });
+}
+
+/** Boîte "héro" de l'accueil : contenu centré et respirations verticales. */
+export function composerCard(lines: string[], width: number, align: "left" | "center" = "left"): string[] {
+  return frame(lines, width, { padY: true, center: align === "center" });
 }
 
 function centerLine(line: string, width: number): string {
@@ -118,39 +225,41 @@ function centerLine(line: string, width: number): string {
   return `${" ".repeat(left)}${line}`;
 }
 
-/** Boîte fermée `+---+` utilisée pour les panneaux de session et l'historique. */
-export function panel(lines: string[], width: number): string[] {
-  const contentWidth = Math.max(18, width - 4);
-  const body = lines.flatMap((line) => wrapLine(line, contentWidth));
-  return [
-    `${dim("+")}${dim("-".repeat(contentWidth + 2))}${dim("+")}`,
-    ...body.map((line) => `${dim("|")} ${padRight(line, contentWidth)} ${dim("|")}`),
-    `${dim("+")}${dim("-".repeat(contentWidth + 2))}${dim("+")}`
-  ];
+/** Panneau de session et d'historique ; même cadre que `card`, titre optionnel. */
+export function panel(lines: string[], width: number, title?: string): string[] {
+  return frame(lines, width, { title });
 }
 
 /** Surface de texte bordée à la couleur de l'agent (contenu des messages de débat). */
 export function textSurface(lines: string[], width: number, agent?: string): string[] {
-  const contentWidth = Math.max(24, width - 4);
-  const body = lines.length > 0 ? lines : [""];
   const border = agent ? (value: string) => agentColor(agent, value) : violet;
-  return [
-    `${border("|")} ${" ".repeat(contentWidth)} ${border("|")}`,
-    ...body.map((line) => `${border("|")} ${padRight(line, contentWidth)} ${border("|")}`),
-    `${border("|")} ${" ".repeat(contentWidth)} ${border("|")}`
-  ];
+  return frame(lines, width, { border, padY: true });
 }
 
 /** Trait de soulignement d'un titre, à la couleur de l'agent quand elle est connue. */
 export function underlineFor(title: string, width: number, agent?: string): string {
   const length = Math.max(8, Math.min(48, visibleLength(title), width - 4));
-  const line = "-".repeat(length);
+  const line = glyphs().h.repeat(length);
   return agent ? agentColor(agent, line) : accent(line);
 }
 
-/** Ligne `label  valeur` avec label en gras aligné sur 16 colonnes. */
-export function row(label: string, value: string): string {
-  return `${bold(label.padEnd(16))} ${value}`;
+/** Ligne `label  valeur` avec label en gras aligné sur `labelWidth` colonnes. */
+export function row(label: string, value: string, labelWidth = 16): string {
+  return `${bold(label.padEnd(labelWidth))} ${value}`;
+}
+
+/** Entrée de `rows` : paire label/valeur alignée, ou ligne brute insérée telle quelle. */
+export type RowEntry = readonly [string, string] | string;
+
+/**
+ * Rend un bloc de lignes label/valeur avec une colonne de labels adaptative :
+ * la largeur s'aligne sur le label le plus long du bloc au lieu d'une constante,
+ * ce qui évite les colonnes cassées quand un label dépasse 16 caractères.
+ */
+export function rows(entries: ReadonlyArray<RowEntry>): string[] {
+  const labels = entries.filter((entry): entry is readonly [string, string] => typeof entry !== "string");
+  const labelWidth = Math.max(...labels.map(([label]) => label.length), 0) + 2;
+  return entries.map((entry) => typeof entry === "string" ? entry : row(entry[0], entry[1], labelWidth));
 }
 
 /** Coupe une ligne aux mots pour tenir dans `width` colonnes visibles (ANSI ignoré). */
@@ -176,10 +285,6 @@ export function wrapLine(value: string, width: number): string[] {
 
   if (current) lines.push(current);
   return lines;
-}
-
-function padLeft(value: string, width: number): string {
-  return `${" ".repeat(width)}${value}`;
 }
 
 function padRight(value: string, width: number): string {
@@ -215,6 +320,21 @@ export function accent(value: string): string {
 /** Violet des règles horizontales et bordures neutres. */
 export function violet(value: string): string {
   return supportsColor ? `${codes.violet}${value}${codes.reset}` : value;
+}
+
+/** Token sémantique : succès (fin de session, confirmation). */
+export function success(value: string): string {
+  return supportsColor ? `${codes.green}${value}${codes.reset}` : value;
+}
+
+/** Token sémantique : avertissement non bloquant. */
+export function warning(value: string): string {
+  return supportsColor ? `${codes.yellow}${value}${codes.reset}` : value;
+}
+
+/** Token sémantique : erreur. */
+export function danger(value: string): string {
+  return supportsColor ? `${codes.red}${value}${codes.reset}` : value;
 }
 
 /** Nom d'agent rendu dans sa couleur stable. */

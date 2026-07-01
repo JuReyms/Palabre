@@ -11,12 +11,12 @@ import { renderTuiAgentsHelp, renderTuiRolesHelp } from "./tui-screens.js";
 import {
   accent,
   bold,
-  centerBlock,
   composerCard,
   dim,
+  glyphs,
+  padBlock,
   surfacePadding,
   surfaceWidth,
-  viewportWidth,
   violet,
   wrapLine
 } from "./tui-theme.js";
@@ -361,11 +361,10 @@ export function renderTuiComposer(mode: PalabreMode, messages: Messages, labelPr
     return;
   }
 
-  const viewport = viewportWidth();
   const width = surfaceWidth();
   process.stdout.write([
     "",
-    ...centerBlock(composerInputBox(mode, labelPrefix, width, messages), viewport),
+    ...padBlock(composerInputBox(mode, labelPrefix, width, messages)),
     ""
   ].join("\n"));
 }
@@ -387,14 +386,14 @@ function tuiPrompt(mode: PalabreMode, labelPrefix: string, messages: Messages, n
 }
 
 function promptRuleLine(): string {
-  return `${surfacePadding()}${violet("-".repeat(surfaceWidth()))}`;
+  return `${surfacePadding()}${violet(glyphs().h.repeat(surfaceWidth()))}`;
 }
 
 function promptNoticeLines(notice: string): string[] {
   const padding = surfacePadding();
   const contentWidth = surfaceWidth();
   return [
-    `${padding}${dim("-".repeat(contentWidth))}`,
+    `${padding}${dim(glyphs().h.repeat(contentWidth))}`,
     ...wrapLine(notice, contentWidth).map((line) => `${padding}${line}`)
   ];
 }

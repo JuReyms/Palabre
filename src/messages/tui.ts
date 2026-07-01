@@ -54,6 +54,8 @@ export interface TuiMessages {
   roleReviewer: string;
   roleSummarizer: string;
   configTitle: string;
+  /** Titre de la section des reglages generaux de l'ecran /config. */
+  configSectionGeneral: string;
   configFile: string;
   interface: string;
   language: string;
@@ -176,6 +178,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     roleReviewer: "cherche risques et tests manquants",
     roleSummarizer: "synthetise fidelement",
     configTitle: "Configuration Palabre",
+    configSectionGeneral: "Général",
     configFile: "Config",
     interface: "Interface",
     language: "Langue",
@@ -296,6 +299,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     roleReviewer: "looks for risks and missing tests",
     roleSummarizer: "summarizes faithfully",
     configTitle: "Palabre Configuration",
+    configSectionGeneral: "General",
     configFile: "Config",
     interface: "Interface",
     language: "Language",

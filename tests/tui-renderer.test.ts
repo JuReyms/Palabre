@@ -4,6 +4,9 @@ import { createTuiRenderer, parseTuiOllamaUrlCommand, renderTuiAgentsHelp, rende
 import { createTranslator } from "../src/i18n.js";
 import type { DebateFailure, DebateOptions } from "../src/types.js";
 
+// Force le repli ASCII des glyphes pour des assertions stables quel que soit le terminal.
+process.env.PALABRE_ASCII = "1";
+
 test("TuiRenderer renders a lightweight terminal dashboard", () => {
   const output: string[] = [];
   const originalWrite = process.stdout.write;
@@ -23,7 +26,8 @@ test("TuiRenderer renders a lightweight terminal dashboard", () => {
   }
 
   const text = output.join("");
-  assert.match(text, /___/);
+  assert.match(text, /PALABRE/);
+  assert.doesNotMatch(text, /___/);
   assert.match(text, /DEBATE/);
   assert.match(text, /Subject: TUI test/);
   assert.match(text, /codex \(implementer\) - turn 1\/2/);
@@ -84,7 +88,7 @@ test("TuiRenderer renders runtime errors as a centered card", () => {
   }
 
   const text = output.join("");
-  assert.match(text, /\| Error/);
+  assert.match(text, /\| x Error/);
   assert.match(text, /\| antigravity \(implementer, turn 4\): antigravity cancelled by user\./);
 });
 
@@ -173,7 +177,7 @@ test("renderTuiHelp renders slash commands", () => {
   }
 
   const text = output.join("");
-  assert.match(text, /___/);
+  assert.doesNotMatch(text, /___/);
   assert.match(text, /Commandes TUI/);
   assert.match(text, /\/ask/);
   assert.match(text, /mode Ask/);
@@ -259,7 +263,7 @@ test("renderTuiRolesHelp renders available roles", () => {
   }
 
   const text = output.join("");
-  assert.match(text, /___/);
+  assert.doesNotMatch(text, /___/);
   assert.match(text, /Roles Palabre/);
   assert.match(text, /implementer/);
   assert.match(text, /critic/);
@@ -294,8 +298,7 @@ test("renderTuiAgentsHelp renders configured agents", () => {
   }
 
   const text = output.join("");
-  assert.match(text, /___/);
-  assert.match(text, /Orchestrez des conversations entre agents IA/);
+  assert.doesNotMatch(text, /___/);
   assert.match(text, /Agents Palabre/);
   assert.match(text, /Agents actifs/);
   assert.match(text, /codex <-> claude/);
@@ -356,9 +359,9 @@ test("renderTuiConfig keeps the Palabre brand header", () => {
   }
 
   const text = output.join("");
-  assert.match(text, /___/);
-  assert.match(text, /Orchestrate conversations between AI agents/);
+  assert.doesNotMatch(text, /___/);
   assert.match(text, /Palabre Configuration/);
+  assert.match(text, /General/);
   assert.match(text, /Active agents/);
   assert.match(text, /Agents/);
   assert.match(text, /Language/);
