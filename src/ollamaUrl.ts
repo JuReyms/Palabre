@@ -1,5 +1,6 @@
 /** @file Résolution et normalisation de l'URL du serveur Ollama, avec erreurs typées `OllamaUrlError`. */
 import type { PalabreConfig } from "./types.js";
+import type { Messages } from "./messages/index.js";
 
 /** Serveur Ollama utilisé quand aucune autre source (flag, env, config) n'est fournie. */
 export const DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434";
@@ -32,6 +33,23 @@ export class OllamaUrlError extends Error {
         : `Invalid Ollama URL: ${value}`);
     this.name = "OllamaUrlError";
   }
+}
+
+/**
+ * Formate une `OllamaUrlError` en message localisé actionnable.
+ * Source unique du mapping `kind` → message, partagée entre le gestionnaire
+ * d'erreur du point d'entrée CLI et la conversion en `DebateFailure` de l'orchestrateur.
+ */
+export function formatOllamaUrlError(error: OllamaUrlError, messages: Messages): string {
+  if (error.kind === "empty") {
+    return messages.common.ollamaUrlEmpty;
+  }
+
+  if (error.kind === "protocol") {
+    return messages.common.ollamaUrlProtocol(error.protocol ?? "");
+  }
+
+  return messages.common.ollamaUrlInvalid(error.value);
 }
 
 /**

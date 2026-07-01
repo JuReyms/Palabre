@@ -5,7 +5,7 @@ import { normalizeOllamaBaseUrl } from "./ollamaUrl.js";
 import { createSessionContext } from "./session.js";
 import { askAgentSeedsForMode } from "./tuiState.js";
 import type { AgentPairPreset } from "./presets.js";
-import type { DebateOptions, Language, PalabreConfig, PalabreMode, ProjectFileContext } from "./types.js";
+import type { DebateOptions, Language, PalabreConfig, PalabreInterface, PalabreMode, ProjectFileContext } from "./types.js";
 import type { Messages } from "./messages/index.js";
 import { optionalString, type CommandFlags } from "./commands/shared.js";
 
@@ -79,11 +79,26 @@ function resolveSummaryAgent(explicitValue: string | string[] | boolean | undefi
   return defaults?.summaryAgent ?? agentB;
 }
 
-/** Valide le mode demandé et applique `debate` quand aucune valeur n'est fournie. */
-function parseModeFlag(value: string | undefined, messages: Messages): PalabreMode {
+/**
+ * Valide le mode demandé (`--mode`, `config --mode`) et applique `debate` quand
+ * aucune valeur n'est fournie. Partagé entre `run` et la commande `config`.
+ * @throws {Error} Si `value` n'est ni `debate` ni `ask`.
+ */
+export function parseModeFlag(value: string | undefined, messages: Messages): PalabreMode {
   if (!value) return "debate";
   if (value === "debate" || value === "ask") return value;
   throw new Error(messages.common.unknownMode(value, "debate, ask"));
+}
+
+/**
+ * Valide l'interface demandée (`--interface`, `config --interface`) et applique `tui`
+ * quand aucune valeur n'est fournie.
+ * @throws {Error} Si `value` n'est ni `tui` ni `terminal`.
+ */
+export function parseInterfaceFlag(value: string | undefined, messages: Messages): PalabreInterface {
+  if (!value) return "tui";
+  if (value === "tui" || value === "terminal") return value;
+  throw new Error(messages.common.unknownMode(value, "tui, terminal"));
 }
 
 /** Déduplique les agents Ask et applique la limite produit sans modifier les listes sources. */

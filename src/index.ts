@@ -25,9 +25,9 @@ import { writeDebateMarkdown } from "./output.js";
 import { formatUpdateInstructions, getUpdateInfo } from "./update.js";
 import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { clearTuiRunOverrides } from "./tuiState.js";
-import { OllamaUrlError } from "./ollamaUrl.js";
+import { formatOllamaUrlError, OllamaUrlError } from "./ollamaUrl.js";
 import { compareSemver, getLatestPackageVersion, getPackageVersion } from "./version.js";
-import type { DebateOptions, PalabreConfig, PalabreInterface, PalabreMode } from "./types.js";
+import type { DebateOptions, PalabreConfig, PalabreInterface } from "./types.js";
 import type { Messages } from "./messages/index.js";
 import { runAgentsCommand } from "./commands/agents.js";
 import { runContextCommand } from "./commands/context.js";
@@ -37,7 +37,7 @@ import { runPresetsCommand } from "./commands/presets.js";
 import { runUpdateCommand } from "./commands/update.js";
 import { optionalString } from "./commands/shared.js";
 import { runTuiAgentsWizard, runTuiConfigLoop, runTuiRolesWizard, syncInteractiveDetectedAgents } from "./tuiController.js";
-import { resolveRunOptions } from "./runOptions.js";
+import { parseInterfaceFlag, parseModeFlag, resolveRunOptions } from "./runOptions.js";
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
 async function main(): Promise<void> {
@@ -667,38 +667,6 @@ function assertKnownAgent(config: Awaited<ReturnType<typeof loadConfig>>, agentN
   }
 }
 /**
- * Résout la valeur de `--mode`/`config --mode` en `PalabreMode`, `"debate"` par défaut.
- * @throws Si `value` n'est ni `debate` ni `ask`.
- */
-function parseModeFlag(value: string | undefined, messages: Messages): PalabreMode {
-  if (!value) {
-    return "debate";
-  }
-
-  if (value === "debate" || value === "ask") {
-    return value;
-  }
-
-  throw new Error(messages.common.unknownMode(value, "debate, ask"));
-}
-
-/**
- * Résout la valeur de `--interface`/`config --interface` en `PalabreInterface`, `"tui"` par défaut.
- * @throws Si `value` n'est ni `tui` ni `terminal`.
- */
-function parseInterfaceFlag(value: string | undefined, messages: Messages): PalabreInterface {
-  if (!value) {
-    return "tui";
-  }
-
-  if (value === "tui" || value === "terminal") {
-    return value;
-  }
-
-  throw new Error(messages.common.unknownMode(value, "tui, terminal"));
-}
-
-/**
  * Affiche un aperçu du prompt du premier tour sans appeler aucun agent (flag `--show-prompt`).
  * @param config - Config chargée.
  * @param options - Options du débat résolues.
@@ -797,12 +765,6 @@ function createRendererFromFlags(
   }
   if (flags.json) {
     return createNdjsonRenderer();
-  }
-  if (flags.tui) {
-    return createTuiRenderer(messages);
-  }
-  if (flags.terminal || flags.plain || plainOutputFallback || defaultInterface === "terminal") {
-    return createConsoleRenderer(true, messages);
   }
   return createAutoRenderer(flags, plainOutputFallback, defaultInterface, messages);
 }
@@ -904,9 +866,7 @@ function formatRuntimeError(error: unknown, messages: Messages): string {
     return formatAdapterError(error, messages);
   }
   if (error instanceof OllamaUrlError) {
-    if (error.kind === "empty") return messages.common.ollamaUrlEmpty;
-    if (error.kind === "protocol") return messages.common.ollamaUrlProtocol(error.protocol ?? "");
-    return messages.common.ollamaUrlInvalid(error.value);
+    return formatOllamaUrlError(error, messages);
   }
   return error instanceof Error ? error.message : String(error);
 }

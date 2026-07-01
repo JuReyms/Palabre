@@ -24,3 +24,8 @@ export function formatAdapterError(error: AdapterError, messages: Messages = cre
   const hint = messages.adapterErrors.hint(error.kind);
   return hint ? `${error.message}\n${messages.adapterErrors.suggestionPrefix}: ${hint}` : error.message;
 }
+
+/** Construit l'`AdapterError` standard d'annulation utilisateur, partagée par tous les adapters. */
+export function cancelledError(adapterName: string): AdapterError {
+  return new AdapterError("cancelled", adapterName, `${adapterName} cancelled by user.`);
+}

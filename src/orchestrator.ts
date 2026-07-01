@@ -3,9 +3,9 @@ import { createAgent } from "./adapters/index.js";
 import { AdapterError } from "./errors.js";
 import { createTranslator } from "./i18n.js";
 import { MAX_ASK_AGENTS } from "./limits.js";
-import { OllamaUrlError } from "./ollamaUrl.js";
+import { formatOllamaUrlError, OllamaUrlError } from "./ollamaUrl.js";
 import type { Messages } from "./messages/index.js";
-import type { AgentConfig, AgentRole, PalabreConfig, DebateFailure, DebateMessage, DebateOptions, DebateRenderer, DebateSummary } from "./types.js";
+import type { AgentAdapter, AgentConfig, AgentPrompt, AgentRole, PalabreConfig, DebateFailure, DebateMessage, DebateOptions, DebateRenderer, DebateSummary } from "./types.js";
 
 export { MAX_ASK_AGENTS } from "./limits.js";
 
@@ -83,50 +83,32 @@ export async function runDebate(
     const turn = index + 1;
 
     renderer?.turnStart(turn, options.turns, current.name, current.role);
-    renderer?.thinkingStart(current.name, current.role);
 
-    let response;
-    try {
-      response = await current.generate({
-        topic: options.topic,
-        turn,
-        totalTurns: options.turns,
-        selfName: current.name,
-        peerName: peer.name,
-        selfRole: current.role,
-        language: options.language,
-        session: options.session,
-        files: options.files,
-        transcript,
-        signal: options.signal
-      });
-    } catch (error) {
-      const failure = toDebateFailure(error, {
-        phase: "debate",
-        agent: current.name,
-        role: current.role,
-        turn
-      }, messages);
-      renderer?.error(failure);
+    const outcome = await generateTurnMessage(current, {
+      topic: options.topic,
+      turn,
+      totalTurns: options.turns,
+      selfName: current.name,
+      peerName: peer.name,
+      selfRole: current.role,
+      language: options.language,
+      session: options.session,
+      files: options.files,
+      transcript,
+      signal: options.signal
+    }, { phase: "debate", agent: current.name, role: current.role, turn }, renderer, messages);
+
+    if (outcome.failure) {
       return {
         options,
         messages: transcript,
         stopReason,
-        failure
+        failure: outcome.failure
       };
-    } finally {
-      renderer?.thinkingEnd();
     }
 
-    const message: DebateMessage = {
-      agent: current.name,
-      role: current.role,
-      content: response.content,
-      createdAt: new Date().toISOString()
-    };
-
-    transcript.push(message);
-    renderer?.message(message.content);
+    transcript.push(outcome.message);
+    renderer?.message(outcome.message.content);
 
     if (shouldStopOnAgreement(options, transcript, messages)) {
       stopReason = messages.orchestrator.agreementStopReason;
@@ -135,37 +117,7 @@ export async function runDebate(
     }
   }
 
-  let summary: DebateSummary | undefined;
-  let failure: DebateFailure | undefined;
-
-  if (options.summaryEnabled) {
-    try {
-      const cancellation = cancellationFailureIfAborted(options, messages, {
-        phase: "summary",
-        agent: options.summaryAgent,
-        role: summaryRole(),
-        turn: transcript.length + 1
-      });
-      if (cancellation) {
-        renderer?.error(cancellation);
-        return {
-          options,
-          messages: transcript,
-          stopReason,
-          failure: cancellation
-        };
-      }
-      summary = await generateSummary(config, options, transcript, renderer, messages);
-    } catch (error) {
-      failure = toDebateFailure(error, {
-        phase: "summary",
-        agent: options.summaryAgent,
-        role: summaryRole(),
-        turn: transcript.length + 1
-      }, messages);
-      renderer?.error(failure);
-    }
-  }
+  const { summary, failure } = await runSummaryPhase(config, options, transcript, renderer, messages);
 
   return {
     options,
@@ -241,87 +193,39 @@ export async function runAsk(
     } else {
       renderer?.turnStart(response, agents.length, current.name, current.role);
     }
-    renderer?.thinkingStart(current.name, current.role);
 
-    let agentResponse;
-    try {
-      agentResponse = await current.generate({
-        topic: options.topic,
-        turn: response,
-        totalTurns: agents.length,
-        selfName: current.name,
-        peerName: "independent-agents",
-        selfRole: current.role,
-        mode: "ask",
-        language: options.language,
-        session: options.session,
-        files: options.files,
-        transcript: [],
-        signal: options.signal
-      });
-    } catch (error) {
-      const failure = toDebateFailure(error, {
-        phase: "ask",
-        agent: current.name,
-        role: current.role,
-        turn: response
-      }, messages);
-      renderer?.error(failure);
+    const outcome = await generateTurnMessage(current, {
+      topic: options.topic,
+      turn: response,
+      totalTurns: agents.length,
+      selfName: current.name,
+      peerName: "independent-agents",
+      selfRole: current.role,
+      mode: "ask",
+      language: options.language,
+      session: options.session,
+      files: options.files,
+      transcript: [],
+      signal: options.signal
+    }, { phase: "ask", agent: current.name, role: current.role, turn: response }, renderer, messages);
+
+    if (outcome.failure) {
       return {
         options,
         messages: transcript,
-        failure
+        failure: outcome.failure
       };
-    } finally {
-      renderer?.thinkingEnd();
     }
 
-    const message: DebateMessage = {
-      agent: current.name,
-      role: current.role,
-      content: agentResponse.content,
-      createdAt: new Date().toISOString()
-    };
-
-    transcript.push(message);
+    transcript.push(outcome.message);
     if (renderer?.askResponseMessage) {
-      renderer.askResponseMessage(message.content);
+      renderer.askResponseMessage(outcome.message.content);
     } else {
-      renderer?.message(message.content);
+      renderer?.message(outcome.message.content);
     }
   }
 
-  let summary: DebateSummary | undefined;
-  let failure: DebateFailure | undefined;
-
-  if (options.summaryEnabled) {
-    try {
-      const summaryAgentName = options.summaryAgent;
-      const cancellation = cancellationFailureIfAborted(options, messages, {
-        phase: "summary",
-        agent: summaryAgentName,
-        role: summaryRole(),
-        turn: transcript.length + 1
-      });
-      if (cancellation) {
-        renderer?.error(cancellation);
-        return {
-          options,
-          messages: transcript,
-          failure: cancellation
-        };
-      }
-      summary = await generateSummary(config, options, transcript, renderer, messages);
-    } catch (error) {
-      failure = toDebateFailure(error, {
-        phase: "summary",
-        agent: options.summaryAgent,
-        role: summaryRole(),
-        turn: transcript.length + 1
-      }, messages);
-      renderer?.error(failure);
-    }
-  }
+  const { summary, failure } = await runSummaryPhase(config, options, transcript, renderer, messages);
 
   return {
     options,
@@ -329,6 +233,82 @@ export async function runAsk(
     summary,
     failure
   };
+}
+
+/** Issue d'un appel agent : message prêt à rejoindre le transcript, ou échec déjà notifié au renderer. */
+type TurnOutcome =
+  | { message: DebateMessage; failure?: undefined }
+  | { message?: undefined; failure: DebateFailure };
+
+/**
+ * Appelle `agent.generate` en encadrant l'état "thinking" du renderer, puis
+ * construit le `DebateMessage` horodaté ou convertit l'erreur en `DebateFailure`
+ * (notifiée au renderer). Mutualisé entre les tours `debate` et les réponses `ask`.
+ */
+async function generateTurnMessage(
+  agent: AgentAdapter,
+  prompt: AgentPrompt,
+  context: Pick<DebateFailure, "phase"> & Partial<Pick<DebateFailure, "agent" | "role" | "turn">>,
+  renderer: DebateRenderer | undefined,
+  messages: Messages
+): Promise<TurnOutcome> {
+  renderer?.thinkingStart(agent.name, agent.role);
+
+  try {
+    const response = await agent.generate(prompt);
+    return {
+      message: {
+        agent: agent.name,
+        role: agent.role,
+        content: response.content,
+        createdAt: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    const failure = toDebateFailure(error, context, messages);
+    renderer?.error(failure);
+    return { failure };
+  } finally {
+    renderer?.thinkingEnd();
+  }
+}
+
+/**
+ * Phase de synthèse commune aux modes `debate` et `ask` : vérifie l'annulation,
+ * génère la synthèse et convertit tout échec en `DebateFailure` déjà notifiée au
+ * renderer. Retourne un objet vide si la synthèse est désactivée.
+ */
+async function runSummaryPhase(
+  config: PalabreConfig,
+  options: DebateOptions,
+  transcript: DebateMessage[],
+  renderer: DebateRenderer | undefined,
+  messages: Messages
+): Promise<{ summary?: DebateSummary; failure?: DebateFailure }> {
+  if (!options.summaryEnabled) {
+    return {};
+  }
+
+  const context = {
+    phase: "summary" as const,
+    agent: options.summaryAgent,
+    role: summaryRole(),
+    turn: transcript.length + 1
+  };
+
+  const cancellation = cancellationFailureIfAborted(options, messages, context);
+  if (cancellation) {
+    renderer?.error(cancellation);
+    return { failure: cancellation };
+  }
+
+  try {
+    return { summary: await generateSummary(config, options, transcript, renderer, messages) };
+  } catch (error) {
+    const failure = toDebateFailure(error, context, messages);
+    renderer?.error(failure);
+    return { failure };
+  }
 }
 
 /**
@@ -495,15 +475,10 @@ function toDebateFailure(
   }
 
   if (error instanceof OllamaUrlError) {
-    const message = error.kind === "empty"
-      ? messages.common.ollamaUrlEmpty
-      : error.kind === "protocol"
-        ? messages.common.ollamaUrlProtocol(error.protocol ?? "")
-        : messages.common.ollamaUrlInvalid(error.value);
     return {
       ...context,
       kind: "unknown",
-      message
+      message: formatOllamaUrlError(error, messages)
     };
   }
 

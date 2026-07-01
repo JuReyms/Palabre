@@ -1,6 +1,6 @@
 /** @file Adapter CLI batch minimal : spawn, injection du prompt, capture stdout, classement des erreurs connues. */
 import { spawn } from "node:child_process";
-import { AdapterError } from "../errors.js";
+import { AdapterError, cancelledError } from "../errors.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
 import { DEFAULT_MAX_OUTPUT_BYTES, DEFAULT_TIMEOUT_MS, withModelArgs } from "./cli-shared.js";
@@ -134,7 +134,8 @@ export class CliAdapter implements AgentAdapter {
 
       bumpIdleTimer();
 
-      child.stdout.on("data", (chunk: Buffer) => {
+      // stdout et stderr partagent le même budget `maxOutputBytes`.
+      const createDataHandler = (append: (text: string) => void) => (chunk: Buffer) => {
         outputBytes += chunk.length;
         if (outputBytes > maxOutputBytes) {
           killChildProcess(child);
@@ -144,23 +145,17 @@ export class CliAdapter implements AgentAdapter {
           }));
           return;
         }
-        stdout += chunk.toString("utf8");
+        append(chunk.toString("utf8"));
         bumpIdleTimer();
-      });
+      };
 
-      child.stderr.on("data", (chunk: Buffer) => {
-        outputBytes += chunk.length;
-        if (outputBytes > maxOutputBytes) {
-          killChildProcess(child);
-          finish(new AdapterError("output-too-large", this.name, `${this.name} produced more than ${maxOutputBytes} bytes of output`, {
-            maxOutputBytes,
-            outputBytes
-          }));
-          return;
-        }
-        stderr += chunk.toString("utf8");
-        bumpIdleTimer();
-      });
+      child.stdout.on("data", createDataHandler((text) => {
+        stdout += text;
+      }));
+
+      child.stderr.on("data", createDataHandler((text) => {
+        stderr += text;
+      }));
 
       child.on("error", (error: NodeJS.ErrnoException) => {
         const kind = error.code === "ENOENT" ? "command-not-found" : "spawn-failed";
@@ -433,10 +428,6 @@ function quotePosixShellArg(value: string): string {
   }
 
   return `'${value.replace(/'/g, "'\\''")}'`;
-}
-
-function cancelledError(adapterName: string): AdapterError {
-  return new AdapterError("cancelled", adapterName, `${adapterName} cancelled by user.`);
 }
 
 /**

@@ -1,7 +1,7 @@
 /** @file Adapter pseudo-terminal (`node-pty`) pour les CLIs qui exigent une vraie console (ex. Antigravity `agy`). */
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { AdapterError } from "../errors.js";
+import { AdapterError, cancelledError } from "../errors.js";
 import { executableExtensions } from "../exec.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliPtyAgentConfig } from "../types.js";
@@ -223,10 +223,6 @@ function createPtyExitError(adapterName: string, exitCode: number, raw: string):
       raw
     }
   );
-}
-
-function cancelledError(adapterName: string): AdapterError {
-  return new AdapterError("cancelled", adapterName, `${adapterName} cancelled by user.`);
 }
 
 function summarizePtyOutput(output: string): string {

@@ -1,5 +1,5 @@
 /** @file Adapter Ollama HTTP : validation/pull de modèle, déchargement des autres modèles chargés, appel `/api/chat`. */
-import { AdapterError } from "../errors.js";
+import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, OllamaAgentConfig } from "../types.js";
@@ -295,8 +295,4 @@ async function unloadModel(baseUrl: string, model: string, signal: AbortSignal):
       model
     });
   }
-}
-
-function cancelledError(adapterName: string): AdapterError {
-  return new AdapterError("cancelled", adapterName, `${adapterName} cancelled by user.`);
 }
