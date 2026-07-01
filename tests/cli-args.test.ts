@@ -35,9 +35,18 @@ test("single-value flags consume exactly one value", () => {
   assert.equal(parsed.flags.topic, "topic");
 });
 
+test("--ollama-url consumes one value without changing the topic", () => {
+  const parsed = parse(["codex-ollama", "topic", "--ollama-url", "gpu-box:11434"]);
+
+  assert.equal(parsed.flags["ollama-url"], "gpu-box:11434");
+  assert.equal(parsed.flags.preset, "codex-ollama");
+  assert.equal(parsed.flags.topic, "topic");
+});
+
 test("a single-value flag without value throws", () => {
   assert.throws(() => parse(["--turns", "--plain"]), /expects a value/);
   assert.throws(() => parse(["--model-a"]), /expects a value/);
+  assert.throws(() => parse(["--ollama-url"]), /expects a value/);
 });
 
 test("multi-value flags collect until the next flag", () => {

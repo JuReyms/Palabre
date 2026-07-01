@@ -10,6 +10,7 @@ test("clearTuiRunOverrides removes stale launch choices but keeps persistent TUI
     agents: ["opencode", "gemini"],
     "model-a": "old-a",
     "model-b": "old-b",
+    "ollama-url": "http://runtime-host:11434",
     turns: "6",
     files: ["a.ts"],
     context: ["src"],

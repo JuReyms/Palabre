@@ -98,6 +98,55 @@ test("OllamaAdapter reports auto-pull progress on stderr, not stdout", async () 
   }
 });
 
+test("OllamaAdapter applies runtime URL over environment and config", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalHost = process.env.OLLAMA_HOST;
+  const urls: string[] = [];
+
+  process.env.OLLAMA_HOST = "env.example:11434";
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    urls.push(String(input));
+    return new Response(JSON.stringify({ message: { content: "ok" } }), {
+      status: 200,
+      headers: { "content-type": "application/json" }
+    });
+  }) as typeof fetch;
+
+  try {
+    const runtimeOverride = new OllamaAdapter("ollama-runtime", {
+      type: "ollama",
+      baseUrl: "http://config.example:11434",
+      model: "test-model",
+      role: "critic",
+      validateModel: false,
+      unloadOtherModels: false
+    }, { ollamaUrl: "runtime.example:11434/" });
+    await runtimeOverride.generate(agentPrompt("en"));
+
+    const environmentOverride = new OllamaAdapter("ollama-env", {
+      type: "ollama",
+      baseUrl: "http://config.example:11434",
+      model: "test-model",
+      role: "critic",
+      validateModel: false,
+      unloadOtherModels: false
+    });
+    await environmentOverride.generate(agentPrompt("en"));
+
+    assert.deepEqual(urls, [
+      "http://runtime.example:11434/api/chat",
+      "http://env.example:11434/api/chat"
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalHost === undefined) {
+      delete process.env.OLLAMA_HOST;
+    } else {
+      process.env.OLLAMA_HOST = originalHost;
+    }
+  }
+});
+
 function agentPrompt(language: AgentPrompt["language"]): AgentPrompt {
   return {
     language,

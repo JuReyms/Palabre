@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createTuiRenderer, renderTuiAgentsHelp, renderTuiComposer, renderTuiConfig, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiRolesHelp } from "../src/renderers/tui.js";
+import { createTuiRenderer, parseTuiOllamaUrlCommand, renderTuiAgentsHelp, renderTuiComposer, renderTuiConfig, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiRolesHelp } from "../src/renderers/tui.js";
 import { createTranslator } from "../src/i18n.js";
 import type { DebateFailure, DebateOptions } from "../src/types.js";
 
@@ -283,6 +283,20 @@ test("renderTuiAgentsHelp renders configured agents", () => {
   assert.match(text, /Exemple: Debat > Agents > codex claude/);
 });
 
+
+test("parseTuiOllamaUrlCommand parses an address and reports missing values", () => {
+  const messages = createTranslator("en");
+
+  assert.deepEqual(parseTuiOllamaUrlCommand(["/ollama-url", "gpu-box:11434"], messages), {
+    kind: "ollama-url",
+    url: "gpu-box:11434"
+  });
+  assert.deepEqual(parseTuiOllamaUrlCommand(["/ollama-url"], messages), {
+    kind: "unknown",
+    message: "Usage: /ollama-url <url|default>"
+  });
+});
+
 test("renderTuiConfig keeps the Palabre brand header", () => {
   const output: string[] = [];
   const originalWrite = process.stdout.write;
@@ -324,8 +338,12 @@ test("renderTuiConfig keeps the Palabre brand header", () => {
   assert.match(text, /Available commands/);
   assert.match(text, /Ollama model/);
   assert.match(text, /llama3\.2:3b/);
+  assert.match(text, /Ollama address/);
+  assert.match(text, /http:\/\/localhost:11434/);
   assert.match(text, /\/ollama/);
   assert.match(text, /\/ollama-model/);
+  assert.match(text, /\/ollama-url/);
+  assert.match(text, /<url\|default>/);
   assert.match(text, /\/ollama-sync/);
   assert.match(text, /Usage: \/agents <agentA> <agentB>/);
   assert.match(text, /Usage: \/roles <role\.\.\.>/);

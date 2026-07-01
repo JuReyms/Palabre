@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assertRunnableConfig, DEFAULT_OUTPUT_DIR, createConfigFromDiscovery, exampleConfig, resolveOutputDir, setOllamaModel, syncDetectedAgents, syncDetectedAgentsDetailed, syncOllamaModel } from "../src/config.js";
+import { assertRunnableConfig, DEFAULT_OUTPUT_DIR, createConfigFromDiscovery, exampleConfig, resolveOutputDir, setOllamaBaseUrl, setOllamaModel, syncDetectedAgents, syncDetectedAgentsDetailed, syncOllamaModel } from "../src/config.js";
 import { createTranslator } from "../src/i18n.js";
 import type { ToolDiscovery } from "../src/discovery.js";
 
@@ -181,6 +181,29 @@ test("setOllamaModel updates the configured Ollama model", () => {
     "gemma3:12b"
   );
   assert.equal(result?.nextModel, "gemma3:12b");
+});
+
+
+test("setOllamaBaseUrl updates every configured Ollama agent", () => {
+  const config = createConfigFromDiscovery(noDetectedTools());
+  config.agents["ollama-reviewer"] = {
+    type: "ollama",
+    baseUrl: "http://old-reviewer:11434",
+    model: "test-model",
+    role: "reviewer"
+  };
+
+  const count = setOllamaBaseUrl(config, "http://gpu-box:11434");
+
+  assert.equal(count, 2);
+  assert.equal(
+    config.agents["ollama-local"]?.type === "ollama" ? config.agents["ollama-local"].baseUrl : undefined,
+    "http://gpu-box:11434"
+  );
+  assert.equal(
+    config.agents["ollama-reviewer"]?.type === "ollama" ? config.agents["ollama-reviewer"].baseUrl : undefined,
+    "http://gpu-box:11434"
+  );
 });
 
 test("assertRunnableConfig rejects configs without a usable agents block", () => {

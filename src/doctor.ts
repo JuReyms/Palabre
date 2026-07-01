@@ -5,6 +5,7 @@ import { detectedAgentNames, detectionForCommand } from "./agentRegistry.js";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { createTranslator, resolveLanguage } from "./i18n.js";
 import { DEFAULT_TURNS, MAX_TURNS } from "./limits.js";
+import { configuredOllamaBaseUrl, normalizeOllamaBaseUrl } from "./ollamaUrl.js";
 import { compareSemver, getLatestPackageVersion, getPackageVersion } from "./version.js";
 import type { AgentConfig, Language, PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
@@ -61,7 +62,10 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
 
   await inspectConfig(config, lines, t);
 
-  const discovery = await discoverLocalTools();
+  const configuredUrl = configuredOllamaBaseUrl(config);
+  const discovery = await discoverLocalTools({
+    ollamaConfigUrl: configuredUrl && isValidOllamaBaseUrl(configuredUrl) ? configuredUrl : undefined
+  });
   lines.push(info(t.doctor.localTools, "tools"));
   lines.push(formatCommand("Codex CLI", discovery.codex.available, discovery.codex.command, discovery.codex.path, t));
   lines.push(formatCommand("Claude CLI", discovery.claude.available, discovery.claude.command, discovery.claude.path, t));
@@ -273,12 +277,21 @@ function inspectAgentShape(name: string, agent: AgentConfig, lines: DiagnosticLi
     lines.push(error(t.doctor.ollamaModelMissing(name)));
   }
 
-  if (agent.baseUrl && !/^https?:\/\//.test(agent.baseUrl)) {
+  if (agent.baseUrl && !isValidOllamaBaseUrl(agent.baseUrl)) {
     lines.push(error(t.doctor.ollamaBaseUrlInvalid(name, agent.baseUrl)));
   }
 
   if (agent.timeoutMs !== undefined && (!Number.isFinite(agent.timeoutMs) || agent.timeoutMs <= 0)) {
     lines.push(error(t.doctor.positiveTimeout(name, "timeoutMs")));
+  }
+}
+
+function isValidOllamaBaseUrl(value: string): boolean {
+  try {
+    normalizeOllamaBaseUrl(value);
+    return true;
+  } catch {
+    return false;
   }
 }
 

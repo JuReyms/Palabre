@@ -54,6 +54,7 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
   language: { arity: "single" },
   "model-a": { arity: "single" },
   "model-b": { arity: "single" },
+  "ollama-url": { arity: "single" },
   mode: { arity: "single" },
   "set-ollama-model": { arity: "single" },
   preset: { arity: "single" },

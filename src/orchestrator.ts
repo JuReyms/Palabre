@@ -53,8 +53,8 @@ export async function runDebate(
   ]);
 
   const agents = [
-    createAgent(options.agentA, agentAConfig),
-    createAgent(options.agentB, agentBConfig)
+    createAgent(options.agentA, agentAConfig, { ollamaUrl: options.ollamaUrl }),
+    createAgent(options.agentB, agentBConfig, { ollamaUrl: options.ollamaUrl })
   ];
 
   const transcript: DebateMessage[] = [];
@@ -211,7 +211,7 @@ export async function runAsk(
     type: agentConfig.type
   })));
 
-  const agents = agentEntries.map(([name, agentConfig]) => createAgent(name, agentConfig));
+  const agents = agentEntries.map(([name, agentConfig]) => createAgent(name, agentConfig, { ollamaUrl: options.ollamaUrl }));
   const transcript: DebateMessage[] = [];
 
   for (let index = 0; index < agents.length; index += 1) {
@@ -411,7 +411,7 @@ async function generateSummary(
     throw new Error(messages.orchestrator.unknownSummaryAgent(summaryAgentName));
   }
 
-  const summaryAgent = createAgent(summaryAgentName, summaryConfig);
+  const summaryAgent = createAgent(summaryAgentName, summaryConfig, { ollamaUrl: options.ollamaUrl });
   const role = summaryRole();
 
   renderer?.summaryStart(summaryAgent.name, role);

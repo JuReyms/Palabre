@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeExampleConfig } from "./config.js";
+import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaBaseUrl, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeExampleConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
 import { buildContextScan } from "./contextScan.js";
 import { discoverLocalTools } from "./discovery.js";
@@ -22,6 +22,7 @@ import { createSessionContext } from "./session.js";
 import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { askAgentSeedsForMode, clearTuiRunOverrides } from "./tuiState.js";
 import { detectedAgentNames, detectionForCommand, isRetiredAgentName } from "./agentRegistry.js";
+import { configuredOllamaBaseUrl, DEFAULT_OLLAMA_BASE_URL, normalizeOllamaBaseUrl, resolveOllamaBaseUrl } from "./ollamaUrl.js";
 import { getPackageVersion } from "./version.js";
 import type { CommandDetection } from "./discovery.js";
 import type { AgentConfig, AgentRole, DebateOptions, PalabreConfig, PalabreInterface, PalabreMode } from "./types.js";
@@ -106,7 +107,9 @@ async function main(): Promise<void> {
       return;
     }
 
-    const discovery = await discoverLocalTools();
+    const discovery = await discoverLocalTools({
+      ollamaUrl: optionalString(parsed.flags["ollama-url"])
+    });
     const config = createConfigFromDiscovery(discovery);
     config.language = resolveLanguage({
       explicitLanguage: optionalString(parsed.flags.language),
@@ -124,7 +127,9 @@ async function main(): Promise<void> {
   let tuiNotice: string | undefined;
 
   if (!(await configExists(configPath))) {
-    config = createConfigFromDiscovery(await discoverLocalTools());
+    config = createConfigFromDiscovery(await discoverLocalTools({
+      ollamaUrl: optionalString(parsed.flags["ollama-url"])
+    }));
     config.language = resolveLanguage({
       explicitLanguage: optionalString(parsed.flags.language),
       configLanguage: config.language
@@ -316,6 +321,9 @@ async function main(): Promise<void> {
       files: context.files,
       modelA: optionalString(parsed.flags["model-a"]),
       modelB: optionalString(parsed.flags["model-b"]),
+      ollamaUrl: optionalString(parsed.flags["ollama-url"])
+        ? normalizeOllamaBaseUrl(optionalString(parsed.flags["ollama-url"])!)
+        : undefined,
       pullModels: Boolean(parsed.flags["pull-models"]),
       summaryAgent: resolveSummaryAgentOption(parsed.flags["summary-agent"], config.defaults, mode),
       summaryModel: optionalString(parsed.flags["summary-model"]),
@@ -409,7 +417,7 @@ async function runAgentsCommand(flags: Record<string, string | string[] | boolea
     configLanguage: config.language
   });
   const messages = createTranslator(language);
-  const discovery = await discoverLocalTools();
+  const discovery = await discoverLocalToolsForConfig(config, optionalString(flags["ollama-url"]));
   if (flags.json) {
     const fallbackAskAgents = [config.defaults?.agentA, config.defaults?.agentB]
       .filter((name): name is string => typeof name === "string" && !isRetiredAgentName(name));
@@ -465,7 +473,7 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   }
 
   if (flags["sync-agents"]) {
-    const discovery = await discoverLocalTools();
+    const discovery = await discoverLocalToolsForConfig(config, optionalString(flags["ollama-url"]));
     const result = syncDetectedAgentsDetailed(config, discovery);
 
     if (!result.changed) {
@@ -743,6 +751,16 @@ async function runTuiConfigLoop(
       continue;
     }
 
+    if (input.kind === "ollama-url") {
+      try {
+        notice = await setTuiOllamaUrl(configPath, config, input.url, currentMessages);
+        changedRunDefaults = true;
+      } catch (error) {
+        notice = error instanceof Error ? error.message : String(error);
+      }
+      continue;
+    }
+
     if (input.kind === "ollama-model") {
       try {
         notice = await setTuiOllamaModel(configPath, config, input.model, currentMessages);
@@ -765,8 +783,32 @@ async function runTuiConfigLoop(
   }
 }
 
+async function setTuiOllamaUrl(
+  configPath: string,
+  config: PalabreConfig,
+  value: string,
+  messages: Messages
+): Promise<string> {
+  if (!Object.values(config.agents).some((agent) => agent.type === "ollama")) {
+    throw new Error(messages.config.ollamaModelNoAgent);
+  }
+
+  const normalized = isDefaultOllamaUrl(value)
+    ? DEFAULT_OLLAMA_BASE_URL
+    : normalizeOllamaBaseUrl(value);
+  const effective = resolveOllamaBaseUrl({ configUrl: normalized });
+  setOllamaBaseUrl(config, normalized);
+  await writeExampleConfig(configPath, config);
+
+  return messages.tui.ollamaUrlUpdated(normalized, effective);
+}
+
+function isDefaultOllamaUrl(value: string): boolean {
+  return ["default", "defaut", "défaut", "local", "localhost"].includes(value.trim().toLowerCase());
+}
+
 async function formatTuiOllamaInfo(config: PalabreConfig, messages: Messages): Promise<string> {
-  const discovery = await discoverLocalTools();
+  const discovery = await discoverLocalToolsForConfig(config);
   const agent = config.agents["ollama-local"];
 
   if (agent?.type !== "ollama") {
@@ -790,7 +832,7 @@ async function setTuiOllamaModel(configPath: string, config: PalabreConfig, mode
     throw new Error(messages.tui.ollamaModelUsage);
   }
 
-  const discovery = await discoverLocalTools();
+  const discovery = await discoverLocalToolsForConfig(config);
   const agent = config.agents["ollama-local"];
 
   if (agent?.type !== "ollama") {
@@ -809,7 +851,7 @@ async function setTuiOllamaModel(configPath: string, config: PalabreConfig, mode
 }
 
 async function syncTuiOllamaModel(configPath: string, config: PalabreConfig, messages: Messages): Promise<string> {
-  const discovery = await discoverLocalTools();
+  const discovery = await discoverLocalToolsForConfig(config);
   const agent = config.agents["ollama-local"];
 
   if (agent?.type !== "ollama") {
@@ -831,7 +873,7 @@ async function syncTuiOllamaModel(configPath: string, config: PalabreConfig, mes
 }
 
 async function syncInteractiveDetectedAgents(configPath: string, config: PalabreConfig): Promise<{ addedAgents: string[] }> {
-  const discovery = await discoverLocalTools();
+  const discovery = await discoverLocalToolsForConfig(config);
   const result = syncDetectedAgentsDetailed(config, discovery);
 
   if (result.changed) {
@@ -984,7 +1026,7 @@ function isAgentRole(value: string): value is AgentRole {
 const VALID_AGENT_ROLES: readonly AgentRole[] = ["implementer", "reviewer", "architect", "scout", "critic", "summarizer"];
 
 async function runOllamaModelsCommand(config: PalabreConfig, json: boolean): Promise<void> {
-  const discovery = await discoverLocalTools();
+  const discovery = await discoverLocalToolsForConfig(config);
   const agent = config.agents["ollama-local"];
   const currentModel = agent?.type === "ollama" ? agent.model : null;
   const payload = {
@@ -1019,7 +1061,7 @@ async function runSetOllamaModelCommand(
     throw new Error(messages.common.optionRequiresValue("--set-ollama-model"));
   }
 
-  const discovery = await discoverLocalTools();
+  const discovery = await discoverLocalToolsForConfig(config);
   const agent = config.agents["ollama-local"];
 
   if (agent?.type !== "ollama") {
@@ -1042,7 +1084,7 @@ async function runSyncOllamaModelCommand(
   config: PalabreConfig,
   messages: Messages
 ): Promise<void> {
-  const discovery = await discoverLocalTools();
+  const discovery = await discoverLocalToolsForConfig(config);
   const agent = config.agents["ollama-local"];
 
   if (agent?.type !== "ollama") {
@@ -1350,28 +1392,36 @@ function shouldOpenTuiHome(parsed: ParsedArgs): boolean {
     && parsed.flags.terminal !== true;
 }
 
+/** Lance la discovery avec la même adresse Ollama effective que la config et les overrides globaux. */
+async function discoverLocalToolsForConfig(
+  config: PalabreConfig,
+  ollamaUrl?: string
+): ReturnType<typeof discoverLocalTools> {
+  return discoverLocalTools({
+    ollamaUrl,
+    ollamaConfigUrl: configuredOllamaBaseUrl(config)
+  });
+}
+
 /**
- * Exécute la commande `palabre presets`.
- *
- * Sortie humaine par défaut (liste alignée), ou JSON avec `--json` pour les
- * intégrations (extension VS Code, scripts shell). Le schéma JSON est versionné
- * via le champ `v` au cas où on enrichirait plus tard (ex : description par
- * preset, tags premium/local).
- *
- * @param flags - Flags parsés depuis la ligne de commande.
+ * Exécute la commande `palabre presets` en sortie humaine ou JSON versionné.
  */
 async function runPresetsCommand(flags: Record<string, string | string[] | boolean>): Promise<void> {
-  const discovery = await discoverLocalTools();
   const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
+  const ollamaUrl = optionalString(flags["ollama-url"]);
   const config = await configExists(configPath)
     ? await loadConfig(configPath)
-    : createConfigFromDiscovery(discovery);
+    : undefined;
+  const discovery = config
+    ? await discoverLocalToolsForConfig(config, ollamaUrl)
+    : await discoverLocalTools({ ollamaUrl });
+  const resolvedConfig = config ?? createConfigFromDiscovery(discovery);
   const language = resolveLanguage({
     explicitLanguage: optionalString(flags.language),
-    configLanguage: config.language
+    configLanguage: resolvedConfig.language
   });
   const messages = createTranslator(language);
-  const presets = listPresetsWithAvailability(config, discovery, messages);
+  const presets = listPresetsWithAvailability(resolvedConfig, discovery, messages);
 
   if (flags.json) {
     process.stdout.write(JSON.stringify({ v: 1, presets }) + "\n");

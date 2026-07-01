@@ -83,6 +83,38 @@ These commands update the Palabre configuration. For a one-off debate override, 
 }
 ```
 
+## Use a remote Ollama server
+
+For one session, override the address of every Ollama agent:
+
+```powershell
+palabre codex-ollama "Critique this plan" --ollama-url gpu-box:11434
+```
+
+You can also define `OLLAMA_HOST` in the process environment:
+
+```powershell
+$env:OLLAMA_HOST = "gpu-box:11434"
+palabre codex-ollama "Critique this plan"
+```
+
+Palabre accepts addresses with or without an HTTP scheme. The priority is:
+
+1. `--ollama-url`
+2. `OLLAMA_HOST`
+3. `baseUrl` in the agent configuration
+4. `http://localhost:11434`
+
+From the TUI, open `/config`, then use:
+
+```text
+/ollama-url gpu-box:11434
+/ollama-url default
+```
+
+This command persistently updates `baseUrl` for every configured Ollama agent.
+The flag and environment variable do not modify the configuration file.
+
 ## Check if a model is loaded in Ollama
 
 Ollama must load a model to respond quickly.

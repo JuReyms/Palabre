@@ -9,6 +9,7 @@ export interface TuiMessages {
   roles: string;
   summary: string;
   ollamaModel: string;
+  ollamaUrl: string;
   responses: string;
   folder: string;
   docs: string;
@@ -79,10 +80,12 @@ export interface TuiMessages {
   turnsUsage: string;
   summaryUsage: string;
   ollamaModelUsage: string;
+  ollamaUrlUsage: string;
   interfaceUsage: string;
   languageUsage: string;
   rolesUsage: string;
   ollamaInfoCommand: string;
+  ollamaUrlCommand: string;
   ollamaSyncCommand: string;
   interfaceDefault(value: string): string;
   languageUpdated(value: string): string;
@@ -98,6 +101,7 @@ export interface TuiMessages {
   debateSummaryFallback: string;
   askSummaryAgent(value: string): string;
   debateSummaryAgent(value: string): string;
+  ollamaUrlUpdated(configured: string, effective: string): string;
   ollamaInfo(current: string, installed: string, api: string): string;
   ollamaUnavailable(baseUrl: string): string;
   askAgentsUpdated(value: string): string;
@@ -124,6 +128,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     roles: "Roles",
     summary: "Synthese",
     ollamaModel: "Modele Ollama",
+    ollamaUrl: "Adresse Ollama",
     responses: "Tours",
     folder: "Dossier",
     docs: "Docs",
@@ -194,10 +199,12 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     turnsUsage: "Usage: /turns <tours>",
     summaryUsage: "Usage: /summary <agent|none>",
     ollamaModelUsage: "Usage: /ollama-model <modele>",
+    ollamaUrlUsage: "Usage: /ollama-url <url|default>",
     interfaceUsage: "Usage: /interface <tui|terminal>",
     languageUsage: "Usage: /language <fr|en>",
     rolesUsage: "Usage: /roles <role...>",
     ollamaInfoCommand: "afficher modeles installes",
+    ollamaUrlCommand: "modifier l'adresse (<url|default>)",
     ollamaSyncCommand: "choisir un modele installe disponible",
     interfaceDefault: (value) => `Interface par defaut: ${value}.`,
     languageUpdated: (value) => `Langue mise a jour: ${value}.`,
@@ -214,6 +221,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     askSummaryAgent: (value) => `Synthese Ask: ${value}.`,
     debateSummaryAgent: (value) => `Synthese Debat: ${value}.`,
     ollamaInfo: (current, installed, api) => `Ollama ${api}. Modele actuel: ${current}. Modeles installes: ${installed}.`,
+    ollamaUrlUpdated: (configured, effective) => configured === effective ? `Adresse Ollama mise a jour: ${configured}.` : `Adresse Ollama configuree: ${configured}. Adresse effective via OLLAMA_HOST: ${effective}.`,
     ollamaUnavailable: (baseUrl) => `API Ollama indisponible (${baseUrl}). Lance ollama serve puis reessaie /ollama.`,
     askAgentsUpdated: (value) => `Agents Ask mis a jour: ${value}.`,
     debateAgentsUpdated: (value) => `Agents Debat mis a jour: ${value}.`,
@@ -237,6 +245,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     roles: "Roles",
     summary: "Summary",
     ollamaModel: "Ollama model",
+    ollamaUrl: "Ollama address",
     responses: "Turns",
     folder: "Folder",
     docs: "Docs",
@@ -307,10 +316,12 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     turnsUsage: "Usage: /turns <turns>",
     summaryUsage: "Usage: /summary <agent|none>",
     ollamaModelUsage: "Usage: /ollama-model <model>",
+    ollamaUrlUsage: "Usage: /ollama-url <url|default>",
     interfaceUsage: "Usage: /interface <tui|terminal>",
     languageUsage: "Usage: /language <fr|en>",
     rolesUsage: "Usage: /roles <role...>",
     ollamaInfoCommand: "show installed models",
+    ollamaUrlCommand: "change the address (<url|default>)",
     ollamaSyncCommand: "choose an available installed model",
     interfaceDefault: (value) => `Default interface: ${value}.`,
     languageUpdated: (value) => `Language updated: ${value}.`,
@@ -327,6 +338,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     askSummaryAgent: (value) => `Ask summary: ${value}.`,
     debateSummaryAgent: (value) => `Debate summary: ${value}.`,
     ollamaInfo: (current, installed, api) => `Ollama ${api}. Current model: ${current}. Installed models: ${installed}.`,
+    ollamaUrlUpdated: (configured, effective) => configured === effective ? `Ollama address updated: ${configured}.` : `Ollama address configured: ${configured}. Effective address from OLLAMA_HOST: ${effective}.`,
     ollamaUnavailable: (baseUrl) => `Ollama API unavailable (${baseUrl}). Run ollama serve, then try /ollama again.`,
     askAgentsUpdated: (value) => `Ask agents updated: ${value}.`,
     debateAgentsUpdated: (value) => `Debate agents updated: ${value}.`,

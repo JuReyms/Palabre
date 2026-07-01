@@ -63,6 +63,7 @@ These commands are available from the TUI home screen or from `/config` dependin
 | `/config` | Opens TUI settings. |
 | `/history` | Shows recent Markdown exports. Alias: `/historique`. |
 | `/ollama` | Displays the configured Ollama model and installed models from `/config`. |
+| `/ollama-url <url|default>` | Configures the address of every Ollama agent from `/config`. |
 | `/ollama-model <model>` | Changes the configured `ollama-local` model from `/config`. |
 | `/ollama-sync` | Replaces the configured Ollama model with an installed model when the current one is missing. |
 | `/language fr`, `/language en` | Changes the language from `/config`. Alias: `/lang`. |
@@ -107,6 +108,7 @@ These commands are available from the TUI home screen or from `/config` dependin
 | `--no-early-stop` | Disables early stopping. |
 | `--model-a <model>` | Model passed to agent A. |
 | `--model-b <model>` | Model passed to agent B. |
+| `--ollama-url <url>` | Overrides the address of every Ollama agent for this session. |
 | `--pull-models` | Allows Ollama to download a missing model. |
 | `--summary-agent <name>` | Summary agent. |
 | `--summary-model <model>` | Summary model. |

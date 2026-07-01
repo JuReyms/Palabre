@@ -83,6 +83,38 @@ Ces commandes modifient la configuration Palabre. Pour un changement ponctuel su
 }
 ```
 
+## Utiliser un serveur Ollama distant
+
+Pour une seule session, surchargez l'adresse de tous les agents Ollama :
+
+```powershell
+palabre codex-ollama "Critique ce plan" --ollama-url gpu-box:11434
+```
+
+Vous pouvez aussi définir `OLLAMA_HOST` dans l'environnement du processus :
+
+```powershell
+$env:OLLAMA_HOST = "gpu-box:11434"
+palabre codex-ollama "Critique ce plan"
+```
+
+Palabre accepte les adresses avec ou sans schéma HTTP. La priorité est :
+
+1. `--ollama-url`
+2. `OLLAMA_HOST`
+3. `baseUrl` dans la configuration de l'agent
+4. `http://localhost:11434`
+
+Depuis la TUI, ouvrez `/config`, puis utilisez :
+
+```text
+/ollama-url gpu-box:11434
+/ollama-url default
+```
+
+Cette commande met à jour durablement `baseUrl` pour tous les agents Ollama configurés.
+Le flag et la variable d'environnement ne modifient pas le fichier de configuration.
+
 ## Vérifier si un modèle est chargé dans Ollama
 
 Ollama doit charger un modèle pour répondre rapidement.

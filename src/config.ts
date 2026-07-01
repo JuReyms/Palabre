@@ -321,6 +321,17 @@ export function setOllamaModel(config: PalabreConfig, model: string): OllamaMode
   };
 }
 
+/** Met à jour l'adresse persistante de tous les agents Ollama configurés. */
+export function setOllamaBaseUrl(config: PalabreConfig, baseUrl: string): number {
+  const agents = Object.values(config.agents).filter((agent) => agent.type === "ollama");
+
+  for (const agent of agents) {
+    agent.baseUrl = baseUrl;
+  }
+
+  return agents.length;
+}
+
 /** Écrit `config` sérialisé en JSON dans `configPath`. Crée le répertoire parent si nécessaire. */
 export async function writeExampleConfig(
   configPath = DEFAULT_CONFIG_PATH,

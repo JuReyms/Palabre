@@ -84,6 +84,61 @@ test("runDebate exposes summarizer as the runtime summary role", async () => {
   assert.equal(result.summary?.role, "summarizer");
 });
 
+test("Ollama URL override covers debate, ask, and summary without mutating config", async () => {
+  const originalFetch = globalThis.fetch;
+  const urls: string[] = [];
+  const config: PalabreConfig = {
+    agents: {
+      first: ollamaAgent("http://config-first:11434"),
+      second: ollamaAgent("http://config-second:11434"),
+      summary: ollamaAgent("http://config-summary:11434")
+    }
+  };
+
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    urls.push(String(input));
+    return new Response(JSON.stringify({ message: { content: "ok" } }), {
+      status: 200,
+      headers: { "content-type": "application/json" }
+    });
+  }) as typeof fetch;
+
+  try {
+    await runDebate(config, debateOptions({
+      turns: 2,
+      summaryEnabled: true,
+      summaryAgent: "summary",
+      ollamaUrl: "runtime-host:11434"
+    }), undefined, createTranslator("en"));
+
+    await runAsk(config, debateOptions({
+      mode: "ask",
+      askAgents: ["first", "second"],
+      summaryEnabled: true,
+      summaryAgent: "summary",
+      ollamaUrl: "runtime-host:11434"
+    }), undefined, createTranslator("en"));
+
+    assert.equal(urls.length, 6);
+    assert.ok(urls.every((url) => url === "http://runtime-host:11434/api/chat"));
+    assert.equal(config.agents.first?.type === "ollama" ? config.agents.first.baseUrl : undefined, "http://config-first:11434");
+    assert.equal(config.agents.summary?.type === "ollama" ? config.agents.summary.baseUrl : undefined, "http://config-summary:11434");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+function ollamaAgent(baseUrl: string): PalabreConfig["agents"][string] {
+  return {
+    type: "ollama",
+    baseUrl,
+    model: "test-model",
+    role: "critic",
+    validateModel: false,
+    unloadOtherModels: false
+  };
+}
+
 function scriptedCliAgent(output: string): PalabreConfig["agents"][string] {
   return {
     type: "cli",

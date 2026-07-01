@@ -63,6 +63,7 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 | `/config` | Ouvre les réglages TUI. |
 | `/history` | Affiche les derniers exports Markdown. Alias : `/historique`. |
 | `/ollama` | Affiche le modèle Ollama configuré et les modèles installés depuis `/config`. |
+| `/ollama-url <url|default>` | Configure l'adresse de tous les agents Ollama depuis `/config`. |
 | `/ollama-model <modele>` | Change le modèle configuré de `ollama-local` depuis `/config`. |
 | `/ollama-sync` | Remplace le modèle Ollama configuré par un modèle installé quand le modèle courant est absent. |
 | `/language fr`, `/language en` | Change la langue depuis `/config`. Alias : `/lang`, `/langue`. |
@@ -107,6 +108,7 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 | `--no-early-stop` | Désactive l'arrêt anticipé. |
 | `--model-a <model>` | Modèle transmis à l'agent A. |
 | `--model-b <model>` | Modèle transmis à l'agent B. |
+| `--ollama-url <url>` | Surcharge l'adresse de tous les agents Ollama pour cette session. |
 | `--pull-models` | Autorise Ollama à télécharger un modèle manquant. |
 | `--summary-agent <name>` | Agent de synthèse. |
 | `--summary-model <model>` | Modèle de synthèse. |

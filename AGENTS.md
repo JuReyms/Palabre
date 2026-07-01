@@ -345,6 +345,13 @@ Options Ollama supportees :
 - `unloadOtherModels` : detecte les modeles charges via `GET /api/ps` et decharge les autres modeles avec `POST /api/generate` + `keep_alive: 0`.
 - `keepAlive` : transmis a Ollama sous forme `keep_alive`.
 
+
+L'adresse effective du serveur Ollama est resolue dans cet ordre :
+
+1. `--ollama-url <url>` pour la session courante ;
+2. variable d'environnement `OLLAMA_HOST` ;
+3. `baseUrl` de l'agent ;
+4. `http://localhost:11434`.
 Au `palabre init` et au premier lancement TUI, si Ollama expose déjà des modèles installés via `/api/tags`, la config générée choisit le modèle installé en priorité (en conservant `nemotron-3-nano:4b` s'il est présent). Sinon, elle retombe sur `nemotron-3-nano:4b` comme fallback léger. Eviter les gros modeles dans les tests automatises ou repetes.
 
 La progression d'un pull Ollama (`--pull-models` ou `autoPullModel`) doit rester sur stderr. Stdout appartient aux renderers, notamment NDJSON, et ne doit jamais recevoir de lignes non JSON pendant un flux machine-readable.
@@ -529,7 +536,7 @@ Ne pas transformer l'aide principale en reference complete. Les details doivent 
 
 - `PrettyConsoleRenderer` : en-tete, separateurs, tours, synthese structuree, couleurs ANSI si TTY.
 - `PlainConsoleRenderer` : rendu historique compatible logs.
-- `TuiRenderer` : accueil `palabre`, composer slash commands, `/config`, `/history`, `/home`, tableau de bord plein terminal, statut d'agent en cours et sections lisibles sans dependance UI externe. Depuis `/config`, `/ollama`, `/ollama-model <modele>` et `/ollama-sync` exposent le choix du modele `ollama-local` sans sortir de la TUI.
+- `TuiRenderer` : accueil `palabre`, composer slash commands, `/config`, `/history`, `/home`, tableau de bord plein terminal, statut d'agent en cours et sections lisibles sans dependance UI externe. Depuis `/config`, `/ollama`, `/ollama-url <url|default>`, `/ollama-model <modele>` et `/ollama-sync` exposent l'adresse et le choix du modele Ollama sans sortir de la TUI.
 - Etat "agent en cours" pendant les appels longs en rendu pretty.
 
 Le flag `--terminal` force le rendu simple. `--plain` reste accepte comme alias historique. `NO_COLOR` desactive les couleurs sans changer la structure.

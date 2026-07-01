@@ -6,6 +6,7 @@ import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateSta
 import type { Messages } from "../messages/index.js";
 import type { HistoryEntry } from "../history.js";
 import { isRetiredAgentName } from "../agentRegistry.js";
+import { DEFAULT_OLLAMA_BASE_URL } from "../ollamaUrl.js";
 
 const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
 const supportsInteractiveOutput = Boolean(process.stdout.isTTY);
@@ -313,6 +314,7 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
   const ollamaAgent = config.agents["ollama-local"];
   const ollamaModel = ollamaAgent?.type === "ollama" ? ollamaAgent.model : undefined;
 
+  const ollamaUrl = ollamaAgent?.type === "ollama" ? ollamaAgent.baseUrl ?? DEFAULT_OLLAMA_BASE_URL : undefined;
   const currentLines = mode === "ask"
     ? [
         row(messages.tui.activeAgents, askAgents),
@@ -347,6 +349,7 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
       bold(messages.tui.configTitle),
       "",
       row(messages.tui.activeMode, messages.tui.modeValue(mode)),
+      ...(ollamaUrl ? [row(messages.tui.ollamaUrl, ollamaUrl)] : []),
       row(messages.tui.configFile, configPath),
       row(messages.tui.interface, defaults.interface ?? "tui"),
       row(messages.tui.language, config.language ?? "fr"),
@@ -360,6 +363,7 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
       ...(ollamaModel ? [
         row("/ollama", messages.tui.ollamaInfoCommand),
         row("/ollama-model", messages.tui.ollamaModelUsage),
+        row("/ollama-url", messages.tui.ollamaUrlCommand),
         row("/ollama-sync", messages.tui.ollamaSyncCommand),
         ""
       ] : []),
@@ -401,8 +405,15 @@ export type TuiConfigInput =
   | { kind: "summary"; agent: string | undefined }
   | { kind: "ollama-info" }
   | { kind: "ollama-model"; model: string }
+  | { kind: "ollama-url"; url: string }
   | { kind: "ollama-sync" }
   | { kind: "unknown"; message: string };
+
+export function parseTuiOllamaUrlCommand(parts: string[], messages: Messages): TuiConfigInput {
+  const value = parts[1];
+  return value ? { kind: "ollama-url", url: value } : { kind: "unknown", message: messages.tui.ollamaUrlUsage };
+}
+
 
 type TuiQuestionResult =
   | { kind: "answer"; value: string }
@@ -597,6 +608,10 @@ export async function promptTuiConfigCommand(mode: PalabreMode, messages: Messag
     if (command === "/ollama") {
       const value = parts[1];
       return value ? { kind: "ollama-model", model: value } : { kind: "ollama-info" };
+    }
+
+    if (command === "/ollama-url" || command === "/ollama-host") {
+      return parseTuiOllamaUrlCommand(parts, messages);
     }
 
     if (command === "/ollama-model") {

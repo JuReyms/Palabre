@@ -1,6 +1,12 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
 import { executableExtensions } from "./exec.js";
+import { resolveOllamaBaseUrl } from "./ollamaUrl.js";
+
+export interface DiscoveryOptions {
+  ollamaUrl?: string;
+  ollamaConfigUrl?: string;
+}
 
 /** Résultat de la détection d'une commande dans le PATH. */
 export interface CommandDetection {
@@ -36,7 +42,7 @@ export interface ToolDiscovery {
  * Sur Windows, tente `claude.exe` avant `claude`.
  * Antigravity est exposé selon les installations sous `agy` ou `antigravity`.
  */
-export async function discoverLocalTools(): Promise<ToolDiscovery> {
+export async function discoverLocalTools(options: DiscoveryOptions = {}): Promise<ToolDiscovery> {
   const [codex, claude, antigravity, opencode, vibe, ollamaCommand] = await Promise.all([
     detectCommand("codex"),
     detectFirstCommand(process.platform === "win32" ? ["claude.exe", "claude"] : ["claude"]),
@@ -46,7 +52,10 @@ export async function discoverLocalTools(): Promise<ToolDiscovery> {
     detectCommand("ollama")
   ]);
 
-  const ollamaServer = await detectOllamaServer();
+  const ollamaServer = await detectOllamaServer(resolveOllamaBaseUrl({
+    cliUrl: options.ollamaUrl,
+    configUrl: options.ollamaConfigUrl
+  }));
 
   return {
     codex,

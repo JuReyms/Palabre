@@ -2,6 +2,8 @@ import { AdapterError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, OllamaAgentConfig } from "../types.js";
+import { resolveOllamaBaseUrl } from "../ollamaUrl.js";
+import type { AgentRuntimeOptions } from "./index.js";
 
 interface OllamaChatResponse {
   message?: {
@@ -40,7 +42,8 @@ export class OllamaAdapter implements AgentAdapter {
 
   constructor(
     readonly name: string,
-    private readonly config: OllamaAgentConfig
+    private readonly config: OllamaAgentConfig,
+    private readonly runtime: AgentRuntimeOptions = {}
   ) {
     this.role = config.role;
     this.contract = {
@@ -68,7 +71,10 @@ export class OllamaAdapter implements AgentAdapter {
       throw cancelledError(this.name);
     }
 
-    const baseUrl = normalizeBaseUrl(this.config.baseUrl ?? "http://localhost:11434");
+    const baseUrl = resolveOllamaBaseUrl({
+      cliUrl: this.runtime.ollamaUrl,
+      configUrl: this.config.baseUrl
+    });
 
     if (this.config.validateModel !== false) {
       await this.ensureModelAvailable(baseUrl);
@@ -286,11 +292,6 @@ async function unloadModel(baseUrl: string, model: string, signal: AbortSignal):
       model
     });
   }
-}
-
-/** Supprime le slash final de `baseUrl` pour éviter les doubles slashs dans les URLs construites. */
-function normalizeBaseUrl(baseUrl: string): string {
-  return baseUrl.replace(/\/$/, "");
 }
 
 function cancelledError(adapterName: string): AdapterError {

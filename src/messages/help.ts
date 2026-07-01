@@ -137,6 +137,7 @@ Flags:
   --preset <name>      preset d'agents
   --agent-a <name>     premier agent
   --agent-b <name>     second agent
+  --ollama-url <url>   surcharge l'adresse Ollama pour cette session
   --tui                force l'interface TUI
   --terminal           force le rendu terminal brut
   --renderer <kind>    auto, pretty, plain, tui ou ndjson
@@ -152,6 +153,7 @@ Usage:
 Flags:
   --agents <names...>  agents qui repondent, 4 maximum
   --summary-agent <n>  agent de synthese pour ce lancement
+  --ollama-url <url>   surcharge l'adresse Ollama pour cette session
   --tui                force l'interface TUI
   --terminal           force le rendu terminal brut
   --renderer <kind>    auto, pretty, plain, tui ou ndjson
@@ -291,6 +293,7 @@ Flags:
   --preset <name>      agent preset
   --agent-a <name>     first agent
   --agent-b <name>     second agent
+  --ollama-url <url>   overrides the Ollama address for this session
   --tui                forces the TUI interface
   --terminal           forces raw terminal rendering
   --renderer <kind>    auto, pretty, plain, tui, or ndjson
@@ -306,6 +309,7 @@ Usage:
 Flags:
   --agents <names...>  responding agents, 4 maximum
   --summary-agent <n>  summary agent for this run
+  --ollama-url <url>   overrides the Ollama address for this session
   --tui                forces the TUI interface
   --terminal           forces raw terminal rendering
   --renderer <kind>    auto, pretty, plain, tui, or ndjson

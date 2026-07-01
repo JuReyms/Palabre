@@ -6,6 +6,7 @@ const TUI_RUN_OVERRIDE_FLAGS = [
   "agent-b",
   "agents",
   "model-a",
+  "ollama-url",
   "model-b",
   "summary-agent",
   "summary-model",

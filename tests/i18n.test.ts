@@ -49,6 +49,8 @@ test("createTranslator returns localized help text", () => {
   assert.match(createTranslator("en").help.renderCommand("config") ?? "", /palabre config --language/);
   assert.match(createTranslator("en").help.renderCommand("context") ?? "", /Scans project context/);
   assert.match(createTranslator("en").help.renderCommand("run") ?? "", /--renderer <kind>/);
+  assert.match(createTranslator("fr").help.renderCommand("run") ?? "", /--ollama-url <url>/);
+  assert.match(createTranslator("en").help.renderCommand("ask") ?? "", /--ollama-url <url>/);
 });
 
 test("createTranslator returns localized init messages", () => {

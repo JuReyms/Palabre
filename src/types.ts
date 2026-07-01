@@ -118,6 +118,7 @@ export interface DebateOptions {
   files: ProjectFileContext[];
   modelA?: string;
   modelB?: string;
+  ollamaUrl?: string;
   pullModels: boolean;
   summaryAgent?: string;
   summaryModel?: string;
