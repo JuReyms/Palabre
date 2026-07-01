@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaBaseUrl, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeExampleConfig } from "./config.js";
+import { assertRunnableConfig, configExists, createConfigFromDiscovery, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaBaseUrl, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeExampleConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
 import { discoverLocalTools, discoverLocalToolsForConfig } from "./discovery.js";
 import { runDoctor } from "./doctor.js";
@@ -16,11 +16,10 @@ import { createNdjsonRenderer } from "./renderers/ndjson.js";
 import { createTuiRenderer, promptTuiAgentsWizard, promptTuiConfigCommand, promptTuiHomeTopic, promptTuiRolesWizard, renderTuiConfig, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiUpdate, type TuiHomeInput } from "./renderers/tui.js";
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
-import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./update.js";
+import { formatUpdateInstructions, getUpdateInfo } from "./update.js";
 import { createSessionContext } from "./session.js";
 import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { askAgentSeedsForMode, clearTuiRunOverrides } from "./tuiState.js";
-import { detectedAgentNames } from "./agentRegistry.js";
 import { DEFAULT_OLLAMA_BASE_URL, normalizeOllamaBaseUrl, OllamaUrlError, resolveOllamaBaseUrl } from "./ollamaUrl.js";
 import { compareSemver, getLatestPackageVersion, getPackageVersion } from "./version.js";
 import type { AgentRole, DebateOptions, PalabreConfig, PalabreInterface, PalabreMode } from "./types.js";
@@ -28,7 +27,9 @@ import type { Messages } from "./messages/index.js";
 import { runAgentsCommand } from "./commands/agents.js";
 import { runContextCommand } from "./commands/context.js";
 import { runHistoryCommand } from "./commands/history.js";
+import { runInitCommand } from "./commands/init.js";
 import { runPresetsCommand } from "./commands/presets.js";
+import { runUpdateCommand } from "./commands/update.js";
 import { optionalString } from "./commands/shared.js";
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
@@ -81,47 +82,12 @@ async function main(): Promise<void> {
   }
 
   if (parsed.command === "update") {
-    const info = await getUpdateInfo(await getPackageVersion());
-    const updateConfigPath = optionalString(parsed.flags.config) ?? await resolveDefaultConfigPath();
-    const updateConfig = await configExists(updateConfigPath)
-      ? await loadConfig(updateConfigPath)
-      : undefined;
-    const updateLanguage = resolveLanguage({
-      explicitLanguage: optionalString(parsed.flags.language),
-      configLanguage: updateConfig?.language
-    });
-    const updateMessages = createTranslator(updateLanguage);
-
-    if (parsed.flags.apply) {
-      await applySourceUpdate(info, updateMessages);
-      console.log(updateMessages.update.upToDate);
-      return;
-    }
-
-    console.log(formatUpdateInstructions(info, updateMessages));
+    await runUpdateCommand(parsed.flags);
     return;
   }
 
   if (parsed.command === "init" || parsed.command === "setup") {
-    const initConfigPath = optionalString(parsed.flags.config) ?? (parsed.flags.local ? DEFAULT_CONFIG_PATH : GLOBAL_CONFIG_PATH);
-
-    if (await configExists(initConfigPath)) {
-      console.log(startupMessages.init.configExists(initConfigPath));
-      return;
-    }
-
-    const discovery = await discoverLocalTools({
-      ollamaUrl: optionalString(parsed.flags["ollama-url"])
-    });
-    const config = createConfigFromDiscovery(discovery);
-    config.language = resolveLanguage({
-      explicitLanguage: optionalString(parsed.flags.language),
-      configLanguage: config.language
-    });
-    const initMessages = createTranslator(config.language);
-    await writeExampleConfig(initConfigPath, config);
-    console.log(initMessages.init.configCreated(initConfigPath));
-    printInitDiscovery(discovery, config, initMessages);
+    await runInitCommand(parsed.flags);
     return;
   }
 
@@ -1368,77 +1334,6 @@ function printContextWarnings(warnings: string[], messages: Messages): void {
   }
 }
 
-
-/**
- * Affiche le récapitulatif de détection locale après `palabre init`.
- * @param discovery - Résultat de la découverte locale des outils.
- * @param config - Config générée à partir de la découverte.
- */
-function printInitDiscovery(
-  discovery: Awaited<ReturnType<typeof discoverLocalTools>>,
-  config: Awaited<ReturnType<typeof loadConfig>>,
-  messages: Messages
-): void {
-  console.log("");
-  console.log(messages.init.localDetectionTitle);
-  console.log(`- Codex CLI: ${formatCommandDetection(discovery.codex, messages)}`);
-  console.log(`- Claude CLI: ${formatCommandDetection(discovery.claude, messages)}`);
-  console.log(`- Antigravity CLI: ${formatCommandDetection(discovery.antigravity, messages)}`);
-  console.log(`- OpenCode CLI: ${formatCommandDetection(discovery.opencode, messages)}`);
-  console.log(`- Mistral Vibe CLI: ${formatCommandDetection(discovery.vibe, messages)}`);
-  console.log(`- Ollama API: ${formatOllamaDetection(discovery.ollama, messages)}`);
-  console.log("");
-  console.log(config.defaults?.agentA && config.defaults.agentB
-    ? messages.init.defaults(config.defaults.agentA, config.defaults.agentB)
-    : messages.init.noDefaultPair(formatDetectedAgentSummary(discovery, config.language ?? DEFAULT_LANGUAGE)));
-  console.log(messages.init.languageHint(config.language ?? DEFAULT_LANGUAGE));
-}
-
-function formatDetectedAgentSummary(
-  discovery: Awaited<ReturnType<typeof discoverLocalTools>>,
-  language: NonNullable<PalabreConfig["language"]>
-): string {
-  const names = detectedAgentNames(discovery);
-
-  if (names.length === 0) {
-    return language === "en" ? "no agent detected" : "aucun agent détecté";
-  }
-
-  if (names.length === 1) {
-    return language === "en"
-      ? `only one agent detected (${names[0]})`
-      : `un seul agent détecté (${names[0]})`;
-  }
-
-  return language === "en"
-    ? `no usable pair detected among ${names.join(", ")}`
-    : `aucune paire utilisable détectée parmi ${names.join(", ")}`;
-}
-
-/**
- * Formate le statut de détection d'un outil CLI (disponible ou non).
- * @param detection - Résultat de détection d'un outil CLI.
- */
-function formatCommandDetection(detection: Awaited<ReturnType<typeof discoverLocalTools>>["codex"], messages: Messages): string {
-  return detection.available
-    ? messages.init.commandDetected(detection.command)
-    : messages.init.commandMissing;
-}
-
-/**
- * Formate le statut de détection d'Ollama : commande absente, serveur injoignable ou modèles disponibles.
- * @param detection - Résultat de détection d'Ollama.
- */
-function formatOllamaDetection(detection: Awaited<ReturnType<typeof discoverLocalTools>>["ollama"], messages: Messages): string {
-  if (!detection.available) {
-    return detection.commandAvailable
-      ? messages.init.ollamaServerUnreachable(detection.baseUrl)
-      : messages.init.ollamaMissing;
-  }
-
-  const modelCount = detection.models.length;
-  return messages.init.ollamaDetected(modelCount);
-}
 
 /** Affiche le texte d'aide complet sur `stdout`. */
 function printHelp(messages: Messages, command?: string): void {
