@@ -1233,10 +1233,6 @@ function violet(value: string): string {
   return supportsColor ? `${codes.violet}${value}${codes.reset}` : value;
 }
 
-function muted(value: string): string {
-  return supportsColor ? `${codes.gray}${value}${codes.reset}` : value;
-}
-
 function agentLabel(agent: string): string {
   return supportsColor ? `${agentAnsi(agent)}${agent}${codes.reset}` : agent;
 }

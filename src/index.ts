@@ -14,7 +14,7 @@ import { listAgentsWithAvailability, listPresetNames, listPresetsWithAvailabilit
 import { listHistoryEntries } from "./history.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { createNdjsonRenderer } from "./renderers/ndjson.js";
-import { createTuiRenderer, promptTuiAgentsWizard, promptTuiConfigCommand, promptTuiHomeTopic, promptTuiRolesWizard, renderTuiConfig, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiRolesHelp, renderTuiUpdate, type TuiHomeInput } from "./renderers/tui.js";
+import { createTuiRenderer, promptTuiAgentsWizard, promptTuiConfigCommand, promptTuiHomeTopic, promptTuiRolesWizard, renderTuiConfig, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiUpdate, type TuiHomeInput } from "./renderers/tui.js";
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./update.js";

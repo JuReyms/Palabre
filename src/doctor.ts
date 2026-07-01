@@ -7,7 +7,7 @@ import { createTranslator, resolveLanguage } from "./i18n.js";
 import { DEFAULT_TURNS, MAX_TURNS } from "./limits.js";
 import { configuredOllamaTargets, normalizeOllamaBaseUrl } from "./ollamaUrl.js";
 import { compareSemver, getLatestPackageVersion, getPackageVersion } from "./version.js";
-import type { AgentConfig, Language, PalabreConfig } from "./types.js";
+import type { AgentConfig, PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
 
 /** Résultat du diagnostic. `ok` est faux dès qu'au moins une ligne est de niveau `error`. */
