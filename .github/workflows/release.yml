@@ -92,6 +92,9 @@ jobs:
           # Génère les notes depuis les commits entre ce tag et le précédent
           generate_release_notes: true
 
+      - name: Generate changelog pages
+        run: node scripts/sync_changelog.mjs
+
       - name: Push version to Palabre-app
         env:
           TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
@@ -99,8 +102,20 @@ jobs:
           git clone https://x-access-token:${TOKEN}@github.com/JuReyms/Palabre-app.git palabre-app
           cd palabre-app && git checkout dev
           echo '{ "tag_name": "${{ github.ref_name }}" }' > public/version.json
+          cp ../dist/content/fr/8.changelog.md content/fr/8.changelog.md
+          cp ../dist/content/en/8.changelog.md content/en/8.changelog.md
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/version.json
+          git add public/version.json content/fr/8.changelog.md content/en/8.changelog.md
           git commit -m "release: bump version to ${{ github.ref_name }}"
           git push origin dev
+      - name: Publish release summary to Bluesky
+        env:
+          BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
+          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+        run: |
+          if [ -z "$BLUESKY_HANDLE" ] || [ -z "$BLUESKY_APP_PASSWORD" ]; then
+            echo "::warning::Bluesky secrets are not configured; skipping release post."
+            exit 0
+          fi
+          node scripts/post_release_bluesky.mjs --tag "${{ github.ref_name }}"

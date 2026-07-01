@@ -6,6 +6,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [0.9.0] - 2026-07-01
 
+<!-- social: Remote Ollama support, agent availability for integrations, and smoother TUI update and configuration flows. -->
+
 ### Added
 
 - `palabre agents --json` expose un contrat v1 pour les intégrations avec les agents configurés actifs, leur disponibilité locale et la sélection Ask par défaut ; les agents retirés comme Gemini restent exclus même s'ils existent dans une ancienne config.
