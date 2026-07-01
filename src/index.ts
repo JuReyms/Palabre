@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaBaseUrl, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeExampleConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
-import { buildContextScan } from "./contextScan.js";
-import { discoverLocalTools } from "./discovery.js";
+import { discoverLocalTools, discoverLocalToolsForConfig } from "./discovery.js";
 import { runDoctor } from "./doctor.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
 import { runConfigWizard } from "./configWizard.js";
@@ -10,7 +9,7 @@ import { createTranslator, DEFAULT_LANGUAGE, parseLanguage, resolveLanguage } fr
 import { DEFAULT_TURNS, parseTurnsFlag, turnsOrDefault, validateTurns } from "./limits.js";
 import { formatAgentPrompt } from "./prompt.js";
 import { runNewWizard } from "./new.js";
-import { listAgentsWithAvailability, listPresetNames, listPresetsWithAvailability, resolvePreset } from "./presets.js";
+import { listPresetNames, resolvePreset } from "./presets.js";
 import { listHistoryEntries } from "./history.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { createNdjsonRenderer } from "./renderers/ndjson.js";
@@ -21,12 +20,16 @@ import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./up
 import { createSessionContext } from "./session.js";
 import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { askAgentSeedsForMode, clearTuiRunOverrides } from "./tuiState.js";
-import { detectedAgentNames, detectionForCommand, isRetiredAgentName } from "./agentRegistry.js";
-import { configuredOllamaTargets, DEFAULT_OLLAMA_BASE_URL, normalizeOllamaBaseUrl, OllamaUrlError, resolveOllamaBaseUrl } from "./ollamaUrl.js";
+import { detectedAgentNames } from "./agentRegistry.js";
+import { DEFAULT_OLLAMA_BASE_URL, normalizeOllamaBaseUrl, OllamaUrlError, resolveOllamaBaseUrl } from "./ollamaUrl.js";
 import { compareSemver, getLatestPackageVersion, getPackageVersion } from "./version.js";
-import type { CommandDetection } from "./discovery.js";
-import type { AgentConfig, AgentRole, DebateOptions, PalabreConfig, PalabreInterface, PalabreMode } from "./types.js";
+import type { AgentRole, DebateOptions, PalabreConfig, PalabreInterface, PalabreMode } from "./types.js";
 import type { Messages } from "./messages/index.js";
+import { runAgentsCommand } from "./commands/agents.js";
+import { runContextCommand } from "./commands/context.js";
+import { runHistoryCommand } from "./commands/history.js";
+import { runPresetsCommand } from "./commands/presets.js";
+import { optionalString } from "./commands/shared.js";
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
 async function main(): Promise<void> {
@@ -414,41 +417,6 @@ function debateAbortSignal(): AbortSignal {
   return controller.signal;
 }
 
-/**
- * Exécute la commande `agents` : charge la config et affiche les agents déclarés avec leur état de détection.
- * @param flags - Flags parsés depuis la ligne de commande.
- */
-async function runAgentsCommand(flags: Record<string, string | string[] | boolean>): Promise<void> {
-  const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
-
-  if (!(await configExists(configPath))) {
-    const messages = createTranslator(resolveLanguage({ explicitLanguage: optionalString(flags.language) }));
-    throw new Error(messages.agents.noConfig);
-  }
-
-  const config = await loadConfig(configPath);
-  const language = resolveLanguage({
-    explicitLanguage: optionalString(flags.language),
-    configLanguage: config.language
-  });
-  const messages = createTranslator(language);
-  const discovery = await discoverLocalToolsForConfig(config, optionalString(flags["ollama-url"]));
-  if (flags.json) {
-    const fallbackAskAgents = [config.defaults?.agentA, config.defaults?.agentB]
-      .filter((name): name is string => typeof name === "string" && !isRetiredAgentName(name));
-    process.stdout.write(JSON.stringify({
-      v: 1,
-      agents: listAgentsWithAvailability(config, discovery, messages),
-      defaults: {
-        askAgents: config.defaults?.askAgents?.length
-          ? config.defaults.askAgents.filter((name) => !isRetiredAgentName(name))
-          : fallbackAskAgents
-      }
-    }) + "\n");
-    return;
-  }
-  printAgents(configPath, config, discovery, messages);
-}
 /**
  * Exécute la commande `config` : wizard interactif ou mise à jour directe des paramètres par défaut.
  * @param flags - Flags parsés depuis la ligne de commande.
@@ -1293,13 +1261,6 @@ function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, opti
   console.log(options.mode === "ask" ? messages.preview.askNote : messages.preview.note);
 }
 
-/**
- * Extrait une chaîne non vide depuis une valeur de flag, ou renvoie `undefined`.
- * @param value - Valeur brute issue du parseur de flags.
- */
-function optionalString(value: string | string[] | boolean | undefined): string | undefined {
-  return typeof value === "string" && value.trim() ? value : undefined;
-}
 
 /**
  * Pré-lit seulement `--language`/`--lang` dans les arguments bruts pour localiser
@@ -1397,115 +1358,6 @@ function shouldOpenTuiHome(parsed: ParsedArgs): boolean {
     && parsed.flags.terminal !== true;
 }
 
-/** Lance la discovery avec la même adresse Ollama effective que la config et les overrides globaux. */
-async function discoverLocalToolsForConfig(
-  config: PalabreConfig,
-  ollamaUrl?: string
-): ReturnType<typeof discoverLocalTools> {
-  return discoverLocalTools({
-    ollamaUrl,
-    ollamaTargets: configuredOllamaTargets(config)
-  });
-}
-
-/**
- * Exécute la commande `palabre presets` en sortie humaine ou JSON versionné.
- */
-async function runPresetsCommand(flags: Record<string, string | string[] | boolean>): Promise<void> {
-  const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
-  const ollamaUrl = optionalString(flags["ollama-url"]);
-  const config = await configExists(configPath)
-    ? await loadConfig(configPath)
-    : undefined;
-  const discovery = config
-    ? await discoverLocalToolsForConfig(config, ollamaUrl)
-    : await discoverLocalTools({ ollamaUrl });
-  const resolvedConfig = config ?? createConfigFromDiscovery(discovery);
-  const language = resolveLanguage({
-    explicitLanguage: optionalString(flags.language),
-    configLanguage: resolvedConfig.language
-  });
-  const messages = createTranslator(language);
-  const presets = listPresetsWithAvailability(resolvedConfig, discovery, messages);
-
-  if (flags.json) {
-    process.stdout.write(JSON.stringify({ v: 1, presets }) + "\n");
-    return;
-  }
-
-  console.log(messages.presets.title);
-  console.log("");
-  for (const preset of presets) {
-    const status = preset.available
-      ? messages.presets.available
-      : messages.presets.unavailable(preset.unavailableReasons.join("; "));
-    console.log(`  ${preset.name.padEnd(20)} ${preset.agentA} <-> ${preset.agentB}  ${status}`);
-  }
-  console.log("");
-  console.log(messages.presets.total(presets.length));
-}
-
-async function runHistoryCommand(flags: Record<string, string | string[] | boolean>): Promise<void> {
-  const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
-  const config = await configExists(configPath)
-    ? await loadConfig(configPath)
-    : undefined;
-  const language = resolveLanguage({
-    explicitLanguage: optionalString(flags.language),
-    configLanguage: config?.language
-  });
-  const messages = createTranslator(language);
-  const entries = await listHistoryEntries(resolveOutputDir(config?.outputDir));
-
-  if (flags.json) {
-    process.stdout.write(JSON.stringify({ v: 1, history: entries }) + "\n");
-    return;
-  }
-
-  console.log(messages.tui.historyTitle);
-  console.log("");
-
-  if (entries.length === 0) {
-    console.log(messages.tui.historyEmpty);
-    return;
-  }
-
-  for (const entry of entries) {
-    console.log(`- ${entry.date || entry.fileName} | ${entry.mode} | ${entry.topic}`);
-    console.log(`  ${entry.path}`);
-  }
-}
-
-async function runContextCommand(flags: Record<string, string | string[] | boolean>, positionals: string[]): Promise<void> {
-  const language = resolveLanguage({ explicitLanguage: optionalString(flags.language) });
-  const messages = createTranslator(language);
-  const subcommand = positionals[0] ?? "scan";
-
-  if (subcommand !== "scan") {
-    throw new Error(messages.common.unknownCommand(`context ${subcommand}`, "context scan"));
-  }
-
-  const paths = positionals.slice(1);
-  const result = await buildContextScan(paths, process.cwd(), messages);
-  const folders = result.items.filter((item) => item.kind === "folder");
-  const files = result.items.filter((item) => item.kind === "file");
-
-  if (flags.json) {
-    console.log(JSON.stringify(result, null, 2));
-    return;
-  }
-
-  for (const folder of folders) {
-    console.log(`[folder] ${folder.path}`);
-  }
-  for (const file of files) {
-    console.log(`[file] ${file.path} (${file.sizeBytes} bytes)`);
-  }
-  for (const warning of result.warnings) {
-    console.error(`${messages.renderers.warningPrefix} ${warning}`);
-  }
-}
-
 /**
  * Écrit les avertissements de contexte sur `stderr`.
  * @param warnings - Messages d'avertissement issus du chargement des fichiers de contexte.
@@ -1516,125 +1368,6 @@ function printContextWarnings(warnings: string[], messages: Messages): void {
   }
 }
 
-/**
- * Ajoute dans `config.agents` les agents détectés localement mais absents de la config.
- * Mute `config` directement ; l'appelant est responsable de persister la config.
- * @param config - Config Palabre à compléter.
- * @param discovery - Résultat de la découverte locale des outils.
- * @returns Noms des agents nouvellement ajoutés.
- */
-/**
- * Affiche la liste des agents déclarés avec leur type, rôle, état de détection et défauts.
- * @param configPath - Chemin du fichier de config (affiché en en-tête).
- * @param config - Config Palabre chargée.
- * @param discovery - Résultat de la découverte locale des outils.
- */
-function printAgents(
-  configPath: string,
-  config: PalabreConfig,
-  discovery: Awaited<ReturnType<typeof discoverLocalTools>>,
-  messages: Messages
-): void {
-  const entries = Object.entries(config.agents)
-    .filter(([name]) => !isRetiredAgentName(name))
-    .sort(([left], [right]) => left.localeCompare(right));
-
-  console.log(messages.agents.config(configPath));
-  console.log("");
-  console.log(messages.agents.title);
-
-  for (const [name, agentConfig] of entries) {
-    const status = formatAgentDetection(name, agentConfig, discovery, messages);
-    const defaults = formatAgentDefaults(name, config, messages);
-    const details = formatAgentDetails(agentConfig, messages);
-    const suffix = defaults ? ` | ${defaults}` : "";
-
-    console.log(`- ${name.padEnd(13)} ${`${agentConfig.type}/${agentConfig.role}`.padEnd(18)} ${status}${suffix}`);
-    if (details) {
-      console.log(`  ${details}`);
-    }
-  }
-
-  console.log("");
-  console.log(messages.agents.defaults(
-    config.defaults?.agentA ?? messages.agents.none,
-    config.defaults?.agentB ?? messages.agents.none,
-    turnsOrDefault(config.defaults?.turns),
-    config.defaults?.summaryAgent ?? messages.agents.summaryAgentB,
-    config.defaults?.askSummaryAgent
-  ));
-}
-
-/**
- * Renvoie un libellé indiquant si l'agent est agent A, agent B ou agent de synthèse par défaut.
- * @param name - Nom de l'agent.
- * @param config - Config Palabre contenant les défauts.
- */
-function formatAgentDefaults(name: string, config: PalabreConfig, messages: Messages): string {
-  const labels: string[] = [];
-
-  if (config.defaults?.agentA === name) labels.push(messages.agents.defaultAgentA);
-  if (config.defaults?.agentB === name) labels.push(messages.agents.defaultAgentB);
-  if (config.defaults?.summaryAgent === name) labels.push(messages.agents.defaultSummary);
-  if (config.defaults?.askSummaryAgent === name) labels.push(messages.agents.defaultAskSummary);
-
-  return labels.join(", ");
-}
-
-/**
- * Renvoie une ligne de détails pour un agent : commande CLI ou modèle Ollama.
- * @param agentConfig - Configuration de l'agent.
- */
-function formatAgentDetails(agentConfig: AgentConfig, messages: Messages): string {
-  if (agentConfig.type === "ollama") {
-    return messages.agents.model(agentConfig.model);
-  }
-
-  return messages.agents.command(agentConfig.command, agentConfig.model);
-}
-
-/**
- * Renvoie le statut de détection d'un agent sous forme de chaîne lisible.
- * Pour Ollama, vérifie la disponibilité du serveur et la présence du modèle.
- * @param name - Nom de l'agent dans la config.
- * @param agentConfig - Configuration de l'agent.
- * @param discovery - Résultat de la découverte locale des outils.
- */
-function formatAgentDetection(
-  name: string,
-  agentConfig: AgentConfig,
-  discovery: Awaited<ReturnType<typeof discoverLocalTools>>,
-  messages: Messages
-): string {
-  if (agentConfig.type === "ollama") {
-    if (!discovery.ollama.available) {
-      return discovery.ollama.commandAvailable ? messages.agents.ollamaUnreachable : messages.agents.ollamaNotDetected;
-    }
-
-    return discovery.ollama.models.includes(agentConfig.model)
-      ? messages.agents.detected()
-      : messages.agents.missingModel(agentConfig.model);
-  }
-
-  const detection = cliDetectionForAgent(name, agentConfig, discovery);
-  return detection.available ? messages.agents.detected(detection.command) : messages.agents.notDetected;
-}
-
-/**
- * Résout l'entrée de détection correspondant à un agent CLI.
- * Renvoie un objet `{ available: true }` pour les agents CLI non reconnus (considérés disponibles).
- * @param name - Nom de l'agent dans la config.
- * @param agentConfig - Configuration de l'agent.
- * @param discovery - Résultat de la découverte locale des outils.
- */
-function cliDetectionForAgent(
-  name: string,
-  agentConfig: AgentConfig,
-  discovery: Awaited<ReturnType<typeof discoverLocalTools>>
-): CommandDetection {
-  const command = agentConfig.type === "cli" || agentConfig.type === "cli-pty" ? agentConfig.command : name;
-  return detectionForCommand(command, discovery) ?? { available: true, command };
-}
 
 /**
  * Affiche le récapitulatif de détection locale après `palabre init`.

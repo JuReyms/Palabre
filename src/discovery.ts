@@ -1,7 +1,8 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
 import { executableExtensions } from "./exec.js";
-import { resolveOllamaBaseUrl } from "./ollamaUrl.js";
+import { configuredOllamaTargets, resolveOllamaBaseUrl } from "./ollamaUrl.js";
+import type { PalabreConfig } from "./types.js";
 
 export interface DiscoveryOptions {
   ollamaUrl?: string;
@@ -184,4 +185,14 @@ async function isAccessible(filePath: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+/** Détecte les outils en tenant compte de tous les serveurs Ollama configurés. */
+export function discoverLocalToolsForConfig(
+  config: PalabreConfig,
+  ollamaUrl?: string
+): ReturnType<typeof discoverLocalTools> {
+  return discoverLocalTools({
+    ollamaUrl,
+    ollamaTargets: configuredOllamaTargets(config)
+  });
 }
