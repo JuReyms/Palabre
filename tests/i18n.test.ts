@@ -38,6 +38,9 @@ test("createTranslator returns localized common errors", () => {
   assert.match(createTranslator("fr").common.noAgentDefined("agent A"), /https:\/\/palab\.re\/fr\/agents\/overview/);
   assert.match(createTranslator("en").common.noAgentDefined("agent A"), /https:\/\/palab\.re\/en\/agents\/overview/);
   assert.equal(createTranslator("en").common.errorPrefix, "Error");
+  assert.equal(createTranslator("fr").common.ollamaUrlInvalid("ftp://host"), "Adresse Ollama invalide: ftp://host.");
+  assert.equal(createTranslator("fr").common.ollamaUrlProtocol("ftp:"), "Protocole Ollama invalide: ftp:. Utilise http: ou https:.");
+  assert.equal(createTranslator("en").common.ollamaUrlEmpty, "The Ollama address cannot be empty.");
   assert.match(createTranslator("en").common.optionRequiresValue("--topic"), /expects a value/);
 });
 

@@ -240,13 +240,14 @@ function checkAgentAvailability(agentName: string, config: PalabreConfig, discov
   }
 
   if (agent.type === "ollama") {
-    if (!discovery.ollama.available) {
-      return unavailable(agentName, discovery.ollama.commandAvailable
+    const ollama = discovery.ollamaAgents?.[agentName] ?? discovery.ollama;
+    if (!ollama.available) {
+      return unavailable(agentName, ollama.commandAvailable
         ? messages?.presets.ollamaUnreachable(agentName) ?? `Ollama non joignable pour ${agentName}`
         : messages?.presets.ollamaNotDetected(agentName) ?? `Ollama non détecté pour ${agentName}`);
     }
 
-    if (!discovery.ollama.models.includes(agent.model)) {
+    if (!ollama.models.includes(agent.model)) {
       return unavailable(agentName, messages?.presets.missingOllamaModel(agentName, agent.model) ?? `modèle Ollama absent pour ${agentName}: ${agent.model}`);
     }
 

@@ -22,7 +22,7 @@ import { createSessionContext } from "./session.js";
 import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { askAgentSeedsForMode, clearTuiRunOverrides } from "./tuiState.js";
 import { detectedAgentNames, detectionForCommand, isRetiredAgentName } from "./agentRegistry.js";
-import { configuredOllamaBaseUrl, DEFAULT_OLLAMA_BASE_URL, normalizeOllamaBaseUrl, resolveOllamaBaseUrl } from "./ollamaUrl.js";
+import { configuredOllamaTargets, DEFAULT_OLLAMA_BASE_URL, normalizeOllamaBaseUrl, OllamaUrlError, resolveOllamaBaseUrl } from "./ollamaUrl.js";
 import { getPackageVersion } from "./version.js";
 import type { CommandDetection } from "./discovery.js";
 import type { AgentConfig, AgentRole, DebateOptions, PalabreConfig, PalabreInterface, PalabreMode } from "./types.js";
@@ -756,7 +756,7 @@ async function runTuiConfigLoop(
         notice = await setTuiOllamaUrl(configPath, config, input.url, currentMessages);
         changedRunDefaults = true;
       } catch (error) {
-        notice = error instanceof Error ? error.message : String(error);
+        notice = formatRuntimeError(error, currentMessages);
       }
       continue;
     }
@@ -1399,7 +1399,7 @@ async function discoverLocalToolsForConfig(
 ): ReturnType<typeof discoverLocalTools> {
   return discoverLocalTools({
     ollamaUrl,
-    ollamaConfigUrl: configuredOllamaBaseUrl(config)
+    ollamaTargets: configuredOllamaTargets(config)
   });
 }
 
@@ -1737,12 +1737,22 @@ async function resolveCommandMessages(flags: Record<string, string | string[] | 
   return createTranslator(resolveLanguage({ explicitLanguage, configLanguage }));
 }
 
+function formatRuntimeError(error: unknown, messages: Messages): string {
+  if (error instanceof AdapterError) {
+    return formatAdapterError(error, messages);
+  }
+  if (error instanceof OllamaUrlError) {
+    if (error.kind === "empty") return messages.common.ollamaUrlEmpty;
+    if (error.kind === "protocol") return messages.common.ollamaUrlProtocol(error.protocol ?? "");
+    return messages.common.ollamaUrlInvalid(error.value);
+  }
+  return error instanceof Error ? error.message : String(error);
+}
+
 main().catch((error: unknown) => {
   const language = safeStartupLanguage(process.argv.slice(2));
   const messages = createTranslator(language);
-  const message = error instanceof AdapterError
-    ? formatAdapterError(error, messages)
-    : error instanceof Error ? error.message : String(error);
+  const message = formatRuntimeError(error, messages);
   console.error(`${messages.common.errorPrefix}: ${message}`);
   process.exitCode = 1;
 });

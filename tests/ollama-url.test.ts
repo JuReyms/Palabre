@@ -68,3 +68,44 @@ test("discoverLocalTools probes the effective Ollama URL", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test("discoverLocalTools probes and maps distinct Ollama agent servers", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalHost = process.env.OLLAMA_HOST;
+  const requestedUrls: string[] = [];
+  delete process.env.OLLAMA_HOST;
+
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    requestedUrls.push(url);
+    const model = url.includes("reviewer.example") ? "reviewer-model" : "local-model";
+    return new Response(JSON.stringify({ models: [{ name: model }] }), {
+      status: 200,
+      headers: { "content-type": "application/json" }
+    });
+  }) as typeof fetch;
+
+  try {
+    const discovery = await discoverLocalTools({
+      ollamaTargets: {
+        "ollama-local": "local.example:11434",
+        "ollama-reviewer": "reviewer.example:11434"
+      }
+    });
+
+    assert.deepEqual(requestedUrls.sort(), [
+      "http://local.example:11434/api/tags",
+      "http://reviewer.example:11434/api/tags"
+    ]);
+    assert.equal(discovery.ollama.baseUrl, "http://local.example:11434");
+    assert.deepEqual(discovery.ollamaAgents?.["ollama-local"]?.models, ["local-model"]);
+    assert.deepEqual(discovery.ollamaAgents?.["ollama-reviewer"]?.models, ["reviewer-model"]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalHost === undefined) {
+      delete process.env.OLLAMA_HOST;
+    } else {
+      process.env.OLLAMA_HOST = originalHost;
+    }
+  }
+});

@@ -10,6 +10,7 @@ export interface TuiMessages {
   summary: string;
   ollamaModel: string;
   ollamaUrl: string;
+  ollamaUrlEffective: string;
   responses: string;
   folder: string;
   docs: string;
@@ -128,7 +129,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     roles: "Roles",
     summary: "Synthese",
     ollamaModel: "Modele Ollama",
-    ollamaUrl: "Adresse Ollama",
+    ollamaUrl: "Adresse Ollama configuree",
+    ollamaUrlEffective: "Adresse Ollama effective",
     responses: "Tours",
     folder: "Dossier",
     docs: "Docs",
@@ -245,7 +247,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     roles: "Roles",
     summary: "Summary",
     ollamaModel: "Ollama model",
-    ollamaUrl: "Ollama address",
+    ollamaUrl: "Configured Ollama address",
+    ollamaUrlEffective: "Effective Ollama address",
     responses: "Turns",
     folder: "Folder",
     docs: "Docs",

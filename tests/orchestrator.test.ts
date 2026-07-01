@@ -128,6 +128,24 @@ test("Ollama URL override covers debate, ask, and summary without mutating confi
   }
 });
 
+test("runDebate localizes invalid Ollama URL failures", async () => {
+  const config: PalabreConfig = {
+    agents: {
+      first: ollamaAgent("http://config.example:11434"),
+      second: scriptedCliAgent("unused")
+    }
+  };
+
+  const result = await runDebate(config, debateOptions({
+    turns: 1,
+    ollamaUrl: "ftp://invalid.example:11434",
+    summaryEnabled: false
+  }), undefined, createTranslator("fr"));
+
+  assert.equal(result.failure?.kind, "unknown");
+  assert.equal(result.failure?.message, "Protocole Ollama invalide: ftp:. Utilise http: ou https:.");
+});
+
 function ollamaAgent(baseUrl: string): PalabreConfig["agents"][string] {
   return {
     type: "ollama",

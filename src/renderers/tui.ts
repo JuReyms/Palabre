@@ -6,7 +6,7 @@ import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateSta
 import type { Messages } from "../messages/index.js";
 import type { HistoryEntry } from "../history.js";
 import { isRetiredAgentName } from "../agentRegistry.js";
-import { DEFAULT_OLLAMA_BASE_URL } from "../ollamaUrl.js";
+import { DEFAULT_OLLAMA_BASE_URL, resolveOllamaBaseUrl } from "../ollamaUrl.js";
 
 const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
 const supportsInteractiveOutput = Boolean(process.stdout.isTTY);
@@ -315,6 +315,7 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
   const ollamaModel = ollamaAgent?.type === "ollama" ? ollamaAgent.model : undefined;
 
   const ollamaUrl = ollamaAgent?.type === "ollama" ? ollamaAgent.baseUrl ?? DEFAULT_OLLAMA_BASE_URL : undefined;
+  const ollamaEffectiveUrl = ollamaUrl ? safeEffectiveOllamaUrl(ollamaUrl) : undefined;
   const currentLines = mode === "ask"
     ? [
         row(messages.tui.activeAgents, askAgents),
@@ -350,6 +351,7 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
       "",
       row(messages.tui.activeMode, messages.tui.modeValue(mode)),
       ...(ollamaUrl ? [row(messages.tui.ollamaUrl, ollamaUrl)] : []),
+      ...(ollamaEffectiveUrl && ollamaEffectiveUrl !== ollamaUrl ? [row(messages.tui.ollamaUrlEffective, ollamaEffectiveUrl)] : []),
       row(messages.tui.configFile, configPath),
       row(messages.tui.interface, defaults.interface ?? "tui"),
       row(messages.tui.language, config.language ?? "fr"),
@@ -414,6 +416,13 @@ export function parseTuiOllamaUrlCommand(parts: string[], messages: Messages): T
   return value ? { kind: "ollama-url", url: value } : { kind: "unknown", message: messages.tui.ollamaUrlUsage };
 }
 
+function safeEffectiveOllamaUrl(configUrl: string): string {
+  try {
+    return resolveOllamaBaseUrl({ configUrl });
+  } catch {
+    return process.env.OLLAMA_HOST?.trim() || configUrl;
+  }
+}
 
 type TuiQuestionResult =
   | { kind: "answer"; value: string }

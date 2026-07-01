@@ -352,6 +352,9 @@ L'adresse effective du serveur Ollama est resolue dans cet ordre :
 2. variable d'environnement `OLLAMA_HOST` ;
 3. `baseUrl` de l'agent ;
 4. `http://localhost:11434`.
+
+La discovery Ollama conserve `discovery.ollama` pour l'agent principal et expose `discovery.ollamaAgents[name]` pour les configs multi-serveurs. Les appels `/api/tags` sont dedupliques par URL effective ; disponibilite, presets et `doctor` doivent utiliser l'entree propre a chaque agent.
+
 Au `palabre init` et au premier lancement TUI, si Ollama expose déjà des modèles installés via `/api/tags`, la config générée choisit le modèle installé en priorité (en conservant `nemotron-3-nano:4b` s'il est présent). Sinon, elle retombe sur `nemotron-3-nano:4b` comme fallback léger. Eviter les gros modeles dans les tests automatises ou repetes.
 
 La progression d'un pull Ollama (`--pull-models` ou `autoPullModel`) doit rester sur stderr. Stdout appartient aux renderers, notamment NDJSON, et ne doit jamais recevoir de lignes non JSON pendant un flux machine-readable.

@@ -6,6 +6,7 @@ import { resolveOllamaBaseUrl } from "./ollamaUrl.js";
 export interface DiscoveryOptions {
   ollamaUrl?: string;
   ollamaConfigUrl?: string;
+  ollamaTargets?: Record<string, string | undefined>;
 }
 
 /** Résultat de la détection d'une commande dans le PATH. */
@@ -35,6 +36,7 @@ export interface ToolDiscovery {
   opencode: CommandDetection;
   vibe: CommandDetection;
   ollama: OllamaDetection;
+  ollamaAgents?: Record<string, OllamaDetection>;
 }
 
 /**
@@ -52,10 +54,31 @@ export async function discoverLocalTools(options: DiscoveryOptions = {}): Promis
     detectCommand("ollama")
   ]);
 
-  const ollamaServer = await detectOllamaServer(resolveOllamaBaseUrl({
-    cliUrl: options.ollamaUrl,
-    configUrl: options.ollamaConfigUrl
+  const configuredTargets = Object.entries(options.ollamaTargets ?? {});
+  const targets = configuredTargets.length > 0
+    ? configuredTargets
+    : [["ollama-local", options.ollamaConfigUrl] as const];
+  const resolvedTargets = targets.map(([name, configUrl]) => ({
+    name,
+    baseUrl: resolveOllamaBaseUrl({
+      cliUrl: options.ollamaUrl,
+      configUrl
+    })
   }));
+  const uniqueUrls = resolvedTargets
+    .map((target) => target.baseUrl)
+    .filter((baseUrl, index, urls) => urls.indexOf(baseUrl) === index);
+  const servers = await Promise.all(uniqueUrls.map(async (baseUrl) => [
+    baseUrl,
+    await detectOllamaServer(baseUrl)
+  ] as const));
+  const serversByUrl = new Map(servers);
+  const ollamaAgents = Object.fromEntries(resolvedTargets.map(({ name, baseUrl }) => [name, {
+    ...serversByUrl.get(baseUrl)!,
+    commandAvailable: ollamaCommand.available
+  }])) as Record<string, OllamaDetection>;
+  const primaryName = ollamaAgents["ollama-local"] ? "ollama-local" : resolvedTargets[0]!.name;
+  const ollamaServer = ollamaAgents[primaryName]!;
 
   return {
     codex,
@@ -63,10 +86,8 @@ export async function discoverLocalTools(options: DiscoveryOptions = {}): Promis
     antigravity,
     opencode,
     vibe,
-    ollama: {
-      ...ollamaServer,
-      commandAvailable: ollamaCommand.available
-    }
+    ollama: ollamaServer,
+    ollamaAgents
   };
 }
 

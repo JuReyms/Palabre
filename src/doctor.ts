@@ -5,7 +5,7 @@ import { detectedAgentNames, detectionForCommand } from "./agentRegistry.js";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { createTranslator, resolveLanguage } from "./i18n.js";
 import { DEFAULT_TURNS, MAX_TURNS } from "./limits.js";
-import { configuredOllamaBaseUrl, normalizeOllamaBaseUrl } from "./ollamaUrl.js";
+import { configuredOllamaTargets, normalizeOllamaBaseUrl } from "./ollamaUrl.js";
 import { compareSemver, getLatestPackageVersion, getPackageVersion } from "./version.js";
 import type { AgentConfig, Language, PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
@@ -62,9 +62,12 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
 
   await inspectConfig(config, lines, t);
 
-  const configuredUrl = configuredOllamaBaseUrl(config);
+  const ollamaTargets = Object.fromEntries(
+    Object.entries(configuredOllamaTargets(config))
+      .map(([name, value]) => [name, value && isValidOllamaBaseUrl(value) ? value : undefined])
+  );
   const discovery = await discoverLocalTools({
-    ollamaConfigUrl: configuredUrl && isValidOllamaBaseUrl(configuredUrl) ? configuredUrl : undefined
+    ollamaTargets
   });
   lines.push(info(t.doctor.localTools, "tools"));
   lines.push(formatCommand("Codex CLI", discovery.codex.available, discovery.codex.command, discovery.codex.path, t));
@@ -323,8 +326,9 @@ function inspectOllamaAgent(
   t: Messages
 ): void {
   const prefix = `${name} [ollama:${agent.role}] model=${agent.model}`;
+  const ollama = discovery.ollamaAgents?.[name] ?? discovery.ollama;
 
-  if (!discovery.ollama.available) {
+  if (!ollama.available) {
     lines.push(warn(t.doctor.ollamaNotVerifiable(prefix)));
     return;
   }
@@ -334,7 +338,7 @@ function inspectOllamaAgent(
     return;
   }
 
-  const installed = discovery.ollama.models.includes(agent.model);
+  const installed = ollama.models.includes(agent.model);
   lines.push(installed
     ? ok(t.doctor.ollamaInstalled(prefix))
     : warn(t.doctor.ollamaMissing(prefix, agent.model)));

@@ -1,6 +1,7 @@
 import { createAgent } from "./adapters/index.js";
 import { AdapterError } from "./errors.js";
 import { createTranslator } from "./i18n.js";
+import { OllamaUrlError } from "./ollamaUrl.js";
 import type { Messages } from "./messages/index.js";
 import type { AgentConfig, AgentRole, PalabreConfig, DebateFailure, DebateMessage, DebateOptions, DebateRenderer, DebateSummary } from "./types.js";
 
@@ -103,7 +104,7 @@ export async function runDebate(
         agent: current.name,
         role: current.role,
         turn
-      });
+      }, messages);
       renderer?.error(failure);
       return {
         options,
@@ -159,7 +160,7 @@ export async function runDebate(
         agent: resolveSummaryAgentName(options),
         role: summaryRole(),
         turn: transcript.length + 1
-      });
+      }, messages);
       renderer?.error(failure);
     }
   }
@@ -262,7 +263,7 @@ export async function runAsk(
         agent: current.name,
         role: current.role,
         turn: response
-      });
+      }, messages);
       renderer?.error(failure);
       return {
         options,
@@ -315,7 +316,7 @@ export async function runAsk(
         agent: resolveSummaryAgentName(options),
         role: summaryRole(),
         turn: transcript.length + 1
-      });
+      }, messages);
       renderer?.error(failure);
     }
   }
@@ -488,7 +489,8 @@ function resolveSummaryAgentName(options: DebateOptions): string {
 
 function toDebateFailure(
   error: unknown,
-  context: Pick<DebateFailure, "phase"> & Partial<Pick<DebateFailure, "agent" | "role" | "turn">>
+  context: Pick<DebateFailure, "phase"> & Partial<Pick<DebateFailure, "agent" | "role" | "turn">>,
+  messages: Messages
 ): DebateFailure {
   if (error instanceof AdapterError) {
     return {
@@ -499,6 +501,19 @@ function toDebateFailure(
       kind: error.kind,
       message: error.message,
       details: error.details
+    };
+  }
+
+  if (error instanceof OllamaUrlError) {
+    const message = error.kind === "empty"
+      ? messages.common.ollamaUrlEmpty
+      : error.kind === "protocol"
+        ? messages.common.ollamaUrlProtocol(error.protocol ?? "")
+        : messages.common.ollamaUrlInvalid(error.value);
+    return {
+      ...context,
+      kind: "unknown",
+      message
     };
   }
 

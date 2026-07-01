@@ -91,6 +91,38 @@ test("listAgentsWithAvailability exposes active configured agents with CLI-owned
   });
 });
 
+test("listAgentsWithAvailability uses each Ollama agent server discovery", () => {
+  const config = structuredClone(exampleConfig);
+  config.agents["ollama-reviewer"] = {
+    type: "ollama",
+    baseUrl: "http://reviewer.example:11434",
+    model: "reviewer-model",
+    role: "reviewer"
+  };
+  const local = {
+    available: true,
+    commandAvailable: false,
+    baseUrl: "http://local.example:11434",
+    models: ["nemotron-3-nano:4b"]
+  };
+  const reviewer = {
+    available: true,
+    commandAvailable: false,
+    baseUrl: "http://reviewer.example:11434",
+    models: ["reviewer-model"]
+  };
+  const agents = listAgentsWithAvailability(config, discovery({
+    ollama: local,
+    ollamaAgents: {
+      "ollama-local": local,
+      "ollama-reviewer": reviewer
+    }
+  }));
+
+  assert.equal(agents.find((agent) => agent.name === "ollama-local")?.available, true);
+  assert.equal(agents.find((agent) => agent.name === "ollama-reviewer")?.available, true);
+});
+
 test("resolvePreset localizes unknown preset errors", () => {
   assert.throws(
     () => resolvePreset("codex-codex", createTranslator("en")),

@@ -16,6 +16,9 @@ export interface CommonMessages {
   configInvalidShape(configPath: string): string;
   configMissingAgents(configPath: string): string;
   configEmptyAgents(configPath: string): string;
+  ollamaUrlEmpty: string;
+  ollamaUrlInvalid(value: string): string;
+  ollamaUrlProtocol(protocol: string): string;
   errorPrefix: string;
 }
 
@@ -36,6 +39,9 @@ export const commonMessages: Record<Language, CommonMessages> = {
     configInvalidShape: (configPath) => `Config invalide: ${configPath} ne contient pas un objet JSON. Relance palabre init ou corrige le fichier.`,
     configMissingAgents: (configPath) => `Config invalide: ${configPath} ne déclare pas de bloc "agents". Relance palabre init ou ajoute au moins un agent.`,
     configEmptyAgents: (configPath) => `Config invalide: ${configPath} ne déclare aucun agent. Ajoute au moins un agent ou relance palabre init.`,
+    ollamaUrlEmpty: "L'adresse Ollama ne peut pas être vide.",
+    ollamaUrlInvalid: (value) => `Adresse Ollama invalide: ${value}.`,
+    ollamaUrlProtocol: (protocol) => `Protocole Ollama invalide: ${protocol}. Utilise http: ou https:.`,
     errorPrefix: "Erreur"
   },
   en: {
@@ -54,6 +60,9 @@ export const commonMessages: Record<Language, CommonMessages> = {
     configInvalidShape: (configPath) => `Invalid config: ${configPath} does not contain a JSON object. Run palabre init or fix the file.`,
     configMissingAgents: (configPath) => `Invalid config: ${configPath} has no "agents" block. Run palabre init or add at least one agent.`,
     configEmptyAgents: (configPath) => `Invalid config: ${configPath} declares no agent. Add at least one agent or run palabre init.`,
+    ollamaUrlEmpty: "The Ollama address cannot be empty.",
+    ollamaUrlInvalid: (value) => `Invalid Ollama address: ${value}.`,
+    ollamaUrlProtocol: (protocol) => `Invalid Ollama protocol: ${protocol}. Use http: or https:.`,
     errorPrefix: "Error"
   }
 };

@@ -300,6 +300,8 @@ test("parseTuiOllamaUrlCommand parses an address and reports missing values", ()
 test("renderTuiConfig keeps the Palabre brand header", () => {
   const output: string[] = [];
   const originalWrite = process.stdout.write;
+  const originalHost = process.env.OLLAMA_HOST;
+  process.env.OLLAMA_HOST = "gpu-box:11434";
   process.stdout.write = ((chunk: string | Uint8Array) => {
     output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
     return true;
@@ -325,6 +327,11 @@ test("renderTuiConfig keeps the Palabre brand header", () => {
     }, "palabre.config.json", "debate", createTranslator("en"));
   } finally {
     process.stdout.write = originalWrite;
+    if (originalHost === undefined) {
+      delete process.env.OLLAMA_HOST;
+    } else {
+      process.env.OLLAMA_HOST = originalHost;
+    }
   }
 
   const text = output.join("");
@@ -338,8 +345,10 @@ test("renderTuiConfig keeps the Palabre brand header", () => {
   assert.match(text, /Available commands/);
   assert.match(text, /Ollama model/);
   assert.match(text, /llama3\.2:3b/);
-  assert.match(text, /Ollama address/);
+  assert.match(text, /Configured Ollama address/);
+  assert.match(text, /Effective Ollama address/);
   assert.match(text, /http:\/\/localhost:11434/);
+  assert.match(text, /http:\/\/gpu-box:11434/);
   assert.match(text, /\/ollama/);
   assert.match(text, /\/ollama-model/);
   assert.match(text, /\/ollama-url/);
