@@ -322,6 +322,8 @@ Il ne supporte pas encore :
 
 Le premier usage supporte est `agy --print-timeout 5m0s --print <prompt>` avec `promptMode: "argument"`. L'adapter nettoie les sequences ANSI/OSC via `src/adapters/terminal.ts` et retourne le raw PTY output dans `raw`.
 
+Le flux PTY fusionne stdout et stderr : une sortie courte (moins de 400 caracteres) qui matche un signal de quota connu (ex. "Individual quota reached" d'Antigravity) est classee `usage-limit`, quel que soit l'exit code, plutot que retournee comme reponse valide ou classee `empty-output`/`non-zero-exit`. La detection est partagee avec l'adapter CLI via `extractUsageLimitMessage` dans `cli-shared.ts`.
+
 Limites actuelles :
 
 - pas encore de sessions persistantes ;

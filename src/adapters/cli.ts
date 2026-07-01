@@ -5,7 +5,7 @@ import { createTranslator } from "../i18n.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
-import { DEFAULT_MAX_OUTPUT_BYTES, DEFAULT_TIMEOUT_MS, withModelArgs } from "./cli-shared.js";
+import { clipLine, DEFAULT_MAX_OUTPUT_BYTES, DEFAULT_TIMEOUT_MS, extractUsageLimitMessage, stripLogPrefix, uniqueNonEmptyLines, withModelArgs } from "./cli-shared.js";
 import { cleanTerminalOutput } from "./terminal.js";
 
 /**
@@ -324,33 +324,6 @@ function extractJsonErrorMessage(line: string): string | undefined {
   const match = line.match(/"message"\s*:\s*"([^"]+)"/);
   return match?.[1];
 }
-/** Cherche dans stderr une ligne signalant un quota/rate-limit connu, pour classer l'erreur en `usage-limit`. */
-function extractUsageLimitMessage(stderr: string): string | undefined {
-  const lines = uniqueNonEmptyLines(stderr);
-  const match = lines.find((line) => isUsageLimitLine(line));
-
-  if (!match) {
-    return undefined;
-  }
-
-  return clipLine(stripLogPrefix(match), 500);
-}
-
-function isUsageLimitLine(line: string): boolean {
-  const normalized = line.toLowerCase();
-
-  return [
-    "usage limit",
-    "rate limit",
-    "quota exceeded",
-    "resource_exhausted",
-    "too many requests",
-    "insufficient_quota",
-    "exceeded your current quota",
-    "credit balance is too low",
-    "billing hard limit"
-  ].some((pattern) => normalized.includes(pattern));
-}
 
 function summarizeCliError(stderr: string, messages: AdapterErrorMessages): string {
   const lines = uniqueNonEmptyLines(stderr).map(stripLogPrefix);
@@ -360,37 +333,6 @@ function summarizeCliError(stderr: string, messages: AdapterErrorMessages): stri
   }
 
   return clipLine(lines.slice(-8).join("\n"), 1_200);
-}
-
-function uniqueNonEmptyLines(value: string): string[] {
-  const seen = new Set<string>();
-  const lines: string[] = [];
-
-  for (const line of value.split(/\r?\n/)) {
-    const cleaned = line.trim();
-
-    if (!cleaned || seen.has(cleaned)) {
-      continue;
-    }
-
-    seen.add(cleaned);
-    lines.push(cleaned);
-  }
-
-  return lines;
-}
-
-function stripLogPrefix(line: string): string {
-  return line
-    .replace(/^\d{4}-\d{2}-\d{2}T\S+\s+(ERROR|WARN|INFO|DEBUG)\s+[^:]+:\s*/i, "")
-    .replace(/^ERROR:\s*/i, "")
-    .trim();
-}
-
-function clipLine(value: string, maxLength: number): string {
-  return value.length <= maxLength
-    ? value
-    : `${value.slice(0, maxLength - 1)}…`;
 }
 
 /**

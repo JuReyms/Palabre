@@ -299,7 +299,7 @@ function formatContext(options: DebateOptions, messages: Messages): string {
     return messages.renderers.noInjectedFiles;
   }
 
-  return messages.renderers.injectedFiles(count);
+  return messages.renderers.injectedFiles(count, options.files.map((file) => file.path));
 }
 
 function formatFailureLocation(failure: DebateFailure, messages: Messages): string {

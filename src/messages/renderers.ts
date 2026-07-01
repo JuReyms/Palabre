@@ -17,7 +17,15 @@ export interface RendererMessages {
   summaryTitle: string;
   exported(path: string): string;
   noInjectedFiles: string;
-  injectedFiles(count: number): string;
+  /** Résumé du contexte injecté : compte + chemins (tronqués à 3, reste en `+N`). */
+  injectedFiles(count: number, paths: string[]): string;
+}
+
+/** Tronque une liste de chemins pour l'affichage : 3 premiers + compteur du reste. */
+function summarizePaths(paths: string[]): string {
+  const shown = paths.slice(0, 3);
+  const extra = paths.length - shown.length;
+  return `${shown.join(", ")}${extra > 0 ? ` (+${extra})` : ""}`;
 }
 
 export const rendererMessages: Record<Language, RendererMessages> = {
@@ -38,7 +46,7 @@ export const rendererMessages: Record<Language, RendererMessages> = {
     summaryTitle: "Synthese",
     exported: (path) => `Palabre exporte: ${path}`,
     noInjectedFiles: "aucun fichier injecté",
-    injectedFiles: (count) => `${count} fichier${count > 1 ? "s" : ""} injecté${count > 1 ? "s" : ""}`
+    injectedFiles: (count, paths) => `${count} fichier${count > 1 ? "s" : ""} injecté${count > 1 ? "s" : ""} : ${summarizePaths(paths)}`
   },
   en: {
     subject: (topic) => `Subject: ${topic}`,
@@ -57,6 +65,6 @@ export const rendererMessages: Record<Language, RendererMessages> = {
     summaryTitle: "Summary",
     exported: (path) => `Palabre exported: ${path}`,
     noInjectedFiles: "no injected files",
-    injectedFiles: (count) => `${count} injected file${count > 1 ? "s" : ""}`
+    injectedFiles: (count, paths) => `${count} injected file${count > 1 ? "s" : ""}: ${summarizePaths(paths)}`
   }
 };

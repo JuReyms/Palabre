@@ -270,7 +270,7 @@ function formatSessionProgress(options: DebateOptions, messages: Messages): stri
 function formatContext(options: DebateOptions, messages: Messages): string {
   return options.files.length === 0
     ? messages.renderers.noInjectedFiles
-    : messages.renderers.injectedFiles(options.files.length);
+    : messages.renderers.injectedFiles(options.files.length, options.files.map((file) => file.path));
 }
 
 function formatFailureLocation(failure: DebateFailure, messages: Messages): string {

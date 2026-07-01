@@ -138,6 +138,19 @@ test("CliAdapter classifies usage limit errors", async () => {
   );
 });
 
+test("CliAdapter classifies Antigravity individual quota errors", async () => {
+  const adapter = new CliAdapter("antigravity", cliConfig({
+    args: ["-e", "process.stderr.write('Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 155h5m13s.'); process.exit(1)"]
+  }));
+
+  await assert.rejects(
+    adapter.generate(basePrompt()),
+    (error) => error instanceof AdapterError
+      && error.kind === "usage-limit"
+      && error.message.includes("Individual quota reached")
+  );
+});
+
 test("CliAdapter classifies unsupported model errors", async () => {
   const script = "process.stderr.write(JSON.stringify({ type: 'error', status: 400, error: { type: 'invalid_request_error', message: \"The '5.4' model is not supported when using Codex with a ChatGPT account.\" } })); process.exit(1)";
   const adapter = new CliAdapter("codex", cliConfig({

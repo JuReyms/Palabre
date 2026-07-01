@@ -7,6 +7,72 @@ export const DEFAULT_MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
 export const DEFAULT_TIMEOUT_MS = 180_000;
 
 /**
+ * Cherche dans un texte (stderr ou flux PTY) une ligne signalant un quota ou un
+ * rate-limit connu, pour classer l'erreur en `usage-limit`.
+ * @returns La ligne fautive nettoyée et tronquée, ou `undefined` si rien ne matche.
+ */
+export function extractUsageLimitMessage(text: string): string | undefined {
+  const match = uniqueNonEmptyLines(text).find((line) => isUsageLimitLine(line));
+
+  if (!match) {
+    return undefined;
+  }
+
+  return clipLine(stripLogPrefix(match), 500);
+}
+
+function isUsageLimitLine(line: string): boolean {
+  const normalized = line.toLowerCase();
+
+  return [
+    "usage limit",
+    "rate limit",
+    "quota exceeded",
+    "quota reached",
+    "resource_exhausted",
+    "too many requests",
+    "insufficient_quota",
+    "exceeded your current quota",
+    "credit balance is too low",
+    "billing hard limit"
+  ].some((pattern) => normalized.includes(pattern));
+}
+
+/** Déduplique les lignes non vides d'un texte, en préservant l'ordre d'apparition. */
+export function uniqueNonEmptyLines(value: string): string[] {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+
+  for (const line of value.split(/\r?\n/)) {
+    const cleaned = line.trim();
+
+    if (!cleaned || seen.has(cleaned)) {
+      continue;
+    }
+
+    seen.add(cleaned);
+    lines.push(cleaned);
+  }
+
+  return lines;
+}
+
+/** Retire un éventuel préfixe de log (`2026-01-01T... ERROR module:` ou `ERROR:`) d'une ligne. */
+export function stripLogPrefix(line: string): string {
+  return line
+    .replace(/^\d{4}-\d{2}-\d{2}T\S+\s+(ERROR|WARN|INFO|DEBUG)\s+[^:]+:\s*/i, "")
+    .replace(/^ERROR:\s*/i, "")
+    .trim();
+}
+
+/** Tronque une ligne à `maxLength` caractères avec une ellipse. */
+export function clipLine(value: string, maxLength: number): string {
+  return value.length <= maxLength
+    ? value
+    : `${value.slice(0, maxLength - 1)}…`;
+}
+
+/**
  * Insère `modelArg model` dans la liste d'arguments d'une commande CLI.
  * Si le dernier argument est `-` (marqueur stdin), insère avant lui pour
  * préserver l'ordre attendu par les CLIs qui lisent le prompt sur stdin.
