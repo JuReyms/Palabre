@@ -120,7 +120,7 @@ export interface DebateOptions {
   modelB?: string;
   ollamaUrl?: string;
   pullModels: boolean;
-  summaryAgent?: string;
+  summaryAgent: string;
   summaryModel?: string;
   summaryEnabled: boolean;
   earlyStopOnAgreement: boolean;

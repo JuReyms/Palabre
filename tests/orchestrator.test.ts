@@ -181,7 +181,8 @@ function debateOptions(overrides: Partial<DebateOptions> = {}): DebateOptions {
     summaryEnabled: false,
     earlyStopOnAgreement: true,
     plainOutput: true,
-    ...overrides
+    ...overrides,
+    summaryAgent: overrides.summaryAgent ?? "second"
   };
 }
 

@@ -40,7 +40,7 @@ export class NdjsonRenderer implements DebateRenderer {
       agents: agents.map((a) => ({ name: a.name, role: a.role, type: a.type })),
       summaryEnabled: options.summaryEnabled,
       summaryAgent: options.summaryEnabled
-        ? resolveSummaryAgent(options)
+        ? options.summaryAgent
         : null,
       earlyStop: options.earlyStopOnAgreement,
       filesCount: options.files.length,
@@ -154,18 +154,6 @@ export class NdjsonRenderer implements DebateRenderer {
       JSON.stringify({ v: this.schemaVersion, ...event }) + "\n",
     );
   }
-}
-
-function resolveSummaryAgent(options: DebateOptions): string {
-  if (options.summaryAgent) {
-    return options.summaryAgent;
-  }
-
-  if (options.mode === "ask" && options.askAgents && options.askAgents.length > 0) {
-    return options.askAgents[options.askAgents.length - 1] ?? options.agentB;
-  }
-
-  return options.agentB;
 }
 
 /** Factory pratique pour conserver la symétrie avec `createConsoleRenderer`. */

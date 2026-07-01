@@ -340,7 +340,7 @@ async function main(): Promise<void> {
         ? normalizeOllamaBaseUrl(optionalString(parsed.flags["ollama-url"])!)
         : undefined,
       pullModels: Boolean(parsed.flags["pull-models"]),
-      summaryAgent: resolveSummaryAgentOption(parsed.flags["summary-agent"], config.defaults, mode),
+      summaryAgent: resolveSummaryAgentOption(parsed.flags["summary-agent"], config.defaults, mode, askAgents, agentB),
       summaryModel: optionalString(parsed.flags["summary-model"]),
       summaryEnabled: !parsed.flags["no-summary"],
       earlyStopOnAgreement: !parsed.flags["no-early-stop"],
@@ -1200,8 +1200,10 @@ function resolveAgentName(
 function resolveSummaryAgentOption(
   explicitValue: string | string[] | boolean | undefined,
   defaults: PalabreConfig["defaults"] | undefined,
-  mode: PalabreMode
-): string | undefined {
+  mode: PalabreMode,
+  askAgents: string[] | undefined,
+  agentB: string
+): string {
   const explicit = optionalString(explicitValue);
 
   if (explicit) {
@@ -1209,10 +1211,10 @@ function resolveSummaryAgentOption(
   }
 
   if (mode === "ask") {
-    return defaults?.askSummaryAgent ?? defaults?.summaryAgent;
+    return defaults?.askSummaryAgent ?? defaults?.summaryAgent ?? askAgents?.at(-1) ?? agentB;
   }
 
-  return defaults?.summaryAgent;
+  return defaults?.summaryAgent ?? agentB;
 }
 
 function parseModeFlag(value: string | undefined, messages: Messages): PalabreMode {
@@ -1283,24 +1285,12 @@ function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, opti
   console.log(messages.preview.agent(previewAgent, agentConfig.role));
   console.log(messages.preview.peer(peerName));
   console.log(messages.preview.pullModels(options.pullModels));
-  console.log(messages.preview.summary(options.summaryEnabled ? previewSummaryAgent(options) : messages.preview.disabled));
+  console.log(messages.preview.summary(options.summaryEnabled ? options.summaryAgent : messages.preview.disabled));
   console.log(messages.preview.interfaceLanguage(language));
   console.log("");
   console.log(prompt);
   console.log("");
   console.log(options.mode === "ask" ? messages.preview.askNote : messages.preview.note);
-}
-
-function previewSummaryAgent(options: DebateOptions): string {
-  if (options.summaryAgent) {
-    return options.summaryAgent;
-  }
-
-  if (options.mode === "ask" && options.askAgents && options.askAgents.length > 0) {
-    return options.askAgents[options.askAgents.length - 1] ?? options.agentB;
-  }
-
-  return options.agentB;
 }
 
 /**

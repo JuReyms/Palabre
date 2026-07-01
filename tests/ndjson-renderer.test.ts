@@ -108,14 +108,14 @@ test("NdjsonRenderer emits ask response events", () => {
   assert.equal(events[1].content, "Ask body");
 });
 
-test("NdjsonRenderer uses the last ask agent as summary fallback", () => {
+test("NdjsonRenderer emits the summary agent resolved at the CLI boundary", () => {
   const capture = captureStdout();
   try {
     const renderer = new NdjsonRenderer();
     renderer.start(baseOptions({
       mode: "ask",
       askAgents: ["codex", "claude", "opencode"],
-      summaryAgent: undefined
+      summaryAgent: "opencode"
     }), [
       { name: "codex", role: "implementer", type: "cli" },
       { name: "claude", role: "reviewer", type: "cli" },

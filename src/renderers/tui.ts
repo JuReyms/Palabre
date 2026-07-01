@@ -888,15 +888,7 @@ function formatSummary(options: DebateOptions, messages: Messages): string {
     return messages.renderers.disabled;
   }
 
-  if (options.summaryAgent) {
-    return options.summaryAgent;
-  }
-
-  if (options.mode === "ask" && options.askAgents && options.askAgents.length > 0) {
-    return options.askAgents[options.askAgents.length - 1] ?? options.agentB;
-  }
-
-  return options.agentB;
+  return options.summaryAgent;
 }
 
 function formatResponseCount(options: DebateOptions): number {

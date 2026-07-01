@@ -454,6 +454,7 @@ function baseOptions(): DebateOptions {
     files: [],
     pullModels: false,
     summaryEnabled: true,
+    summaryAgent: "claude",
     earlyStopOnAgreement: true,
     plainOutput: false
   };

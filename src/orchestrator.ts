@@ -140,7 +140,7 @@ export async function runDebate(
     try {
       const cancellation = cancellationFailureIfAborted(options, messages, {
         phase: "summary",
-        agent: resolveSummaryAgentName(options),
+        agent: options.summaryAgent,
         role: summaryRole(),
         turn: transcript.length + 1
       });
@@ -157,7 +157,7 @@ export async function runDebate(
     } catch (error) {
       failure = toDebateFailure(error, {
         phase: "summary",
-        agent: resolveSummaryAgentName(options),
+        agent: options.summaryAgent,
         role: summaryRole(),
         turn: transcript.length + 1
       }, messages);
@@ -294,7 +294,7 @@ export async function runAsk(
 
   if (options.summaryEnabled) {
     try {
-      const summaryAgentName = resolveSummaryAgentName(options);
+      const summaryAgentName = options.summaryAgent;
       const cancellation = cancellationFailureIfAborted(options, messages, {
         phase: "summary",
         agent: summaryAgentName,
@@ -313,7 +313,7 @@ export async function runAsk(
     } catch (error) {
       failure = toDebateFailure(error, {
         phase: "summary",
-        agent: resolveSummaryAgentName(options),
+        agent: options.summaryAgent,
         role: summaryRole(),
         turn: transcript.length + 1
       }, messages);
@@ -404,7 +404,7 @@ async function generateSummary(
   renderer?: DebateRenderer,
   messages: Messages = createTranslator("fr")
 ): Promise<DebateSummary> {
-  const summaryAgentName = resolveSummaryAgentName(options);
+  const summaryAgentName = options.summaryAgent;
   const summaryModel = options.summaryModel ?? modelForAgent(options, summaryAgentName);
   const summaryConfig = withRuntimeOverrides(config.agents[summaryAgentName], summaryModel, options.pullModels);
 
@@ -473,18 +473,6 @@ function resolveAskAgentNames(options: DebateOptions): string[] {
     : [options.agentA, options.agentB];
 
   return agents.filter((agent, index) => Boolean(agent) && agents.indexOf(agent) === index);
-}
-
-function resolveSummaryAgentName(options: DebateOptions): string {
-  if (options.summaryAgent) {
-    return options.summaryAgent;
-  }
-
-  if (options.mode === "ask" && options.askAgents && options.askAgents.length > 0) {
-    return options.askAgents[options.askAgents.length - 1] ?? options.agentB;
-  }
-
-  return options.agentB;
 }
 
 function toDebateFailure(

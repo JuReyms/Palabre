@@ -137,7 +137,7 @@ function renderSessionHeader(
     [messages.output.fields.mode, options.mode],
     [messages.output.fields.agents, formatAgentsForHeader(options)],
     [messages.output.fields.autoPullOllama, options.pullModels ? messages.output.yes : messages.output.no],
-    [messages.output.fields.summary, options.summaryEnabled ? formatSummaryAgent(options) : messages.output.disabled],
+    [messages.output.fields.summary, options.summaryEnabled ? options.summaryAgent : messages.output.disabled],
     [
       options.mode === "ask" ? messages.output.fields.requestedResponses : messages.output.fields.requestedTurns,
       String(options.mode === "ask" ? options.askAgents?.length ?? debateMessages.length : options.turns)
@@ -170,18 +170,6 @@ function renderFileList(files: DebateOptions["files"], messages: Messages): stri
   }
 
   return files.map((file) => `- \`${file.path}\` (${file.sizeBytes} ${messages.output.fileSizeUnit})`);
-}
-
-function formatSummaryAgent(options: DebateOptions): string {
-  if (options.summaryAgent) {
-    return options.summaryAgent;
-  }
-
-  if (options.mode === "ask" && options.askAgents && options.askAgents.length > 0) {
-    return options.askAgents[options.askAgents.length - 1] ?? options.agentB;
-  }
-
-  return options.agentB;
 }
 
 function formatAgentsForHeader(options: DebateOptions): string {
