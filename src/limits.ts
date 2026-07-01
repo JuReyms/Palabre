@@ -2,6 +2,7 @@ import { createTranslator } from "./i18n.js";
 import type { Messages } from "./messages/index.js";
 
 export const DEFAULT_TURNS = 4;
+export const MAX_ASK_AGENTS = 4;
 export const MAX_TURNS = 20;
 
 /** Convertit `value` en nombre et valide la plage [1, `MAX_TURNS`]. Lève une erreur si invalide. */

@@ -1,11 +1,12 @@
 import { createAgent } from "./adapters/index.js";
 import { AdapterError } from "./errors.js";
 import { createTranslator } from "./i18n.js";
+import { MAX_ASK_AGENTS } from "./limits.js";
 import { OllamaUrlError } from "./ollamaUrl.js";
 import type { Messages } from "./messages/index.js";
 import type { AgentConfig, AgentRole, PalabreConfig, DebateFailure, DebateMessage, DebateOptions, DebateRenderer, DebateSummary } from "./types.js";
 
-export const MAX_ASK_AGENTS = 4;
+export { MAX_ASK_AGENTS } from "./limits.js";
 
 /** Résultat retourné par `runDebate`. `stopReason` est défini uniquement en cas d'arrêt anticipé. */
 export interface DebateResult {

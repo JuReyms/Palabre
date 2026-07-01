@@ -17,9 +17,8 @@ import { createTuiRenderer, promptTuiAgentsWizard, promptTuiConfigCommand, promp
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { formatUpdateInstructions, getUpdateInfo } from "./update.js";
-import { createSessionContext } from "./session.js";
 import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
-import { askAgentSeedsForMode, clearTuiRunOverrides } from "./tuiState.js";
+import { clearTuiRunOverrides } from "./tuiState.js";
 import { DEFAULT_OLLAMA_BASE_URL, normalizeOllamaBaseUrl, OllamaUrlError, resolveOllamaBaseUrl } from "./ollamaUrl.js";
 import { compareSemver, getLatestPackageVersion, getPackageVersion } from "./version.js";
 import type { AgentRole, DebateOptions, PalabreConfig, PalabreInterface, PalabreMode } from "./types.js";
@@ -31,6 +30,7 @@ import { runInitCommand } from "./commands/init.js";
 import { runPresetsCommand } from "./commands/presets.js";
 import { runUpdateCommand } from "./commands/update.js";
 import { optionalString } from "./commands/shared.js";
+import { resolveRunOptions } from "./runOptions.js";
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
 async function main(): Promise<void> {
@@ -286,37 +286,15 @@ async function main(): Promise<void> {
       throw new Error(messages.common.topicRequired);
     }
 
-    const mode = parseModeFlag(optionalString(parsed.flags.mode) ?? config.defaults?.mode, messages);
-    const explicitAskAgents = getStringListFlag(parsed.flags.agents);
-    const askAgentSeeds = askAgentSeedsForMode(mode, explicitAskAgents, config.defaults?.askAgents);
-    const agentA = resolveAgentName("agent A", parsed.flags["agent-a"], preset?.agentA, askAgentSeeds[0] ?? config.defaults?.agentA, messages);
-    const agentB = resolveAgentName("agent B", parsed.flags["agent-b"], preset?.agentB, askAgentSeeds[1] ?? askAgentSeeds[0] ?? config.defaults?.agentB, messages);
-    const askAgents = mode === "ask" ? resolveAskAgents(explicitAskAgents, config.defaults?.askAgents, [agentA, agentB], messages) : undefined;
-
-    const options: DebateOptions = {
-      mode,
+    const options = resolveRunOptions({
+      flags: parsed.flags,
+      config,
       language,
       topic,
-      agentA,
-      agentB,
-      askAgents,
-      turns: parseTurnsFlag(parsed.flags.turns, config.defaults?.turns ?? DEFAULT_TURNS, "--turns", messages),
-      session: createSessionContext(),
       files: context.files,
-      modelA: optionalString(parsed.flags["model-a"]),
-      modelB: optionalString(parsed.flags["model-b"]),
-      ollamaUrl: optionalString(parsed.flags["ollama-url"])
-        ? normalizeOllamaBaseUrl(optionalString(parsed.flags["ollama-url"])!)
-        : undefined,
-      pullModels: Boolean(parsed.flags["pull-models"]),
-      summaryAgent: resolveSummaryAgentOption(parsed.flags["summary-agent"], config.defaults, mode, askAgents, agentB),
-      summaryModel: optionalString(parsed.flags["summary-model"]),
-      summaryEnabled: !parsed.flags["no-summary"],
-      earlyStopOnAgreement: !parsed.flags["no-early-stop"],
-      plainOutput: Boolean(parsed.flags.plain || parsed.flags.terminal),
+      preset,
       signal: debateAbortSignal()
-    };
-
+    }, messages);
     if (parsed.flags["show-prompt"]) {
       printContextWarnings(context.warnings, messages);
       printPromptPreview(config, options, language, messages);
@@ -349,7 +327,7 @@ async function main(): Promise<void> {
       return;
     }
 
-    tuiMode = mode;
+    tuiMode = options.mode;
     for (;;) {
       const nextInput = await promptTuiHomeTopic(tuiMode, messages, { notice: tuiNotice });
       tuiNotice = undefined;
@@ -1106,51 +1084,6 @@ function assertKnownAgent(config: Awaited<ReturnType<typeof loadConfig>>, agentN
     throw new Error(messages.common.unknownAgentForField(fieldName, agentName, Object.keys(config.agents).join(", ")));
   }
 }
-/**
- * Résout le nom d'un agent selon la priorité : flag CLI > preset > défaut config.
- * Lève une erreur si aucune source ne fournit de valeur.
- * @param label - Libellé humain utilisé dans le message d'erreur (ex. "agent A").
- * @param explicitValue - Valeur passée via flag CLI.
- * @param presetValue - Valeur issue du preset sélectionné.
- * @param defaultValue - Valeur issue des défauts de la config.
- * @returns Nom de l'agent résolu.
- */
-function resolveAgentName(
-  label: string,
-  explicitValue: string | string[] | boolean | undefined,
-  presetValue: string | undefined,
-  defaultValue: string | undefined,
-  messages: Messages
-): string {
-  const resolved = optionalString(explicitValue) ?? presetValue ?? defaultValue;
-
-  if (!resolved) {
-    throw new Error(messages.common.noAgentDefined(label));
-  }
-
-  return resolved;
-}
-
-function resolveSummaryAgentOption(
-  explicitValue: string | string[] | boolean | undefined,
-  defaults: PalabreConfig["defaults"] | undefined,
-  mode: PalabreMode,
-  askAgents: string[] | undefined,
-  agentB: string
-): string {
-  const explicit = optionalString(explicitValue);
-
-  if (explicit) {
-    return explicit;
-  }
-
-  if (mode === "ask") {
-    return defaults?.askSummaryAgent ?? defaults?.summaryAgent ?? askAgents?.at(-1) ?? agentB;
-  }
-
-  return defaults?.summaryAgent ?? agentB;
-}
-
 function parseModeFlag(value: string | undefined, messages: Messages): PalabreMode {
   if (!value) {
     return "debate";
@@ -1175,18 +1108,6 @@ function parseInterfaceFlag(value: string | undefined, messages: Messages): Pala
   throw new Error(messages.common.unknownMode(value, "tui, terminal"));
 }
 
-function resolveAskAgents(explicitAgents: string[], defaultAgents: string[] | undefined, fallbackAgents: string[], messages: Messages): string[] {
-  const selected = explicitAgents.length > 0
-    ? explicitAgents
-    : defaultAgents && defaultAgents.length > 0 ? defaultAgents : fallbackAgents;
-  const unique = selected.filter((agent, index) => agent.trim() && selected.indexOf(agent) === index);
-
-  if (unique.length > MAX_ASK_AGENTS) {
-    throw new Error(messages.common.tooManyAskAgents(MAX_ASK_AGENTS));
-  }
-
-  return unique;
-}
 /**
  * Affiche un aperçu du prompt du premier tour sans appeler aucun agent (flag `--show-prompt`).
  * @param config - Config chargée.
