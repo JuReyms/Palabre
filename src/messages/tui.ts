@@ -2,6 +2,7 @@ import type { Language, PalabreMode } from "../types.js";
 
 export interface TuiMessages {
   tagline: string;
+  updateAvailable(current: string, latest: string): string;
   modeLabel(mode: PalabreMode): string;
   modeValue(mode: PalabreMode): string;
   noValue: string;
@@ -27,6 +28,7 @@ export interface TuiMessages {
   helpNew: string;
   helpRetry: string;
   helpHistory: string;
+  helpUpdate: string;
   helpHelp: string;
   helpQuit: string;
   helpFallback: string;
@@ -122,6 +124,7 @@ export interface TuiMessages {
 export const tuiMessages: Record<Language, TuiMessages> = {
   fr: {
     tagline: "Orchestrez des conversations entre agents IA",
+    updateAvailable: (current, latest) => `Mise a jour disponible: ${current} -> ${latest}. Utilise /update.`,
     modeLabel: (mode) => mode === "ask" ? "Ask" : "Debat",
     modeValue: (mode) => mode === "ask" ? "Ask" : "Debat",
     noValue: "non definis",
@@ -147,6 +150,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     helpNew: "assistant guide",
     helpRetry: "relancer la derniere session",
     helpHistory: "voir les derniers exports",
+    helpUpdate: "voir les informations de mise a jour",
     helpHelp: "aide",
     helpQuit: "quitter",
     helpFallback: "Tape un sujet ou une commande.",
@@ -240,6 +244,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
   },
   en: {
     tagline: "Orchestrate conversations between AI agents",
+    updateAvailable: (current, latest) => `Update available: ${current} -> ${latest}. Use /update.`,
     modeLabel: (mode) => mode === "ask" ? "Ask" : "Debate",
     modeValue: (mode) => mode === "ask" ? "Ask" : "Debate",
     noValue: "not set",
@@ -265,6 +270,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     helpNew: "guided assistant",
     helpRetry: "rerun the last session",
     helpHistory: "show recent exports",
+    helpUpdate: "show update information",
     helpHelp: "help",
     helpQuit: "quit",
     helpFallback: "Type a topic or a command.",

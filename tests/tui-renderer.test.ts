@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createTuiRenderer, parseTuiOllamaUrlCommand, renderTuiAgentsHelp, renderTuiComposer, renderTuiConfig, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiRolesHelp } from "../src/renderers/tui.js";
+import { createTuiRenderer, parseTuiOllamaUrlCommand, renderTuiAgentsHelp, renderTuiComposer, renderTuiConfig, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiRolesHelp, renderTuiUpdate } from "../src/renderers/tui.js";
 import { createTranslator } from "../src/i18n.js";
 import type { DebateFailure, DebateOptions } from "../src/types.js";
 
@@ -131,7 +131,7 @@ test("renderTuiHome renders a Palabre launch screen", () => {
         claude: { type: "cli", command: "claude", role: "critic" },
         opencode: { type: "cli", command: "opencode", role: "implementer" }
       }
-    }, "palabre.config.json", createTranslator("en"), { version: "0.7.0" });
+    }, "palabre.config.json", createTranslator("en"), { version: "0.7.0", latestVersion: "0.8.0" });
   } finally {
     process.stdout.write = originalWrite;
   }
@@ -140,6 +140,7 @@ test("renderTuiHome renders a Palabre launch screen", () => {
   assert.match(text, /___/);
   assert.match(text, /Orchestrate conversations between AI agents/);
   assert.match(text, /v0\.7\.0/);
+  assert.match(text, /Update available: 0\.7\.0 -> 0\.8\.0\. Use \/update\./);
   assert.match(text, /Folder /);
   assert.match(text, /https:\/\/palab\.re\/en/);
   assert.match(text, /\/help/);
@@ -182,10 +183,30 @@ test("renderTuiHelp renders slash commands", () => {
   assert.match(text, /\/retry/);
   assert.match(text, /relancer la derniere session/);
   assert.match(text, /\/history/);
+  assert.match(text, /\/update/);
   assert.match(text, /\/home/);
   assert.match(text, /\/quit/);
   assert.match(text, /Tape un sujet ou une commande/);
   assert.doesNotMatch(text, /plusieurs reponses independantes/);
+});
+
+test("renderTuiUpdate renders update instructions inside the TUI", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    renderTuiUpdate("PALABRE 0.7.0\n\nRecommended update:\n  pnpm add --global palabre@latest", createTranslator("en"));
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /PALABRE 0\.7\.0/);
+  assert.match(text, /pnpm add --global palabre@latest/);
 });
 
 test("renderTuiHistory renders recent exports", () => {

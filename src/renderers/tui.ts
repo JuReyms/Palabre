@@ -17,7 +17,7 @@ export function createTuiRenderer(messages: Messages): DebateRenderer {
 }
 
 /** Affiche l'ecran d'accueil TUI lance par `palabre` sans sujet. */
-export function renderTuiHome(config: PalabreConfig, _configPath: string, messages: Messages, state: { mode?: PalabreMode; version?: string } = {}): void {
+export function renderTuiHome(config: PalabreConfig, _configPath: string, messages: Messages, state: { mode?: PalabreMode; version?: string; latestVersion?: string } = {}): void {
   if (supportsInteractiveOutput) {
     clearScreen();
   }
@@ -44,11 +44,15 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
   const summary = mode === "ask"
     ? defaults.askSummaryAgent ?? defaults.summaryAgent ?? messages.tui.lastAskAgent
     : defaults.summaryAgent ?? defaults.agentB ?? "agent B";
+  const version = state.version ?? "0.0.0";
+  const versionLines = state.latestVersion
+    ? [dim(`v${version}`), accent(messages.tui.updateAvailable(version, state.latestVersion))]
+    : [dim(`v${version}`)];
 
   const lines = [
     "",
     ...centerLogo(viewport, messages),
-    ...centerBlock([dim(`v${state.version ?? "0.0.0"}`)], viewport),
+    ...centerBlock(versionLines, viewport),
     "",
     ...centerBlock(composerCard([
       `${accent(messages.tui.modeValue(mode))} ${dim("·")} ${mode === "ask" ? askAgents : debateAgents}`,
@@ -66,6 +70,23 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
   ];
 
   process.stdout.write(lines.join("\n") + "\n");
+}
+
+/** Affiche les instructions de mise a jour sans quitter le TUI. */
+export function renderTuiUpdate(instructions: string, messages: Messages): void {
+  if (supportsInteractiveOutput) {
+    clearScreen();
+  }
+
+  const viewport = viewportWidth();
+  const width = surfaceWidth();
+  process.stdout.write([
+    "",
+    ...centerLogo(viewport, messages),
+    "",
+    ...centerBlock(card(instructions.split(/\r?\n/), width), viewport),
+    ""
+  ].join("\n"));
 }
 
 /** Affiche l'aide interne du composer TUI. */
@@ -93,6 +114,7 @@ export function renderTuiHelp(messages: Messages): void {
       row("/new", messages.tui.helpNew),
       row("/retry", messages.tui.helpRetry),
       row("/history", messages.tui.helpHistory),
+      row("/update", messages.tui.helpUpdate),
       row("/home", messages.tui.backCommand),
       row("/help", messages.tui.helpHelp),
       row("/quit", messages.tui.helpQuit),
@@ -386,6 +408,7 @@ export type TuiHomeInput =
   | { kind: "new" }
   | { kind: "retry" }
   | { kind: "history" }
+  | { kind: "update" }
   | { kind: "home" }
   | { kind: "config" }
   | { kind: "mode"; mode: PalabreMode }
@@ -494,6 +517,10 @@ export async function promptTuiHomeTopic(mode: PalabreMode = "debate", messages:
 
     if (command === "/retry") {
       return { kind: "retry" };
+    }
+
+    if (command === "/update") {
+      return { kind: "update" };
     }
 
     if (command === "/historique" || command === "/history") {

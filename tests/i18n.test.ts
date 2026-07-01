@@ -96,6 +96,8 @@ test("createTranslator returns localized presets messages", () => {
 });
 
 test("createTranslator returns localized update messages", () => {
+  assert.equal(createTranslator("fr").tui.updateAvailable("0.7.0", "0.8.0"), "Mise a jour disponible: 0.7.0 -> 0.8.0. Utilise /update.");
+  assert.equal(createTranslator("en").tui.updateAvailable("0.7.0", "0.8.0"), "Update available: 0.7.0 -> 0.8.0. Use /update.");
   assert.equal(createTranslator("fr").update.upToDate, "PALABRE est a jour.");
   assert.equal(createTranslator("en").update.upToDate, "PALABRE is up to date.");
   assert.equal(createTranslator("en").update.stepFailed("pnpm", "build", "1"), "pnpm build failed with exit code 1.");

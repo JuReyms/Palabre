@@ -14,7 +14,7 @@ import { listAgentsWithAvailability, listPresetNames, listPresetsWithAvailabilit
 import { listHistoryEntries } from "./history.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { createNdjsonRenderer } from "./renderers/ndjson.js";
-import { createTuiRenderer, promptTuiAgentsWizard, promptTuiConfigCommand, promptTuiHomeTopic, promptTuiRolesWizard, renderTuiConfig, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiRolesHelp, type TuiHomeInput } from "./renderers/tui.js";
+import { createTuiRenderer, promptTuiAgentsWizard, promptTuiConfigCommand, promptTuiHomeTopic, promptTuiRolesWizard, renderTuiConfig, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiRolesHelp, renderTuiUpdate, type TuiHomeInput } from "./renderers/tui.js";
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { applySourceUpdate, formatUpdateInstructions, getUpdateInfo } from "./update.js";
@@ -23,7 +23,7 @@ import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { askAgentSeedsForMode, clearTuiRunOverrides } from "./tuiState.js";
 import { detectedAgentNames, detectionForCommand, isRetiredAgentName } from "./agentRegistry.js";
 import { configuredOllamaTargets, DEFAULT_OLLAMA_BASE_URL, normalizeOllamaBaseUrl, OllamaUrlError, resolveOllamaBaseUrl } from "./ollamaUrl.js";
-import { getPackageVersion } from "./version.js";
+import { compareSemver, getLatestPackageVersion, getPackageVersion } from "./version.js";
 import type { CommandDetection } from "./discovery.js";
 import type { AgentConfig, AgentRole, DebateOptions, PalabreConfig, PalabreInterface, PalabreMode } from "./types.js";
 import type { Messages } from "./messages/index.js";
@@ -160,6 +160,7 @@ async function main(): Promise<void> {
   let resetTuiRunOverridesOnNextTopic = false;
   let tuiMode = config.defaults?.mode ?? "debate";
   let tuiVersion = "";
+  let tuiLatestVersion: string | undefined;
 
   const handleTuiHomeInput = async (tuiInput: TuiHomeInput): Promise<"continue" | "run" | "retry" | "quit"> => {
     if (!tuiInput) {
@@ -174,6 +175,13 @@ async function main(): Promise<void> {
 
     if (tuiInput.kind === "history") {
       renderTuiHistory(await listHistoryEntries(resolveOutputDir(config.outputDir)), messages);
+      const nextInput = await promptTuiHomeTopic(tuiMode, messages);
+      return handleTuiHomeInput(nextInput);
+    }
+
+    if (tuiInput.kind === "update") {
+      const info = await getUpdateInfo(tuiVersion);
+      renderTuiUpdate(formatUpdateInstructions(info, messages), messages);
       const nextInput = await promptTuiHomeTopic(tuiMode, messages);
       return handleTuiHomeInput(nextInput);
     }
@@ -238,16 +246,23 @@ async function main(): Promise<void> {
   };
 
   if (shouldOpenTuiHome(parsed)) {
-    const syncResult = await syncInteractiveDetectedAgents(configPath, config);
+    const [syncResult, currentVersion, latestVersion] = await Promise.all([
+      syncInteractiveDetectedAgents(configPath, config),
+      getPackageVersion(),
+      getLatestPackageVersion()
+    ]);
     if (!tuiNotice && syncResult.addedAgents.length > 0) {
       tuiNotice = messages.config.syncAdded(configPath, syncResult.addedAgents.join(", "));
     }
 
     stayInTuiAfterSession = true;
-    tuiVersion = await getPackageVersion();
+    tuiVersion = currentVersion;
+    tuiLatestVersion = latestVersion && compareSemver(currentVersion, latestVersion) < 0
+      ? latestVersion
+      : undefined;
 
     for (;;) {
-      renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion });
+      renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion });
       const tuiInput = await promptTuiHomeTopic(tuiMode, messages, { notice: tuiNotice });
       tuiNotice = undefined;
       const action = await handleTuiHomeInput(tuiInput);
@@ -372,7 +387,7 @@ async function main(): Promise<void> {
       const action = await handleTuiHomeInput(nextInput);
       if (action === "quit") return;
       if (action === "continue") {
-        renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion });
+        renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion });
         continue;
       }
       if (action === "retry") {
