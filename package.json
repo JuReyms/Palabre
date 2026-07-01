@@ -1,6 +1,6 @@
 {
   "name": "palabre",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "Orchestrateur de debat entre agents IA locaux, CLIs et Ollama.",
   "license": "MIT",
   "type": "module",
