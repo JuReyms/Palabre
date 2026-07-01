@@ -398,7 +398,7 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   const messages = createTranslator(language);
 
   if (flags["ollama-models"]) {
-    await runOllamaModelsCommand(config, Boolean(flags.json));
+    await runOllamaModelsCommand(config, Boolean(flags.json), messages);
     return;
   }
 
@@ -523,8 +523,9 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
  * Affiche l'état de l'agent Ollama local (modèle courant, disponibilité de l'API, modèles installés).
  * @param config - Config chargée.
  * @param json - Si `true`, affiche le résultat en JSON plutôt qu'en texte lisible.
+ * @param messages - Dictionnaire localisé pour la sortie texte.
  */
-async function runOllamaModelsCommand(config: PalabreConfig, json: boolean): Promise<void> {
+async function runOllamaModelsCommand(config: PalabreConfig, json: boolean, messages: Messages): Promise<void> {
   const discovery = await discoverLocalToolsForConfig(config);
   const agent = config.agents["ollama-local"];
   const currentModel = agent?.type === "ollama" ? agent.model : null;
@@ -543,9 +544,9 @@ async function runOllamaModelsCommand(config: PalabreConfig, json: boolean): Pro
     return;
   }
 
-  console.log(`ollama-local: ${currentModel ?? "(non configuré)"}`);
-  console.log(`Ollama API: ${discovery.ollama.available ? "joignable" : "indisponible"} (${discovery.ollama.baseUrl})`);
-  console.log(`Modèles installés: ${discovery.ollama.models.length > 0 ? discovery.ollama.models.join(", ") : "(aucun)"}`);
+  console.log(messages.config.ollamaModelsCurrent(currentModel));
+  console.log(messages.config.ollamaModelsApi(discovery.ollama.available, discovery.ollama.baseUrl));
+  console.log(messages.config.ollamaModelsInstalled(discovery.ollama.models));
 }
 
 /**

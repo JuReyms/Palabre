@@ -2,6 +2,7 @@
 import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
 import { formatAgentPrompt } from "../prompt.js";
+import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, OllamaAgentConfig } from "../types.js";
 import { resolveOllamaBaseUrl } from "../ollamaUrl.js";
 import type { AgentRuntimeOptions } from "./index.js";
@@ -72,17 +73,19 @@ export class OllamaAdapter implements AgentAdapter {
       throw cancelledError(this.name);
     }
 
+    const translator = createTranslator(prompt.language ?? "fr");
+    const errorMessages = translator.adapterErrors;
     const baseUrl = resolveOllamaBaseUrl({
       cliUrl: this.runtime.ollamaUrl,
       configUrl: this.config.baseUrl
     });
 
     if (this.config.validateModel !== false) {
-      await this.ensureModelAvailable(baseUrl);
+      await this.ensureModelAvailable(baseUrl, errorMessages);
     }
 
     if (this.config.unloadOtherModels !== false) {
-      await this.unloadOtherRunningModels(baseUrl);
+      await this.unloadOtherRunningModels(baseUrl, errorMessages);
     }
 
     const controller = new AbortController();
@@ -103,9 +106,7 @@ export class OllamaAdapter implements AgentAdapter {
           messages: [
             {
               role: "system",
-              content:
-                this.config.systemPrompt ??
-                createTranslator(prompt.language ?? "fr").prompt.ollamaSystemPrompt
+              content: this.config.systemPrompt ?? translator.prompt.ollamaSystemPrompt
             },
             {
               role: "user",
@@ -152,53 +153,52 @@ export class OllamaAdapter implements AgentAdapter {
    * Si absent et `autoPullModel` est faux, lève `model-unavailable` avec la liste des modèles détectés.
    * Si absent et `autoPullModel` est vrai, déclenche le pull puis re-vérifie.
    */
-  private async ensureModelAvailable(baseUrl: string): Promise<void> {
-    const available = await this.isModelAvailable(baseUrl);
+  private async ensureModelAvailable(baseUrl: string, messages: AdapterErrorMessages): Promise<void> {
+    const available = await this.isModelAvailable(baseUrl, messages);
 
     if (available) {
       return;
     }
 
     if (!this.config.autoPullModel) {
-      const models = await this.listAvailableModels(baseUrl);
+      const models = await this.listAvailableModels(baseUrl, messages);
       throw new AdapterError(
         "model-unavailable",
         this.name,
-        `Modele Ollama indisponible: ${this.config.model}. Modeles detectes: ${models.join(", ") || "aucun"}. ` +
-        "Utilise --pull-models ou autoPullModel: true pour autoriser le telechargement.",
+        messages.ollamaModelUnavailable(this.config.model, models),
         { model: this.config.model, availableModels: models }
       );
     }
 
-    process.stderr.write(`\n[ollama] Modele absent, telechargement: ${this.config.model}\n`);
-    await this.pullModel(baseUrl);
+    process.stderr.write(`\n${messages.ollamaPullProgress(this.config.model)}\n`);
+    await this.pullModel(baseUrl, messages);
 
-    if (!(await this.isModelAvailable(baseUrl))) {
-      throw new AdapterError("model-pull-failed", this.name, `Le modele Ollama ${this.config.model} reste indisponible apres telechargement.`);
+    if (!(await this.isModelAvailable(baseUrl, messages))) {
+      throw new AdapterError("model-pull-failed", this.name, messages.ollamaModelStillUnavailable(this.config.model));
     }
   }
 
-  private async isModelAvailable(baseUrl: string): Promise<boolean> {
-    const models = await this.listAvailableModels(baseUrl);
+  private async isModelAvailable(baseUrl: string, messages: AdapterErrorMessages): Promise<boolean> {
+    const models = await this.listAvailableModels(baseUrl, messages);
     return models.includes(this.config.model);
   }
 
-  private async listAvailableModels(baseUrl: string): Promise<string[]> {
+  private async listAvailableModels(baseUrl: string, messages: AdapterErrorMessages): Promise<string[]> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs ?? 120_000);
 
     try {
-      return await this.fetchAvailableModels(baseUrl, controller.signal);
+      return await this.fetchAvailableModels(baseUrl, controller.signal, messages);
     } finally {
       clearTimeout(timeout);
     }
   }
 
-  private async fetchAvailableModels(baseUrl: string, signal: AbortSignal): Promise<string[]> {
+  private async fetchAvailableModels(baseUrl: string, signal: AbortSignal, messages: AdapterErrorMessages): Promise<string[]> {
     const response = await fetch(`${baseUrl}/api/tags`, { signal });
 
     if (!response.ok) {
-      throw new AdapterError("http-error", this.name, `Ollama HTTP ${response.status} pendant la detection des modeles`, {
+      throw new AdapterError("http-error", this.name, messages.ollamaTagsHttpError(response.status), {
         status: response.status
       });
     }
@@ -210,7 +210,7 @@ export class OllamaAdapter implements AgentAdapter {
   }
 
   /** Déclenche `POST /api/pull` et attend sa fin ; timeout dédié `pullTimeoutMs` (30 min par défaut). */
-  private async pullModel(baseUrl: string): Promise<void> {
+  private async pullModel(baseUrl: string, messages: AdapterErrorMessages): Promise<void> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.pullTimeoutMs ?? 1_800_000);
 
@@ -236,29 +236,29 @@ export class OllamaAdapter implements AgentAdapter {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new AdapterError("model-pull-failed", this.name, `Echec du telechargement Ollama ${this.config.model}: ${message}`);
+      throw new AdapterError("model-pull-failed", this.name, messages.ollamaPullFailed(this.config.model, message));
     } finally {
       clearTimeout(timeout);
     }
   }
 
   /** Décharge séquentiellement, via `GET /api/ps`, tout modèle chargé autre que celui de cet agent. */
-  private async unloadOtherRunningModels(baseUrl: string): Promise<void> {
+  private async unloadOtherRunningModels(baseUrl: string, messages: AdapterErrorMessages): Promise<void> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs ?? 120_000);
 
     try {
-      await this.unloadOtherRunningModelsWithSignal(baseUrl, controller.signal);
+      await this.unloadOtherRunningModelsWithSignal(baseUrl, controller.signal, messages);
     } finally {
       clearTimeout(timeout);
     }
   }
 
-  private async unloadOtherRunningModelsWithSignal(baseUrl: string, signal: AbortSignal): Promise<void> {
+  private async unloadOtherRunningModelsWithSignal(baseUrl: string, signal: AbortSignal, messages: AdapterErrorMessages): Promise<void> {
     const response = await fetch(`${baseUrl}/api/ps`, { signal });
 
     if (!response.ok) {
-      throw new AdapterError("http-error", this.name, `Ollama HTTP ${response.status} pendant la detection des modeles charges`, {
+      throw new AdapterError("http-error", this.name, messages.ollamaPsHttpError(response.status), {
         status: response.status
       });
     }
@@ -270,13 +270,13 @@ export class OllamaAdapter implements AgentAdapter {
       .filter((modelName) => modelName !== this.config.model) ?? [];
 
     for (const model of runningModels) {
-      await unloadModel(baseUrl, model, signal);
+      await unloadModel(baseUrl, model, signal, messages);
     }
   }
 }
 
 /** Décharge un modèle Ollama en mémoire GPU/CPU via `POST /api/generate` avec `keep_alive: 0`. */
-async function unloadModel(baseUrl: string, model: string, signal: AbortSignal): Promise<void> {
+async function unloadModel(baseUrl: string, model: string, signal: AbortSignal, messages: AdapterErrorMessages): Promise<void> {
   const response = await fetch(`${baseUrl}/api/generate`, {
     method: "POST",
     headers: {
@@ -290,7 +290,7 @@ async function unloadModel(baseUrl: string, model: string, signal: AbortSignal):
   });
 
   if (!response.ok) {
-    throw new AdapterError("http-error", "ollama", `Impossible de decharger le modele Ollama ${model}: HTTP ${response.status}`, {
+    throw new AdapterError("http-error", "ollama", messages.ollamaUnloadFailed(model, response.status), {
       status: response.status,
       model
     });

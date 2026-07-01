@@ -1,7 +1,9 @@
 /** @file Adapter CLI batch minimal : spawn, injection du prompt, capture stdout, classement des erreurs connues. */
 import { spawn } from "node:child_process";
 import { AdapterError, cancelledError } from "../errors.js";
+import { createTranslator } from "../i18n.js";
 import { formatAgentPrompt } from "../prompt.js";
+import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
 import { DEFAULT_MAX_OUTPUT_BYTES, DEFAULT_TIMEOUT_MS, withModelArgs } from "./cli-shared.js";
 import { cleanTerminalOutput } from "./terminal.js";
@@ -46,6 +48,7 @@ export class CliAdapter implements AgentAdapter {
     }
 
     const renderedPrompt = formatAgentPrompt(prompt);
+    const errorMessages = createTranslator(prompt.language ?? "fr").adapterErrors;
     const promptMode = this.config.promptMode ?? "stdin";
     const baseArgs = withModelArgs(this.config.args ?? [], this.config.model, this.config.modelArg ?? "--model");
     const args = promptMode === "argument"
@@ -85,7 +88,7 @@ export class CliAdapter implements AgentAdapter {
         const content = cleanCliOutput(stdout);
 
         if (!content && !this.config.allowEmptyOutput) {
-          const knownError = createKnownCliError(this.name, undefined, stderr);
+          const knownError = createKnownCliError(this.name, undefined, stderr, errorMessages);
 
           if (knownError) {
             reject(knownError);
@@ -166,7 +169,7 @@ export class CliAdapter implements AgentAdapter {
       });
       const finishFromExitCode = (code: number | null) => {
         if (code && code !== 0) {
-          finish(createCliExitError(this.name, code, stderr));
+          finish(createCliExitError(this.name, code, stderr, errorMessages));
           return;
         }
 
@@ -246,12 +249,12 @@ function normalizeForWindowsStatus(line: string): string {
  * Construit une `AdapterError` typée depuis un exit code non nul.
  * Élève en `usage-limit` si le stderr contient un signal de quota/rate-limit connu.
  */
-function createCliExitError(adapterName: string, exitCode: number, stderr: string): AdapterError {
-  return createKnownCliError(adapterName, exitCode, stderr)
+function createCliExitError(adapterName: string, exitCode: number, stderr: string, messages: AdapterErrorMessages): AdapterError {
+  return createKnownCliError(adapterName, exitCode, stderr, messages)
     ?? new AdapterError(
       "non-zero-exit",
       adapterName,
-      `${adapterName} exited with code ${exitCode}: ${summarizeCliError(cleanCliOutput(stderr))}`,
+      `${adapterName} exited with code ${exitCode}: ${summarizeCliError(cleanCliOutput(stderr), messages)}`,
       {
         exitCode,
         stderr: cleanCliOutput(stderr)
@@ -259,7 +262,7 @@ function createCliExitError(adapterName: string, exitCode: number, stderr: strin
     );
 }
 
-function createKnownCliError(adapterName: string, exitCode: number | undefined, stderr: string): AdapterError | undefined {
+function createKnownCliError(adapterName: string, exitCode: number | undefined, stderr: string, messages: AdapterErrorMessages): AdapterError | undefined {
   const cleanedStderr = cleanCliOutput(stderr);
   const usageLimitMessage = extractUsageLimitMessage(cleanedStderr);
   const unsupportedModelMessage = extractUnsupportedModelMessage(cleanedStderr);
@@ -268,7 +271,7 @@ function createKnownCliError(adapterName: string, exitCode: number | undefined, 
     return new AdapterError(
       "usage-limit",
       adapterName,
-      `${adapterName} a atteint une limite d'utilisation: ${usageLimitMessage}`,
+      messages.usageLimit(adapterName, usageLimitMessage),
       {
         ...(exitCode === undefined ? {} : { exitCode }),
         stderr: cleanedStderr
@@ -280,7 +283,7 @@ function createKnownCliError(adapterName: string, exitCode: number | undefined, 
     return new AdapterError(
       "unsupported-model",
       adapterName,
-      `${adapterName} ne peut pas utiliser ce modèle: ${unsupportedModelMessage}`,
+      messages.unsupportedModel(adapterName, unsupportedModelMessage),
       {
         ...(exitCode === undefined ? {} : { exitCode }),
         stderr: cleanedStderr
@@ -349,11 +352,11 @@ function isUsageLimitLine(line: string): boolean {
   ].some((pattern) => normalized.includes(pattern));
 }
 
-function summarizeCliError(stderr: string): string {
+function summarizeCliError(stderr: string, messages: AdapterErrorMessages): string {
   const lines = uniqueNonEmptyLines(stderr).map(stripLogPrefix);
 
   if (lines.length === 0) {
-    return "aucun stderr capture.";
+    return messages.noStderrCaptured;
   }
 
   return clipLine(lines.slice(-8).join("\n"), 1_200);

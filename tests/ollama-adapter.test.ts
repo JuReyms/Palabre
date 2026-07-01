@@ -90,7 +90,7 @@ test("OllamaAdapter reports auto-pull progress on stderr, not stdout", async () 
     await adapter.generate(agentPrompt("fr"));
 
     assert.equal(stdoutChunks.join(""), "");
-    assert.match(stderrChunks.join(""), /telechargement: test-model/);
+    assert.match(stderrChunks.join(""), /téléchargement: test-model/);
   } finally {
     globalThis.fetch = originalFetch;
     process.stdout.write = originalStdoutWrite;

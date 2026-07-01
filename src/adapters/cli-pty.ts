@@ -2,8 +2,10 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { AdapterError, cancelledError } from "../errors.js";
+import { createTranslator } from "../i18n.js";
 import { executableExtensions } from "../exec.js";
 import { formatAgentPrompt } from "../prompt.js";
+import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliPtyAgentConfig } from "../types.js";
 import { DEFAULT_MAX_OUTPUT_BYTES, DEFAULT_TIMEOUT_MS, withModelArgs } from "./cli-shared.js";
 import { cleanTerminalOutput } from "./terminal.js";
@@ -49,6 +51,7 @@ export class CliPtyAdapter implements AgentAdapter {
     }
 
     const renderedPrompt = formatAgentPrompt(prompt);
+    const errorMessages = createTranslator(prompt.language ?? "fr").adapterErrors;
     const promptMode = this.config.promptMode ?? "stdin";
     const baseArgs = withModelArgs(this.config.args ?? [], this.config.model, this.config.modelArg ?? "--model");
     const args = promptMode === "argument"
@@ -95,7 +98,7 @@ export class CliPtyAdapter implements AgentAdapter {
         const content = cleanTerminalOutput(output);
 
         if (exitCode && exitCode !== 0) {
-          reject(createPtyExitError(this.name, exitCode, output));
+          reject(createPtyExitError(this.name, exitCode, output, errorMessages));
           return;
         }
 
@@ -213,11 +216,11 @@ function cleanupPty(term: PtyProcess): void {
 }
 
 /** Construit une `AdapterError` `non-zero-exit` à partir de la sortie brute fusionnée du PTY. */
-function createPtyExitError(adapterName: string, exitCode: number, raw: string): AdapterError {
+function createPtyExitError(adapterName: string, exitCode: number, raw: string, messages: AdapterErrorMessages): AdapterError {
   return new AdapterError(
     "non-zero-exit",
     adapterName,
-    `${adapterName} exited with code ${exitCode}: ${summarizePtyOutput(raw)}`,
+    `${adapterName} exited with code ${exitCode}: ${summarizePtyOutput(raw, messages)}`,
     {
       exitCode,
       raw
@@ -225,7 +228,7 @@ function createPtyExitError(adapterName: string, exitCode: number, raw: string):
   );
 }
 
-function summarizePtyOutput(output: string): string {
+function summarizePtyOutput(output: string, messages: AdapterErrorMessages): string {
   const cleaned = cleanTerminalOutput(output);
-  return cleaned ? cleaned.slice(-1_200) : "aucune sortie PTY capturee.";
+  return cleaned ? cleaned.slice(-1_200) : messages.noPtyOutputCaptured;
 }
