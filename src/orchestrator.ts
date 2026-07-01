@@ -9,6 +9,9 @@ import type { AgentAdapter, AgentConfig, AgentPrompt, AgentRole, PalabreConfig, 
 
 export { MAX_ASK_AGENTS } from "./limits.js";
 
+/** Rôle imposé à l'agent de synthèse, indépendant de son rôle configuré. */
+const SUMMARY_ROLE: AgentRole = "summarizer";
+
 /** Résultat retourné par `runDebate`. `stopReason` est défini uniquement en cas d'arrêt anticipé. */
 export interface DebateResult {
   options: DebateOptions;
@@ -138,6 +141,8 @@ export async function runAsk(
   renderer?: DebateRenderer,
   messages: Messages = createTranslator("fr")
 ): Promise<AskResult> {
+  // `runAsk` est appelable directement, hors du chemin CLI : on revalide la liste
+  // ask même si `resolveRunOptions` l'a déjà normalisée pour `palabre run`.
   const askAgentNames = resolveAskAgentNames(options);
 
   if (askAgentNames.length === 0) {
@@ -158,7 +163,7 @@ export async function runAsk(
     return [name, agentConfig] as const;
   });
 
-  warnIfOllamaHasNoContext(options, agentEntries.map(([name, agentConfig]) => [name, agentConfig]), renderer, messages);
+  warnIfOllamaHasNoContext(options, agentEntries, renderer, messages);
 
   renderer?.start(options, agentEntries.map(([name, agentConfig]) => ({
     name,
@@ -292,7 +297,7 @@ async function runSummaryPhase(
   const context = {
     phase: "summary" as const,
     agent: options.summaryAgent,
-    role: summaryRole(),
+    role: SUMMARY_ROLE,
     turn: transcript.length + 1
   };
 
@@ -354,7 +359,7 @@ function normalizeForAgreement(value: string): string {
  */
 function warnIfOllamaHasNoContext(
   options: DebateOptions,
-  agents: Array<[string, AgentConfig]>,
+  agents: ReadonlyArray<readonly [string, AgentConfig]>,
   renderer?: DebateRenderer,
   messages: Messages = createTranslator("fr")
 ): void {
@@ -395,7 +400,7 @@ async function generateSummary(
   }
 
   const summaryAgent = createAgent(summaryAgentName, summaryConfig, { ollamaUrl: options.ollamaUrl });
-  const role = summaryRole();
+  const role = SUMMARY_ROLE;
 
   renderer?.summaryStart(summaryAgent.name, role);
   renderer?.thinkingStart(summaryAgent.name, role);
@@ -424,10 +429,6 @@ async function generateSummary(
 
   renderer?.message(summary.content);
   return summary;
-}
-
-function summaryRole(): AgentRole {
-  return "summarizer";
 }
 
 function cancellationFailureIfAborted(

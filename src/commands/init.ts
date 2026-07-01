@@ -1,5 +1,5 @@
 /** @file Initialisation explicite de configuration globale ou locale. */
-import { configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, writeExampleConfig } from "../config.js";
+import { configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, writeConfig } from "../config.js";
 import { discoverLocalTools, type CommandDetection, type ToolDiscovery } from "../discovery.js";
 import { detectedAgentNames } from "../agentRegistry.js";
 import { createTranslator, DEFAULT_LANGUAGE, resolveLanguage } from "../i18n.js";
@@ -27,7 +27,7 @@ export async function runInitCommand(flags: CommandFlags): Promise<void> {
     configLanguage: config.language
   });
   const messages = createTranslator(config.language);
-  await writeExampleConfig(configPath, config);
+  await writeConfig(configPath, config);
   console.log(messages.init.configCreated(configPath));
   printInitDiscovery(discovery, config, messages);
 }

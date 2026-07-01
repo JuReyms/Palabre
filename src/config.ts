@@ -351,7 +351,7 @@ export function setOllamaBaseUrl(config: PalabreConfig, baseUrl: string): number
 }
 
 /** Écrit `config` sérialisé en JSON dans `configPath`. Crée le répertoire parent si nécessaire. */
-export async function writeExampleConfig(
+export async function writeConfig(
   configPath = DEFAULT_CONFIG_PATH,
   config: PalabreConfig = exampleConfig
 ): Promise<void> {

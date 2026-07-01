@@ -1,7 +1,7 @@
 /** @file Wizard interactif `palabre config` (sans sous-commande) pour éditer les defaults au clavier. */
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-import { syncDetectedAgents, writeExampleConfig } from "./config.js";
+import { syncDetectedAgents, writeConfig } from "./config.js";
 import { discoverLocalTools } from "./discovery.js";
 import { DEFAULT_TURNS, MAX_TURNS, turnsOrDefault, validateTurns } from "./limits.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
@@ -56,7 +56,7 @@ export async function runConfigWizard(configPath: string, config: PalabreConfig,
 
     if (action === "2") {
       delete config.defaults;
-      await writeExampleConfig(configPath, config);
+      await writeConfig(configPath, config);
       console.log(messages.config.wizardCleared(configPath));
       return;
     }
@@ -70,7 +70,7 @@ export async function runConfigWizard(configPath: string, config: PalabreConfig,
         return;
       }
 
-      await writeExampleConfig(configPath, config);
+      await writeConfig(configPath, config);
       console.log(messages.config.syncAdded(configPath, addedAgents.join(", ")));
       return;
     }
@@ -112,7 +112,7 @@ export async function runConfigWizard(configPath: string, config: PalabreConfig,
       delete config.defaults.summaryAgent;
     }
 
-    await writeExampleConfig(configPath, config);
+    await writeConfig(configPath, config);
     console.log(messages.config.wizardDefaultsSet(configPath, formatDefaults(config.defaults, messages)));
   } finally {
     rl.close();

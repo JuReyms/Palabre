@@ -1,5 +1,5 @@
 /** @file Contrôleur des interactions TUI qui lisent et persistent la configuration Palabre. */
-import { setOllamaBaseUrl, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeExampleConfig } from "./config.js";
+import { setOllamaBaseUrl, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeConfig } from "./config.js";
 import { discoverLocalToolsForConfig } from "./discovery.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
 import { createTranslator, DEFAULT_LANGUAGE, parseLanguage } from "./i18n.js";
@@ -51,7 +51,7 @@ export async function runTuiConfigLoop(
     if (input.kind === "mode") {
       mode = mode === "ask" ? "debate" : "ask";
       config.defaults = { ...(config.defaults ?? {}), mode };
-      await writeExampleConfig(configPath, config);
+      await writeConfig(configPath, config);
       changedRunDefaults = true;
       notice = mode === "ask" ? currentMessages.tui.askDefaultMode : currentMessages.tui.debateDefaultMode;
       continue;
@@ -59,7 +59,7 @@ export async function runTuiConfigLoop(
 
     if (input.kind === "default-mode") {
       config.defaults = { ...(config.defaults ?? {}), mode };
-      await writeExampleConfig(configPath, config);
+      await writeConfig(configPath, config);
       changedRunDefaults = true;
       notice = mode === "ask" ? currentMessages.tui.askDefaultMode : currentMessages.tui.debateDefaultMode;
       continue;
@@ -67,14 +67,14 @@ export async function runTuiConfigLoop(
 
     if (input.kind === "interface") {
       config.defaults = { ...(config.defaults ?? {}), interface: input.interfaceName };
-      await writeExampleConfig(configPath, config);
+      await writeConfig(configPath, config);
       notice = currentMessages.tui.interfaceDefault(input.interfaceName);
       continue;
     }
 
     if (input.kind === "language") {
       config.language = parseLanguage(input.language, "--language");
-      await writeExampleConfig(configPath, config);
+      await writeConfig(configPath, config);
       currentMessages = createTranslator(config.language ?? DEFAULT_LANGUAGE);
       notice = currentMessages.tui.languageUpdated(input.language);
       continue;
@@ -96,13 +96,13 @@ export async function runTuiConfigLoop(
         if (mode === "ask") {
           const agents = normalizeTuiAskAgents(config, agentsInput.agents, currentMessages);
           config.defaults = { ...(config.defaults ?? {}), askAgents: agents };
-          await writeExampleConfig(configPath, config);
+          await writeConfig(configPath, config);
           changedRunDefaults = true;
           notice = currentMessages.tui.askAgentsUpdated(agents.join(", "));
         } else {
           const [agentA, agentB] = normalizeTuiDebateAgents(config, agentsInput.agents, currentMessages);
           config.defaults = { ...(config.defaults ?? {}), agentA, agentB };
-          await writeExampleConfig(configPath, config);
+          await writeConfig(configPath, config);
           changedRunDefaults = true;
           notice = currentMessages.tui.debateAgentsUpdated(`${agentA} <-> ${agentB}`);
         }
@@ -125,7 +125,7 @@ export async function runTuiConfigLoop(
           continue;
         }
         notice = applyTuiRoles(config, mode, rolesInput.roles, currentMessages);
-        await writeExampleConfig(configPath, config);
+        await writeConfig(configPath, config);
       } catch (error) {
         notice = error instanceof Error ? error.message : String(error);
       }
@@ -141,7 +141,7 @@ export async function runTuiConfigLoop(
       try {
         validateTurns(input.turns, "--turns", currentMessages);
         config.defaults = { ...(config.defaults ?? {}), turns: input.turns };
-        await writeExampleConfig(configPath, config);
+        await writeConfig(configPath, config);
         changedRunDefaults = true;
         notice = currentMessages.tui.turnsUpdated(input.turns);
       } catch (error) {
@@ -174,7 +174,7 @@ export async function runTuiConfigLoop(
         }
 
         config.defaults = nextDefaults;
-        await writeExampleConfig(configPath, config);
+        await writeConfig(configPath, config);
         changedRunDefaults = true;
       } catch (error) {
         notice = error instanceof Error ? error.message : String(error);
@@ -239,7 +239,7 @@ async function setTuiOllamaUrl(
     : normalizeOllamaBaseUrl(value);
   const effective = resolveOllamaBaseUrl({ configUrl: normalized });
   setOllamaBaseUrl(config, normalized);
-  await writeExampleConfig(configPath, config);
+  await writeConfig(configPath, config);
 
   return messages.tui.ollamaUrlUpdated(normalized, effective);
 }
@@ -287,7 +287,7 @@ async function setTuiOllamaModel(configPath: string, config: PalabreConfig, mode
   }
 
   const result = setOllamaModel(config, trimmed);
-  await writeExampleConfig(configPath, config);
+  await writeConfig(configPath, config);
   return result
     ? messages.config.ollamaModelUpdated(configPath, result.previousModel, result.nextModel)
     : messages.config.ollamaModelNoChange(configPath, agent.model);
@@ -312,7 +312,7 @@ async function syncTuiOllamaModel(configPath: string, config: PalabreConfig, mes
     return messages.config.ollamaModelNoChange(configPath, agent.model);
   }
 
-  await writeExampleConfig(configPath, config);
+  await writeConfig(configPath, config);
   return messages.config.ollamaModelUpdated(configPath, result.previousModel, result.nextModel);
 }
 
@@ -328,7 +328,7 @@ export async function syncInteractiveDetectedAgents(configPath: string, config: 
   const result = syncDetectedAgentsDetailed(config, discovery);
 
   if (result.changed) {
-    await writeExampleConfig(configPath, config);
+    await writeConfig(configPath, config);
   }
 
   return {
@@ -390,7 +390,7 @@ export async function runTuiAgentsWizard(
     }
 
     const notice = applyTuiAgents(config, mode, agentsInput.agents, messages);
-    await writeExampleConfig(configPath, config);
+    await writeConfig(configPath, config);
     return { notice, quit: false, changedRunDefaults: true };
   } catch (error) {
     return { notice: messages.tui.agentsError(error instanceof Error ? error.message : String(error)), quit: false, changedRunDefaults: false };
@@ -425,7 +425,7 @@ export async function runTuiRolesWizard(
       return { quit: false };
     }
     const notice = applyTuiRoles(config, mode, rolesInput.roles, messages);
-    await writeExampleConfig(configPath, config);
+    await writeConfig(configPath, config);
     return { notice, quit: false };
   } catch (error) {
     return { notice: messages.tui.rolesError(error instanceof Error ? error.message : String(error)), quit: false };

@@ -5,7 +5,7 @@
  * résolution de la config/langue, boucle TUI d'accueil et lancement d'un débat ou d'une
  * requête `ask` via l'orchestrateur.
  */
-import { assertRunnableConfig, configExists, createConfigFromDiscovery, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeExampleConfig } from "./config.js";
+import { assertRunnableConfig, configExists, createConfigFromDiscovery, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeConfig } from "./config.js";
 import { loadProjectInputs } from "./context.js";
 import { discoverLocalTools, discoverLocalToolsForConfig } from "./discovery.js";
 import { runDoctor } from "./doctor.js";
@@ -111,7 +111,7 @@ async function main(): Promise<void> {
       configLanguage: config.language
     });
     const messages = createTranslator(config.language);
-    await writeExampleConfig(configPath, config);
+    await writeConfig(configPath, config);
 
     if (!shouldOpenTuiHome(parsed)) {
       console.log(messages.init.editConfigThenRerun(configPath));
@@ -139,86 +139,92 @@ async function main(): Promise<void> {
   let tuiLatestVersion: string | undefined;
 
   const handleTuiHomeInput = async (tuiInput: TuiHomeInput): Promise<"continue" | "run" | "retry" | "quit"> => {
-    if (!tuiInput) {
-      return "quit";
-    }
+    let input = tuiInput;
 
-    if (tuiInput.kind === "help") {
-      renderTuiHelp(messages);
-      const nextInput = await promptTuiHomeTopic(tuiMode, messages);
-      return handleTuiHomeInput(nextInput);
-    }
+    // Les vues informatives (/help, /history, /update) réaffichent le prompt d'accueil
+    // puis reprennent le traitement avec la nouvelle saisie, d'où la boucle.
+    for (;;) {
+      if (!input) {
+        return "quit";
+      }
 
-    if (tuiInput.kind === "history") {
-      renderTuiHistory(await listHistoryEntries(resolveOutputDir(config.outputDir)), messages);
-      const nextInput = await promptTuiHomeTopic(tuiMode, messages);
-      return handleTuiHomeInput(nextInput);
-    }
+      if (input.kind === "help") {
+        renderTuiHelp(messages);
+        input = await promptTuiHomeTopic(tuiMode, messages);
+        continue;
+      }
 
-    if (tuiInput.kind === "update") {
-      const info = await getUpdateInfo(tuiVersion);
-      renderTuiUpdate(formatUpdateInstructions(info, messages), messages);
-      const nextInput = await promptTuiHomeTopic(tuiMode, messages);
-      return handleTuiHomeInput(nextInput);
-    }
+      if (input.kind === "history") {
+        renderTuiHistory(await listHistoryEntries(resolveOutputDir(config.outputDir)), messages);
+        input = await promptTuiHomeTopic(tuiMode, messages);
+        continue;
+      }
 
-    if (tuiInput.kind === "home") {
-      return "continue";
-    }
+      if (input.kind === "update") {
+        const info = await getUpdateInfo(tuiVersion);
+        renderTuiUpdate(formatUpdateInstructions(info, messages), messages);
+        input = await promptTuiHomeTopic(tuiMode, messages);
+        continue;
+      }
 
-    if (tuiInput.kind === "roles") {
-      const result = await runTuiRolesWizard(configPath, config, messages, tuiMode, tuiInput.roles);
-      if (result.quit) return "quit";
-      tuiNotice = result.notice;
-      return "continue";
-    }
-
-    if (tuiInput.kind === "agents") {
-      const result = await runTuiAgentsWizard(configPath, config, messages, tuiMode, tuiInput.agents);
-      if (result.quit) return "quit";
-      tuiNotice = result.notice;
-      resetTuiRunOverridesOnNextTopic ||= Boolean(result.changedRunDefaults);
-      return "continue";
-    }
-
-    if (tuiInput.kind === "mode") {
-      tuiMode = tuiInput.mode;
-      return "continue";
-    }
-
-    if (tuiInput.kind === "config") {
-      const result = await runTuiConfigLoop(configPath, config, messages, tuiMode);
-      if (result.quit) return "quit";
-      tuiMode = result.mode;
-      resetTuiRunOverridesOnNextTopic ||= result.changedRunDefaults;
-      language = resolveLanguage({ explicitLanguage: optionalString(parsed.flags.language), configLanguage: config.language });
-      messages = createTranslator(language);
-      return "continue";
-    }
-
-    if (tuiInput.kind === "new") {
-      parsed.command = "new";
-      parsed.commandExplicit = true;
-      delete parsed.flags.topic;
-      return "run";
-    }
-
-    if (tuiInput.kind === "retry") {
-      if (!optionalString(parsed.flags.topic)) {
-        tuiNotice = messages.tui.retryUnavailable;
+      if (input.kind === "home") {
         return "continue";
       }
-      return "retry";
-    }
 
-    parsed.command = "";
-    parsed.commandExplicit = false;
-    if (hasCompletedTuiSession || resetTuiRunOverridesOnNextTopic) {
-      clearTuiRunOverrides(parsed.flags);
-      resetTuiRunOverridesOnNextTopic = false;
+      if (input.kind === "roles") {
+        const result = await runTuiRolesWizard(configPath, config, messages, tuiMode, input.roles);
+        if (result.quit) return "quit";
+        tuiNotice = result.notice;
+        return "continue";
+      }
+
+      if (input.kind === "agents") {
+        const result = await runTuiAgentsWizard(configPath, config, messages, tuiMode, input.agents);
+        if (result.quit) return "quit";
+        tuiNotice = result.notice;
+        resetTuiRunOverridesOnNextTopic ||= Boolean(result.changedRunDefaults);
+        return "continue";
+      }
+
+      if (input.kind === "mode") {
+        tuiMode = input.mode;
+        return "continue";
+      }
+
+      if (input.kind === "config") {
+        const result = await runTuiConfigLoop(configPath, config, messages, tuiMode);
+        if (result.quit) return "quit";
+        tuiMode = result.mode;
+        resetTuiRunOverridesOnNextTopic ||= result.changedRunDefaults;
+        language = resolveLanguage({ explicitLanguage: optionalString(parsed.flags.language), configLanguage: config.language });
+        messages = createTranslator(language);
+        return "continue";
+      }
+
+      if (input.kind === "new") {
+        parsed.command = "new";
+        parsed.commandExplicit = true;
+        delete parsed.flags.topic;
+        return "run";
+      }
+
+      if (input.kind === "retry") {
+        if (!optionalString(parsed.flags.topic)) {
+          tuiNotice = messages.tui.retryUnavailable;
+          return "continue";
+        }
+        return "retry";
+      }
+
+      parsed.command = "";
+      parsed.commandExplicit = false;
+      if (hasCompletedTuiSession || resetTuiRunOverridesOnNextTopic) {
+        clearTuiRunOverrides(parsed.flags);
+        resetTuiRunOverridesOnNextTopic = false;
+      }
+      parsed.flags.topic = input.topic;
+      return "run";
     }
-    parsed.flags.topic = tuiInput.topic;
-    return "run";
   };
 
   if (shouldOpenTuiHome(parsed)) {
@@ -379,7 +385,7 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
 
   if (!(await configExists(configPath))) {
     const messages = createTranslator(resolveLanguage({ explicitLanguage }));
-    await writeExampleConfig(configPath);
+    await writeConfig(configPath);
     console.log(messages.config.createdForConfig(configPath));
     return;
   }
@@ -416,7 +422,7 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
       return;
     }
 
-    await writeExampleConfig(configPath, config);
+    await writeConfig(configPath, config);
     console.log(result.addedAgents.length > 0
       ? messages.config.syncAdded(configPath, result.addedAgents.join(", "))
       : messages.config.syncRefreshed(configPath));
@@ -498,14 +504,14 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
       config.defaults = nextDefaults;
     }
 
-    await writeExampleConfig(configPath, config);
+    await writeConfig(configPath, config);
     console.log(messages.config.updated(configPath, formatDefaultsForMessage(config.defaults ?? {}, messages), config.language ?? DEFAULT_LANGUAGE));
     return;
   }
 
   if (flags["clear-defaults"]) {
     delete config.defaults;
-    await writeExampleConfig(configPath, config);
+    await writeConfig(configPath, config);
     console.log(messages.config.cleared(configPath));
     return;
   }
@@ -572,7 +578,7 @@ async function runSetOllamaModelCommand(
   }
 
   const result = setOllamaModel(config, trimmed);
-  await writeExampleConfig(configPath, config);
+  await writeConfig(configPath, config);
   console.log(result
     ? messages.config.ollamaModelUpdated(configPath, result.previousModel, result.nextModel)
     : messages.config.ollamaModelNoChange(configPath, agent.model));
@@ -606,7 +612,7 @@ async function runSyncOllamaModelCommand(
     return;
   }
 
-  await writeExampleConfig(configPath, config);
+  await writeConfig(configPath, config);
   console.log(messages.config.ollamaModelUpdated(configPath, result.previousModel, result.nextModel));
 }
 /**
@@ -640,7 +646,7 @@ function formatDefaultsForMessage(defaults: NonNullable<PalabreConfig["defaults"
  * @param agents - Noms d'agents bruts, éventuellement en doublon.
  * @throws Si la liste dépasse `MAX_ASK_AGENTS` ou référence un agent inconnu de la config.
  */
-function normalizeAskAgentsForConfig(config: Awaited<ReturnType<typeof loadConfig>>, agents: string[], messages: Messages): string[] {
+function normalizeAskAgentsForConfig(config: PalabreConfig, agents: string[], messages: Messages): string[] {
   const unique = agents
     .map((agent) => agent.trim())
     .filter((agent, index, list) => agent && list.indexOf(agent) === index);
@@ -661,7 +667,7 @@ function normalizeAskAgentsForConfig(config: Awaited<ReturnType<typeof loadConfi
  * @param agentName - Nom de l'agent à vérifier.
  * @param fieldName - Nom du champ (utilisé dans le message d'erreur).
  */
-function assertKnownAgent(config: Awaited<ReturnType<typeof loadConfig>>, agentName: string, fieldName: string, messages: Messages): void {
+function assertKnownAgent(config: PalabreConfig, agentName: string, fieldName: string, messages: Messages): void {
   if (!config.agents[agentName]) {
     throw new Error(messages.common.unknownAgentForField(fieldName, agentName, Object.keys(config.agents).join(", ")));
   }
@@ -671,7 +677,7 @@ function assertKnownAgent(config: Awaited<ReturnType<typeof loadConfig>>, agentN
  * @param config - Config chargée.
  * @param options - Options du débat résolues.
  */
-function printPromptPreview(config: Awaited<ReturnType<typeof loadConfig>>, options: DebateOptions, language: string, messages: Messages): void {
+function printPromptPreview(config: PalabreConfig, options: DebateOptions, language: string, messages: Messages): void {
   const previewAgent = options.mode === "ask" ? options.askAgents?.[0] ?? options.agentA : options.agentA;
   const peerName = options.mode === "ask" ? "independent-agents" : options.agentB;
   const agentConfig = config.agents[previewAgent];

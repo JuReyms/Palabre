@@ -36,6 +36,8 @@ export interface BaseAgentConfig {
  *
  * `idleTimeoutMs` est optionnel : certains modèles restent silencieux longtemps avant de répondre.
  * Sur Windows, `shell: true` peut être nécessaire pour les wrappers npm shimés.
+ * `maxOutputBytes` plafonne le cumul stdout + stderr : ce budget protège la mémoire du
+ * process Palabre (les deux flux sont bufferisés), pas seulement la taille de la réponse.
  */
 export interface CliAgentConfig extends BaseAgentConfig {
   type: "cli";
