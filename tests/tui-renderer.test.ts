@@ -366,7 +366,7 @@ test("renderTuiConfig keeps the Palabre brand header", () => {
   assert.match(text, /Available commands/);
   assert.match(text, /Ollama model/);
   assert.match(text, /llama3\.2:3b/);
-  assert.match(text, /Configured Ollama address/);
+  assert.match(text, /Ollama address/);
   assert.match(text, /Effective Ollama address/);
   assert.match(text, /http:\/\/localhost:11434/);
   assert.match(text, /http:\/\/gpu-box:11434/);
