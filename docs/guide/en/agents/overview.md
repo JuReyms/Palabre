@@ -26,6 +26,7 @@ Ollama does not read your files directly. To give it context, use `--files` or `
 
 ```bash
 palabre agents
+palabre agents --json
 ```
 
 If an installed CLI does not appear in the configuration:

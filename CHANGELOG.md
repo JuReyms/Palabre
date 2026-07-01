@@ -4,6 +4,16 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-07-01
+
+<!-- social: A cleaner CLI architecture with centralized summary resolution and stronger regression coverage. -->
+
+### Changed
+
+- Le point d'entrée CLI délègue maintenant les commandes leaf, la résolution des options de session et le contrôleur TUI à des modules dédiés, sans modifier les contrats publics.
+- L'agent de synthèse est résolu une seule fois à la frontière CLI puis transmis comme option obligatoire aux renderers et à l'orchestrateur.
+- La résolution des options de débat et du mode Ask dispose désormais de tests directs couvrant les priorités entre flags, presets et defaults.
+
 ## [0.9.0] - 2026-07-01
 
 <!-- social: Remote Ollama support, agent availability for integrations, and smoother TUI update and configuration flows. -->

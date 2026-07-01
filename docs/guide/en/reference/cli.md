@@ -76,6 +76,7 @@ These commands are available from the TUI home screen or from `/config` dependin
 
 | Command | Description |
 |---------|-------------|
+| `palabre agents --json` | Lists configured agents, their role, type, and availability as JSON v1. |
 | `palabre presets --json` | Lists presets and their local availability. |
 | `palabre history --json` | Lists recent Markdown exports as JSON v1. |
 | `palabre config --ollama-models --json` | Returns local Ollama state as JSON v1 for integrations. |

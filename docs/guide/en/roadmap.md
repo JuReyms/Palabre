@@ -26,7 +26,7 @@ The main features are available:
 - local export history with `palabre history`, `palabre history --json`, and `/history` in the TUI;
 - partial export preserved if an agent fails during the debate or final summary;
 - diagnostics with `palabre doctor`;
-- machine-readable output with `palabre presets --json`, `palabre context scan --json`, and the NDJSON renderer;
+- machine-readable output with `palabre agents --json`, `palabre presets --json`, `palabre context scan --json`, and the NDJSON renderer;
 - structured errors for integrations, with an NDJSON versioning policy;
 - a more robust CLI parser for boolean flags such as `--terminal`, `--json`, or `--no-summary`;
 - stricter runtime contracts: non-zero CLI exits are rejected, Ollama pull progress stays off NDJSON stdout, and missing `--context` paths are reported as warnings;

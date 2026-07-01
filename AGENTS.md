@@ -53,7 +53,10 @@ pnpm start -- -v
 ## Structure
 
 ```text
-src/index.ts              CLI entrypoint
+src/index.ts              CLI entrypoint et dispatch principal
+src/commands/             Commandes leaf extraites (agents, context, history, init, presets, update)
+src/runOptions.ts         Resolution centralisee des options completes d'une session
+src/tuiController.ts      Controleur des flows de configuration TUI
 src/args.ts               Parseur d'arguments CLI (table d'arite des flags)
 src/new.ts                Assistant interactif `palabre new`
 src/config.ts             Chargement, generation et validation de config

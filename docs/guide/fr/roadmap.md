@@ -26,7 +26,7 @@ Les fonctionnalités principales sont disponibles :
 - historique local des exports avec `palabre history`, `palabre history --json` et `/history` dans la TUI ;
 - export partiel conservé si un agent plante pendant le débat ou la synthèse ;
 - diagnostic avec `palabre doctor` ;
-- sortie machine-readable avec `palabre presets --json`, `palabre context scan --json` et le renderer NDJSON ;
+- sortie machine-readable avec `palabre agents --json`, `palabre presets --json`, `palabre context scan --json` et le renderer NDJSON ;
 - erreurs structurées pour les intégrations, avec une politique de versioning NDJSON ;
 - parser CLI plus robuste pour les flags booléens comme `--terminal`, `--json` ou `--no-summary` ;
 - contrats runtime plus stricts : les exits CLI non nuls sont rejetés, la progression de pull Ollama reste hors stdout NDJSON, et les chemins `--context` manquants deviennent des warnings ;

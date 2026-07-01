@@ -70,6 +70,7 @@ PALABRE does not list models: they change often and depend on each CLI or user a
 
 PALABRE exposes versioned JSON outputs for external clients:
 
+- `palabre agents --json` to read configured agents and CLI-owned availability;
 - `palabre presets --json` to read available agent pairs;
 - `palabre context scan --json` to preview the context `--context` would retain;
 - `--renderer ndjson` or `--json` to follow a debate event by event.
@@ -178,6 +179,7 @@ PALABRE ne liste pas les modèles : ils changent souvent et dépendent de chaque
 
 PALABRE expose des sorties JSON versionnées pour les clients externes :
 
+- `palabre agents --json` pour lire les agents configurés et leur disponibilité calculée par le CLI ;
 - `palabre presets --json` pour lire les paires d'agents disponibles ;
 - `palabre context scan --json` pour prévisualiser le contexte que `--context` retiendrait ;
 - `--renderer ndjson` ou `--json` pour suivre un débat événement par événement.

@@ -26,6 +26,7 @@ Ollama ne lit pas vos fichiers directement. Pour lui donner du contexte, utilise
 
 ```bash
 palabre agents
+palabre agents --json
 ```
 
 Si une CLI installée n'apparaît pas dans la configuration :

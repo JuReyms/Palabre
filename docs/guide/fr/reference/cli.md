@@ -76,6 +76,7 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 
 | Commande | Description |
 |----------|-------------|
+| `palabre agents --json` | Liste les agents configurés, leur rôle, leur type et leur disponibilité au format JSON v1. |
 | `palabre presets --json` | Liste les presets et leur disponibilité locale. |
 | `palabre history --json` | Liste les derniers exports Markdown au format JSON v1. |
 | `palabre config --ollama-models --json` | Renvoie l'état Ollama local au format JSON v1 pour les intégrations. |
