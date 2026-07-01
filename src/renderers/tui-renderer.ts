@@ -1,0 +1,285 @@
+/**
+ * @file Renderer TUI des événements de débat/ask : en-tête de session, statut
+ * "agent en cours" avec spinner, messages encadrés à la couleur de l'agent,
+ * synthèse structurée et panneau de fin avec liens vers l'export.
+ */
+import path from "node:path";
+import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateStartAgentInfo, PalabreMode } from "../types.js";
+import type { Messages } from "../messages/index.js";
+import {
+  accent,
+  agentColor,
+  agentLabel,
+  bold,
+  card,
+  centerBlock,
+  centerLogo,
+  clearScreen,
+  codes,
+  compactFileName,
+  compactPath,
+  dim,
+  panel,
+  row,
+  supportsColor,
+  supportsInteractiveOutput,
+  surfacePadding,
+  surfaceWidth,
+  terminalLink,
+  textSurface,
+  underlineFor,
+  viewportWidth,
+  wrapLine
+} from "./tui-theme.js";
+
+/** Cree le premier renderer TUI leger, sans dependance UI externe. */
+export function createTuiRenderer(messages: Messages): DebateRenderer {
+  return new TuiRenderer(messages, supportsColor, supportsInteractiveOutput);
+}
+
+/**
+ * Renderer TUI V0.
+ *
+ * Il ne tente pas encore de faire du scrolling controle ou des panes interactives :
+ * il fournit un tableau de bord plein terminal, un statut d'agent en cours et des
+ * sections lisibles tout en conservant la sortie complete dans le flux terminal.
+ */
+class TuiRenderer implements DebateRenderer {
+  private spinner?: ReturnType<typeof setInterval>;
+  private spinnerFrame = 0;
+  private currentSection: "debate" | "ask" | "summary" = "debate";
+  private currentAgent?: string;
+  private readonly frames = ["-", "\\", "|", "/"];
+
+  constructor(
+    private readonly messages: Messages,
+    private readonly color: boolean,
+    private readonly interactive: boolean
+  ) {}
+
+  start(options: DebateOptions, agents: DebateStartAgentInfo[] = []): void {
+    if (this.interactive) {
+      clearScreen();
+    }
+
+    process.stdout.write(this.renderSessionHeader(options, agents).join("\n") + "\n");
+  }
+
+  notice(message: string): void {
+    const viewport = viewportWidth();
+    const width = this.width();
+    process.stdout.write(`\n${centerBlock(card([
+      `${this.c("green", this.messages.renderers.infoPrefix)} ${message}`
+    ], width), viewport).join("\n")}\n`);
+  }
+
+  warning(message: string): void {
+    process.stderr.write(`${this.c("yellow", this.messages.renderers.warningPrefix)} ${message}\n`);
+  }
+
+  turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void {
+    this.currentSection = "debate";
+    this.currentAgent = agent;
+    this.promptBlock(`${agentLabel(agent)} (${role}) - ${this.messages.renderers.turn(turn, totalTurns)}`, agent);
+  }
+
+  askResponseStart(response: number, totalResponses: number, agent: string, role: AgentRole): void {
+    this.currentSection = "ask";
+    this.currentAgent = agent;
+    this.promptBlock(`${agentLabel(agent)} (${role}) - ${this.messages.tui.askResponse(response, totalResponses)}`, agent);
+  }
+
+  thinkingStart(agent: string, role: AgentRole): void {
+    this.thinkingEnd();
+    const text = this.messages.renderers.thinking(agent, role);
+
+    if (!this.interactive) {
+      process.stdout.write(`${text}...\n`);
+      return;
+    }
+
+    process.stdout.write("\u001b[?25l");
+    const render = () => {
+      const frame = this.frames[this.spinnerFrame % this.frames.length];
+      this.spinnerFrame += 1;
+      process.stdout.write(`\r\u001b[2K${surfacePadding()}${agentColor(agent, frame)} ${text}...`);
+    };
+
+    render();
+    this.spinner = setInterval(render, 120);
+  }
+
+  thinkingEnd(): void {
+    if (this.spinner) {
+      clearInterval(this.spinner);
+      this.spinner = undefined;
+    }
+
+    if (this.interactive) {
+      process.stdout.write("\r\u001b[2K\u001b[?25h");
+    }
+  }
+
+  message(content: string): void {
+    const trimmed = content.trim();
+    process.stdout.write(`${this.formatMessage(this.currentSection === "summary" ? this.formatSummary(trimmed) : trimmed)}\n`);
+  }
+
+  askResponseMessage(content: string): void {
+    this.message(content);
+  }
+
+  summaryStart(agent: string, role: AgentRole): void {
+    this.currentSection = "summary";
+    this.currentAgent = agent;
+    this.promptBlock(`${this.messages.renderers.summaryTitle} - ${agent} (${role})`, agent);
+  }
+
+  error(failure: DebateFailure): void {
+    this.thinkingEnd();
+    const viewport = viewportWidth();
+    const width = this.width();
+    process.stderr.write(`\n${centerBlock(card([
+      this.c("red", this.messages.common.errorPrefix),
+      `${formatFailureLocation(failure, this.messages)}: ${failure.message}`
+    ], width), viewport).join("\n")}\n`);
+  }
+
+  done(outputPath: string): void {
+    this.thinkingEnd();
+    const viewport = viewportWidth();
+    const width = this.width();
+    const folderPath = path.dirname(outputPath);
+    const fileName = path.basename(outputPath);
+    process.stdout.write(`\n${centerBlock(panel([
+      bold(this.messages.tui.sessionDone),
+      "",
+      row(this.messages.tui.historyFile, terminalLink(outputPath, compactFileName(fileName, width - 24))),
+      row(this.messages.tui.folder, terminalLink(folderPath, compactPath(folderPath, width - 24))),
+      "",
+      dim(this.messages.tui.sessionHistoryHint)
+    ], width), viewport).join("\n")}\n\n`);
+  }
+
+  private renderSessionHeader(options: DebateOptions, agents: DebateStartAgentInfo[]): string[] {
+    const viewport = viewportWidth();
+    const width = this.width();
+    const mode = messagesModeLabel(this.messages, options.mode).toUpperCase();
+    const main = panel([
+      accent(mode),
+      this.messages.renderers.subject(options.topic),
+      this.messages.renderers.agents(formatAgents(options, agents)),
+      formatSessionProgress(options, this.messages),
+      this.messages.renderers.context(formatContext(options, this.messages))
+    ], width);
+
+    return [
+      ...centerLogo(viewport, this.messages),
+      "",
+      ...centerBlock(main, viewport),
+      ""
+    ];
+  }
+
+  private promptBlock(title: string, agent?: string): void {
+    const viewport = viewportWidth();
+    const width = this.width();
+    const underline = underlineFor(title, width, agent);
+    process.stdout.write(`\n${centerBlock(card([bold(title), underline], width), viewport).join("\n")}\n`);
+  }
+
+  private formatMessage(content: string): string {
+    const width = this.width();
+    const contentWidth = Math.max(24, width - 4);
+    const body = content
+      .split(/\r?\n/)
+      .flatMap((line) => line ? wrapLine(line, contentWidth) : [""]);
+    return `\n${centerBlock(textSurface(body, width, this.currentAgent), viewportWidth()).join("\n")}\n`;
+  }
+
+  private formatSummary(content: string): string {
+    return content
+      .split(/\r?\n/)
+      .map((line) => {
+        const heading = line.match(/^###\s+(.+)$/);
+        if (!heading) {
+          return line;
+        }
+
+        return [
+          "",
+          this.c("magenta", heading[1] ?? line),
+          this.dim("-".repeat(Math.min(48, this.width())))
+        ].join("\n");
+      })
+      .join("\n")
+      .trimStart();
+  }
+
+  private width(): number {
+    return surfaceWidth();
+  }
+
+  private c(color: keyof typeof codes, value: string): string {
+    if (!this.color) return value;
+    return `${codes[color]}${value}${codes.reset}`;
+  }
+
+  private dim(value: string): string {
+    if (!this.color) return value;
+    return `${codes.dim}${value}${codes.reset}`;
+  }
+}
+
+function formatAgents(options: DebateOptions, agents: DebateStartAgentInfo[]): string {
+  if (options.mode === "ask") {
+    return agents.length > 0
+      ? agents.map(formatAgent).join(", ")
+      : (options.askAgents ?? [options.agentA, options.agentB]).join(", ");
+  }
+
+  if (agents.length >= 2) {
+    return `${formatAgent(agents[0])} <-> ${formatAgent(agents[1])}`;
+  }
+
+  return `${options.agentA} <-> ${options.agentB}`;
+}
+
+function formatAgent(agent: DebateStartAgentInfo | undefined): string {
+  return agent ? `${agentLabel(agent.name)} (${agent.role})` : "?";
+}
+
+function formatSummary(options: DebateOptions, messages: Messages): string {
+  if (!options.summaryEnabled) {
+    return messages.renderers.disabled;
+  }
+
+  return options.summaryAgent;
+}
+
+function formatResponseCount(options: DebateOptions): number {
+  return options.mode === "ask" ? options.askAgents?.length ?? 2 : options.turns;
+}
+
+function formatSessionProgress(options: DebateOptions, messages: Messages): string {
+  return `${messages.tui.historyCount(options.mode)}: ${formatResponseCount(options)} | ${messages.tui.summary}: ${formatSummary(options, messages)}`;
+}
+
+function formatContext(options: DebateOptions, messages: Messages): string {
+  return options.files.length === 0
+    ? messages.renderers.noInjectedFiles
+    : messages.renderers.injectedFiles(options.files.length);
+}
+
+function formatFailureLocation(failure: DebateFailure, messages: Messages): string {
+  if (failure.phase === "summary") {
+    return messages.renderers.summaryTitle;
+  }
+
+  const turn = failure.turn === undefined ? "" : `, ${messages.tui.turnLabel(failure.turn)}`;
+  return `${failure.agent ?? "?"} (${failure.role ?? "?"}${turn})`;
+}
+
+function messagesModeLabel(messages: Messages, mode: PalabreMode): string {
+  return messages.tui.modeValue(mode);
+}
