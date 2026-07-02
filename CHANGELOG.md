@@ -4,6 +4,22 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-07-02
+
+<!-- social: Smoother TUI navigation, a clearer guided setup, and useful next actions after every session. -->
+
+### Changed
+
+- L'assistant `/new` adopte le design du TUI avec un en-tête, des indications plus lisibles et un choix de mode encadré.
+- Le logo de l'accueil utilise un violet légèrement plus sombre.
+- Le panneau de fin de session présente désormais `/retry`, `/new`, `/history`, `/config`, `/help` et la commande permettant de basculer vers l'autre mode.
+- Les guides d'installation documentent npm, pnpm, Yarn et Bun, ainsi que l'absence d'installation officielle via `pip` ou `curl`.
+
+### Fixed
+
+- Un premier `Ctrl+C` depuis `/help`, `/history`, `/update` ou le composer revient à l'accueil ; un second `Ctrl+C` rapide ferme toujours la TUI.
+- L'annulation de `/new` depuis la TUI revient à l'accueil au lieu de fermer Palabre.
+
 ## [0.10.0] - 2026-07-02
 
 <!-- social: A redesigned TUI, inline context from the composer, localized adapter errors, and safer Antigravity quota detection. -->
