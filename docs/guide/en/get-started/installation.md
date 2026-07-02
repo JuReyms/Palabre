@@ -14,11 +14,23 @@ Two or more agents are recommended: debates need a pair, and Ask mode is most us
 
 ## Install Palabre
 
-From npm:
+Palabre is published as a Node.js package on npm. Install it globally with your preferred package manager:
 
 ```bash
-npm install -g palabre
+# npm
+npm install --global palabre
+
+# pnpm
+pnpm add --global palabre
+
+# Yarn
+yarn global add palabre
+
+# Bun
+bun add --global palabre
 ```
+
+Palabre is not a Python package, so `pip` cannot install it. There is no official `curl` installer either; do not use an undocumented `curl ... | sh` command.
 
 Then verify that the command is available:
 

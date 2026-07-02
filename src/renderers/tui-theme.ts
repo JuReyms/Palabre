@@ -427,7 +427,7 @@ export const codes = {
   reset: "\u001b[0m",
   bright: "\u001b[1m",
   dim: "\u001b[2m",
-  logoViolet: "\u001b[38;2;167;139;250m",
+  logoViolet: "\u001b[38;2;139;105;218m",
   violet: "\u001b[38;5;141m",
   cyan: "\u001b[36m",
   gray: "\u001b[38;5;244m",

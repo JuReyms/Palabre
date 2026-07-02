@@ -30,6 +30,9 @@ Requirements: Node.js 20 or newer, and at least two already installed/authentica
 
 ```bash
 npm install -g palabre
+# or: pnpm add --global palabre
+# or: yarn global add palabre
+# or: bun add --global palabre
 palabre --version
 palabre --help
 ```
@@ -139,6 +142,9 @@ Prérequis : Node.js 20 ou plus, et au moins deux agents déjà installés/authe
 
 ```bash
 npm install -g palabre
+# ou : pnpm add --global palabre
+# ou : yarn global add palabre
+# ou : bun add --global palabre
 palabre --version
 palabre --help
 ```

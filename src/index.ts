@@ -274,6 +274,23 @@ async function main(): Promise<void> {
       const selection = await runNewWizard(config, messages);
 
       if (!selection) {
+        if (stayInTuiAfterSession) {
+          tuiNotice = messages.new.cancelled;
+          parsed.command = "";
+          parsed.commandExplicit = false;
+          for (;;) {
+            renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion });
+            const nextInput = await promptTuiHomeTopic(tuiMode, messages, { notice: tuiNotice });
+            tuiNotice = undefined;
+            const action = await handleTuiHomeInput(nextInput);
+            if (action === "quit") return;
+            if (action === "continue" || action === "retry") continue;
+            parsed.flags.mode = tuiMode;
+            parsed.flags.renderer = "tui";
+            break;
+          }
+          continue;
+        }
         console.log(messages.new.cancelled);
         return;
       }

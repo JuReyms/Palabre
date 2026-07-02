@@ -37,6 +37,11 @@ export type TuiHomeInput =
   | { kind: "roles"; roles: string[] }
   | undefined;
 
+/** Traduit une interruption du composer : premier Ctrl+C = accueil, second = fermeture. */
+export function tuiHomeInterruptInput(kind: "back" | "quit"): TuiHomeInput {
+  return kind === "back" ? { kind: "home" } : undefined;
+}
+
 /** Résultat de `promptTuiConfigCommand` : commande `/config` reconnue, ou `unknown` avec un message d'erreur. */
 export type TuiConfigInput =
   | { kind: "back" }
@@ -163,7 +168,7 @@ export async function promptTuiHomeTopic(mode: PalabreMode = "debate", messages:
   try {
     const result = await questionWithInterrupt(rl, tuiPrompt(mode, messages.tui.subject, messages, options.notice));
     if (result.kind !== "answer") {
-      return undefined;
+      return tuiHomeInterruptInput(result.kind);
     }
     const answer = result.value;
     const value = answer.trim();

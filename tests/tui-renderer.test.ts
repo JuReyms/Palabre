@@ -40,10 +40,33 @@ test("TuiRenderer renders a lightweight terminal dashboard", () => {
   assert.match(text, /Folder: C:\\repo/);
   assert.match(text, /Exported file\s+out\.debate\.md/);
   assert.match(text, /Export folder\s+\./);
-  assert.match(text, /Find your exports again with \/history\./);
+  assert.match(text, /\/retry\s+rerun the last session/);
+  assert.match(text, /\/new\s+guided assistant/);
+  assert.match(text, /\/ask\s+change mode/);
+  assert.match(text, /\/history\s+show recent exports/);
+  assert.match(text, /\/config\s+settings/);
+  assert.match(text, /\/help\s+help/);
   assert.equal(text.match(/out\.debate\.md/g)?.length, 1);
 });
 
+test("TuiRenderer offers the opposite mode after an Ask session", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    const renderer = createTuiRenderer(createTranslator("fr"));
+    renderer.start({ ...baseOptions(), mode: "ask" });
+    renderer.done("out.ask.md");
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  assert.match(output.join(""), /\/debat\s+changer de mode/);
+});
 test("TuiRenderer keeps session header user-facing", () => {
   const output: string[] = [];
   const originalWrite = process.stdout.write;

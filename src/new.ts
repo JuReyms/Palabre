@@ -7,6 +7,9 @@ import { findPresetNameForPair } from "./presets.js";
 import { MAX_TURNS, turnsOrDefault, validateTurns } from "./limits.js";
 import type { AgentConfig, PalabreConfig, PalabreMode } from "./types.js";
 import type { Messages } from "./messages/index.js";
+import { accent, bold, brandHeader, card, clearScreen, dim, padBlock, supportsInteractiveOutput, surfaceWidth } from "./renderers/tui-theme.js";
+
+const interruptedAnswer = "\u0000palabre-interrupted";
 
 /**
  * Paramètres collectés par le wizard `palabre new`.
@@ -58,10 +61,7 @@ export async function runNewWizard(config: PalabreConfig, messages: Messages): P
   const rl = await createQuestioner();
 
   try {
-    console.log(messages.new.title);
-    console.log(messages.new.quitHint);
-    console.log(messages.new.defaultHint);
-    console.log("");
+    renderWizardIntro(messages);
 
     const mode = await askMode(rl, config.defaults?.mode ?? "debate", messages);
     if (!mode) return undefined;
@@ -231,11 +231,20 @@ async function askMode(
   ];
   const fallback = choices.find((choice) => choice.value === defaultMode)?.value ?? "debate";
 
-  console.log(messages.new.mode);
-  choices.forEach((choice, index) => {
-    const marker = choice.value === fallback ? "(*)" : "   ";
-    console.log(`  ${index + 1}) ${marker} ${choice.label}`);
-  });
+  if (supportsInteractiveOutput) {
+    const lines = choices.map((choice, index) => {
+      const marker = choice.value === fallback ? accent("(*)") : "   ";
+      return `${bold(`${index + 1})`)} ${marker} ${choice.label}`;
+    });
+    console.log(padBlock(card(lines, surfaceWidth(), messages.new.mode)).join("\n"));
+    console.log("");
+  } else {
+    console.log(messages.new.mode);
+    choices.forEach((choice, index) => {
+      const marker = choice.value === fallback ? "(*)" : "   ";
+      console.log(`  ${index + 1}) ${marker} ${choice.label}`);
+    });
+  }
 
   while (true) {
     const answer = await rl.question(`${messages.new.mode} [${fallback}]: `);
@@ -258,7 +267,31 @@ async function askMode(
 
 async function createQuestioner(): Promise<Questioner> {
   if (input.isTTY) {
-    return createInterface({ input, output });
+    const rl = createInterface({ input, output });
+    return {
+      question(prompt: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+          let settled = false;
+          const cleanup = () => rl.off("SIGINT", onSigint);
+          const settle = (value: string) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            resolve(value);
+          };
+          const onSigint = () => settle(interruptedAnswer);
+          rl.once("SIGINT", onSigint);
+          rl.question(prompt).then(settle, (error) => {
+            if (settled) return;
+            cleanup();
+            reject(error);
+          });
+        });
+      },
+      close(): void {
+        rl.close();
+      }
+    };
   }
 
   const lines = await readPipedLines();
@@ -481,7 +514,27 @@ function uniqueNames(names: string[]): string[] {
 }
 
 function isQuit(value: string): boolean {
-  return ["q", "quit", "exit"].includes(value.toLowerCase());
+  return value === interruptedAnswer || ["q", "quit", "exit"].includes(value.toLowerCase());
+}
+
+function renderWizardIntro(messages: Messages): void {
+  if (!supportsInteractiveOutput) {
+    console.log(messages.new.title);
+    console.log(messages.new.quitHint);
+    console.log(messages.new.defaultHint);
+    console.log("");
+    return;
+  }
+
+  clearScreen();
+  console.log("");
+  console.log(padBlock([brandHeader(messages.new.title)]).join("\n"));
+  console.log("");
+  console.log(padBlock([
+    dim(messages.new.quitHint),
+    dim(messages.new.defaultHint)
+  ]).join("\n"));
+  console.log("");
 }
 
 function printCommandPreview(selection: Partial<NewCommandSelection> & Pick<NewCommandSelection, "agentA" | "agentB" | "topic">, messages: Messages): void {

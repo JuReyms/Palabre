@@ -51,6 +51,7 @@ class TuiRenderer implements DebateRenderer {
   private spinnerFrame = 0;
   private currentSection: "debate" | "ask" | "summary" = "debate";
   private currentAgent?: string;
+  private sessionMode: PalabreMode = "debate";
   /** Titre du tour en attente, rendu en tête du prochain bloc `message`. */
   private pendingHeader?: string;
 
@@ -61,6 +62,7 @@ class TuiRenderer implements DebateRenderer {
   ) {}
 
   start(options: DebateOptions, agents: DebateStartAgentInfo[] = []): void {
+    this.sessionMode = options.mode;
     if (this.interactive) {
       clearScreen();
     }
@@ -154,13 +156,15 @@ class TuiRenderer implements DebateRenderer {
     const width = this.width();
     const folderPath = path.dirname(outputPath);
     const fileName = path.basename(outputPath);
+    const modeCommand = this.sessionMode === "ask" ? "/debat" : "/ask";
     process.stdout.write(`\n${padBlock(panel([
       `${success(glyphs().check)} ${bold(this.messages.tui.sessionDone)}`,
       "",
       row(this.messages.tui.exportedFile, terminalLink(outputPath, compactFileName(fileName, width - 24))),
       row(this.messages.tui.exportedFolder, terminalLink(folderPath, compactPath(folderPath, width - 24))),
       "",
-      dim(this.messages.tui.sessionHistoryHint)
+      `${accent("/retry")} ${dim(this.messages.tui.helpRetry)}   ${accent("/new")} ${dim(this.messages.tui.helpNew)}   ${accent(modeCommand)} ${dim(this.messages.tui.changeMode)}`,
+      `${accent("/history")} ${dim(this.messages.tui.helpHistory)}   ${accent("/config")} ${dim(this.messages.tui.helpConfig)}   ${accent("/help")} ${dim(this.messages.tui.helpHelp)}`
     ], width)).join("\n")}\n\n`);
   }
 

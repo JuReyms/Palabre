@@ -14,11 +14,23 @@ Deux agents ou plus sont recommandés : un débat a besoin d'une paire, et le mo
 
 ## Installer Palabre
 
-Depuis npm :
+Palabre est publié comme package Node.js sur npm. Installez-le globalement avec le gestionnaire de paquets de votre choix :
 
 ```bash
-npm install -g palabre
+# npm
+npm install --global palabre
+
+# pnpm
+pnpm add --global palabre
+
+# Yarn
+yarn global add palabre
+
+# Bun
+bun add --global palabre
 ```
+
+Palabre n'est pas un package Python : `pip` ne peut pas l'installer. Il n'existe pas non plus d'installateur officiel via `curl` ; n'utilisez pas de commande `curl ... | sh` non documentée.
 
 Vérifiez ensuite que la commande est disponible :
 
