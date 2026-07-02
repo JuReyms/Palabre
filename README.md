@@ -113,7 +113,7 @@ palabre --version
 
 Useful commands: `pnpm check`, `pnpm test`, `pnpm build`.
 
-Before publishing, `pnpm smoke:real-presets -- --keep-going` runs real debates for the available priority presets to validate the full agent → NDJSON → export flow. This smoke test calls real AI CLIs and may consume quota, so it is not part of `pnpm test`.
+Before publishing, `pnpm smoke:real-presets -- --mode both --keep-going` runs real Debate and Ask sessions for the 10 active priority CLI pairs to validate the full agent → NDJSON → summary → export flow. This smoke test calls real AI CLIs and may consume quota, so it is not part of `pnpm test`.
 
 Public roadmap: [docs/guide/fr/roadmap.md](./docs/guide/fr/roadmap.md). Changes: [CHANGELOG.md](./CHANGELOG.md). Agent/contributor guide: [AGENTS.md](./AGENTS.md).
 
@@ -225,7 +225,7 @@ palabre --version
 
 Commandes utiles : `pnpm check`, `pnpm test`, `pnpm build`.
 
-Avant une publication, `pnpm smoke:real-presets -- --keep-going` lance des débats réels sur les presets prioritaires disponibles afin de vérifier le flux complet agent → NDJSON → export. Ce smoke test appelle de vraies CLIs IA et peut consommer des quotas ; il n'est donc pas lancé par `pnpm test`.
+Avant une publication, `pnpm smoke:real-presets -- --mode both --keep-going` lance des sessions Debate et Ask réelles sur les 10 paires CLI prioritaires actives afin de vérifier le flux complet agent → NDJSON → synthèse → export. Ce smoke test appelle de vraies CLIs IA et peut consommer des quotas ; il n'est donc pas lancé par `pnpm test`.
 
 Roadmap publique : [docs/guide/fr/roadmap.md](./docs/guide/fr/roadmap.md). Changements : [CHANGELOG.md](./CHANGELOG.md). Guide agents/contributeurs : [AGENTS.md](./AGENTS.md).
 

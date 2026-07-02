@@ -652,15 +652,17 @@ pnpm build
 Avant de publier une version CLI ou extension, lancer en plus le smoke test reel des presets depuis le repo CLI apres `pnpm build` :
 
 ```bash
-pnpm smoke:real-presets -- --keep-going
+pnpm smoke:real-presets -- --mode both --keep-going
 ```
 
-Ce script compile `scripts/smoke_real_presets.ts`, lit `palabre presets --json`, lance les presets prioritaires disponibles avec de vrais agents, puis verifie le contrat NDJSON, l'export `.debate.md`, les messages agents non vides et l'absence de bruit connu comme les sorties `taskkill` Windows. Il est volontairement hors `pnpm test`, car il peut consommer des quotas Codex/Claude/Antigravity/OpenCode/Mistral Vibe et depend de l'authentification locale.
+Ce script compile `scripts/smoke_real_presets.ts`, lit `palabre presets --json`, lance les 10 paires CLI prioritaires actives avec de vrais agents, puis verifie les contrats NDJSON `debate` et `ask`, les syntheses, les exports `.debate.md` / `.ask.md`, les messages agents non vides et l'absence de bruit connu comme les sorties `taskkill` Windows. Il est volontairement hors `pnpm test`, car il peut consommer des quotas Codex/Claude/Antigravity/OpenCode/Mistral Vibe et depend de l'authentification locale.
 
 Options utiles :
 
 - `--include-ollama` : inclut les presets Ollama disponibles.
-- `--all-available` : teste toutes les paires disponibles en premiere direction seulement.
+- `--mode <debate|ask|both>` : choisit les modes reels a tester ; utiliser `both` avant une publication.
+- `--all-available` : teste toutes les paires disponibles en premiere direction seulement ; ajouter `--all-directions` pour tester aussi les variantes inversees.
+- `--no-summary` : economise du quota quand la synthese n'est pas dans le perimetre du smoke.
 - `--turns <n>` et `--topic <texte>` : ajustent la duree et le sujet du debat de smoke.
 
 Quand un changement touche l'adapter CLI, lancer `pnpm test`. Ces tests compilent `src/` et `tests/` via `tsconfig.test.json` dans `.tmp/test-dist`, puis utilisent `node:test` avec des CLIs mockees. Garder les tests automatises sous `tests/` et completer par un smoke test manuel avec une vraie CLI seulement quand le comportement depend d'un outil externe.
