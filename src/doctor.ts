@@ -288,6 +288,10 @@ function inspectAgentShape(name: string, agent: AgentConfig, lines: DiagnosticLi
   if (agent.timeoutMs !== undefined && (!Number.isFinite(agent.timeoutMs) || agent.timeoutMs <= 0)) {
     lines.push(error(t.doctor.positiveTimeout(name, "timeoutMs")));
   }
+
+  if (agent.maxOutputBytes !== undefined && (!Number.isFinite(agent.maxOutputBytes) || agent.maxOutputBytes <= 0)) {
+    lines.push(error(t.doctor.positiveTimeout(name, "maxOutputBytes")));
+  }
 }
 
 function isValidOllamaBaseUrl(value: string): boolean {

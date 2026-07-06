@@ -6,6 +6,7 @@ import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, OllamaAgentConfig } from "../types.js";
 import { resolveOllamaBaseUrl } from "../ollamaUrl.js";
 import type { AgentRuntimeOptions } from "./index.js";
+import { DEFAULT_MAX_OUTPUT_BYTES } from "./cli-shared.js";
 import { cleanTerminalOutput } from "./terminal.js";
 
 interface OllamaChatResponse {
@@ -121,7 +122,7 @@ export class OllamaAdapter implements AgentAdapter {
         signal: controller.signal
       });
 
-      const data = (await response.json()) as OllamaChatResponse;
+      const data = await readBoundedJson<OllamaChatResponse>(response, this.maxOutputBytes(), this.name);
 
       if (!response.ok || data.error) {
         throw new AdapterError("http-error", this.name, safeRemoteText(data.error, `Ollama HTTP ${response.status}`), {
@@ -204,7 +205,7 @@ export class OllamaAdapter implements AgentAdapter {
       });
     }
 
-    const data = (await response.json()) as OllamaTagsResponse;
+    const data = await readBoundedJson<OllamaTagsResponse>(response, this.maxOutputBytes(), this.name);
     return data.models
       ?.map((model) => model.name ?? model.model)
       .filter((modelName): modelName is string => typeof modelName === "string" && modelName.length > 0)
@@ -230,7 +231,7 @@ export class OllamaAdapter implements AgentAdapter {
         signal: controller.signal
       });
 
-      const data = (await response.json()) as OllamaPullResponse;
+      const data = await readBoundedJson<OllamaPullResponse>(response, this.maxOutputBytes(), this.name);
 
       if (!response.ok || data.error) {
         throw new AdapterError("model-pull-failed", this.name, safeRemoteText(data.error, `Ollama HTTP ${response.status}`), {
@@ -266,7 +267,7 @@ export class OllamaAdapter implements AgentAdapter {
       });
     }
 
-    const data = (await response.json()) as OllamaRunningModelsResponse;
+    const data = await readBoundedJson<OllamaRunningModelsResponse>(response, this.maxOutputBytes(), this.name);
     const runningModels = data.models
       ?.map((model) => model.name ?? model.model)
       .filter((modelName): modelName is string => typeof modelName === "string" && modelName.length > 0)
@@ -278,11 +279,67 @@ export class OllamaAdapter implements AgentAdapter {
       await unloadModel(baseUrl, model, signal, messages);
     }
   }
+
+  private maxOutputBytes(): number {
+    return this.config.maxOutputBytes !== undefined
+      && Number.isFinite(this.config.maxOutputBytes)
+      && this.config.maxOutputBytes > 0
+      ? this.config.maxOutputBytes
+      : DEFAULT_MAX_OUTPUT_BYTES;
+  }
 }
 
 function safeRemoteText(value: unknown, fallback: string): string {
   const cleaned = cleanTerminalOutput(typeof value === "string" ? value : "");
   return cleaned || fallback;
+}
+
+/** Lit et parse un corps JSON sans permettre à un serveur HTTP de saturer la mémoire de Palabre. */
+async function readBoundedJson<T>(response: Response, maxBytes: number, agent: string): Promise<T> {
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    throw outputTooLarge(agent, maxBytes);
+  }
+
+  if (!response.body) {
+    return JSON.parse("") as T;
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+
+    totalBytes += value.byteLength;
+    if (totalBytes > maxBytes) {
+      await reader.cancel();
+      throw outputTooLarge(agent, maxBytes);
+    }
+    chunks.push(value);
+  }
+
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return JSON.parse(new TextDecoder().decode(bytes)) as T;
+}
+
+function outputTooLarge(agent: string, maxOutputBytes: number): AdapterError {
+  return new AdapterError(
+    "output-too-large",
+    agent,
+    `${agent} received more than ${maxOutputBytes} bytes from Ollama`,
+    { maxOutputBytes }
+  );
 }
 
 /** Décharge un modèle Ollama en mémoire GPU/CPU via `POST /api/generate` avec `keep_alive: 0`. */

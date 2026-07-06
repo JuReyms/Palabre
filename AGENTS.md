@@ -369,6 +369,7 @@ Options Ollama supportees :
 - `pullTimeoutMs` : timeout dedie au telechargement, par defaut 30 minutes.
 - `unloadOtherModels` : detecte les modeles charges via `GET /api/ps` et decharge les autres modeles avec `POST /api/generate` + `keep_alive: 0`.
 - `keepAlive` : transmis a Ollama sous forme `keep_alive`.
+- `maxOutputBytes` : plafonne chaque corps HTTP bufferise, 50 Mio par defaut, comme les adapters CLI/PTY.
 
 
 L'adresse effective du serveur Ollama est resolue dans cet ordre :

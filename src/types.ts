@@ -69,6 +69,8 @@ export interface OllamaAgentConfig extends BaseAgentConfig {
   pullTimeoutMs?: number;
   unloadOtherModels?: boolean;
   timeoutMs?: number;
+  /** Plafonne chaque corps de réponse HTTP bufferisé par l'adapter. */
+  maxOutputBytes?: number;
 }
 
 /** Union discriminée par `type`. Utilisez `config.type` pour narrower vers l'adapter correspondant. */

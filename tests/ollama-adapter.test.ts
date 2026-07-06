@@ -230,6 +230,36 @@ test("OllamaAdapter rejects malformed remote content without crashing", async ()
   }
 });
 
+test("OllamaAdapter rejects HTTP response bodies above maxOutputBytes", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    message: { content: "response that exceeds the configured budget" }
+  }), {
+    status: 200,
+    headers: { "content-type": "application/json" }
+  })) as typeof fetch;
+
+  try {
+    const adapter = new OllamaAdapter("ollama-local", {
+      type: "ollama",
+      model: "test-model",
+      role: "critic",
+      validateModel: false,
+      unloadOtherModels: false,
+      maxOutputBytes: 16
+    });
+
+    await assert.rejects(
+      adapter.generate(agentPrompt("en")),
+      (error) => error instanceof AdapterError
+        && error.kind === "output-too-large"
+        && error.details?.maxOutputBytes === 16
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 function agentPrompt(language: AgentPrompt["language"]): AgentPrompt {
   return {
     language,
