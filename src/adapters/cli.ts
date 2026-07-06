@@ -1,7 +1,10 @@
 /** @file Adapter CLI batch minimal : spawn, injection du prompt, capture stdout, classement des erreurs connues. */
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
+import { executableExtensions } from "../exec.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
@@ -50,16 +53,24 @@ export class CliAdapter implements AgentAdapter {
     const renderedPrompt = formatAgentPrompt(prompt);
     const errorMessages = createTranslator(prompt.language ?? "fr").adapterErrors;
     const promptMode = this.config.promptMode ?? "stdin";
+    const spawnSafety = resolveWindowsSpawnSafety(
+      this.config.command,
+      this.config.shell ?? false,
+      promptMode,
+      this.config.model,
+      this.name,
+      errorMessages
+    );
     const baseArgs = withModelArgs(this.config.args ?? [], this.config.model, this.config.modelArg ?? "--model");
     const args = promptMode === "argument"
       ? [...baseArgs, renderedPrompt]
       : baseArgs;
 
     return new Promise<AgentResponse>((resolve, reject) => {
-      const spawnCommand = shellCommandForSpawn(this.config.command, args, this.config.shell ?? false);
+      const spawnCommand = shellCommandForSpawn(spawnSafety.command, args, spawnSafety.shell);
       const child = spawn(spawnCommand.command, spawnCommand.args, {
         stdio: ["pipe", "pipe", "pipe"],
-        shell: this.config.shell ?? false
+        shell: spawnSafety.shell
       });
 
       let stdout = "";
@@ -184,6 +195,77 @@ export class CliAdapter implements AgentAdapter {
       child.stdin.end();
     });
   }
+}
+
+/**
+ * Évite que des valeurs runtime non fiables (prompt, transcript, modèle) soient reparsées par
+ * `cmd.exe`. Un exécutable Windows natif peut toujours être lancé directement ; les wrappers
+ * shell ne sont sûrs qu'avec le prompt sur stdin et un identifiant de modèle sans métacaractère.
+ */
+function resolveWindowsSpawnSafety(
+  command: string,
+  shell: boolean,
+  promptMode: "stdin" | "argument",
+  model: string | undefined,
+  adapterName: string,
+  messages: AdapterErrorMessages
+): { command: string; shell: boolean } {
+  if (process.platform !== "win32" || !shell) {
+    return { command, shell };
+  }
+
+  const nativeCommand = resolveNativeWindowsExecutable(command);
+  if (nativeCommand) {
+    return { command: nativeCommand, shell: false };
+  }
+
+  if (promptMode === "argument") {
+    throw new AdapterError(
+      "spawn-failed",
+      adapterName,
+      messages.unsafeWindowsShellPrompt(adapterName),
+      { command, promptMode }
+    );
+  }
+
+  if (model && /[&|<>()^%!"\r\n]/.test(model)) {
+    throw new AdapterError(
+      "spawn-failed",
+      adapterName,
+      messages.unsafeWindowsShellModel(adapterName),
+      { command, model }
+    );
+  }
+
+  return { command, shell: true };
+}
+
+/** Résout seulement les exécutables natifs que `spawn` peut lancer sans `cmd.exe`. */
+function resolveNativeWindowsExecutable(command: string): string | undefined {
+  const extension = path.extname(command).toLowerCase();
+  if (extension) {
+    return extension === ".exe" || extension === ".com" ? command : undefined;
+  }
+
+  if (path.isAbsolute(command) || command.includes("\\") || command.includes("/")) {
+    return undefined;
+  }
+
+  for (const directory of (process.env.PATH ?? "").split(path.delimiter)) {
+    const trimmed = directory.trim();
+    if (!trimmed) continue;
+
+    for (const candidateExtension of executableExtensions(command)) {
+      const candidate = path.join(trimmed, `${command}${candidateExtension}`);
+      if (existsSync(candidate)) {
+        return candidateExtension === ".exe" || candidateExtension === ".com"
+          ? candidate
+          : undefined;
+      }
+    }
+  }
+
+  return undefined;
 }
 
 /** Retire les séquences ANSI et les espaces en tête/fin. */

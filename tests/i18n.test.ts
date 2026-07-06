@@ -23,6 +23,8 @@ test("resolveLanguage applies CLI, env, config, fallback precedence", () => {
 
 test("createTranslator returns localized doctor messages", () => {
   assert.equal(createTranslator("en").adapterErrors.hint("command-not-found"), "Check that the CLI is installed, authenticated, and available in PATH.");
+  assert.match(createTranslator("fr").adapterErrors.unsafeWindowsShellPrompt("vibe"), /wrapper shell Windows/);
+  assert.match(createTranslator("en").adapterErrors.unsafeWindowsShellModel("codex"), /model identifier/);
   assert.equal(createTranslator("fr").doctor.cliVersion("0.6.5"), "Version CLI: 0.6.5");
   assert.equal(createTranslator("en").doctor.cliVersion("0.6.5"), "CLI version: 0.6.5");
   assert.equal(createTranslator("fr").doctor.updateCurrent("0.6.5"), "Mise à jour: CLI à jour (0.6.5).");

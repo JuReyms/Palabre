@@ -7,6 +7,10 @@ export interface AdapterErrorMessages {
   usageLimit(adapterName: string, detail: string): string;
   /** Message `unsupported-model` : modèle refusé par la CLI de l'agent. */
   unsupportedModel(adapterName: string, detail: string): string;
+  /** Refus de transmettre un prompt non fiable via un wrapper shell Windows. */
+  unsafeWindowsShellPrompt(adapterName: string): string;
+  /** Refus d'un identifiant de modèle contenant des métacaractères de shell Windows. */
+  unsafeWindowsShellModel(adapterName: string): string;
   /** Repli du résumé d'erreur CLI quand le process n'a rien écrit sur stderr. */
   noStderrCaptured: string;
   /** Repli du résumé d'erreur PTY quand le flux fusionné est vide. */
@@ -29,7 +33,7 @@ export interface AdapterErrorMessages {
 
 const frHints: Partial<Record<AdapterFailureKind, string>> = {
   "command-not-found": "Verifie que la CLI est installee, authentifiee et disponible dans le PATH.",
-  "spawn-failed": "Sur Windows, essaye le wrapper .cmd ou active \"shell\": true dans la config agent.",
+  "spawn-failed": "Sur Windows, préfère un exécutable natif. Réserve \"shell\": true aux wrappers qui lisent le prompt sur stdin.",
   timeout: "Augmente timeoutMs ou teste la commande directement dans le terminal.",
   "idle-timeout": "Desactive idleTimeoutMs pour les CLIs IA qui restent silencieuses pendant la generation.",
   "output-too-large": "Reduis le contexte, le nombre de tours ou configure maxOutputBytes pour cet agent si ce volume est attendu.",
@@ -44,7 +48,7 @@ const frHints: Partial<Record<AdapterFailureKind, string>> = {
 
 const enHints: Partial<Record<AdapterFailureKind, string>> = {
   "command-not-found": "Check that the CLI is installed, authenticated, and available in PATH.",
-  "spawn-failed": "On Windows, try the .cmd wrapper or enable \"shell\": true in the agent config.",
+  "spawn-failed": "On Windows, prefer a native executable. Use \"shell\": true only for wrappers that read the prompt from stdin.",
   timeout: "Increase timeoutMs or test the command directly in the terminal.",
   "idle-timeout": "Disable idleTimeoutMs for AI CLIs that stay silent while generating.",
   "output-too-large": "Reduce context, turn count, or configure maxOutputBytes for this agent if this volume is expected.",
@@ -63,6 +67,10 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
     hint: (kind) => frHints[kind],
     usageLimit: (adapterName, detail) => `${adapterName} a atteint une limite d'utilisation: ${detail}`,
     unsupportedModel: (adapterName, detail) => `${adapterName} ne peut pas utiliser ce modèle: ${detail}`,
+    unsafeWindowsShellPrompt: (adapterName) =>
+      `${adapterName} ne peut pas transmettre un prompt en sécurité via un wrapper shell Windows. Configure un exécutable natif ou utilise promptMode "stdin".`,
+    unsafeWindowsShellModel: (adapterName) =>
+      `${adapterName} ne peut pas transmettre cet identifiant de modèle en sécurité via un wrapper shell Windows.`,
     noStderrCaptured: "aucun stderr capturé.",
     noPtyOutputCaptured: "aucune sortie PTY capturée.",
     ollamaModelUnavailable: (model, installedModels) =>
@@ -80,6 +88,10 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
     hint: (kind) => enHints[kind],
     usageLimit: (adapterName, detail) => `${adapterName} hit a usage limit: ${detail}`,
     unsupportedModel: (adapterName, detail) => `${adapterName} cannot use this model: ${detail}`,
+    unsafeWindowsShellPrompt: (adapterName) =>
+      `${adapterName} cannot safely pass a prompt through a Windows shell wrapper. Configure a native executable or use promptMode "stdin".`,
+    unsafeWindowsShellModel: (adapterName) =>
+      `${adapterName} cannot safely pass this model identifier through a Windows shell wrapper.`,
     noStderrCaptured: "no stderr captured.",
     noPtyOutputCaptured: "no PTY output captured.",
     ollamaModelUnavailable: (model, installedModels) =>

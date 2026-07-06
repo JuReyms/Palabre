@@ -78,6 +78,49 @@ test("CliAdapter preserves an argument prompt with spaces when shell is enabled"
   assert.match(response.content, /Sujet: Sujet avec espaces/);
 });
 
+test("CliAdapter bypasses the Windows shell for native executables and preserves metacharacters", { skip: process.platform !== "win32" }, async () => {
+  const adapter = new CliAdapter("mock", cliConfig({
+    args: ["-e", "process.stdout.write(process.argv.at(-1) ?? '')"],
+    promptMode: "argument",
+    shell: true
+  }));
+
+  const response = await adapter.generate(basePrompt({ topic: "Sujet \"cité\" & littéral" }));
+
+  assert.match(response.content, /Sujet: Sujet "cité" & littéral/);
+});
+
+test("CliAdapter rejects argument prompts routed through Windows shell wrappers", { skip: process.platform !== "win32" }, async () => {
+  const adapter = new CliAdapter("mock", cliConfig({
+    command: "missing-wrapper.cmd",
+    promptMode: "argument",
+    shell: true
+  }));
+
+  await assert.rejects(
+    adapter.generate(basePrompt()),
+    (error) => error instanceof AdapterError
+      && error.kind === "spawn-failed"
+      && error.details?.promptMode === "argument"
+  );
+});
+
+test("CliAdapter rejects unsafe model identifiers routed through Windows shell wrappers", { skip: process.platform !== "win32" }, async () => {
+  const adapter = new CliAdapter("mock", cliConfig({
+    command: "missing-wrapper.cmd",
+    promptMode: "stdin",
+    shell: true,
+    model: "unsafe&value"
+  }));
+
+  await assert.rejects(
+    adapter.generate(basePrompt()),
+    (error) => error instanceof AdapterError
+      && error.kind === "spawn-failed"
+      && error.details?.model === "unsafe&value"
+  );
+});
+
 test("CliAdapter inserts model arguments before the stdin marker", async () => {
   const fakeCliPath = await writeFakeCli("print-argv", "process.stdout.write(JSON.stringify(process.argv.slice(2)));");
   const adapter = new CliAdapter("mock", cliConfig({
