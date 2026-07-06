@@ -34,7 +34,7 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
     "claude": {
       "type": "cli",
       "command": "claude.exe",
-      "args": ["--print", "--output-format", "text", "--no-session-persistence"],
+      "args": ["--print", "--output-format", "text", "--no-session-persistence", "--tools", "Read,Glob,Grep"],
       "promptMode": "stdin",
       "shell": false,
       "role": "reviewer"

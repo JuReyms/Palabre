@@ -121,7 +121,59 @@ test("syncDetectedAgentsDetailed migrates legacy Vibe plan args", () => {
   assert.equal(result.changed, true);
   assert.deepEqual(
     config.agents.vibe?.type === "cli" ? config.agents.vibe.args : undefined,
-    ["--output", "text", "--trust", "--prompt"]
+    ["--output", "text", "--trust", "--enabled-tools", "read", "--enabled-tools", "grep", "--prompt"]
+  );
+});
+
+test("syncDetectedAgentsDetailed hardens unchanged Claude and OpenCode defaults", () => {
+  const discovery = noDetectedTools();
+  discovery.claude = { available: true, command: "claude", path: "C:/bin/claude.exe" };
+  discovery.opencode = { available: true, command: "opencode", path: "C:/bin/opencode.cmd" };
+  const config = createConfigFromDiscovery(noDetectedTools());
+  const claude = config.agents.claude;
+  const opencode = config.agents.opencode;
+  if (claude?.type === "cli") {
+    claude.args = ["--print", "--output-format", "text", "--no-session-persistence"];
+  }
+  if (opencode?.type === "cli") {
+    opencode.args = ["run"];
+  }
+
+  const result = syncDetectedAgentsDetailed(config, discovery);
+
+  assert.equal(result.changed, true);
+  assert.deepEqual(
+    config.agents.claude?.type === "cli" ? config.agents.claude.args : undefined,
+    ["--print", "--output-format", "text", "--no-session-persistence", "--tools", "Read,Glob,Grep"]
+  );
+  assert.deepEqual(
+    config.agents.opencode?.type === "cli" ? config.agents.opencode.args : undefined,
+    ["run", "--pure"]
+  );
+});
+
+test("syncDetectedAgentsDetailed preserves custom Claude and OpenCode args", () => {
+  const discovery = noDetectedTools();
+  const config = createConfigFromDiscovery(noDetectedTools());
+  const claude = config.agents.claude;
+  const opencode = config.agents.opencode;
+  if (claude?.type === "cli") {
+    claude.args = ["--print", "--permission-mode", "default"];
+  }
+  if (opencode?.type === "cli") {
+    opencode.args = ["run", "--agent", "custom"];
+  }
+
+  const result = syncDetectedAgentsDetailed(config, discovery);
+
+  assert.equal(result.changed, false);
+  assert.deepEqual(
+    config.agents.claude?.type === "cli" ? config.agents.claude.args : undefined,
+    ["--print", "--permission-mode", "default"]
+  );
+  assert.deepEqual(
+    config.agents.opencode?.type === "cli" ? config.agents.opencode.args : undefined,
+    ["run", "--agent", "custom"]
   );
 });
 

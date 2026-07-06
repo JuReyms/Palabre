@@ -33,13 +33,16 @@ Palabre does not choose the Mistral Vibe model for you. Vibe uses its own defaul
 "vibe": {
   "type": "cli",
   "command": "vibe",
-  "args": ["--output", "text", "--trust", "--prompt"],
+  "args": ["--output", "text", "--trust", "--enabled-tools", "read", "--enabled-tools", "grep", "--prompt"],
   "promptMode": "argument",
   "modelArg": "--model",
   "shell": true,
   "role": "reviewer"
 }
 ```
+
+`--enabled-tools read --enabled-tools grep` disables every other tool in programmatic mode.
+`--trust` only skips the working-directory trust prompt; it does not authorize additional tools.
 
 ## Usage
 

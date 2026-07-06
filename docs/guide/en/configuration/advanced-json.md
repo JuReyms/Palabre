@@ -52,7 +52,7 @@ Most common settings can be done with `palabre config`. This page covers cases w
 "claude": {
   "type": "cli",
   "command": "claude.exe",
-  "args": ["--print", "--output-format", "text", "--no-session-persistence"],
+  "args": ["--print", "--output-format", "text", "--no-session-persistence", "--tools", "Read,Glob,Grep"],
   "promptMode": "stdin",
   "shell": false,
   "role": "reviewer"

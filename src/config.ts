@@ -16,6 +16,26 @@ export const GLOBAL_LEGACY_CONFIG_PATH = path.join(os.homedir(), CONFIG_DIR_NAME
 export const DEFAULT_OLLAMA_MODEL = "nemotron-3-nano:4b";
 export const DEFAULT_OUTPUT_DIR = ".palabre";
 
+const CLAUDE_SAFE_ARGS = [
+  "--print",
+  "--output-format",
+  "text",
+  "--no-session-persistence",
+  "--tools",
+  "Read,Glob,Grep"
+];
+const OPENCODE_SAFE_ARGS = ["run", "--pure"];
+const VIBE_SAFE_ARGS = [
+  "--output",
+  "text",
+  "--trust",
+  "--enabled-tools",
+  "read",
+  "--enabled-tools",
+  "grep",
+  "--prompt"
+];
+
 export const exampleConfig: PalabreConfig = {
   language: "fr",
   outputDir: DEFAULT_OUTPUT_DIR,
@@ -50,12 +70,7 @@ export const exampleConfig: PalabreConfig = {
     claude: {
       type: "cli",
       command: process.platform === "win32" ? "claude.exe" : "claude",
-      args: [
-        "--print",
-        "--output-format",
-        "text",
-        "--no-session-persistence"
-      ],
+      args: [...CLAUDE_SAFE_ARGS],
       promptMode: "stdin",
       shell: false,
       role: "reviewer",
@@ -77,9 +92,7 @@ export const exampleConfig: PalabreConfig = {
     opencode: {
       type: "cli",
       command: "opencode",
-      args: [
-        "run"
-      ],
+      args: [...OPENCODE_SAFE_ARGS],
       promptMode: "stdin",
       modelArg: "--model",
       shell: process.platform === "win32",
@@ -89,12 +102,7 @@ export const exampleConfig: PalabreConfig = {
     vibe: {
       type: "cli",
       command: "vibe",
-      args: [
-        "--output",
-        "text",
-        "--trust",
-        "--prompt"
-      ],
+      args: [...VIBE_SAFE_ARGS],
       promptMode: "argument",
       modelArg: "--model",
       shell: process.platform === "win32",
@@ -251,21 +259,36 @@ export function syncDetectedAgents(config: PalabreConfig, discovery: ToolDiscove
 }
 
 function migrateKnownAgentDefaults(config: PalabreConfig): void {
-  migrateVibePlanAgent(config);
+  migrateExactCliArgs(config, "claude", [[
+    "--print",
+    "--output-format",
+    "text",
+    "--no-session-persistence"
+  ]], CLAUDE_SAFE_ARGS);
+  migrateExactCliArgs(config, "opencode", [[
+    "run"
+  ]], OPENCODE_SAFE_ARGS);
+  migrateExactCliArgs(config, "vibe", [
+    ["--output", "text", "--trust", "--prompt"],
+    ["--output", "text", "--agent", "plan", "--trust", "--prompt"]
+  ], VIBE_SAFE_ARGS);
 }
 
-function migrateVibePlanAgent(config: PalabreConfig): void {
-  const agent = config.agents.vibe;
-
-  if (agent?.type !== "cli" || !isLegacyVibePlanArgs(agent.args)) {
+function migrateExactCliArgs(
+  config: PalabreConfig,
+  agentName: string,
+  previousArgs: string[][],
+  nextArgs: string[]
+): void {
+  const agent = config.agents[agentName];
+  if (agent?.type !== "cli" || !previousArgs.some((args) => sameArgs(agent.args, args))) {
     return;
   }
-
-  agent.args = ["--output", "text", "--trust", "--prompt"];
+  agent.args = [...nextArgs];
 }
 
-function isLegacyVibePlanArgs(args: CliAgentConfig["args"]): boolean {
-  return JSON.stringify(args) === JSON.stringify(["--output", "text", "--agent", "plan", "--trust", "--prompt"]);
+function sameArgs(args: CliAgentConfig["args"], expected: string[]): boolean {
+  return JSON.stringify(args) === JSON.stringify(expected);
 }
 
 /** Résultat d'un changement de modèle Ollama, utilisé pour formater une notice utilisateur. */

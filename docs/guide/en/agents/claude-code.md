@@ -43,12 +43,15 @@ Claude often works better with `claude.exe` and `shell: false`, since this binar
 "claude": {
   "type": "cli",
   "command": "claude.exe",
-  "args": ["--print", "--output-format", "text", "--no-session-persistence"],
+  "args": ["--print", "--output-format", "text", "--no-session-persistence", "--tools", "Read,Glob,Grep"],
   "promptMode": "stdin",
   "shell": false,
   "role": "reviewer"
 }
 ```
+
+Palabre's default limits Claude tools to `Read`, `Glob`, and `Grep`: the agent can inspect
+the project without changing files or running commands. Custom `args` remain unchanged.
 
 Claude often works well as `reviewer` or `summarizer`.
 

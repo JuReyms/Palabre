@@ -43,12 +43,15 @@ Palabre ne choisit pas le modèle OpenCode à votre place. OpenCode utilise son 
 "opencode": {
   "type": "cli",
   "command": "opencode",
-  "args": ["run"],
+  "args": ["run", "--pure"],
   "promptMode": "stdin",
   "shell": true,
   "role": "reviewer"
 }
 ```
+
+`--pure` empêche le chargement de plugins externes. OpenCode ne fournit pas encore, via cette
+commande, une allowlist d'outils équivalente à celles de Claude ou Vibe.
 
 ## Utilisation
 

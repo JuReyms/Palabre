@@ -34,7 +34,7 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
     "claude": {
       "type": "cli",
       "command": "claude.exe",
-      "args": ["--print", "--output-format", "text", "--no-session-persistence"],
+      "args": ["--print", "--output-format", "text", "--no-session-persistence", "--tools", "Read,Glob,Grep"],
       "promptMode": "stdin",
       "shell": false,
       "role": "reviewer"

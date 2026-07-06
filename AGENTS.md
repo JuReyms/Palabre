@@ -281,14 +281,26 @@ Pour une installation package, la commande affiche les commandes `pnpm add --glo
 `src/adapters/cli.ts` est volontairement minimal. Il sert d'abord les modes batch des CLIs :
 
 - Codex : `codex exec ... -`
-- Claude : `claude --print`
-- Mistral Vibe : `vibe --output text --trust --prompt <prompt>`
+- Claude : `claude --print --tools Read,Glob,Grep`
+- OpenCode : `opencode run --pure`
+- Mistral Vibe : `vibe --output text --trust --enabled-tools read --enabled-tools grep --prompt <prompt>`
 
 Antigravity utilise un adapter separe :
 
 - Antigravity : `agy --print <prompt>` via `cli-pty`
 
-Sur Windows, garder `"shell": true` pour les wrappers npm ou executables shimmes quand `spawn` retourne `EPERM` ou `EINVAL`. Pour Claude Code, preferer `claude.exe` avec `"shell": false`, car `stdin` est capture correctement dans ce mode.
+Sur Windows, garder `"shell": true` uniquement pour les wrappers npm qui lisent le prompt sur
+stdin. L'adapter resout et lance directement les executables natifs sans shell ; il refuse un
+prompt en argument ou un model override contenant des metacaracteres quand un wrapper shell reste
+necessaire. Pour Claude Code, preferer `claude.exe` avec `"shell": false`, car `stdin` est
+capture correctement dans ce mode.
+
+Les defaults Palabre appliquent une politique d'outils en lecture seule quand la CLI l'expose :
+Claude est limite a `Read,Glob,Grep`, Vibe a `read,grep`, et OpenCode utilise `--pure` pour
+neutraliser les plugins externes. Les fichiers de contexte et messages du transcript restent
+explicitement marques comme donnees non fiables dans les prompts. Les migrations ne remplacent
+que les tableaux `args` exactement identiques aux anciens defaults ; toute personnalisation
+utilisateur est preservee.
 
 Il supporte :
 

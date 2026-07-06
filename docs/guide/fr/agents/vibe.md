@@ -33,13 +33,17 @@ Palabre ne choisit pas le modèle Mistral Vibe à votre place. Vibe utilise sa p
 "vibe": {
   "type": "cli",
   "command": "vibe",
-  "args": ["--output", "text", "--trust", "--prompt"],
+  "args": ["--output", "text", "--trust", "--enabled-tools", "read", "--enabled-tools", "grep", "--prompt"],
   "promptMode": "argument",
   "modelArg": "--model",
   "shell": true,
   "role": "reviewer"
 }
 ```
+
+`--enabled-tools read --enabled-tools grep` désactive les autres outils en mode programmatique.
+`--trust` évite uniquement le prompt de confiance du dossier ; il n'autorise pas de nouveaux
+outils.
 
 ## Utilisation
 

@@ -43,12 +43,20 @@ Claude fonctionne souvent mieux avec `claude.exe` et `shell: false`, car ce bina
 "claude": {
   "type": "cli",
   "command": "claude.exe",
-  "args": ["--print", "--output-format", "text", "--no-session-persistence"],
+  "args": ["--print", "--output-format", "text", "--no-session-persistence", "--tools", "Read,Glob,Grep"],
   "promptMode": "stdin",
   "shell": false,
   "role": "reviewer"
 }
 ```
+
+Le default Palabre limite les outils Claude à `Read`, `Glob` et `Grep` : l'agent peut
+inspecter le projet sans modifier de fichier ni lancer de commande. Une configuration `args`
+personnalisée reste inchangée.
+
+Le default Palabre limite les outils Claude à `Read`, `Glob` et `Grep` : l'agent peut
+inspecter le projet sans modifier de fichier ni lancer de commande. Une configuration `args`
+personnalisée reste inchangée.
 
 Claude fonctionne souvent bien comme `reviewer` ou `summarizer`.
 

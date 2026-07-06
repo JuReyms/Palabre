@@ -43,12 +43,15 @@ Palabre does not choose the OpenCode model for you. OpenCode uses its own defaul
 "opencode": {
   "type": "cli",
   "command": "opencode",
-  "args": ["run"],
+  "args": ["run", "--pure"],
   "promptMode": "stdin",
   "shell": true,
   "role": "reviewer"
 }
 ```
+
+`--pure` prevents external plugins from loading. This OpenCode command does not currently expose
+a tool allowlist equivalent to Claude's or Vibe's.
 
 ## Usage
 

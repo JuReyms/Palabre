@@ -32,7 +32,9 @@
         "--print",
         "--output-format",
         "text",
-        "--no-session-persistence"
+        "--no-session-persistence",
+        "--tools",
+        "Read,Glob,Grep"
       ],
       "promptMode": "stdin",
       "shell": false,
@@ -43,7 +45,8 @@
       "type": "cli",
       "command": "opencode",
       "args": [
-        "run"
+        "run",
+        "--pure"
       ],
       "promptMode": "stdin",
       "modelArg": "--model",
