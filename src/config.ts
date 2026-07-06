@@ -3,6 +3,7 @@ import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { applyDetectedCommands, detectedAgentNames } from "./agentRegistry.js";
+import { refreshTrustedConfig } from "./configTrust.js";
 import type { CliAgentConfig, PalabreConfig } from "./types.js";
 import type { ToolDiscovery } from "./discovery.js";
 import type { Messages } from "./messages/index.js";
@@ -358,6 +359,7 @@ export async function writeConfig(
   const resolved = path.resolve(configPath);
   await mkdir(path.dirname(resolved), { recursive: true });
   await writeFile(resolved, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  await refreshTrustedConfig(resolved);
 }
 
 function chooseDefaultOllamaModel(discovery: ToolDiscovery): string {

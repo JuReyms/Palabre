@@ -89,6 +89,7 @@ These commands are available from the TUI home screen or from `/config` dependin
 | `-h`, `--help` | Displays help. |
 | `-v`, `--version` | Displays the version. |
 | `--config <path>` | Uses an explicit configuration file. |
+| `--trust-config` | Trusts the local configuration fingerprint after its contents have been reviewed. |
 | `--language <fr\|en>`, `--lang <fr\|en>` | Forces the Palabre and agent prompt language for this command. |
 | `--tui` | Forces the TUI interface, even if configuration asks for terminal rendering. |
 | `--terminal`, `--no-tui` | Uses raw terminal rendering. Also useful with `palabre doctor` for logs. |

@@ -43,6 +43,8 @@ test("createTranslator returns localized common errors", () => {
   assert.equal(createTranslator("fr").common.ollamaUrlInvalid("ftp://host"), "Adresse Ollama invalide: ftp://host.");
   assert.equal(createTranslator("fr").common.ollamaUrlProtocol("ftp:"), "Protocole Ollama invalide: ftp:. Utilise http: ou https:.");
   assert.equal(createTranslator("en").common.ollamaUrlEmpty, "The Ollama address cannot be empty.");
+  assert.match(createTranslator("fr").common.configTrustRequired("palabre.config.json"), /--trust-config/);
+  assert.match(createTranslator("en").common.configTrustPrompt("palabre.config.json"), /Trust it/);
   assert.match(createTranslator("en").common.optionRequiresValue("--topic"), /expects a value/);
 });
 

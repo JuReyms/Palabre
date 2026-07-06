@@ -1,5 +1,6 @@
 /** @file Initialisation explicite de configuration globale ou locale. */
 import { configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, GLOBAL_CONFIG_PATH, writeConfig } from "../config.js";
+import { isImplicitProjectConfig, trustConfig } from "../configTrust.js";
 import { discoverLocalTools, type CommandDetection, type ToolDiscovery } from "../discovery.js";
 import { detectedAgentNames } from "../agentRegistry.js";
 import { createTranslator, DEFAULT_LANGUAGE, resolveLanguage } from "../i18n.js";
@@ -28,6 +29,9 @@ export async function runInitCommand(flags: CommandFlags): Promise<void> {
   });
   const messages = createTranslator(config.language);
   await writeConfig(configPath, config);
+  if (isImplicitProjectConfig(configPath, process.cwd(), [DEFAULT_CONFIG_PATH])) {
+    await trustConfig(configPath);
+  }
   console.log(messages.init.configCreated(configPath));
   printInitDiscovery(discovery, config, messages);
 }

@@ -89,6 +89,7 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 | `-h`, `--help` | Affiche l'aide. |
 | `-v`, `--version` | Affiche la version. |
 | `--config <path>` | Utilise un fichier de configuration explicite. |
+| `--trust-config` | Approuve l'empreinte de la configuration locale après vérification de son contenu. |
 | `--language <fr\|en>`, `--lang <fr\|en>` | Force la langue de Palabre et des prompts agents pour la commande. |
 | `--tui` | Force l'interface TUI, même si la configuration demande le rendu terminal. |
 | `--terminal`, `--no-tui` | Utilise un rendu terminal brut. Aussi utile avec `palabre doctor` pour les logs. |

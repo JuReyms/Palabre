@@ -41,6 +41,7 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
   "no-early-stop": { arity: "boolean" },
   "show-prompt": { arity: "boolean" },
   "pull-models": { arity: "boolean" },
+  "trust-config": { arity: "boolean" },
   local: { arity: "boolean" },
   apply: { arity: "boolean" },
   "clear-defaults": { arity: "boolean" },

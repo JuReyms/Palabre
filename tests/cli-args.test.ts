@@ -43,6 +43,14 @@ test("--ollama-url consumes one value without changing the topic", () => {
   assert.equal(parsed.flags.topic, "topic");
 });
 
+test("--trust-config stays boolean and does not swallow the subject", () => {
+  const parsed = parseArgs(["--trust-config", "codex-claude", "Sujet"], messages);
+
+  assert.equal(parsed.flags["trust-config"], true);
+  assert.equal(parsed.flags.preset, "codex-claude");
+  assert.equal(parsed.flags.topic, "Sujet");
+});
+
 test("a single-value flag without value throws", () => {
   assert.throws(() => parse(["--turns", "--plain"]), /expects a value/);
   assert.throws(() => parse(["--model-a"]), /expects a value/);

@@ -35,6 +35,12 @@ Fichier créé :
 
 Utilisez cette option si un projet doit avoir ses propres agents, modèles ou dossier d'export.
 
+Une configuration locale peut lancer les commandes déclarées dans ses agents et contacter les
+serveurs Ollama configurés. Palabre demande donc une approbation avant sa première utilisation et
+enregistre son empreinte dans `~/.palabre/trusted-configs.json`. Toute modification externe du
+fichier invalide cette approbation. Dans un flux non interactif, vérifiez le fichier puis utilisez
+`--trust-config` une fois pour enregistrer sa nouvelle empreinte.
+
 ## Ordre de résolution
 
 Palabre cherche la configuration dans cet ordre :

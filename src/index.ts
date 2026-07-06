@@ -5,7 +5,9 @@
  * résolution de la config/langue, boucle TUI d'accueil et lancement d'un débat ou d'une
  * requête `ask` via l'orchestrateur.
  */
-import { assertRunnableConfig, configExists, createConfigFromDiscovery, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeConfig } from "./config.js";
+import path from "node:path";
+import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeConfig } from "./config.js";
+import { isConfigTrusted, isImplicitProjectConfig, trustConfig } from "./configTrust.js";
 import { loadProjectInputs } from "./context.js";
 import { discoverLocalTools, discoverLocalToolsForConfig } from "./discovery.js";
 import { runDoctor } from "./doctor.js";
@@ -55,6 +57,8 @@ async function main(): Promise<void> {
     printHelp(await resolveCommandMessages(parsed.flags), commandHelpTarget(parsed));
     return;
   }
+
+  await ensureImplicitProjectConfigTrusted(parsed, startupMessages);
 
   if (parsed.command === "doctor") {
     const result = await runDoctor(optionalString(parsed.flags.config), Boolean(parsed.flags.plain || parsed.flags.terminal), optionalString(parsed.flags.language));
@@ -388,6 +392,46 @@ async function main(): Promise<void> {
       parsed.flags.renderer = "tui";
       break;
     }
+  }
+}
+
+/** Bloque toute consommation implicite d'une config projet tant que son empreinte n'est pas approuvée. */
+async function ensureImplicitProjectConfigTrusted(parsed: ParsedArgs, messages: Messages): Promise<void> {
+  if (parsed.command === "init" || parsed.command === "setup" || parsed.command === "context") {
+    return;
+  }
+  const configPath = optionalString(parsed.flags.config) ?? await resolveDefaultConfigPath();
+  if (!(await configExists(configPath)) || !isImplicitProjectConfig(
+    configPath,
+    process.cwd(),
+    [DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH]
+  )) {
+    return;
+  }
+  if (await isConfigTrusted(configPath)) {
+    return;
+  }
+
+  if (parsed.flags["trust-config"]) {
+    await trustConfig(configPath);
+    return;
+  }
+
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    throw new Error(messages.common.configTrustRequired(path.resolve(configPath)));
+  }
+
+  const { createInterface } = await import("node:readline/promises");
+  const prompt = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const answer = (await prompt.question(messages.common.configTrustPrompt(path.resolve(configPath)))).trim().toLowerCase();
+    if (!["o", "oui", "y", "yes"].includes(answer)) {
+      throw new Error(messages.common.configTrustDeclined(path.resolve(configPath)));
+    }
+    await trustConfig(configPath);
+    console.log(messages.common.configTrusted(path.resolve(configPath)));
+  } finally {
+    prompt.close();
   }
 }
 

@@ -361,6 +361,8 @@ Flags:
   --terminal              force le rendu terminal brut
   --language <fr|en>      force la langue
   --config <path>         chemin de config explicite
+  --trust-config          approuve l'empreinte de la config locale
+  --trust-config          approuve l'empreinte de la config locale
 
 Documentation complete:
   https://palab.re/fr
@@ -412,6 +414,8 @@ Flags:
   --terminal              forces raw terminal rendering
   --language <fr|en>      force language
   --config <path>         explicit config path
+  --trust-config          trusts the local config fingerprint
+  --trust-config          trusts the local config fingerprint
 
 Full documentation:
   https://palab.re/en

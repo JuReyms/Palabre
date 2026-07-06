@@ -87,6 +87,14 @@ docs/archive/             Documents historiques
 
 Un agent est une entree nommee dans une config Palabre. La resolution cherche `./palabre.config.json`, puis `./chicane.config.json`, puis `~/.palabre/palabre.config.json`, puis `~/.palabre/chicane.config.json`. Toute nouvelle doc ou nouvelle config doit utiliser `palabre.config.json`.
 
+Une config locale standard peut lancer des commandes avec les droits utilisateur et contacter les
+serveurs Ollama qu'elle declare. Avant de la consommer, Palabre exige donc une approbation liee a
+son chemin canonique et a son empreinte SHA-256, conservee dans
+`~/.palabre/trusted-configs.json`. Une modification externe invalide l'approbation. En TTY,
+Palabre demande confirmation ; en non-interactif, `--trust-config` enregistre explicitement
+l'empreinte. `palabre init --local` approuve la config qu'il vient lui-meme de generer, et les
+ecritures ulterieures effectuees par Palabre rafraichissent uniquement une approbation existante.
+
 Exemples :
 
 - `codex`

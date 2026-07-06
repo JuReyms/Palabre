@@ -35,6 +35,12 @@ File created:
 
 Use this option if a project needs its own agents, models, or export folder.
 
+A local configuration can run the commands declared by its agents and contact configured Ollama
+servers. Palabre therefore asks for approval before first use and records its fingerprint in
+`~/.palabre/trusted-configs.json`. Any external file change invalidates that approval. In a
+non-interactive workflow, review the file and use `--trust-config` once to record its new
+fingerprint.
+
 ## Resolution order
 
 Palabre looks for configuration in this order:
