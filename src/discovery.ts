@@ -3,6 +3,7 @@ import { access } from "node:fs/promises";
 import path from "node:path";
 import { executableExtensions } from "./exec.js";
 import { configuredOllamaTargets, resolveOllamaBaseUrl } from "./ollamaUrl.js";
+import { cleanTerminalOutput } from "./adapters/terminal.js";
 import type { PalabreConfig } from "./types.js";
 
 export interface DiscoveryOptions {
@@ -139,7 +140,9 @@ async function detectOllamaServer(baseUrl = "http://localhost:11434"): Promise<O
     const data = await response.json() as { models?: Array<{ name?: string; model?: string }> };
     const models = data.models
       ?.map((model) => model.name ?? model.model)
-      .filter((model): model is string => Boolean(model))
+      .filter((model): model is string => typeof model === "string" && model.length > 0)
+      .map((model) => cleanTerminalOutput(model))
+      .filter(Boolean)
       .sort((a, b) => a.localeCompare(b)) ?? [];
 
     return {

@@ -6,6 +6,7 @@ import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, OllamaAgentConfig } from "../types.js";
 import { resolveOllamaBaseUrl } from "../ollamaUrl.js";
 import type { AgentRuntimeOptions } from "./index.js";
+import { cleanTerminalOutput } from "./terminal.js";
 
 interface OllamaChatResponse {
   message?: {
@@ -123,12 +124,12 @@ export class OllamaAdapter implements AgentAdapter {
       const data = (await response.json()) as OllamaChatResponse;
 
       if (!response.ok || data.error) {
-        throw new AdapterError("http-error", this.name, data.error ?? `Ollama HTTP ${response.status}`, {
+        throw new AdapterError("http-error", this.name, safeRemoteText(data.error, `Ollama HTTP ${response.status}`), {
           status: response.status
         });
       }
 
-      const content = data.message?.content?.trim() ?? "";
+      const content = cleanTerminalOutput(typeof data.message?.content === "string" ? data.message.content : "");
 
       if (!content) {
         throw new AdapterError("empty-output", this.name, `${this.name} produced empty output.`);
@@ -206,7 +207,9 @@ export class OllamaAdapter implements AgentAdapter {
     const data = (await response.json()) as OllamaTagsResponse;
     return data.models
       ?.map((model) => model.name ?? model.model)
-      .filter((modelName): modelName is string => Boolean(modelName)) ?? [];
+      .filter((modelName): modelName is string => typeof modelName === "string" && modelName.length > 0)
+      .map((modelName) => cleanTerminalOutput(modelName))
+      .filter(Boolean) ?? [];
   }
 
   /** Déclenche `POST /api/pull` et attend sa fin ; timeout dédié `pullTimeoutMs` (30 min par défaut). */
@@ -230,7 +233,7 @@ export class OllamaAdapter implements AgentAdapter {
       const data = (await response.json()) as OllamaPullResponse;
 
       if (!response.ok || data.error) {
-        throw new AdapterError("model-pull-failed", this.name, data.error ?? `Ollama HTTP ${response.status}`, {
+        throw new AdapterError("model-pull-failed", this.name, safeRemoteText(data.error, `Ollama HTTP ${response.status}`), {
           status: response.status
         });
       }
@@ -266,13 +269,20 @@ export class OllamaAdapter implements AgentAdapter {
     const data = (await response.json()) as OllamaRunningModelsResponse;
     const runningModels = data.models
       ?.map((model) => model.name ?? model.model)
-      .filter((modelName): modelName is string => Boolean(modelName))
+      .filter((modelName): modelName is string => typeof modelName === "string" && modelName.length > 0)
+      .map((modelName) => cleanTerminalOutput(modelName))
+      .filter(Boolean)
       .filter((modelName) => modelName !== this.config.model) ?? [];
 
     for (const model of runningModels) {
       await unloadModel(baseUrl, model, signal, messages);
     }
   }
+}
+
+function safeRemoteText(value: unknown, fallback: string): string {
+  const cleaned = cleanTerminalOutput(typeof value === "string" ? value : "");
+  return cleaned || fallback;
 }
 
 /** Décharge un modèle Ollama en mémoire GPU/CPU via `POST /api/generate` avec `keep_alive: 0`. */

@@ -6,6 +6,7 @@
  */
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { sanitizeTerminalText } from "../adapters/terminal.js";
 import type { Messages } from "../messages/index.js";
 
 /** `true` si stdout supporte les couleurs ANSI (TTY sans `NO_COLOR`). */
@@ -139,11 +140,12 @@ export function compactFileName(value: string, maxLength: number): string {
 
 /** Rend un lien cliquable OSC 8 vers un fichier local, ou le label brut hors TTY. */
 export function terminalLink(filePath: string, label: string): string {
+  const safeLabel = sanitizeTerminalText(label);
   if (!supportsInteractiveOutput) {
-    return label;
+    return safeLabel;
   }
 
-  return `\u001b]8;;${pathToFileURL(filePath).href}\u001b\\${label}\u001b]8;;\u001b\\`;
+  return `\u001b]8;;${pathToFileURL(filePath).href}\u001b\\${safeLabel}\u001b]8;;\u001b\\`;
 }
 
 /** Logo Palabre + tagline, réservés à l'écran d'accueil. */
@@ -367,7 +369,8 @@ export function danger(value: string): string {
 
 /** Nom d'agent rendu dans sa couleur stable. */
 export function agentLabel(agent: string): string {
-  return supportsColor ? `${agentAnsi(agent)}${agent}${codes.reset}` : agent;
+  const safeAgent = sanitizeTerminalText(agent);
+  return supportsColor ? `${agentAnsi(safeAgent)}${safeAgent}${codes.reset}` : safeAgent;
 }
 
 /** Applique la couleur stable d'un agent à une valeur arbitraire. */

@@ -4,6 +4,7 @@
  * synthèse structurée et panneau de fin avec liens vers l'export.
  */
 import path from "node:path";
+import { sanitizeTerminalText } from "../adapters/terminal.js";
 import type { AdapterFailureKind, AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateStartAgentInfo, PalabreMode } from "../types.js";
 import type { Messages } from "../messages/index.js";
 import {
@@ -73,29 +74,30 @@ class TuiRenderer implements DebateRenderer {
   notice(message: string): void {
     const width = this.width();
     process.stdout.write(`\n${padBlock(card([
-      `${success(this.messages.renderers.infoPrefix)} ${message}`
+      `${success(this.messages.renderers.infoPrefix)} ${sanitizeTerminalText(message)}`
     ], width)).join("\n")}\n`);
   }
 
   warning(message: string): void {
-    process.stderr.write(`${warning(this.messages.renderers.warningPrefix)} ${message}\n`);
+    process.stderr.write(`${warning(this.messages.renderers.warningPrefix)} ${sanitizeTerminalText(message)}\n`);
   }
 
   turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void {
     this.currentSection = "debate";
-    this.currentAgent = agent;
+    this.currentAgent = sanitizeTerminalText(agent);
     this.pendingHeader = `${agentLabel(agent)} (${role}) - ${this.messages.renderers.turn(turn, totalTurns)}`;
   }
 
   askResponseStart(response: number, totalResponses: number, agent: string, role: AgentRole): void {
     this.currentSection = "ask";
-    this.currentAgent = agent;
+    this.currentAgent = sanitizeTerminalText(agent);
     this.pendingHeader = `${agentLabel(agent)} (${role}) - ${this.messages.tui.askResponse(response, totalResponses)}`;
   }
 
   thinkingStart(agent: string, role: AgentRole): void {
     this.thinkingEnd();
-    const text = this.messages.renderers.thinking(agent, role);
+    const safeAgent = sanitizeTerminalText(agent);
+    const text = this.messages.renderers.thinking(safeAgent, role);
 
     if (!this.interactive) {
       process.stdout.write(`${text}...\n`);
@@ -107,7 +109,7 @@ class TuiRenderer implements DebateRenderer {
     const render = () => {
       const frame = frames[this.spinnerFrame % frames.length];
       this.spinnerFrame += 1;
-      process.stdout.write(`\r\u001b[2K${surfacePadding()}${agentColor(agent, frame)} ${text}...`);
+      process.stdout.write(`\r\u001b[2K${surfacePadding()}${agentColor(safeAgent, frame)} ${text}...`);
     };
 
     render();
@@ -126,7 +128,7 @@ class TuiRenderer implements DebateRenderer {
   }
 
   message(content: string): void {
-    const trimmed = content.trim();
+    const trimmed = sanitizeTerminalText(content).trim();
     process.stdout.write(`${this.formatMessage(this.currentSection === "summary" ? this.formatSummary(trimmed) : trimmed)}\n`);
   }
 
@@ -136,7 +138,7 @@ class TuiRenderer implements DebateRenderer {
 
   summaryStart(agent: string, role: AgentRole): void {
     this.currentSection = "summary";
-    this.currentAgent = agent;
+    this.currentAgent = sanitizeTerminalText(agent);
     this.pendingHeader = `${this.messages.renderers.summaryTitle} - ${agentLabel(agent)} (${role})`;
   }
 
@@ -146,7 +148,7 @@ class TuiRenderer implements DebateRenderer {
     const hint = this.messages.adapterErrors.hint(failure.kind as AdapterFailureKind);
     process.stderr.write(`\n${padBlock(card([
       danger(`${glyphs().cross} ${this.messages.common.errorPrefix}`),
-      `${formatFailureLocation(failure, this.messages)}: ${failure.message}`,
+      `${formatFailureLocation(failure, this.messages)}: ${sanitizeTerminalText(failure.message)}`,
       ...(hint ? ["", dim(`${this.messages.adapterErrors.suggestionPrefix}: ${hint}`)] : [])
     ], width)).join("\n")}\n`);
   }
@@ -173,11 +175,11 @@ class TuiRenderer implements DebateRenderer {
     const mode = messagesModeLabel(this.messages, options.mode).toUpperCase();
     const main = panel([
       accent(mode),
-      this.messages.renderers.subject(options.topic),
+      this.messages.renderers.subject(sanitizeTerminalText(options.topic)),
       this.messages.renderers.agents(formatAgents(options, agents)),
       formatSessionProgress(options, this.messages),
       this.messages.renderers.context(formatContext(options, this.messages)),
-      this.messages.renderers.workingFolder(compactPath(options.session.cwd, Math.max(24, width - 14)))
+      this.messages.renderers.workingFolder(compactPath(sanitizeTerminalText(options.session.cwd), Math.max(24, width - 14)))
     ], width);
 
     return [
@@ -241,14 +243,14 @@ function formatAgents(options: DebateOptions, agents: DebateStartAgentInfo[]): s
   if (options.mode === "ask") {
     return agents.length > 0
       ? agents.map(formatAgent).join(", ")
-      : (options.askAgents ?? [options.agentA, options.agentB]).join(", ");
+      : (options.askAgents ?? [options.agentA, options.agentB]).map(sanitizeTerminalText).join(", ");
   }
 
   if (agents.length >= 2) {
     return `${formatAgent(agents[0])} <-> ${formatAgent(agents[1])}`;
   }
 
-  return `${options.agentA} <-> ${options.agentB}`;
+  return `${sanitizeTerminalText(options.agentA)} <-> ${sanitizeTerminalText(options.agentB)}`;
 }
 
 function formatAgent(agent: DebateStartAgentInfo | undefined): string {
@@ -260,7 +262,7 @@ function formatSummary(options: DebateOptions, messages: Messages): string {
     return messages.renderers.disabled;
   }
 
-  return options.summaryAgent;
+  return sanitizeTerminalText(options.summaryAgent);
 }
 
 function formatResponseCount(options: DebateOptions): number {
@@ -274,7 +276,7 @@ function formatSessionProgress(options: DebateOptions, messages: Messages): stri
 function formatContext(options: DebateOptions, messages: Messages): string {
   return options.files.length === 0
     ? messages.renderers.noInjectedFiles
-    : messages.renderers.injectedFiles(options.files.length, options.files.map((file) => file.path));
+    : messages.renderers.injectedFiles(options.files.length, options.files.map((file) => sanitizeTerminalText(file.path)));
 }
 
 function formatFailureLocation(failure: DebateFailure, messages: Messages): string {
@@ -283,7 +285,7 @@ function formatFailureLocation(failure: DebateFailure, messages: Messages): stri
   }
 
   const turn = failure.turn === undefined ? "" : `, ${messages.tui.turnLabel(failure.turn)}`;
-  return `${failure.agent ?? "?"} (${failure.role ?? "?"}${turn})`;
+  return `${sanitizeTerminalText(failure.agent ?? "?")} (${failure.role ?? "?"}${turn})`;
 }
 
 function messagesModeLabel(messages: Messages, mode: PalabreMode): string {

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { OllamaAdapter } from "../src/adapters/ollama.js";
+import { AdapterError } from "../src/errors.js";
 import type { AgentPrompt } from "../src/types.js";
 
 test("OllamaAdapter localizes the default system prompt from the agent prompt language", async () => {
@@ -144,6 +145,88 @@ test("OllamaAdapter applies runtime URL over environment and config", async () =
     } else {
       process.env.OLLAMA_HOST = originalHost;
     }
+  }
+});
+
+test("OllamaAdapter strips terminal control sequences from model content", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    message: {
+      content: "\u001b]52;c;dHJhcA==\u0007safe\u001b[31m text\u001b[0m"
+    }
+  }), {
+    status: 200,
+    headers: { "content-type": "application/json" }
+  })) as typeof fetch;
+
+  try {
+    const adapter = new OllamaAdapter("ollama-local", {
+      type: "ollama",
+      model: "test-model",
+      role: "critic",
+      validateModel: false,
+      unloadOtherModels: false
+    });
+
+    const response = await adapter.generate(agentPrompt("en"));
+    assert.equal(response.content, "safe text");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("OllamaAdapter strips terminal controls from remote error messages", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    error: "\u001b]52;c;payload\u0007Remote failure"
+  }), {
+    status: 500,
+    headers: { "content-type": "application/json" }
+  })) as typeof fetch;
+
+  try {
+    const adapter = new OllamaAdapter("ollama-local", {
+      type: "ollama",
+      model: "test-model",
+      role: "critic",
+      validateModel: false,
+      unloadOtherModels: false
+    });
+
+    await assert.rejects(
+      adapter.generate(agentPrompt("en")),
+      (error) => error instanceof Error
+        && error.message === "Remote failure"
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("OllamaAdapter rejects malformed remote content without crashing", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    message: { content: { unexpected: true } }
+  }), {
+    status: 200,
+    headers: { "content-type": "application/json" }
+  })) as typeof fetch;
+
+  try {
+    const adapter = new OllamaAdapter("ollama-local", {
+      type: "ollama",
+      model: "test-model",
+      role: "critic",
+      validateModel: false,
+      unloadOtherModels: false
+    });
+
+    await assert.rejects(
+      adapter.generate(agentPrompt("en")),
+      (error) => error instanceof AdapterError && error.kind === "empty-output"
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 });
 

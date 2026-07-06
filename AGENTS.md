@@ -540,6 +540,13 @@ Decision a garder en tete : `--language <fr|en>` doit etre compris comme une con
 
 Les messages traduisibles vivent dans `src/messages/`, decoupes par domaine (`common`, `doctor`, `help`, `init`, `agents`, `config`, `presets`, `update`, `preview`, `new`, `renderers`, `context`, `limits`, `orchestrator`, `output`, `adapter-errors`, `prompt`, etc.). Ajouter les nouvelles surfaces par lots coherents plutot que melanger traduction et refactor large. `palabre doctor`, `palabre help`, `palabre init`, `palabre agents`, `palabre config`, `palabre presets`, `palabre update`, `--show-prompt`, `palabre new`, les renderers console, les erreurs/warnings de contexte, les erreurs de limites `--turns`, les notices/erreurs runtime de l'orchestrateur, l'habillage de l'export Markdown, les suggestions et messages d'erreurs adapter (usage-limit, modeles, Ollama), la sortie `palabre config --ollama-models` et les prompts agents sont migres vers le dictionnaire FR/EN. Les adapters resolvent leur langue via `prompt.language` a chaque `generate`.
 
+Toutes les donnees affichees dans un renderer humain doivent passer par
+`sanitizeTerminalText` avant d'etre combinees aux couleurs ANSI generees par Palabre. Les sorties
+CLI/PTY et Ollama, erreurs HTTP distantes, sujets, noms d'agents, chemins et labels de liens OSC
+sont traites comme non fiables. Le nettoyage retire ANSI, OSC, DCS et les controles invisibles,
+mais preserve les espaces et retours ligne utiles. `cleanTerminalOutput` ajoute le trim attendu
+par les adapters.
+
 ## Syntaxe CLI courte
 
 Le parser accepte deux formes equivalentes pour lancer un debat :

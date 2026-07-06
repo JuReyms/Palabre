@@ -1,6 +1,7 @@
 /** @file Renderers console historiques : `PrettyConsoleRenderer` (TTY, spinner, couleurs) et `PlainConsoleRenderer` (logs bruts). */
 import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateStartAgentInfo } from "../types.js";
 import type { Messages } from "../messages/index.js";
+import { sanitizeTerminalText } from "../adapters/terminal.js";
 
 const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
 const supportsInteractiveOutput = Boolean(process.stdout.isTTY);
@@ -36,7 +37,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
     process.stdout.write([
       "",
       this.c("cyan", `┌─ ${title} ${"─".repeat(Math.max(1, 54 - title.length))}`),
-      this.c("cyan", `│`) + ` ${this.messages.renderers.subject(options.topic)}`,
+      this.c("cyan", `│`) + ` ${this.messages.renderers.subject(sanitizeTerminalText(options.topic))}`,
       this.c("cyan", `│`) + ` ${this.messages.renderers.agents(formatAgentPair(options, agents))}`,
       this.c("cyan", `│`) + ` ${this.messages.renderers.responsesSummary(formatResponseCount(options), formatSummary(options, this.messages))}`,
       this.c("cyan", `│`) + ` ${this.messages.renderers.context(formatContext(options, this.messages))}`,
@@ -48,12 +49,12 @@ class PrettyConsoleRenderer implements DebateRenderer {
 
   /** Écrit un avertissement sur `stderr` en jaune. */
   warning(message: string): void {
-    process.stderr.write(`${this.c("yellow", this.messages.renderers.warningPrefix)} ${message}\n`);
+    process.stderr.write(`${this.c("yellow", this.messages.renderers.warningPrefix)} ${sanitizeTerminalText(message)}\n`);
   }
 
   /** Écrit une notice informative sur `stdout` en vert. */
   notice(message: string): void {
-    process.stdout.write(`${this.c("green", this.messages.renderers.infoPrefix)} ${message}\n`);
+    process.stdout.write(`${this.c("green", this.messages.renderers.infoPrefix)} ${sanitizeTerminalText(message)}\n`);
   }
 
   /** Affiche l'en-tête d'un nouveau tour (agent, rôle, progression). */
@@ -61,7 +62,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
     this.renderingSummary = false;
     process.stdout.write([
       "",
-      this.c("orange", `◆ ${agent}`) + this.dim(` · ${role} · ${this.messages.renderers.turn(turn, totalTurns)}`),
+      this.c("orange", `◆ ${sanitizeTerminalText(agent)}`) + this.dim(` · ${role} · ${this.messages.renderers.turn(turn, totalTurns)}`),
       this.dim("─".repeat(60)),
       ""
     ].join("\n"));
@@ -71,7 +72,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
     this.renderingSummary = false;
     process.stdout.write([
       "",
-      this.c("orange", `◆ ${agent}`) + this.dim(` · ${role} · réponse ${response}/${totalResponses}`),
+      this.c("orange", `◆ ${sanitizeTerminalText(agent)}`) + this.dim(` · ${role} · réponse ${response}/${totalResponses}`),
       this.dim("─".repeat(60)),
       ""
     ].join("\n"));
@@ -81,7 +82,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
   thinkingStart(agent: string, role: AgentRole): void {
     this.thinkingEnd();
 
-    const text = this.messages.renderers.thinking(agent, role);
+    const text = this.messages.renderers.thinking(sanitizeTerminalText(agent), role);
 
     if (!this.interactive) {
       process.stdout.write(`${this.dim(`${text}...`)}\n`);
@@ -112,7 +113,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
 
   /** Écrit le contenu d'un message agent, avec formatage de synthèse si applicable. */
   message(content: string): void {
-    const trimmed = content.trim();
+    const trimmed = sanitizeTerminalText(content).trim();
     process.stdout.write(`${this.renderingSummary ? this.formatSummaryMessage(trimmed) : trimmed}\n`);
   }
 
@@ -125,7 +126,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
     this.renderingSummary = true;
     process.stdout.write([
       "",
-      this.c("pink", `◆ ${this.messages.renderers.summaryTitle}`) + this.dim(` · ${agent} · ${role}`),
+      this.c("pink", `◆ ${this.messages.renderers.summaryTitle}`) + this.dim(` · ${sanitizeTerminalText(agent)} · ${role}`),
       this.dim("─".repeat(60)),
       ""
     ].join("\n"));
@@ -133,12 +134,12 @@ class PrettyConsoleRenderer implements DebateRenderer {
 
   error(failure: DebateFailure): void {
     this.thinkingEnd();
-    process.stderr.write(`\n${this.c("red", this.messages.common.errorPrefix)} ${formatFailureLocation(failure, this.messages)}: ${failure.message}\n`);
+    process.stderr.write(`\n${this.c("red", this.messages.common.errorPrefix)} ${formatFailureLocation(failure, this.messages)}: ${sanitizeTerminalText(failure.message)}\n`);
   }
 
   /** Affiche le chemin du fichier de sortie en vert à la fin du débat. */
   done(outputPath: string): void {
-    process.stdout.write(`\n\n${this.c("green", this.messages.renderers.exported(outputPath))}\n\n`);
+    process.stdout.write(`\n\n${this.c("green", this.messages.renderers.exported(sanitizeTerminalText(outputPath)))}\n\n`);
   }
 
   /**
@@ -184,28 +185,28 @@ class PlainConsoleRenderer implements DebateRenderer {
 
   /** Affiche les informations de démarrage du débat en texte brut. */
   start(options: DebateOptions, agents: DebateStartAgentInfo[] = []): void {
-    process.stdout.write(this.messages.renderers.subject(options.topic) + "\n");
+    process.stdout.write(this.messages.renderers.subject(sanitizeTerminalText(options.topic)) + "\n");
     process.stdout.write(this.messages.renderers.agents(formatAgentPair(options, agents)) + "\n");
     process.stdout.write(this.messages.renderers.responsesSummaryContext(formatResponseCount(options), formatSummary(options, this.messages), formatContext(options, this.messages)) + "\n");
   }
 
   /** Écrit un avertissement sur `stderr`. */
   warning(message: string): void {
-    process.stderr.write(`${this.messages.renderers.warningPrefix} ${message}\n`);
+    process.stderr.write(`${this.messages.renderers.warningPrefix} ${sanitizeTerminalText(message)}\n`);
   }
 
   /** Écrit une notice informative sur `stdout`. */
   notice(message: string): void {
-    process.stdout.write(`${this.messages.renderers.infoPrefix} ${message}\n`);
+    process.stdout.write(`${this.messages.renderers.infoPrefix} ${sanitizeTerminalText(message)}\n`);
   }
 
   /** Affiche la progression du tour en texte brut. */
   turnStart(turn: number, totalTurns: number, agent: string, role: AgentRole): void {
-    process.stdout.write(`\n[${turn}/${totalTurns}] ${agent} (${role})...\n`);
+    process.stdout.write(`\n[${turn}/${totalTurns}] ${sanitizeTerminalText(agent)} (${role})...\n`);
   }
 
   askResponseStart(response: number, totalResponses: number, agent: string, role: AgentRole): void {
-    process.stdout.write(`\n[${response}/${totalResponses}] ${agent} (${role})...\n`);
+    process.stdout.write(`\n[${response}/${totalResponses}] ${sanitizeTerminalText(agent)} (${role})...\n`);
   }
 
   /** No-op : pas de spinner en mode plain. */
@@ -216,7 +217,7 @@ class PlainConsoleRenderer implements DebateRenderer {
 
   /** Écrit le contenu du message agent trimé. */
   message(content: string): void {
-    process.stdout.write(`${content.trim()}\n`);
+    process.stdout.write(`${sanitizeTerminalText(content).trim()}\n`);
   }
 
   askResponseMessage(content: string): void {
@@ -225,16 +226,16 @@ class PlainConsoleRenderer implements DebateRenderer {
 
   /** Affiche l'en-tête de la section synthèse en texte brut. */
   summaryStart(agent: string, role: AgentRole): void {
-    process.stdout.write(`\n[${this.messages.renderers.summaryTitle}] ${agent} (${role})...\n`);
+    process.stdout.write(`\n[${this.messages.renderers.summaryTitle}] ${sanitizeTerminalText(agent)} (${role})...\n`);
   }
 
   error(failure: DebateFailure): void {
-    process.stderr.write(`\n${this.messages.common.errorPrefix}: ${formatFailureLocation(failure, this.messages)}: ${failure.message}\n`);
+    process.stderr.write(`\n${this.messages.common.errorPrefix}: ${formatFailureLocation(failure, this.messages)}: ${sanitizeTerminalText(failure.message)}\n`);
   }
 
   /** Affiche le chemin du fichier de sortie à la fin du débat. */
   done(outputPath: string): void {
-    process.stdout.write(`\n${this.messages.renderers.exported(outputPath)}\n`);
+    process.stdout.write(`\n${this.messages.renderers.exported(sanitizeTerminalText(outputPath))}\n`);
   }
 }
 
@@ -250,14 +251,14 @@ function formatAgentPair(options: DebateOptions, agents: DebateStartAgentInfo[])
       return agents.map(formatAgentLabel).join(", ");
     }
 
-    return (options.askAgents ?? [options.agentA, options.agentB]).join(", ");
+    return (options.askAgents ?? [options.agentA, options.agentB]).map(sanitizeTerminalText).join(", ");
   }
 
   if (agents.length >= 2) {
     return `${formatAgentLabel(agents[0])} <-> ${formatAgentLabel(agents[1])}`;
   }
 
-  return `${options.agentA} <-> ${options.agentB}`;
+  return `${sanitizeTerminalText(options.agentA)} <-> ${sanitizeTerminalText(options.agentB)}`;
 }
 
 /**
@@ -269,7 +270,7 @@ function formatAgentLabel(agent: DebateStartAgentInfo | undefined): string {
     return "?";
   }
 
-  return `${agent.name} (${agent.role}, ${agent.type})`;
+  return `${sanitizeTerminalText(agent.name)} (${agent.role}, ${agent.type})`;
 }
 
 /**
@@ -281,7 +282,7 @@ function formatSummary(options: DebateOptions, messages: Messages): string {
     return messages.renderers.disabled;
   }
 
-  return options.summaryAgent;
+  return sanitizeTerminalText(options.summaryAgent);
 }
 
 function formatResponseCount(options: DebateOptions): number {
@@ -299,7 +300,7 @@ function formatContext(options: DebateOptions, messages: Messages): string {
     return messages.renderers.noInjectedFiles;
   }
 
-  return messages.renderers.injectedFiles(count, options.files.map((file) => file.path));
+  return messages.renderers.injectedFiles(count, options.files.map((file) => sanitizeTerminalText(file.path)));
 }
 
 function formatFailureLocation(failure: DebateFailure, messages: Messages): string {
@@ -308,7 +309,7 @@ function formatFailureLocation(failure: DebateFailure, messages: Messages): stri
   }
 
   const turn = failure.turn === undefined ? "" : `, turn ${failure.turn}`;
-  return `${failure.agent ?? "?"} (${failure.role ?? "?"}${turn})`;
+  return `${sanitizeTerminalText(failure.agent ?? "?")} (${failure.role ?? "?"}${turn})`;
 }
 
 /** Codes d'échappement ANSI utilisés par `PrettyConsoleRenderer`. */

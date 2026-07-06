@@ -49,6 +49,31 @@ test("TuiRenderer renders a lightweight terminal dashboard", () => {
   assert.equal(text.match(/out\.debate\.md/g)?.length, 1);
 });
 
+test("TuiRenderer strips terminal controls from topics, agent names, and messages", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    const renderer = createTuiRenderer(createTranslator("en"));
+    renderer.start({ ...baseOptions(), topic: "\u001b]52;c;topic-payload\u0007Safe topic" });
+    renderer.turnStart(1, 2, "\u001b[31magent\u001b[0m", "reviewer");
+    renderer.message("\u001b]52;c;clipboard-payload\u0007Safe\u001b[31m red\u001b[0m");
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /Safe topic/);
+  assert.match(text, /agent \(reviewer\)/);
+  assert.match(text, /Safe red/);
+  assert.doesNotMatch(text, /topic-payload|clipboard-payload/);
+  assert.doesNotMatch(text, /\u001b\]52/);
+});
+
 test("TuiRenderer offers the opposite mode after an Ask session", () => {
   const output: string[] = [];
   const originalWrite = process.stdout.write;
