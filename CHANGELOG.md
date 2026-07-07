@@ -19,6 +19,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 - Les adapters CLI et PTY refusent les lancements Windows susceptibles de réinterpréter un prompt ou un modèle via `cmd.exe`, sans casser Vibe lorsqu'un shim PowerShell est disponible.
 - Les réponses Ollama et la discovery `/api/tags` sont bornées avant parsing ; les erreurs JSON, limites de taille et noms de modèles sont classés et assainis de façon cohérente.
 - Les sorties agents, erreurs distantes, métadonnées d'historique et diagnostics `doctor` ne peuvent plus injecter de séquences de contrôle dans le terminal.
+- Les caractères UTF-8 produits par les agents CLI restent intacts lorsqu'ils sont répartis sur plusieurs blocs `stdout` ou `stderr`.
 - `palabre doctor` peut examiner une config projet non approuvée sans contacter les URLs Ollama qu'elle déclare.
 
 ## [0.10.1] - 2026-07-02

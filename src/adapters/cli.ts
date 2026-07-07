@@ -1,5 +1,6 @@
 /** @file Adapter CLI batch minimal : spawn, injection du prompt, capture stdout, classement des erreurs connues. */
 import { spawn } from "node:child_process";
+import { StringDecoder } from "node:string_decoder";
 import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
 import { resolveNativeWindowsExecutable, resolvePowerShellShim } from "../exec.js";
@@ -74,6 +75,8 @@ export class CliAdapter implements AgentAdapter {
 
       let stdout = "";
       let stderr = "";
+      const stdoutDecoder = new StringDecoder("utf8");
+      const stderrDecoder = new StringDecoder("utf8");
       let settled = false;
       let outputBytes = 0;
       let hardTimer: ReturnType<typeof setTimeout>;
@@ -148,7 +151,7 @@ export class CliAdapter implements AgentAdapter {
       bumpIdleTimer();
 
       // stdout et stderr partagent le même budget `maxOutputBytes`.
-      const createDataHandler = (append: (text: string) => void) => (chunk: Buffer) => {
+      const createDataHandler = (decoder: StringDecoder, append: (text: string) => void) => (chunk: Buffer) => {
         outputBytes += chunk.length;
         if (outputBytes > maxOutputBytes) {
           killChildProcess(child);
@@ -158,15 +161,15 @@ export class CliAdapter implements AgentAdapter {
           }));
           return;
         }
-        append(chunk.toString("utf8"));
+        append(decoder.write(chunk));
         bumpIdleTimer();
       };
 
-      child.stdout.on("data", createDataHandler((text) => {
+      child.stdout.on("data", createDataHandler(stdoutDecoder, (text) => {
         stdout += text;
       }));
 
-      child.stderr.on("data", createDataHandler((text) => {
+      child.stderr.on("data", createDataHandler(stderrDecoder, (text) => {
         stderr += text;
       }));
 
@@ -178,6 +181,8 @@ export class CliAdapter implements AgentAdapter {
         }));
       });
       const finishFromExitCode = (code: number | null) => {
+        stdout += stdoutDecoder.end();
+        stderr += stderrDecoder.end();
         if (code && code !== 0) {
           finish(createCliExitError(this.name, code, stderr, errorMessages));
           return;

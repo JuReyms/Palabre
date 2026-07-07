@@ -78,6 +78,20 @@ test("CliAdapter preserves an argument prompt with spaces when shell is enabled"
   assert.match(response.content, /Sujet: Sujet avec espaces/);
 });
 
+test("CliAdapter preserves UTF-8 characters split across stdout chunks", async () => {
+  const adapter = new CliAdapter("mock", cliConfig({
+    args: [
+      "-e",
+      "process.stdout.write(Buffer.from([0xE2])); setTimeout(() => process.stdout.write(Buffer.from([0x82, 0xAC])), 25)"
+    ]
+  }));
+
+  const response = await adapter.generate(basePrompt());
+
+  assert.equal(response.content, "€");
+  assert.doesNotMatch(response.content, /�/);
+});
+
 test("CliAdapter bypasses the Windows shell for native executables and preserves metacharacters", { skip: process.platform !== "win32" }, async () => {
   const adapter = new CliAdapter("mock", cliConfig({
     args: ["-e", "process.stdout.write(process.argv.at(-1) ?? '')"],
