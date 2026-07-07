@@ -236,6 +236,9 @@ export class OllamaAdapter implements AgentAdapter {
         });
       }
     } catch (error) {
+      if (error instanceof AdapterError) {
+        throw error;
+      }
       const message = error instanceof Error ? error.message : String(error);
       throw new AdapterError("model-pull-failed", this.name, messages.ollamaPullFailed(this.config.model, message));
     } finally {
@@ -283,6 +286,11 @@ export class OllamaAdapter implements AgentAdapter {
       if (error instanceof ResponseTooLargeError) {
         throw new AdapterError("output-too-large", this.name, messages.ollamaOutputTooLarge(this.name, error.maxBytes), {
           maxOutputBytes: error.maxBytes
+        });
+      }
+      if (error instanceof SyntaxError) {
+        throw new AdapterError("http-error", this.name, `Ollama HTTP ${response.status}`, {
+          status: response.status
         });
       }
       throw error;

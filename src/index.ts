@@ -116,6 +116,7 @@ async function main(): Promise<void> {
     });
     const messages = createTranslator(config.language);
     await writeConfig(configPath, config);
+    await trustConfig(configPath);
 
     if (!shouldOpenTuiHome(parsed)) {
       console.log(messages.init.editConfigThenRerun(configPath));
