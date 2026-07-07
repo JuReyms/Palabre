@@ -41,6 +41,9 @@ servers. Palabre therefore asks for approval before first use and records its fi
 non-interactive workflow, review the file and use `--trust-config` once to record its new
 fingerprint.
 
+`palabre doctor` remains available before approval so you can inspect the configuration. In that
+case, it does not call Ollama URLs declared by the untrusted file.
+
 ## Resolution order
 
 Palabre looks for configuration in this order:

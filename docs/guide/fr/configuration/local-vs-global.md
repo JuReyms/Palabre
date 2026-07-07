@@ -41,6 +41,9 @@ enregistre son empreinte dans `~/.palabre/trusted-configs.json`. Toute modificat
 fichier invalide cette approbation. Dans un flux non interactif, vérifiez le fichier puis utilisez
 `--trust-config` une fois pour enregistrer sa nouvelle empreinte.
 
+`palabre doctor` reste utilisable avant l'approbation pour examiner la configuration. Dans ce cas,
+il n'appelle pas les URLs Ollama déclarées par le fichier non fiable.
+
 ## Ordre de résolution
 
 Palabre cherche la configuration dans cet ordre :

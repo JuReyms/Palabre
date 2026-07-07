@@ -72,6 +72,7 @@ Useful options:
 | `role` | Agent role. |
 | `timeoutMs` | Global timeout. |
 | `idleTimeoutMs` | Timeout if the CLI stays silent. |
+| `maxOutputBytes` | Maximum combined output size, 50 MiB by default. An invalid value restores this safe limit. |
 | `cols` / `rows` | Pseudo-terminal dimensions for `cli-pty` agents. |
 
 ## Ollama agent
@@ -99,3 +100,4 @@ Useful options:
 | `unloadOtherModels` | Unloads other models before generation. |
 | `keepAlive` | Duration to keep the model loaded. |
 | `temperature` | Response variation. |
+| `maxOutputBytes` | Maximum size of each buffered HTTP response, 50 MiB by default. |

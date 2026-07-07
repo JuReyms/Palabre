@@ -72,6 +72,7 @@ Options utiles :
 | `role` | Rôle de l'agent. |
 | `timeoutMs` | Timeout global. |
 | `idleTimeoutMs` | Timeout si la CLI reste silencieuse. |
+| `maxOutputBytes` | Taille maximale cumulée de la sortie, 50 Mio par défaut. Une valeur invalide rétablit cette limite sûre. |
 | `cols` / `rows` | Dimensions du pseudo-terminal pour les agents `cli-pty`. |
 
 ## Agent Ollama
@@ -99,3 +100,4 @@ Options utiles :
 | `unloadOtherModels` | Décharge les autres modèles avant génération. |
 | `keepAlive` | Durée de maintien du modèle chargé. |
 | `temperature` | Variation des réponses. |
+| `maxOutputBytes` | Taille maximale de chaque réponse HTTP bufferisée, 50 Mio par défaut. |
