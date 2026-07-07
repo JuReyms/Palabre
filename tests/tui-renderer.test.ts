@@ -300,6 +300,35 @@ test("renderTuiHistory renders recent exports", () => {
   assert.match(text, /C:\\repo\\.palabre/);
 });
 
+test("renderTuiHistory sanitizes metadata loaded from exports", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    renderTuiHistory([{
+      fileName: "safe.debate.md",
+      path: "C:\\repo\\.palabre\\safe.debate.md",
+      mode: "debate",
+      topic: "\u001b]52;c;topic\u0007Safe topic",
+      agents: "\u001b[31mcodex\u001b[0m",
+      date: "2026-07-07",
+      count: "1/1",
+      mtimeMs: 1
+    }], createTranslator("en"));
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /Safe topic/);
+  assert.match(text, /codex/);
+  assert.doesNotMatch(text, /\u001b\]52|\u001b\[31m/);
+});
+
 test("renderTuiRolesHelp renders available roles", () => {
   const output: string[] = [];
   const originalWrite = process.stdout.write;

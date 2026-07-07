@@ -92,8 +92,10 @@ serveurs Ollama qu'elle declare. Avant de la consommer, Palabre exige donc une a
 son chemin canonique et a son empreinte SHA-256, conservee dans
 `~/.palabre/trusted-configs.json`. Une modification externe invalide l'approbation. En TTY,
 Palabre demande confirmation ; en non-interactif, `--trust-config` enregistre explicitement
-l'empreinte. `palabre init --local` approuve la config qu'il vient lui-meme de generer, et les
-ecritures ulterieures effectuees par Palabre rafraichissent uniquement une approbation existante.
+l'empreinte. Toute config creee par `palabre init`, y compris via `--config`, est approuvee avec
+son contenu exact. Les ecritures ulterieures effectuees par Palabre rafraichissent uniquement une
+approbation existante. `palabre doctor` reste accessible sur une config projet non approuvee, mais
+n'en contacte pas les URLs Ollama et assainit toutes les valeurs avant affichage terminal.
 
 Exemples :
 
@@ -295,6 +297,10 @@ prompt en argument ou un model override contenant des metacaracteres quand un wr
 necessaire. Pour Claude Code, preferer `claude.exe` avec `"shell": false`, car `stdin` est
 capture correctement dans ce mode.
 
+Pour les CLIs qui exigent un prompt en argument, Palabre tente ensuite le shim PowerShell `.ps1`
+frere genere par npm/pnpm et le lance sans `cmd.exe`. CLI et PTY partagent la resolution PATH mise
+en cache dans `src/exec.ts`; sans executable natif ni shim PowerShell, le lancement est refuse.
+
 Les defaults Palabre appliquent une politique d'outils en lecture seule quand la CLI l'expose :
 Claude est limite a `Read,Glob,Grep`, Vibe a `read,grep`, et OpenCode utilise `--pure` pour
 neutraliser les plugins externes. Les fichiers de contexte et messages du transcript restent
@@ -316,6 +322,9 @@ Il supporte :
 `idleTimeoutMs` doit rester optionnel pour les CLIs IA en mode batch. Certains modeles peuvent rester silencieux longtemps avant d'ecrire leur reponse ; dans ce cas, le timeout dur `timeoutMs` est le garde-fou principal.
 
 `maxOutputBytes` protege le CLI contre les agents qui produisent une sortie enorme ou partent en boucle. Par defaut, les adapters CLI et PTY coupent a 50 Mio et levent `AdapterError("output-too-large")`. Le budget couvre stdout et stderr cumules : les deux flux sont bufferises en memoire par Palabre, et le flux PTY les fusionne de toute facon. C'est une protection memoire du process, pas seulement une limite sur la taille de la reponse.
+
+Une valeur `maxOutputBytes` invalide ne desactive jamais la protection : CLI, PTY et Ollama
+retombent tous sur la limite par defaut.
 
 Les adapters CLI et PTY doivent rejeter tout exit code non nul, meme si la CLI a ecrit une sortie partielle sur stdout ou dans le PTY. Une sortie partielle issue d'un process en erreur ne doit pas etre traitee comme une reponse valide.
 
@@ -384,6 +393,9 @@ La discovery Ollama conserve `discovery.ollama` pour l'agent principal et expose
 Au `palabre init` et au premier lancement TUI, si Ollama expose déjà des modèles installés via `/api/tags`, la config générée choisit le modèle installé en priorité (en conservant `nemotron-3-nano:4b` s'il est présent). Sinon, elle retombe sur `nemotron-3-nano:4b` comme fallback léger. Eviter les gros modeles dans les tests automatises ou repetes.
 
 La progression d'un pull Ollama (`--pull-models` ou `autoPullModel`) doit rester sur stderr. Stdout appartient aux renderers, notamment NDJSON, et ne doit jamais recevoir de lignes non JSON pendant un flux machine-readable.
+
+La discovery limite chaque `/api/tags` a 1 Mio avant parsing, y compris avant l'approbation d'une
+config. Les noms de modeles sont valides et nettoyes par `src/ollamaModels.ts`.
 
 Erreurs connues classees :
 

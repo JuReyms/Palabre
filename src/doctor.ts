@@ -1,7 +1,8 @@
 /** @file Diagnostic `palabre doctor` : vérifie config, agents détectés et connectivité Ollama. */
 import path from "node:path";
 import { stat } from "node:fs/promises";
-import { configExists, loadConfig, resolveDefaultConfigPath, resolveOutputDir } from "./config.js";
+import { configExists, DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir } from "./config.js";
+import { isConfigTrusted, isImplicitProjectConfig } from "./configTrust.js";
 import { detectedAgentNames, detectionForCommand } from "./agentRegistry.js";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { createTranslator, resolveLanguage } from "./i18n.js";
@@ -10,11 +11,16 @@ import { configuredOllamaTargets, normalizeOllamaBaseUrl } from "./ollamaUrl.js"
 import { compareSemver, getLatestPackageVersion, getPackageVersion } from "./version.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
+import { sanitizeTerminalText } from "./adapters/terminal.js";
 
 /** Résultat du diagnostic. `ok` est faux dès qu'au moins une ligne est de niveau `error`. */
 export interface DoctorResult {
   ok: boolean;
   output: string;
+}
+
+export interface DoctorOptions {
+  checkVersion?: boolean;
 }
 
 interface DiagnosticLine {
@@ -27,7 +33,7 @@ interface DiagnosticLine {
  * Exécute le diagnostic complet : config, outils locaux et agents.
  * Retourne toujours un résultat (pas de throw) ; les erreurs de config sont reportées comme lignes `error`.
  */
-export async function runDoctor(explicitConfigPath?: string, plain = false, explicitLanguage?: string): Promise<DoctorResult> {
+export async function runDoctor(explicitConfigPath?: string, plain = false, explicitLanguage?: string, options: DoctorOptions = {}): Promise<DoctorResult> {
   const lines: DiagnosticLine[] = [];
   const configPath = explicitConfigPath ?? await resolveDefaultConfigPath();
   const hasConfig = await configExists(configPath);
@@ -40,7 +46,9 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
   const t = createTranslator(language);
 
   lines.push(info(t.doctor.title, "title"));
-  await inspectCliVersion(lines, t);
+  if (options.checkVersion !== false) {
+    await inspectCliVersion(lines, t);
+  }
   lines.push(info(t.doctor.currentDirectory(process.cwd()), "cwd"));
   lines.push(hasConfig
     ? ok(t.doctor.configFound(configPath))
@@ -61,9 +69,18 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
   lines.push(ok(t.doctor.configReadable));
   lines.push(ok(t.doctor.interfaceLanguage(language)));
 
+  const untrustedProjectConfig = isImplicitProjectConfig(
+    configPath,
+    process.cwd(),
+    [DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH]
+  ) && !(await isConfigTrusted(configPath));
+  if (untrustedProjectConfig) {
+    lines.push(warn(t.doctor.untrustedConfigInspection));
+  }
+
   await inspectConfig(config, lines, t);
 
-  const ollamaTargets = Object.fromEntries(
+  const ollamaTargets = untrustedProjectConfig ? {} : Object.fromEntries(
     Object.entries(configuredOllamaTargets(config))
       .map(([name, value]) => [name, value && isValidOllamaBaseUrl(value) ? value : undefined])
   );
@@ -447,11 +464,11 @@ function renderSection(title: string, lines: DiagnosticLine[], t: Messages): str
 }
 
 function formatPrettyLine(line: DiagnosticLine, t: Messages): string {
-  return `${t.doctor.prettyLevelLabels[line.level]} ${line.text}`;
+  return `${t.doctor.prettyLevelLabels[line.level]} ${sanitizeTerminalText(line.text)}`;
 }
 
 function formatLine(line: DiagnosticLine, t: Messages): string {
-  return `[${t.doctor.levelLabels[line.level]}] ${line.text}`;
+  return `[${t.doctor.levelLabels[line.level]}] ${sanitizeTerminalText(line.text)}`;
 }
 
 function ok(text: string, marker?: DiagnosticLine["marker"]): DiagnosticLine {

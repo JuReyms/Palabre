@@ -109,3 +109,19 @@ test("discoverLocalTools probes and maps distinct Ollama agent servers", async (
     }
   }
 });
+
+test("discoverLocalTools bounds Ollama discovery responses", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response("x".repeat(1024 * 1024 + 1), {
+    status: 200,
+    headers: { "content-type": "application/json" }
+  })) as typeof fetch;
+
+  try {
+    const discovery = await discoverLocalTools({ ollamaUrl: "http://bounded.example:11434" });
+    assert.equal(discovery.ollama.available, false);
+    assert.match(discovery.ollama.error ?? "", /exceeds 1048576 bytes/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

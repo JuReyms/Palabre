@@ -1,14 +1,12 @@
 /** @file Adapter CLI batch minimal : spawn, injection du prompt, capture stdout, classement des erreurs connues. */
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
-import path from "node:path";
 import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
-import { executableExtensions } from "../exec.js";
+import { resolveNativeWindowsExecutable, resolvePowerShellShim } from "../exec.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
-import { clipLine, DEFAULT_MAX_OUTPUT_BYTES, DEFAULT_TIMEOUT_MS, extractUsageLimitMessage, stripLogPrefix, uniqueNonEmptyLines, withModelArgs } from "./cli-shared.js";
+import { clipLine, DEFAULT_TIMEOUT_MS, extractUsageLimitMessage, resolveMaxOutputBytes, stripLogPrefix, uniqueNonEmptyLines, withModelArgs } from "./cli-shared.js";
 import { cleanTerminalOutput } from "./terminal.js";
 
 /**
@@ -62,9 +60,10 @@ export class CliAdapter implements AgentAdapter {
       errorMessages
     );
     const baseArgs = withModelArgs(this.config.args ?? [], this.config.model, this.config.modelArg ?? "--model");
-    const args = promptMode === "argument"
+    const adapterArgs = promptMode === "argument"
       ? [...baseArgs, renderedPrompt]
       : baseArgs;
+    const args = [...spawnSafety.argsPrefix, ...adapterArgs];
 
     return new Promise<AgentResponse>((resolve, reject) => {
       const spawnCommand = shellCommandForSpawn(spawnSafety.command, args, spawnSafety.shell);
@@ -80,7 +79,7 @@ export class CliAdapter implements AgentAdapter {
       let hardTimer: ReturnType<typeof setTimeout>;
       let idleTimer: ReturnType<typeof setTimeout> | undefined;
       let abortListener: (() => void) | undefined;
-      const maxOutputBytes = this.config.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
+      const maxOutputBytes = resolveMaxOutputBytes(this.config.maxOutputBytes);
 
       const finish = (error?: Error) => {
         if (settled) return;
@@ -209,14 +208,23 @@ function resolveWindowsSpawnSafety(
   model: string | undefined,
   adapterName: string,
   messages: AdapterErrorMessages
-): { command: string; shell: boolean } {
+): { command: string; shell: boolean; argsPrefix: string[] } {
   if (process.platform !== "win32" || !shell) {
-    return { command, shell };
+    return { command, shell, argsPrefix: [] };
   }
 
   const nativeCommand = resolveNativeWindowsExecutable(command);
   if (nativeCommand) {
-    return { command: nativeCommand, shell: false };
+    return { command: nativeCommand, shell: false, argsPrefix: [] };
+  }
+
+  const powerShellShim = resolvePowerShellShim(command);
+  if (powerShellShim) {
+    return {
+      command: "powershell.exe",
+      shell: false,
+      argsPrefix: ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", powerShellShim]
+    };
   }
 
   if (promptMode === "argument") {
@@ -237,35 +245,7 @@ function resolveWindowsSpawnSafety(
     );
   }
 
-  return { command, shell: true };
-}
-
-/** Résout seulement les exécutables natifs que `spawn` peut lancer sans `cmd.exe`. */
-function resolveNativeWindowsExecutable(command: string): string | undefined {
-  const extension = path.extname(command).toLowerCase();
-  if (extension) {
-    return extension === ".exe" || extension === ".com" ? command : undefined;
-  }
-
-  if (path.isAbsolute(command) || command.includes("\\") || command.includes("/")) {
-    return undefined;
-  }
-
-  for (const directory of (process.env.PATH ?? "").split(path.delimiter)) {
-    const trimmed = directory.trim();
-    if (!trimmed) continue;
-
-    for (const candidateExtension of executableExtensions(command)) {
-      const candidate = path.join(trimmed, `${command}${candidateExtension}`);
-      if (existsSync(candidate)) {
-        return candidateExtension === ".exe" || candidateExtension === ".com"
-          ? candidate
-          : undefined;
-      }
-    }
-  }
-
-  return undefined;
+  return { command, shell: true, argsPrefix: [] };
 }
 
 /** Retire les séquences ANSI et les espaces en tête/fin. */

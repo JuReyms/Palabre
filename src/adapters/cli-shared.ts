@@ -6,6 +6,13 @@ export const DEFAULT_MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
 /** Timeout dur par défaut d'un appel d'agent CLI/PTY (3 minutes). */
 export const DEFAULT_TIMEOUT_MS = 180_000;
 
+/** Une valeur invalide ne doit jamais désactiver silencieusement la protection mémoire. */
+export function resolveMaxOutputBytes(value: number | undefined): number {
+  return value !== undefined && Number.isFinite(value) && value > 0
+    ? value
+    : DEFAULT_MAX_OUTPUT_BYTES;
+}
+
 /**
  * Cherche dans un texte (stderr ou flux PTY) une ligne signalant un quota ou un
  * rate-limit connu, pour classer l'erreur en `usage-limit`.

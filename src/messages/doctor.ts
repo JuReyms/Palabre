@@ -20,6 +20,7 @@ export interface DoctorMessages {
   configReadable: string;
   configUnreadable(message: string): string;
   configUnreadableAction: string;
+  untrustedConfigInspection: string;
   interfaceLanguage(language: Language): string;
   noAgents: string;
   oneAgent(name: string): string;
@@ -86,6 +87,7 @@ export const doctorMessages: Record<Language, DoctorMessages> = {
     configReadable: "Config JSON lisible.",
     configUnreadable: (message) => `Config illisible: ${message}`,
     configUnreadableAction: "Action: corrige le JSON ou relance `palabre init --config <path>` vers un nouveau fichier.",
+    untrustedConfigInspection: "Config projet non approuvée: diagnostic en lecture seule, URLs Ollama configurées non contactées.",
     interfaceLanguage: (language) => `Langue: ${language}`,
     noAgents: "Aucun agent configuré.",
     oneAgent: (name) => `1 agent configuré: ${name}. Palabre fonctionne mieux avec au moins deux agents.`,
@@ -152,6 +154,7 @@ export const doctorMessages: Record<Language, DoctorMessages> = {
     configReadable: "Config JSON is readable.",
     configUnreadable: (message) => `Config unreadable: ${message}`,
     configUnreadableAction: "Action: fix the JSON or run `palabre init --config <path>` for a new file.",
+    untrustedConfigInspection: "Untrusted project config: read-only diagnosis; configured Ollama URLs were not contacted.",
     interfaceLanguage: (language) => `Language: ${language}`,
     noAgents: "No agent configured.",
     oneAgent: (name) => `1 agent configured: ${name}. Palabre works best with at least two agents.`,

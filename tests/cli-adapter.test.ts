@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { CliAdapter } from "../src/adapters/cli.js";
-import { extractPtyUsageLimitMessage } from "../src/adapters/cli-shared.js";
+import { DEFAULT_MAX_OUTPUT_BYTES, extractPtyUsageLimitMessage, resolveMaxOutputBytes } from "../src/adapters/cli-shared.js";
 import { AdapterError } from "../src/errors.js";
 import type { AgentPrompt, CliAgentConfig } from "../src/types.js";
 
@@ -88,6 +88,27 @@ test("CliAdapter bypasses the Windows shell for native executables and preserves
   const response = await adapter.generate(basePrompt({ topic: "Sujet \"cité\" & littéral" }));
 
   assert.match(response.content, /Sujet: Sujet "cité" & littéral/);
+});
+
+test("CliAdapter routes Windows PowerShell shims without cmd injection", { skip: process.platform !== "win32" }, async () => {
+  const dir = path.join(os.tmpdir(), "palabre-cli-adapter-tests", `shim-${process.pid}-${Date.now()}`);
+  await mkdir(dir, { recursive: true });
+  const command = path.join(dir, "mock-wrapper.cmd");
+  await writeFile(command, "@echo off\r\nexit /b 99\r\n", "utf8");
+  await writeFile(
+    path.join(dir, "mock-wrapper.ps1"),
+    "[Console]::Out.Write($args[-1])\n",
+    "utf8"
+  );
+  const adapter = new CliAdapter("mock", cliConfig({
+    command,
+    promptMode: "argument",
+    shell: true
+  }));
+
+  const response = await adapter.generate(basePrompt({ topic: "Sujet & echo INJECTED" }));
+
+  assert.match(response.content, /Sujet: Sujet & echo INJECTED/);
 });
 
 test("CliAdapter rejects argument prompts routed through Windows shell wrappers", { skip: process.platform !== "win32" }, async () => {
@@ -195,6 +216,11 @@ test("PTY quota detection preserves normal answers discussing rate limits", () =
     extractPtyUsageLimitMessage("A rate limit controls how often a client may call an API."),
     undefined
   );
+});
+
+test("invalid maxOutputBytes values fall back to the protected default", () => {
+  assert.equal(resolveMaxOutputBytes(-1), DEFAULT_MAX_OUTPUT_BYTES);
+  assert.equal(resolveMaxOutputBytes(Number.NaN), DEFAULT_MAX_OUTPUT_BYTES);
 });
 test("CliAdapter classifies Antigravity individual quota errors", async () => {
   const adapter = new CliAdapter("antigravity", cliConfig({

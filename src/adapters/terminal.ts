@@ -10,6 +10,7 @@ export function sanitizeTerminalText(output: string): string {
     .replace(/\u001b(?:P|X|\^|_)[\s\S]*?(?:\u001b\\|$)/g, "")
     .replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, "")
     .replace(/\u001b[()][A-Za-z0-9]/g, "")
+    .replace(/\u001b[=>]/g, "")
     .replace(/\u001b[@-_]/g, "")
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")

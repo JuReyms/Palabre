@@ -58,14 +58,14 @@ async function main(): Promise<void> {
     return;
   }
 
-  await ensureImplicitProjectConfigTrusted(parsed, startupMessages);
-
   if (parsed.command === "doctor") {
     const result = await runDoctor(optionalString(parsed.flags.config), Boolean(parsed.flags.plain || parsed.flags.terminal), optionalString(parsed.flags.language));
     console.log(result.output);
     process.exitCode = result.ok ? 0 : 1;
     return;
   }
+
+  await ensureImplicitProjectConfigTrusted(parsed, startupMessages);
 
   if (parsed.command === "config") {
     await runConfigCommand(parsed.flags);
@@ -400,6 +400,7 @@ async function ensureImplicitProjectConfigTrusted(parsed: ParsedArgs, messages: 
   if (parsed.command === "init" || parsed.command === "setup" || parsed.command === "context") {
     return;
   }
+
   const configPath = optionalString(parsed.flags.config) ?? await resolveDefaultConfigPath();
   if (!(await configExists(configPath)) || !isImplicitProjectConfig(
     configPath,

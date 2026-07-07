@@ -1,9 +1,8 @@
 /** @file Détection locale des CLIs agents et d'Ollama, utilisée par `init`, `doctor`, `presets` et l'accueil TUI. */
-import { access } from "node:fs/promises";
-import path from "node:path";
-import { executableExtensions } from "./exec.js";
+import { resolveExecutablePath } from "./exec.js";
 import { configuredOllamaTargets, resolveOllamaBaseUrl } from "./ollamaUrl.js";
-import { cleanTerminalOutput } from "./adapters/terminal.js";
+import { readBoundedJson } from "./http.js";
+import { ollamaModelNames } from "./ollamaModels.js";
 import type { PalabreConfig } from "./types.js";
 
 export interface DiscoveryOptions {
@@ -137,13 +136,8 @@ async function detectOllamaServer(baseUrl = "http://localhost:11434"): Promise<O
       };
     }
 
-    const data = await response.json() as { models?: Array<{ name?: string; model?: string }> };
-    const models = data.models
-      ?.map((model) => model.name ?? model.model)
-      .filter((model): model is string => typeof model === "string" && model.length > 0)
-      .map((model) => cleanTerminalOutput(model))
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b)) ?? [];
+    const models = ollamaModelNames(await readBoundedJson(response, 1024 * 1024))
+      .sort((a, b) => a.localeCompare(b));
 
     return {
       available: true,
@@ -163,32 +157,7 @@ async function detectOllamaServer(baseUrl = "http://localhost:11434"): Promise<O
 }
 
 async function findExecutable(command: string): Promise<string | undefined> {
-  const pathEntries = (process.env.PATH ?? "")
-    .split(path.delimiter)
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-  const extensions = executableExtensions(command);
-
-  for (const entry of pathEntries) {
-    for (const extension of extensions) {
-      const candidate = path.join(entry, `${command}${extension}`);
-
-      if (await isAccessible(candidate)) {
-        return candidate;
-      }
-    }
-  }
-
-  return undefined;
-}
-
-async function isAccessible(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
+  return resolveExecutablePath(command);
 }
 /** Détecte les outils en tenant compte de tous les serveurs Ollama configurés. */
 export function discoverLocalToolsForConfig(

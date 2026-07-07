@@ -11,6 +11,8 @@ export interface AdapterErrorMessages {
   unsafeWindowsShellPrompt(adapterName: string): string;
   /** Refus d'un identifiant de modèle contenant des métacaractères de shell Windows. */
   unsafeWindowsShellModel(adapterName: string): string;
+  /** Réponse Ollama dépassant le budget mémoire configuré. */
+  ollamaOutputTooLarge(adapterName: string, maxBytes: number): string;
   /** Repli du résumé d'erreur CLI quand le process n'a rien écrit sur stderr. */
   noStderrCaptured: string;
   /** Repli du résumé d'erreur PTY quand le flux fusionné est vide. */
@@ -68,9 +70,11 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
     usageLimit: (adapterName, detail) => `${adapterName} a atteint une limite d'utilisation: ${detail}`,
     unsupportedModel: (adapterName, detail) => `${adapterName} ne peut pas utiliser ce modèle: ${detail}`,
     unsafeWindowsShellPrompt: (adapterName) =>
-      `${adapterName} ne peut pas transmettre un prompt en sécurité via un wrapper shell Windows. Configure un exécutable natif ou utilise promptMode "stdin".`,
+      `${adapterName} ne peut pas transmettre un prompt en sécurité via ce wrapper shell Windows. Configure un exécutable natif, un shim PowerShell .ps1 ou, si la CLI le supporte, promptMode "stdin".`,
     unsafeWindowsShellModel: (adapterName) =>
       `${adapterName} ne peut pas transmettre cet identifiant de modèle en sécurité via un wrapper shell Windows.`,
+    ollamaOutputTooLarge: (adapterName, maxBytes) =>
+      `${adapterName} a reçu plus de ${maxBytes} octets depuis Ollama.`,
     noStderrCaptured: "aucun stderr capturé.",
     noPtyOutputCaptured: "aucune sortie PTY capturée.",
     ollamaModelUnavailable: (model, installedModels) =>
@@ -89,9 +93,11 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
     usageLimit: (adapterName, detail) => `${adapterName} hit a usage limit: ${detail}`,
     unsupportedModel: (adapterName, detail) => `${adapterName} cannot use this model: ${detail}`,
     unsafeWindowsShellPrompt: (adapterName) =>
-      `${adapterName} cannot safely pass a prompt through a Windows shell wrapper. Configure a native executable or use promptMode "stdin".`,
+      `${adapterName} cannot safely pass a prompt through this Windows shell wrapper. Configure a native executable, a PowerShell .ps1 shim, or promptMode "stdin" if the CLI supports it.`,
     unsafeWindowsShellModel: (adapterName) =>
       `${adapterName} cannot safely pass this model identifier through a Windows shell wrapper.`,
+    ollamaOutputTooLarge: (adapterName, maxBytes) =>
+      `${adapterName} received more than ${maxBytes} bytes from Ollama.`,
     noStderrCaptured: "no stderr captured.",
     noPtyOutputCaptured: "no PTY output captured.",
     ollamaModelUnavailable: (model, installedModels) =>

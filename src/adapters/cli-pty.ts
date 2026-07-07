@@ -1,13 +1,11 @@
 /** @file Adapter pseudo-terminal (`node-pty`) pour les CLIs qui exigent une vraie console (ex. Antigravity `agy`). */
-import { existsSync } from "node:fs";
-import path from "node:path";
 import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
-import { executableExtensions } from "../exec.js";
+import { resolveExecutablePath, resolveNativeWindowsExecutable, resolvePowerShellShim } from "../exec.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliPtyAgentConfig } from "../types.js";
-import { DEFAULT_MAX_OUTPUT_BYTES, DEFAULT_TIMEOUT_MS, extractPtyUsageLimitMessage, withModelArgs } from "./cli-shared.js";
+import { DEFAULT_TIMEOUT_MS, extractPtyUsageLimitMessage, resolveMaxOutputBytes, withModelArgs } from "./cli-shared.js";
 import { cleanTerminalOutput } from "./terminal.js";
 
 type PtyProcess = ReturnType<typeof import("node-pty").spawn>;
@@ -54,9 +52,11 @@ export class CliPtyAdapter implements AgentAdapter {
     const errorMessages = createTranslator(prompt.language ?? "fr").adapterErrors;
     const promptMode = this.config.promptMode ?? "stdin";
     const baseArgs = withModelArgs(this.config.args ?? [], this.config.model, this.config.modelArg ?? "--model");
-    const args = promptMode === "argument"
+    const adapterArgs = promptMode === "argument"
       ? [...baseArgs, renderedPrompt]
       : baseArgs;
+    const launch = resolvePtyLaunch(this.config.command, promptMode, this.config.model, this.name, errorMessages);
+    const args = [...launch.argsPrefix, ...adapterArgs];
     const { spawn: spawnPty } = await import("node-pty");
 
     return new Promise<AgentResponse>((resolve, reject) => {
@@ -68,7 +68,7 @@ export class CliPtyAdapter implements AgentAdapter {
       let dataSubscription: { dispose(): void } | undefined;
       let exitSubscription: { dispose(): void } | undefined;
       let abortListener: (() => void) | undefined;
-      const maxOutputBytes = this.config.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
+      const maxOutputBytes = resolveMaxOutputBytes(this.config.maxOutputBytes);
 
       const finish = (error?: Error, exitCode?: number, kill = true) => {
         if (settled) return;
@@ -127,7 +127,7 @@ export class CliPtyAdapter implements AgentAdapter {
       };
 
       try {
-        term = spawnPty(resolveExecutable(this.config.command), args, {
+        term = spawnPty(launch.command, args, {
           name: "xterm-256color",
           cols: this.config.cols ?? 120,
           rows: this.config.rows ?? 40,
@@ -178,27 +178,48 @@ export class CliPtyAdapter implements AgentAdapter {
 }
 
 /**
- * Résout le chemin absolu de l'exécutable dans le `PATH`, requis par `node-pty` qui ne fait pas
- * lui-même cette résolution comme `child_process.spawn`. Retourne `command` tel quel si rien n'est trouvé.
+ * Résout un lancement PTY sûr. Sous Windows, préfère un binaire natif ou le shim PowerShell
+ * npm/pnpm ; refuse les arguments non fiables si seul un wrapper interprété reste disponible.
  */
-function resolveExecutable(command: string): string {
-  if (path.isAbsolute(command) || command.includes("\\") || command.includes("/")) {
-    return command;
+function resolvePtyLaunch(
+  command: string,
+  promptMode: "stdin" | "argument",
+  model: string | undefined,
+  adapterName: string,
+  messages: AdapterErrorMessages
+): { command: string; argsPrefix: string[] } {
+  if (process.platform !== "win32") {
+    return { command: resolveExecutablePath(command) ?? command, argsPrefix: [] };
   }
 
-  for (const directory of (process.env.PATH ?? "").split(path.delimiter)) {
-    const trimmed = directory.trim();
-    if (!trimmed) continue;
-
-    for (const extension of executableExtensions(command)) {
-      const candidate = path.join(trimmed, `${command}${extension}`);
-      if (existsSync(candidate)) {
-        return candidate;
-      }
-    }
+  const native = resolveNativeWindowsExecutable(command);
+  if (native) {
+    return { command: native, argsPrefix: [] };
   }
 
-  return command;
+  const shim = resolvePowerShellShim(command);
+  if (shim) {
+    return {
+      command: "powershell.exe",
+      argsPrefix: ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", shim]
+    };
+  }
+
+  if (promptMode === "argument") {
+    throw new AdapterError("spawn-failed", adapterName, messages.unsafeWindowsShellPrompt(adapterName), {
+      command,
+      promptMode
+    });
+  }
+
+  if (model && /[&|<>()^%!"\r\n]/.test(model)) {
+    throw new AdapterError("spawn-failed", adapterName, messages.unsafeWindowsShellModel(adapterName), {
+      command,
+      model
+    });
+  }
+
+  return { command: resolveExecutablePath(command) ?? command, argsPrefix: [] };
 }
 
 /**

@@ -3,6 +3,7 @@ import { configExists, loadConfig, resolveDefaultConfigPath, resolveOutputDir } 
 import { listHistoryEntries } from "../history.js";
 import { createTranslator, resolveLanguage } from "../i18n.js";
 import { optionalString, type CommandFlags } from "./shared.js";
+import { sanitizeTerminalText } from "../adapters/terminal.js";
 
 /**
  * Liste les exports du dossier de sortie configuré.
@@ -30,7 +31,7 @@ export async function runHistoryCommand(flags: CommandFlags): Promise<void> {
     return;
   }
   for (const entry of entries) {
-    console.log(`- ${entry.date || entry.fileName} | ${entry.mode} | ${entry.topic}`);
-    console.log(`  ${entry.path}`);
+    console.log(`- ${sanitizeTerminalText(entry.date || entry.fileName)} | ${entry.mode} | ${sanitizeTerminalText(entry.topic)}`);
+    console.log(`  ${sanitizeTerminalText(entry.path)}`);
   }
 }

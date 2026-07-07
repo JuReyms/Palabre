@@ -7,6 +7,7 @@ import path from "node:path";
 import type { AgentRole, PalabreConfig, PalabreMode } from "../types.js";
 import type { Messages } from "../messages/index.js";
 import type { HistoryEntry } from "../history.js";
+import { sanitizeTerminalText } from "../adapters/terminal.js";
 import { isRetiredAgentName } from "../agentRegistry.js";
 import { DEFAULT_OLLAMA_BASE_URL, resolveOllamaBaseUrl } from "../ollamaUrl.js";
 import {
@@ -212,12 +213,12 @@ export function renderTuiHistory(entries: HistoryEntry[], messages: Messages): v
       const folderPath = path.dirname(entry.path);
       const folderLabel = folderPath === "." ? dirnamePortable(entry.path) : folderPath;
       return [
-        row(messages.tui.historyMode(entry.mode), entry.topic),
-        row(messages.tui.activeAgents, entry.agents || messages.tui.noValue),
+        row(messages.tui.historyMode(entry.mode), sanitizeTerminalText(entry.topic)),
+        row(messages.tui.activeAgents, sanitizeTerminalText(entry.agents) || messages.tui.noValue),
         ...(entry.count ? [row(messages.tui.historyCount(entry.mode), entry.count)] : []),
         row(messages.tui.historyFile, terminalLink(entry.path, compactFileName(entry.fileName, width - 24))),
         row(messages.tui.folder, terminalLink(folderPath, compactPath(folderLabel, width - 24))),
-        ...(entry.date ? [row("Date", entry.date)] : []),
+        ...(entry.date ? [row("Date", sanitizeTerminalText(entry.date))] : []),
         ""
       ];
     }).slice(0, -1);
