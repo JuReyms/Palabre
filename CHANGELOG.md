@@ -4,6 +4,23 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-07-07
+
+<!-- social: Safer local configs, hardened Windows agent launches, bounded Ollama responses, and protected terminal output. -->
+
+### Changed
+
+- Les configs projet implicites exigent désormais une approbation liée à leur chemin et à leur empreinte ; les configs générées par Palabre sont approuvées automatiquement.
+- Les agents Claude, OpenCode et Vibe générés par défaut utilisent des capacités de lecture plus contraintes, et les prompts identifient explicitement le contexte et les transcripts comme données non fiables.
+- La résolution des exécutables Windows est centralisée et réutilise les binaires natifs ou les shims PowerShell sûrs pour les prompts transmis en argument.
+
+### Fixed
+
+- Les adapters CLI et PTY refusent les lancements Windows susceptibles de réinterpréter un prompt ou un modèle via `cmd.exe`, sans casser Vibe lorsqu'un shim PowerShell est disponible.
+- Les réponses Ollama et la discovery `/api/tags` sont bornées avant parsing ; les erreurs JSON, limites de taille et noms de modèles sont classés et assainis de façon cohérente.
+- Les sorties agents, erreurs distantes, métadonnées d'historique et diagnostics `doctor` ne peuvent plus injecter de séquences de contrôle dans le terminal.
+- `palabre doctor` peut examiner une config projet non approuvée sans contacter les URLs Ollama qu'elle déclare.
+
 ## [0.10.1] - 2026-07-02
 
 <!-- social: Smoother TUI navigation, a clearer guided setup, and useful next actions after every session. -->
