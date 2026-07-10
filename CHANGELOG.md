@@ -4,6 +4,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-07-10
+
 ### Fixed
 
 - Les shims PowerShell npm/pnpm utilisent un hôte résolu sous `System32` quand le processus appelant possède un PATH réduit, notamment depuis VS Code.
