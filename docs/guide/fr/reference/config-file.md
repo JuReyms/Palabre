@@ -26,7 +26,7 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
     "codex": {
       "type": "cli",
       "command": "codex",
-      "args": ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only", "-"],
+      "args": ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only"],
       "promptMode": "stdin",
       "shell": true,
       "role": "implementer"

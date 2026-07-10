@@ -26,7 +26,7 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
     "codex": {
       "type": "cli",
       "command": "codex",
-      "args": ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only", "-"],
+      "args": ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only"],
       "promptMode": "stdin",
       "shell": true,
       "role": "implementer"

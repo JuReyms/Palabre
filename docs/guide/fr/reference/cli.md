@@ -26,6 +26,7 @@ L'accueil TUI applique la même synchronisation prudente des agents connus que `
 | -------------------------------------------- | ----------------------------------------- |
 | `palabre config`                             | Ouvre l'assistant de configuration.       |
 | `palabre config --set-defaults codex claude` | Définit les agents par défaut.            |
+| `palabre agent-role claude critic`       | Définit durablement le rôle d'un agent. |
 | `palabre config -t 4`                        | Définit le nombre de tours par défaut. |
 | `palabre config --summary-agent claude`      | Définit l'agent de synthèse par défaut.   |
 | `palabre config --summary-agent none`        | Retire l'agent de synthèse par défaut.    |
@@ -48,6 +49,7 @@ L'accueil TUI applique la même synchronisation prudente des agents connus que `
 | `palabre -s "Sujet" -t 4` | Lance avec les agents par défaut. |
 | `palabre codex-claude "Sujet" -t 4` | Lance avec un preset. |
 | `palabre run --subject "Sujet" --agent-a codex --agent-b claude` | Lance avec des agents explicites. |
+| `palabre run --subject "Sujet" --agent-a codex --agent-b claude --role-a architect --role-b critic` | Lance avec des rôles temporaires. |
 | `palabre ask "Sujet" --agents codex claude` | Lance une demande avec des réponses indépendantes. |
 
 ## Commandes TUI
@@ -59,7 +61,7 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 | `/ask` | Passe l'accueil TUI en mode Ask. |
 | `/debat` | Passe l'accueil TUI en mode débat. |
 | `/agents` | Affiche les agents disponibles ou modifie les agents actifs si des noms sont fournis. |
-| `/roles` | Affiche les rôles disponibles ou modifie les rôles actifs si des rôles sont fournis. |
+| `/roles` | Affiche les rôles disponibles ou modifie les rôles actifs si des rôles sont fournis. En mode Ask, un seul rôle comme `/roles critic` s'applique à tous les agents Ask. |
 | `/config` | Ouvre les réglages TUI. |
 | `/history` | Affiche les derniers exports Markdown. Alias : `/historique`. |
 | `/update` | Vérifie la version npm et affiche les instructions de mise à jour adaptées. |
@@ -105,6 +107,9 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 | `--preset <name>` | Choisit une paire d'agents. |
 | `--agent-a <name>` | Premier agent. |
 | `--agent-b <name>` | Second agent. |
+| `--role-a <role>` | Rôle temporaire du premier agent, sans modifier la config. |
+| `--role-b <role>` | Rôle temporaire du second agent, sans modifier la config. |
+| `--ask-role <role>` | Rôle commun temporaire appliqué à tous les agents Ask. |
 | `--mode <debate\|ask>` | Choisit le mode d'orchestration. |
 | `--agents <names...>` | Agents du mode ask, 4 maximum. |
 | `-t`, `--turns <number>` | Nombre total de réponses, entre 1 et 20. |

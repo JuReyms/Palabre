@@ -171,3 +171,15 @@ test("an explicit command is detected as the first positional", () => {
 test("an ambiguous single-word subject throws", () => {
   assert.throws(() => parse(["bonjour"]), /ambiguous subject/);
 });
+
+test("role flags and agent-role command are parsed", () => {
+  const run = parse(["codex-claude", "topic", "--role-a", "architect", "--role-b", "critic"]);
+
+  assert.equal(run.flags["role-a"], "architect");
+  assert.equal(run.flags["role-b"], "critic");
+  assert.equal(run.flags.topic, "topic");
+
+  const persistent = parse(["agent-role", "claude", "critic"]);
+  assert.equal(persistent.command, "agent-role");
+  assert.deepEqual(persistent.positionals, ["claude", "critic"]);
+});

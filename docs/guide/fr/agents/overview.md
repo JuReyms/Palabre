@@ -52,7 +52,7 @@ Les rôles ne changent pas le modèle utilisé. Ils changent la consigne envoyé
 
 ## Utiliser un rôle
 
-Un rôle se configure dans `palabre.config.json`, dans l'entrée de l'agent. Il n'existe pas encore d'option de commande comme `--role-a` ou `--role-b`.
+Un rôle durable se configure dans `palabre.config.json`, dans l'entrée de l'agent, ou avec `palabre agent-role <agent> <role>`. Pour un lancement ponctuel, utilisez `--role-a`, `--role-b` en mode débat, ou `--ask-role` pour appliquer un rôle commun aux agents Ask.
 
 Exemple :
 

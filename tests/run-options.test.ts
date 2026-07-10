@@ -69,3 +69,24 @@ test("explicit ask agents are deduplicated and the last one is the summary fallb
 test("invalid mode is rejected while resolving run options", () => {
   assert.throws(() => resolve({ mode: "panel" }, config({ agentA: "codex", agentB: "claude" })), /Unknown mode/);
 });
+
+test("run options validate temporary role overrides", () => {
+  const debate = resolve(
+    { "role-a": "architect", "role-b": "critic" },
+    config({ agentA: "codex", agentB: "claude" })
+  );
+
+  assert.equal(debate.roleA, "architect");
+  assert.equal(debate.roleB, "critic");
+
+  const ask = resolve(
+    { mode: "ask", agents: ["codex", "claude"], "ask-role": "scout" },
+    config()
+  );
+
+  assert.equal(ask.askRole, "scout");
+  assert.throws(
+    () => resolve({ "role-a": "wizard" }, config({ agentA: "codex", agentB: "claude" })),
+    /Unknown role|Role inconnu/
+  );
+});

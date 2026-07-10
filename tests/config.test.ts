@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assertRunnableConfig, DEFAULT_OUTPUT_DIR, createConfigFromDiscovery, exampleConfig, resolveOutputDir, setOllamaBaseUrl, setOllamaModel, syncDetectedAgents, syncDetectedAgentsDetailed, syncOllamaModel } from "../src/config.js";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { assertRunnableConfig, DEFAULT_OUTPUT_DIR, createConfigFromDiscovery, exampleConfig, loadConfig, resolveOutputDir, setOllamaBaseUrl, setOllamaModel, syncDetectedAgents, syncDetectedAgentsDetailed, syncOllamaModel } from "../src/config.js";
 import { createTranslator } from "../src/i18n.js";
 import type { ToolDiscovery } from "../src/discovery.js";
 
@@ -21,6 +24,34 @@ test("exampleConfig declares the default interface language", () => {
   assert.equal(exampleConfig.defaults?.interface, "tui");
 });
 
+test("loadConfig migrates legacy Codex stdin dash arg in memory", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "palabre-config-"));
+  const configPath = path.join(dir, "palabre.config.json");
+
+  try {
+    await writeFile(configPath, JSON.stringify({
+      agents: {
+        codex: {
+          type: "cli",
+          command: "codex",
+          args: ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only", "-"],
+          promptMode: "stdin",
+          shell: true,
+          role: "implementer"
+        }
+      }
+    }), "utf8");
+
+    const config = await loadConfig(configPath);
+
+    assert.deepEqual(
+      config.agents.codex?.type === "cli" ? config.agents.codex.args : undefined,
+      ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only"]
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
 test("createConfigFromDiscovery clears default agents when no pair is detected", () => {
   const config = createConfigFromDiscovery(noDetectedTools());
 
@@ -105,6 +136,25 @@ test("syncDetectedAgentsDetailed leaves custom CLI agents untouched", () => {
   assert.equal(config.agents.codex?.type === "cli" ? config.agents.codex.command : undefined, "codex");
 });
 
+test("syncDetectedAgentsDetailed migrates legacy Codex stdin dash arg", () => {
+  const discovery = noDetectedTools();
+  discovery.codex = { available: true, command: "codex", path: "C:/Users/jurey/AppData/Roaming/npm/codex.ps1" };
+  const config = createConfigFromDiscovery(noDetectedTools());
+  const codex = config.agents.codex;
+
+  assert.equal(codex?.type, "cli");
+  if (codex?.type === "cli") {
+    codex.args = ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only", "-"];
+  }
+
+  const result = syncDetectedAgentsDetailed(config, discovery);
+
+  assert.equal(result.changed, true);
+  assert.deepEqual(
+    config.agents.codex?.type === "cli" ? config.agents.codex.args : undefined,
+    ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only"]
+  );
+});
 test("syncDetectedAgentsDetailed migrates legacy Vibe plan args", () => {
   const discovery = noDetectedTools();
   discovery.vibe = { available: true, command: "vibe", path: "C:/bin/vibe.cmd" };
@@ -234,7 +284,6 @@ test("setOllamaModel updates the configured Ollama model", () => {
   );
   assert.equal(result?.nextModel, "gemma3:12b");
 });
-
 
 test("setOllamaBaseUrl updates every configured Ollama agent", () => {
   const config = createConfigFromDiscovery(noDetectedTools());

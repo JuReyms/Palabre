@@ -194,3 +194,31 @@ function session(): SessionContext {
     cwd: "C:\\Users\\jurey\\Documents\\Dev\\Palabre"
   };
 }
+
+test("runtime role overrides are used for debate and ask messages", async () => {
+  const config: PalabreConfig = {
+    agents: {
+      first: scriptedCliAgent("First answer."),
+      second: scriptedCliAgent("Second answer.")
+    }
+  };
+
+  const debate = await runDebate(config, debateOptions({
+    turns: 2,
+    roleA: "architect",
+    roleB: "critic",
+    summaryEnabled: false
+  }), undefined, createTranslator("en"));
+
+  assert.deepEqual(debate.messages.map((message) => message.role), ["architect", "critic"]);
+  assert.equal(config.agents.first?.role, "reviewer");
+
+  const ask = await runAsk(config, debateOptions({
+    mode: "ask",
+    askAgents: ["first", "second"],
+    askRole: "scout",
+    summaryEnabled: false
+  }), undefined, createTranslator("en"));
+
+  assert.deepEqual(ask.messages.map((message) => message.role), ["scout", "scout"]);
+});

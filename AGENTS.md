@@ -214,7 +214,7 @@ Politique de versioning du champ `v` : ajout de champ optionnel sans bump, suppr
 
 ### Role
 
-Les roles ne sont pas decoratifs. Ils ajoutent une consigne de role dans les prompts et pourront guider plus tard les modes d'orchestration.
+Les roles ne sont pas decoratifs. Ils ajoutent une consigne de role dans les prompts et pourront guider plus tard les modes d'orchestration. Un role durable se modifie dans la config ou via `palabre agent-role <agent> <role>`. Un role temporaire de session se passe avec `--role-a`, `--role-b` en mode debat ou `--ask-role` en mode Ask ; ces flags ne modifient pas la config.
 
 Roles supportes :
 
@@ -253,7 +253,7 @@ La config generee conserve les blocs agents connus pour rester editable, mais aj
 
 Au lancement, Palabre ne doit pas utiliser de fallback agent code en dur : sans preset, sans agents explicites et sans defaults de config, il doit afficher une erreur actionnable.
 
-Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` quand disponible. Ollama reste configure et accessible via presets, mais il est plutot destine aux power users ou aux roles locaux (`critic`, `scout`, `summarizer`). Les defaults utilisateur se gerent par `palabre config`, `palabre config --set-defaults <agentA> <agentB>`, `palabre config --mode <debate|ask>`, `palabre config --interface <tui|terminal>`, `palabre config --ask-agents <agents...>`, `palabre config --summary-agent <agent|none>`, `palabre config --ask-summary-agent <agent|none>` et `palabre config --clear-defaults`.
+Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` quand disponible. Ollama reste configure et accessible via presets, mais il est plutot destine aux power users ou aux roles locaux (`critic`, `scout`, `summarizer`). Les defaults utilisateur se gerent par `palabre config`, `palabre config --set-defaults <agentA> <agentB>`, `palabre config --mode <debate|ask>`, `palabre config --interface <tui|terminal>`, `palabre config --ask-agents <agents...>`, `palabre config --summary-agent <agent|none>`, `palabre config --ask-summary-agent <agent|none>` et `palabre config --clear-defaults`. Les roles persistants se gerent par `palabre agent-role <agent> <role>` ou par edition JSON explicite.
 
 ## New
 
@@ -282,7 +282,7 @@ Pour une installation package, la commande affiche les commandes `pnpm add --glo
 
 `src/adapters/cli.ts` est volontairement minimal. Il sert d'abord les modes batch des CLIs :
 
-- Codex : `codex exec ... -`
+- Codex : `codex exec ...`
 - Claude : `claude --print --tools Read,Glob,Grep`
 - OpenCode : `opencode run --pure`
 - Mistral Vibe : `vibe --output text --trust --enabled-tools read --enabled-tools grep --prompt <prompt>`
@@ -435,6 +435,7 @@ Limites actuelles :
 
 - 1 à 4 agents via `--agents`.
 - Sans `--agents`, Palabre utilise `defaults.askAgents` si défini, sinon la paire `agentA/agentB`.
+- `--ask-role <role>` applique un role commun temporaire a tous les agents Ask sans modifier la config. Dans la TUI, `/roles critic` en mode Ask applique aussi `critic` a tous les agents Ask actifs ; fournir plusieurs roles reste possible pour les cas avances.
 - `palabre config --mode ask` peut faire d'ask le mode par defaut, et `palabre config --ask-agents codex claude opencode` definit la liste ask par defaut.
 - La synthese utilise `--summary-agent`, puis `defaults.askSummaryAgent`, puis `defaults.summaryAgent`, puis le dernier agent ask.
 - Le rendu console affiche par défaut la synthèse et les réponses complètes de chaque agent.

@@ -52,7 +52,7 @@ Roles do not change the model used. They change the instruction sent in the prom
 
 ## Using a role
 
-A role is configured in `palabre.config.json`, in the agent entry. There is no command option like `--role-a` or `--role-b` yet.
+A persistent role is configured in `palabre.config.json`, in the agent entry, or with `palabre agent-role <agent> <role>`. For a one-off run, use `--role-a`, `--role-b` in debate mode, or `--ask-role` to apply one shared role to Ask agents.
 
 Example:
 

@@ -37,7 +37,7 @@ Palabre only passes the prompt. If you specify `--model-a` or `--model-b`, the v
 "codex": {
   "type": "cli",
   "command": "codex",
-  "args": ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only", "-"],
+  "args": ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only"],
   "promptMode": "stdin",
   "shell": true,
   "role": "implementer"

@@ -37,7 +37,7 @@ Palabre transmet seulement le prompt. Si vous indiquez `--model-a` ou `--model-b
 "codex": {
   "type": "cli",
   "command": "codex",
-  "args": ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only", "-"],
+  "args": ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only"],
   "promptMode": "stdin",
   "shell": true,
   "role": "implementer"

@@ -26,6 +26,7 @@ The TUI home screen performs the same conservative known-agent synchronization a
 |---------|-------------|
 | `palabre config` | Opens the configuration assistant. |
 | `palabre config --set-defaults codex claude` | Sets the default agents. |
+| `palabre agent-role claude critic` | Sets one agent persistent role. |
 | `palabre config -t 4` | Sets the default number of turns. |
 | `palabre config --summary-agent claude` | Sets the default summary agent. |
 | `palabre config --summary-agent none` | Removes the default summary agent. |
@@ -48,6 +49,7 @@ The TUI home screen performs the same conservative known-agent synchronization a
 | `palabre -s "Subject" -t 4` | Launches with default agents. |
 | `palabre codex-claude "Subject" -t 4` | Launches with a preset. |
 | `palabre run --subject "Subject" --agent-a codex --agent-b claude` | Launches with explicit agents. |
+| `palabre run --subject "Subject" --agent-a codex --agent-b claude --role-a architect --role-b critic` | Launches with temporary roles. |
 | `palabre ask "Subject" --agents codex claude` | Runs a request with independent responses. |
 
 ## TUI Commands
@@ -59,7 +61,7 @@ These commands are available from the TUI home screen or from `/config` dependin
 | `/ask` | Switches the TUI home screen to Ask mode. |
 | `/debat` | Switches the TUI home screen to debate mode. |
 | `/agents` | Displays available agents or updates active agents when names are provided. |
-| `/roles` | Displays available roles or updates active roles when roles are provided. |
+| `/roles` | Displays available roles or updates active roles when roles are provided. In Ask mode, a single role such as `/roles critic` applies to all Ask agents. |
 | `/config` | Opens TUI settings. |
 | `/history` | Shows recent Markdown exports. Alias: `/historique`. |
 | `/update` | Checks the npm version and displays installation-specific update instructions. |
@@ -105,6 +107,9 @@ These commands are available from the TUI home screen or from `/config` dependin
 | `--preset <name>` | Selects an agent pair. |
 | `--agent-a <name>` | First agent. |
 | `--agent-b <name>` | Second agent. |
+| `--role-a <role>` | Temporary role for the first agent, without editing config. |
+| `--role-b <role>` | Temporary role for the second agent, without editing config. |
+| `--ask-role <role>` | Temporary shared role applied to all Ask agents. |
 | `--mode <debate\|ask>` | Selects the orchestration mode. |
 | `--agents <names...>` | Ask mode agents, 4 maximum. |
 | `-t`, `--turns <number>` | Total number of turns, between 1 and 20. |

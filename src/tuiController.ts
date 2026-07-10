@@ -6,7 +6,7 @@ import { createTranslator, DEFAULT_LANGUAGE, parseLanguage } from "./i18n.js";
 import { MAX_ASK_AGENTS, validateTurns } from "./limits.js";
 import { DEFAULT_OLLAMA_BASE_URL, normalizeOllamaBaseUrl, OllamaUrlError, resolveOllamaBaseUrl } from "./ollamaUrl.js";
 import { promptTuiAgentsWizard, promptTuiConfigCommand, promptTuiRolesWizard, renderTuiConfig } from "./renderers/tui.js";
-import type { AgentRole, PalabreConfig, PalabreMode } from "./types.js";
+import { isAgentRole, VALID_AGENT_ROLES, type AgentRole, type PalabreConfig, type PalabreMode } from "./types.js";
 import type { Messages } from "./messages/index.js";
 
 /**
@@ -478,26 +478,26 @@ function activeAgentsForMode(config: PalabreConfig, mode: PalabreMode): string[]
 function normalizeTuiRoles(roleNames: string[], agents: string[], mode: PalabreMode, messages: Messages): AgentRole[] {
   const roles = roleNames.map((role) => role.trim().toLowerCase()).filter(Boolean);
   const expectedCount = agents.length;
-  if (roles.length < expectedCount) {
+  if (roles.length < expectedCount && !(mode === "ask" && roles.length === 1)) {
     const agentLabel = mode === "ask"
       ? agents.join(", ")
       : agents.join(" <-> ");
     throw new Error(messages.tui.rolesCountError(roles.length, expectedCount, agentLabel));
   }
 
-  return roles.slice(0, expectedCount).map((role) => {
+  const parsedRoles = roles.map((role) => {
     if (isAgentRole(role)) {
       return role;
     }
     throw new Error(messages.tui.unknownRole(role, VALID_AGENT_ROLES.join(", ")));
   });
-}
 
-function isAgentRole(value: string): value is AgentRole {
-  return (VALID_AGENT_ROLES as readonly string[]).includes(value);
-}
+  if (mode === "ask" && parsedRoles.length === 1) {
+    return agents.map(() => parsedRoles[0]!);
+  }
 
-const VALID_AGENT_ROLES: readonly AgentRole[] = ["implementer", "reviewer", "architect", "scout", "critic", "summarizer"];
+  return parsedRoles.slice(0, expectedCount);
+}
 
 function assertKnownAgent(config: PalabreConfig, agentName: string, fieldName: string, messages: Messages): void {
   if (!config.agents[agentName]) {

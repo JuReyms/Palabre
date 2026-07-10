@@ -29,7 +29,7 @@ import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { clearTuiRunOverrides } from "./tuiState.js";
 import { formatOllamaUrlError, OllamaUrlError } from "./ollamaUrl.js";
 import { compareSemver, getLatestPackageVersion, getPackageVersion } from "./version.js";
-import type { DebateOptions, PalabreConfig, PalabreInterface } from "./types.js";
+import { isAgentRole, VALID_AGENT_ROLES, type DebateOptions, type PalabreConfig, type PalabreInterface } from "./types.js";
 import type { Messages } from "./messages/index.js";
 import { runAgentsCommand } from "./commands/agents.js";
 import { runContextCommand } from "./commands/context.js";
@@ -69,6 +69,11 @@ async function main(): Promise<void> {
 
   if (parsed.command === "config") {
     await runConfigCommand(parsed.flags);
+    return;
+  }
+
+  if (parsed.command === "agent-role") {
+    await runAgentRoleCommand(parsed.flags, parsed.positionals);
     return;
   }
 
@@ -451,6 +456,43 @@ function debateAbortSignal(): AbortSignal {
 }
 
 /**
+ * Exécute `agent-role <agent> <role>` : met à jour le rôle durable d'un agent dans la config.
+ * @param flags - Flags parsés depuis la ligne de commande.
+ * @param positionals - Agent puis rôle demandés.
+ */
+async function runAgentRoleCommand(flags: Record<string, string | string[] | boolean>, positionals: string[]): Promise<void> {
+  const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
+  const explicitLanguage = optionalString(flags.language);
+
+  if (!(await configExists(configPath))) {
+    const messages = createTranslator(resolveLanguage({ explicitLanguage }));
+    await writeConfig(configPath);
+    console.log(messages.config.createdForConfig(configPath));
+  }
+
+  const config = await loadConfig(configPath);
+  const language = resolveLanguage({
+    explicitLanguage,
+    configLanguage: config.language
+  });
+  const messages = createTranslator(language);
+  const [agentName, roleValue] = positionals;
+
+  if (!agentName || !roleValue) {
+    throw new Error(messages.common.optionRequiresValue("agent-role <agent> <role>"));
+  }
+
+  assertKnownAgent(config, agentName, "agent-role", messages);
+  const role = roleValue.trim().toLowerCase();
+  if (!isAgentRole(role)) {
+    throw new Error(messages.tui.unknownRole(role, VALID_AGENT_ROLES.join(", ")));
+  }
+
+  config.agents[agentName]!.role = role;
+  await writeConfig(configPath, config);
+  console.log(messages.config.agentRoleUpdated(configPath, agentName, role));
+}
+/**
  * Exécute la commande `config` : wizard interactif ou mise à jour directe des paramètres par défaut.
  * @param flags - Flags parsés depuis la ligne de commande.
  */
@@ -762,13 +804,14 @@ function printPromptPreview(config: PalabreConfig, options: DebateOptions, langu
     throw new Error(messages.common.unknownAgent(previewAgent));
   }
 
+  const previewRole = options.mode === "ask" ? options.askRole ?? agentConfig.role : options.roleA ?? agentConfig.role;
   const prompt = formatAgentPrompt({
     topic: options.topic,
     turn: 1,
     totalTurns: options.mode === "ask" ? options.askAgents?.length ?? 1 : options.turns,
     selfName: previewAgent,
     peerName,
-    selfRole: agentConfig.role,
+    selfRole: previewRole,
     mode: options.mode === "ask" ? "ask" : "debate",
     language: options.language,
     session: options.session,
@@ -777,7 +820,7 @@ function printPromptPreview(config: PalabreConfig, options: DebateOptions, langu
   });
 
   console.log(messages.preview.title);
-  console.log(messages.preview.agent(previewAgent, agentConfig.role));
+  console.log(messages.preview.agent(previewAgent, previewRole));
   console.log(messages.preview.peer(peerName));
   console.log(messages.preview.pullModels(options.pullModels));
   console.log(messages.preview.summary(options.summaryEnabled ? options.summaryAgent : messages.preview.disabled));

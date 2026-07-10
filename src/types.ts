@@ -9,6 +9,14 @@ export type AgentRole =
   | "critic"
   | "summarizer";
 
+/** Liste canonique des rôles exposés par le CLI et les intégrations. */
+export const VALID_AGENT_ROLES: readonly AgentRole[] = ["implementer", "reviewer", "architect", "scout", "critic", "summarizer"];
+
+/** Vérifie qu'une chaîne reçue depuis la CLI ou une intégration est un rôle supporté. */
+export function isAgentRole(value: string): value is AgentRole {
+  return (VALID_AGENT_ROLES as readonly string[]).includes(value);
+}
+
 /** Niveau de ressources de l'agent. Positionne Ollama en rôle secondaire par défaut. */
 export type AgentTier = "primary" | "premium" | "local";
 
@@ -124,6 +132,9 @@ export interface DebateOptions {
   files: ProjectFileContext[];
   modelA?: string;
   modelB?: string;
+  roleA?: AgentRole;
+  roleB?: AgentRole;
+  askRole?: AgentRole;
   ollamaUrl?: string;
   pullModels: boolean;
   summaryAgent: string;

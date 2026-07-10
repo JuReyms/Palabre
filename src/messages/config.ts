@@ -14,6 +14,7 @@ export interface ConfigMessages {
   ollamaModelsApi(available: boolean, baseUrl: string): string;
   ollamaModelsInstalled(models: string[]): string;
   updated(path: string, defaults: string, language: string): string;
+  agentRoleUpdated(path: string, agent: string, role: string): string;
   cleared(path: string): string;
   defaultsSummary(agentA: string | undefined, agentB: string | undefined, turns: number, summaryAgent: string | undefined, askSummaryAgent?: string, mode?: string, askAgents?: string[], interfaceName?: string): string;
   wizardNeedsTwoAgents: string;
@@ -65,6 +66,7 @@ export const configMessages: Record<Language, ConfigMessages> = {
     ollamaModelsApi: (available, baseUrl) => `Ollama API: ${available ? "joignable" : "indisponible"} (${baseUrl})`,
     ollamaModelsInstalled: (models) => `Modèles installés: ${models.length > 0 ? models.join(", ") : "(aucun)"}`,
     updated: (path, defaults, language) => `Configuration mise à jour dans ${path}: ${defaults}, langue: ${language}.`,
+    agentRoleUpdated: (path, agent, role) => `Rôle mis à jour dans ${path}: ${agent} -> ${role}.`,
     cleared: (path) => `Paramètres par défaut supprimés dans ${path}. Utilise maintenant un preset ou --agent-a/--agent-b pour lancer un débat.`,
     defaultsSummary: (agentA, agentB, turns, summaryAgent, askSummaryAgent, mode, askAgents, interfaceName) => {
       const modeLabel = `mode: ${mode ?? "debate"}`;
@@ -122,6 +124,7 @@ export const configMessages: Record<Language, ConfigMessages> = {
     ollamaModelsApi: (available, baseUrl) => `Ollama API: ${available ? "reachable" : "unavailable"} (${baseUrl})`,
     ollamaModelsInstalled: (models) => `Installed models: ${models.length > 0 ? models.join(", ") : "(none)"}`,
     updated: (path, defaults, language) => `Configuration updated in ${path}: ${defaults}, language: ${language}.`,
+    agentRoleUpdated: (path, agent, role) => `Agent role updated in ${path}: ${agent} -> ${role}.`,
     cleared: (path) => `Default settings cleared in ${path}. Use a preset or --agent-a/--agent-b to start a debate now.`,
     defaultsSummary: (agentA, agentB, turns, summaryAgent, askSummaryAgent, mode, askAgents, interfaceName) => {
       const modeLabel = `mode: ${mode ?? "debate"}`;

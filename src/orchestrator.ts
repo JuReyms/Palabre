@@ -37,8 +37,8 @@ export async function runDebate(
   renderer?: DebateRenderer,
   messages: Messages = createTranslator("fr")
 ): Promise<DebateResult> {
-  const agentAConfig = withRuntimeOverrides(config.agents[options.agentA], options.modelA, options.pullModels);
-  const agentBConfig = withRuntimeOverrides(config.agents[options.agentB], options.modelB, options.pullModels);
+  const agentAConfig = withRuntimeOverrides(config.agents[options.agentA], options.modelA, options.pullModels, options.roleA);
+  const agentBConfig = withRuntimeOverrides(config.agents[options.agentB], options.modelB, options.pullModels, options.roleB);
 
   if (!agentAConfig) {
     throw new Error(messages.common.unknownAgent(options.agentA));
@@ -154,7 +154,7 @@ export async function runAsk(
   }
 
   const agentEntries = askAgentNames.map((name) => {
-    const agentConfig = withRuntimeOverrides(config.agents[name], modelForAgent(options, name), options.pullModels);
+    const agentConfig = withRuntimeOverrides(config.agents[name], modelForAgent(options, name), options.pullModels, options.askRole);
 
     if (!agentConfig) {
       throw new Error(messages.common.unknownAgent(name));
@@ -514,7 +514,8 @@ function modelForAgent(options: DebateOptions, agent: string): string | undefine
 function withRuntimeOverrides(
   config: AgentConfig | undefined,
   model: string | undefined,
-  pullModels: boolean
+  pullModels: boolean,
+  role?: AgentRole
 ): AgentConfig | undefined {
   if (!config) {
     return config;
@@ -523,17 +524,19 @@ function withRuntimeOverrides(
   if (config.type === "ollama") {
     return {
       ...config,
+      ...(role ? { role } : {}),
       ...(model ? { model } : {}),
       ...(pullModels ? { autoPullModel: true } : {})
     };
   }
 
-  if (!model) {
+  if (!model && !role) {
     return config;
   }
 
   return {
     ...config,
-    model
+    ...(role ? { role } : {}),
+    ...(model ? { model } : {})
   };
 }

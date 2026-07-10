@@ -20,6 +20,18 @@ Flags:
   --language <fr|en>   definit la langue
   --config <path>      chemin de config explicite
 `,
+  "agent-role": `
+Modifie le rôle durable d'un agent dans la configuration.
+
+Usage:
+  palabre agent-role <agent> <role>
+
+Exemple:
+  palabre agent-role claude critic
+
+Roles:
+  implementer, reviewer, architect, scout, critic, summarizer
+`,
   agents: `
 Liste les agents declares dans la config.
 
@@ -153,6 +165,7 @@ Usage:
 Flags:
   --agents <names...>  agents qui repondent, 4 maximum
   --summary-agent <n>  agent de synthese pour ce lancement
+  --ask-role <role>    rôle commun temporaire pour les agents Ask
   --ollama-url <url>   surcharge l'adresse Ollama pour cette session
   --tui                force l'interface TUI
   --terminal           force le rendu terminal brut
@@ -309,6 +322,7 @@ Usage:
 Flags:
   --agents <names...>  responding agents, 4 maximum
   --summary-agent <n>  summary agent for this run
+  --ask-role <role>    temporary shared role for Ask agents
   --ollama-url <url>   overrides the Ollama address for this session
   --tui                forces the TUI interface
   --terminal           forces raw terminal rendering
@@ -343,6 +357,7 @@ Commandes:
   new        Assistant interactif de debat
   ask        Demande multi-agents independante
   agents     Lister les agents configures
+  agent-role Modifier le role durable d'un agent
   presets    Lister les presets disponibles
   history    Lister les derniers exports
   context    Scanner le contexte projet
@@ -357,6 +372,9 @@ Flags:
   -v, --version           affiche la version
   -s, --subject <text>    sujet du debat
   -t, --turns <number>    nombre total de reponses
+  --role-a <role>         role temporaire de l'agent A
+  --role-b <role>         role temporaire de l'agent B
+  --ask-role <role>       role commun temporaire en Ask
   --tui                   force l'interface TUI
   --terminal              force le rendu terminal brut
   --language <fr|en>      force la langue
@@ -395,6 +413,7 @@ Commands:
   new        Interactive debate assistant
   ask        Independent multi-agent request
   agents     List configured agents
+  agent-role Update one agent persistent role
   presets    List available presets
   history    List recent exports
   context    Scan project context
@@ -409,6 +428,9 @@ Flags:
   -v, --version           show version
   -s, --subject <text>    debate subject
   -t, --turns <number>    total number of responses
+  --role-a <role>         temporary role for agent A
+  --role-b <role>         temporary role for agent B
+  --ask-role <role>       temporary shared role in Ask
   --tui                   forces the TUI interface
   --terminal              forces raw terminal rendering
   --language <fr|en>      force language

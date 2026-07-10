@@ -4,6 +4,17 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-07-10
+
+### Added
+
+- Rôles de session : `--role-a`, `--role-b` et `--ask-role` appliquent des rôles temporaires sans modifier la configuration. `palabre agent-role <agent> <role>` actualise explicitement le rôle durable pour un agent.
+- Le contrat v1 `palabre agents --json` expose désormais `roles`, le catalogue canonique utilisable par les intégrations.
+
+### Changed
+
+- Les configurations Codex historiques sont migrées en mémoire vers le mode `exec` lecture seule actuel lors du chargement.
+
 ## [0.10.2] - 2026-07-07
 
 <!-- social: Safer local configs, hardened Windows agent launches, bounded Ollama responses, and protected terminal output. -->

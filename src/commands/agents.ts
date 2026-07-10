@@ -5,7 +5,7 @@ import { createTranslator, resolveLanguage } from "../i18n.js";
 import { turnsOrDefault } from "../limits.js";
 import { listAgentsWithAvailability } from "../presets.js";
 import { detectionForCommand, isRetiredAgentName } from "../agentRegistry.js";
-import type { AgentConfig, PalabreConfig } from "../types.js";
+import { VALID_AGENT_ROLES, type AgentConfig, type PalabreConfig } from "../types.js";
 import type { Messages } from "../messages/index.js";
 import { optionalString, type CommandFlags } from "./shared.js";
 
@@ -34,6 +34,7 @@ export async function runAgentsCommand(flags: CommandFlags): Promise<void> {
       .filter((name): name is string => typeof name === "string" && !isRetiredAgentName(name));
     process.stdout.write(JSON.stringify({
       v: 1,
+      roles: VALID_AGENT_ROLES,
       agents: listAgentsWithAvailability(config, discovery, messages),
       defaults: {
         askAgents: config.defaults?.askAgents?.length

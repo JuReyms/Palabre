@@ -24,6 +24,14 @@ const CLAUDE_SAFE_ARGS = [
   "--tools",
   "Read,Glob,Grep"
 ];
+const CODEX_SAFE_ARGS = [
+  "exec",
+  "--skip-git-repo-check",
+  "--color",
+  "never",
+  "--sandbox",
+  "read-only"
+];
 const OPENCODE_SAFE_ARGS = ["run", "--pure"];
 const VIBE_SAFE_ARGS = [
   "--output",
@@ -53,15 +61,7 @@ export const exampleConfig: PalabreConfig = {
     codex: {
       type: "cli",
       command: "codex",
-      args: [
-        "exec",
-        "--skip-git-repo-check",
-        "--color",
-        "never",
-        "--sandbox",
-        "read-only",
-        "-"
-      ],
+      args: [...CODEX_SAFE_ARGS],
       promptMode: "stdin",
       shell: process.platform === "win32",
       role: "implementer",
@@ -136,13 +136,15 @@ export function resolveOutputDir(outputDir: string | undefined): string {
 export async function loadConfig(configPath = DEFAULT_CONFIG_PATH): Promise<PalabreConfig> {
   const resolved = path.resolve(configPath);
   const raw = await readFile(resolved, "utf8");
-  return JSON.parse(raw) as PalabreConfig;
+  const config = JSON.parse(raw) as PalabreConfig;
+  migrateKnownAgentDefaults(config);
+  return config;
 }
 
 /**
  * Valide qu'une config chargée est exploitable pour lancer un débat.
  *
- * `loadConfig` se contente de parser le JSON ; cette garde attrape les configs
+ * `loadConfig` parse le JSON et applique les migrations sûres en mémoire ; cette garde attrape les configs
  * structurellement cassées (racine non-objet, bloc `agents` absent ou vide)
  * avant qu'elles ne provoquent un `TypeError` opaque dans l'orchestrateur.
  * Volontairement minimale : la validation sémantique fine (agents par défaut
@@ -259,6 +261,15 @@ export function syncDetectedAgents(config: PalabreConfig, discovery: ToolDiscove
 }
 
 function migrateKnownAgentDefaults(config: PalabreConfig): void {
+  migrateExactCliArgs(config, "codex", [[
+    "exec",
+    "--skip-git-repo-check",
+    "--color",
+    "never",
+    "--sandbox",
+    "read-only",
+    "-"
+  ]], CODEX_SAFE_ARGS);
   migrateExactCliArgs(config, "claude", [[
     "--print",
     "--output-format",

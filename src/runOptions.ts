@@ -5,7 +5,7 @@ import { normalizeOllamaBaseUrl } from "./ollamaUrl.js";
 import { createSessionContext } from "./session.js";
 import { askAgentSeedsForMode } from "./tuiState.js";
 import type { AgentPairPreset } from "./presets.js";
-import type { DebateOptions, Language, PalabreConfig, PalabreInterface, PalabreMode, ProjectFileContext } from "./types.js";
+import { isAgentRole, VALID_AGENT_ROLES, type AgentRole, type DebateOptions, type Language, type PalabreConfig, type PalabreInterface, type PalabreMode, type ProjectFileContext } from "./types.js";
 import type { Messages } from "./messages/index.js";
 import { optionalString, type CommandFlags } from "./commands/shared.js";
 
@@ -53,6 +53,9 @@ export function resolveRunOptions(input: ResolveRunOptionsInput, messages: Messa
     files,
     modelA: optionalString(flags["model-a"]),
     modelB: optionalString(flags["model-b"]),
+    roleA: parseRoleOverride(flags["role-a"], "--role-a", messages),
+    roleB: parseRoleOverride(flags["role-b"], "--role-b", messages),
+    askRole: parseRoleOverride(flags["ask-role"], "--ask-role", messages),
     ollamaUrl: ollamaUrl ? normalizeOllamaBaseUrl(ollamaUrl) : undefined,
     pullModels: Boolean(flags["pull-models"]),
     summaryAgent: resolveSummaryAgent(flags["summary-agent"], config.defaults, mode, askAgents, agentB),
@@ -79,6 +82,13 @@ function resolveSummaryAgent(explicitValue: string | string[] | boolean | undefi
   return defaults?.summaryAgent ?? agentB;
 }
 
+/** Valide un override de rôle temporaire sans modifier la config. */
+function parseRoleOverride(value: string | string[] | boolean | undefined, flagName: string, messages: Messages): AgentRole | undefined {
+  const role = optionalString(value)?.trim().toLowerCase();
+  if (!role) return undefined;
+  if (isAgentRole(role)) return role;
+  throw new Error(messages.tui.unknownRole(role, VALID_AGENT_ROLES.join(", ")) + ` (${flagName})`);
+}
 /**
  * Valide le mode demandé (`--mode`, `config --mode`) et applique `debate` quand
  * aucune valeur n'est fournie. Partagé entre `run` et la commande `config`.
