@@ -1,7 +1,7 @@
 /** @file Adapter pseudo-terminal (`node-pty`) pour les CLIs qui exigent une vraie console (ex. Antigravity `agy`). */
 import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
-import { resolveExecutablePath, resolveNativeWindowsExecutable, resolvePowerShellShim } from "../exec.js";
+import { resolveExecutablePath, resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePowerShellShim } from "../exec.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliPtyAgentConfig } from "../types.js";
@@ -198,9 +198,10 @@ function resolvePtyLaunch(
   }
 
   const shim = resolvePowerShellShim(command);
-  if (shim) {
+  const powerShellExecutable = shim ? resolvePowerShellExecutable() : undefined;
+  if (shim && powerShellExecutable) {
     return {
-      command: "powershell.exe",
+      command: powerShellExecutable,
       argsPrefix: ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", shim]
     };
   }

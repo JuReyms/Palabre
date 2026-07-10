@@ -2,7 +2,7 @@
 import { spawn } from "node:child_process";
 import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
-import { resolveNativeWindowsExecutable, resolvePowerShellShim } from "../exec.js";
+import { resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePowerShellShim } from "../exec.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
@@ -222,13 +222,14 @@ function resolveWindowsSpawnSafety(
 
   const nativeCommand = resolveNativeWindowsExecutable(command);
   const powerShellShim = resolvePowerShellShim(command);
+  const powerShellExecutable = powerShellShim ? resolvePowerShellExecutable() : undefined;
 
   if (nativeCommand && !isWindowsAppsExecutionAlias(nativeCommand)) {
     return { command: nativeCommand, shell: false, argsPrefix: [] };
   }
-  if (powerShellShim) {
+  if (powerShellShim && powerShellExecutable) {
     return {
-      command: "powershell.exe",
+      command: powerShellExecutable,
       shell: false,
       argsPrefix: ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", powerShellShim]
     };

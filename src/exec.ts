@@ -64,7 +64,18 @@ export function resolveNativeWindowsExecutable(command: string): string | undefi
   return resolveExecutablePath(command, [".exe", ".com"]);
 }
 
-/** Trouve le shim PowerShell frère généré par npm/pnpm pour éviter `cmd.exe`. */
+/** Résout un hôte Windows PowerShell absolu, même si le PATH appelant est réduit. */
+export function resolvePowerShellExecutable(): string | undefined {
+  const fromPath = resolveExecutablePath("powershell.exe", [""]);
+  if (fromPath) return fromPath;
+
+  const systemRoot = process.env.SystemRoot ?? process.env.WINDIR;
+  if (!systemRoot) return undefined;
+  const candidate = path.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+  return existsSync(candidate) ? candidate : undefined;
+}
+
+/** Trouve le shim PowerShell frère généré par npm/pnpm. */
 export function resolvePowerShellShim(command: string): string | undefined {
   const extension = path.extname(command).toLowerCase();
   if (extension) {
