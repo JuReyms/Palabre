@@ -15,6 +15,11 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 - Les configurations Codex historiques sont migrées en mémoire vers le mode `exec` lecture seule actuel lors du chargement.
 
+### Fixed
+
+- Sous Windows, les alias Codex de `WindowsApps` ne sont plus préférés au shim PowerShell npm/pnpm, ce qui évite les erreurs `spawn EPERM`.
+- Les sorties CLI encodées en Windows-1252 sont décodées correctement lorsque UTF-8 est invalide, notamment pour Mistral Vibe.
+
 ## [0.10.2] - 2026-07-07
 
 <!-- social: Safer local configs, hardened Windows agent launches, bounded Ollama responses, and protected terminal output. -->

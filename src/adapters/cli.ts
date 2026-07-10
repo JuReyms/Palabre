@@ -1,6 +1,5 @@
 /** @file Adapter CLI batch minimal : spawn, injection du prompt, capture stdout, classement des erreurs connues. */
 import { spawn } from "node:child_process";
-import { StringDecoder } from "node:string_decoder";
 import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
 import { resolveNativeWindowsExecutable, resolvePowerShellShim } from "../exec.js";
@@ -73,10 +72,8 @@ export class CliAdapter implements AgentAdapter {
         shell: spawnSafety.shell
       });
 
-      let stdout = "";
-      let stderr = "";
-      const stdoutDecoder = new StringDecoder("utf8");
-      const stderrDecoder = new StringDecoder("utf8");
+      const stdoutChunks: Buffer[] = [];
+      const stderrChunks: Buffer[] = [];
       let settled = false;
       let outputBytes = 0;
       let hardTimer: ReturnType<typeof setTimeout>;
@@ -98,6 +95,8 @@ export class CliAdapter implements AgentAdapter {
           return;
         }
 
+        const stdout = decodeCliBytes(stdoutChunks);
+        const stderr = decodeCliBytes(stderrChunks);
         const content = cleanCliOutput(stdout);
 
         if (!content && !this.config.allowEmptyOutput) {
@@ -151,7 +150,7 @@ export class CliAdapter implements AgentAdapter {
       bumpIdleTimer();
 
       // stdout et stderr partagent le même budget `maxOutputBytes`.
-      const createDataHandler = (decoder: StringDecoder, append: (text: string) => void) => (chunk: Buffer) => {
+      const createDataHandler = (chunks: Buffer[]) => (chunk: Buffer) => {
         outputBytes += chunk.length;
         if (outputBytes > maxOutputBytes) {
           killChildProcess(child);
@@ -161,17 +160,13 @@ export class CliAdapter implements AgentAdapter {
           }));
           return;
         }
-        append(decoder.write(chunk));
+        chunks.push(chunk);
         bumpIdleTimer();
       };
 
-      child.stdout.on("data", createDataHandler(stdoutDecoder, (text) => {
-        stdout += text;
-      }));
+      child.stdout.on("data", createDataHandler(stdoutChunks));
 
-      child.stderr.on("data", createDataHandler(stderrDecoder, (text) => {
-        stderr += text;
-      }));
+      child.stderr.on("data", createDataHandler(stderrChunks));
 
       child.on("error", (error: NodeJS.ErrnoException) => {
         const kind = error.code === "ENOENT" ? "command-not-found" : "spawn-failed";
@@ -181,10 +176,8 @@ export class CliAdapter implements AgentAdapter {
         }));
       });
       const finishFromExitCode = (code: number | null) => {
-        stdout += stdoutDecoder.end();
-        stderr += stderrDecoder.end();
         if (code && code !== 0) {
-          finish(createCliExitError(this.name, code, stderr, errorMessages));
+          finish(createCliExitError(this.name, code, decodeCliBytes(stderrChunks), errorMessages));
           return;
         }
 
@@ -198,6 +191,15 @@ export class CliAdapter implements AgentAdapter {
       }
       child.stdin.end();
     });
+  }
+}
+
+function decodeCliBytes(chunks: readonly Buffer[]): string {
+  const bytes = Buffer.concat(chunks);
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes);
   }
 }
 
@@ -219,11 +221,11 @@ function resolveWindowsSpawnSafety(
   }
 
   const nativeCommand = resolveNativeWindowsExecutable(command);
-  if (nativeCommand) {
+  const powerShellShim = resolvePowerShellShim(command);
+
+  if (nativeCommand && !isWindowsAppsExecutionAlias(nativeCommand)) {
     return { command: nativeCommand, shell: false, argsPrefix: [] };
   }
-
-  const powerShellShim = resolvePowerShellShim(command);
   if (powerShellShim) {
     return {
       command: "powershell.exe",
@@ -251,6 +253,11 @@ function resolveWindowsSpawnSafety(
   }
 
   return { command, shell: true, argsPrefix: [] };
+}
+
+/** Les alias WindowsApps ne sont pas des exécutables fiables pour child_process. */
+function isWindowsAppsExecutionAlias(command: string): boolean {
+  return command.toLowerCase().includes("\\windowsapps\\");
 }
 
 /** Retire les séquences ANSI et les espaces en tête/fin. */

@@ -92,6 +92,17 @@ test("CliAdapter preserves UTF-8 characters split across stdout chunks", async (
   assert.doesNotMatch(response.content, /�/);
 });
 
+test("CliAdapter decodes Windows-1252 output when UTF-8 is invalid", async () => {
+  const adapter = new CliAdapter("mock", cliConfig({
+    args: ["-e", "process.stdout.write(Buffer.from([0x56, 0xE9, 0x72, 0x69, 0x66, 0x69, 0x65, 0x72]))"]
+  }));
+
+  const response = await adapter.generate(basePrompt());
+
+  assert.equal(response.content, "Vérifier");
+  assert.doesNotMatch(response.content, /�/);
+});
+
 test("CliAdapter bypasses the Windows shell for native executables and preserves metacharacters", { skip: process.platform !== "win32" }, async () => {
   const adapter = new CliAdapter("mock", cliConfig({
     args: ["-e", "process.stdout.write(process.argv.at(-1) ?? '')"],
