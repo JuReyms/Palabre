@@ -24,6 +24,7 @@ import { createNdjsonRenderer } from "./renderers/ndjson.js";
 import { createTuiRenderer, promptTuiHomeTopic, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiUpdate, type TuiHomeInput } from "./renderers/tui.js";
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
+import { buildDryRunPreview, printDryRun } from "./dryRun.js";
 import { formatUpdateInstructions, getUpdateInfo } from "./update.js";
 import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { clearTuiRunOverrides } from "./tuiState.js";
@@ -353,6 +354,12 @@ async function main(): Promise<void> {
       return;
     }
 
+    if (parsed.flags["dry-run"]) {
+      const trusted = await isConfigTrusted(configPath);
+      const ndjson = parsed.flags.json === true || optionalString(parsed.flags.renderer) === "ndjson";
+      printDryRun(buildDryRunPreview(config, configPath, trusted, options, context.warnings, resolveOutputDir(config.outputDir)), ndjson, messages);
+      return;
+    }
     process.exitCode = undefined;
     const renderer = createRendererFromFlags(parsed.flags, options.plainOutput, config.defaults?.interface, messages);
     context.warnings.forEach((warning) => renderer.warning(warning));

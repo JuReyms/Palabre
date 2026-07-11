@@ -124,6 +124,7 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 | `--files <paths...>` | Injecte des fichiers précis. |
 | `--context <paths...>` | Scanne fichiers ou dossiers texte. |
 | `--show-prompt` | Affiche le prompt du premier tour sans appeler d'agent. |
+| `--dry-run` | Prévisualise la session résolue sans appeler d'agent ni écrire d'export. |
 
 ## Mise à jour
 

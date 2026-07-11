@@ -124,6 +124,7 @@ These commands are available from the TUI home screen or from `/config` dependin
 | `--files <paths...>` | Injects specific files. |
 | `--context <paths...>` | Scans text files or folders. |
 | `--show-prompt` | Displays the first turn prompt without calling any agent. |
+| `--dry-run` | Previews the resolved session without calling agents or writing an export. |
 
 ## Update
 

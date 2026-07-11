@@ -130,6 +130,12 @@ palabre codex-claude "Sujet" --show-prompt
 
 Cette commande affiche le prompt du premier tour, les agents et les options de synthèse, puis s'arrête. C'est utile pour vérifier le contexte envoyé sans consommer de requête IA.
 
+Pour vérifier l'ensemble de la session résolue — agents, rôles, contexte, limites et dossier d'export prévu — sans appeler d'agent ni écrire d'export :
+
+```bash
+palabre codex-claude "Sujet" --context src --dry-run
+```
+
 ## Interface TUI et rendu terminal brut
 
 Par défaut, Palabre privilégie l'interface TUI quand la sortie est un vrai terminal. `palabre` ouvre l'accueil, et une commande directe comme `palabre codex-claude "Sujet" -t 4` lance la session avec le rendu TUI.
