@@ -18,6 +18,8 @@ PALABRE is a TUI-first CLI orchestrator that lets multiple AI agents installed o
 
 It does not replace your tools: it drives them. You keep your subscriptions, default models, terminal habits, and local files. Run `palabre` to open the interactive TUI, then launch a Debate between two agents or an Ask session where several agents answer independently before a comparative summary. PALABRE exports each session as Markdown.
 
+PALABRE helps you make better decisions before acting: it is a harness for orchestrated collective intelligence. A session can consult one or several agents, make a decision explicit through a synthesis, then optionally prepare an action that always remains under your control.
+
 ### Documentation
 
 - https://palab.re
@@ -135,6 +137,8 @@ MIT. See [LICENSE](./LICENSE).
 PALABRE est un orchestrateur CLI orienté TUI qui fait travailler plusieurs agents IA installés sur votre machine : Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe et Ollama.
 
 Il ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos modèles par défaut, vos habitudes de terminal et vos fichiers en local. Lancez `palabre` pour ouvrir la TUI interactive, puis démarrez un débat entre deux agents ou une demande Ask où plusieurs agents répondent indépendamment avant une synthèse comparative. PALABRE exporte chaque session en Markdown.
+
+PALABRE aide à mieux décider avant d’agir : c’est un harnais d’intelligence collective orchestrée. Une session permet de consulter un ou plusieurs agents, de rendre une décision explicite grâce à une synthèse, puis éventuellement de préparer une action qui reste toujours sous votre contrôle.
 
 ### Documentation
 

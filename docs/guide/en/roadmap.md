@@ -5,6 +5,18 @@ description: Discover what is already available in Palabre and the improvements 
 
 This page gives an overview of the planned evolution of Palabre. It helps users understand where the project is headed, without committing to delivery dates.
 
+## Product direction
+
+Palabre helps you **make better decisions before acting**. It is a harness for orchestrated collective intelligence: it lets your chosen AI tools exchange views, organizes disagreement, and makes decisions explicit.
+
+Future improvements belong to one shared session rather than a growing set of separate modes:
+
+- **Consult**: talk with one agent, request several opinions, or run a debate;
+- **Decide**: synthesize, explore a conclusion further, prepare or review a plan;
+- **Act**: prepare an action and, only after explicit confirmation, delegate it to an appropriate tool.
+
+Acting is optional and remains under the user's control. Palabre is not intended to replace coding assistants or specialized tools: its role is to clarify a decision and provide a clean path to the next step when you choose it.
+
 ## Available today
 
 Palabre already lets you run debates between two agents installed on your machine, or Ask requests where several agents answer independently before a comparative summary: Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe, or Ollama.
@@ -67,4 +79,4 @@ These topics are considered after the CLI stabilizes:
 
 ## Philosophy
 
-Palabre will remain centered on a simple principle: drive the AI tools you already have installed, without replacing their accounts, models, subscriptions, or privacy policies.
+Palabre will remain centered on a simple principle: drive the AI tools you already have installed, without replacing their accounts, models, subscriptions, or privacy policies. Its differentiator is organized disagreement, explicit synthesis, and controlled action.
