@@ -30,6 +30,13 @@ body:
     validations:
       required: true
   - type: textarea
+    id: lifecycle_impact
+    attributes:
+      label: Session, contract, and action impact
+      description: Describe the impact on session state, outputs/integration contracts, mutations or capabilities, and privacy. Write N/A explicitly for each dimension that does not apply.
+    validations:
+      required: true
+  - type: textarea
     id: alternatives
     attributes:
       label: Alternatives considered
