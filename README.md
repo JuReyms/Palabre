@@ -5,6 +5,7 @@
   <a href="https://www.npmjs.com/package/palabre"><img src="https://img.shields.io/npm/dm/palabre.svg?style=flat&colorA=18181B&colorB=7C3AED" alt="Downloads"></a>
   <a href="https://github.com/JuReyms/Palabre/blob/main/LICENSE"><img src="https://img.shields.io/github/license/JuReyms/Palabre.svg?style=flat&colorA=18181B&colorB=7C3AED" alt="License"></a>
   <a href="https://palab.re"><img src="https://img.shields.io/badge/docs-palab.re-18181B?logo=netlify&logoColor=7C3AED" alt="Documentation"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode"><img src="https://img.shields.io/visual-studio-marketplace/v/JuReyms.palabre-vscode.svg?style=flat&colorA=18181B&colorB=007ACC&label=VS%20Code" alt="VS Code Marketplace"></a>
 </p>
 
 ![Palabre CLI orchestrating a debate between AI agents](docs/assets/palabre-cli-orchestre-debates-between-AI-agents.png)
@@ -57,6 +58,12 @@ palabre context scan src docs --json
 ```
 
 In an interactive terminal, Palabre uses the TUI by default. `palabre` opens the home screen, creates the global config on first launch when needed, and refreshes detected known agents before showing the UI. `/ask` switches from debate to independent answers, `/agents` and `/roles` help you choose the active setup, `/history` shows recent exports, and `/home` returns to the home screen. `--terminal` forces the older raw rendering suitable for logs. `palabre init` remains available for explicit setup, especially with `--local`.
+
+### VS Code extension
+
+Prefer a visual workflow inside your editor? Install [Palabre for VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode). The extension opens a Palabre sidebar, lets you choose Debate or Ask sessions, attach workspace context, follow the conversation live, and open the Markdown export from VS Code.
+
+It remains a thin client: the extension launches the local `palabre` CLI and consumes the public JSON/NDJSON contracts documented below.
 
 ### Supported Agents
 
@@ -169,6 +176,12 @@ palabre context scan src docs --json
 ```
 
 Dans un terminal interactif, Palabre utilise l'interface TUI par défaut. `palabre` ouvre l'accueil, crée la config globale au premier lancement si nécessaire, et rafraîchit les agents connus détectés avant d'afficher l'interface. `/ask` passe du débat aux réponses indépendantes, `/agents` et `/roles` aident à choisir la configuration courante, `/history` affiche les derniers exports, et `/home` revient à l'accueil. `--terminal` force l'ancien rendu brut adapté aux logs. `palabre init` reste disponible pour un setup explicite, notamment avec `--local`.
+
+### Extension VS Code
+
+Vous préférez piloter Palabre depuis l'éditeur ? Installez [Palabre pour VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode). L'extension ajoute une barre latérale Palabre, permet de choisir Débat ou Ask, d'ajouter du contexte de workspace, de suivre la conversation en direct et d'ouvrir l'export Markdown depuis VS Code.
+
+Elle reste un client mince : l'extension lance le CLI local `palabre` et consomme les contrats JSON/NDJSON publics documentés ci-dessous.
 
 ### Agents supportés
 
