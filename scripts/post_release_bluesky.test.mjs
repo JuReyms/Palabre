@@ -38,6 +38,7 @@ test('builds an English post within the Bluesky limit', () => {
   const release = parseRelease(changelog, 'v1.2.3')
   release.social += ` ${'long summary '.repeat(40)}`
   const post = buildPost(release)
+  assert.match(post, /^Palabre CLI v1\.2\.3 is out 🎉/)
   assert.match(post, /2 new features · 1 fix/)
   assert.ok(post.endsWith('https://palab.re/en/changelog'))
   assert.ok(graphemeCount(post) <= MAX_GRAPHEMES)
@@ -49,9 +50,9 @@ test('does not split compound emoji', () => {
 
 test('computes UTF-8 link offsets', () => {
   const url = 'https://palab.re/en/changelog'
-  const text = `Palabre 🎉\n${url}`
+  const text = `Palabre CLI 🎉\n${url}`
   const [facet] = linkFacet(text, url)
   const encoder = new TextEncoder()
-  assert.equal(facet.index.byteStart, encoder.encode('Palabre 🎉\n').length)
+  assert.equal(facet.index.byteStart, encoder.encode('Palabre CLI 🎉\n').length)
   assert.equal(facet.index.byteEnd, encoder.encode(text).length)
 })

@@ -47,7 +47,7 @@ function countSummary(sections) {
 }
 
 export function buildPost(release, url = DEFAULT_URL) {
-  const heading = `Palabre v${release.version} is out 🎉`
+  const heading = `Palabre CLI v${release.version} is out 🎉`
   const counts = countSummary(release.sections)
   const summaryPrefix = release.social ? 'Highlights: ' : ''
   const fixedLength = graphemeCount(`${heading}\n${counts}\n${summaryPrefix}\n${url}`)
