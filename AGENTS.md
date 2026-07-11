@@ -4,9 +4,15 @@ Ce fichier guide les agents et contributeurs qui travaillent dans ce depot.
 
 ## Vision
 
-Palabre est un meta-CLI qui orchestre un debat entre plusieurs agents IA. Le produit cible des utilisateurs deja a l'aise avec le terminal, ayant installe et configure leurs outils IA locaux : Codex CLI, Claude CLI, Ollama, ou equivalents.
+Palabre est un meta-CLI qui orchestre un debat entre plusieurs agents IA. Il aide a mieux decider avant d'agir : un harnais d'intelligence collective orchestree qui organise des avis contradictoires, rend les arbitrages explicites et peut preparer une action sous controle utilisateur. Le produit cible des utilisateurs deja a l'aise avec le terminal, ayant installe et configure leurs outils IA locaux : Codex CLI, Claude CLI, Ollama, ou equivalents.
 
 Le principe d'architecture important : Palabre orchestre des adapters. Claude, Codex, Antigravity et Ollama ne doivent pas etre codes comme des cas speciaux dans le moteur de debat.
+
+Toute evolution produit doit appartenir a l'une de ces intentions, sans creer de silo :
+
+- consulter : discussion avec un agent, Ask ou debat ;
+- decider : synthese, suivi, plan ou revue de plan ;
+- agir : operation explicitement confirmee, comme une mutation de config ou l'execution deleguee a une CLI.
 
 ## Frontiere CLI / integrations
 

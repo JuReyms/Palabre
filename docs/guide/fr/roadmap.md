@@ -5,6 +5,18 @@ description: Découvrir ce qui est déjà disponible dans Palabre et les amélio
 
 Cette page donne une vue d'ensemble des évolutions prévues pour Palabre. Elle aide les utilisateurs à comprendre où va le projet, sans promettre de date de livraison.
 
+## Direction du produit
+
+Palabre aide à **mieux décider avant d’agir**. C’est un harnais d’intelligence collective orchestrée : il fait dialoguer les outils IA que vous avez choisis, organise les avis contradictoires et rend les décisions explicites.
+
+Les évolutions futures s’inscrivent dans une même session, plutôt que dans une multiplication de modes indépendants :
+
+- **Consulter** : discuter avec un agent, demander plusieurs avis ou lancer un débat ;
+- **Décider** : synthétiser, approfondir une conclusion, préparer ou faire relire un plan ;
+- **Agir** : préparer une action et, seulement après confirmation explicite, la déléguer à un outil adapté.
+
+L’action reste optionnelle et sous le contrôle de l’utilisateur. Palabre n’a pas vocation à remplacer les assistants de code ou les outils spécialisés : son rôle est d’éclairer une décision et d’enchaîner proprement vers l’étape suivante quand vous le souhaitez.
+
 ## Disponible aujourd'hui
 
 Palabre permet déjà de lancer des débats entre deux agents installés sur votre machine, ou des demandes Ask où plusieurs agents répondent indépendamment avant une synthèse comparative : Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe ou Ollama.
@@ -68,4 +80,4 @@ Ces sujets sont envisagés après stabilisation du CLI :
 
 ## Philosophie
 
-Palabre restera centré sur un principe simple : piloter les outils IA que vous avez déjà installés, sans remplacer leurs comptes, leurs modèles, leurs abonnements ou leurs règles de confidentialité.
+Palabre restera centré sur un principe simple : piloter les outils IA que vous avez déjà installés, sans remplacer leurs comptes, leurs modèles, leurs abonnements ou leurs règles de confidentialité. Son différenciateur est le désaccord organisé, la synthèse explicite et l’action sous contrôle.
