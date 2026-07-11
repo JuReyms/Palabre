@@ -7,7 +7,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 ### Changed
 
 - Les posts Bluesky de release annoncent explicitement `Palabre CLI vX.Y.Z` pour les distinguer des releases de l'extension VS Code.
-- Le README met en avant l'extension VS Code avec un badge Marketplace et une section dédiée en anglais/français.
+- Le README met en avant l'extension VS Code avec un badge Marketplace statique et une section dédiée en anglais/français.
+- Le README présente plus clairement `palabre` comme l'expérience TUI principale, avec les exemples CLI relégués à l'usage scriptable.
 
 ## [0.11.1] - 2026-07-10
 

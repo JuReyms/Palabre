@@ -5,7 +5,7 @@
   <a href="https://www.npmjs.com/package/palabre"><img src="https://img.shields.io/npm/dm/palabre.svg?style=flat&colorA=18181B&colorB=7C3AED" alt="Downloads"></a>
   <a href="https://github.com/JuReyms/Palabre/blob/main/LICENSE"><img src="https://img.shields.io/github/license/JuReyms/Palabre.svg?style=flat&colorA=18181B&colorB=7C3AED" alt="License"></a>
   <a href="https://palab.re"><img src="https://img.shields.io/badge/docs-palab.re-18181B?logo=netlify&logoColor=7C3AED" alt="Documentation"></a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode"><img src="https://img.shields.io/visual-studio-marketplace/v/JuReyms.palabre-vscode.svg?style=flat&colorA=18181B&colorB=007ACC&label=VS%20Code" alt="VS Code Marketplace"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode"><img src="https://img.shields.io/badge/VS%20Code-Marketplace-7C3AED?style=flat&colorA=18181B&logo=visualstudiocode&logoColor=white" alt="VS Code Marketplace"></a>
 </p>
 
 ![Palabre CLI orchestrating a debate between AI agents](docs/assets/palabre-cli-orchestre-debates-between-AI-agents.png)
@@ -14,9 +14,9 @@
 
 ## English
 
-PALABRE is a CLI/TUI orchestrator that lets multiple AI agents installed on your machine work together: Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe, and Ollama.
+PALABRE is a TUI-first CLI orchestrator that lets multiple AI agents installed on your machine work together: Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe, and Ollama.
 
-It does not replace your tools: it drives them. You keep your subscriptions, default models, terminal habits, and local files. PALABRE can run a debate between two agents or an Ask request where several agents answer independently before a comparative summary. It then exports the session as Markdown.
+It does not replace your tools: it drives them. You keep your subscriptions, default models, terminal habits, and local files. Run `palabre` to open the interactive TUI, then launch a Debate between two agents or an Ask session where several agents answer independently before a comparative summary. PALABRE exports each session as Markdown.
 
 ### Documentation
 
@@ -45,7 +45,7 @@ palabre doctor
 palabre
 ```
 
-Direct examples:
+Scriptable CLI examples:
 
 ```bash
 palabre codex-claude "Review this plan" -t 4
@@ -57,7 +57,7 @@ palabre codex-claude "Preview" --context src --show-prompt
 palabre context scan src docs --json
 ```
 
-In an interactive terminal, Palabre uses the TUI by default. `palabre` opens the home screen, creates the global config on first launch when needed, and refreshes detected known agents before showing the UI. `/ask` switches from debate to independent answers, `/agents` and `/roles` help you choose the active setup, `/history` shows recent exports, and `/home` returns to the home screen. `--terminal` forces the older raw rendering suitable for logs. `palabre init` remains available for explicit setup, especially with `--local`.
+In an interactive terminal, `palabre` opens the TUI by default. The home screen creates the global config on first launch when needed, refreshes detected known agents, and gives you a composer for Debate or Ask sessions. `/ask` switches from debate to independent answers, `/agents` and `/roles` help you choose the active setup, `/history` shows recent exports, and `/home` returns to the home screen. `--terminal` forces the raw renderer for logs and scripts. `palabre init` remains available for explicit setup, especially with `--local`.
 
 ### VS Code extension
 
@@ -107,7 +107,7 @@ PALABRE runs locally and does not send data to a PALABRE-owned server. Data sent
 
 If an agent fails during the debate or final summary, PALABRE keeps the partial Markdown export with an interruption section whenever possible.
 
-### Local Development
+### Contributing / local development
 
 ```bash
 git clone https://github.com/JuReyms/Palabre.git
@@ -132,9 +132,9 @@ MIT. See [LICENSE](./LICENSE).
 
 ## Français
 
-PALABRE est un orchestrateur CLI/TUI qui fait travailler plusieurs agents IA installés sur votre machine : Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe et Ollama.
+PALABRE est un orchestrateur CLI orienté TUI qui fait travailler plusieurs agents IA installés sur votre machine : Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe et Ollama.
 
-Il ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos modèles par défaut, vos habitudes de terminal et vos fichiers en local. PALABRE peut lancer un débat entre deux agents ou une demande Ask où plusieurs agents répondent indépendamment avant une synthèse comparative. Il exporte ensuite la session en Markdown.
+Il ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos modèles par défaut, vos habitudes de terminal et vos fichiers en local. Lancez `palabre` pour ouvrir la TUI interactive, puis démarrez un débat entre deux agents ou une demande Ask où plusieurs agents répondent indépendamment avant une synthèse comparative. PALABRE exporte chaque session en Markdown.
 
 ### Documentation
 
@@ -163,7 +163,7 @@ palabre doctor
 palabre
 ```
 
-Exemples directs :
+Exemples CLI scriptables :
 
 ```bash
 palabre codex-claude "Critique ce plan" -t 4
@@ -175,7 +175,7 @@ palabre codex-claude "Preview" --context src --show-prompt
 palabre context scan src docs --json
 ```
 
-Dans un terminal interactif, Palabre utilise l'interface TUI par défaut. `palabre` ouvre l'accueil, crée la config globale au premier lancement si nécessaire, et rafraîchit les agents connus détectés avant d'afficher l'interface. `/ask` passe du débat aux réponses indépendantes, `/agents` et `/roles` aident à choisir la configuration courante, `/history` affiche les derniers exports, et `/home` revient à l'accueil. `--terminal` force l'ancien rendu brut adapté aux logs. `palabre init` reste disponible pour un setup explicite, notamment avec `--local`.
+Dans un terminal interactif, `palabre` ouvre la TUI par défaut. L'accueil crée la config globale au premier lancement si nécessaire, rafraîchit les agents connus détectés et fournit un composer pour les sessions Débat ou Ask. `/ask` passe du débat aux réponses indépendantes, `/agents` et `/roles` aident à choisir la configuration courante, `/history` affiche les derniers exports, et `/home` revient à l'accueil. `--terminal` force le rendu brut pour les logs et les scripts. `palabre init` reste disponible pour un setup explicite, notamment avec `--local`.
 
 ### Extension VS Code
 
@@ -225,7 +225,7 @@ PALABRE tourne localement et n'envoie aucune donnée à un serveur appartenant �
 
 Si un agent échoue pendant le débat ou la synthèse, PALABRE conserve l'export Markdown partiel avec une section d'interruption quand c'est possible.
 
-### Développement local
+### Contribution / développement local
 
 ```bash
 git clone https://github.com/JuReyms/Palabre.git
