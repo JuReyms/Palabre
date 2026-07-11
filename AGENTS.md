@@ -863,14 +863,14 @@ Suivre semver :
 
 ## Issues GitHub
 
-Toute issue GitHub creee ou mise a jour par un agent doit recevoir au moins un label existant :
+Toute issue GitHub creee ou mise a jour par un agent doit recevoir exactement un label de type existant :
 
-- `bug` pour une regression ou un comportement incorrect reproductible ;
-- `enhancement` pour une fonctionnalite, une amelioration produit ou une dette technique planifiee ;
-- `documentation` pour une documentation, une ADR ou une evolution de contrat documentaire ;
-- `question` uniquement quand l'objectif est d'obtenir une decision ou une information externe avant toute implementation.
+- `type: bug` pour une regression ou un comportement incorrect reproductible ;
+- `type: feature` pour une fonctionnalite, une amelioration produit ou une dette technique planifiee ;
+- `type: documentation` pour une documentation, une ADR ou une evolution de contrat documentaire ;
+- `type: question` uniquement quand l'objectif est d'obtenir une decision ou une information externe avant toute implementation.
 
-Ne pas creer de nouveau label sans demande explicite. Ne pas appliquer `duplicate`, `invalid`, `wontfix`, `good first issue` ou `help wanted` sans validation explicite du mainteneur. Quand une issue couvre plusieurs aspects, choisir le label correspondant a son objectif principal plutot que multiplier les labels.
+Ajouter aussi un label de zone quand le perimetre est clair : `area: cli`, `area: vscode-extension` ou `area: website`. Ne pas creer de nouveau label sans demande explicite. Ne pas appliquer les anciens labels generiques (`bug`, `enhancement`, `documentation`, `question`) aux nouvelles issues, ni `duplicate`, `invalid`, `wontfix`, `good first issue` ou `help wanted` sans validation explicite du mainteneur.
 
 ## Style de contribution
 
