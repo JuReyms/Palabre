@@ -861,6 +861,17 @@ Suivre semver :
 - `minor` : nouvelle fonctionnalite retro-compatible.
 - `major` : changement cassant de l'interface CLI ou du format de config.
 
+## Issues GitHub
+
+Toute issue GitHub creee ou mise a jour par un agent doit recevoir au moins un label existant :
+
+- `bug` pour une regression ou un comportement incorrect reproductible ;
+- `enhancement` pour une fonctionnalite, une amelioration produit ou une dette technique planifiee ;
+- `documentation` pour une documentation, une ADR ou une evolution de contrat documentaire ;
+- `question` uniquement quand l'objectif est d'obtenir une decision ou une information externe avant toute implementation.
+
+Ne pas creer de nouveau label sans demande explicite. Ne pas appliquer `duplicate`, `invalid`, `wontfix`, `good first issue` ou `help wanted` sans validation explicite du mainteneur. Quand une issue couvre plusieurs aspects, choisir le label correspondant a son objectif principal plutot que multiplier les labels.
+
 ## Style de contribution
 
 - Preferer des changements petits et comprehensibles.

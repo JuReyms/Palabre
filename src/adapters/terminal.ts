@@ -14,10 +14,21 @@ export function sanitizeTerminalText(output: string): string {
     .replace(/\u001b[@-_]/g, "")
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
+    // NEL (C1, U+0085) est un retour ligne utilisé par certains pseudo-terminaux.
+    // Le normaliser avant le filtrage des contrôles C1 pour ne pas coller deux lignes.
+    .replace(/\u0085/g, "\n")
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/g, "");
 }
 
 /** Retire les contrôles terminaux, normalise les retours ligne et nettoie les bords. */
 export function cleanTerminalOutput(output: string): string {
   return sanitizeTerminalText(output).trim();
+}
+
+/**
+ * Nettoie une sortie PTY et restaure les titres Markdown que certains terminaux
+ * concatènent directement après une phrase terminée.
+ */
+export function cleanPtyOutput(output: string): string {
+  return cleanTerminalOutput(output).replace(/([.!?])(?=#{1,6}\s)/g, "$1\n\n");
 }

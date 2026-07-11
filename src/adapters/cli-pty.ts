@@ -6,7 +6,7 @@ import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliPtyAgentConfig } from "../types.js";
 import { DEFAULT_TIMEOUT_MS, extractPtyUsageLimitMessage, resolveMaxOutputBytes, withModelArgs } from "./cli-shared.js";
-import { cleanTerminalOutput } from "./terminal.js";
+import { cleanPtyOutput, cleanTerminalOutput } from "./terminal.js";
 
 type PtyProcess = ReturnType<typeof import("node-pty").spawn>;
 
@@ -95,7 +95,7 @@ export class CliPtyAdapter implements AgentAdapter {
           return;
         }
 
-        const content = cleanTerminalOutput(output);
+        const content = cleanPtyOutput(output);
 
         // Le PTY fusionne stdout/stderr : seuls les diagnostics autonomes ou machine
         // sont acceptés pour éviter de rejeter une réponse normale parlant de rate-limit.
