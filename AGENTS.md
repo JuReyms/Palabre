@@ -782,17 +782,26 @@ Les releases sont gerees via des tags Git. Deux workflows GitHub Actions sont en
 - `.github/workflows/ci.yml` : type check + tests + build sur chaque push `main` et chaque PR.
 - `.github/workflows/release.yml` : type check + tests + build + pack + publication npm via Trusted Publishing + creation de release GitHub sur chaque tag `v*`.
 
-### Creer une release
+### Preparer et publier une release
 
 ```bash
-# Bumper la version dans package.json et creer le tag Git
-pnpm version patch   # ou minor / major
-git push && git push --tags
+# Depuis une branche de release, sans creer de tag local
+pnpm version patch --no-git-tag-version   # ou minor / major
+# Mettre a jour CHANGELOG.md, ouvrir puis fusionner la PR de release
 ```
 
-Avant `pnpm version`, mettre a jour `CHANGELOG.md` avec l'entree de la version cible.
+Avant le bump, mettre a jour `CHANGELOG.md` avec l'entree datee de la version cible. La PR de release contient au minimum `package.json` et le changelog ; `main` reste protegee et ne recoit pas de commit direct.
 
-`pnpm version` met a jour `package.json`, cree un commit de version et un tag `vX.Y.Z`. Le push du tag declenche le workflow `release.yml` qui :
+Apres fusion de la PR, taguer exactement le commit courant de `main`, puis pousser seulement ce tag :
+
+```bash
+git switch main
+git pull --ff-only
+git tag vX.Y.Z
+git push origin vX.Y.Z
+```
+
+Le push du tag declenche le workflow `release.yml` qui :
 
 1. installe les dependances (`--frozen-lockfile`) ;
 2. verifie les types (`pnpm check`) ;
