@@ -4,11 +4,17 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-07-11
+
 ### Changed
 
 - Les posts Bluesky de release annoncent explicitement `Palabre CLI vX.Y.Z` pour les distinguer des releases de l'extension VS Code.
 - Le README met en avant l'extension VS Code avec un badge Marketplace statique et une section dédiée en anglais/français.
 - Le README présente plus clairement `palabre` comme l'expérience TUI principale, avec les exemples CLI relégués à l'usage scriptable.
+
+### Fixed
+
+- Les titres Markdown collés dans les sorties PTY d'Antigravity sont séparés avant le rendu et l''export, afin de préserver la structure des synthèses.
 
 ## [0.11.1] - 2026-07-10
 
