@@ -6,6 +6,7 @@
  * requête `ask` via l'orchestrateur.
  */
 import path from "node:path";
+import { createInterface } from "node:readline/promises";
 import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeConfig } from "./config.js";
 import { isConfigTrusted, isImplicitProjectConfig, trustConfig } from "./configTrust.js";
 import { loadProjectInputs } from "./context.js";
@@ -41,6 +42,7 @@ import { runUpdateCommand } from "./commands/update.js";
 import { optionalString } from "./commands/shared.js";
 import { runTuiAgentsWizard, runTuiConfigLoop, runTuiRolesWizard, syncInteractiveDetectedAgents } from "./tuiController.js";
 import { parseInterfaceFlag, parseModeFlag, resolveRunOptions } from "./runOptions.js";
+import { runStatelessChatTurn } from "./chat.js";
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
 async function main(): Promise<void> {
@@ -141,6 +143,11 @@ async function main(): Promise<void> {
   let messages = createTranslator(language);
 
   assertRunnableConfig(config, messages, configPath);
+
+  if (parsed.command === "chat") {
+    await runChatCommand(parsed.flags, config, language, messages);
+    return;
+  }
 
   let stayInTuiAfterSession = false;
   let hasCompletedTuiSession = false;
@@ -1021,4 +1028,32 @@ function safeStartupLanguage(args: string[]) {
   } catch {
     return DEFAULT_LANGUAGE;
   }
+}
+
+/** Lance une conversation locale stateless avec l'agent A résolu. `/exit` termine la session. */
+async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig, language: import("./types.js").Language, messages: Messages): Promise<void> {
+  const topic = optionalString(flags.topic);
+  if (!topic) throw new Error(messages.common.topicRequired);
+  const context = await loadProjectInputs(
+    getStringListFlag(flags.files),
+    getStringListFlag(flags.context),
+    process.cwd(),
+    messages
+  );
+  printContextWarnings(context.warnings, messages);
+  const options = resolveRunOptions({ flags, config, language, topic, files: context.files, signal: debateAbortSignal() }, messages);
+  const agentConfig = config.agents[options.agentA];
+  if (!agentConfig) throw new Error(messages.common.unknownAgent(options.agentA));
+  const readline = createInterface({ input: process.stdin, output: process.stdout });
+  const transcript: import("./types.js").DebateMessage[] = [];
+  try {
+    process.stdout.write(`${messages.chat.intro(options.agentA)} ${messages.chat.exitHint}\n${messages.chat.questionPrompt}`);
+    for await (const line of readline) {
+      const userMessage = line.trim();
+      if (!userMessage || userMessage === "/exit" || userMessage === "/quit") break;
+      const turn = await runStatelessChatTurn({ agentName: options.agentA, agentConfig, topic, userMessage, transcript, language, session: options.session, files: options.files, signal: options.signal });
+      transcript.push(turn.user, turn.assistant);
+      process.stdout.write(`\n${messages.chat.assistantLabel(turn.assistant.agent)}\n${turn.assistant.content}\n\n${messages.chat.questionPrompt}`);
+    }
+  } finally { readline.close(); }
 }

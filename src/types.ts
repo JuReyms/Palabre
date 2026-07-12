@@ -154,7 +154,7 @@ export interface AgentPrompt {
   selfName: string;
   peerName: string;
   selfRole: AgentRole;
-  mode?: "debate" | "ask" | "summary";
+  mode?: "debate" | "ask" | "chat" | "summary";
   session: SessionContext;
   files: ProjectFileContext[];
   transcript: DebateMessage[];

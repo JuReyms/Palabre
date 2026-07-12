@@ -51,6 +51,15 @@ The TUI home screen performs the same conservative known-agent synchronization a
 | `palabre run --subject "Subject" --agent-a codex --agent-b claude` | Launches with explicit agents. |
 | `palabre run --subject "Subject" --agent-a codex --agent-b claude --role-a architect --role-b critic` | Launches with temporary roles. |
 | `palabre ask "Subject" --agents codex claude` | Runs a request with independent responses. |
+| `palabre chat "Subject" --agent-a codex` | Opens a continued conversation with one agent. |
+
+## Conversation with one agent
+
+`palabre chat "Subject" --agent-a <agent>` opens a terminal conversation. For every message, Palabre starts a new call to the selected CLI and injects the accumulated history into it. The result can therefore remain coherent in the current session without relying on a persistent interactive session inside Codex, Claude, or another tool.
+
+Use `/exit` or `/quit` to finish. `--role-a`, `--model-a`, `--language`, `--files`, and `--context` remain available. Without `--agent-a`, Palabre uses the configured default agent A.
+
+This first version creates no export, never automatically consults another agent, and performs no action. The agent may suggest a consultation when it would help, but the user always keeps the initiative.
 
 ## TUI Commands
 

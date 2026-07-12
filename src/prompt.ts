@@ -18,6 +18,10 @@ export function formatAgentPrompt(input: AgentPrompt): string {
     return formatAskPrompt(input, messages);
   }
 
+  if (input.mode === "chat") {
+    return formatChatPrompt(input, messages);
+  }
+
   const transcript = formatTranscript(input.transcript);
 
   return [
@@ -55,6 +59,42 @@ export function formatAgentPrompt(input: AgentPrompt): string {
     .join("\n");
 }
 
+/** Formate le prompt d'un tour de conversation stateless avec l'utilisateur. */
+function formatChatPrompt(input: AgentPrompt, messages: PromptMessages): string {
+  const transcript = formatTranscript(input.transcript);
+
+  return [
+    messages.subject(input.topic),
+    "",
+    messages.chatIntro(input.selfName),
+    messages.role(input.selfName, input.selfRole),
+    messages.roleInstruction(input.selfRole),
+    "",
+    messages.sessionTitle,
+    messages.sessionSource,
+    messages.localDate(input.session.localDate),
+    messages.timeZone(input.session.timeZone),
+    messages.cwd(input.session.cwd),
+    messages.sessionStartedAt(input.session.startedAt),
+    "",
+    messages.responseLanguageInstruction,
+    "",
+    messages.objectiveTitle,
+    ...messages.chatObjectives,
+    "",
+    input.files.length > 0 ? messages.fileContextTitle : "",
+    input.files.length > 0 ? messages.untrustedFileContextInstruction : "",
+    formatFileContext(input.files),
+    input.files.length > 0 ? "" : "",
+    transcript.length > 0 ? messages.chatHistoryTitle : messages.emptyChatHistory,
+    transcript.length > 0 ? messages.untrustedChatTranscriptInstruction : "",
+    transcript,
+    "",
+    messages.answerTitle
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
 /** Formate le prompt d'une réponse indépendante en mode ask. */
 function formatAskPrompt(input: AgentPrompt, messages: PromptMessages): string {
   return [

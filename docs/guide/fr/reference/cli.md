@@ -51,6 +51,15 @@ L'accueil TUI applique la même synchronisation prudente des agents connus que `
 | `palabre run --subject "Sujet" --agent-a codex --agent-b claude` | Lance avec des agents explicites. |
 | `palabre run --subject "Sujet" --agent-a codex --agent-b claude --role-a architect --role-b critic` | Lance avec des rôles temporaires. |
 | `palabre ask "Sujet" --agents codex claude` | Lance une demande avec des réponses indépendantes. |
+| `palabre chat "Sujet" --agent-a codex` | Ouvre une conversation suivie avec un seul agent. |
+
+## Conversation avec un agent
+
+`palabre chat "Sujet" --agent-a <agent>` ouvre une conversation dans le terminal. À chaque message, Palabre lance un nouvel appel à la CLI sélectionnée et lui réinjecte l'historique déjà accumulé. Le résultat reste donc cohérent dans la session courante, sans dépendre d'une session interactive persistante chez Codex, Claude ou un autre outil.
+
+Utilisez `/exit` ou `/quit` pour terminer. `--role-a`, `--model-a`, `--language`, `--files` et `--context` restent disponibles. Si aucun `--agent-a` n'est donné, Palabre utilise l'agent A configuré par défaut.
+
+Cette première version ne crée pas d'export, ne consulte pas automatiquement un autre agent et n'exécute aucune action. L'agent peut proposer une consultation lorsque cela serait utile, mais l'utilisateur garde toujours l'initiative.
 
 ## Commandes TUI
 
