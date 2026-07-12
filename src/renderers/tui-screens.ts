@@ -118,6 +118,7 @@ export function renderTuiHelp(messages: Messages): void {
     ...padBlock([brandHeader(messages.tui.helpTitle)]),
     "",
     ...padBlock(card([
+      row("/chat", messages.tui.helpChat),
       row("/ask", messages.tui.helpAsk),
       row("/debat", messages.tui.helpDebate),
       "",

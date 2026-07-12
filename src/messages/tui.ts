@@ -21,6 +21,7 @@ export interface TuiMessages {
   tipContext: string;
   helpTitle: string;
   helpAsk: string;
+  helpChat: string;
   helpDebate: string;
   helpAgents: string;
   helpRoles: string;
@@ -149,6 +150,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     tipContext: "* Tip Ajoute du contexte avec --context <dossier> ou --files <fichier>.",
     helpTitle: "Commandes TUI",
     helpAsk: "mode Ask",
+    helpChat: "ouvrir une conversation",
     helpDebate: "mode Debat",
     helpAgents: "choisir les agents",
     helpRoles: "choisir les roles",
@@ -272,6 +274,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     tipContext: "* Tip Add context with --context <folder> or --files <file>.",
     helpTitle: "TUI Commands",
     helpAsk: "Ask mode",
+    helpChat: "open a conversation",
     helpDebate: "Debate mode",
     helpAgents: "choose agents",
     helpRoles: "choose roles",

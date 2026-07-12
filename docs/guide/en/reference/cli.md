@@ -67,6 +67,7 @@ These commands are available from the TUI home screen or from `/config` dependin
 
 | Command | Description |
 |---------|-------------|
+| `/chat` | Opens a conversation with the default agent A. `/home` or `/exit` returns to the home screen. |
 | `/ask` | Switches the TUI home screen to Ask mode. |
 | `/debat` | Switches the TUI home screen to debate mode. |
 | `/agents` | Displays available agents or updates active agents when names are provided. |

@@ -67,6 +67,7 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 
 | Commande | Description |
 |----------|-------------|
+| `/chat` | Ouvre une conversation avec l'agent A par défaut. `/home` ou `/exit` revient à l'accueil. |
 | `/ask` | Passe l'accueil TUI en mode Ask. |
 | `/debat` | Passe l'accueil TUI en mode débat. |
 | `/agents` | Affiche les agents disponibles ou modifie les agents actifs si des noms sont fournis. |

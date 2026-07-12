@@ -43,6 +43,7 @@ import { optionalString } from "./commands/shared.js";
 import { runTuiAgentsWizard, runTuiConfigLoop, runTuiRolesWizard, syncInteractiveDetectedAgents } from "./tuiController.js";
 import { parseInterfaceFlag, parseModeFlag, resolveRunOptions } from "./runOptions.js";
 import { runStatelessChatTurn, runStatelessConsultation } from "./chat.js";
+import { runTuiChatSession } from "./tuiChat.js";
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
 async function main(): Promise<void> {
@@ -216,6 +217,11 @@ async function main(): Promise<void> {
         resetTuiRunOverridesOnNextTopic ||= result.changedRunDefaults;
         language = resolveLanguage({ explicitLanguage: optionalString(parsed.flags.language), configLanguage: config.language });
         messages = createTranslator(language);
+        return "continue";
+      }
+
+      if (input.kind === "chat") {
+        await runTuiChatSession(config, language, messages);
         return "continue";
       }
 
