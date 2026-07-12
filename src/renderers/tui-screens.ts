@@ -296,13 +296,13 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
         [messages.tui.summary, summary],
         [messages.tui.responses, String(defaults.turns ?? "?")]
       ];
-  const sessionBox = card(rows(sessionEntries), width, messages.tui.modeValue(mode as PalabreMode));
+  const sessionBox = card(rows(sessionEntries), width, isChat ? "Chat" : messages.tui.modeValue(mode as PalabreMode));
 
   const commandRows = [
     bold(messages.tui.availableCommands),
     "",
     ...(isChat ? [
-          row("/agents <agent>", messages.tui.debateAgentsUsage)
+          row("/agents <agent>", "Select chat agent")
         ] : mode === "ask"
       ? [
           row("/agents", messages.tui.askAgentsUsage),
