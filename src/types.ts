@@ -27,7 +27,7 @@ export type CliPromptMode = "stdin" | "argument";
 export type Language = "fr" | "en";
 
 /** Mode d'orchestration d'une session Palabre. */
-export type PalabreMode = "debate" | "ask";
+export type PalabreMode = "chat" | "debate" | "ask";
 
 /** Interface utilisateur par défaut pour les sessions interactives. */
 export type PalabreInterface = "tui" | "terminal";

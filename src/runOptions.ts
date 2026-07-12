@@ -96,8 +96,8 @@ function parseRoleOverride(value: string | string[] | boolean | undefined, flagN
  */
 export function parseModeFlag(value: string | undefined, messages: Messages): PalabreMode {
   if (!value) return "debate";
-  if (value === "debate" || value === "ask") return value;
-  throw new Error(messages.common.unknownMode(value, "debate, ask"));
+  if (value === "chat" || value === "debate" || value === "ask") return value;
+  throw new Error(messages.common.unknownMode(value, "chat, debate, ask"));
 }
 
 /**
