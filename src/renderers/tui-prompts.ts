@@ -433,14 +433,17 @@ function tuiPrompt(mode: TuiHomeMode, labelPrefix: string, messages: Messages, n
   return [
     "",
     `${padding}${labeledRule(promptTrail(mode, labelPrefix, messages), violet)}`,
-    ...promptNoticeLines(modeTip(mode, messages)),
+    ...promptModeTipLines(mode, messages),
     ...(notice ? promptNoticeLines(notice) : []),
     promptLine,
   ].join("\n");
 }
 
-function modeTip(mode: TuiHomeMode, messages: Messages): string {
-  return mode === "chat" ? messages.tui.chatTip : mode === "ask" ? messages.tui.askTip : messages.tui.debateTip;
+function promptModeTipLines(mode: TuiHomeMode, messages: Messages): string[] {
+  const tips = mode === "chat"
+    ? [messages.tui.chatTip, messages.tui.chatComposerCommands]
+    : [mode === "ask" ? messages.tui.askTip : messages.tui.debateTip];
+  return ["", ...tips.flatMap((tip) => wrapLine(tip, surfaceWidth()).map((line) => `${surfacePadding()}${dim(line)}`)), ""];
 }
 
 function promptNoticeLines(notice: string): string[] {

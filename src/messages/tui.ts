@@ -21,6 +21,7 @@ export interface TuiMessages {
   chatReady: string;
   tipContext: string;
   chatTip: string;
+  chatComposerCommands: string;
   askTip: string;
   debateTip: string;
   helpTitle: string;
@@ -159,7 +160,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     changeMode: "changer de mode",
     chatReady: "conversation",
     tipContext: "* Tip Ajoute du contexte avec --context <dossier> ou --files <fichier>.",
-    chatTip: "Chat : une conversation, puis un avis supplémentaire seulement si utile.",
+    chatTip: "/chat : une conversation, puis un avis supplémentaire seulement si utile.",
+    chatComposerCommands: "/consult <agent> demander un avis · /use <agent> poursuivre avec lui · /end terminer et exporter",
     askTip: "Ask : plusieurs réponses indépendantes à la même question.",
     debateTip: "Débat : deux agents confrontent leurs points de vue avant la synthèse.",
     helpTitle: "Commandes TUI",
@@ -293,7 +295,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     changeMode: "change mode",
     chatReady: "conversation",
     tipContext: "* Tip Add context with --context <folder> or --files <file>.",
-    chatTip: "Chat: one conversation, then an extra opinion only when useful.",
+    chatTip: "/chat: one conversation, then an extra opinion only when useful.",
+    chatComposerCommands: "/consult <agent> ask for an opinion · /use <agent> continue with it · /end finish and export",
     askTip: "Ask: several independent responses to the same question.",
     debateTip: "Debate: two agents challenge each other before the summary.",
     helpTitle: "TUI Commands",
