@@ -211,7 +211,7 @@ async function main(): Promise<void> {
       }
 
       if (input.kind === "config") {
-        const result = await runTuiConfigLoop(configPath, config, messages, tuiMode === "chat" ? "debate" : tuiMode);
+        const result = await runTuiConfigLoop(configPath, config, messages, tuiMode);
         if (result.quit) return "quit";
         tuiMode = result.mode;
         resetTuiRunOverridesOnNextTopic ||= result.changedRunDefaults;

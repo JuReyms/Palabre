@@ -49,11 +49,11 @@ export async function runTuiConfigLoop(
     }
 
     if (input.kind === "mode") {
-      mode = mode === "ask" ? "debate" : "ask";
+      mode = mode === "chat" ? "debate" : mode === "debate" ? "ask" : "chat";
       config.defaults = { ...(config.defaults ?? {}), mode };
       await writeConfig(configPath, config);
       changedRunDefaults = true;
-      notice = mode === "ask" ? currentMessages.tui.askDefaultMode : currentMessages.tui.debateDefaultMode;
+      notice = mode === "chat" ? currentMessages.tui.chatReady : mode === "ask" ? currentMessages.tui.askDefaultMode : currentMessages.tui.debateDefaultMode;
       continue;
     }
 
@@ -61,7 +61,7 @@ export async function runTuiConfigLoop(
       config.defaults = { ...(config.defaults ?? {}), mode };
       await writeConfig(configPath, config);
       changedRunDefaults = true;
-      notice = mode === "ask" ? currentMessages.tui.askDefaultMode : currentMessages.tui.debateDefaultMode;
+      notice = mode === "chat" ? currentMessages.tui.chatReady : mode === "ask" ? currentMessages.tui.askDefaultMode : currentMessages.tui.debateDefaultMode;
       continue;
     }
 
@@ -77,6 +77,17 @@ export async function runTuiConfigLoop(
       await writeConfig(configPath, config);
       currentMessages = createTranslator(config.language ?? DEFAULT_LANGUAGE);
       notice = currentMessages.tui.languageUpdated(input.language);
+      continue;
+    }
+
+    if (input.kind === "agents" && mode === "chat") {
+      const agent = input.agents[0];
+      if (!agent) { notice = currentMessages.tui.debateAgentsUsage; continue; }
+      assertKnownAgent(config, agent, "defaults.agentA", currentMessages);
+      config.defaults = { ...(config.defaults ?? {}), agentA: agent };
+      await writeConfig(configPath, config);
+      changedRunDefaults = true;
+      notice = currentMessages.tui.activeAgents + `: ${agent}.`;
       continue;
     }
 
