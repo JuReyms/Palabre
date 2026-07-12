@@ -1,11 +1,11 @@
 {
   "name": "palabre",
   "version": "0.11.2",
-  "description": "Orchestrateur de debat entre agents IA locaux, CLIs et Ollama.",
+  "description": "CLI orchestrator for multi-agent AI debates and decision-making with Codex, Claude Code, OpenCode, Vibe, and Ollama.",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.18.3",
-  "homepage": "https://github.com/JuReyms/Palabre#readme",
+  "homepage": "https://palab.re",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/JuReyms/Palabre.git"
@@ -15,14 +15,23 @@
   },
   "keywords": [
     "ai",
+    "ai-agents",
+    "ai-harness",
+    "ai-tools",
+    "agent-orchestration",
     "cli",
-    "agents",
-    "ollama",
-    "codex",
     "claude",
+    "codex",
+    "debate-system",
+    "decision-intelligence",
+    "developer-tools",
+    "llm",
+    "multi-agent",
+    "ollama",
     "opencode",
+    "terminal-ui",
+    "tui-app",
     "vibe",
-    "debate",
     "orchestrator"
   ],
   "bin": {
