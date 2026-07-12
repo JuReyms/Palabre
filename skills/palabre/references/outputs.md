@@ -1,13 +1,15 @@
-# Palabre — restitution, index et exports
+# Palabre — restitution, historique et exports
 
-## Index des débats
+## Historique et index optionnel
 
-Maintenir un récapitulatif des débats passés dans `.palabre/INDEX.md`. Après chaque débat, ajouter une ligne :
+Utiliser `palabre history` ou `palabre history --json` pour retrouver les exports récents. Les exports sont écrits dans `outputDir` (par défaut `.palabre/`) et portent l'extension `.debate.md` ou `.ask.md`.
+
+Si le projet a besoin d'un registre de décisions versionné, créer un index Markdown à l'emplacement adapté au projet ; `.palabre/INDEX.md` est une convention possible, pas un export maintenu automatiquement par Palabre. Après une session, ajouter par exemple :
 
 ```markdown
 | Date | Sujet | Décision / conclusion | Fichier |
 |------|-------|-----------------------|---------|
-| 2026-06-11 | Double-submit CheckoutPanel | UI guard + idempotencyKey | [checkout-panel-review](.palabre/checkout-panel-review.debate.md) |
+| 2026-07-12 | Double-submit CheckoutPanel | UI guard + idempotencyKey | [export](.palabre/checkout-panel-review.debate.md) |
 ```
 
 Créer le fichier avec l'en-tête de tableau s'il n'existe pas. Cet index permet de retrouver rapidement les décisions prises et d'éviter de rejouer un débat déjà tranché.

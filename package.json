@@ -31,12 +31,14 @@
   "files": [
     "dist/",
     "README.md",
-    "palabre.config.example.json"
+    "palabre.config.example.json",
+    "skills/"
   ],
   "scripts": {
     "build": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
-    "prepack": "pnpm build",
+    "validate:skill": "node scripts/validate_skill.mjs",
+    "prepack": "pnpm validate:skill && pnpm build",
     "start": "node ./dist/index.js",
     "test": "pnpm build:test && node --test .tmp/test-dist/tests/*.test.js && pnpm test:release-social",
     "test:release-social": "node --test scripts/post_release_bluesky.test.mjs",
