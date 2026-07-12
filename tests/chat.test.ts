@@ -14,6 +14,7 @@ const config = {
   shell: false,
   role: "reviewer" as const
 };
+const availableAgents = [{ name: "mock", role: "reviewer" as const }, { name: "second", role: "architect" as const }];
 const session = { startedAt: "2026-07-12T10:00:00.000Z", localDate: "2026-07-12", timeZone: "Europe/Paris", cwd: process.cwd() };
 
 function runInteractive(command: string, args: string[], cwd: string, input: string): Promise<{ code: number | null; stdout: string; stderr: string }> {
@@ -30,8 +31,8 @@ function runInteractive(command: string, args: string[], cwd: string, input: str
 }
 
 test("stateless chat reinjects the accumulated transcript on every batch call", async () => {
-  const first = await runStatelessChatTurn({ agentName: "mock", agentConfig: config, topic: "Discuss", userMessage: "First question", transcript: [], language: "en", session, files: [] });
-  const second = await runStatelessChatTurn({ agentName: "mock", agentConfig: config, topic: "Discuss", userMessage: "Second question", transcript: [first.user, first.assistant], language: "en", session, files: [] });
+  const first = await runStatelessChatTurn({ agentName: "mock", agentConfig: config, topic: "Discuss", userMessage: "First question", transcript: [], language: "en", session, files: [], availableAgents });
+  const second = await runStatelessChatTurn({ agentName: "mock", agentConfig: config, topic: "Discuss", userMessage: "Second question", transcript: [first.user, first.assistant], language: "en", session, files: [], availableAgents });
   assert.match(first.assistant.content, /First question/);
   assert.match(second.assistant.content, /First question/);
   assert.match(second.assistant.content, /Second question/);
@@ -46,13 +47,16 @@ test("CLI chat continues an interactive stateless conversation", async () => {
   await writeFile(configPath, JSON.stringify({
     language: "en",
     defaults: { agentA: "mock", agentB: "mock", turns: 2 },
-    agents: { mock: { type: "cli", command: process.execPath, args: ["-e", mock], promptMode: "stdin", shell: false, role: "reviewer" } }
+    agents: { mock: { type: "cli", command: process.execPath, args: ["-e", mock], promptMode: "stdin", shell: false, role: "reviewer" }, second: { type: "cli", command: process.execPath, args: ["-e", mock], promptMode: "stdin", shell: false, role: "architect" } }
   }), "utf8");
   const entry = path.resolve(".tmp", "test-dist", "src", "index.js");
-  const result = await runInteractive(process.execPath, [entry, "chat", "Product direction", "--config", configPath, "--trust-config"], process.cwd(), "First question\nSecond question\n/exit\n");
+  const result = await runInteractive(process.execPath, [entry, "chat", "Product direction", "--config", configPath, "--trust-config"], process.cwd(), "First question\n/consult second\n/use second\nSecond question\n/exit\n");
   assert.equal(result.code, 0, result.stderr);
   assert.match(result.stdout, /Conversation with mock/);
   assert.match(result.stdout, /First question/);
   assert.match(result.stdout, /Second question/);
+  assert.match(result.stdout, /Consulting second/);
+  assert.match(result.stdout, /second\x27s opinion/);
+  assert.match(result.stdout, /Conversation now continues with second/);
   assert.match(result.stdout, /Conversation with the user/);
 });

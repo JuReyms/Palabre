@@ -31,7 +31,7 @@ import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { clearTuiRunOverrides } from "./tuiState.js";
 import { formatOllamaUrlError, OllamaUrlError } from "./ollamaUrl.js";
 import { compareSemver, getLatestPackageVersion, getPackageVersion } from "./version.js";
-import { isAgentRole, VALID_AGENT_ROLES, type DebateOptions, type PalabreConfig, type PalabreInterface } from "./types.js";
+import { isAgentRole, VALID_AGENT_ROLES, type ChatAvailableAgent, type DebateOptions, type PalabreConfig, type PalabreInterface } from "./types.js";
 import type { Messages } from "./messages/index.js";
 import { runAgentsCommand } from "./commands/agents.js";
 import { runContextCommand } from "./commands/context.js";
@@ -42,7 +42,7 @@ import { runUpdateCommand } from "./commands/update.js";
 import { optionalString } from "./commands/shared.js";
 import { runTuiAgentsWizard, runTuiConfigLoop, runTuiRolesWizard, syncInteractiveDetectedAgents } from "./tuiController.js";
 import { parseInterfaceFlag, parseModeFlag, resolveRunOptions } from "./runOptions.js";
-import { runStatelessChatTurn } from "./chat.js";
+import { runStatelessChatTurn, runStatelessConsultation } from "./chat.js";
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
 async function main(): Promise<void> {
@@ -1030,7 +1030,7 @@ function safeStartupLanguage(args: string[]) {
   }
 }
 
-/** Lance une conversation locale stateless avec l'agent A résolu. `/exit` termine la session. */
+/** Lance une conversation locale stateless avec consultation explicite. */
 async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig, language: import("./types.js").Language, messages: Messages): Promise<void> {
   const topic = optionalString(flags.topic);
   if (!topic) throw new Error(messages.common.topicRequired);
@@ -1042,18 +1042,83 @@ async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig,
   );
   printContextWarnings(context.warnings, messages);
   const options = resolveRunOptions({ flags, config, language, topic, files: context.files, signal: debateAbortSignal() }, messages);
-  const agentConfig = config.agents[options.agentA];
-  if (!agentConfig) throw new Error(messages.common.unknownAgent(options.agentA));
+  const availableAgents: ChatAvailableAgent[] = Object.entries(config.agents).map(([name, agent]) => ({ name, role: agent.role }));
+  let activeAgentName = options.agentA;
+  let activeAgentConfig = config.agents[activeAgentName];
+  if (!activeAgentConfig) throw new Error(messages.common.unknownAgent(activeAgentName));
   const readline = createInterface({ input: process.stdin, output: process.stdout });
   const transcript: import("./types.js").DebateMessage[] = [];
   try {
-    process.stdout.write(`${messages.chat.intro(options.agentA)} ${messages.chat.exitHint}\n${messages.chat.questionPrompt}`);
+    process.stdout.write(`${messages.chat.intro(activeAgentName)} ${messages.chat.exitHint}\n${messages.chat.availableAgents(availableAgents)}\n${messages.chat.questionPrompt}`);
     for await (const line of readline) {
       const userMessage = line.trim();
       if (!userMessage || userMessage === "/exit" || userMessage === "/quit") break;
-      const turn = await runStatelessChatTurn({ agentName: options.agentA, agentConfig, topic, userMessage, transcript, language, session: options.session, files: options.files, signal: options.signal });
+
+      const [command, agentName] = userMessage.split(/\s+/, 2);
+      if (command === "/consult") {
+        if (!agentName) {
+          process.stdout.write(`\n${messages.chat.consultUsage}\n\n${messages.chat.questionPrompt}`);
+          continue;
+        }
+        const consultedConfig = config.agents[agentName];
+        if (!consultedConfig) {
+          process.stdout.write(`\n${messages.chat.unknownAgent(agentName)}\n\n${messages.chat.questionPrompt}`);
+          continue;
+        }
+        if (transcript.length === 0) {
+          process.stdout.write(`\n${messages.chat.consultationUnavailable}\n\n${messages.chat.questionPrompt}`);
+          continue;
+        }
+        process.stdout.write(`\n${messages.chat.consulting(agentName)}\n`);
+        const opinion = await runStatelessConsultation({
+          agentName,
+          agentConfig: consultedConfig,
+          requesterName: activeAgentName,
+          topic,
+          transcript,
+          availableAgents,
+          language,
+          session: options.session,
+          files: options.files,
+          signal: options.signal
+        });
+        transcript.push(opinion);
+        process.stdout.write(`\n${messages.chat.consultationLabel(opinion.agent)}\n${opinion.content}\n\n${messages.chat.questionPrompt}`);
+        continue;
+      }
+
+      if (command === "/use") {
+        if (!agentName) {
+          process.stdout.write(`\n${messages.chat.useUsage}\n\n${messages.chat.questionPrompt}`);
+          continue;
+        }
+        const selectedConfig = config.agents[agentName];
+        if (!selectedConfig) {
+          process.stdout.write(`\n${messages.chat.unknownAgent(agentName)}\n\n${messages.chat.questionPrompt}`);
+          continue;
+        }
+        activeAgentName = agentName;
+        activeAgentConfig = selectedConfig;
+        process.stdout.write(`\n${messages.chat.switchedTo(activeAgentName)}\n\n${messages.chat.questionPrompt}`);
+        continue;
+      }
+
+      const turn = await runStatelessChatTurn({
+        agentName: activeAgentName,
+        agentConfig: activeAgentConfig,
+        topic,
+        userMessage,
+        transcript,
+        availableAgents,
+        language,
+        session: options.session,
+        files: options.files,
+        signal: options.signal
+      });
       transcript.push(turn.user, turn.assistant);
       process.stdout.write(`\n${messages.chat.assistantLabel(turn.assistant.agent)}\n${turn.assistant.content}\n\n${messages.chat.questionPrompt}`);
     }
-  } finally { readline.close(); }
+  } finally {
+    readline.close();
+  }
 }

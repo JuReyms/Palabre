@@ -1,7 +1,8 @@
-/** @file Noyau stateless d'une conversation Palabre avec un agent unique. */
+/** @file Noyau stateless de conversation et de consultation entre agents. */
 import { createAgent } from "./adapters/index.js";
-import { formatAgentPrompt } from "./prompt.js";
-import type { AgentConfig, AgentRole, DebateMessage, Language, ProjectFileContext, SessionContext } from "./types.js";
+import type { AgentConfig, AgentRole, ChatAvailableAgent, DebateMessage, Language, ProjectFileContext, SessionContext } from "./types.js";
+
+const RETAINED_MESSAGES = 6;
 
 export interface ChatTurnInput {
   agentName: string;
@@ -9,13 +10,18 @@ export interface ChatTurnInput {
   topic: string;
   userMessage: string;
   transcript: DebateMessage[];
+  availableAgents: ChatAvailableAgent[];
   language: Language;
   session: SessionContext;
   files: ProjectFileContext[];
   signal?: AbortSignal;
 }
 
-/** Génère une réponse en réinjectant l'intégralité du transcript disponible dans un appel batch indépendant. */
+export interface ConsultationInput extends Omit<ChatTurnInput, "userMessage"> {
+  requesterName: string;
+}
+
+/** Génère une réponse en réinjectant un historique récent dans un appel batch indépendant. */
 export async function runStatelessChatTurn(input: ChatTurnInput): Promise<{ user: DebateMessage; assistant: DebateMessage }> {
   const user: DebateMessage = { agent: "user", role: "architect" as AgentRole, content: input.userMessage, createdAt: new Date().toISOString() };
   const adapter = createAgent(input.agentName, input.agentConfig);
@@ -30,8 +36,36 @@ export async function runStatelessChatTurn(input: ChatTurnInput): Promise<{ user
     language: input.language,
     session: input.session,
     files: input.files,
-    transcript: [...input.transcript, user],
+    transcript: retainRecentMessages([...input.transcript, user]),
+    availableAgents: input.availableAgents,
     signal: input.signal
   });
   return { user, assistant: { agent: input.agentName, role: adapter.role, content: response.content, createdAt: new Date().toISOString() } };
+}
+
+/** Recueille un avis indépendant sans modifier l'agent actif de la conversation. */
+export async function runStatelessConsultation(input: ConsultationInput): Promise<DebateMessage> {
+  const adapter = createAgent(input.agentName, input.agentConfig);
+  const response = await adapter.generate({
+    topic: input.topic,
+    turn: input.transcript.length,
+    totalTurns: input.transcript.length,
+    selfName: input.agentName,
+    peerName: "user",
+    selfRole: adapter.role,
+    mode: "consultation",
+    language: input.language,
+    session: input.session,
+    files: input.files,
+    transcript: retainRecentMessages(input.transcript),
+    availableAgents: input.availableAgents,
+    consultationRequester: input.requesterName,
+    signal: input.signal
+  });
+  return { agent: input.agentName, role: adapter.role, content: response.content, createdAt: new Date().toISOString() };
+}
+
+/** Le contexte par défaut privilégie les échanges récents plutôt que le transcript intégral. */
+function retainRecentMessages(transcript: DebateMessage[]): DebateMessage[] {
+  return transcript.slice(-RETAINED_MESSAGES);
 }

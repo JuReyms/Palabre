@@ -146,6 +146,11 @@ export interface DebateOptions {
 }
 
 /** Données fournies à l'adapter pour générer une réponse. Reconstruit à chaque tour par l'orchestrateur. */
+export interface ChatAvailableAgent {
+  name: string;
+  role: AgentRole;
+}
+
 export interface AgentPrompt {
   language?: Language;
   topic: string;
@@ -154,10 +159,12 @@ export interface AgentPrompt {
   selfName: string;
   peerName: string;
   selfRole: AgentRole;
-  mode?: "debate" | "ask" | "chat" | "summary";
+  mode?: "debate" | "ask" | "chat" | "consultation" | "summary";
   session: SessionContext;
   files: ProjectFileContext[];
   transcript: DebateMessage[];
+  availableAgents?: ChatAvailableAgent[];
+  consultationRequester?: string;
   signal?: AbortSignal;
 }
 

@@ -22,6 +22,10 @@ export function formatAgentPrompt(input: AgentPrompt): string {
     return formatChatPrompt(input, messages);
   }
 
+  if (input.mode === "consultation") {
+    return formatConsultationPrompt(input, messages);
+  }
+
   const transcript = formatTranscript(input.transcript);
 
   return [
@@ -82,6 +86,8 @@ function formatChatPrompt(input: AgentPrompt, messages: PromptMessages): string 
     messages.objectiveTitle,
     ...messages.chatObjectives,
     "",
+    formatAvailableAgents(input, messages),
+    "",
     input.files.length > 0 ? messages.fileContextTitle : "",
     input.files.length > 0 ? messages.untrustedFileContextInstruction : "",
     formatFileContext(input.files),
@@ -94,6 +100,53 @@ function formatChatPrompt(input: AgentPrompt, messages: PromptMessages): string 
   ]
     .filter(Boolean)
     .join("\n");
+}
+/** Formate le prompt d'un second avis explicitement demandé par l'utilisateur. */
+function formatConsultationPrompt(input: AgentPrompt, messages: PromptMessages): string {
+  const transcript = formatTranscript(input.transcript);
+
+  return [
+    messages.subject(input.topic),
+    "",
+    messages.consultationIntro(input.selfName, input.consultationRequester ?? "Palabre"),
+    messages.role(input.selfName, input.selfRole),
+    messages.roleInstruction(input.selfRole),
+    "",
+    messages.sessionTitle,
+    messages.sessionSource,
+    messages.localDate(input.session.localDate),
+    messages.timeZone(input.session.timeZone),
+    messages.cwd(input.session.cwd),
+    messages.sessionStartedAt(input.session.startedAt),
+    "",
+    messages.responseLanguageInstruction,
+    "",
+    messages.objectiveTitle,
+    ...messages.consultationObjectives,
+    "",
+    formatAvailableAgents(input, messages),
+    "",
+    input.files.length > 0 ? messages.fileContextTitle : "",
+    input.files.length > 0 ? messages.untrustedFileContextInstruction : "",
+    formatFileContext(input.files),
+    input.files.length > 0 ? "" : "",
+    messages.chatHistoryTitle,
+    messages.untrustedChatTranscriptInstruction,
+    transcript || messages.emptyChatHistory,
+    "",
+    messages.answerTitle
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+/** Expose les agents configurés afin qu'un agent puisse proposer une consultation sans l'exécuter. */
+function formatAvailableAgents(input: AgentPrompt, messages: PromptMessages): string {
+  if (!input.availableAgents || input.availableAgents.length === 0) return "";
+  return [
+    messages.availableAgentsTitle,
+    ...input.availableAgents.map((agent) => `- ${agent.name} (${agent.role})`)
+  ].join("\n");
 }
 /** Formate le prompt d'une réponse indépendante en mode ask. */
 function formatAskPrompt(input: AgentPrompt, messages: PromptMessages): string {
