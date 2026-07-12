@@ -1,0 +1,6 @@
+{"v":1,"type":"start","mode":"debate","topic":"Review","turns":2,"agents":[{"name":"codex","role":"implementer","type":"cli"},{"name":"claude","role":"reviewer","type":"cli"}],"summaryEnabled":true,"summaryAgent":"claude","earlyStop":true,"filesCount":0,"session":{"startedAt":"2026-07-12T10:00:00.000Z","localDate":"2026-07-12","timeZone":"Europe/Paris","cwd":"/workspace"}}
+{"v":1,"type":"turn-start","turn":1,"totalTurns":2,"agent":"codex","role":"implementer"}
+{"v":1,"type":"message","turn":1,"agent":"codex","role":"implementer","content":"Proposition."}
+{"v":1,"type":"summary-start","agent":"claude","role":"summarizer"}
+{"v":1,"type":"summary-message","agent":"claude","role":"summarizer","content":"Consensus."}
+{"v":1,"type":"done","outputPath":"/workspace/.palabre/palabre-review.debate.md"}

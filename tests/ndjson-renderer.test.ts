@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { test } from "node:test";
 import { NdjsonRenderer } from "../src/renderers/ndjson.js";
 import type { DebateOptions, DebateStartAgentInfo } from "../src/types.js";
@@ -304,4 +306,27 @@ test("NdjsonRenderer always includes v=1 on every line", () => {
     const event = JSON.parse(line);
     assert.equal(event.v, 1, `événement sans v=1 : ${line}`);
   }
+});
+
+test("NdjsonRenderer matches the versioned debate fixture", async () => {
+  const fixture = (await readFile(path.join("tests", "fixtures", "ndjson", "debate-with-summary.ndjson"), "utf8")).trim().split("\n");
+  const capture = captureStdout();
+  try {
+    const renderer = new NdjsonRenderer();
+    renderer.start(baseOptions({
+      topic: "Review",
+      session: { startedAt: "2026-07-12T10:00:00.000Z", localDate: "2026-07-12", timeZone: "Europe/Paris", cwd: "/workspace" },
+    }), [
+      { name: "codex", role: "implementer", type: "cli" },
+      { name: "claude", role: "reviewer", type: "cli" },
+    ]);
+    renderer.turnStart(1, 2, "codex", "implementer");
+    renderer.message("Proposition.");
+    renderer.summaryStart("claude", "summarizer");
+    renderer.message("Consensus.");
+    renderer.done("/workspace/.palabre/palabre-review.debate.md");
+  } finally {
+    capture.restore();
+  }
+  assert.deepEqual(capture.lines, fixture);
 });
