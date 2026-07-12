@@ -125,7 +125,7 @@ type TuiQuestionResult =
 let lastTuiInterruptAt = 0;
 const doubleInterruptMs = 1200;
 
-function nextInterruptKind(): "back" | "quit" {
+export function nextTuiInterruptKind(): "back" | "quit" {
   const now = Date.now();
   const kind = now - lastTuiInterruptAt <= doubleInterruptMs ? "quit" : "back";
   lastTuiInterruptAt = now;
@@ -143,7 +143,7 @@ function questionWithInterrupt(rl: ReturnType<typeof createInterface>, prompt: s
       resolve(result);
     };
     const onSigint = () => {
-      const kind = nextInterruptKind();
+      const kind = nextTuiInterruptKind();
       rl.close();
       settle({ kind });
     };

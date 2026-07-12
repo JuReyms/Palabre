@@ -221,8 +221,8 @@ async function main(): Promise<void> {
       }
 
       if (input.kind === "chat") {
-        await runTuiChatSession(config, language, messages, resolveOutputDir(config.outputDir));
-        return "continue";
+        const chatResult = await runTuiChatSession(config, language, messages, resolveOutputDir(config.outputDir));
+        return chatResult === "quit" ? "quit" : "continue";
       }
 
       if (input.kind === "new") {
@@ -241,8 +241,8 @@ async function main(): Promise<void> {
       }
 
       if (tuiMode === "chat" && input.kind === "topic") {
-        await runTuiChatSession(config, language, messages, resolveOutputDir(config.outputDir), input.topic);
-        return "continue";
+        const chatResult = await runTuiChatSession(config, language, messages, resolveOutputDir(config.outputDir), input.topic);
+        return chatResult === "quit" ? "quit" : "continue";
       }
 
       if (!input.topic) {
