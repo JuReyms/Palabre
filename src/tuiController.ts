@@ -53,7 +53,7 @@ export async function runTuiConfigLoop(
       config.defaults = { ...(config.defaults ?? {}), mode };
       await writeConfig(configPath, config);
       changedRunDefaults = true;
-      notice = mode === "chat" ? currentMessages.tui.chatReady : mode === "ask" ? currentMessages.tui.askDefaultMode : currentMessages.tui.debateDefaultMode;
+      notice = mode === "chat" ? currentMessages.tui.chatDefaultMode : mode === "ask" ? currentMessages.tui.askDefaultMode : currentMessages.tui.debateDefaultMode;
       continue;
     }
 
@@ -61,7 +61,7 @@ export async function runTuiConfigLoop(
       config.defaults = { ...(config.defaults ?? {}), mode };
       await writeConfig(configPath, config);
       changedRunDefaults = true;
-      notice = mode === "chat" ? currentMessages.tui.chatReady : mode === "ask" ? currentMessages.tui.askDefaultMode : currentMessages.tui.debateDefaultMode;
+      notice = mode === "chat" ? currentMessages.tui.chatDefaultMode : mode === "ask" ? currentMessages.tui.askDefaultMode : currentMessages.tui.debateDefaultMode;
       continue;
     }
 
@@ -77,17 +77,6 @@ export async function runTuiConfigLoop(
       await writeConfig(configPath, config);
       currentMessages = createTranslator(config.language ?? DEFAULT_LANGUAGE);
       notice = currentMessages.tui.languageUpdated(input.language);
-      continue;
-    }
-
-    if (input.kind === "agents" && mode === "chat") {
-      const agent = input.agents[0];
-      if (!agent) { notice = currentMessages.tui.debateAgentsUsage; continue; }
-      assertKnownAgent(config, agent, "defaults.agentA", currentMessages);
-      config.defaults = { ...(config.defaults ?? {}), agentA: agent };
-      await writeConfig(configPath, config);
-      changedRunDefaults = true;
-      notice = currentMessages.tui.activeAgents + `: ${agent}.`;
       continue;
     }
 
@@ -445,6 +434,12 @@ export async function runTuiRolesWizard(
 
 /** Valide puis applique les agents actifs du mode courant. */
 function applyTuiAgents(config: PalabreConfig, mode: PalabreMode, agentNames: string[], messages: Messages): string {
+  if (mode === "chat") {
+    const agent = normalizeTuiChatAgent(config, agentNames, messages);
+    config.defaults = { ...(config.defaults ?? {}), agentA: agent };
+    return messages.tui.chatAgentsUpdated(agent);
+  }
+
   if (mode === "ask") {
     const agents = normalizeTuiAskAgents(config, agentNames, messages);
     config.defaults = { ...(config.defaults ?? {}), askAgents: agents };
@@ -460,7 +455,7 @@ function applyTuiAgents(config: PalabreConfig, mode: PalabreMode, agentNames: st
 function applyTuiRoles(config: PalabreConfig, mode: PalabreMode, roleNames: string[], messages: Messages): string {
   const agents = activeAgentsForMode(config, mode);
   if (agents.length === 0) {
-    throw new Error(mode === "ask" ? messages.tui.noAskAgentsConfigured : messages.tui.noDebateAgentsConfigured);
+    throw new Error(mode === "chat" ? messages.tui.noChatAgentConfigured : mode === "ask" ? messages.tui.noAskAgentsConfigured : messages.tui.noDebateAgentsConfigured);
   }
 
   const roles = normalizeTuiRoles(roleNames, agents, mode, messages);
@@ -468,9 +463,11 @@ function applyTuiRoles(config: PalabreConfig, mode: PalabreMode, roleNames: stri
     config.agents[agent]!.role = roles[index]!;
   });
 
-  return mode === "ask"
-    ? messages.tui.askRolesUpdated(roles.join(", "))
-    : messages.tui.debateRolesUpdated(roles.join(" <-> "));
+  return mode === "chat"
+    ? messages.tui.chatRolesUpdated(roles[0]!)
+    : mode === "ask"
+      ? messages.tui.askRolesUpdated(roles.join(", "))
+      : messages.tui.debateRolesUpdated(roles.join(" <-> "));
 }
 
 function activeAgentsForMode(config: PalabreConfig, mode: PalabreMode): string[] {
@@ -482,7 +479,20 @@ function activeAgentsForMode(config: PalabreConfig, mode: PalabreMode): string[]
     return [defaults.agentA, defaults.agentB].filter((agent): agent is string => Boolean(agent && config.agents[agent]));
   }
 
+  if (mode === "chat") {
+    return [defaults.agentA].filter((agent): agent is string => Boolean(agent && config.agents[agent]));
+  }
+
   return [defaults.agentA, defaults.agentB].filter((agent): agent is string => Boolean(agent && config.agents[agent]));
+}
+
+function normalizeTuiChatAgent(config: PalabreConfig, agentNames: string[], messages: Messages): string {
+  const unique = agentNames.map((agent) => agent.trim()).filter((agent, index, list) => agent && list.indexOf(agent) === index);
+  if (unique.length !== 1) {
+    throw new Error(messages.tui.chatAgentsUsage);
+  }
+  assertKnownAgent(config, unique[0]!, "defaults.agentA", messages);
+  return unique[0]!;
 }
 
 /** Valide les rôles connus et conserve exactement le nombre attendu. */

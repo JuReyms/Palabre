@@ -191,14 +191,14 @@ async function main(): Promise<void> {
       }
 
       if (input.kind === "roles") {
-        const result = await runTuiRolesWizard(configPath, config, messages, tuiMode === "chat" ? "debate" : tuiMode, input.roles);
+        const result = await runTuiRolesWizard(configPath, config, messages, tuiMode, input.roles);
         if (result.quit) return "quit";
         tuiNotice = result.notice;
         return "continue";
       }
 
       if (input.kind === "agents") {
-        const result = await runTuiAgentsWizard(configPath, config, messages, tuiMode === "chat" ? "debate" : tuiMode, input.agents);
+        const result = await runTuiAgentsWizard(configPath, config, messages, tuiMode, input.agents);
         if (result.quit) return "quit";
         tuiNotice = result.notice;
         resetTuiRunOverridesOnNextTopic ||= Boolean(result.changedRunDefaults);

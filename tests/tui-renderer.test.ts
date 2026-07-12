@@ -571,3 +571,32 @@ function baseOptions(): DebateOptions {
     plainOutput: false
   };
 }
+
+test("renderTuiConfig keeps Chat scoped to one active agent", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    renderTuiConfig({
+      language: "en",
+      defaults: { mode: "chat", agentA: "codex", agentB: "claude" },
+      agents: {
+        codex: { type: "cli", command: "codex", role: "architect" },
+        claude: { type: "cli", command: "claude", role: "critic" }
+      }
+    }, "palabre.config.json", "chat", createTranslator("en"));
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /Chat/);
+  assert.match(text, /Active agents\s+codex/);
+  assert.match(text, /Roles\s+architect/);
+  assert.match(text, /Usage: \/agents <agent>/);
+  assert.doesNotMatch(text, /codex <-> claude/);
+});

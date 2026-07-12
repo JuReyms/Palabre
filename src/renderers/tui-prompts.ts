@@ -23,7 +23,7 @@ import {
 } from "./tui-theme.js";
 
 /** Résultat de `promptTuiHomeTopic` : action choisie depuis l'accueil, `undefined` si l'utilisateur quitte. */
-export type TuiHomeMode = PalabreMode | "chat";
+export type TuiHomeMode = PalabreMode;
 
 export type TuiHomeInput =
   | { kind: "topic"; topic: string; files?: string[]; context?: string[] }
@@ -433,9 +433,14 @@ function tuiPrompt(mode: TuiHomeMode, labelPrefix: string, messages: Messages, n
   return [
     "",
     `${padding}${labeledRule(promptTrail(mode, labelPrefix, messages), violet)}`,
+    ...promptNoticeLines(modeTip(mode, messages)),
     ...(notice ? promptNoticeLines(notice) : []),
     promptLine,
   ].join("\n");
+}
+
+function modeTip(mode: TuiHomeMode, messages: Messages): string {
+  return mode === "chat" ? messages.tui.chatTip : mode === "ask" ? messages.tui.askTip : messages.tui.debateTip;
 }
 
 function promptNoticeLines(notice: string): string[] {

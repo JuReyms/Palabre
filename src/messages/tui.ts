@@ -105,8 +105,10 @@ export interface TuiMessages {
   languageUpdated(value: string): string;
   askConfigMode: string;
   debateConfigMode: string;
+  chatConfigMode: string;
   askDefaultMode: string;
   debateDefaultMode: string;
+  chatDefaultMode: string;
   agentsUnchanged: string;
   rolesUnchanged: string;
   askTurnsNotice: string;
@@ -120,24 +122,28 @@ export interface TuiMessages {
   ollamaUnavailable(baseUrl: string): string;
   askAgentsUpdated(value: string): string;
   debateAgentsUpdated(value: string): string;
+  chatAgentsUpdated(value: string): string;
   askRolesUpdated(value: string): string;
   debateRolesUpdated(value: string): string;
+  chatRolesUpdated(value: string): string;
   rolesError(message: string): string;
   agentsError(message: string): string;
   noAskAgentsConfigured: string;
   noDebateAgentsConfigured: string;
+  noChatAgentConfigured: string;
   rolesCountError(count: number, expected: number, agents: string): string;
   unknownRole(role: string, available: string): string;
   debateAgentsUsage: string;
   askAgentsUsage: string;
+  chatAgentsUsage: string;
 }
 
 export const tuiMessages: Record<Language, TuiMessages> = {
   fr: {
     tagline: "Orchestrez des conversations entre agents IA",
     updateAvailable: (current, latest) => `Mise a jour disponible: ${current} -> ${latest}. Utilise /update.`,
-    modeLabel: (mode) => mode === "ask" ? "Ask" : "Debat",
-    modeValue: (mode) => mode === "ask" ? "Ask" : "Debat",
+    modeLabel: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debat",
+    modeValue: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debat",
     noValue: "non definis",
     lastAskAgent: "dernier agent ask",
     roles: "Roles",
@@ -235,8 +241,10 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     languageUpdated: (value) => `Langue mise a jour: ${value}.`,
     askConfigMode: "Configuration Ask.",
     debateConfigMode: "Configuration Debat.",
+    chatConfigMode: "Configuration Chat.",
     askDefaultMode: "Ask devient le mode par defaut.",
     debateDefaultMode: "Debat devient le mode par defaut.",
+    chatDefaultMode: "Chat devient le mode par defaut.",
     agentsUnchanged: "Agents inchanges.",
     rolesUnchanged: "Roles inchanges.",
     askTurnsNotice: "En mode Ask, le nombre de reponses depend des agents selectionnes avec /agents.",
@@ -250,22 +258,26 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     ollamaUnavailable: (baseUrl) => `API Ollama indisponible (${baseUrl}). Lance ollama serve puis reessaie /ollama.`,
     askAgentsUpdated: (value) => `Agents Ask mis a jour: ${value}.`,
     debateAgentsUpdated: (value) => `Agents Debat mis a jour: ${value}.`,
+    chatAgentsUpdated: (value) => `Agent Chat mis a jour: ${value}.`,
     askRolesUpdated: (value) => `Roles Ask mis a jour: ${value}.`,
     debateRolesUpdated: (value) => `Roles Debat mis a jour: ${value}.`,
+    chatRolesUpdated: (value) => `Role Chat mis a jour: ${value}.`,
     rolesError: (message) => `Erreur roles: ${message}`,
     agentsError: (message) => `Erreur agents: ${message}`,
     noAskAgentsConfigured: "Aucun agent Ask configure.",
     noDebateAgentsConfigured: "Agents Debat non definis.",
+    noChatAgentConfigured: "Aucun agent Chat configure.",
     rolesCountError: (count, expected, agents) => `${count} role(s) saisi(s), ${expected} attendu(s). Saisis au moins ${expected} roles pour: ${agents}.`,
     unknownRole: (role, available) => `Role inconnu: ${role}. Roles disponibles: ${available}.`,
     debateAgentsUsage: "Usage: /agents <agentA> <agentB>",
-    askAgentsUsage: "Usage: /agents <agent...>"
+    askAgentsUsage: "Usage: /agents <agent...>",
+    chatAgentsUsage: "Usage: /agents <agent>"
   },
   en: {
     tagline: "Orchestrate conversations between AI agents",
     updateAvailable: (current, latest) => `Update available: ${current} -> ${latest}. Use /update.`,
-    modeLabel: (mode) => mode === "ask" ? "Ask" : "Debate",
-    modeValue: (mode) => mode === "ask" ? "Ask" : "Debate",
+    modeLabel: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debate",
+    modeValue: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debate",
     noValue: "not set",
     lastAskAgent: "last ask agent",
     roles: "Roles",
@@ -363,8 +375,10 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     languageUpdated: (value) => `Language updated: ${value}.`,
     askConfigMode: "Ask configuration.",
     debateConfigMode: "Debate configuration.",
+    chatConfigMode: "Chat configuration.",
     askDefaultMode: "Ask is now the default mode.",
     debateDefaultMode: "Debate is now the default mode.",
+    chatDefaultMode: "Chat is now the default mode.",
     agentsUnchanged: "Agents unchanged.",
     rolesUnchanged: "Roles unchanged.",
     askTurnsNotice: "In Ask mode, the number of responses depends on agents selected with /agents.",
@@ -378,15 +392,19 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     ollamaUnavailable: (baseUrl) => `Ollama API unavailable (${baseUrl}). Run ollama serve, then try /ollama again.`,
     askAgentsUpdated: (value) => `Ask agents updated: ${value}.`,
     debateAgentsUpdated: (value) => `Debate agents updated: ${value}.`,
+    chatAgentsUpdated: (value) => `Chat agent updated: ${value}.`,
     askRolesUpdated: (value) => `Ask roles updated: ${value}.`,
     debateRolesUpdated: (value) => `Debate roles updated: ${value}.`,
+    chatRolesUpdated: (value) => `Chat role updated: ${value}.`,
     rolesError: (message) => `Roles error: ${message}`,
     agentsError: (message) => `Agents error: ${message}`,
     noAskAgentsConfigured: "No Ask agent configured.",
     noDebateAgentsConfigured: "Debate agents are not set.",
+    noChatAgentConfigured: "No Chat agent configured.",
     rolesCountError: (count, expected, agents) => `${count} role(s) entered, ${expected} expected. Enter at least ${expected} roles for: ${agents}.`,
     unknownRole: (role, available) => `Unknown role: ${role}. Available roles: ${available}.`,
     debateAgentsUsage: "Usage: /agents <agentA> <agentB>",
-    askAgentsUsage: "Usage: /agents <agent...>"
+    askAgentsUsage: "Usage: /agents <agent...>",
+    chatAgentsUsage: "Usage: /agents <agent>"
   }
 };

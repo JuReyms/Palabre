@@ -85,10 +85,7 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
       "",
       `${accent("/chat")} ${dim(messages.tui.chatReady)}   ${accent("/help")} ${dim(messages.tui.commands)}   ${accent("/roles")} ${dim(messages.tui.roles.toLowerCase())}   ${accent("/config")} ${dim(messages.tui.settings)}   ${accent(mode === "ask" ? "/debat" : "/ask")} ${dim(messages.tui.changeMode)}`
     ], width)),
-    "",
-    ...padBlock([
-      dim(messages.tui.tipContext)
-    ])
+
   ];
 
   process.stdout.write(lines.join("\n") + "\n");
@@ -302,7 +299,8 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
     bold(messages.tui.availableCommands),
     "",
     ...(isChat ? [
-          row("/agents <agent>", "Select chat agent")
+          row("/agents", messages.tui.chatAgentsUsage),
+          row("/roles", messages.tui.rolesUsage)
         ] : mode === "ask"
       ? [
           row("/agents", messages.tui.askAgentsUsage),
@@ -364,6 +362,10 @@ function roleLineForMode(config: PalabreConfig, mode: PalabreMode, messages: Mes
     return agents.length > 0 ? agents.map((agent) => roleFor(config, agent, messages)).join(", ") : messages.tui.noValue;
   }
 
+  if (mode === "chat") {
+    return agents.length === 1 ? roleFor(config, agents[0]!, messages) : messages.tui.noValue;
+  }
+
   return agents.length === 2
     ? `${roleFor(config, agents[0]!, messages)} <-> ${roleFor(config, agents[1]!, messages)}`
     : messages.tui.noValue;
@@ -376,6 +378,12 @@ function activeAgentNamesForMode(config: PalabreConfig, mode: PalabreMode): stri
       ? defaults.askAgents
       : [defaults.agentA, defaults.agentB].filter((agent): agent is string => Boolean(agent));
     return agents.filter((agent) => Boolean(config.agents[agent]) && !isRetiredAgentName(agent));
+  }
+
+  if (mode === "chat") {
+    return [defaults.agentA].filter((agent): agent is string =>
+      typeof agent === "string" && Boolean(config.agents[agent]) && !isRetiredAgentName(agent)
+    );
   }
 
   return [defaults.agentA, defaults.agentB].filter((agent): agent is string =>
@@ -409,7 +417,7 @@ function exampleAgentsForMode(config: PalabreConfig, mode: PalabreMode): string[
   }
 
   const available = Object.keys(config.agents).filter((agent) => !isRetiredAgentName(agent)).sort();
-  return mode === "ask" ? available.slice(0, 3) : available.slice(0, 2);
+  return mode === "ask" ? available.slice(0, 3) : mode === "chat" ? available.slice(0, 1) : available.slice(0, 2);
 }
 
 function documentationUrl(config: PalabreConfig): string {
@@ -419,7 +427,9 @@ function documentationUrl(config: PalabreConfig): string {
 function exampleRolesForMode(mode: PalabreMode, count: number): AgentRole[] {
   const roles: AgentRole[] = mode === "ask"
     ? ["critic", "implementer", "scout", "architect"]
-    : ["implementer", "critic"];
+    : mode === "chat"
+      ? ["architect"]
+      : ["implementer", "critic"];
   while (roles.length < count) {
     roles.push("reviewer");
   }
