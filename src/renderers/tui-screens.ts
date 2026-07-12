@@ -5,6 +5,7 @@
  */
 import path from "node:path";
 import type { AgentRole, PalabreConfig, PalabreMode } from "../types.js";
+import type { TuiHomeMode } from "./tui-prompts.js";
 import type { Messages } from "../messages/index.js";
 import type { HistoryEntry } from "../history.js";
 import { sanitizeTerminalText } from "../adapters/terminal.js";
@@ -35,7 +36,7 @@ import {
 } from "./tui-theme.js";
 
 /** Affiche l'ecran d'accueil TUI lance par `palabre` sans sujet. */
-export function renderTuiHome(config: PalabreConfig, _configPath: string, messages: Messages, state: { mode?: PalabreMode; version?: string; latestVersion?: string } = {}): void {
+export function renderTuiHome(config: PalabreConfig, _configPath: string, messages: Messages, state: { mode?: TuiHomeMode; version?: string; latestVersion?: string } = {}): void {
   if (supportsInteractiveOutput) {
     clearScreen();
   }
@@ -43,7 +44,7 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
   const viewport = viewportWidth();
   const width = surfaceWidth();
   const defaults = config.defaults ?? {};
-  const mode = state.mode ?? defaults.mode ?? "debate";
+  const mode: TuiHomeMode = state.mode ?? defaults.mode ?? "debate";
   const debateAgents = defaults.agentA && defaults.agentB
     ? `${defaults.agentA} <-> ${defaults.agentB}`
     : messages.tui.noValue;
@@ -59,6 +60,7 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
   const askRoles = askAgentNames.length > 0
     ? askAgentNames.map((agent) => roleFor(config, agent, messages)).join(", ")
     : debateRoles.replace(" <-> ", ", ");
+  const isChat = false;
   const summary = mode === "ask"
     ? defaults.askSummaryAgent ?? defaults.summaryAgent ?? messages.tui.lastAskAgent
     : defaults.summaryAgent ?? defaults.agentB ?? "agent B";
@@ -73,13 +75,15 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
     ...padBlock(versionLines),
     "",
     ...padBlock(composerCard([
-      `${accent(messages.tui.modeValue(mode))} ${dim("·")} ${mode === "ask" ? askAgents : debateAgents}`,
-      `${accent(messages.tui.roles)} ${dim("·")} ${mode === "ask" ? askRoles : debateRoles}`,
-      `${accent(messages.tui.summary)} ${dim("·")} ${summary}${mode === "debate" ? ` ${dim("·")} ${accent(messages.tui.responses)} ${String(defaults.turns ?? "?")}` : ""}`,
+      `${accent(isChat ? "Chat" : messages.tui.modeValue(mode as PalabreMode))} ${dim("·")} ${isChat ? (defaults.agentA ?? messages.tui.noValue) : mode === "ask" ? askAgents : debateAgents}`,
+      `${accent(messages.tui.roles)} ${dim("·")} ${isChat ? (defaults.agentA ? roleFor(config, defaults.agentA, messages) : messages.tui.noValue) : mode === "ask" ? askRoles : debateRoles}`,
+      `${accent(messages.tui.summary)} ${dim("·")} ${isChat ? messages.tui.chatReady : summary}${mode === "debate" ? ` ${dim("·")} ${accent(messages.tui.responses)} ${String(defaults.turns ?? "?")}` : ""}`,
       `${accent(messages.tui.folder)} ${dim("·")} ${compactPath(process.cwd(), Math.min(width - 4, viewport - 12))}`,
       `${accent(messages.tui.docs)} ${dim("·")} ${documentationUrl(config)}`,
       "",
-      `${accent("/help")} ${dim(messages.tui.commands)}   ${accent("/roles")} ${dim(messages.tui.roles.toLowerCase())}   ${accent("/config")} ${dim(messages.tui.settings)}   ${accent(mode === "ask" ? "/debat" : "/ask")} ${dim(messages.tui.changeMode)}`
+      dim(messages.tui.tipContext),
+      "",
+      `${accent("/chat")} ${dim(messages.tui.chatReady)}   ${accent("/help")} ${dim(messages.tui.commands)}   ${accent("/roles")} ${dim(messages.tui.roles.toLowerCase())}   ${accent("/config")} ${dim(messages.tui.settings)}   ${accent(mode === "ask" ? "/debat" : "/ask")} ${dim(messages.tui.changeMode)}`
     ], width)),
     "",
     ...padBlock([
@@ -155,7 +159,7 @@ export function renderTuiAgentsHelp(config: PalabreConfig, mode: PalabreMode, me
     ...padBlock([brandHeader(messages.tui.agentsTitle)]),
     "",
     ...padBlock(card([
-      row(messages.tui.activeMode, messages.tui.modeValue(mode)),
+      row(messages.tui.activeMode, messages.tui.modeValue(mode as PalabreMode)),
       row(messages.tui.activeAgents, activeAgents.length > 0 ? activeAgents.join(separator) : messages.tui.noValue),
       "",
       bold(messages.tui.availableAgents),
@@ -251,6 +255,7 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
     : debateAgents.replace(" <-> ", ", ");
   const debateRoles = defaults.agentA && defaults.agentB ? `${roleFor(config, defaults.agentA, messages)} <-> ${roleFor(config, defaults.agentB, messages)}` : messages.tui.noValue;
   const askRoles = roleLineForMode(config, "ask", messages);
+  const isChat = false;
   const summary = mode === "ask"
     ? defaults.askSummaryAgent ?? defaults.summaryAgent ?? messages.tui.lastAskAgent
     : defaults.summaryAgent ?? defaults.agentB ?? messages.tui.noValue;
@@ -260,7 +265,7 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
   const ollamaEffectiveUrl = ollamaUrl ? safeEffectiveOllamaUrl(ollamaUrl) : undefined;
 
   const generalBox = card(rows([
-    [messages.tui.activeMode, messages.tui.modeValue(mode)],
+    [messages.tui.activeMode, messages.tui.modeValue(mode as PalabreMode)],
     [messages.tui.configFile, configPath],
     [messages.tui.interface, defaults.interface ?? "tui"],
     [messages.tui.language, config.language ?? "fr"],
@@ -287,7 +292,7 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
         [messages.tui.summary, summary],
         [messages.tui.responses, String(defaults.turns ?? "?")]
       ];
-  const sessionBox = card(rows(sessionEntries), width, messages.tui.modeValue(mode));
+  const sessionBox = card(rows(sessionEntries), width, messages.tui.modeValue(mode as PalabreMode));
 
   const commandRows = [
     bold(messages.tui.availableCommands),

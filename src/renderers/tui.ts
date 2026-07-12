@@ -25,5 +25,6 @@ export {
   type TuiAgentsWizardInput,
   type TuiConfigInput,
   type TuiHomeInput,
+  type TuiHomeMode,
   type TuiRolesWizardInput
 } from "./tui-prompts.js";

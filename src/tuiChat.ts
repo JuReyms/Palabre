@@ -8,21 +8,26 @@ import { createSessionContext } from "./session.js";
 import type { ChatAvailableAgent, DebateMessage, Language, PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
 
-export async function runTuiChatSession(config: PalabreConfig, language: Language, messages: Messages, outputDir: string): Promise<void> {
+export async function runTuiChatSession(config: PalabreConfig, language: Language, messages: Messages, outputDir: string, initialMessage?: string): Promise<void> {
   const availableAgents: ChatAvailableAgent[] = Object.entries(config.agents).map(([name, agent]) => ({ name, role: agent.role }));
   let activeAgentName = config.defaults?.agentA;
   if (!activeAgentName || !config.agents[activeAgentName]) throw new Error(messages.common.noAgentDefined("agent de conversation"));
   let activeAgentConfig = config.agents[activeAgentName];
   const transcript: DebateMessage[] = [];
   const session = createSessionContext();
-  let topic = "";
+  let topic = initialMessage ?? "";
+  if (initialMessage) transcript.push({ agent: "user", role: "architect", content: initialMessage, createdAt: new Date().toISOString() });
   let notice: string | undefined;
   const readline = createInterface({ input: stdin, output: stdout });
+  let interrupted = false;
+  readline.on("SIGINT", () => { interrupted = true; readline.close(); });
   try {
     for (;;) {
       renderTuiChat(activeAgentName, activeAgentConfig.role, transcript, messages, notice);
       notice = undefined;
-      const value = (await readline.question(`${messages.chat.questionPrompt}`)).trim();
+      let value: string;
+      try { value = (await readline.question(`${messages.chat.questionPrompt}`)).trim(); } catch { return; }
+      if (interrupted) return;
       if (!value || value === "/exit" || value === "/quit" || value === "/home" || value === "/back") return;
       if (value === "/end") {
         if (transcript.length === 0) { notice = messages.chat.consultationUnavailable; continue; }

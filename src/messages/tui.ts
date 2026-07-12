@@ -18,6 +18,7 @@ export interface TuiMessages {
   commands: string;
   settings: string;
   changeMode: string;
+  chatReady: string;
   tipContext: string;
   helpTitle: string;
   helpAsk: string;
@@ -147,6 +148,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     commands: "commandes",
     settings: "reglages",
     changeMode: "changer de mode",
+    chatReady: "conversation",
     tipContext: "* Tip Ajoute du contexte avec --context <dossier> ou --files <fichier>.",
     helpTitle: "Commandes TUI",
     helpAsk: "mode Ask",
@@ -271,6 +273,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     commands: "commands",
     settings: "settings",
     changeMode: "change mode",
+    chatReady: "conversation",
     tipContext: "* Tip Add context with --context <folder> or --files <file>.",
     helpTitle: "TUI Commands",
     helpAsk: "Ask mode",

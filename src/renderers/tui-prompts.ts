@@ -23,6 +23,8 @@ import {
 } from "./tui-theme.js";
 
 /** Résultat de `promptTuiHomeTopic` : action choisie depuis l'accueil, `undefined` si l'utilisateur quitte. */
+export type TuiHomeMode = PalabreMode | "chat";
+
 export type TuiHomeInput =
   | { kind: "topic"; topic: string; files?: string[]; context?: string[] }
   | { kind: "new" }
@@ -32,7 +34,7 @@ export type TuiHomeInput =
   | { kind: "update" }
   | { kind: "home" }
   | { kind: "config" }
-  | { kind: "mode"; mode: PalabreMode }
+  | { kind: "mode"; mode: TuiHomeMode }
   | { kind: "help" }
   | { kind: "agents"; agents: string[] }
   | { kind: "roles"; roles: string[] }
@@ -160,14 +162,14 @@ function questionWithInterrupt(rl: ReturnType<typeof createInterface>, prompt: s
 }
 
 /** Lit une demande depuis l'accueil TUI. Retourne undefined si l'utilisateur quitte. */
-export async function promptTuiHomeTopic(mode: PalabreMode = "debate", messages: Messages, options: { showComposer?: boolean; notice?: string } = {}): Promise<TuiHomeInput> {
+export async function promptTuiHomeTopic(mode: TuiHomeMode = "debate", messages: Messages, options: { showComposer?: boolean; notice?: string } = {}): Promise<TuiHomeInput> {
   if (!input.isTTY) {
     return undefined;
   }
 
   const rl = createInterface({ input, output });
   try {
-    const result = await questionWithInterrupt(rl, tuiPrompt(mode, messages.tui.subject, messages, options.notice));
+    const result = await questionWithInterrupt(rl, tuiPrompt(mode === "chat" ? "debate" : mode, messages.tui.subject, messages, options.notice));
     if (result.kind !== "answer") {
       return tuiHomeInterruptInput(result.kind);
     }
@@ -209,6 +211,10 @@ export async function promptTuiHomeTopic(mode: PalabreMode = "debate", messages:
 
     if (command === "/agents") {
       return { kind: "agents", agents: parts.slice(1) };
+    }
+
+    if (command === "/chat") {
+      return { kind: "mode", mode: "chat" };
     }
 
     if (command === "/ask") {

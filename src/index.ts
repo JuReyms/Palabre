@@ -22,7 +22,7 @@ import { listPresetNames, resolvePreset } from "./presets.js";
 import { listHistoryEntries } from "./history.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { createNdjsonRenderer } from "./renderers/ndjson.js";
-import { createTuiRenderer, promptTuiHomeTopic, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiUpdate, type TuiHomeInput } from "./renderers/tui.js";
+import { createTuiRenderer, promptTuiHomeTopic, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiUpdate, type TuiHomeInput, type TuiHomeMode } from "./renderers/tui.js";
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { buildDryRunPreview, printDryRun } from "./dryRun.js";
@@ -153,7 +153,7 @@ async function main(): Promise<void> {
   let stayInTuiAfterSession = false;
   let hasCompletedTuiSession = false;
   let resetTuiRunOverridesOnNextTopic = false;
-  let tuiMode = config.defaults?.mode ?? "debate";
+  let tuiMode: TuiHomeMode = config.defaults?.mode ?? "debate";
   let tuiVersion = "";
   let tuiLatestVersion: string | undefined;
 
@@ -191,14 +191,14 @@ async function main(): Promise<void> {
       }
 
       if (input.kind === "roles") {
-        const result = await runTuiRolesWizard(configPath, config, messages, tuiMode, input.roles);
+        const result = await runTuiRolesWizard(configPath, config, messages, tuiMode === "chat" ? "debate" : tuiMode, input.roles);
         if (result.quit) return "quit";
         tuiNotice = result.notice;
         return "continue";
       }
 
       if (input.kind === "agents") {
-        const result = await runTuiAgentsWizard(configPath, config, messages, tuiMode, input.agents);
+        const result = await runTuiAgentsWizard(configPath, config, messages, tuiMode === "chat" ? "debate" : tuiMode, input.agents);
         if (result.quit) return "quit";
         tuiNotice = result.notice;
         resetTuiRunOverridesOnNextTopic ||= Boolean(result.changedRunDefaults);
@@ -211,7 +211,7 @@ async function main(): Promise<void> {
       }
 
       if (input.kind === "config") {
-        const result = await runTuiConfigLoop(configPath, config, messages, tuiMode);
+        const result = await runTuiConfigLoop(configPath, config, messages, tuiMode === "chat" ? "debate" : tuiMode);
         if (result.quit) return "quit";
         tuiMode = result.mode;
         resetTuiRunOverridesOnNextTopic ||= result.changedRunDefaults;
@@ -238,6 +238,11 @@ async function main(): Promise<void> {
           return "continue";
         }
         return "retry";
+      }
+
+      if (tuiMode === "chat" && input.kind === "topic") {
+        await runTuiChatSession(config, language, messages, resolveOutputDir(config.outputDir), input.topic);
+        return "continue";
       }
 
       if (!input.topic) {
@@ -287,7 +292,7 @@ async function main(): Promise<void> {
       if (action === "quit") return;
       if (action === "continue") continue;
 
-      parsed.flags.mode = tuiMode;
+      parsed.flags.mode = "debate";
       parsed.flags.renderer = "tui";
       break;
     }
@@ -309,7 +314,7 @@ async function main(): Promise<void> {
             const action = await handleTuiHomeInput(nextInput);
             if (action === "quit") return;
             if (action === "continue" || action === "retry") continue;
-            parsed.flags.mode = tuiMode;
+            parsed.flags.mode = "debate";
             parsed.flags.renderer = "tui";
             break;
           }
@@ -414,7 +419,7 @@ async function main(): Promise<void> {
         break;
       }
 
-      parsed.flags.mode = tuiMode;
+      parsed.flags.mode = "debate";
       parsed.flags.renderer = "tui";
       break;
     }
