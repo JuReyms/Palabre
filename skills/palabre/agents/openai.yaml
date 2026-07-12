@@ -1,0 +1,4 @@
+interface:
+  display_name: "Palabre"
+  short_description: "Orchestrer un débat entre agents IA"
+  default_prompt: "Use $palabre to compare two technical approaches."

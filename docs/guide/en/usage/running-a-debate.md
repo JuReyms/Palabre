@@ -130,6 +130,12 @@ palabre codex-claude "Subject" --show-prompt
 
 This command displays the first turn prompt, the agents, and the summary options, then stops. This is useful for verifying the context being sent without consuming an AI request.
 
+To inspect the complete resolved session — agents, roles, context, limits, and planned export directory — without calling agents or writing an export:
+
+```bash
+palabre codex-claude "Subject" --context src --dry-run
+```
+
 ## TUI interface and raw terminal rendering
 
 By default, Palabre favors the TUI interface when output is a real terminal. `palabre` opens the home screen, and a direct command such as `palabre codex-claude "Subject" -t 4` runs the session with the TUI renderer.

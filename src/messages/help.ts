@@ -154,6 +154,7 @@ Flags:
   --terminal           force le rendu terminal brut
   --renderer <kind>    auto, pretty, plain, tui ou ndjson
   --show-prompt        affiche le prompt sans appeler d'agent
+  --dry-run            prévisualise la session sans appeler d'agent ni écrire d'export
 `,
   ask: `
 Lance une demande avec plusieurs reponses independantes.
@@ -171,6 +172,7 @@ Flags:
   --terminal           force le rendu terminal brut
   --renderer <kind>    auto, pretty, plain, tui ou ndjson
   --show-prompt        affiche le prompt sans appeler d'agent
+  --dry-run            prévisualise la session sans appeler d'agent ni écrire d'export
 `
 };
 
@@ -311,6 +313,7 @@ Flags:
   --terminal           forces raw terminal rendering
   --renderer <kind>    auto, pretty, plain, tui, or ndjson
   --show-prompt        shows the prompt without calling an agent
+  --dry-run            previews the session without calling agents or writing an export
 `,
   ask: `
 Runs a request with several independent responses.
@@ -328,6 +331,7 @@ Flags:
   --terminal           forces raw terminal rendering
   --renderer <kind>    auto, pretty, plain, tui, or ndjson
   --show-prompt        shows the prompt without calling an agent
+  --dry-run            previews the session without calling agents or writing an export
 `
 };
 
