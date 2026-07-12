@@ -1,0 +1,4 @@
+{"v":1,"type":"start","mode":"debate","topic":"Retry","turns":2,"agents":[],"summaryEnabled":true,"summaryAgent":"claude","earlyStop":true,"filesCount":0,"session":{"startedAt":"2026-07-12T10:00:00.000Z","localDate":"2026-07-12","timeZone":"Europe/Paris","cwd":"/workspace"}}
+{"v":1,"type":"warning","message":"Contexte partiel"}
+{"v":1,"type":"error","phase":"debate","kind":"non-zero-exit","message":"Agent failed","agent":"codex","role":"implementer","turn":1,"details":{"exitCode":1}}
+{"v":1,"type":"done","outputPath":"/workspace/.palabre/palabre-retry.debate.md"}
