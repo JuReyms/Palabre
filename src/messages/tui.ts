@@ -37,8 +37,8 @@ export interface TuiMessages {
   historyEmpty: string;
   historyOpenHint: string;
   historyFile: string;
-  historyMode(mode: PalabreMode): string;
-  historyCount(mode: PalabreMode): string;
+  historyMode(mode: PalabreMode | "chat"): string;
+  historyCount(mode: PalabreMode | "chat"): string;
   retryUnavailable: string;
   agentsTitle: string;
   activeMode: string;
@@ -166,8 +166,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     historyEmpty: "Aucun export trouve pour le moment.",
     historyOpenHint: "Le chemin du fichier est cliquable dans les terminaux compatibles.",
     historyFile: "Fichier",
-    historyMode: (mode) => mode === "ask" ? "Mode ask" : "Mode debat",
-    historyCount: (mode) => mode === "ask" ? "Reponses" : "Tours",
+    historyMode: (mode) => mode === "chat" ? "Conversation" : mode === "ask" ? "Mode ask" : "Mode debat",
+    historyCount: (mode) => mode === "chat" ? "Messages" : mode === "ask" ? "Reponses" : "Tours",
     retryUnavailable: "Aucune session a relancer pour le moment.",
     agentsTitle: "Agents Palabre",
     activeMode: "Mode actif",
@@ -290,8 +290,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     historyEmpty: "No export found yet.",
     historyOpenHint: "The file path is clickable in compatible terminals.",
     historyFile: "File",
-    historyMode: (mode) => mode === "ask" ? "Ask mode" : "Debate mode",
-    historyCount: (mode) => mode === "ask" ? "Responses" : "Turns",
+    historyMode: (mode) => mode === "chat" ? "Conversation" : mode === "ask" ? "Ask mode" : "Debate mode",
+    historyCount: (mode) => mode === "chat" ? "Messages" : mode === "ask" ? "Responses" : "Turns",
     retryUnavailable: "No session to retry yet.",
     agentsTitle: "Palabre Agents",
     activeMode: "Active mode",

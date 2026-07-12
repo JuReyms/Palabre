@@ -2,12 +2,13 @@
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { runStatelessChatTurn, runStatelessConsultation } from "./chat.js";
-import { renderTuiChat } from "./renderers/tui-chat.js";
+import { renderTuiChat, renderTuiChatComplete } from "./renderers/tui-chat.js";
+import { writeChatMarkdown } from "./chatOutput.js";
 import { createSessionContext } from "./session.js";
 import type { ChatAvailableAgent, DebateMessage, Language, PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
 
-export async function runTuiChatSession(config: PalabreConfig, language: Language, messages: Messages): Promise<void> {
+export async function runTuiChatSession(config: PalabreConfig, language: Language, messages: Messages, outputDir: string): Promise<void> {
   const availableAgents: ChatAvailableAgent[] = Object.entries(config.agents).map(([name, agent]) => ({ name, role: agent.role }));
   let activeAgentName = config.defaults?.agentA;
   if (!activeAgentName || !config.agents[activeAgentName]) throw new Error(messages.common.noAgentDefined("agent de conversation"));
@@ -23,6 +24,13 @@ export async function runTuiChatSession(config: PalabreConfig, language: Languag
       notice = undefined;
       const value = (await readline.question(`${messages.chat.questionPrompt}`)).trim();
       if (!value || value === "/exit" || value === "/quit" || value === "/home" || value === "/back") return;
+      if (value === "/end") {
+        if (transcript.length === 0) { notice = messages.chat.consultationUnavailable; continue; }
+        const outputPath = await writeChatMarkdown(outputDir, topic, transcript, session, messages);
+        renderTuiChatComplete(outputPath, messages);
+        await readline.question("");
+        return;
+      }
       const [command, agentName] = value.split(/\s+/, 2);
       if (command === "/agents") { notice = messages.chat.availableAgents(availableAgents); continue; }
       if (command === "/use") {

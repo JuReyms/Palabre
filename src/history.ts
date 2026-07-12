@@ -6,7 +6,7 @@ import path from "node:path";
 export interface HistoryEntry {
   fileName: string;
   path: string;
-  mode: "debate" | "ask";
+  mode: "debate" | "ask" | "chat";
   topic: string;
   agents: string;
   date: string;
@@ -32,7 +32,7 @@ export async function listHistoryEntries(outputDir: string, limit = 10): Promise
   }
 
   const markdownFiles = entries
-    .filter((entry) => entry.isFile() && /\.(debate|ask)\.md$/i.test(entry.name))
+    .filter((entry) => entry.isFile() && /\.(debate|ask|chat)\.md$/i.test(entry.name))
     .map((entry) => path.join(resolved, entry.name));
 
   const history = await Promise.all(markdownFiles.map(readHistoryFile));
@@ -52,15 +52,15 @@ async function readHistoryFile(filePath: string): Promise<HistoryEntry | undefin
     const header = raw.slice(0, maxHeaderBytes);
     const table = parseMetadataTable(header);
     const fileName = path.basename(filePath);
-    const mode = fileName.endsWith(".ask.md") ? "ask" : "debate";
+    const mode = fileName.endsWith(".ask.md") ? "ask" : fileName.endsWith(".chat.md") ? "chat" : "debate";
 
     return {
       fileName,
       path: filePath,
       mode,
-      topic: table.Sujet ?? table.Subject ?? topicFromFileName(fileName),
+      topic: table.Sujet ?? table.Subject ?? table["Contexte initial"] ?? table["Initial context"] ?? topicFromFileName(fileName),
       agents: table.Agents ?? "",
-      date: table["Date locale"] ?? table["Local date"] ?? table["Session demarree a"] ?? table["Session started at"] ?? "",
+      date: table["Date locale"] ?? table["Local date"] ?? table["Session demarree a"] ?? table["Session démarrée"] ?? table["Session started at"] ?? table["Session started"] ?? "",
       count: countFromTable(mode, table),
       mtimeMs: metadata.mtimeMs
     };
@@ -71,6 +71,8 @@ async function readHistoryFile(filePath: string): Promise<HistoryEntry | undefin
 
 /** Formate le compteur `x/y` adapté au mode, en tolérant les clés FR/EN de la table de métadonnées. */
 function countFromTable(mode: HistoryEntry["mode"], table: Record<string, string>): string {
+  if (mode === "chat") return table.Messages ?? "";
+
   if (mode === "ask") {
     const received = table["Reponses recues"] ?? table["Received responses"];
     const requested = table["Reponses attendues"] ?? table["Expected responses"];
@@ -111,7 +113,7 @@ function stripMarkdown(value: string): string {
 function topicFromFileName(fileName: string): string {
   return fileName
     .replace(/^palabre-/, "")
-    .replace(/\.(debate|ask)\.md$/i, "")
+    .replace(/\.(debate|ask|chat)\.md$/i, "")
     .replace(/-\d{4}-\d{2}-\d{2}t.*$/i, "")
     .replace(/-/g, " ")
     .trim() || fileName;

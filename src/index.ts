@@ -221,7 +221,7 @@ async function main(): Promise<void> {
       }
 
       if (input.kind === "chat") {
-        await runTuiChatSession(config, language, messages);
+        await runTuiChatSession(config, language, messages, resolveOutputDir(config.outputDir));
         return "continue";
       }
 
