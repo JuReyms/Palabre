@@ -1032,8 +1032,7 @@ function safeStartupLanguage(args: string[]) {
 
 /** Lance une conversation locale stateless avec consultation explicite. */
 async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig, language: import("./types.js").Language, messages: Messages): Promise<void> {
-  const topic = optionalString(flags.topic);
-  if (!topic) throw new Error(messages.common.topicRequired);
+  let topic = optionalString(flags.topic) ?? "";
   const context = await loadProjectInputs(
     getStringListFlag(flags.files),
     getStringListFlag(flags.context),
@@ -1049,12 +1048,17 @@ async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig,
   const readline = createInterface({ input: process.stdin, output: process.stdout });
   const transcript: import("./types.js").DebateMessage[] = [];
   try {
-    process.stdout.write(`${messages.chat.intro(activeAgentName)} ${messages.chat.exitHint}\n${messages.chat.availableAgents(availableAgents)}\n${messages.chat.questionPrompt}`);
+    process.stdout.write(`${messages.chat.intro(activeAgentName, activeAgentConfig.role)}\n${messages.chat.exitHint}\n\n${topic ? messages.chat.questionPrompt : messages.chat.openingPrompt}`);
     for await (const line of readline) {
       const userMessage = line.trim();
       if (!userMessage || userMessage === "/exit" || userMessage === "/quit") break;
 
       const [command, agentName] = userMessage.split(/\s+/, 2);
+      if (command === "/agents") {
+        process.stdout.write(`\n${messages.chat.availableAgents(availableAgents)}\n\n${topic ? messages.chat.questionPrompt : messages.chat.openingPrompt}`);
+        continue;
+      }
+
       if (command === "/consult") {
         if (!agentName) {
           process.stdout.write(`\n${messages.chat.consultUsage}\n\n${messages.chat.questionPrompt}`);
@@ -1102,6 +1106,8 @@ async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig,
         process.stdout.write(`\n${messages.chat.switchedTo(activeAgentName)}\n\n${messages.chat.questionPrompt}`);
         continue;
       }
+
+      if (!topic) topic = userMessage;
 
       const turn = await runStatelessChatTurn({
         agentName: activeAgentName,

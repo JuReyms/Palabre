@@ -50,9 +50,11 @@ test("CLI chat continues an interactive stateless conversation", async () => {
     agents: { mock: { type: "cli", command: process.execPath, args: ["-e", mock], promptMode: "stdin", shell: false, role: "reviewer" }, second: { type: "cli", command: process.execPath, args: ["-e", mock], promptMode: "stdin", shell: false, role: "architect" } }
   }), "utf8");
   const entry = path.resolve(".tmp", "test-dist", "src", "index.js");
-  const result = await runInteractive(process.execPath, [entry, "chat", "Product direction", "--config", configPath, "--trust-config"], process.cwd(), "First question\n/consult second\n/use second\nSecond question\n/exit\n");
+  const result = await runInteractive(process.execPath, [entry, "chat", "--config", configPath, "--trust-config"], process.cwd(), "/agents\nFirst question\n/consult second\n/use second\nSecond question\n/exit\n");
   assert.equal(result.code, 0, result.stderr);
-  assert.match(result.stdout, /Conversation with mock/);
+  assert.match(result.stdout, /Palabre · mock \(reviewer\)/);
+  assert.match(result.stdout, /What would you like to explore/);
+  assert.match(result.stdout, /Available agents: mock \(reviewer\), second \(architect\)/);
   assert.match(result.stdout, /First question/);
   assert.match(result.stdout, /Second question/);
   assert.match(result.stdout, /Consulting second/);

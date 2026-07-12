@@ -1,8 +1,9 @@
 /** @file Messages de la commande interactive `palabre chat`. */
-import type { ChatAvailableAgent, Language } from "../types.js";
+import type { AgentRole, ChatAvailableAgent, Language } from "../types.js";
 
 export interface ChatMessages {
-  intro(agentName: string): string;
+  intro(agentName: string, role: AgentRole): string;
+  openingPrompt: string;
   questionPrompt: string;
   exitHint: string;
   assistantLabel(agentName: string): string;
@@ -10,6 +11,7 @@ export interface ChatMessages {
   availableAgents(agents: ChatAvailableAgent[]): string;
   consultUsage: string;
   useUsage: string;
+  agentsUsage: string;
   unknownAgent(name: string): string;
   consultationUnavailable: string;
   consulting(agentName: string): string;
@@ -18,30 +20,34 @@ export interface ChatMessages {
 
 export const chatMessages: Record<Language, ChatMessages> = {
   fr: {
-    intro: (agentName) => `Conversation avec ${agentName}.`,
+    intro: (agentName, role) => `Palabre · ${agentName} (${role})`,
+    openingPrompt: "Que voulez-vous explorer ?\nVous: ",
     questionPrompt: "Vous: ",
-    exitHint: "Tapez /exit pour terminer. Commandes : /consult <agent>, /use <agent>.",
+    exitHint: "`/consult <agent>` pour un avis · `/agents` pour la liste · `/exit` pour terminer.",
     assistantLabel: (agentName) => `${agentName}:`,
     consultationLabel: (agentName) => `Avis de ${agentName}:`,
     availableAgents: (agents) => `Agents disponibles : ${agents.map((agent) => `${agent.name} (${agent.role})`).join(", ")}.`,
     consultUsage: "Usage : /consult <agent>",
     useUsage: "Usage : /use <agent>",
+    agentsUsage: "Usage : /agents",
     unknownAgent: (name) => `Agent inconnu : ${name}.`,
-    consultationUnavailable: "Ajoutez au moins un message avant de demander un avis.",
+    consultationUnavailable: "Écrivez d'abord un message avant de demander un avis.",
     consulting: (agentName) => `Consultation de ${agentName}…`,
     switchedTo: (agentName) => `La conversation continue avec ${agentName}.`
   },
   en: {
-    intro: (agentName) => `Conversation with ${agentName}.`,
+    intro: (agentName, role) => `Palabre · ${agentName} (${role})`,
+    openingPrompt: "What would you like to explore?\nYou: ",
     questionPrompt: "You: ",
-    exitHint: "Type /exit to finish. Commands: /consult <agent>, /use <agent>.",
+    exitHint: "`/consult <agent>` for an opinion · `/agents` for the list · `/exit` to finish.",
     assistantLabel: (agentName) => `${agentName}:`,
     consultationLabel: (agentName) => `${agentName}'s opinion:`,
     availableAgents: (agents) => `Available agents: ${agents.map((agent) => `${agent.name} (${agent.role})`).join(", ")}.`,
     consultUsage: "Usage: /consult <agent>",
     useUsage: "Usage: /use <agent>",
+    agentsUsage: "Usage: /agents",
     unknownAgent: (name) => `Unknown agent: ${name}.`,
-    consultationUnavailable: "Add at least one message before requesting an opinion.",
+    consultationUnavailable: "Write at least one message before requesting an opinion.",
     consulting: (agentName) => `Consulting ${agentName}…`,
     switchedTo: (agentName) => `Conversation now continues with ${agentName}.`
   }
