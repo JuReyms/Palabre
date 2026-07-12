@@ -60,7 +60,7 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
   const askRoles = askAgentNames.length > 0
     ? askAgentNames.map((agent) => roleFor(config, agent, messages)).join(", ")
     : debateRoles.replace(" <-> ", ", ");
-  const isChat = false;
+  const isChat = mode === "chat";
   const summary = mode === "ask"
     ? defaults.askSummaryAgent ?? defaults.summaryAgent ?? messages.tui.lastAskAgent
     : defaults.summaryAgent ?? defaults.agentB ?? "agent B";

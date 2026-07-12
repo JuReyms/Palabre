@@ -17,7 +17,10 @@ export async function runTuiChatSession(config: PalabreConfig, language: Languag
   const transcript: DebateMessage[] = [];
   const session = createSessionContext();
   let topic = initialMessage ?? "";
-  if (initialMessage) transcript.push({ agent: "user", role: "architect", content: initialMessage, createdAt: new Date().toISOString() });
+  if (initialMessage) {
+    const turn = await runStatelessChatTurn({ agentName: activeAgentName, agentConfig: activeAgentConfig, topic, userMessage: initialMessage, transcript, availableAgents, language, session, files: [] });
+    transcript.push(turn.user, turn.assistant);
+  }
   let notice: string | undefined;
   const readline = createInterface({ input: stdin, output: stdout });
   let interruptKind: "back" | "quit" | undefined;

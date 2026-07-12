@@ -168,7 +168,7 @@ export async function promptTuiHomeTopic(mode: TuiHomeMode = "debate", messages:
 
   const rl = createInterface({ input, output });
   try {
-    const result = await questionWithInterrupt(rl, tuiPrompt(mode === "chat" ? "debate" : mode, messages.tui.subject, messages, options.notice));
+    const result = await questionWithInterrupt(rl, tuiPrompt(mode, messages.tui.subject, messages, options.notice));
     if (result.kind !== "answer") {
       return tuiHomeInterruptInput(result.kind);
     }
@@ -427,7 +427,7 @@ export function renderTuiComposer(mode: PalabreMode, messages: Messages, labelPr
  * Zone de saisie : fil d'Ariane intégré à la règle violette, puis ligne de saisie
  * réduite au marqueur `❯` — le contexte vit dans la règle, pas devant le curseur.
  */
-function tuiPrompt(mode: PalabreMode, labelPrefix: string, messages: Messages, notice?: string): string {
+function tuiPrompt(mode: TuiHomeMode, labelPrefix: string, messages: Messages, notice?: string): string {
   const padding = surfacePadding();
   const promptLine = `${padding}${accent(glyphs().prompt)} `;
   return [
@@ -444,11 +444,11 @@ function promptNoticeLines(notice: string): string[] {
   return wrapLine(notice, contentWidth).map((line) => `${padding}${line}`);
 }
 
-function promptModeLabel(mode: PalabreMode, messages: Messages): string {
-  return `Mode ${messages.tui.modeValue(mode).toLowerCase()}`;
+function promptModeLabel(mode: TuiHomeMode, messages: Messages): string {
+  return mode === "chat" ? "Mode chat" : `Mode ${messages.tui.modeValue(mode).toLowerCase()}`;
 }
 
-function promptTrail(mode: PalabreMode, labelPrefix: string, messages: Messages): string {
+function promptTrail(mode: TuiHomeMode, labelPrefix: string, messages: Messages): string {
   const parts = [bold("Palabre"), accent(promptModeLabel(mode, messages))];
   if (labelPrefix !== messages.tui.subject) {
     parts.push(bold(labelPrefix));
