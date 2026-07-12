@@ -220,11 +220,6 @@ async function main(): Promise<void> {
         return "continue";
       }
 
-      if (input.kind === "chat") {
-        const chatResult = await runTuiChatSession(config, language, messages, resolveOutputDir(config.outputDir));
-        return chatResult === "quit" ? "quit" : "continue";
-      }
-
       if (input.kind === "new") {
         parsed.command = "new";
         parsed.commandExplicit = true;

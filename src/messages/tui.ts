@@ -20,6 +20,9 @@ export interface TuiMessages {
   changeMode: string;
   chatReady: string;
   tipContext: string;
+  chatTip: string;
+  askTip: string;
+  debateTip: string;
   helpTitle: string;
   helpAsk: string;
   helpChat: string;
@@ -150,6 +153,9 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     changeMode: "changer de mode",
     chatReady: "conversation",
     tipContext: "* Tip Ajoute du contexte avec --context <dossier> ou --files <fichier>.",
+    chatTip: "Chat : une conversation, puis un avis supplémentaire seulement si utile.",
+    askTip: "Ask : plusieurs réponses indépendantes à la même question.",
+    debateTip: "Débat : deux agents confrontent leurs points de vue avant la synthèse.",
     helpTitle: "Commandes TUI",
     helpAsk: "mode Ask",
     helpChat: "ouvrir une conversation",
@@ -275,6 +281,9 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     changeMode: "change mode",
     chatReady: "conversation",
     tipContext: "* Tip Add context with --context <folder> or --files <file>.",
+    chatTip: "Chat: one conversation, then an extra opinion only when useful.",
+    askTip: "Ask: several independent responses to the same question.",
+    debateTip: "Debate: two agents challenge each other before the summary.",
     helpTitle: "TUI Commands",
     helpAsk: "Ask mode",
     helpChat: "open a conversation",

@@ -28,7 +28,6 @@ export type TuiHomeMode = PalabreMode | "chat";
 export type TuiHomeInput =
   | { kind: "topic"; topic: string; files?: string[]; context?: string[] }
   | { kind: "new" }
-  | { kind: "chat" }
   | { kind: "retry" }
   | { kind: "history" }
   | { kind: "update" }
@@ -179,10 +178,6 @@ export async function promptTuiHomeTopic(mode: TuiHomeMode = "debate", messages:
     const command = parts[0]?.toLowerCase() ?? "";
     if (!value || command === "/quit" || command === "/q" || command === "/exit") {
       return undefined;
-    }
-
-    if (command === "/chat") {
-      return { kind: "chat" };
     }
 
     if (command === "/new") {
