@@ -68,6 +68,7 @@ test("explicit ask agents are deduplicated and the last one is the summary fallb
 
 test("invalid mode is rejected while resolving run options", () => {
   assert.throws(() => resolve({ mode: "panel" }, config({ agentA: "codex", agentB: "claude" })), /Unknown mode/);
+  assert.throws(() => resolve({ mode: "chat" }, config({ agentA: "codex", agentB: "claude" })), /Unknown mode/);
 });
 
 test("run options validate temporary role overrides", () => {

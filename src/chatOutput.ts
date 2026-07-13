@@ -9,9 +9,38 @@ export async function writeChatMarkdown(outputDir: string, topic: string, transc
   const slug = (topic || "conversation").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64) || "conversation";
   const filePath = path.resolve(outputDir, `palabre-${slug}-${safeDate}.chat.md`);
   const agents = [...new Set(transcript.filter((message) => message.agent !== "user").map((message) => message.agent))].join(", ");
-  const lines = [messages.chat.exportTitle, "", `| ${messages.chat.exportSubject} | ${topic || messages.chat.openingPrompt.trim()} |`, `| ${messages.chat.exportAgents} | ${agents} |`, `| ${messages.chat.exportStartedAt} | ${session.startedAt} |`, `| ${messages.chat.exportMessages} | ${transcript.length} |`, "", `## ${messages.chat.exportMessages}`, ""];
-  for (const message of transcript) lines.push(`### ${message.agent} (${message.role})`, "", message.content.trim(), "");
+  const rows = [
+    [messages.chat.exportSubject, topic || messages.chat.openingPrompt.trim()],
+    [messages.chat.exportAgents, agents],
+    [messages.chat.exportStartedAt, session.startedAt],
+    [messages.chat.exportMessages, String(transcript.length)]
+  ];
+  const lines = [
+    messages.chat.exportTitle,
+    "",
+    "| | |",
+    "| --- | --- |",
+    ...rows.map(([label, value]) => `| ${escapeTableCell(label!)} | ${escapeTableCell(value!)} |`),
+    "",
+    `## ${messages.chat.exportMessages}`,
+    ""
+  ];
+  for (const message of transcript) {
+    lines.push(`### ${escapeHeading(message.agent)} (${escapeHeading(message.role)})`, "", normalizeMarkdownForWindowsPreview(message.content.trim()), "");
+  }
   await mkdir(path.dirname(filePath), { recursive: true });
   await writeFile(filePath, `${lines.join("\n")}\n`, "utf8");
   return filePath;
+}
+
+function escapeTableCell(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
+}
+
+function escapeHeading(value: string): string {
+  return value.replace(/[\r\n]+/g, " ").replace(/#/g, "\\#").trim();
+}
+
+function normalizeMarkdownForWindowsPreview(content: string): string {
+  return content.replace(/:\*\*/g, "&#58;**");
 }

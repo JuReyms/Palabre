@@ -41,7 +41,7 @@ import { runPresetsCommand } from "./commands/presets.js";
 import { runUpdateCommand } from "./commands/update.js";
 import { optionalString } from "./commands/shared.js";
 import { runTuiAgentsWizard, runTuiConfigLoop, runTuiRolesWizard, syncInteractiveDetectedAgents } from "./tuiController.js";
-import { parseInterfaceFlag, parseModeFlag, resolveRunOptions } from "./runOptions.js";
+import { parseInterfaceFlag, parseSessionModeFlag, resolveRunOptions } from "./runOptions.js";
 import { runStatelessChatTurn, runStatelessConsultation } from "./chat.js";
 import { runTuiChatSession } from "./tuiChat.js";
 
@@ -626,7 +626,7 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
     }
 
     if (modeValue !== undefined) {
-      nextDefaults.mode = parseModeFlag(modeValue, messages);
+      nextDefaults.mode = parseSessionModeFlag(modeValue, messages);
     }
 
     if (askAgentsValue.length > 0) {
