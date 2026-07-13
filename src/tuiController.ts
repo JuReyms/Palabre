@@ -93,19 +93,9 @@ export async function runTuiConfigLoop(
           continue;
         }
 
-        if (mode === "ask") {
-          const agents = normalizeTuiAskAgents(config, agentsInput.agents, currentMessages);
-          config.defaults = { ...(config.defaults ?? {}), askAgents: agents };
-          await writeConfig(configPath, config);
-          changedRunDefaults = true;
-          notice = currentMessages.tui.askAgentsUpdated(agents.join(", "));
-        } else {
-          const [agentA, agentB] = normalizeTuiDebateAgents(config, agentsInput.agents, currentMessages);
-          config.defaults = { ...(config.defaults ?? {}), agentA, agentB };
-          await writeConfig(configPath, config);
-          changedRunDefaults = true;
-          notice = currentMessages.tui.debateAgentsUpdated(`${agentA} <-> ${agentB}`);
-        }
+        notice = applyTuiAgents(config, mode, agentsInput.agents, currentMessages);
+        await writeConfig(configPath, config);
+        changedRunDefaults = true;
       } catch (error) {
         notice = error instanceof Error ? error.message : String(error);
       }

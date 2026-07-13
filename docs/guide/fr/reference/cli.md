@@ -59,7 +59,9 @@ L'accueil TUI applique la même synchronisation prudente des agents connus que `
 
 Utilisez `/agents` pour afficher les agents disponibles. `/end` enregistre la conversation dans `.palabre/`, affiche le fichier et le dossier puis revient à l'accueil ; `/home` revient sans enregistrer. `/consult <agent>` demande explicitement un second avis sur les six derniers messages retenus ; cet avis est ajouté à la conversation. `/use <agent>` bascule ensuite l'agent actif, ou vous pouvez continuer avec l'agent initial. `--role-a`, `--model-a`, `--language`, `--files` et `--context` restent disponibles. Si aucun `--agent-a` n'est donné, Palabre utilise l'agent A configuré par défaut.
 
-Cette première version ne crée pas d'export et n'exécute aucune action. La consultation est toujours explicite : l'agent peut la proposer, mais l'utilisateur garde l'initiative et choisit de poursuivre avec l'agent initial ou celui qui a été consulté.
+Cette première version reste stateless et n'exécute aucune action. Le contexte envoyé à chaque appel est borné aux six messages les plus récents ; Palabre signale lorsque des messages plus anciens ne sont plus transmis. La consultation reste explicite : l'agent peut la proposer, mais l'utilisateur garde l'initiative.
+
+Après un débat ou un Ask terminé dans la TUI, `/chat` ouvre directement une conversation dont le contexte indique sa provenance et reprend le sujet avec la synthèse finale, ou les six échanges récents si aucune synthèse n'est disponible.
 
 ## Commandes TUI
 

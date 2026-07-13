@@ -5,6 +5,7 @@ export interface TuiMessages {
   updateAvailable(current: string, latest: string): string;
   modeLabel(mode: PalabreMode): string;
   modeValue(mode: PalabreMode): string;
+  composerPlaceholder(mode: PalabreMode): string;
   noValue: string;
   lastAskAgent: string;
   roles: string;
@@ -15,11 +16,11 @@ export interface TuiMessages {
   responses: string;
   folder: string;
   docs: string;
-  commands: string;
-  settings: string;
   changeMode: string;
   chatReady: string;
   tipContext: string;
+  homeCommands: string;
+  homeModes: string;
   chatTip: string;
   chatComposerCommands: string;
   askTip: string;
@@ -78,6 +79,8 @@ export interface TuiMessages {
   quitCommand: string;
   subject: string;
   configPrompt: string;
+  configComposerPlaceholder: string;
+  configComposerTip: string;
   agentsPrompt: string;
   rolesPrompt: string;
   sessionDone: string;
@@ -145,6 +148,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     updateAvailable: (current, latest) => `Mise a jour disponible: ${current} -> ${latest}. Utilise /update.`,
     modeLabel: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debat",
     modeValue: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debat",
+    composerPlaceholder: (mode) => mode === "chat" ? "De quoi voulez-vous discuter ?" : mode === "ask" ? "Quelle question voulez-vous poser aux agents ?" : "Quel sujet voulez-vous faire débattre ?",
     noValue: "non definis",
     lastAskAgent: "dernier agent ask",
     roles: "Roles",
@@ -155,13 +159,13 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     responses: "Tours",
     folder: "Dossier",
     docs: "Docs",
-    commands: "commandes",
-    settings: "reglages",
     changeMode: "changer de mode",
     chatReady: "conversation",
-    tipContext: "* Tip Ajoute du contexte avec --context <dossier> ou --files <fichier>.",
+    tipContext: "Tip Ajoute du contexte avec --context <dossier> ou --files <fichier>.",
+    homeCommands: "/config reglages · /roles roles des agents · /help commandes disponibles",
+    homeModes: "/debat débat entre deux agents · /chat conversation · /ask réponses multiples",
     chatTip: "/chat : une conversation, puis un avis supplémentaire seulement si utile.",
-    chatComposerCommands: "/consult <agent> demander un avis · /use <agent> poursuivre avec lui · /end terminer et exporter",
+    chatComposerCommands: "/consult <agent> avis · /use <agent> basculer · /agents liste · /end exporter · /home accueil",
     askTip: "Ask : plusieurs réponses indépendantes à la même question.",
     debateTip: "Débat : deux agents confrontent leurs points de vue avant la synthèse.",
     helpTitle: "Commandes TUI",
@@ -215,6 +219,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     quitCommand: "quitter",
     subject: "Sujet",
     configPrompt: "Config",
+    configComposerPlaceholder: "Saisissez une commande de configuration…",
+    configComposerTip: "/home accueil · Ctrl+C retour · /quit quitter",
     agentsPrompt: "Agents",
     rolesPrompt: "Roles",
     sessionDone: "Session terminee",
@@ -280,6 +286,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     updateAvailable: (current, latest) => `Update available: ${current} -> ${latest}. Use /update.`,
     modeLabel: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debate",
     modeValue: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debate",
+    composerPlaceholder: (mode) => mode === "chat" ? "What would you like to discuss?" : mode === "ask" ? "What question would you like to ask the agents?" : "What topic would you like the agents to debate?",
     noValue: "not set",
     lastAskAgent: "last ask agent",
     roles: "Roles",
@@ -290,13 +297,13 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     responses: "Turns",
     folder: "Folder",
     docs: "Docs",
-    commands: "commands",
-    settings: "settings",
     changeMode: "change mode",
     chatReady: "conversation",
-    tipContext: "* Tip Add context with --context <folder> or --files <file>.",
+    tipContext: "Tip Add context with --context <folder> or --files <file>.",
+    homeCommands: "/config settings · /roles agent roles · /help available commands",
+    homeModes: "/debat debate between two agents · /chat conversation · /ask multiple responses",
     chatTip: "/chat: one conversation, then an extra opinion only when useful.",
-    chatComposerCommands: "/consult <agent> ask for an opinion · /use <agent> continue with it · /end finish and export",
+    chatComposerCommands: "/consult <agent> opinion · /use <agent> switch · /agents list · /end export · /home home",
     askTip: "Ask: several independent responses to the same question.",
     debateTip: "Debate: two agents challenge each other before the summary.",
     helpTitle: "TUI Commands",
@@ -351,6 +358,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     subject: "Subject",
     configPrompt: "Config",
     agentsPrompt: "Agents",
+    configComposerPlaceholder: "Enter a configuration command…",
+    configComposerTip: "/home home · Ctrl+C back · /quit quit",
     rolesPrompt: "Roles",
     sessionDone: "Session complete",
     sessionHistoryHint: "Find your exports again with /history.",

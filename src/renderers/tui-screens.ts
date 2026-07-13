@@ -23,6 +23,7 @@ import {
   composerCard,
   dim,
   dirnamePortable,
+  packItems,
   logoBlock,
   padBlock,
   panel,
@@ -31,7 +32,7 @@ import {
   supportsInteractiveOutput,
   surfaceWidth,
   terminalLink,
-  viewportWidth,
+  visibleLength,
   type RowEntry
 } from "./tui-theme.js";
 
@@ -41,9 +42,8 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
     clearScreen();
   }
 
-  const viewport = viewportWidth();
-  const width = surfaceWidth();
   const defaults = config.defaults ?? {};
+  const width = surfaceWidth();
   const mode: TuiHomeMode = state.mode ?? defaults.mode ?? "debate";
   const debateAgents = defaults.agentA && defaults.agentB
     ? `${defaults.agentA} <-> ${defaults.agentB}`
@@ -65,27 +65,51 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
     ? defaults.askSummaryAgent ?? defaults.summaryAgent ?? messages.tui.lastAskAgent
     : defaults.summaryAgent ?? defaults.agentB ?? "agent B";
   const version = state.version ?? "0.0.0";
-  const versionLines = state.latestVersion
-    ? [dim(`v${version}`), accent(messages.tui.updateAvailable(version, state.latestVersion))]
-    : [dim(`v${version}`)];
+  const updateLines = state.latestVersion
+    ? [accent(messages.tui.updateAvailable(version, state.latestVersion))]
+    : [];
+  const activeAgents = isChat
+    ? defaults.agentA ?? messages.tui.noValue
+    : mode === "ask" ? askAgents : debateAgents;
+  const activeRoles = isChat
+    ? defaults.agentA ? roleFor(config, defaults.agentA, messages) : messages.tui.noValue
+    : mode === "ask" ? askRoles : debateRoles;
+  const sessionDetails = [
+    `${accent(isChat ? "Chat" : messages.tui.modeValue(mode as PalabreMode))} ${dim("·")} ${activeAgents}`,
+    `${accent(messages.tui.roles)} ${dim("·")} ${activeRoles}`
+  ];
+  if (!isChat) {
+    sessionDetails.push(`${accent(messages.tui.summary)} ${dim("·")} ${summary}`);
+  }
+  if (mode === "debate") {
+    sessionDetails.push(`${accent(messages.tui.responses)} ${dim("·")} ${String(defaults.turns ?? "?")}`);
+  }
 
+  const separator = ` ${dim("·")} `;
+  const contentWidth = width - 4;
+  const sessionLines = [
+    ...packItems(sessionDetails.slice(0, 2), contentWidth, separator),
+    ...packItems(sessionDetails.slice(2), contentWidth, separator)
+  ];
+  const modeLines = packItems(messages.tui.homeModes.split(" · ").map(highlightSlashCommands), contentWidth, separator);
+  const commandLines = packItems(messages.tui.homeCommands.split(" · ").map(highlightSlashCommands), contentWidth, separator);
+  const folderLines = labeledFullValueLines(messages.tui.folder, process.cwd(), contentWidth);
   const lines = [
     "",
-    ...padBlock(logoBlock(messages)),
-    ...padBlock(versionLines),
+    ...padBlock(logoBlock(messages, `v${version}`)),
+    ...padBlock(updateLines),
     "",
     ...padBlock(composerCard([
-      `${accent(isChat ? "Chat" : messages.tui.modeValue(mode as PalabreMode))} ${dim("·")} ${isChat ? (defaults.agentA ?? messages.tui.noValue) : mode === "ask" ? askAgents : debateAgents}`,
-      `${accent(messages.tui.roles)} ${dim("·")} ${isChat ? (defaults.agentA ? roleFor(config, defaults.agentA, messages) : messages.tui.noValue) : mode === "ask" ? askRoles : debateRoles}`,
-      `${accent(messages.tui.summary)} ${dim("·")} ${isChat ? messages.tui.chatReady : summary}${mode === "debate" ? ` ${dim("·")} ${accent(messages.tui.responses)} ${String(defaults.turns ?? "?")}` : ""}`,
-      `${accent(messages.tui.folder)} ${dim("·")} ${compactPath(process.cwd(), Math.min(width - 4, viewport - 12))}`,
+      ...sessionLines,
+      "",
+      ...modeLines,
+      ...commandLines,
+      "",
+      ...folderLines,
       `${accent(messages.tui.docs)} ${dim("·")} ${documentationUrl(config)}`,
       "",
-      dim(messages.tui.tipContext),
-      "",
-      `${accent("/chat")} ${dim(messages.tui.chatReady)}   ${accent("/help")} ${dim(messages.tui.commands)}   ${accent("/roles")} ${dim(messages.tui.roles.toLowerCase())}   ${accent("/config")} ${dim(messages.tui.settings)}   ${accent(mode === "ask" ? "/debat" : "/ask")} ${dim(messages.tui.changeMode)}`
-    ], width)),
-
+      dim(messages.tui.tipContext)
+    ], width))
   ];
 
   process.stdout.write(lines.join("\n") + "\n");
@@ -351,6 +375,27 @@ function safeEffectiveOllamaUrl(configUrl: string): string {
     return process.env.OLLAMA_HOST?.trim() || configUrl;
   }
 }
+/** Conserve une valeur complète et indente ses continuations sous son intitulé. */
+function labeledFullValueLines(label: string, value: string, width: number): string[] {
+  const prefix = `${accent(label)} ${dim("·")} `;
+  const indent = " ".repeat(visibleLength(prefix));
+  const chunkWidth = Math.max(12, width - visibleLength(prefix));
+  const chunks: string[] = [];
+
+  for (let offset = 0; offset < value.length; offset += chunkWidth) {
+    chunks.push(value.slice(offset, offset + chunkWidth));
+  }
+
+  return chunks.length > 0
+    ? chunks.map((chunk, index) => `${index === 0 ? prefix : indent}${chunk}`)
+    : [prefix];
+}
+
+/** Met en évidence les commandes slash tout en laissant leur description localisée neutre. */
+function highlightSlashCommands(value: string): string {
+  return value.replace(/\/(?:help|config|roles|debat|chat|ask)\b/g, (command) => accent(command));
+}
+
 
 function roleFor(config: PalabreConfig, agent: string, messages: Messages): AgentRole | string {
   return config.agents[agent]?.role ?? messages.tui.noValue;

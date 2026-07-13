@@ -1,91 +1,108 @@
-/** @file Session de chat TUI : conversation, consultation explicite et bascule d'agent. */
-import { createInterface } from "node:readline/promises";
-import { stdin, stdout } from "node:process";
-import { runStatelessChatTurn, runStatelessConsultation } from "./chat.js";
-import { nextTuiInterruptKind } from "./renderers/tui-prompts.js";
+/** @file Session de chat TUI : saisie et rendu au-dessus du contrôleur Chat partagé. */
+import { ChatSession } from "./chatSession.js";
+import { nextTuiInterruptKind, promptTuiChatMessage, promptTuiHomeTopic, type TuiHomeInput } from "./renderers/tui-prompts.js";
 import { renderTuiChat, renderTuiChatComplete } from "./renderers/tui-chat.js";
 import { createTuiRenderer } from "./renderers/tui-renderer.js";
-import { writeChatMarkdown } from "./chatOutput.js";
-import { createSessionContext } from "./session.js";
-import type { AgentRole, ChatAvailableAgent, DebateMessage, Language, PalabreConfig } from "./types.js";
+import type { ChatOptions, PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
 
-export async function runTuiChatSession(config: PalabreConfig, language: Language, messages: Messages, outputDir: string, initialMessage?: string): Promise<"home" | "quit"> {
-  const availableAgents: ChatAvailableAgent[] = Object.entries(config.agents).map(([name, agent]) => ({ name, role: agent.role }));
-  let activeAgentName = config.defaults?.agentA;
-  if (!activeAgentName || !config.agents[activeAgentName]) throw new Error(messages.common.noAgentDefined("agent de conversation"));
-  let activeAgentConfig = config.agents[activeAgentName];
-  const transcript: DebateMessage[] = [];
+export interface TuiChatSessionResult {
+  destination: "home" | "quit";
+  nextInput?: TuiHomeInput;
+}
+
+export async function runTuiChatSession(
+  config: PalabreConfig,
+  options: ChatOptions,
+  messages: Messages,
+  outputDir: string,
+  initialMessage?: string,
+  initialNotice?: string
+): Promise<TuiChatSessionResult> {
+  const chat = new ChatSession(config, options, messages);
   const renderer = createTuiRenderer(messages);
-  const session = createSessionContext();
-  let topic = initialMessage ?? "";
+  let notice = initialNotice;
 
-  if (initialMessage) {
-    const turn = await runChatTurnWithThinking(renderer, activeAgentName, activeAgentConfig.role, () => runStatelessChatTurn({
-      agentName: activeAgentName!, agentConfig: activeAgentConfig, topic, userMessage: initialMessage, transcript, availableAgents, language, session, files: []
-    }));
-    transcript.push(turn.user, turn.assistant);
-  }
-
-  let notice: string | undefined;
-  const readline = createInterface({ input: stdin, output: stdout });
-  let interruptKind: "back" | "quit" | undefined;
-  readline.on("SIGINT", () => { interruptKind = nextTuiInterruptKind(); readline.close(); });
   try {
+    if (initialMessage) {
+      await runChatTurnWithThinking(renderer, chat, () => chat.send(initialMessage));
+    }
+
     for (;;) {
-      renderTuiChat(activeAgentName, activeAgentConfig.role, transcript, messages, notice);
+      renderTuiChat(chat.activeAgentName, chat.messages, messages, notice);
       notice = undefined;
-      let value: string;
-      try { value = (await readline.question(`${messages.chat.questionPrompt}`)).trim(); } catch { return interruptKind === "quit" ? "quit" : "home"; }
-      if (!value || value === "/exit" || value === "/quit" || value === "/home" || value === "/back") return "home";
+      const input = await promptTuiChatMessage(messages);
+      if (input.kind !== "answer") return { destination: tuiChatInterruptResult(input.kind) };
+
+      const value = input.value.trim();
+      if (!value || value === "/exit" || value === "/quit" || value === "/home" || value === "/back") return { destination: "home" };
       if (value === "/end") {
-        if (transcript.length === 0) { notice = messages.chat.consultationUnavailable; continue; }
-        const outputPath = await writeChatMarkdown(outputDir, topic, transcript, session, messages);
+        if (chat.messages.length === 0) { notice = messages.chat.consultationUnavailable; continue; }
+        const outputPath = await chat.export(outputDir);
         renderTuiChatComplete(outputPath, messages);
-        await readline.question("");
-        return "home";
+        const nextInput = await promptTuiHomeTopic("chat", messages, { bare: true });
+        return nextInput
+          ? { destination: "home", nextInput }
+          : { destination: "quit" };
       }
 
       const [command, agentName] = value.split(/\s+/, 2);
-      if (command === "/agents") { notice = messages.chat.availableAgents(availableAgents); continue; }
+      if (command === "/agents") { notice = messages.chat.availableAgents(chat.availableAgents); continue; }
       if (command === "/use") {
         if (!agentName) { notice = messages.chat.useUsage; continue; }
-        const selected = config.agents[agentName];
-        if (!selected) { notice = messages.chat.unknownAgent(agentName); continue; }
-        activeAgentName = agentName;
-        activeAgentConfig = selected;
-        notice = messages.chat.switchedTo(agentName);
+        try {
+          chat.use(agentName);
+          notice = messages.chat.switchedTo(agentName);
+        } catch {
+          notice = messages.chat.unknownAgent(agentName);
+        }
         continue;
       }
       if (command === "/consult") {
         if (!agentName) { notice = messages.chat.consultUsage; continue; }
-        const consultedName = agentName;
-        const consulted = config.agents[consultedName];
-        if (!consulted) { notice = messages.chat.unknownAgent(consultedName); continue; }
-        if (transcript.length === 0) { notice = messages.chat.consultationUnavailable; continue; }
-        notice = messages.chat.consulting(consultedName);
-        renderTuiChat(activeAgentName, activeAgentConfig.role, transcript, messages, notice);
-        const opinion = await runChatTurnWithThinking(renderer, consultedName, consulted.role, () => runStatelessConsultation({
-          agentName: consultedName, agentConfig: consulted, requesterName: activeAgentName!, topic, transcript, availableAgents, language, session, files: []
-        }));
-        transcript.push(opinion);
+        if (chat.messages.length === 0) { notice = messages.chat.consultationUnavailable; continue; }
+        notice = messages.chat.consulting(agentName);
+        renderTuiChat(chat.activeAgentName, chat.messages, messages, notice);
+        try {
+          await runChatTurnWithThinking(renderer, chat, () => chat.consult(agentName));
+          notice = trimNotice(chat, messages);
+        } catch (error) {
+          if (error instanceof Error && error.message === messages.common.unknownAgent(agentName)) {
+            notice = messages.chat.unknownAgent(agentName);
+            continue;
+          }
+          throw error;
+        }
         continue;
       }
 
-      if (!topic) topic = value;
-      const turn = await runChatTurnWithThinking(renderer, activeAgentName, activeAgentConfig.role, () => runStatelessChatTurn({
-        agentName: activeAgentName!, agentConfig: activeAgentConfig, topic, userMessage: value, transcript, availableAgents, language, session, files: []
-      }));
-      transcript.push(turn.user, turn.assistant);
+      await runChatTurnWithThinking(renderer, chat, () => chat.send(value));
+      notice = trimNotice(chat, messages);
     }
-  } finally {
-    readline.close();
+  } catch (error) {
+    if (chat.aborted) {
+      return { destination: tuiChatInterruptResult(nextTuiInterruptKind()) };
+    }
+    throw error;
   }
 }
 
+/** Traduit la politique d'interruption TUI en destination de session Chat. */
+export function tuiChatInterruptResult(kind: "back" | "quit"): "home" | "quit" {
+  return kind === "quit" ? "quit" : "home";
+}
+
+function trimNotice(chat: ChatSession, messages: Messages): string | undefined {
+  return chat.droppedMessageCount > 0 ? messages.chat.contextTrimmed(chat.droppedMessageCount) : undefined;
+}
+
 /** Réutilise le spinner TUI standard pendant toute génération Chat. */
-async function runChatTurnWithThinking<T>(renderer: ReturnType<typeof createTuiRenderer>, agentName: string, role: AgentRole, operation: () => Promise<T>): Promise<T> {
-  renderer.thinkingStart(agentName, role);
+async function runChatTurnWithThinking<T>(
+  renderer: ReturnType<typeof createTuiRenderer>,
+  chat: ChatSession,
+  operation: () => Promise<T>
+): Promise<T> {
+  renderer.thinkingStart(chat.activeAgentName, chat.activeAgentConfig.role);
   try {
     return await operation();
   } finally {

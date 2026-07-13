@@ -132,7 +132,7 @@ export function compactFileName(value: string, maxLength: number): string {
     return value;
   }
 
-  const extension = value.match(/\.(debate|ask)\.md$/i)?.[0] ?? "";
+  const extension = value.match(/\.(debate|ask|chat)\.md$/i)?.[0] ?? "";
   const marker = "...";
   const headLength = Math.max(12, maxLength - marker.length - extension.length);
   return `${value.slice(0, headLength)}${marker}${extension}`;
@@ -148,12 +148,13 @@ export function terminalLink(filePath: string, label: string): string {
   return `\u001b]8;;${pathToFileURL(filePath).href}\u001b\\${safeLabel}\u001b]8;;\u001b\\`;
 }
 
-/** Logo Palabre + tagline, réservés à l'écran d'accueil. */
-export function logoBlock(messages: Messages): string[] {
+/** Logo Palabre puis tagline et version alignées sur la largeur de l'accueil. */
+export function logoBlock(messages: Messages, version?: string): string[] {
+  const tagline = bold(messages.tui.tagline);
   return [
     ...logo(),
     "",
-    bold(messages.tui.tagline)
+    version ? spreadLine(tagline, dim(version), surfaceWidth()) : tagline
   ];
 }
 
@@ -291,6 +292,34 @@ export function rows(entries: ReadonlyArray<RowEntry>): string[] {
   const labelWidth = Math.max(...labels.map(([label]) => label.length), 0) + 2;
   return entries.map((entry) => typeof entry === "string" ? entry : row(entry[0], entry[1], labelWidth));
 }
+/** Répartit deux contenus aux extrémités d'une ligne. */
+export function spreadLine(left: string, right: string, width: number): string {
+  const spacing = Math.max(1, width - visibleLength(left) - visibleLength(right));
+  return `${left}${" ".repeat(spacing)}${right}`;
+}
+
+/**
+ * Répartit des éléments indivisibles sur plusieurs lignes. Contrairement à
+ * `wrapLine`, une commande et sa description restent dans le même bloc.
+ */
+export function packItems(items: string[], width: number, separator: string): string[] {
+  const lines: string[] = [];
+  let current = "";
+
+  for (const item of items) {
+    const candidate = current ? `${current}${separator}${item}` : item;
+    if (!current || visibleLength(candidate) <= width) {
+      current = candidate;
+      continue;
+    }
+    lines.push(current);
+    current = item;
+  }
+
+  if (current) lines.push(current);
+  return lines;
+}
+
 
 /** Coupe une ligne aux mots pour tenir dans `width` colonnes visibles (ANSI ignoré). */
 export function wrapLine(value: string, width: number): string[] {
@@ -322,7 +351,7 @@ function padRight(value: string, width: number): string {
   return `${value}${" ".repeat(missing)}`;
 }
 
-function visibleLength(value: string): number {
+export function visibleLength(value: string): number {
   return stripAnsi(value).length;
 }
 

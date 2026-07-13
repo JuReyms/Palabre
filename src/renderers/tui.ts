@@ -20,11 +20,13 @@ export {
   promptTuiAgentsWizard,
   promptTuiConfigCommand,
   promptTuiHomeTopic,
+  promptTuiChatMessage,
   promptTuiRolesWizard,
   renderTuiComposer,
   type TuiAgentsWizardInput,
   type TuiConfigInput,
   type TuiHomeInput,
   type TuiHomeMode,
+  type TuiQuestionResult,
   type TuiRolesWizardInput
 } from "./tui-prompts.js";

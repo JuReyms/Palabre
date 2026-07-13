@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { runStatelessChatTurn } from "../src/chat.js";
+import { buildChatHandoffTopic, ChatSession } from "../src/chatSession.js";
+import { createTranslator } from "../src/i18n.js";
+import { resolveChatOptions } from "../src/runOptions.js";
 
 const config = {
   type: "cli" as const,
@@ -47,10 +50,11 @@ test("CLI chat continues an interactive stateless conversation", async () => {
   await writeFile(configPath, JSON.stringify({
     language: "en",
     defaults: { agentA: "mock", agentB: "mock", turns: 2 },
+    outputDir: dir,
     agents: { mock: { type: "cli", command: process.execPath, args: ["-e", mock], promptMode: "stdin", shell: false, role: "reviewer" }, second: { type: "cli", command: process.execPath, args: ["-e", mock], promptMode: "stdin", shell: false, role: "architect" } }
   }), "utf8");
   const entry = path.resolve(".tmp", "test-dist", "src", "index.js");
-  const result = await runInteractive(process.execPath, [entry, "chat", "--config", configPath, "--trust-config"], process.cwd(), "/agents\nFirst question\n/consult second\n/use second\nSecond question\n/exit\n");
+  const result = await runInteractive(process.execPath, [entry, "chat", "--config", configPath, "--trust-config"], process.cwd(), "/agents\nFirst question\n/consult second\n/use second\nSecond question\n/end\n");
   assert.equal(result.code, 0, result.stderr);
   assert.match(result.stdout, /Palabre · mock \(reviewer\)/);
   assert.match(result.stdout, /What would you like to explore/);
@@ -61,4 +65,85 @@ test("CLI chat continues an interactive stateless conversation", async () => {
   assert.match(result.stdout, /second\x27s opinion/);
   assert.match(result.stdout, /Conversation now continues with second/);
   assert.match(result.stdout, /Conversation with the user/);
+  assert.match(result.stdout, /Conversation ended/);
+  const exported = (await readdir(dir)).find((name) => name.endsWith(".chat.md"));
+  assert.ok(exported);
+  const markdown = await readFile(path.join(dir, exported), "utf8");
+  assert.match(markdown, /\| --- \| --- \|/);
+});
+
+test("chat options apply runtime overrides without requiring an agent B", () => {
+  const messages = createTranslator("en");
+  const projectConfig = {
+    defaults: { agentA: "mock" },
+    agents: { mock: { ...config, model: "configured" } }
+  };
+  const options = resolveChatOptions({
+    flags: { "model-a": "override", "role-a": "architect" },
+    config: projectConfig,
+    language: "en",
+    topic: "",
+    files: []
+  }, messages);
+  const chat = new ChatSession(projectConfig, options, messages);
+
+  assert.equal(chat.activeAgentConfig.model, "override");
+  assert.equal(chat.activeAgentConfig.role, "architect");
+});
+
+test("run --mode chat is dispatched to Chat instead of Debate", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "palabre-run-chat-"));
+  const configPath = path.join(dir, "palabre.config.json");
+  await writeFile(configPath, JSON.stringify({
+    language: "en",
+    defaults: { mode: "debate", agentA: "mock" },
+    agents: { mock: config }
+  }), "utf8");
+  const entry = path.resolve(".tmp", "test-dist", "src", "index.js");
+  const result = await runInteractive(
+    process.execPath,
+    [entry, "run", "--mode", "chat", "--config", configPath, "--trust-config"],
+    process.cwd(),
+    "Hello\n/exit\n"
+  );
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /Palabre · mock \(reviewer\)/);
+  assert.doesNotMatch(result.stdout, /PALABRE Debate/);
+});
+
+test("chat reports when the bounded transcript drops older messages", async () => {
+  const messages = createTranslator("en");
+  const projectConfig = { defaults: { agentA: "mock" }, agents: { mock: config } };
+  const options = resolveChatOptions({
+    flags: {},
+    config: projectConfig,
+    language: "en",
+    topic: "",
+    files: []
+  }, messages);
+  const chat = new ChatSession(projectConfig, options, messages);
+
+  await chat.send("one");
+  await chat.send("two");
+  await chat.send("three");
+  await chat.send("four");
+
+  assert.equal(chat.droppedMessageCount, 1);
+});
+
+test("chat handoff exposes provenance and keeps only recent exchanges without a summary", () => {
+  const transcript = Array.from({ length: 8 }, (_, index) => ({
+    agent: `agent-${index + 1}`,
+    role: "reviewer" as const,
+    content: `message-${index + 1}`,
+    createdAt: session.startedAt
+  }));
+  const handoff = buildChatHandoffTopic("Original subject", "debate", undefined, transcript, "en");
+
+  assert.match(handoff, /Context continued from a Palabre debate session/);
+  assert.match(handoff, /Original subject/);
+  assert.doesNotMatch(handoff, /message-1/);
+  assert.doesNotMatch(handoff, /message-2/);
+  assert.match(handoff, /message-8/);
 });
