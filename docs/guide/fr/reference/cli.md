@@ -31,7 +31,7 @@ L'accueil TUI applique la même synchronisation prudente des agents connus que `
 | `palabre config --summary-agent claude`      | Définit l'agent de synthèse par défaut.   |
 | `palabre config --summary-agent none`        | Retire l'agent de synthèse par défaut.    |
 | `palabre config --ask-summary-agent opencode` | Définit l'agent de synthèse par défaut du mode ask. |
-| `palabre config --mode ask`                  | Définit le mode par défaut (`debate` ou `ask`). |
+| `palabre config --mode chat`                 | Définit le mode par défaut (`chat`, `debate` ou `ask`). |
 | `palabre config --ask-agents codex claude opencode` | Définit les agents par défaut du mode ask, 4 maximum. |
 | `palabre config --interface tui`             | Définit l'interface par défaut (`tui` ou `terminal`). |
 | `palabre config --language en`               | Définit la langue de Palabre et des prompts agents. |
@@ -56,6 +56,8 @@ L'accueil TUI applique la même synchronisation prudente des agents connus que `
 ## Conversation avec un agent
 
 `palabre chat --agent-a <agent>` ouvre une conversation dans le terminal. Le premier message devient son contexte initial ; `"Sujet"` reste accepté en option pour préremplir ce contexte. À chaque message, Palabre lance un nouvel appel à la CLI sélectionnée et lui réinjecte l'historique déjà accumulé. Le résultat reste donc cohérent dans la session courante, sans dépendre d'une session interactive persistante chez Codex, Claude ou un autre outil.
+
+Contrairement à Ask, qui recueille une ou plusieurs réponses indépendantes à une question unique avant une éventuelle synthèse, Chat entretient une conversation multi-tours avec un agent actif.
 
 Utilisez `/agents` pour afficher les agents disponibles. `/end` enregistre la conversation dans `.palabre/`, affiche le fichier et le dossier puis revient à l'accueil ; `/home` revient sans enregistrer. `/consult <agent>` demande explicitement un second avis sur les six derniers messages retenus ; cet avis est ajouté à la conversation. `/use <agent>` bascule ensuite l'agent actif, ou vous pouvez continuer avec l'agent initial. `--role-a`, `--model-a`, `--language`, `--files` et `--context` restent disponibles. Si aucun `--agent-a` n'est donné, Palabre utilise l'agent A configuré par défaut.
 
