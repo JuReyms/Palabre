@@ -6,6 +6,19 @@ export const DEFAULT_MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
 /** Timeout dur par défaut d'un appel d'agent CLI/PTY (3 minutes). */
 export const DEFAULT_TIMEOUT_MS = 180_000;
 
+/**
+ * Force les runtimes Python enfants à utiliser UTF-8 pour leurs flux standard.
+ * Sous Windows, cela évite que les CLIs Python échouent en écrivant un caractère
+ * absent de la page de code locale (par exemple une flèche Unicode).
+ */
+export function utf8ChildProcessEnv(): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    PYTHONIOENCODING: "utf-8",
+    PYTHONUTF8: "1"
+  };
+}
+
 /** Une valeur invalide ne doit jamais désactiver silencieusement la protection mémoire. */
 export function resolveMaxOutputBytes(value: number | undefined): number {
   return value !== undefined && Number.isFinite(value) && value > 0

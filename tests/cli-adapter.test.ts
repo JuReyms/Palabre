@@ -55,6 +55,19 @@ test("CliAdapter sends the rendered prompt through stdin", async () => {
   assert.match(response.raw ?? "", /Tu es mock/);
 });
 
+test("CliAdapter forces UTF-8 for Python child processes", async () => {
+  const adapter = new CliAdapter("mock", cliConfig({
+    args: [
+      "-e",
+      "process.stdout.write([process.env.PYTHONIOENCODING, process.env.PYTHONUTF8].join('|'))"
+    ]
+  }));
+
+  const response = await adapter.generate(basePrompt());
+
+  assert.equal(response.content, "utf-8|1");
+});
+
 test("CliAdapter can pass the rendered prompt as an argument", async () => {
   const adapter = new CliAdapter("mock", cliConfig({
     args: ["-e", "process.stdout.write(process.argv.at(-1) ?? '')"],
