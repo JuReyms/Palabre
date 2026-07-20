@@ -3,6 +3,7 @@ import type { Language } from "../types.js";
 import { adapterErrorMessages, type AdapterErrorMessages } from "./adapter-errors.js";
 import { agentsMessages, type AgentsMessages } from "./agents.js";
 import { commonMessages, type CommonMessages } from "./common.js";
+import { chatMessages, type ChatMessages } from "./chat.js";
 import { configMessages, type ConfigMessages } from "./config.js";
 import { contextMessages, type ContextMessages } from "./context.js";
 import { doctorMessages, type DoctorMessages } from "./doctor.js";
@@ -24,6 +25,7 @@ export interface Messages {
   adapterErrors: AdapterErrorMessages;
   agents: AgentsMessages;
   common: CommonMessages;
+  chat: ChatMessages;
   config: ConfigMessages;
   context: ContextMessages;
   doctor: DoctorMessages;
@@ -47,6 +49,7 @@ export function createTranslator(language: Language): Messages {
     adapterErrors: adapterErrorMessages[language],
     agents: agentsMessages[language],
     common: commonMessages[language],
+    chat: chatMessages[language],
     config: configMessages[language],
     context: contextMessages[language],
     doctor: doctorMessages[language],

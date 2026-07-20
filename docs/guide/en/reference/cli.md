@@ -31,7 +31,7 @@ The TUI home screen performs the same conservative known-agent synchronization a
 | `palabre config --summary-agent claude` | Sets the default summary agent. |
 | `palabre config --summary-agent none` | Removes the default summary agent. |
 | `palabre config --ask-summary-agent opencode` | Sets the default summary agent for ask mode. |
-| `palabre config --mode ask` | Sets the default mode (`debate` or `ask`). |
+| `palabre config --mode chat` | Sets the default mode (`chat`, `debate`, or `ask`). |
 | `palabre config --ask-agents codex claude opencode` | Sets the default ask agents, 4 maximum. |
 | `palabre config --interface tui` | Sets the default interface (`tui` or `terminal`). |
 | `palabre config --language en` | Sets the Palabre and agent prompt language. |
@@ -51,6 +51,19 @@ The TUI home screen performs the same conservative known-agent synchronization a
 | `palabre run --subject "Subject" --agent-a codex --agent-b claude` | Launches with explicit agents. |
 | `palabre run --subject "Subject" --agent-a codex --agent-b claude --role-a architect --role-b critic` | Launches with temporary roles. |
 | `palabre ask "Subject" --agents codex claude` | Runs a request with independent responses. |
+| `palabre chat --agent-a codex` | Opens a continued conversation with one agent. |
+
+## Conversation with one agent
+
+`palabre chat --agent-a <agent>` opens a terminal conversation. The first message becomes its initial context; `"Subject"` remains accepted as an optional way to prefill that context. For every message, Palabre starts a new call to the selected CLI and injects the accumulated history into it. The result can therefore remain coherent in the current session without relying on a persistent interactive session inside Codex, Claude, or another tool.
+
+Unlike Ask, which collects one or more independent answers to a single question before an optional summary, Chat maintains a multi-turn conversation with one active agent.
+
+Use `/agents` to show available agents. `/end` saves the conversation in `.palabre/`, shows its file and folder, then returns home; `/home` returns without saving. `/consult <agent>` explicitly requests a second opinion on the six most recent retained messages; that opinion is added to the conversation. `/use <agent>` then switches the active agent, or you can continue with the initial agent. `--role-a`, `--model-a`, `--language`, `--files`, and `--context` remain available. Without `--agent-a`, Palabre uses the configured default agent A.
+
+This first version remains stateless and performs no action. The context sent with each call is bounded to the six most recent messages; Palabre reports when older messages are no longer sent. Consultation remains explicit: an agent may suggest it, but the user keeps the initiative.
+
+After a Debate or Ask completes in the TUI, `/chat` directly opens a conversation whose context shows its provenance and carries over the subject with the final summary, or the six recent exchanges when no summary is available.
 
 ## TUI Commands
 
@@ -58,6 +71,7 @@ These commands are available from the TUI home screen or from `/config` dependin
 
 | Command | Description |
 |---------|-------------|
+| `/chat` | Opens a conversation with the default agent A. `/home` or `/exit` returns to the home screen. |
 | `/ask` | Switches the TUI home screen to Ask mode. |
 | `/debat` | Switches the TUI home screen to debate mode. |
 | `/agents` | Displays available agents or updates active agents when names are provided. |

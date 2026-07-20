@@ -12,13 +12,13 @@ Question → avis contradictoires → décision explicite → plan → action so
 
 Palabre ne remplace pas les assistants de code ni les outils spécialisés. Son différenciateur est le désaccord organisé, la synthèse explicite et l’action sous contrôle.
 
-## Une session, trois intentions
+## Une session, trois modes
 
 Les évolutions appartiennent à une même session Palabre, plutôt qu’à une multiplication de modes ou de silos :
 
-- **Consulter** : discuter avec un agent, demander plusieurs avis ou lancer un débat.
-- **Décider** : synthétiser, approfondir une conclusion, préparer ou faire relire un plan.
-- **Agir** : préparer une action et, seulement après confirmation explicite, la déléguer à un outil adapté.
+- **Chat** : discuter avec un agent, demander un second avis, poursuivre ou changer d’agent.
+- **Débat** : confronter deux agents puis synthétiser les désaccords et arbitrages.
+- **Ask** : recueillir plusieurs réponses indépendantes puis les comparer ou les synthétiser.
 
 Le parcours actuel reste le chemin court : un utilisateur peut continuer à lancer un Débat ou un Ask sans rencontrer les capacités avancées. Les suites de session sont contextuelles et optionnelles.
 

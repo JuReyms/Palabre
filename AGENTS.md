@@ -259,7 +259,7 @@ La config generee conserve les blocs agents connus pour rester editable, mais aj
 
 Au lancement, Palabre ne doit pas utiliser de fallback agent code en dur : sans preset, sans agents explicites et sans defaults de config, il doit afficher une erreur actionnable.
 
-Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` quand disponible. Ollama reste configure et accessible via presets, mais il est plutot destine aux power users ou aux roles locaux (`critic`, `scout`, `summarizer`). Les defaults utilisateur se gerent par `palabre config`, `palabre config --set-defaults <agentA> <agentB>`, `palabre config --mode <debate|ask>`, `palabre config --interface <tui|terminal>`, `palabre config --ask-agents <agents...>`, `palabre config --summary-agent <agent|none>`, `palabre config --ask-summary-agent <agent|none>` et `palabre config --clear-defaults`. Les roles persistants se gerent par `palabre agent-role <agent> <role>` ou par edition JSON explicite.
+Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` quand disponible. Ollama reste configure et accessible via presets, mais il est plutot destine aux power users ou aux roles locaux (`critic`, `scout`, `summarizer`). Les defaults utilisateur se gerent par `palabre config`, `palabre config --set-defaults <agentA> <agentB>`, `palabre config --mode <chat|debate|ask>`, `palabre config --interface <tui|terminal>`, `palabre config --ask-agents <agents...>`, `palabre config --summary-agent <agent|none>`, `palabre config --ask-summary-agent <agent|none>` et `palabre config --clear-defaults`. Les roles persistants se gerent par `palabre agent-role <agent> <role>` ou par edition JSON explicite.
 
 ## New
 
@@ -412,10 +412,12 @@ Erreurs connues classees :
 
 ## Orchestration
 
-Le moteur supporte deux modes :
+Palabre supporte trois modes de session. Le moteur d'orchestration historique garde deux modes :
 
 - `debate` : alterne entre deux agents pendant `turns` tours.
 - `ask` : fait répondre plusieurs agents indépendamment au même sujet, puis synthétise leurs réponses.
+
+Le mode `chat` utilise un controleur separe (`ChatSession`) au-dessus des memes adapters. Il converse avec un agent actif sans exiger d'agent B, reinjecte au maximum les six messages recents dans chaque appel batch, permet une consultation explicite avec `/consult`, et exporte avec `/end`. Apres un debat ou un Ask, la TUI peut transmettre au Chat le sujet et la synthese finale, ou les six echanges recents en l'absence de synthese. Chat reste stateless : aucune session interactive persistante ni streaming token par token n'est promis par les adapters.
 
 Le mode `debate` alterne simplement entre deux agents pendant `turns` tours :
 

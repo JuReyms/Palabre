@@ -29,6 +29,7 @@ The main features are available:
 - TUI-first interface with `palabre`, `/agents`, `/roles`, `/config`, `/history`, and `/home`;
 - interactive assistant `palabre new`;
 - `ask` mode with 1 to 4 agents and `.ask.md` export;
+- stateless `chat` mode with one active agent, explicit consultation, bounded context, and `.chat.md` export;
 - presets such as `codex-claude`, `claude-antigravity`, `codex-antigravity`, or `opencode-ollama`;
 - French or English interface and prompts through `--language`, `--lang`, `PALABRE_LANGUAGE`, or configuration;
 - adding context with `--files` or `--context`;
@@ -60,7 +61,7 @@ The `palabre config` command, the TUI `/config` view, first-run configuration, a
 
 ### Conversation after the debate
 
-After the final summary, Palabre could offer to briefly continue the discussion with the same agents. The goal would be to ask for a clarification, dig into a disagreement, or have an agent react to the summary, then add this follow-up in a separate section of the Markdown export.
+After the final summary of a Debate or Ask session, `/chat` can now continue with one active agent. The transferred context records its provenance and carries over the subject with the final summary, or the six most recent exchanges when no summary exists. The conversation remains stateless and bounded; persistent sessions, streaming, and restart recovery remain separate future work.
 
 ### Tests and stability
 

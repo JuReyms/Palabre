@@ -5,6 +5,7 @@ import { createTranslator } from "./i18n.js";
 import { MAX_ASK_AGENTS } from "./limits.js";
 import { formatOllamaUrlError, OllamaUrlError } from "./ollamaUrl.js";
 import type { Messages } from "./messages/index.js";
+import { withRuntimeOverrides } from "./agentRuntime.js";
 import type { AgentAdapter, AgentConfig, AgentPrompt, AgentRole, PalabreConfig, DebateFailure, DebateMessage, DebateOptions, DebateRenderer, DebateSummary } from "./types.js";
 
 export { MAX_ASK_AGENTS } from "./limits.js";
@@ -504,39 +505,4 @@ function modelForAgent(options: DebateOptions, agent: string): string | undefine
   }
 
   return undefined;
-}
-
-/**
- * Fusionne les overrides runtime dans la config agent.
- * Pour l'adapter `ollama`, applique aussi `autoPullModel` si `pullModels` est vrai.
- * Retourne `undefined` si `config` est `undefined`.
- */
-function withRuntimeOverrides(
-  config: AgentConfig | undefined,
-  model: string | undefined,
-  pullModels: boolean,
-  role?: AgentRole
-): AgentConfig | undefined {
-  if (!config) {
-    return config;
-  }
-
-  if (config.type === "ollama") {
-    return {
-      ...config,
-      ...(role ? { role } : {}),
-      ...(model ? { model } : {}),
-      ...(pullModels ? { autoPullModel: true } : {})
-    };
-  }
-
-  if (!model && !role) {
-    return config;
-  }
-
-  return {
-    ...config,
-    ...(role ? { role } : {}),
-    ...(model ? { model } : {})
-  };
 }

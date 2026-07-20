@@ -97,7 +97,8 @@ const COMMANDS = new Set([
   "presets",
   "history",
   "historique",
-  "context"
+  "context",
+  "chat"
 ]);
 
 /**
@@ -232,6 +233,8 @@ export function parseArgs(args: string[], messages: Messages): ParsedArgs {
     applyRunPositionals(positionals, flags, presets, commandExplicit, COMMANDS, messages);
   } else if (command === "ask") {
     flags.mode = "ask";
+    applyTopicPositionals(positionals, flags);
+  } else if (command === "chat") {
     applyTopicPositionals(positionals, flags);
   }
 

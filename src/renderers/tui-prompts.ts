@@ -3,7 +3,7 @@
  * assistants agents/rôles et composer visuel. Toute la lecture readline vit ici,
  * avec la gestion du double Ctrl+C (retour puis quit) partagée par tous les prompts.
  */
-import { createInterface } from "node:readline/promises";
+import { createInterface } from "node:readline";
 import { stdin as input, stdout as output } from "node:process";
 import type { Language, PalabreConfig, PalabreInterface, PalabreMode } from "../types.js";
 import type { Messages } from "../messages/index.js";
@@ -18,11 +18,15 @@ import {
   padBlock,
   surfacePadding,
   surfaceWidth,
+  supportsInteractiveOutput,
+  visibleLength,
   violet,
   wrapLine
 } from "./tui-theme.js";
 
 /** Résultat de `promptTuiHomeTopic` : action choisie depuis l'accueil, `undefined` si l'utilisateur quitte. */
+export type TuiHomeMode = PalabreMode;
+
 export type TuiHomeInput =
   | { kind: "topic"; topic: string; files?: string[]; context?: string[] }
   | { kind: "new" }
@@ -31,7 +35,7 @@ export type TuiHomeInput =
   | { kind: "update" }
   | { kind: "home" }
   | { kind: "config" }
-  | { kind: "mode"; mode: PalabreMode }
+  | { kind: "mode"; mode: TuiHomeMode }
   | { kind: "help" }
   | { kind: "agents"; agents: string[] }
   | { kind: "roles"; roles: string[] }
@@ -85,6 +89,10 @@ export function parseTuiOllamaUrlCommand(parts: string[], messages: Messages): T
  * les chemins contenant des espaces ne sont pas supportés dans cette syntaxe inline.
  */
 export function parseComposerTopic(value: string): { topic: string; files: string[]; context: string[] } {
+  if (!/(^|\s)--(?:context|files?|file)(?=\s|$)/.test(value)) {
+    return { topic: value.trim(), files: [], context: [] };
+  }
+
   const topicTokens: string[] = [];
   const files: string[] = [];
   const context: string[] = [];
@@ -114,15 +122,36 @@ export function parseComposerTopic(value: string): { topic: string; files: strin
   return { topic: topicTokens.join(" "), files, context };
 }
 
-type TuiQuestionResult =
+export type TuiQuestionResult =
   | { kind: "answer"; value: string }
   | { kind: "back" }
   | { kind: "quit" };
 
 let lastTuiInterruptAt = 0;
 const doubleInterruptMs = 1200;
+let composerReadline: ReturnType<typeof createInterface> | undefined;
 
-function nextInterruptKind(): "back" | "quit" {
+/**
+ * Accueil et Config partagent le même reader. Sous ConPTY, fermer le reader qui
+ * vient de recevoir SIGINT peut rendre stdin muet pour le reader suivant.
+ */
+function getComposerReadline(): ReturnType<typeof createInterface> {
+  if (composerReadline) return composerReadline;
+  const rl = createInterface({ input, output });
+  composerReadline = rl;
+  rl.once("close", () => {
+    if (composerReadline === rl) composerReadline = undefined;
+  });
+  return rl;
+}
+
+function closeComposerReadline(): void {
+  const rl = composerReadline;
+  composerReadline = undefined;
+  rl?.close();
+}
+
+export function nextTuiInterruptKind(): "back" | "quit" {
   const now = Date.now();
   const kind = now - lastTuiInterruptAt <= doubleInterruptMs ? "quit" : "back";
   lastTuiInterruptAt = now;
@@ -140,41 +169,135 @@ function questionWithInterrupt(rl: ReturnType<typeof createInterface>, prompt: s
       resolve(result);
     };
     const onSigint = () => {
-      const kind = nextInterruptKind();
-      rl.close();
+      const kind = nextTuiInterruptKind();
       settle({ kind });
     };
 
     rl.once("SIGINT", onSigint);
-    rl.question(prompt).then(
-      (value) => settle({ kind: "answer", value }),
-      (error) => {
-        if (settled) return;
-        settled = true;
-        cleanup();
-        reject(error);
-      }
-    );
+    try {
+      rl.question(prompt, (value) => settle({ kind: "answer", value }));
+    } catch (error) {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    }
   });
 }
 
+/** Lit un message Chat avec le même composer visuel et la même politique Ctrl+C que l'accueil. */
+export async function promptTuiChatMessage(messages: Messages): Promise<TuiQuestionResult> {
+  if (!input.isTTY) return { kind: "quit" };
+  const rl = createInterface({ input, output });
+  try {
+    return await questionWithInterrupt(rl, renderChatSessionPrompt(messages));
+  } finally {
+    rl.close();
+  }
+}
+
+
+/** Agrège les lignes reçues dans la même rafale de collage en une seule réponse. */
+export function questionWithBufferedComposer(
+  rl: ReturnType<typeof createInterface>,
+  prompt: string,
+  linePrompt: string,
+  trailingLines: number,
+  streams: { input: NodeJS.ReadableStream; output: NodeJS.WritableStream } = { input, output }
+): Promise<TuiQuestionResult> {
+  return new Promise((resolve) => {
+    const composerInput = streams.input;
+    const composerOutput = streams.output;
+    const lines: string[] = [];
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let settled = false;
+    const clearPlaceholder = (
+      value: string,
+      key: { ctrl?: boolean; meta?: boolean; name?: string }
+    ) => {
+      const navigationKey = key.name && ["backspace", "delete", "left", "right", "up", "down"].includes(key.name);
+      if (!value && (key.ctrl || key.meta || navigationKey)) {
+        composerInput.prependOnceListener("keypress", clearPlaceholder);
+        return;
+      }
+      if (supportsInteractiveOutput) composerOutput.write("\u001b[0K");
+    };
+    const finishLayout = () => {
+      if (!supportsInteractiveOutput) return;
+      const down = Math.max(0, trailingLines - 1);
+      composerOutput.write(`${down > 0 ? `\u001b[${down}B` : ""}\r\n\u001b[?2004l`);
+    };
+    const cleanup = () => {
+      if (timer) clearTimeout(timer);
+      rl.off("line", onLine);
+      rl.off("SIGINT", onSigint);
+      rl.off("close", onClose);
+      composerInput.off("keypress", clearPlaceholder);
+    };
+    const settle = (result: TuiQuestionResult) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      finishLayout();
+      resolve(result);
+    };
+    const flush = () => settle({
+      kind: "answer",
+      value: normalizeBufferedComposerLines(lines)
+    });
+    const onLine = (line: string) => {
+      lines.push(line);
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(flush, 50);
+    };
+    const onClose = () => {
+      settle(lines.length > 0 ? { kind: "answer", value: normalizeBufferedComposerLines(lines) } : { kind: "quit" });
+    };
+    const onSigint = () => {
+      settle({ kind: nextTuiInterruptKind() });
+    };
+
+    rl.on("line", onLine);
+    rl.once("SIGINT", onSigint);
+    rl.once("close", onClose);
+    rl.setPrompt(linePrompt);
+    composerInput.prependOnceListener("keypress", clearPlaceholder);
+    composerInput.resume();
+    if (supportsInteractiveOutput) composerOutput.write("\u001b[?2004h");
+    composerOutput.write(prompt);
+  });
+}
+
+/** Nettoie les marqueurs bracketed-paste et conserve les sauts de ligne du bloc collé. */
+export function normalizeBufferedComposerLines(lines: string[]): string {
+  return lines
+    .join("\n")
+    .replace(/\u001b\[200~/g, "")
+    .replace(/\u001b\[201~/g, "")
+    .replace(/\r\n?/g, "\n");
+}
+
 /** Lit une demande depuis l'accueil TUI. Retourne undefined si l'utilisateur quitte. */
-export async function promptTuiHomeTopic(mode: PalabreMode = "debate", messages: Messages, options: { showComposer?: boolean; notice?: string } = {}): Promise<TuiHomeInput> {
+export async function promptTuiHomeTopic(mode: TuiHomeMode = "debate", messages: Messages, options: { showComposer?: boolean; notice?: string; bare?: boolean } = {}): Promise<TuiHomeInput> {
   if (!input.isTTY) {
     return undefined;
   }
 
-  const rl = createInterface({ input, output });
+  const rl = getComposerReadline();
+  let keepReader = false;
   try {
-    const result = await questionWithInterrupt(rl, tuiPrompt(mode, messages.tui.subject, messages, options.notice));
+    const layout = homeComposerPrompt(mode, messages, options.notice, options.bare);
+    const result = await questionWithBufferedComposer(rl, layout.prompt, layout.linePrompt, layout.trailingLines);
     if (result.kind !== "answer") {
+      keepReader = result.kind === "back";
       return tuiHomeInterruptInput(result.kind);
     }
     const answer = result.value;
     const value = answer.trim();
     const parts = value.split(/\s+/).filter(Boolean);
     const command = parts[0]?.toLowerCase() ?? "";
-    if (!value || command === "/quit" || command === "/q" || command === "/exit") {
+    if (!value) return { kind: "home" };
+    if (command === "/quit" || command === "/q" || command === "/exit") {
       return undefined;
     }
 
@@ -199,11 +322,16 @@ export async function promptTuiHomeTopic(mode: PalabreMode = "debate", messages:
     }
 
     if (command === "/config") {
+      keepReader = true;
       return { kind: "config" };
     }
 
     if (command === "/agents") {
       return { kind: "agents", agents: parts.slice(1) };
+    }
+
+    if (command === "/chat") {
+      return { kind: "mode", mode: "chat" };
     }
 
     if (command === "/ask") {
@@ -234,7 +362,7 @@ export async function promptTuiHomeTopic(mode: PalabreMode = "debate", messages:
       ...(composerInput.context.length > 0 ? { context: composerInput.context } : {})
     };
   } finally {
-    rl.close();
+    if (!keepReader) closeComposerReadline();
   }
 }
 
@@ -244,10 +372,13 @@ export async function promptTuiConfigCommand(mode: PalabreMode, messages: Messag
     return { kind: "back" };
   }
 
-  const rl = createInterface({ input, output });
+  const rl = getComposerReadline();
+  let keepReader = true;
   try {
-    const result = await questionWithInterrupt(rl, tuiPrompt(mode, messages.tui.configPrompt, messages));
+    const layout = configComposerPrompt(mode, messages);
+    const result = await questionWithBufferedComposer(rl, layout.prompt, layout.linePrompt, layout.trailingLines);
     if (result.kind === "quit") {
+      keepReader = false;
       return { kind: "quit" };
     }
     if (result.kind === "back") {
@@ -262,6 +393,7 @@ export async function promptTuiConfigCommand(mode: PalabreMode, messages: Messag
     }
 
     if (command === "/quit" || command === "/q" || command === "/exit") {
+      keepReader = false;
       return { kind: "quit" };
     }
 
@@ -290,12 +422,14 @@ export async function promptTuiConfigCommand(mode: PalabreMode, messages: Messag
     }
 
     if (command === "/agents") {
+      keepReader = false;
       return parts.length > 1
         ? { kind: "agents", agents: parts.slice(1) }
         : { kind: "agents", agents: [] };
     }
 
     if (command === "/roles" || command === "/role") {
+      keepReader = false;
       return { kind: "roles", roles: parts.slice(1) };
     }
 
@@ -340,7 +474,7 @@ export async function promptTuiConfigCommand(mode: PalabreMode, messages: Messag
 
     return { kind: "unknown", message: messages.tui.unknownCommand };
   } finally {
-    rl.close();
+    if (!keepReader) closeComposerReadline();
   }
 }
 
@@ -403,16 +537,97 @@ export async function promptTuiRolesWizard(config: PalabreConfig, mode: PalabreM
   }
 }
 
+/** Construit le composer d'accueil minimal : titre et ligne de saisie uniquement. */
+function homeComposerPrompt(
+  mode: TuiHomeMode,
+  messages: Messages,
+  notice?: string,
+  bare = false
+): { prompt: string; linePrompt: string; trailingLines: number } {
+  return framedComposerPrompt(
+    mode,
+    messages,
+    messages.tui.subject,
+    messages.tui.composerPlaceholder(mode),
+    undefined,
+    notice,
+    bare
+  );
+}
+
+/** Variante Config du composer partagé. */
+function configComposerPrompt(mode: TuiHomeMode, messages: Messages): ComposerPromptLayout {
+  return framedComposerPrompt(
+    mode,
+    messages,
+    messages.tui.configPrompt,
+    messages.tui.configComposerPlaceholder,
+    messages.tui.configComposerTip
+  );
+}
+
+interface ComposerPromptLayout {
+  prompt: string;
+  linePrompt: string;
+  trailingLines: number;
+}
+
+/** Primitive commune aux composers Accueil et Config. */
+function framedComposerPrompt(
+  mode: TuiHomeMode,
+  messages: Messages,
+  labelPrefix: string,
+  placeholder: string,
+  tip: string | undefined,
+  notice?: string,
+  bare = false
+): ComposerPromptLayout {
+  const padding = surfacePadding();
+  const promptPrefix = `${padding}${accent(glyphs().prompt)} `;
+  if (bare) return { prompt: `\n${promptPrefix}`, linePrompt: promptPrefix, trailingLines: 0 };
+
+  const tipLines = tip
+    ? wrapLine(tip, surfaceWidth()).map((line) => `${padding}${dim(line)}`)
+    : [];
+  const lines = [
+    "",
+    `${padding}${labeledRule(promptTrail(mode, labelPrefix, messages), violet)}`,
+    ...(notice ? promptNoticeLines(notice) : []),
+    ...tipLines,
+    ...(tip ? [`${padding}${violet(glyphs().h.repeat(surfaceWidth()))}`] : []),
+    `${promptPrefix}${dim(placeholder)}`
+  ];
+  const prompt = lines.join("\n");
+  if (!supportsInteractiveOutput) return { prompt, linePrompt: promptPrefix, trailingLines: 0 };
+
+  return {
+    prompt: `${prompt}\r\u001b[${visibleLength(promptPrefix)}C`,
+    linePrompt: promptPrefix,
+    trailingLines: 0
+  };
+}
+
 /** Affiche un composer visuel juste avant la vraie ligne readline. */
 export function renderTuiComposer(mode: PalabreMode, messages: Messages, labelPrefix = messages.tui.subject, options: { force?: boolean } = {}): void {
   if (!options.force && !input.isTTY) {
     return;
   }
 
-  const width = surfaceWidth();
+  if (labelPrefix === messages.tui.subject) {
+    const layout = homeComposerPrompt(mode, messages);
+    process.stdout.write(`${layout.prompt}\n`);
+    return;
+  }
+
+  if (labelPrefix === messages.tui.configPrompt) {
+    const layout = configComposerPrompt(mode, messages);
+    process.stdout.write(`${layout.prompt}\n`);
+    return;
+  }
+
   process.stdout.write([
     "",
-    ...padBlock(composerInputBox(mode, labelPrefix, width, messages)),
+    ...padBlock(composerInputBox(mode, labelPrefix, surfaceWidth(), messages)),
     ""
   ].join("\n"));
 }
@@ -421,15 +636,34 @@ export function renderTuiComposer(mode: PalabreMode, messages: Messages, labelPr
  * Zone de saisie : fil d'Ariane intégré à la règle violette, puis ligne de saisie
  * réduite au marqueur `❯` — le contexte vit dans la règle, pas devant le curseur.
  */
-function tuiPrompt(mode: PalabreMode, labelPrefix: string, messages: Messages, notice?: string): string {
+function tuiPrompt(mode: TuiHomeMode, labelPrefix: string, messages: Messages, notice?: string, bare = false): string {
   const padding = surfacePadding();
   const promptLine = `${padding}${accent(glyphs().prompt)} `;
+  if (bare) return ["", promptLine].join("\n");
   return [
     "",
     `${padding}${labeledRule(promptTrail(mode, labelPrefix, messages), violet)}`,
+    ...promptModeTipLines(mode, messages),
     ...(notice ? promptNoticeLines(notice) : []),
     promptLine,
   ].join("\n");
+}
+
+/** Composer minimal d'une session Chat : commandes utiles et curseur, sans rappel du mode. */
+export function renderChatSessionPrompt(messages: Messages): string {
+  const padding = surfacePadding();
+  return [
+    "",
+    ...wrapLine(messages.tui.chatComposerCommands, surfaceWidth()).map((line) => `${padding}${dim(line)}`),
+    "",
+    `${padding}${accent(glyphs().prompt)} `
+  ].join("\n");
+}
+function promptModeTipLines(mode: TuiHomeMode, messages: Messages): string[] {
+  const tips = mode === "chat"
+    ? [messages.tui.chatTip, messages.tui.chatComposerCommands]
+    : [mode === "ask" ? messages.tui.askTip : messages.tui.debateTip];
+  return ["", ...tips.flatMap((tip) => wrapLine(tip, surfaceWidth()).map((line) => `${surfacePadding()}${dim(line)}`)), ""];
 }
 
 function promptNoticeLines(notice: string): string[] {
@@ -438,11 +672,11 @@ function promptNoticeLines(notice: string): string[] {
   return wrapLine(notice, contentWidth).map((line) => `${padding}${line}`);
 }
 
-function promptModeLabel(mode: PalabreMode, messages: Messages): string {
-  return `Mode ${messages.tui.modeValue(mode).toLowerCase()}`;
+function promptModeLabel(mode: TuiHomeMode, messages: Messages): string {
+  return mode === "chat" ? "Mode chat" : `Mode ${messages.tui.modeValue(mode).toLowerCase()}`;
 }
 
-function promptTrail(mode: PalabreMode, labelPrefix: string, messages: Messages): string {
+function promptTrail(mode: TuiHomeMode, labelPrefix: string, messages: Messages): string {
   const parts = [bold("Palabre"), accent(promptModeLabel(mode, messages))];
   if (labelPrefix !== messages.tui.subject) {
     parts.push(bold(labelPrefix));

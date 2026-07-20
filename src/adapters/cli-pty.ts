@@ -5,7 +5,7 @@ import { resolveExecutablePath, resolveNativeWindowsExecutable, resolvePowerShel
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliPtyAgentConfig } from "../types.js";
-import { DEFAULT_TIMEOUT_MS, extractPtyUsageLimitMessage, resolveMaxOutputBytes, withModelArgs } from "./cli-shared.js";
+import { DEFAULT_TIMEOUT_MS, extractPtyUsageLimitMessage, resolveMaxOutputBytes, utf8ChildProcessEnv, withModelArgs } from "./cli-shared.js";
 import { cleanPtyOutput, cleanTerminalOutput } from "./terminal.js";
 
 type PtyProcess = ReturnType<typeof import("node-pty").spawn>;
@@ -132,7 +132,7 @@ export class CliPtyAdapter implements AgentAdapter {
           cols: this.config.cols ?? 120,
           rows: this.config.rows ?? 40,
           cwd: process.cwd(),
-          env: process.env,
+          env: utf8ChildProcessEnv(),
           ...(process.platform !== "win32" ? { encoding: "utf8" } : {}),
           ...(process.platform === "win32" ? { useConpty: true } : {})
         });

@@ -5,6 +5,7 @@ export interface TuiMessages {
   updateAvailable(current: string, latest: string): string;
   modeLabel(mode: PalabreMode): string;
   modeValue(mode: PalabreMode): string;
+  composerPlaceholder(mode: PalabreMode): string;
   noValue: string;
   lastAskAgent: string;
   roles: string;
@@ -15,12 +16,18 @@ export interface TuiMessages {
   responses: string;
   folder: string;
   docs: string;
-  commands: string;
-  settings: string;
   changeMode: string;
+  chatReady: string;
   tipContext: string;
+  homeCommands: string;
+  homeModes: string;
+  chatTip: string;
+  chatComposerCommands: string;
+  askTip: string;
+  debateTip: string;
   helpTitle: string;
   helpAsk: string;
+  helpChat: string;
   helpDebate: string;
   helpAgents: string;
   helpRoles: string;
@@ -36,8 +43,8 @@ export interface TuiMessages {
   historyEmpty: string;
   historyOpenHint: string;
   historyFile: string;
-  historyMode(mode: PalabreMode): string;
-  historyCount(mode: PalabreMode): string;
+  historyMode(mode: PalabreMode | "chat"): string;
+  historyCount(mode: PalabreMode | "chat"): string;
   retryUnavailable: string;
   agentsTitle: string;
   activeMode: string;
@@ -72,6 +79,8 @@ export interface TuiMessages {
   quitCommand: string;
   subject: string;
   configPrompt: string;
+  configComposerPlaceholder: string;
+  configComposerTip: string;
   agentsPrompt: string;
   rolesPrompt: string;
   sessionDone: string;
@@ -100,8 +109,10 @@ export interface TuiMessages {
   languageUpdated(value: string): string;
   askConfigMode: string;
   debateConfigMode: string;
+  chatConfigMode: string;
   askDefaultMode: string;
   debateDefaultMode: string;
+  chatDefaultMode: string;
   agentsUnchanged: string;
   rolesUnchanged: string;
   askTurnsNotice: string;
@@ -115,24 +126,29 @@ export interface TuiMessages {
   ollamaUnavailable(baseUrl: string): string;
   askAgentsUpdated(value: string): string;
   debateAgentsUpdated(value: string): string;
+  chatAgentsUpdated(value: string): string;
   askRolesUpdated(value: string): string;
   debateRolesUpdated(value: string): string;
+  chatRolesUpdated(value: string): string;
   rolesError(message: string): string;
   agentsError(message: string): string;
   noAskAgentsConfigured: string;
   noDebateAgentsConfigured: string;
+  noChatAgentConfigured: string;
   rolesCountError(count: number, expected: number, agents: string): string;
   unknownRole(role: string, available: string): string;
   debateAgentsUsage: string;
   askAgentsUsage: string;
+  chatAgentsUsage: string;
 }
 
 export const tuiMessages: Record<Language, TuiMessages> = {
   fr: {
     tagline: "Orchestrez des conversations entre agents IA",
     updateAvailable: (current, latest) => `Mise a jour disponible: ${current} -> ${latest}. Utilise /update.`,
-    modeLabel: (mode) => mode === "ask" ? "Ask" : "Debat",
-    modeValue: (mode) => mode === "ask" ? "Ask" : "Debat",
+    modeLabel: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debat",
+    modeValue: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debat",
+    composerPlaceholder: (mode) => mode === "chat" ? "De quoi voulez-vous discuter ?" : mode === "ask" ? "Quelle question voulez-vous poser aux agents ?" : "Quel sujet voulez-vous faire débattre ?",
     noValue: "non definis",
     lastAskAgent: "dernier agent ask",
     roles: "Roles",
@@ -143,12 +159,18 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     responses: "Tours",
     folder: "Dossier",
     docs: "Docs",
-    commands: "commandes",
-    settings: "reglages",
     changeMode: "changer de mode",
-    tipContext: "* Tip Ajoute du contexte avec --context <dossier> ou --files <fichier>.",
+    chatReady: "conversation",
+    tipContext: "Tip Ajoute du contexte avec --context <dossier> ou --files <fichier>.",
+    homeCommands: "/config reglages · /roles roles des agents · /help commandes disponibles",
+    homeModes: "/debat débat entre deux agents · /chat conversation · /ask réponses multiples",
+    chatTip: "/chat : une conversation, puis un avis supplémentaire seulement si utile.",
+    chatComposerCommands: "/consult <agent> avis · /use <agent> basculer · /agents liste · /end exporter · /home accueil",
+    askTip: "Ask : plusieurs réponses indépendantes à la même question.",
+    debateTip: "Débat : deux agents confrontent leurs points de vue avant la synthèse.",
     helpTitle: "Commandes TUI",
     helpAsk: "mode Ask",
+    helpChat: "ouvrir une conversation",
     helpDebate: "mode Debat",
     helpAgents: "choisir les agents",
     helpRoles: "choisir les roles",
@@ -164,8 +186,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     historyEmpty: "Aucun export trouve pour le moment.",
     historyOpenHint: "Le chemin du fichier est cliquable dans les terminaux compatibles.",
     historyFile: "Fichier",
-    historyMode: (mode) => mode === "ask" ? "Mode ask" : "Mode debat",
-    historyCount: (mode) => mode === "ask" ? "Reponses" : "Tours",
+    historyMode: (mode) => mode === "chat" ? "Conversation" : mode === "ask" ? "Mode ask" : "Mode debat",
+    historyCount: (mode) => mode === "chat" ? "Messages" : mode === "ask" ? "Reponses" : "Tours",
     retryUnavailable: "Aucune session a relancer pour le moment.",
     agentsTitle: "Agents Palabre",
     activeMode: "Mode actif",
@@ -197,6 +219,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     quitCommand: "quitter",
     subject: "Sujet",
     configPrompt: "Config",
+    configComposerPlaceholder: "Saisissez une commande de configuration…",
+    configComposerTip: "/home accueil · Ctrl+C retour · /quit quitter",
     agentsPrompt: "Agents",
     rolesPrompt: "Roles",
     sessionDone: "Session terminee",
@@ -225,8 +249,10 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     languageUpdated: (value) => `Langue mise a jour: ${value}.`,
     askConfigMode: "Configuration Ask.",
     debateConfigMode: "Configuration Debat.",
+    chatConfigMode: "Configuration Chat.",
     askDefaultMode: "Ask devient le mode par defaut.",
     debateDefaultMode: "Debat devient le mode par defaut.",
+    chatDefaultMode: "Chat devient le mode par defaut.",
     agentsUnchanged: "Agents inchanges.",
     rolesUnchanged: "Roles inchanges.",
     askTurnsNotice: "En mode Ask, le nombre de reponses depend des agents selectionnes avec /agents.",
@@ -240,22 +266,27 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     ollamaUnavailable: (baseUrl) => `API Ollama indisponible (${baseUrl}). Lance ollama serve puis reessaie /ollama.`,
     askAgentsUpdated: (value) => `Agents Ask mis a jour: ${value}.`,
     debateAgentsUpdated: (value) => `Agents Debat mis a jour: ${value}.`,
+    chatAgentsUpdated: (value) => `Agent Chat mis a jour: ${value}.`,
     askRolesUpdated: (value) => `Roles Ask mis a jour: ${value}.`,
     debateRolesUpdated: (value) => `Roles Debat mis a jour: ${value}.`,
+    chatRolesUpdated: (value) => `Role Chat mis a jour: ${value}.`,
     rolesError: (message) => `Erreur roles: ${message}`,
     agentsError: (message) => `Erreur agents: ${message}`,
     noAskAgentsConfigured: "Aucun agent Ask configure.",
     noDebateAgentsConfigured: "Agents Debat non definis.",
+    noChatAgentConfigured: "Aucun agent Chat configure.",
     rolesCountError: (count, expected, agents) => `${count} role(s) saisi(s), ${expected} attendu(s). Saisis au moins ${expected} roles pour: ${agents}.`,
     unknownRole: (role, available) => `Role inconnu: ${role}. Roles disponibles: ${available}.`,
     debateAgentsUsage: "Usage: /agents <agentA> <agentB>",
-    askAgentsUsage: "Usage: /agents <agent...>"
+    askAgentsUsage: "Usage: /agents <agent...>",
+    chatAgentsUsage: "Usage: /agents <agent>"
   },
   en: {
     tagline: "Orchestrate conversations between AI agents",
     updateAvailable: (current, latest) => `Update available: ${current} -> ${latest}. Use /update.`,
-    modeLabel: (mode) => mode === "ask" ? "Ask" : "Debate",
-    modeValue: (mode) => mode === "ask" ? "Ask" : "Debate",
+    modeLabel: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debate",
+    modeValue: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debate",
+    composerPlaceholder: (mode) => mode === "chat" ? "What would you like to discuss?" : mode === "ask" ? "What question would you like to ask the agents?" : "What topic would you like the agents to debate?",
     noValue: "not set",
     lastAskAgent: "last ask agent",
     roles: "Roles",
@@ -266,12 +297,18 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     responses: "Turns",
     folder: "Folder",
     docs: "Docs",
-    commands: "commands",
-    settings: "settings",
     changeMode: "change mode",
-    tipContext: "* Tip Add context with --context <folder> or --files <file>.",
+    chatReady: "conversation",
+    tipContext: "Tip Add context with --context <folder> or --files <file>.",
+    homeCommands: "/config settings · /roles agent roles · /help available commands",
+    homeModes: "/debat debate between two agents · /chat conversation · /ask multiple responses",
+    chatTip: "/chat: one conversation, then an extra opinion only when useful.",
+    chatComposerCommands: "/consult <agent> opinion · /use <agent> switch · /agents list · /end export · /home home",
+    askTip: "Ask: several independent responses to the same question.",
+    debateTip: "Debate: two agents challenge each other before the summary.",
     helpTitle: "TUI Commands",
     helpAsk: "Ask mode",
+    helpChat: "open a conversation",
     helpDebate: "Debate mode",
     helpAgents: "choose agents",
     helpRoles: "choose roles",
@@ -287,8 +324,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     historyEmpty: "No export found yet.",
     historyOpenHint: "The file path is clickable in compatible terminals.",
     historyFile: "File",
-    historyMode: (mode) => mode === "ask" ? "Ask mode" : "Debate mode",
-    historyCount: (mode) => mode === "ask" ? "Responses" : "Turns",
+    historyMode: (mode) => mode === "chat" ? "Conversation" : mode === "ask" ? "Ask mode" : "Debate mode",
+    historyCount: (mode) => mode === "chat" ? "Messages" : mode === "ask" ? "Responses" : "Turns",
     retryUnavailable: "No session to retry yet.",
     agentsTitle: "Palabre Agents",
     activeMode: "Active mode",
@@ -321,6 +358,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     subject: "Subject",
     configPrompt: "Config",
     agentsPrompt: "Agents",
+    configComposerPlaceholder: "Enter a configuration command…",
+    configComposerTip: "/home home · Ctrl+C back · /quit quit",
     rolesPrompt: "Roles",
     sessionDone: "Session complete",
     sessionHistoryHint: "Find your exports again with /history.",
@@ -348,8 +387,10 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     languageUpdated: (value) => `Language updated: ${value}.`,
     askConfigMode: "Ask configuration.",
     debateConfigMode: "Debate configuration.",
+    chatConfigMode: "Chat configuration.",
     askDefaultMode: "Ask is now the default mode.",
     debateDefaultMode: "Debate is now the default mode.",
+    chatDefaultMode: "Chat is now the default mode.",
     agentsUnchanged: "Agents unchanged.",
     rolesUnchanged: "Roles unchanged.",
     askTurnsNotice: "In Ask mode, the number of responses depends on agents selected with /agents.",
@@ -363,15 +404,19 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     ollamaUnavailable: (baseUrl) => `Ollama API unavailable (${baseUrl}). Run ollama serve, then try /ollama again.`,
     askAgentsUpdated: (value) => `Ask agents updated: ${value}.`,
     debateAgentsUpdated: (value) => `Debate agents updated: ${value}.`,
+    chatAgentsUpdated: (value) => `Chat agent updated: ${value}.`,
     askRolesUpdated: (value) => `Ask roles updated: ${value}.`,
     debateRolesUpdated: (value) => `Debate roles updated: ${value}.`,
+    chatRolesUpdated: (value) => `Chat role updated: ${value}.`,
     rolesError: (message) => `Roles error: ${message}`,
     agentsError: (message) => `Agents error: ${message}`,
     noAskAgentsConfigured: "No Ask agent configured.",
     noDebateAgentsConfigured: "Debate agents are not set.",
+    noChatAgentConfigured: "No Chat agent configured.",
     rolesCountError: (count, expected, agents) => `${count} role(s) entered, ${expected} expected. Enter at least ${expected} roles for: ${agents}.`,
     unknownRole: (role, available) => `Unknown role: ${role}. Available roles: ${available}.`,
     debateAgentsUsage: "Usage: /agents <agentA> <agentB>",
-    askAgentsUsage: "Usage: /agents <agent...>"
+    askAgentsUsage: "Usage: /agents <agent...>",
+    chatAgentsUsage: "Usage: /agents <agent>"
   }
 };

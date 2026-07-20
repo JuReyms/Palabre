@@ -27,7 +27,10 @@ export type CliPromptMode = "stdin" | "argument";
 export type Language = "fr" | "en";
 
 /** Mode d'orchestration d'une session Palabre. */
-export type PalabreMode = "debate" | "ask";
+export type PalabreMode = "chat" | "debate" | "ask";
+
+/** Modes exécutés par l'orchestrateur de décision historique. Chat possède son propre contrôleur. */
+export type OrchestrationMode = Exclude<PalabreMode, "chat">;
 
 /** Interface utilisateur par défaut pour les sessions interactives. */
 export type PalabreInterface = "tui" | "terminal";
@@ -121,7 +124,7 @@ export interface DebateMessage {
 
 /** Paramètres complets d'une session de débat. Transmis à travers toutes les couches sans mutation. */
 export interface DebateOptions {
-  mode: PalabreMode;
+  mode: OrchestrationMode;
   language: Language;
   topic: string;
   agentA: string;
@@ -145,7 +148,26 @@ export interface DebateOptions {
   signal?: AbortSignal;
 }
 
+
+/** Options runtime d'une conversation Chat, séparées des options Debate/Ask. */
+export interface ChatOptions {
+  language: Language;
+  topic: string;
+  agent: string;
+  model?: string;
+  role?: AgentRole;
+  session: SessionContext;
+  files: ProjectFileContext[];
+  ollamaUrl?: string;
+  pullModels: boolean;
+  signal?: AbortSignal;
+}
 /** Données fournies à l'adapter pour générer une réponse. Reconstruit à chaque tour par l'orchestrateur. */
+export interface ChatAvailableAgent {
+  name: string;
+  role: AgentRole;
+}
+
 export interface AgentPrompt {
   language?: Language;
   topic: string;
@@ -154,10 +176,12 @@ export interface AgentPrompt {
   selfName: string;
   peerName: string;
   selfRole: AgentRole;
-  mode?: "debate" | "ask" | "summary";
+  mode?: "debate" | "ask" | "chat" | "consultation" | "summary";
   session: SessionContext;
   files: ProjectFileContext[];
   transcript: DebateMessage[];
+  availableAgents?: ChatAvailableAgent[];
+  consultationRequester?: string;
   signal?: AbortSignal;
 }
 

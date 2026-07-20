@@ -34,7 +34,7 @@ export function clearTuiRunOverrides(flags: Record<string, TuiFlagValue>): void 
 
 /** Pré-remplit les agents `ask` proposés par le wizard : explicites, sinon defaults de config, sinon aucun en mode `debate`. */
 export function askAgentSeedsForMode(
-  mode: "ask" | "debate",
+  mode: import("./types.js").PalabreMode,
   explicitAskAgents: string[],
   defaultAskAgents: string[] | undefined
 ): string[] {

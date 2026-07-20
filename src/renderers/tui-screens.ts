@@ -5,6 +5,7 @@
  */
 import path from "node:path";
 import type { AgentRole, PalabreConfig, PalabreMode } from "../types.js";
+import type { TuiHomeMode } from "./tui-prompts.js";
 import type { Messages } from "../messages/index.js";
 import type { HistoryEntry } from "../history.js";
 import { sanitizeTerminalText } from "../adapters/terminal.js";
@@ -22,6 +23,7 @@ import {
   composerCard,
   dim,
   dirnamePortable,
+  packItems,
   logoBlock,
   padBlock,
   panel,
@@ -30,20 +32,19 @@ import {
   supportsInteractiveOutput,
   surfaceWidth,
   terminalLink,
-  viewportWidth,
+  visibleLength,
   type RowEntry
 } from "./tui-theme.js";
 
 /** Affiche l'ecran d'accueil TUI lance par `palabre` sans sujet. */
-export function renderTuiHome(config: PalabreConfig, _configPath: string, messages: Messages, state: { mode?: PalabreMode; version?: string; latestVersion?: string } = {}): void {
+export function renderTuiHome(config: PalabreConfig, _configPath: string, messages: Messages, state: { mode?: TuiHomeMode; version?: string; latestVersion?: string } = {}): void {
   if (supportsInteractiveOutput) {
     clearScreen();
   }
 
-  const viewport = viewportWidth();
-  const width = surfaceWidth();
   const defaults = config.defaults ?? {};
-  const mode = state.mode ?? defaults.mode ?? "debate";
+  const width = surfaceWidth();
+  const mode: TuiHomeMode = state.mode ?? defaults.mode ?? "debate";
   const debateAgents = defaults.agentA && defaults.agentB
     ? `${defaults.agentA} <-> ${defaults.agentB}`
     : messages.tui.noValue;
@@ -59,32 +60,56 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
   const askRoles = askAgentNames.length > 0
     ? askAgentNames.map((agent) => roleFor(config, agent, messages)).join(", ")
     : debateRoles.replace(" <-> ", ", ");
+  const isChat = mode === "chat";
   const summary = mode === "ask"
     ? defaults.askSummaryAgent ?? defaults.summaryAgent ?? messages.tui.lastAskAgent
     : defaults.summaryAgent ?? defaults.agentB ?? "agent B";
   const version = state.version ?? "0.0.0";
-  const versionLines = state.latestVersion
-    ? [dim(`v${version}`), accent(messages.tui.updateAvailable(version, state.latestVersion))]
-    : [dim(`v${version}`)];
+  const updateLines = state.latestVersion
+    ? [accent(messages.tui.updateAvailable(version, state.latestVersion))]
+    : [];
+  const activeAgents = isChat
+    ? defaults.agentA ?? messages.tui.noValue
+    : mode === "ask" ? askAgents : debateAgents;
+  const activeRoles = isChat
+    ? defaults.agentA ? roleFor(config, defaults.agentA, messages) : messages.tui.noValue
+    : mode === "ask" ? askRoles : debateRoles;
+  const sessionDetails = [
+    `${accent(isChat ? "Chat" : messages.tui.modeValue(mode as PalabreMode))} ${dim("·")} ${activeAgents}`,
+    `${accent(messages.tui.roles)} ${dim("·")} ${activeRoles}`
+  ];
+  if (!isChat) {
+    sessionDetails.push(`${accent(messages.tui.summary)} ${dim("·")} ${summary}`);
+  }
+  if (mode === "debate") {
+    sessionDetails.push(`${accent(messages.tui.responses)} ${dim("·")} ${String(defaults.turns ?? "?")}`);
+  }
 
+  const separator = ` ${dim("·")} `;
+  const contentWidth = width - 4;
+  const sessionLines = [
+    ...packItems(sessionDetails.slice(0, 2), contentWidth, separator),
+    ...packItems(sessionDetails.slice(2), contentWidth, separator)
+  ];
+  const modeLines = packItems(messages.tui.homeModes.split(" · ").map(highlightSlashCommands), contentWidth, separator);
+  const commandLines = packItems(messages.tui.homeCommands.split(" · ").map(highlightSlashCommands), contentWidth, separator);
+  const folderLines = labeledFullValueLines(messages.tui.folder, process.cwd(), contentWidth);
   const lines = [
     "",
-    ...padBlock(logoBlock(messages)),
-    ...padBlock(versionLines),
+    ...padBlock(logoBlock(messages, `v${version}`)),
+    ...padBlock(updateLines),
     "",
     ...padBlock(composerCard([
-      `${accent(messages.tui.modeValue(mode))} ${dim("·")} ${mode === "ask" ? askAgents : debateAgents}`,
-      `${accent(messages.tui.roles)} ${dim("·")} ${mode === "ask" ? askRoles : debateRoles}`,
-      `${accent(messages.tui.summary)} ${dim("·")} ${summary}${mode === "debate" ? ` ${dim("·")} ${accent(messages.tui.responses)} ${String(defaults.turns ?? "?")}` : ""}`,
-      `${accent(messages.tui.folder)} ${dim("·")} ${compactPath(process.cwd(), Math.min(width - 4, viewport - 12))}`,
+      ...sessionLines,
+      "",
+      ...modeLines,
+      ...commandLines,
+      "",
+      ...folderLines,
       `${accent(messages.tui.docs)} ${dim("·")} ${documentationUrl(config)}`,
       "",
-      `${accent("/help")} ${dim(messages.tui.commands)}   ${accent("/roles")} ${dim(messages.tui.roles.toLowerCase())}   ${accent("/config")} ${dim(messages.tui.settings)}   ${accent(mode === "ask" ? "/debat" : "/ask")} ${dim(messages.tui.changeMode)}`
-    ], width)),
-    "",
-    ...padBlock([
       dim(messages.tui.tipContext)
-    ])
+    ], width))
   ];
 
   process.stdout.write(lines.join("\n") + "\n");
@@ -118,6 +143,7 @@ export function renderTuiHelp(messages: Messages): void {
     ...padBlock([brandHeader(messages.tui.helpTitle)]),
     "",
     ...padBlock(card([
+      row("/chat", messages.tui.helpChat),
       row("/ask", messages.tui.helpAsk),
       row("/debat", messages.tui.helpDebate),
       "",
@@ -154,7 +180,7 @@ export function renderTuiAgentsHelp(config: PalabreConfig, mode: PalabreMode, me
     ...padBlock([brandHeader(messages.tui.agentsTitle)]),
     "",
     ...padBlock(card([
-      row(messages.tui.activeMode, messages.tui.modeValue(mode)),
+      row(messages.tui.activeMode, messages.tui.modeValue(mode as PalabreMode)),
       row(messages.tui.activeAgents, activeAgents.length > 0 ? activeAgents.join(separator) : messages.tui.noValue),
       "",
       bold(messages.tui.availableAgents),
@@ -250,6 +276,7 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
     : debateAgents.replace(" <-> ", ", ");
   const debateRoles = defaults.agentA && defaults.agentB ? `${roleFor(config, defaults.agentA, messages)} <-> ${roleFor(config, defaults.agentB, messages)}` : messages.tui.noValue;
   const askRoles = roleLineForMode(config, "ask", messages);
+  const isChat = mode === "chat";
   const summary = mode === "ask"
     ? defaults.askSummaryAgent ?? defaults.summaryAgent ?? messages.tui.lastAskAgent
     : defaults.summaryAgent ?? defaults.agentB ?? messages.tui.noValue;
@@ -259,7 +286,7 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
   const ollamaEffectiveUrl = ollamaUrl ? safeEffectiveOllamaUrl(ollamaUrl) : undefined;
 
   const generalBox = card(rows([
-    [messages.tui.activeMode, messages.tui.modeValue(mode)],
+    [messages.tui.activeMode, messages.tui.modeValue(mode as PalabreMode)],
     [messages.tui.configFile, configPath],
     [messages.tui.interface, defaults.interface ?? "tui"],
     [messages.tui.language, config.language ?? "fr"],
@@ -274,7 +301,11 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
       ]), width, "Ollama")
     : [];
 
-  const sessionEntries: RowEntry[] = mode === "ask"
+  const sessionEntries: RowEntry[] = isChat ? [
+        [messages.tui.activeAgents, defaults.agentA ?? messages.tui.noValue],
+        [messages.tui.roles, defaults.agentA ? roleFor(config, defaults.agentA, messages) : messages.tui.noValue],
+        [messages.tui.summary, messages.tui.chatReady]
+      ] : mode === "ask"
     ? [
         [messages.tui.activeAgents, askAgents],
         [messages.tui.roles, askRoles],
@@ -286,12 +317,15 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
         [messages.tui.summary, summary],
         [messages.tui.responses, String(defaults.turns ?? "?")]
       ];
-  const sessionBox = card(rows(sessionEntries), width, messages.tui.modeValue(mode));
+  const sessionBox = card(rows(sessionEntries), width, isChat ? "Chat" : messages.tui.modeValue(mode as PalabreMode));
 
   const commandRows = [
     bold(messages.tui.availableCommands),
     "",
-    ...(mode === "ask"
+    ...(isChat ? [
+          row("/agents", messages.tui.chatAgentsUsage),
+          row("/roles", messages.tui.rolesUsage)
+        ] : mode === "ask"
       ? [
           row("/agents", messages.tui.askAgentsUsage),
           row("/roles", messages.tui.rolesUsage),
@@ -341,6 +375,27 @@ function safeEffectiveOllamaUrl(configUrl: string): string {
     return process.env.OLLAMA_HOST?.trim() || configUrl;
   }
 }
+/** Conserve une valeur complète et indente ses continuations sous son intitulé. */
+function labeledFullValueLines(label: string, value: string, width: number): string[] {
+  const prefix = `${accent(label)} ${dim("·")} `;
+  const indent = " ".repeat(visibleLength(prefix));
+  const chunkWidth = Math.max(12, width - visibleLength(prefix));
+  const chunks: string[] = [];
+
+  for (let offset = 0; offset < value.length; offset += chunkWidth) {
+    chunks.push(value.slice(offset, offset + chunkWidth));
+  }
+
+  return chunks.length > 0
+    ? chunks.map((chunk, index) => `${index === 0 ? prefix : indent}${chunk}`)
+    : [prefix];
+}
+
+/** Met en évidence les commandes slash tout en laissant leur description localisée neutre. */
+function highlightSlashCommands(value: string): string {
+  return value.replace(/\/(?:help|config|roles|debat|chat|ask)\b/g, (command) => accent(command));
+}
+
 
 function roleFor(config: PalabreConfig, agent: string, messages: Messages): AgentRole | string {
   return config.agents[agent]?.role ?? messages.tui.noValue;
@@ -350,6 +405,10 @@ function roleLineForMode(config: PalabreConfig, mode: PalabreMode, messages: Mes
   const agents = activeAgentNamesForMode(config, mode);
   if (mode === "ask") {
     return agents.length > 0 ? agents.map((agent) => roleFor(config, agent, messages)).join(", ") : messages.tui.noValue;
+  }
+
+  if (mode === "chat") {
+    return agents.length === 1 ? roleFor(config, agents[0]!, messages) : messages.tui.noValue;
   }
 
   return agents.length === 2
@@ -364,6 +423,12 @@ function activeAgentNamesForMode(config: PalabreConfig, mode: PalabreMode): stri
       ? defaults.askAgents
       : [defaults.agentA, defaults.agentB].filter((agent): agent is string => Boolean(agent));
     return agents.filter((agent) => Boolean(config.agents[agent]) && !isRetiredAgentName(agent));
+  }
+
+  if (mode === "chat") {
+    return [defaults.agentA].filter((agent): agent is string =>
+      typeof agent === "string" && Boolean(config.agents[agent]) && !isRetiredAgentName(agent)
+    );
   }
 
   return [defaults.agentA, defaults.agentB].filter((agent): agent is string =>
@@ -397,7 +462,7 @@ function exampleAgentsForMode(config: PalabreConfig, mode: PalabreMode): string[
   }
 
   const available = Object.keys(config.agents).filter((agent) => !isRetiredAgentName(agent)).sort();
-  return mode === "ask" ? available.slice(0, 3) : available.slice(0, 2);
+  return mode === "ask" ? available.slice(0, 3) : mode === "chat" ? available.slice(0, 1) : available.slice(0, 2);
 }
 
 function documentationUrl(config: PalabreConfig): string {
@@ -407,7 +472,9 @@ function documentationUrl(config: PalabreConfig): string {
 function exampleRolesForMode(mode: PalabreMode, count: number): AgentRole[] {
   const roles: AgentRole[] = mode === "ask"
     ? ["critic", "implementer", "scout", "architect"]
-    : ["implementer", "critic"];
+    : mode === "chat"
+      ? ["architect"]
+      : ["implementer", "critic"];
   while (roles.length < count) {
     roles.push("reviewer");
   }

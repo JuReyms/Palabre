@@ -29,6 +29,7 @@ Les fonctionnalités principales sont disponibles :
 - interface TUI-first avec `palabre`, `/agents`, `/roles`, `/config`, `/history` et `/home` ;
 - assistant interactif `palabre new` ;
 - mode `ask` avec 1 à 4 agents et export `.ask.md` ;
+- mode `chat` stateless avec un agent actif, consultation explicite, contexte borné et export `.chat.md` ;
 - presets comme `codex-claude`, `claude-antigravity`, `codex-antigravity` ou `opencode-ollama` ;
 - interface et prompts en français ou en anglais avec `--language`, `--lang`, `PALABRE_LANGUAGE` ou la configuration ;
 - ajout de contexte avec `--files` ou `--context` ;
@@ -61,7 +62,7 @@ La commande `palabre config`, la vue TUI `/config`, la configuration de premier 
 
 ### Conversation après le débat
 
-Après la synthèse finale, Palabre pourrait proposer de continuer brièvement la discussion avec les mêmes agents. L'objectif serait de demander une précision, de creuser un désaccord ou de faire réagir un agent à la synthèse, puis d'ajouter cette suite dans une section distincte de l'export Markdown.
+Après la synthèse finale d'un débat ou d'un Ask, `/chat` permet maintenant de poursuivre avec un agent actif. Le contexte transmis indique sa provenance et reprend le sujet avec la synthèse finale, ou les six échanges récents lorsqu'aucune synthèse n'existe. La conversation reste stateless et bornée ; les sessions persistantes, le streaming et la reprise après redémarrage restent des évolutions distinctes.
 
 ### Tests et stabilité
 

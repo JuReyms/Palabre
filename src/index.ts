@@ -6,6 +6,7 @@
  * requête `ask` via l'orchestrateur.
  */
 import path from "node:path";
+import { createInterface } from "node:readline/promises";
 import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeConfig } from "./config.js";
 import { isConfigTrusted, isImplicitProjectConfig, trustConfig } from "./configTrust.js";
 import { loadProjectInputs } from "./context.js";
@@ -21,7 +22,7 @@ import { listPresetNames, resolvePreset } from "./presets.js";
 import { listHistoryEntries } from "./history.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { createNdjsonRenderer } from "./renderers/ndjson.js";
-import { createTuiRenderer, promptTuiHomeTopic, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiUpdate, type TuiHomeInput } from "./renderers/tui.js";
+import { createTuiRenderer, promptTuiHomeTopic, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiUpdate, type TuiHomeInput, type TuiHomeMode } from "./renderers/tui.js";
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { buildDryRunPreview, printDryRun } from "./dryRun.js";
@@ -40,7 +41,9 @@ import { runPresetsCommand } from "./commands/presets.js";
 import { runUpdateCommand } from "./commands/update.js";
 import { optionalString } from "./commands/shared.js";
 import { runTuiAgentsWizard, runTuiConfigLoop, runTuiRolesWizard, syncInteractiveDetectedAgents } from "./tuiController.js";
-import { parseInterfaceFlag, parseModeFlag, resolveRunOptions } from "./runOptions.js";
+import { parseInterfaceFlag, parseSessionModeFlag, resolveChatOptions, resolveRunOptions } from "./runOptions.js";
+import { buildChatHandoffTopic, ChatSession } from "./chatSession.js";
+import { runTuiChatSession } from "./tuiChat.js";
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
 async function main(): Promise<void> {
@@ -142,10 +145,18 @@ async function main(): Promise<void> {
 
   assertRunnableConfig(config, messages, configPath);
 
+  const explicitRunChat = parsed.command === "run"
+    && parsed.commandExplicit
+    && (optionalString(parsed.flags.mode) ?? config.defaults?.mode) === "chat";
+  if (parsed.command === "chat" || explicitRunChat) {
+    await runChatCommand(parsed.flags, config, language, messages);
+    return;
+  }
+
   let stayInTuiAfterSession = false;
   let hasCompletedTuiSession = false;
   let resetTuiRunOverridesOnNextTopic = false;
-  let tuiMode = config.defaults?.mode ?? "debate";
+  let tuiMode: TuiHomeMode = config.defaults?.mode ?? "debate";
   let tuiVersion = "";
   let tuiLatestVersion: string | undefined;
 
@@ -227,6 +238,29 @@ async function main(): Promise<void> {
         return "retry";
       }
 
+      if (tuiMode === "chat" && input.kind === "topic") {
+        const chatContext = await loadProjectInputs(input.files ?? [], input.context ?? [], process.cwd(), messages);
+        printContextWarnings(chatContext.warnings, messages);
+        const chatOptions = resolveChatOptions({
+          flags: parsed.flags,
+          config,
+          language,
+          topic: input.topic,
+          files: chatContext.files,
+          signal: debateAbortSignal()
+        }, messages);
+        const chatResult = await runTuiChatSession(
+          config,
+          chatOptions,
+          messages,
+          resolveOutputDir(config.outputDir),
+          input.topic || undefined
+        );
+        if (chatResult.destination === "quit") return "quit";
+        if (chatResult.nextInput) return handleTuiHomeInput(chatResult.nextInput);
+        return "continue";
+      }
+
       if (!input.topic) {
         // Saisie réduite à des flags inline (ex. "--context src") : re-prompter au lieu de sortir en erreur.
         tuiNotice = messages.common.topicRequired;
@@ -274,7 +308,7 @@ async function main(): Promise<void> {
       if (action === "quit") return;
       if (action === "continue") continue;
 
-      parsed.flags.mode = tuiMode;
+      parsed.flags.mode = "debate";
       parsed.flags.renderer = "tui";
       break;
     }
@@ -296,7 +330,7 @@ async function main(): Promise<void> {
             const action = await handleTuiHomeInput(nextInput);
             if (action === "quit") return;
             if (action === "continue" || action === "retry") continue;
-            parsed.flags.mode = tuiMode;
+            parsed.flags.mode = "debate";
             parsed.flags.renderer = "tui";
             break;
           }
@@ -388,8 +422,30 @@ async function main(): Promise<void> {
 
     tuiMode = options.mode;
     for (;;) {
-      const nextInput = await promptTuiHomeTopic(tuiMode, messages, { notice: tuiNotice });
+      let nextInput = await promptTuiHomeTopic(tuiMode, messages, { notice: tuiNotice });
       tuiNotice = undefined;
+      if (nextInput?.kind === "mode" && nextInput.mode === "chat") {
+        const handoffTopic = buildChatHandoffTopic(options.topic, options.mode, result.summary?.content, result.messages, language);
+        const handoffOptions = resolveChatOptions({
+          flags: {},
+          config,
+          language,
+          topic: handoffTopic,
+          files: options.files,
+          signal: debateAbortSignal()
+        }, messages);
+        const chatResult = await runTuiChatSession(
+          config,
+          handoffOptions,
+          messages,
+          resolveOutputDir(config.outputDir),
+          undefined,
+          messages.chat.continuedFromSession(options.mode)
+        );
+        if (chatResult.destination === "quit") return;
+        nextInput = chatResult.nextInput ?? { kind: "home" };
+        tuiMode = "chat";
+      }
       const action = await handleTuiHomeInput(nextInput);
       if (action === "quit") return;
       if (action === "continue") {
@@ -401,7 +457,7 @@ async function main(): Promise<void> {
         break;
       }
 
-      parsed.flags.mode = tuiMode;
+      parsed.flags.mode = "debate";
       parsed.flags.renderer = "tui";
       break;
     }
@@ -613,7 +669,7 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
     }
 
     if (modeValue !== undefined) {
-      nextDefaults.mode = parseModeFlag(modeValue, messages);
+      nextDefaults.mode = parseSessionModeFlag(modeValue, messages);
     }
 
     if (askAgentsValue.length > 0) {
@@ -1020,5 +1076,100 @@ function safeStartupLanguage(args: string[]) {
     return resolveLanguage({ explicitLanguage: findRawLanguageFlag(args) });
   } catch {
     return DEFAULT_LANGUAGE;
+  }
+}
+
+/** Lance une conversation locale stateless avec consultation explicite. */
+async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig, language: import("./types.js").Language, messages: Messages): Promise<void> {
+  const topic = optionalString(flags.topic) ?? "";
+  const context = await loadProjectInputs(
+    getStringListFlag(flags.files),
+    getStringListFlag(flags.context),
+    process.cwd(),
+    messages
+  );
+  printContextWarnings(context.warnings, messages);
+  const options = resolveChatOptions({
+    flags,
+    config,
+    language,
+    topic,
+    files: context.files,
+    signal: debateAbortSignal()
+  }, messages);
+  const chat = new ChatSession(config, options, messages);
+  const readline = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    process.stdout.write(`${messages.chat.intro(chat.activeAgentName, chat.activeAgentConfig.role)}\n${messages.chat.exitHint}\n${messages.chat.endHint}\n\n${topic ? messages.chat.questionPrompt : messages.chat.openingPrompt}`);
+    for await (const line of readline) {
+      const userMessage = line.trim();
+      if (!userMessage || userMessage === "/exit" || userMessage === "/quit" || userMessage === "/home") break;
+
+      if (userMessage === "/end") {
+        if (chat.messages.length === 0) {
+          process.stdout.write(`\n${messages.chat.consultationUnavailable}\n\n${messages.chat.questionPrompt}`);
+          continue;
+        }
+        const outputPath = await chat.export(resolveOutputDir(config.outputDir));
+        process.stdout.write(`\n${messages.chat.sessionEnded}\n${messages.chat.exportedFile}: ${outputPath}\n${messages.chat.exportedFolder}: ${path.dirname(outputPath)}\n`);
+        break;
+      }
+
+      const [command, agentName] = userMessage.split(/\s+/, 2);
+      if (command === "/agents") {
+        process.stdout.write(`\n${messages.chat.availableAgents(chat.availableAgents)}\n\n${chat.topic ? messages.chat.questionPrompt : messages.chat.openingPrompt}`);
+        continue;
+      }
+      if (command === "/consult") {
+        if (!agentName) {
+          process.stdout.write(`\n${messages.chat.consultUsage}\n\n${messages.chat.questionPrompt}`);
+          continue;
+        }
+        if (chat.messages.length === 0) {
+          process.stdout.write(`\n${messages.chat.consultationUnavailable}\n\n${messages.chat.questionPrompt}`);
+          continue;
+        }
+        process.stdout.write(`\n${messages.chat.consulting(agentName)}\n`);
+        try {
+          const opinion = await chat.consult(agentName);
+          process.stdout.write(`\n${messages.chat.consultationLabel(opinion.agent)}\n${opinion.content}\n`);
+          printChatTrimNotice(chat, messages);
+        } catch (error) {
+          if (error instanceof Error && error.message === messages.common.unknownAgent(agentName)) {
+            process.stdout.write(`\n${messages.chat.unknownAgent(agentName)}\n`);
+          } else {
+            throw error;
+          }
+        }
+        process.stdout.write(`\n${messages.chat.questionPrompt}`);
+        continue;
+      }
+      if (command === "/use") {
+        if (!agentName) {
+          process.stdout.write(`\n${messages.chat.useUsage}\n\n${messages.chat.questionPrompt}`);
+          continue;
+        }
+        try {
+          chat.use(agentName);
+          process.stdout.write(`\n${messages.chat.switchedTo(agentName)}\n\n${messages.chat.questionPrompt}`);
+        } catch {
+          process.stdout.write(`\n${messages.chat.unknownAgent(agentName)}\n\n${messages.chat.questionPrompt}`);
+        }
+        continue;
+      }
+
+      const turn = await chat.send(userMessage);
+      process.stdout.write(`\n${messages.chat.assistantLabel(turn.assistant.agent)}\n${turn.assistant.content}\n`);
+      printChatTrimNotice(chat, messages);
+      process.stdout.write(`\n${messages.chat.questionPrompt}`);
+    }
+  } finally {
+    readline.close();
+  }
+}
+
+function printChatTrimNotice(chat: ChatSession, messages: Messages): void {
+  if (chat.droppedMessageCount > 0) {
+    process.stdout.write(`\n${messages.chat.contextTrimmed(chat.droppedMessageCount)}\n`);
   }
 }

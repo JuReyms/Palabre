@@ -6,7 +6,7 @@ import { resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePow
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
-import { clipLine, DEFAULT_TIMEOUT_MS, extractUsageLimitMessage, resolveMaxOutputBytes, stripLogPrefix, uniqueNonEmptyLines, withModelArgs } from "./cli-shared.js";
+import { clipLine, DEFAULT_TIMEOUT_MS, extractUsageLimitMessage, resolveMaxOutputBytes, stripLogPrefix, uniqueNonEmptyLines, utf8ChildProcessEnv, withModelArgs } from "./cli-shared.js";
 import { cleanTerminalOutput } from "./terminal.js";
 
 /**
@@ -69,6 +69,7 @@ export class CliAdapter implements AgentAdapter {
       const spawnCommand = shellCommandForSpawn(spawnSafety.command, args, spawnSafety.shell);
       const child = spawn(spawnCommand.command, spawnCommand.args, {
         stdio: ["pipe", "pipe", "pipe"],
+        env: utf8ChildProcessEnv(),
         shell: spawnSafety.shell
       });
 

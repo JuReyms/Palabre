@@ -5,7 +5,7 @@ import { normalizeOllamaBaseUrl } from "./ollamaUrl.js";
 import { createSessionContext } from "./session.js";
 import { askAgentSeedsForMode } from "./tuiState.js";
 import type { AgentPairPreset } from "./presets.js";
-import { isAgentRole, VALID_AGENT_ROLES, type AgentRole, type DebateOptions, type Language, type PalabreConfig, type PalabreInterface, type PalabreMode, type ProjectFileContext } from "./types.js";
+import { isAgentRole, VALID_AGENT_ROLES, type AgentRole, type ChatOptions, type DebateOptions, type Language, type OrchestrationMode, type PalabreConfig, type PalabreInterface, type PalabreMode, type ProjectFileContext } from "./types.js";
 import type { Messages } from "./messages/index.js";
 import { optionalString, type CommandFlags } from "./commands/shared.js";
 
@@ -75,7 +75,7 @@ function resolveAgentName(label: string, explicitValue: string | string[] | bool
 }
 
 /** Résout une seule fois l'agent de synthèse avant l'entrée dans l'orchestrateur. */
-function resolveSummaryAgent(explicitValue: string | string[] | boolean | undefined, defaults: PalabreConfig["defaults"] | undefined, mode: PalabreMode, askAgents: string[] | undefined, agentB: string): string {
+function resolveSummaryAgent(explicitValue: string | string[] | boolean | undefined, defaults: PalabreConfig["defaults"] | undefined, mode: OrchestrationMode, askAgents: string[] | undefined, agentB: string): string {
   const explicit = optionalString(explicitValue);
   if (explicit) return explicit;
   if (mode === "ask") return defaults?.askSummaryAgent ?? defaults?.summaryAgent ?? askAgents?.at(-1) ?? agentB;
@@ -94,10 +94,36 @@ function parseRoleOverride(value: string | string[] | boolean | undefined, flagN
  * aucune valeur n'est fournie. Partagé entre `run` et la commande `config`.
  * @throws {Error} Si `value` n'est ni `debate` ni `ask`.
  */
-export function parseModeFlag(value: string | undefined, messages: Messages): PalabreMode {
+export function parseModeFlag(value: string | undefined, messages: Messages): OrchestrationMode {
   if (!value) return "debate";
   if (value === "debate" || value === "ask") return value;
   throw new Error(messages.common.unknownMode(value, "debate, ask"));
+}
+
+/** Valide un mode de session persistant, incluant Chat pour la TUI et la configuration. */
+export function parseSessionModeFlag(value: string | undefined, messages: Messages): PalabreMode {
+  if (!value) return "debate";
+  if (value === "chat" || value === "debate" || value === "ask") return value;
+  throw new Error(messages.common.unknownMode(value, "chat, debate, ask"));
+}
+
+/** Résout les seules options utiles au contrôleur Chat, sans exiger un agent B. */
+export function resolveChatOptions(input: ResolveRunOptionsInput, messages: Messages): ChatOptions {
+  const { flags, config, language, topic, files, signal } = input;
+  const agent = resolveAgentName("agent de conversation", flags["agent-a"], undefined, config.defaults?.agentA, messages);
+  const ollamaUrl = optionalString(flags["ollama-url"]);
+  return {
+    language,
+    topic,
+    agent,
+    model: optionalString(flags["model-a"]),
+    role: parseRoleOverride(flags["role-a"], "--role-a", messages),
+    session: createSessionContext(),
+    files,
+    ollamaUrl: ollamaUrl ? normalizeOllamaBaseUrl(ollamaUrl) : undefined,
+    pullModels: Boolean(flags["pull-models"]),
+    signal
+  };
 }
 
 /**

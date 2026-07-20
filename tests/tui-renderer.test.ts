@@ -3,6 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createTuiRenderer, parseComposerTopic, parseTuiOllamaUrlCommand, renderTuiAgentsHelp, renderTuiComposer, renderTuiConfig, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiRolesHelp, renderTuiUpdate } from "../src/renderers/tui.js";
 import { createTranslator } from "../src/i18n.js";
+import { packItems } from "../src/renderers/tui-theme.js";
 import type { DebateFailure, DebateOptions } from "../src/types.js";
 
 // Force le repli ASCII des glyphes pour des assertions stables quel que soit le terminal.
@@ -187,31 +188,44 @@ test("renderTuiHome renders a Palabre launch screen", () => {
         claude: { type: "cli", command: "claude", role: "critic" },
         opencode: { type: "cli", command: "opencode", role: "implementer" }
       }
-    }, "palabre.config.json", createTranslator("en"), { version: "0.7.0", latestVersion: "0.8.0" });
+    }, "palabre.config.json", createTranslator("en"), { mode: "debate", version: "0.7.0", latestVersion: "0.8.0" });
   } finally {
     process.stdout.write = originalWrite;
   }
 
   const text = output.join("");
   assert.match(text, /___/);
+  const unwrappedText = text.replace(/\|\s*\r?\n\s*\|\s*/g, " ").replace(/\s+/g, " ");
   assert.match(text, /Orchestrate conversations between AI agents/);
+  assert.match(unwrappedText, /Orchestrate conversations between AI agents\s+v0\.7\.0/);
   assert.match(text, /v0\.7\.0/);
   assert.match(text, /Update available: 0\.7\.0 -> 0\.8\.0\. Use \/update\./);
-  assert.match(text, /Folder /);
+  assert.match(unwrappedText, /Debate\s+·\s+codex <-> claude\s+·\s+Roles\s+·\s+architect <-> critic/);
+  assert.match(unwrappedText, /Summary\s+·\s+claude\s+·\s+Turns\s+·\s+2/);
+  assert.match(text, /Folder\s+·/);
+  assert.ok(text.includes(process.cwd()));
   assert.match(text, /https:\/\/palab\.re\/en/);
-  assert.match(text, /\/help/);
-  assert.match(text, /\/roles/);
-  assert.match(text, /\/debat/);
-  assert.match(text, /\/config/);
-  assert.match(text, /Roles/);
-  assert.match(text, /architect, critic, implementer/);
+  assert.match(text, /\/config settings · \/roles agent roles · \/help available commands/);
+  assert.match(unwrappedText, /\/debat debate between two agents · \/chat conversation · \/ask multiple responses/);
+  assert.match(text, /Tip Add context/);
+  assert.ok(text.indexOf("https://palab.re/en") < text.indexOf("Tip Add context"));
   assert.doesNotMatch(text, /\/new/);
   assert.doesNotMatch(text, /Session/);
   assert.doesNotMatch(text, /Composer/);
   assert.doesNotMatch(text, /Invite/);
   assert.doesNotMatch(text, /Config\s+palabre\.config\.json/);
   assert.doesNotMatch(text, /palabre new/);
-  assert.match(text, /opencode/);
+});
+
+test("packItems wraps complete command-description blocks on narrow terminals", () => {
+  assert.deepEqual(packItems([
+    "/debat debate between two agents",
+    "/chat conversation",
+    "/ask multiple responses"
+  ], 45, " · "), [
+    "/debat debate between two agents",
+    "/chat conversation · /ask multiple responses"
+  ]);
 });
 
 test("renderTuiHelp renders slash commands", () => {
@@ -415,6 +429,11 @@ test("parseComposerTopic extracts inline context and files from the subject", ()
     files: [],
     context: []
   });
+  assert.deepEqual(parseComposerTopic("first line\nsecond line"), {
+    topic: "first line\nsecond line",
+    files: [],
+    context: []
+  });
 });
 
 test("parseTuiOllamaUrlCommand parses an address and reports missing values", () => {
@@ -522,7 +541,9 @@ test("renderTuiComposer renders a framed subject input hint", () => {
   assert.match(text, /Palabre/);
   assert.match(text, /Mode ask/);
   assert.doesNotMatch(text, /Sujet/);
-  assert.doesNotMatch(text, /Ecris ton sujet/);
+  assert.match(text, /Quelle question voulez-vous poser aux agents/);
+  assert.doesNotMatch(text, /Tip Ajoute du contexte/);
+  assert.ok((text.match(/-+/g) ?? []).length >= 1);
   assert.doesNotMatch(text, /\/config/);
 });
 
@@ -544,7 +565,11 @@ test("renderTuiComposer renders config commands in config mode", () => {
   assert.match(text, /Palabre/);
   assert.match(text, /Mode debat/);
   assert.match(text, /Config/);
-  assert.doesNotMatch(text, /commande de configuration/);
+  assert.match(text, /Saisissez une commande de configuration/);
+  assert.match(text, /\/home accueil · Ctrl\+C retour · \/quit quitter/);
+  assert.ok(text.indexOf("/home accueil") < text.indexOf("Saisissez une commande de configuration"));
+  assert.ok((text.match(/-+/g) ?? []).length >= 2);
+  assert.doesNotMatch(text, /Débat :|Debate:/);
   assert.doesNotMatch(text, /\/agents/);
   assert.doesNotMatch(text, /\/back/);
 });
@@ -571,3 +596,52 @@ function baseOptions(): DebateOptions {
     plainOutput: false
   };
 }
+
+test("renderTuiConfig keeps Chat scoped to one active agent", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    renderTuiConfig({
+      language: "en",
+      defaults: { mode: "chat", agentA: "codex", agentB: "claude" },
+      agents: {
+        codex: { type: "cli", command: "codex", role: "architect" },
+        claude: { type: "cli", command: "claude", role: "critic" }
+      }
+    }, "palabre.config.json", "chat", createTranslator("en"));
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /Chat/);
+  assert.match(text, /Active agents\s+codex/);
+  assert.match(text, /Roles\s+architect/);
+  assert.match(text, /Usage: \/agents <agent>/);
+  assert.doesNotMatch(text, /codex <-> claude/);
+});
+test("Chat composer uses the standard prompt cursor instead of a You label", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    renderTuiComposer("chat", createTranslator("en"), undefined, { force: true });
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /Mode chat/);
+  assert.match(text, />/);
+  assert.doesNotMatch(text, /You:/);
+  assert.match(text, /What would you like to discuss/);
+});
