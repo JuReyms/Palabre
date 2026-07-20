@@ -4,9 +4,27 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-20
+
+<!-- social: Stateless Chat joins Debate and Ask, with agent consultations, resilient exports, NDJSON integration events, dry-run previews, and diagnostic provenance. -->
+
 ### Added
 
+- Le mode Chat stateless permet de converser avec un agent, d'en consulter un autre avec `/consult`, de changer d'interlocuteur avec `/use` et d'exporter la session en `.chat.md`.
+- Le renderer NDJSON v1 expose les événements Chat nécessaires aux intégrations sans modifier le sens des contrats Debate et Ask.
+- `--dry-run` fournit un aperçu structuré de l'exécution sans lancer les agents.
 - Les exports `.debate.md`, `.ask.md` et `.chat.md` indiquent désormais la version du CLI et la provenance déclarée par une intégration. Merci à [@ccoelhofize](https://github.com/ccoelhofize) pour le diagnostic détaillé et la proposition dans [#30](https://github.com/JuReyms/Palabre/issues/30).
+
+### Changed
+
+- L'accueil et la configuration TUI traitent Chat comme un mode de session officiel, avec un agent actif unique et des overrides temporaires correctement isolés.
+
+### Fixed
+
+- Le compositeur Chat conserve un lecteur partagé, accepte les collages multilignes et ne perd plus la saisie après plusieurs navigations TUI.
+- Une consultation affiche désormais l'identité réelle de l'agent consulté pendant la connexion et la réflexion.
+- Les conversations terminées par `/end` ou interrompues par une erreur inscrivent leur cause de fin ; une erreur conserve automatiquement une transcription partielle.
+- Les processus agents Node/Python reçoivent un environnement UTF-8 cohérent afin d'éviter les réponses corrompues sous Windows.
 
 ## [0.11.2] - 2026-07-11
 
