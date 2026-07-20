@@ -90,6 +90,19 @@ These commands are available from the TUI home screen or from `/config` dependin
 
 ## Integrations
 
+An integration launching Palabre can declare its identity in the child process
+environment:
+
+```text
+PALABRE_CLIENT=palabre-vscode
+PALABRE_CLIENT_VERSION=1.7.1
+```
+
+Palabre records this information, together with its own version, in
+`.debate.md`, `.ask.md`, and `.chat.md` exports. Client names are open so
+future integrations can identify themselves without a hard-coded registry.
+When no client is declared, the invocation source is `direct-cli`.
+
 | Command | Description |
 |---------|-------------|
 | `palabre agents --json` | Lists configured agents, their role, type, and availability as JSON v1. |

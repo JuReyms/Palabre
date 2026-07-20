@@ -4,6 +4,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Added
+
+- Les exports `.debate.md`, `.ask.md` et `.chat.md` indiquent désormais la version du CLI et la provenance déclarée par une intégration. Merci à [@ccoelhofize](https://github.com/ccoelhofize) pour le diagnostic détaillé et la proposition dans [#30](https://github.com/JuReyms/Palabre/issues/30).
+
 ## [0.11.2] - 2026-07-11
 
 ### Changed

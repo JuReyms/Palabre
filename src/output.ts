@@ -4,6 +4,11 @@ import path from "node:path";
 import { createTranslator } from "./i18n.js";
 import type { Messages } from "./messages/index.js";
 import type { DebateFailure, DebateMessage, DebateOptions, DebateSummary } from "./types.js";
+import { getPackageVersion } from "./version.js";
+
+interface ReportMetadata {
+  palabreVersion: string;
+}
 
 /**
  * Écrit le débat au format Markdown dans `outputDir`.
@@ -24,7 +29,8 @@ export async function writeDebateMarkdown(
   const filePath = path.resolve(outputDir, fileName);
 
   await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, renderDebateMarkdown(options, debateMessages, summary, stopReason, messages, failure), "utf8");
+  const metadata = { palabreVersion: await getPackageVersion() };
+  await writeFile(filePath, renderDebateMarkdown(options, debateMessages, summary, stopReason, messages, failure, metadata), "utf8");
 
   return filePath;
 }
@@ -52,12 +58,13 @@ export function renderDebateMarkdown(
   summary?: DebateSummary,
   stopReason?: string,
   messages: Messages = createTranslator("fr"),
-  failure?: DebateFailure
+  failure?: DebateFailure,
+  metadata: ReportMetadata = { palabreVersion: "unknown" }
 ): string {
   const lines = [
     options.mode === "ask" ? messages.output.askTitle : messages.output.title,
     "",
-    ...renderSessionHeader(options, debateMessages, stopReason, messages),
+    ...renderSessionHeader(options, debateMessages, stopReason, messages, metadata),
     "",
     messages.output.contextTitle,
     "",
@@ -131,9 +138,15 @@ function renderSessionHeader(
   options: DebateOptions,
   debateMessages: DebateMessage[],
   stopReason: string | undefined,
-  messages: Messages
+  messages: Messages,
+  metadata: ReportMetadata
 ): string[] {
   const rows = [
+    [messages.output.fields.palabreVersion, metadata.palabreVersion],
+    [messages.output.fields.invocationSource, options.session.invocation?.client ?? "direct-cli"],
+    ...(options.session.invocation?.clientVersion
+      ? [[messages.output.fields.clientVersion, options.session.invocation.clientVersion]]
+      : []),
     [messages.output.fields.subject, options.topic],
     [messages.output.fields.mode, options.mode],
     [messages.output.fields.agents, formatAgentsForHeader(options)],

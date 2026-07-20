@@ -485,6 +485,14 @@ Chaque prompt recoit un bloc `Contexte de session Palabre` construit au lancemen
 
 Ce contexte doit rester petit et factuel. Il sert a eviter que les agents comparent des contextes implicites differents, par exemple sur la date, le fuseau horaire ou le dossier courant.
 
+Les integrations peuvent declarer leur provenance au CLI avec
+`PALABRE_CLIENT` et, optionnellement, `PALABRE_CLIENT_VERSION`. Ces valeurs
+sont diagnostiques, nettoyees et bornees ; elles ne constituent pas une
+frontiere de confiance et aucun registre ferme de clients ne doit etre ajoute.
+Sans declaration, Palabre utilise `direct-cli`. Les exports `.debate.md`,
+`.ask.md` et `.chat.md` inscrivent la version du CLI, la source d'execution
+et la version du client quand elle est fournie.
+
 ## Contexte projet
 
 Le MVP fournit deux entrees de contexte :

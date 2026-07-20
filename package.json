@@ -51,7 +51,7 @@
     "start": "node ./dist/index.js",
     "test": "pnpm build:test && node --test .tmp/test-dist/tests/*.test.js && pnpm test:release-social",
     "test:release-social": "node --test scripts/post_release_bluesky.test.mjs",
-    "build:test": "node -e \"fs.rmSync('.tmp/test-dist',{recursive:true,force:true})\" && tsc -p tsconfig.test.json",
+    "build:test": "node -e \"fs.rmSync('.tmp/test-dist',{recursive:true,force:true})\" && tsc -p tsconfig.test.json && node -e \"fs.copyFileSync('package.json','.tmp/test-dist/package.json')\"",
     "smoke:real-presets": "node -e \"fs.rmSync('.tmp/smoke-real',{recursive:true,force:true})\" && tsc --target ES2022 --module NodeNext --moduleResolution NodeNext --types node --outDir .tmp/smoke-real scripts/smoke_real_presets.ts && node .tmp/smoke-real/smoke_real_presets.js"
   },
   "engines": {

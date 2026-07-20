@@ -275,6 +275,14 @@ export interface SessionContext {
   localDate: string;
   timeZone: string;
   cwd: string;
+  /** Client ayant lancé Palabre. Absent uniquement pour les anciens contextes/tests. */
+  invocation?: InvocationContext;
+}
+
+/** Provenance déclarative d'une intégration appelant le CLI. */
+export interface InvocationContext {
+  client: string;
+  clientVersion?: string;
 }
 
 /** Synthèse finale du débat. Structurellement similaire à `DebateMessage` mais sémantiquement distincte. */
