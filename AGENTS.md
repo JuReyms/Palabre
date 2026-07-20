@@ -832,7 +832,8 @@ Le push du tag declenche le workflow `release.yml` qui :
 5. pack un tarball npm (`pnpm pack`) ;
 6. publie sur npm via Trusted Publishing (`npm publish --access public --provenance`) sans token npm stocke dans GitHub ;
 7. cree une release GitHub avec le tarball en artifact et les notes generees depuis les commits ;
-8. pousse `public/version.json` dans le repo `JuReyms/Palabre-app` (branche `dev`), ce qui declenche un rebuild Netlify et met a jour le badge de version sur le site de documentation.
+8. pousse `public/version.json` dans le repo `JuReyms/Palabre-app` (branche `dev`) ;
+9. cree une PR `dev -> main` dans Palabre-app, ou commente la PR deja ouverte, puis expose son lien dans le resume du workflow. La fusion manuelle de cette PR declenche le build Netlify de production et met a jour le badge de version.
 
 ### Npm Trusted Publishing
 
@@ -847,9 +848,9 @@ Ne pas stocker de `NPM_TOKEN` dans GitHub et ne pas publier depuis la machine lo
 
 ## Sync documentation (Palabre-app)
 
-Le repo CLI est public. Le site de documentation (`JuReyms/Palabre-app`, Nuxt SSG sur Netlify) recoit les mises a jour via deux workflows GitHub Actions qui poussent directement dans la branche `dev` de Palabre-app. Netlify detecte le push et rebuild automatiquement.
+Le repo CLI est public. Le site de documentation (`JuReyms/Palabre-app`, Nuxt SSG sur Netlify) recoit les mises a jour via deux workflows GitHub Actions qui poussent directement dans la branche `dev` de Palabre-app. Netlify produit depuis `main` : le workflow de release cree ou rappelle donc une PR `dev -> main`, dont la fusion reste manuelle.
 
-Les deux workflows utilisent le secret `DOCS_REPO_TOKEN` (PAT fine-grained, `Contents = Read and write` sur `JuReyms/Palabre-app` uniquement).
+Les deux workflows utilisent le secret `DOCS_REPO_TOKEN` (PAT fine-grained sur `JuReyms/Palabre-app` uniquement). Il exige `Contents = Read and write` pour la synchronisation et `Pull requests = Read and write` pour proposer le deploiement de production.
 
 ### Workflow sync-docs.yml
 

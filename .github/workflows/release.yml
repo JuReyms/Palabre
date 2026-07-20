@@ -19,7 +19,8 @@
 #      - le tarball en pièce jointe (installable via npm/pnpm directement)
 #      - les notes de release générées automatiquement depuis les commits
 #   7. Push de public/version.json dans Palabre-app (branche dev)
-#      → déclenche un rebuild Netlify qui bake la version dans le site
+#   8. Création ou rappel d'une PR Palabre-app dev → main
+#      → sa fusion manuelle déclenche le build Netlify de production
 
 name: Release
 
@@ -110,6 +111,47 @@ jobs:
           git add public/version.json content/fr/8.changelog.md content/en/8.changelog.md
           git commit -m "release: bump version to ${{ github.ref_name }}"
           git push origin dev
+      - name: Propose Palabre-app production deployment
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          COMPARE_URL="https://github.com/JuReyms/Palabre-app/compare/main...dev?expand=1"
+          WORKFLOW_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          PR_URL="$(gh pr list \
+            --repo JuReyms/Palabre-app \
+            --base main \
+            --head dev \
+            --state open \
+            --json url \
+            --jq '.[0].url // empty' 2>/dev/null || true)"
+
+          if [ -z "$PR_URL" ]; then
+            if PR_URL="$(gh pr create \
+              --repo JuReyms/Palabre-app \
+              --base main \
+              --head dev \
+              --title "docs: deploy ${RELEASE_TAG} to production" \
+              --body "Proposition automatique après la publication de Palabre CLI ${RELEASE_TAG}. La fusion de dev vers main déclenchera le build Netlify de production. Workflow source : ${WORKFLOW_URL}" 2>/dev/null)"; then
+              echo "Created production deployment PR: $PR_URL"
+            else
+              PR_URL="$COMPARE_URL"
+              echo "::warning title=Palabre-app PR not created::Create the production deployment PR manually: $PR_URL"
+            fi
+          elif gh pr comment "$PR_URL" \
+            --body "Palabre CLI ${RELEASE_TAG} a été publiée. Cette PR dev vers main contient maintenant la version et le changelog correspondants. Workflow source : ${WORKFLOW_URL}"; then
+            echo "Reused production deployment PR: $PR_URL"
+          else
+            echo "::warning title=Palabre-app PR reminder not posted::The production deployment PR is still available: $PR_URL"
+          fi
+
+          echo "::notice title=Palabre-app production deployment pending::$PR_URL"
+          {
+            echo "### Palabre-app production deployment"
+            echo ""
+            echo "La documentation ${RELEASE_TAG} est synchronisée sur dev."
+            echo "Fusionner la PR suivante pour déclencher Netlify en production : $PR_URL"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Publish release summary to Bluesky
         env:
           BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
