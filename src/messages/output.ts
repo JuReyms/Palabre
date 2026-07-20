@@ -19,6 +19,9 @@ export interface OutputMessages {
   disabled: string;
   fields: {
     subject: string;
+    palabreVersion: string;
+    invocationSource: string;
+    clientVersion: string;
     mode: string;
     agents: string;
     autoPullOllama: string;
@@ -63,6 +66,9 @@ export const outputMessages: Record<Language, OutputMessages> = {
     disabled: "desactivee",
     fields: {
       subject: "Sujet",
+      palabreVersion: "Version du CLI Palabre",
+      invocationSource: "Source d'execution",
+      clientVersion: "Version du client",
       mode: "Mode",
       agents: "Agents",
       autoPullOllama: "Auto-pull Ollama",
@@ -105,6 +111,9 @@ export const outputMessages: Record<Language, OutputMessages> = {
     disabled: "disabled",
     fields: {
       subject: "Subject",
+      palabreVersion: "Palabre CLI version",
+      invocationSource: "Invocation source",
+      clientVersion: "Client version",
       mode: "Mode",
       agents: "Agents",
       autoPullOllama: "Ollama auto-pull",

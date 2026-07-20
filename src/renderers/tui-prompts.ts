@@ -188,12 +188,20 @@ function questionWithInterrupt(rl: ReturnType<typeof createInterface>, prompt: s
 /** Lit un message Chat avec le même composer visuel et la même politique Ctrl+C que l'accueil. */
 export async function promptTuiChatMessage(messages: Messages): Promise<TuiQuestionResult> {
   if (!input.isTTY) return { kind: "quit" };
-  const rl = createInterface({ input, output });
-  try {
-    return await questionWithInterrupt(rl, renderChatSessionPrompt(messages));
-  } finally {
-    rl.close();
-  }
+  const result = await promptTuiChatMessageWithReadline(getComposerReadline(), messages);
+  if (result.kind === "quit") closeComposerReadline();
+  return result;
+}
+
+/** Lit un message Chat sans fermer le reader partagé entre Chat, Home et Config. */
+export function promptTuiChatMessageWithReadline(
+  rl: ReturnType<typeof createInterface>,
+  messages: Messages,
+  streams: { input: NodeJS.ReadableStream; output: NodeJS.WritableStream } = { input, output }
+): Promise<TuiQuestionResult> {
+  const prompt = renderChatSessionPrompt(messages);
+  const linePrompt = `${surfacePadding()}${accent(glyphs().prompt)} `;
+  return questionWithBufferedComposer(rl, prompt, linePrompt, 0, streams);
 }
 
 

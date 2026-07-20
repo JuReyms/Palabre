@@ -6,10 +6,17 @@ import { fileURLToPath } from "node:url";
 /** Lit la version depuis `package.json` adjacent au bundle compilé. */
 export async function getPackageVersion(): Promise<string> {
   const packageJsonPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "package.json");
-  const raw = await readFile(packageJsonPath, "utf8");
-  const packageJson = JSON.parse(raw) as { version?: string };
+  try {
+    const raw = await readFile(packageJsonPath, "utf8");
+    const packageJson = JSON.parse(raw) as { name?: string; version?: string };
+    if (packageJson.name === "palabre" && packageJson.version) {
+      return packageJson.version;
+    }
+  } catch {
+    // Une installation incomplète ne doit pas empêcher l'écriture d'un rapport.
+  }
 
-  return packageJson.version ?? "0.0.0";
+  return "0.0.0";
 }
 
 /** Compare deux versions semver simples `major.minor.patch`. */

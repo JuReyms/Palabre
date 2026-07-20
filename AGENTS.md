@@ -485,6 +485,14 @@ Chaque prompt recoit un bloc `Contexte de session Palabre` construit au lancemen
 
 Ce contexte doit rester petit et factuel. Il sert a eviter que les agents comparent des contextes implicites differents, par exemple sur la date, le fuseau horaire ou le dossier courant.
 
+Les integrations peuvent declarer leur provenance au CLI avec
+`PALABRE_CLIENT` et, optionnellement, `PALABRE_CLIENT_VERSION`. Ces valeurs
+sont diagnostiques, nettoyees et bornees ; elles ne constituent pas une
+frontiere de confiance et aucun registre ferme de clients ne doit etre ajoute.
+Sans declaration, Palabre utilise `direct-cli`. Les exports `.debate.md`,
+`.ask.md` et `.chat.md` inscrivent la version du CLI, la source d'execution
+et la version du client quand elle est fournie.
+
 ## Contexte projet
 
 Le MVP fournit deux entrees de contexte :
@@ -641,7 +649,7 @@ Types d'evenements emis aujourd'hui :
 
 | Type | Quand | Champs |
 | --- | --- | --- |
-| `start` | une fois, au demarrage de la session | `mode` (`debate` ou `ask`), `topic`, `turns`, `agents[]` (`name`, `role`, `type`), `summaryEnabled`, `summaryAgent`, `earlyStop`, `filesCount`, `session` (`startedAt`, `localDate`, `timeZone`, `cwd`) |
+| `start` | une fois, au demarrage de la session | `mode` (`chat`, `debate` ou `ask`), `topic`, `agents[]` (`name`, `role`, `type`), `filesCount`, `session` (`startedAt`, `localDate`, `timeZone`, `cwd`) ; les champs Debate/Ask `turns`, `summaryEnabled`, `summaryAgent` et `earlyStop` restent présents dans ces modes |
 | `notice` | message informatif | `message` |
 | `warning` | avertissement | `message` |
 | `turn-start` | debut d'un tour | `turn`, `totalTurns`, `agent`, `role` |
@@ -652,8 +660,14 @@ Types d'evenements emis aujourd'hui :
 | `ask-response` | contenu d'une reponse agent en mode `ask` | `response`, `agent`, `role`, `content` |
 | `summary-start` | debut de la synthese finale | `agent`, `role` |
 | `summary-message` | contenu de la synthese | `agent`, `role`, `content` |
+| `chat-agents` | reponse a `/agents` pendant Chat | `agents[]` (`name`, `role`) |
+| `chat-user-message` | message utilisateur accepte par Chat | `agent` (`user`), `role`, `content`, `createdAt` |
+| `chat-message` | reponse de l'agent actif | `agent`, `role`, `content`, `createdAt` |
+| `chat-consultation-start` | debut d'une consultation explicite | `agent`, `role` |
+| `chat-consultation` | avis ajoute au transcript | `agent`, `role`, `content`, `createdAt` |
+| `chat-agent-changed` | changement d'agent actif via `/use` | `agent`, `role` |
 | `error` | erreur runtime structurée pendant le debat, ask ou la synthese | `phase` (`debate`, `ask` ou `summary`), `kind`, `message`, optionnels `agent`, `role`, `turn`, `details` |
-| `done` | export du `.debate.md` ou `.ask.md` ecrit | `outputPath` |
+| `done` | fin de session ; export ecrit quand demande | `outputPath` (`null` si Chat se termine sans `/end`) |
 
 Exemple de session minimale :
 

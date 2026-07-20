@@ -4,7 +4,7 @@ import { withRuntimeOverrides } from "./agentRuntime.js";
 import { runStatelessChatTurn, runStatelessConsultation } from "./chat.js";
 import { writeChatMarkdown } from "./chatOutput.js";
 import type { Messages } from "./messages/index.js";
-import type { AgentConfig, ChatAvailableAgent, ChatOptions, DebateMessage, Language, PalabreConfig } from "./types.js";
+import type { AgentConfig, ChatAvailableAgent, ChatOptions, ChatTermination, DebateMessage, Language, PalabreConfig } from "./types.js";
 
 export class ChatSession {
   readonly availableAgents: ChatAvailableAgent[];
@@ -96,8 +96,8 @@ export class ChatSession {
     this.activeName = agentName;
   }
 
-  async export(outputDir: string): Promise<string> {
-    return writeChatMarkdown(outputDir, this.topicValue, this.transcript, this.options.session, this.translations);
+  async export(outputDir: string, termination: ChatTermination): Promise<string> {
+    return writeChatMarkdown(outputDir, this.topicValue, this.transcript, this.options.session, termination, this.translations);
   }
 
   private requireAgent(agentName: string): AgentConfig {

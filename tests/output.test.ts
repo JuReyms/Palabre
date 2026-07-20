@@ -39,6 +39,8 @@ test("renderDebateMarkdown localizes export metadata", () => {
 
   assert.match(markdown, /## Context/);
   assert.match(markdown, /\| Field \| Value \|/);
+  assert.match(markdown, /\| Palabre CLI version \| unknown \|/);
+  assert.match(markdown, /\| Invocation source \| direct-cli \|/);
   assert.match(markdown, /\| Subject \| Choose a cache strategy \|/);
   assert.match(markdown, /\| Requested turns \| 2 \|/);
   assert.match(markdown, /\| Summary \| disabled \|/);
@@ -90,6 +92,31 @@ test("renderDebateMarkdown renders ask mode with agent responses", () => {
   assert.match(markdown, /Faithful summary/);
 });
 
+test("renderDebateMarkdown localizes declared integration provenance", () => {
+  const options = baseOptions({
+    session: {
+      startedAt: "2026-05-13T10:00:00.000Z",
+      localDate: "2026-05-13",
+      timeZone: "Europe/Paris",
+      cwd: "C:\\repo\\Palabre",
+      invocation: { client: "future-integration", clientVersion: "2027.4-beta" }
+    }
+  });
+  const markdown = renderDebateMarkdown(
+    options,
+    [],
+    undefined,
+    undefined,
+    createTranslator("fr"),
+    undefined,
+    { palabreVersion: "0.12.0" }
+  );
+
+  assert.match(markdown, /\| Version du CLI Palabre \| 0\.12\.0 \|/);
+  assert.match(markdown, /\| Source d'execution \| future-integration \|/);
+  assert.match(markdown, /\| Version du client \| 2027\.4-beta \|/);
+});
+
 test("renderDebateMarkdown includes interruption metadata", () => {
   const markdown = renderDebateMarkdown(
     baseOptions(),
@@ -104,9 +131,11 @@ test("renderDebateMarkdown includes interruption metadata", () => {
       turn: 1,
       kind: "output-too-large",
       message: "codex produced too much output"
-    }
+    },
+    { palabreVersion: "0.11.2" }
   );
 
+  assert.match(markdown, /\| Palabre CLI version \| 0\.11\.2 \|/);
   assert.match(markdown, /## Interruption/);
   assert.match(markdown, /\| Phase \| debate \|/);
   assert.match(markdown, /\| Agent \| codex \|/);

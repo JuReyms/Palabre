@@ -90,6 +90,19 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 
 ## Intégrations
 
+Une intégration qui lance Palabre peut déclarer son identité dans
+l'environnement du processus enfant :
+
+```text
+PALABRE_CLIENT=palabre-vscode
+PALABRE_CLIENT_VERSION=1.7.1
+```
+
+Palabre inscrit ces informations, ainsi que sa propre version, dans les exports
+`.debate.md`, `.ask.md` et `.chat.md`. Le nom du client est libre afin de
+supporter de futures intégrations. Sans déclaration, la source indiquée est
+`direct-cli`.
+
 | Commande | Description |
 |----------|-------------|
 | `palabre agents --json` | Liste les agents configurés, leur rôle, leur type et leur disponibilité au format JSON v1. |

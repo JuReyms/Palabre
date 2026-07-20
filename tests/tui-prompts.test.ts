@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { PassThrough } from "node:stream";
 import { createInterface } from "node:readline";
 import { createTranslator } from "../src/i18n.js";
-import { normalizeBufferedComposerLines, promptTuiChatMessage, questionWithBufferedComposer, renderChatSessionPrompt, tuiHomeInterruptInput } from "../src/renderers/tui-prompts.js";
+import { normalizeBufferedComposerLines, promptTuiChatMessage, promptTuiChatMessageWithReadline, questionWithBufferedComposer, renderChatSessionPrompt, tuiHomeInterruptInput } from "../src/renderers/tui-prompts.js";
 
 test("first Ctrl+C from a TUI view returns home and the second quits", () => {
   assert.deepEqual(tuiHomeInterruptInput("back"), { kind: "home" });
@@ -34,6 +34,25 @@ test("the shared composer accepts Enter after repeated Config and Home cycles", 
     const secondConfig = questionWithBufferedComposer(rl, "home> ", "home> ", 0, { input, output });
     input.write("/config\n");
     assert.deepEqual(await secondConfig, { kind: "answer", value: "/config" });
+  } finally {
+    rl.close();
+  }
+});
+
+test("Chat keeps one reader across messages and buffers multiline paste", async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const rl = createInterface({ input, output, terminal: false });
+  const messages = createTranslator("en");
+
+  try {
+    const first = promptTuiChatMessageWithReadline(rl, messages, { input, output });
+    input.write("\u001b[200~first line\nsecond line\u001b[201~\n");
+    assert.deepEqual(await first, { kind: "answer", value: "first line\nsecond line" });
+
+    const second = promptTuiChatMessageWithReadline(rl, messages, { input, output });
+    input.write("/home\n");
+    assert.deepEqual(await second, { kind: "answer", value: "/home" });
   } finally {
     rl.close();
   }
