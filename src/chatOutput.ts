@@ -1,10 +1,10 @@
 /** @file Export Markdown d'une conversation chat Palabre. */
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { DebateMessage, SessionContext } from "./types.js";
+import type { ChatTermination, DebateMessage, SessionContext } from "./types.js";
 import type { Messages } from "./messages/index.js";
 
-export async function writeChatMarkdown(outputDir: string, topic: string, transcript: DebateMessage[], session: SessionContext, messages: Messages): Promise<string> {
+export async function writeChatMarkdown(outputDir: string, topic: string, transcript: DebateMessage[], session: SessionContext, termination: ChatTermination, messages: Messages): Promise<string> {
   const safeDate = new Date().toISOString().replace(/[:.]/g, "-");
   const slug = (topic || "conversation").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64) || "conversation";
   const filePath = path.resolve(outputDir, `palabre-${slug}-${safeDate}.chat.md`);
@@ -13,6 +13,9 @@ export async function writeChatMarkdown(outputDir: string, topic: string, transc
     [messages.chat.exportSubject, topic || messages.chat.openingPrompt.trim()],
     [messages.chat.exportAgents, agents],
     [messages.chat.exportStartedAt, session.startedAt],
+    [messages.chat.exportEndedAt, termination.endedAt],
+    [messages.chat.exportStopReason, messages.chat.exportStopReasonValue(termination.reason)],
+    ...(termination.errorMessage ? [[messages.chat.exportError, termination.errorMessage]] : []),
     [messages.chat.exportMessages, String(transcript.length)]
   ];
   const lines = [

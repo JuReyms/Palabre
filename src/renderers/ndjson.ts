@@ -1,6 +1,9 @@
 /** @file Renderer NDJSON machine-readable, contrat public versionné pour les intégrations out-of-process (voir AGENTS.md, section "Renderer NDJSON"). */
 import type {
+  AgentConfig,
   AgentRole,
+  ChatAvailableAgent,
+  ChatOptions,
   DebateOptions,
   DebateRenderer,
   DebateStartAgentInfo,
@@ -52,6 +55,53 @@ export class NdjsonRenderer implements DebateRenderer {
         cwd: options.session.cwd,
       },
     });
+  }
+
+  /** Émet le démarrage d'une session Chat machine-readable. */
+  chatStart(options: ChatOptions, agent: { name: string; config: AgentConfig }): void {
+    this.emit({
+      type: "start",
+      mode: "chat",
+      topic: options.topic,
+      agents: [{ name: agent.name, role: agent.config.role, type: agent.config.type }],
+      filesCount: options.files.length,
+      session: {
+        startedAt: options.session.startedAt,
+        localDate: options.session.localDate,
+        timeZone: options.session.timeZone,
+        cwd: options.session.cwd,
+      },
+    });
+  }
+
+  /** Émet l'inventaire des agents configurés utilisables depuis Chat. */
+  chatAgents(agents: ChatAvailableAgent[]): void {
+    this.emit({ type: "chat-agents", agents });
+  }
+
+  /** Émet un message utilisateur retenu dans le transcript Chat. */
+  chatUserMessage(message: { content: string; createdAt: string }): void {
+    this.emit({ type: "chat-user-message", agent: "user", role: "architect", ...message });
+  }
+
+  /** Émet la réponse de l'agent actif. */
+  chatMessage(message: { agent: string; role: AgentRole; content: string; createdAt: string }): void {
+    this.emit({ type: "chat-message", ...message });
+  }
+
+  /** Signale le début d'une consultation explicite. */
+  chatConsultationStart(agent: string, role: AgentRole): void {
+    this.emit({ type: "chat-consultation-start", agent, role });
+  }
+
+  /** Émet l'avis ajouté au transcript par une consultation. */
+  chatConsultation(message: { agent: string; role: AgentRole; content: string; createdAt: string }): void {
+    this.emit({ type: "chat-consultation", ...message });
+  }
+
+  /** Signale le changement d'agent actif sans lancer de génération. */
+  chatAgentChanged(agent: string, role: AgentRole): void {
+    this.emit({ type: "chat-agent-changed", agent, role });
   }
 
   /** Émet un événement informatif. */
@@ -145,7 +195,7 @@ export class NdjsonRenderer implements DebateRenderer {
   }
 
   /** Émet `done` avec le chemin du `.debate.md` écrit. */
-  done(outputPath: string): void {
+  done(outputPath: string | null): void {
     this.emit({ type: "done", outputPath });
   }
 

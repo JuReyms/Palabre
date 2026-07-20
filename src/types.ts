@@ -162,6 +162,16 @@ export interface ChatOptions {
   pullModels: boolean;
   signal?: AbortSignal;
 }
+
+/** Cause explicite inscrite dans tout export de conversation Chat. */
+export type ChatStopReason = "user-end" | "error";
+
+/** Métadonnées de fin d'une conversation Chat exportée. */
+export interface ChatTermination {
+  reason: ChatStopReason;
+  endedAt: string;
+  errorMessage?: string;
+}
 /** Données fournies à l'adapter pour générer une réponse. Reconstruit à chaque tour par l'orchestrateur. */
 export interface ChatAvailableAgent {
   name: string;

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createTranslator } from "../src/i18n.js";
 import { renderTuiChat, renderTuiChatComplete } from "../src/renderers/tui-chat.js";
-import { tuiChatInterruptResult } from "../src/tuiChat.js";
+import { runChatTurnWithThinking, tuiChatInterruptResult } from "../src/tuiChat.js";
 
 process.env.PALABRE_ASCII = "1";
 
@@ -31,6 +31,19 @@ test("TUI chat renders a conversation and a consultation as distinct cards", () 
 test("Chat interruption returns home first and quits on the second interrupt", () => {
   assert.equal(tuiChatInterruptResult("back"), "home");
   assert.equal(tuiChatInterruptResult("quit"), "quit");
+});
+
+test("a consultation spinner uses the consulted agent identity", async () => {
+  const events: string[] = [];
+  const renderer = {
+    thinkingStart: (agent: string, role: string) => { events.push(`start:${agent}:${role}`); },
+    thinkingEnd: () => { events.push("end"); }
+  };
+
+  await runChatTurnWithThinking(renderer, "vibe", "critic", async () => { events.push("operation"); });
+
+  assert.deepEqual(events, ["start:vibe:critic", "operation", "end"]);
+  assert.equal(createTranslator("fr").chat.consulting("Vibe"), "Vibe se connecte à la conversation…");
 });
 
 test("Chat completion appends the Debate-style footer with links and continuation commands", () => {

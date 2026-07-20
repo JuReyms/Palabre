@@ -21,7 +21,7 @@ import { runNewWizard } from "./new.js";
 import { listPresetNames, resolvePreset } from "./presets.js";
 import { listHistoryEntries } from "./history.js";
 import { createConsoleRenderer } from "./renderers/console.js";
-import { createNdjsonRenderer } from "./renderers/ndjson.js";
+import { createNdjsonRenderer, NdjsonRenderer } from "./renderers/ndjson.js";
 import { createTuiRenderer, promptTuiHomeTopic, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiUpdate, type TuiHomeInput, type TuiHomeMode } from "./renderers/tui.js";
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
@@ -238,6 +238,11 @@ async function main(): Promise<void> {
         return "retry";
       }
 
+      if (input.kind === "topic" && (hasCompletedTuiSession || resetTuiRunOverridesOnNextTopic)) {
+        clearTuiRunOverrides(parsed.flags);
+        resetTuiRunOverridesOnNextTopic = false;
+      }
+
       if (tuiMode === "chat" && input.kind === "topic") {
         const chatContext = await loadProjectInputs(input.files ?? [], input.context ?? [], process.cwd(), messages);
         printContextWarnings(chatContext.warnings, messages);
@@ -269,10 +274,6 @@ async function main(): Promise<void> {
 
       parsed.command = "";
       parsed.commandExplicit = false;
-      if (hasCompletedTuiSession || resetTuiRunOverridesOnNextTopic) {
-        clearTuiRunOverrides(parsed.flags);
-        resetTuiRunOverridesOnNextTopic = false;
-      }
       parsed.flags.topic = input.topic;
       if (input.files && input.files.length > 0) {
         parsed.flags.files = input.files;
@@ -932,12 +933,8 @@ function createRendererFromFlags(
   defaultInterface: PalabreInterface | undefined,
   messages: Messages,
 ) {
-  const explicit = optionalString(flags.renderer);
-  if (explicit) {
-    if (!(SUPPORTED_RENDERERS as readonly string[]).includes(explicit)) {
-      throw new Error(messages.common.unknownRenderer(explicit, SUPPORTED_RENDERERS.join(", ")));
-    }
-    const kind = explicit as RendererKind;
+  const kind = rendererKindFromFlags(flags, messages);
+  if (kind) {
     switch (kind) {
       case "ndjson":
         return createNdjsonRenderer();
@@ -951,10 +948,22 @@ function createRendererFromFlags(
         return createAutoRenderer(flags, plainOutputFallback, defaultInterface, messages);
     }
   }
-  if (flags.json) {
-    return createNdjsonRenderer();
-  }
   return createAutoRenderer(flags, plainOutputFallback, defaultInterface, messages);
+}
+
+/** Résout et valide le renderer explicite en conservant la précédence `--renderer` > `--json`. */
+function rendererKindFromFlags(
+  flags: Record<string, string | string[] | boolean>,
+  messages: Messages
+): RendererKind | undefined {
+  const explicit = optionalString(flags.renderer);
+  if (explicit) {
+    if (!(SUPPORTED_RENDERERS as readonly string[]).includes(explicit)) {
+      throw new Error(messages.common.unknownRenderer(explicit, SUPPORTED_RENDERERS.join(", ")));
+    }
+    return explicit as RendererKind;
+  }
+  return flags.json ? "ndjson" : undefined;
 }
 
 /**
@@ -1088,7 +1097,7 @@ async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig,
     process.cwd(),
     messages
   );
-  printContextWarnings(context.warnings, messages);
+  const rendererKind = rendererKindFromFlags(flags, messages);
   const options = resolveChatOptions({
     flags,
     config,
@@ -1100,6 +1109,12 @@ async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig,
   const chat = new ChatSession(config, options, messages);
   const readline = createInterface({ input: process.stdin, output: process.stdout });
   try {
+    if (rendererKind === "ndjson") {
+      await runChatNdjson(chat, options, context.warnings, resolveOutputDir(config.outputDir), readline, messages);
+      return;
+    }
+
+    printContextWarnings(context.warnings, messages);
     process.stdout.write(`${messages.chat.intro(chat.activeAgentName, chat.activeAgentConfig.role)}\n${messages.chat.exitHint}\n${messages.chat.endHint}\n\n${topic ? messages.chat.questionPrompt : messages.chat.openingPrompt}`);
     for await (const line of readline) {
       const userMessage = line.trim();
@@ -1110,7 +1125,7 @@ async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig,
           process.stdout.write(`\n${messages.chat.consultationUnavailable}\n\n${messages.chat.questionPrompt}`);
           continue;
         }
-        const outputPath = await chat.export(resolveOutputDir(config.outputDir));
+        const outputPath = await chat.export(resolveOutputDir(config.outputDir), userEndedChat());
         process.stdout.write(`\n${messages.chat.sessionEnded}\n${messages.chat.exportedFile}: ${outputPath}\n${messages.chat.exportedFolder}: ${path.dirname(outputPath)}\n`);
         break;
       }
@@ -1163,13 +1178,124 @@ async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig,
       printChatTrimNotice(chat, messages);
       process.stdout.write(`\n${messages.chat.questionPrompt}`);
     }
+  } catch (error) {
+    const outputPath = await exportFailedChat(chat, resolveOutputDir(config.outputDir), error);
+    if (outputPath) process.stderr.write(`${messages.chat.failureExported(outputPath)}\n`);
+    throw error;
   } finally {
     readline.close();
   }
 }
 
+/** Exécute Chat sur stdin tout en garantissant une ligne JSON valide par événement stdout. */
+async function runChatNdjson(
+  chat: ChatSession,
+  options: import("./types.js").ChatOptions,
+  warnings: string[],
+  outputDir: string,
+  readline: ReturnType<typeof createInterface>,
+  messages: Messages
+): Promise<void> {
+  const renderer = new NdjsonRenderer();
+  renderer.chatStart(options, { name: chat.activeAgentName, config: chat.activeAgentConfig });
+  warnings.forEach((warning) => renderer.warning(warning));
+
+  for await (const line of readline) {
+    const userMessage = line.trim();
+    if (!userMessage || userMessage === "/exit" || userMessage === "/quit" || userMessage === "/home") {
+      renderer.done(null);
+      return;
+    }
+
+    if (userMessage === "/end") {
+      if (chat.messages.length === 0) {
+        renderer.notice(messages.chat.consultationUnavailable);
+        continue;
+      }
+      renderer.done(await chat.export(outputDir, userEndedChat()));
+      return;
+    }
+
+    const [command, agentName] = userMessage.split(/\s+/, 2);
+    if (command === "/agents") {
+      renderer.chatAgents(chat.availableAgents);
+      continue;
+    }
+
+    if (command === "/use") {
+      if (!agentName) {
+        renderer.notice(messages.chat.useUsage);
+        continue;
+      }
+      try {
+        chat.use(agentName);
+        renderer.chatAgentChanged(chat.activeAgentName, chat.activeAgentConfig.role);
+      } catch {
+        renderer.notice(messages.chat.unknownAgent(agentName));
+      }
+      continue;
+    }
+
+    if (command === "/consult") {
+      if (!agentName) {
+        renderer.notice(messages.chat.consultUsage);
+        continue;
+      }
+      if (chat.messages.length === 0) {
+        renderer.notice(messages.chat.consultationUnavailable);
+        continue;
+      }
+      const target = chat.availableAgents.find((agent) => agent.name === agentName);
+      if (!target) {
+        renderer.notice(messages.chat.unknownAgent(agentName));
+        continue;
+      }
+      renderer.chatConsultationStart(agentName, target.role);
+      renderer.thinkingStart(agentName, target.role);
+      let opinion: Awaited<ReturnType<ChatSession["consult"]>>;
+      try {
+        opinion = await chat.consult(agentName);
+      } finally {
+        renderer.thinkingEnd();
+      }
+      renderer.chatConsultation(opinion);
+      if (chat.droppedMessageCount > 0) renderer.notice(messages.chat.contextTrimmed(chat.droppedMessageCount));
+      continue;
+    }
+
+    renderer.thinkingStart(chat.activeAgentName, chat.activeAgentConfig.role);
+    let turn: Awaited<ReturnType<ChatSession["send"]>>;
+    try {
+      turn = await chat.send(userMessage);
+    } finally {
+      renderer.thinkingEnd();
+    }
+    renderer.chatUserMessage(turn.user);
+    renderer.chatMessage(turn.assistant);
+    if (chat.droppedMessageCount > 0) renderer.notice(messages.chat.contextTrimmed(chat.droppedMessageCount));
+  }
+
+  renderer.done(null);
+}
+
 function printChatTrimNotice(chat: ChatSession, messages: Messages): void {
   if (chat.droppedMessageCount > 0) {
     process.stdout.write(`\n${messages.chat.contextTrimmed(chat.droppedMessageCount)}\n`);
+  }
+}
+
+function userEndedChat(): import("./types.js").ChatTermination {
+  return { reason: "user-end", endedAt: new Date().toISOString() };
+}
+
+async function exportFailedChat(chat: ChatSession, outputDir: string, error: unknown): Promise<string | undefined> {
+  try {
+    return await chat.export(outputDir, {
+      reason: "error",
+      endedAt: new Date().toISOString(),
+      errorMessage: error instanceof Error ? error.message : String(error)
+    });
+  } catch {
+    return undefined;
   }
 }
