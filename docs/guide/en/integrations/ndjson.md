@@ -17,6 +17,25 @@ description: Read Palabre session events from stdout and build a robust integrat
 | `done` | Business completion and export path, possibly null. |
 
 Chat adds `chat-agents`, `chat-user-message`, `chat-message`, `chat-consultation-start`, `chat-consultation`, and `chat-agent-changed`. Its commands are sent through stdin one line at a time.
+For an integration, every Chat command must be a single-line v1 JSON object:
+
+| Command | Purpose |
+|---------|---------|
+| `chat-send` | Send `content` to the active agent. |
+| `chat-consult` | Request a one-off opinion from `agent` without changing the active agent. |
+| `chat-use` | Select `agent` as the active participant for subsequent messages. |
+| `chat-agents` | Request the available agent list again. |
+| `chat-end` | End the conversation and produce the `.chat.md` export. |
+
+```json
+{"v":1,"type":"chat-send","content":"Review this approach"}
+{"v":1,"type":"chat-consult","agent":"vibe"}
+{"v":1,"type":"chat-use","agent":"vibe"}
+{"v":1,"type":"chat-end"}
+```
+
+Legacy text commands remain available for human use. Integrations should use JSON objects so message content can never be mistaken for a command.
+
 
 ```json
 {"v":1,"type":"thinking-start","agent":"codex","role":"implementer"}

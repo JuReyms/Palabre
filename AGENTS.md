@@ -669,6 +669,23 @@ Types d'evenements emis aujourd'hui :
 | `error` | erreur runtime structurée pendant le debat, ask ou la synthese | `phase` (`debate`, `ask` ou `summary`), `kind`, `message`, optionnels `agent`, `role`, `turn`, `details` |
 | `done` | fin de session ; export ecrit quand demande | `outputPath` (`null` si Chat se termine sans `/end`) |
 
+En mode Chat avec `--renderer ndjson`, les integrations pilotent stdin avec
+une ligne JSON par action. Le contrat d'entree v1 accepte :
+
+```json
+{"v":1,"type":"chat-send","content":"Message, y compris sur plusieurs lignes"}
+{"v":1,"type":"chat-consult","agent":"vibe"}
+{"v":1,"type":"chat-use","agent":"codex"}
+{"v":1,"type":"chat-agents"}
+{"v":1,"type":"chat-end"}
+```
+
+Les commandes texte historiques restent acceptees pour les terminaux. Une
+integration doit utiliser les entrees structurees afin de conserver les sauts
+de ligne et de ne pas confondre le contenu utilisateur avec une commande slash.
+`chat-user-message` est emis dès acceptation du message, avant
+`thinking-start`, afin que les clients puissent l'afficher immediatement.
+
 Exemple de session minimale :
 
 ```json

@@ -1,7 +1,7 @@
 /** @file Contrôleur unique du cycle de vie d'une conversation Chat. */
 import { isRetiredAgentName } from "./agentRegistry.js";
 import { withRuntimeOverrides } from "./agentRuntime.js";
-import { runStatelessChatTurn, runStatelessConsultation } from "./chat.js";
+import { createChatUserMessage, runStatelessChatResponse, runStatelessConsultation } from "./chat.js";
 import { writeChatMarkdown } from "./chatOutput.js";
 import type { Messages } from "./messages/index.js";
 import type { AgentConfig, ChatAvailableAgent, ChatOptions, ChatTermination, DebateMessage, Language, PalabreConfig } from "./types.js";
@@ -52,10 +52,16 @@ export class ChatSession {
     return this.options.signal?.aborted === true;
   }
 
-  async send(userMessage: string): Promise<{ user: DebateMessage; assistant: DebateMessage }> {
+  async send(
+    userMessage: string,
+    onAccepted?: (message: DebateMessage) => void
+  ): Promise<{ user: DebateMessage; assistant: DebateMessage }> {
     if (!this.topicValue) this.topicValue = userMessage;
     this.droppedCount = Math.max(0, this.transcript.length + 1 - 6);
-    const turn = await runStatelessChatTurn({
+    const user = createChatUserMessage(userMessage);
+    this.transcript.push(user);
+    onAccepted?.(user);
+    const assistant = await runStatelessChatResponse({
       agentName: this.activeName,
       agentConfig: this.runtimeConfig(this.activeName),
       runtime: { ollamaUrl: this.options.ollamaUrl },
@@ -67,9 +73,9 @@ export class ChatSession {
       session: this.options.session,
       files: this.options.files,
       signal: this.options.signal
-    });
-    this.transcript.push(turn.user, turn.assistant);
-    return turn;
+    }, this.transcript);
+    this.transcript.push(assistant);
+    return { user, assistant };
   }
 
   async consult(agentName: string): Promise<DebateMessage> {

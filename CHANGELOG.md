@@ -4,6 +4,17 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-07-21
+
+### Added
+
+- Ajoute un protocole stdin JSON v1 pour piloter Chat depuis une intégration avec `chat-send`, `chat-consult`, `chat-use`, `chat-agents` et `chat-end`.
+- Émet le message utilisateur avant l'appel agent afin que les clients puissent l'afficher immédiatement pendant la réflexion.
+
+### Changed
+
+- Conserve les commandes texte historiques de Chat pour le terminal tout en réservant le protocole structuré aux intégrations.
+
 ## [0.12.0] - 2026-07-20
 
 <!-- social: Stateless Chat joins Debate and Ask, with agent consultations, resilient exports, NDJSON integration events, dry-run previews, and diagnostic provenance. -->

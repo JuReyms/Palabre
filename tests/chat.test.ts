@@ -173,16 +173,23 @@ test("Chat honors --json with a complete NDJSON v1 flow", async () => {
     process.execPath,
     [entry, "run", "--mode", "chat", "--json", "--config", configPath, "--trust-config"],
     process.cwd(),
-    "Hello\n/consult second\n/use second\n/end\n"
+    [
+      { v: 1, type: "chat-agents" },
+      { v: 1, type: "chat-send", content: "Hello" },
+      { v: 1, type: "chat-consult", agent: "second" },
+      { v: 1, type: "chat-use", agent: "second" },
+      { v: 1, type: "chat-end" }
+    ].map((command) => JSON.stringify(command)).join("\n") + "\n"
   );
 
   assert.equal(result.code, 0, result.stderr);
   const events = result.stdout.trim().split("\n").map((line) => JSON.parse(line));
   assert.deepEqual(events.map((event) => event.type), [
     "start",
+    "chat-agents",
+    "chat-user-message",
     "thinking-start",
     "thinking-end",
-    "chat-user-message",
     "chat-message",
     "chat-consultation-start",
     "thinking-start",
@@ -191,9 +198,37 @@ test("Chat honors --json with a complete NDJSON v1 flow", async () => {
     "chat-agent-changed",
     "done"
   ]);
+  assert.equal(events.find((event) => event.type === "chat-consultation")?.agent, "second");
+  assert.equal(events.find((event) => event.type === "chat-agent-changed")?.agent, "second");
   assert.equal(events[0].mode, "chat");
   assert.ok(events.every((event) => event.v === 1));
   assert.match(events.at(-1).outputPath, /\.chat\.md$/);
+});
+
+test("Chat NDJSON accepts structured multiline messages", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "palabre-chat-structured-"));
+  const configPath = path.join(dir, "palabre.config.json");
+  const mock = "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>process.stdout.write('answer:'+d))";
+  await writeFile(configPath, JSON.stringify({
+    language: "en",
+    outputDir: dir,
+    defaults: { agentA: "mock" },
+    agents: { mock: { ...config, args: ["-e", mock] } }
+  }), "utf8");
+  const entry = path.resolve(".tmp", "test-dist", "src", "index.js");
+  const message = "first line\nsecond line";
+  const result = await runInteractive(
+    process.execPath,
+    [entry, "run", "--mode", "chat", "--json", "--config", configPath, "--trust-config"],
+    process.cwd(),
+    `${JSON.stringify({ v: 1, type: "chat-send", content: message })}\n${JSON.stringify({ v: 1, type: "chat-end" })}\n`
+  );
+
+  assert.equal(result.code, 0, result.stderr);
+  const events = result.stdout.trim().split("\n").map((line) => JSON.parse(line));
+  const userMessage = events.find((event) => event.type === "chat-user-message");
+  assert.equal(userMessage.content, message);
+  assert.ok(events.findIndex((event) => event.type === "chat-user-message") < events.findIndex((event) => event.type === "thinking-start"));
 });
 
 test("chat reports when the bounded transcript drops older messages", async () => {
