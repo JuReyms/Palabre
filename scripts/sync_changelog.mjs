@@ -37,8 +37,8 @@ async function main() {
   for (const [locale, content] of Object.entries(pages)) {
     const directory = `dist/content/${locale}`
     await mkdir(directory, { recursive: true })
-    await writeFile(`${directory}/8.changelog.md`, content)
-    console.log(`OK: CHANGELOG.md -> content/${locale}/8.changelog.md`)
+    await writeFile(`${directory}/9.changelog.md`, content)
+    console.log(`OK: CHANGELOG.md -> content/${locale}/9.changelog.md`)
   }
 }
 

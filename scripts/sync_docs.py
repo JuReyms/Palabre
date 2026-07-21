@@ -17,8 +17,8 @@ from pathlib import Path
 ROUTE_MAP = {
     "get-started/introduction.md": "1.get-started/1.introduction.md",
     "get-started/installation.md": "1.get-started/2.installation.md",
-    "get-started/configuration.md": "1.get-started/3.configuration.md",
-    "get-started/first-debate.md": "1.get-started/4.first-debate.md",
+    "get-started/first-debate.md": "1.get-started/3.first-debate.md",
+    "get-started/configuration.md": "1.get-started/4.configuration.md",
     "get-started/vscode-extension.md": "1.get-started/5.vscode-extension.md",
     "get-started/skill.md": "1.get-started/6.skill.md",
     "agents/overview.md": "2.agents/1.overview.md",
@@ -29,20 +29,27 @@ ROUTE_MAP = {
     "agents/ollama.md": "2.agents/7.ollama.md",
     "agents/vibe.md": "2.agents/8.vibe.md",
     "usage/running-a-debate.md": "3.usage/1.running-a-debate.md",
-    "usage/context-and-files.md": "3.usage/2.context-and-files.md",
-    "usage/summaries.md": "3.usage/3.summaries.md",
-    "usage/exports.md": "3.usage/4.exports.md",
+    "usage/tui.md": "3.usage/2.tui.md",
+    "usage/debate.md": "3.usage/3.debate.md",
+    "usage/chat.md": "3.usage/4.chat.md",
+    "usage/ask.md": "3.usage/5.ask.md",
+    "usage/context-and-files.md": "3.usage/6.context-and-files.md",
+    "usage/summaries.md": "3.usage/7.summaries.md",
+    "usage/exports.md": "3.usage/8.exports.md",
     "configuration/overview.md": "4.configuration/1.overview.md",
     "configuration/defaults.md": "4.configuration/2.defaults.md",
     "configuration/local-vs-global.md": "4.configuration/3.local-vs-global.md",
     "configuration/advanced-json.md": "4.configuration/4.advanced-json.md",
-    "reference/cli.md": "5.reference/1.cli.md",
-    "reference/config-file.md": "5.reference/2.config-file.md",
-    "reference/presets.md": "5.reference/3.presets.md",
-    "troubleshooting.md": "6.troubleshooting.md",
-    "roadmap.md": "7.roadmap.md",
+    "integrations/overview.md": "5.integrations/1.overview.md",
+    "integrations/json-contracts.md": "5.integrations/2.json-contracts.md",
+    "integrations/ndjson.md": "5.integrations/3.ndjson.md",
+    "integrations/client-lifecycle.md": "5.integrations/4.client-lifecycle.md",
+    "reference/cli.md": "6.reference/1.cli.md",
+    "reference/config-file.md": "6.reference/2.config-file.md",
+    "reference/presets.md": "6.reference/3.presets.md",
+    "troubleshooting.md": "7.troubleshooting.md",
+    "roadmap.md": "8.roadmap.md",
 }
-
 LOCALES = ("fr", "en")
 FRONTMATTER_RE = re.compile(r"^---\n(?P<meta>.*?)\n---\n", re.DOTALL)
 
@@ -98,6 +105,8 @@ def validate_route_map() -> None:
 
 def main() -> None:
     validate_route_map()
+    for locale in LOCALES:
+        shutil.rmtree(Path('dist') / 'content' / locale, ignore_errors=True)
     for locale in LOCALES:
         for route, numbered_route in ROUTE_MAP.items():
             sync_page(locale, route, numbered_route)

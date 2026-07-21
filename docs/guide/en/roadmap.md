@@ -35,7 +35,7 @@ The main features are available:
 - adding context with `--files` or `--context`;
 - previewing the context scan with `palabre context scan --json` for integrations;
 - final summary with consensus, disagreements, proposed actions, and conclusion;
-- Markdown export `.debate.md` or `.ask.md` with a name based on the subject;
+- Markdown export `.debate.md`, `.chat.md`, or `.ask.md` with a name based on the subject;
 - local export history with `palabre history`, `palabre history --json`, and `/history` in the TUI;
 - partial export preserved if an agent fails during the debate or final summary;
 - diagnostics with `palabre doctor`;

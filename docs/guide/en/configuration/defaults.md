@@ -3,7 +3,7 @@ title: Default settings
 description: Define or remove the agents, number of turns, and summary used by default.
 ---
 
-Default settings are used when you start a debate without specifying all agents or all options. They can be partial: you can define only the number of turns, only the summary, or a complete agent pair.
+Default settings are used when you start a session without specifying all agents or all options. They can be partial: you can define only the number of turns, only the summary, or a complete agent pair.
 
 ## Set default agents
 
@@ -50,10 +50,10 @@ This setting is separate from `--summary-agent`, so debate and Ask can use diffe
 ## Set the default mode
 
 ```bash
-palabre config --mode ask
+palabre config --mode chat
 ```
 
-Accepted values are `debate` and `ask`. In the TUI, you can also switch mode with `/ask` or `/debat`.
+Accepted values are `debate`, `chat`, and `ask`. Debate remains the primary mode. Chat uses `defaults.agentA` as its initial active agent; Ask uses `defaults.askAgents`. In the TUI, switch modes with `/debat`, `/chat`, or `/ask`.
 
 ## Set the number of turns
 
