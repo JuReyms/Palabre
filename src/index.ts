@@ -43,6 +43,7 @@ import { optionalString } from "./commands/shared.js";
 import { runTuiAgentsWizard, runTuiConfigLoop, runTuiRolesWizard, syncInteractiveDetectedAgents } from "./tuiController.js";
 import { parseInterfaceFlag, parseSessionModeFlag, resolveChatOptions, resolveRunOptions } from "./runOptions.js";
 import { buildChatHandoffTopic, ChatSession } from "./chatSession.js";
+import { parseChatInputLine } from "./chatProtocol.js";
 import { runTuiChatSession } from "./tuiChat.js";
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
@@ -1201,13 +1202,19 @@ async function runChatNdjson(
   warnings.forEach((warning) => renderer.warning(warning));
 
   for await (const line of readline) {
-    const userMessage = line.trim();
-    if (!userMessage || userMessage === "/exit" || userMessage === "/quit" || userMessage === "/home") {
+    const parsedInput = parseChatInputLine(line);
+    if (parsedInput.kind === "error") {
+      renderer.notice(parsedInput.message);
+      continue;
+    }
+    const input = parsedInput.command;
+
+    if (input.type === "chat-close") {
       renderer.done(null);
       return;
     }
 
-    if (userMessage === "/end") {
+    if (input.type === "chat-end") {
       if (chat.messages.length === 0) {
         renderer.notice(messages.chat.consultationUnavailable);
         continue;
@@ -1216,45 +1223,36 @@ async function runChatNdjson(
       return;
     }
 
-    const [command, agentName] = userMessage.split(/\s+/, 2);
-    if (command === "/agents") {
+    if (input.type === "chat-agents") {
       renderer.chatAgents(chat.availableAgents);
       continue;
     }
 
-    if (command === "/use") {
-      if (!agentName) {
-        renderer.notice(messages.chat.useUsage);
-        continue;
-      }
+    if (input.type === "chat-use") {
       try {
-        chat.use(agentName);
+        chat.use(input.agent);
         renderer.chatAgentChanged(chat.activeAgentName, chat.activeAgentConfig.role);
       } catch {
-        renderer.notice(messages.chat.unknownAgent(agentName));
+        renderer.notice(messages.chat.unknownAgent(input.agent));
       }
       continue;
     }
 
-    if (command === "/consult") {
-      if (!agentName) {
-        renderer.notice(messages.chat.consultUsage);
-        continue;
-      }
+    if (input.type === "chat-consult") {
       if (chat.messages.length === 0) {
         renderer.notice(messages.chat.consultationUnavailable);
         continue;
       }
-      const target = chat.availableAgents.find((agent) => agent.name === agentName);
+      const target = chat.availableAgents.find((agent) => agent.name === input.agent);
       if (!target) {
-        renderer.notice(messages.chat.unknownAgent(agentName));
+        renderer.notice(messages.chat.unknownAgent(input.agent));
         continue;
       }
-      renderer.chatConsultationStart(agentName, target.role);
-      renderer.thinkingStart(agentName, target.role);
+      renderer.chatConsultationStart(input.agent, target.role);
+      renderer.thinkingStart(input.agent, target.role);
       let opinion: Awaited<ReturnType<ChatSession["consult"]>>;
       try {
-        opinion = await chat.consult(agentName);
+        opinion = await chat.consult(input.agent);
       } finally {
         renderer.thinkingEnd();
       }
@@ -1263,14 +1261,17 @@ async function runChatNdjson(
       continue;
     }
 
-    renderer.thinkingStart(chat.activeAgentName, chat.activeAgentConfig.role);
+    const activeAgent = chat.activeAgentName;
+    const activeRole = chat.activeAgentConfig.role;
     let turn: Awaited<ReturnType<ChatSession["send"]>>;
     try {
-      turn = await chat.send(userMessage);
+      turn = await chat.send(input.content, (user) => {
+        renderer.chatUserMessage(user);
+        renderer.thinkingStart(activeAgent, activeRole);
+      });
     } finally {
       renderer.thinkingEnd();
     }
-    renderer.chatUserMessage(turn.user);
     renderer.chatMessage(turn.assistant);
     if (chat.droppedMessageCount > 0) renderer.notice(messages.chat.contextTrimmed(chat.droppedMessageCount));
   }

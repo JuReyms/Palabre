@@ -1,6 +1,6 @@
 {
   "name": "palabre",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "CLI orchestrator for multi-agent AI debates and decision-making with Codex, Claude Code, OpenCode, Vibe, and Ollama.",
   "license": "MIT",
   "type": "module",

@@ -23,9 +23,20 @@ export interface ConsultationInput extends Omit<ChatTurnInput, "userMessage"> {
   requesterName: string;
 }
 
+/** Construit le message utilisateur avant tout appel agent. */
+export function createChatUserMessage(content: string): DebateMessage {
+  return { agent: "user", role: "architect" as AgentRole, content, createdAt: new Date().toISOString() };
+}
+
 /** Génère une réponse en réinjectant un historique récent dans un appel batch indépendant. */
 export async function runStatelessChatTurn(input: ChatTurnInput): Promise<{ user: DebateMessage; assistant: DebateMessage }> {
-  const user: DebateMessage = { agent: "user", role: "architect" as AgentRole, content: input.userMessage, createdAt: new Date().toISOString() };
+  const user = createChatUserMessage(input.userMessage);
+  const assistant = await runStatelessChatResponse(input, [...input.transcript, user]);
+  return { user, assistant };
+}
+
+/** Génère uniquement la réponse pour un message déjà accepté dans le transcript. */
+export async function runStatelessChatResponse(input: ChatTurnInput, transcript: DebateMessage[]): Promise<DebateMessage> {
   const adapter = createAgent(input.agentName, input.agentConfig, input.runtime);
   const response = await adapter.generate({
     topic: input.topic,
@@ -38,11 +49,11 @@ export async function runStatelessChatTurn(input: ChatTurnInput): Promise<{ user
     language: input.language,
     session: input.session,
     files: input.files,
-    transcript: retainRecentMessages([...input.transcript, user]),
+    transcript: retainRecentMessages(transcript),
     availableAgents: input.availableAgents,
     signal: input.signal
   });
-  return { user, assistant: { agent: input.agentName, role: adapter.role, content: response.content, createdAt: new Date().toISOString() } };
+  return { agent: input.agentName, role: adapter.role, content: response.content, createdAt: new Date().toISOString() };
 }
 
 /** Recueille un avis indépendant sans modifier l'agent actif de la conversation. */
