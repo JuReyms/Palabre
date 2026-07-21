@@ -3,7 +3,7 @@ title: Paramètres par défaut
 description: Définir ou supprimer les agents, le nombre de tours et la synthèse utilisés par défaut.
 ---
 
-Les paramètres par défaut sont utilisés quand vous lancez un débat sans préciser tous les agents ou toutes les options. Ils peuvent être partiels : vous pouvez définir seulement le nombre de tours, seulement la synthèse, ou une paire d'agents complète.
+Les paramètres par défaut sont utilisés quand vous lancez une session sans préciser tous les agents ou toutes les options. Ils peuvent être partiels : vous pouvez définir seulement le nombre de tours, seulement la synthèse, ou une paire d'agents complète.
 
 ## Définir les agents par défaut
 
@@ -50,10 +50,10 @@ Ce réglage est séparé de `--summary-agent`, afin de pouvoir garder une synth�
 ## Définir le mode par défaut
 
 ```bash
-palabre config --mode ask
+palabre config --mode chat
 ```
 
-Les valeurs acceptées sont `debate` et `ask`. Dans la TUI, vous pouvez aussi changer de mode avec `/ask` ou `/debat`.
+Les valeurs acceptées sont `debate`, `chat` et `ask`. Débat reste le mode principal. Chat utilise `defaults.agentA` comme agent actif initial ; Ask utilise `defaults.askAgents`. Dans la TUI, changez de mode avec `/debat`, `/chat` ou `/ask`.
 
 ## Définir le nombre de tours
 

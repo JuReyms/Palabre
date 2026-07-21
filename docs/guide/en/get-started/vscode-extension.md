@@ -1,29 +1,25 @@
 ---
 title: VS Code extension
-description: Install the Palabre extension to run debates from VS Code using the agents and presets exposed by the CLI.
+description: Install the Palabre extension to run Debate or Ask sessions from VS Code using agents exposed by the CLI.
 ---
 
-The VS Code extension adds a Palabre panel to the editor. It lets you prepare a subject, choose agents, add workspace context, follow the session, and open the Markdown export without leaving VS Code.
+The VS Code extension adds a Palabre panel to the editor. It lets you prepare a subject, choose agents, add workspace context, follow a Debate or Ask session, and open the Markdown export.
 
-It does not replace the CLI: the extension launches `palabre` locally and consumes the public CLI contracts (`presets --json`, `context scan --json`, and NDJSON rendering). Palabre CLI remains the source of truth for agents, presets, context scanning, errors, and exports.
+**Chat is currently available in the Palabre TUI and direct CLI, but not yet in the VS Code extension.**
+
+The extension remains a thin client: it launches `palabre` locally and consumes the public CLI contracts. Palabre CLI remains the source of truth for agents, presets, context, errors, and exports.
 
 ## Install the extension
 
-The extension is available on the Visual Studio Marketplace:
-
 [Install Palabre for VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode)
 
-After installation, open the Palabre panel from the VS Code sidebar.
+After installation, open the Palabre panel from the sidebar.
 
 ## Requirements
 
-The extension requires:
-
 - Palabre CLI installed on the same machine;
-- Palabre CLI `0.8.1` or newer recommended;
-- at least one compatible agent configured or detected by Palabre; two or more are recommended for comparisons.
-
-Verify the installation from a terminal:
+- Palabre CLI `0.12.0` or newer recommended;
+- at least one available agent for Ask, two for Debate.
 
 ```bash
 palabre --version
@@ -31,20 +27,15 @@ palabre doctor
 palabre presets --json
 ```
 
-## What the extension adds
+## Current features
 
-- agent selection from the presets exposed by the CLI;
-- workspace context selection through Palabre's official scan;
-- display of session responses, the final summary, and errors in a VS Code interface;
-- button to open the exported `.debate.md` or `.ask.md` file;
-- stop button that cancels the Palabre process and its child agents;
-- quick settings for the default preset, summary agent, language, number of turns, agent synchronization, and the Ollama model when Ollama is available;
-- quick access to `Palabre: Run Doctor` and the Palabre Output channel when something fails.
+- Debate or Ask selection and available agents;
+- context selection through the official CLI scan;
+- NDJSON response, summary, and error rendering;
+- opening `.debate.md` and `.ask.md` exports;
+- stopping Palabre and its child agents;
+- quick settings and diagnostics.
 
-## Quick troubleshooting
+For Chat, run `palabre` in a terminal and use `/chat`.
 
-If the extension cannot find Palabre, check that `palabre --version` works in a terminal and restart VS Code after a global install.
-
-If no agent appears, run `palabre doctor`, then check your configuration with `palabre config`.
-
-To report an extension issue, use the public Palabre repository: [github.com/JuReyms/Palabre/issues](https://github.com/JuReyms/Palabre/issues).
+If the extension cannot find Palabre, check `palabre --version` and restart VS Code. If no agent appears, run `palabre doctor` and `palabre config`.

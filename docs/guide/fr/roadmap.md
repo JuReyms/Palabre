@@ -35,7 +35,7 @@ Les fonctionnalités principales sont disponibles :
 - ajout de contexte avec `--files` ou `--context` ;
 - prévisualisation du scan de contexte avec `palabre context scan --json` pour les intégrations ;
 - synthèse finale avec consensus, désaccords, actions proposées et conclusion ;
-- export Markdown `.debate.md` ou `.ask.md` avec nom basé sur le sujet ;
+- export Markdown `.debate.md`, `.chat.md` ou `.ask.md` avec nom basé sur le sujet ;
 - historique local des exports avec `palabre history`, `palabre history --json` et `/history` dans la TUI ;
 - export partiel conservé si un agent plante pendant le débat ou la synthèse ;
 - diagnostic avec `palabre doctor` ;

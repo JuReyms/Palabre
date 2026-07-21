@@ -1,6 +1,6 @@
 ---
 title: Contexte et fichiers
-description: Ajouter du contexte à un débat avec --files ou --context tout en gardant le contrôle sur les données transmises.
+description: Ajouter du contexte à une session avec --files ou --context tout en gardant le contrôle sur les données transmises.
 ---
 
 Palabre peut envoyer du contexte projet aux agents. C'est indispensable pour demander une critique de code, d'architecture ou de documentation.
@@ -44,13 +44,13 @@ Palabre retire `--context` et `--files` du sujet et injecte les fichiers corresp
 palabre context scan src docs --json
 ```
 
-Cette commande expose le même scan que `--context`, sans lancer de débat. Elle renvoie un JSON versionné avec la racine scannée, les chemins demandés, les dossiers et fichiers retenus, ainsi que les avertissements. Les intégrations comme l'extension VS Code doivent utiliser cette commande au lieu de réimplémenter les règles d'exclusion ou de limite.
+Cette commande expose le même scan que `--context`, sans lancer de session. Elle renvoie un JSON versionné avec la racine scannée, les chemins demandés, les dossiers et fichiers retenus, ainsi que les avertissements. Les intégrations comme l'extension VS Code doivent utiliser cette commande au lieu de réimplémenter les règles d'exclusion ou de limite.
 
 ## Ollama et les fichiers
 
 Ollama ne lit pas le filesystem par lui-même. Il reçoit seulement le prompt construit par Palabre.
 
-Si un agent Ollama participe à un débat sur votre projet, ajoutez explicitement du contexte :
+Si un agent Ollama participe à une session sur votre projet, ajoutez explicitement du contexte :
 
 ```bash
 palabre codex-ollama "Critique ce module" --context src

@@ -99,7 +99,7 @@ PALABRE_CLIENT_VERSION=1.7.1
 ```
 
 Palabre inscrit ces informations, ainsi que sa propre version, dans les exports
-`.debate.md`, `.ask.md` et `.chat.md`. Le nom du client est libre afin de
+`.debate.md`, `.chat.md` et `.ask.md`. Le nom du client est libre afin de
 supporter de futures intégrations. Sans déclaration, la source indiquée est
 `direct-cli`.
 

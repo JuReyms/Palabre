@@ -39,7 +39,7 @@ Most common settings can be done with `palabre config`. This page covers cases w
 
 | Field | Description |
 |-------|-------------|
-| `outputDir` | Destination folder for `.debate.md` and `.ask.md` exports. |
+| `outputDir` | Destination folder for `.debate.md`, `.chat.md`, and `.ask.md` exports. |
 | `defaults.agentA` | Agent that responds first by default. |
 | `defaults.agentB` | Agent that responds second by default. |
 | `defaults.summaryAgent` | Agent used for the final summary by default. |

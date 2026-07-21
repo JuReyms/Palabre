@@ -5,10 +5,11 @@ description: Understand what Palabre does, how it orchestrates your AI agents, a
 
 Palabre is a CLI/TUI orchestrator for AI agents already installed on your machine.
 
-The goal is simple: you give a subject, Palabre orchestrates the agents, displays their responses in the terminal, then exports the full transcript with a final summary.
+The goal is simple: you give a subject, Palabre orchestrates the agents, displays their responses in the terminal, then exports a complete Markdown record. Debate and Ask modes can also produce a final summary.
 
-Two modes are available:
+Three modes are available:
 
+- `chat`: you work with one active agent and can explicitly request a second opinion with `/consult`;
 - `debate`: two agents take turns discussing a subject;
 - `ask`: several agents answer the same request independently, then a summary agent faithfully summarizes each response and compares them.
 
@@ -22,6 +23,7 @@ Privacy therefore depends on the agents selected. Before sending code, documents
 
 Palabre is useful for:
 
+- maintaining a continued conversation with one agent and requesting a second opinion without losing context;
 - comparing two agents on the same question;
 - comparing several independent answers with Ask mode;
 - getting a critical review of an idea;
@@ -36,17 +38,18 @@ Palabre:
 - detects CLIs available on your machine;
 - opens a TUI by default with `palabre` in an interactive terminal;
 - launches agents in batch mode;
-- injects the subject, session context, and debate history into each turn;
+- injects the subject, session context, and useful history into each call;
+- maintains a stateless Chat with one active agent and bounded history;
 - can run Ask requests without conversation between agents;
 - can add project files or folders to the context;
 - generates a final summary;
-- exports the session to a `.debate.md` or `.ask.md` file.
+- exports the session to a `.debate.md`, `.chat.md`, or `.ask.md` file.
 
 ## What Palabre does not do
 
 Palabre does not provide paid access to models. It does not create a Claude, OpenAI, Google, or Ollama account. Each agent must be installed and authenticated separately.
 
-Palabre also does not keep an interactive session open with the CLIs. Each response is produced by a batch call. Debate memory comes from the transcript that Palabre reinjects at each turn.
+Palabre also does not keep an interactive session open with the CLIs. Each response is produced by a batch call. Continuity comes from the transcript Palabre injects: the complete debate history in Debate mode, and at most the six most recent messages in Chat.
 
 ## Next
 

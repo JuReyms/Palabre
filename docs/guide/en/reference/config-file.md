@@ -48,14 +48,14 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 | Field | Type | Description |
 |-------|------|-------------|
 | `language` | `fr` or `en` | Palabre and agent prompt language. Can be overridden for one command with `--language` or `PALABRE_LANGUAGE`. |
-| `outputDir` | string | Export folder for `.debate.md` and `.ask.md` files. |
+| `outputDir` | string | Export folder for `.debate.md`, `.chat.md`, and `.ask.md` files. |
 
 ## `defaults`
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `mode` | `debate` or `ask` | Default mode when no mode is provided. |
-| `agentA` | string | Agent that responds first. |
+| `mode` | `debate`, `chat`, or `ask` | Default mode when no mode is provided. |
+| `agentA` | string | Agent that responds first in Debate and is initially active in Chat. |
 | `agentB` | string | Agent that responds second. |
 | `askAgents` | string[] | Default ask mode agents, 4 maximum. |
 | `summaryAgent` | string | Final summary agent for debate mode, and fallback for ask mode. |

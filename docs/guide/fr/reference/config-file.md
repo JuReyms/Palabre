@@ -48,14 +48,14 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 | Champ | Type | Description |
 |-------|------|-------------|
 | `language` | `fr` ou `en` | Langue de Palabre et des prompts envoyés aux agents. Peut être forcée ponctuellement avec `--language` ou `PALABRE_LANGUAGE`. |
-| `outputDir` | string | Dossier d'export des fichiers `.debate.md` et `.ask.md`. |
+| `outputDir` | string | Dossier d'export des fichiers `.debate.md`, `.chat.md` et `.ask.md`. |
 
 ## `defaults`
 
 | Champ | Type | Description |
 |-------|------|-------------|
-| `mode` | `debate` ou `ask` | Mode lancé par défaut quand aucun mode n'est fourni. |
-| `agentA` | string | Agent qui répond en premier. |
+| `mode` | `debate`, `chat` ou `ask` | Mode lancé par défaut quand aucun mode n'est fourni. |
+| `agentA` | string | Agent qui répond en premier en Débat et agent actif initial en Chat. |
 | `agentB` | string | Agent qui répond en second. |
 | `askAgents` | string[] | Agents par défaut du mode ask, 4 maximum. |
 | `summaryAgent` | string | Agent de synthèse finale du mode débat, et fallback du mode ask. |
