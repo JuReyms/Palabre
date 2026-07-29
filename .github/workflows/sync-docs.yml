@@ -1,4 +1,4 @@
-name: Sync docs to Palabre-app
+name: Sync docs to palabre-web
 
 on:
   push:
@@ -27,23 +27,23 @@ jobs:
           python3 scripts/sync_docs.py
           node scripts/sync_changelog.mjs
 
-      - name: Clone Palabre-app
+      - name: Clone palabre-web
         env:
           TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
         run: |
-          git clone https://x-access-token:${TOKEN}@github.com/JuReyms/Palabre-app.git palabre-app
-          cd palabre-app && git checkout dev
+          git clone https://x-access-token:${TOKEN}@github.com/JuReyms/palabre-web.git palabre-web
+          cd palabre-web && git checkout dev
 
       - name: Copy files
         run: |
-          rm -f palabre-app/content/fr/1.get-started/[0-9].*.md palabre-app/content/fr/2.agents/[0-9].*.md palabre-app/content/fr/3.usage/[0-9].*.md palabre-app/content/fr/4.configuration/[0-9].*.md palabre-app/content/fr/5.integrations/[0-9].*.md palabre-app/content/fr/5.reference/[0-9].*.md palabre-app/content/fr/6.reference/[0-9].*.md
-          rm -f palabre-app/content/en/1.get-started/[0-9].*.md palabre-app/content/en/2.agents/[0-9].*.md palabre-app/content/en/3.usage/[0-9].*.md palabre-app/content/en/4.configuration/[0-9].*.md palabre-app/content/en/5.integrations/[0-9].*.md palabre-app/content/en/5.reference/[0-9].*.md palabre-app/content/en/6.reference/[0-9].*.md
-          rm -f palabre-app/content/fr/6.troubleshooting.md palabre-app/content/fr/7.troubleshooting.md palabre-app/content/fr/7.roadmap.md palabre-app/content/fr/8.roadmap.md palabre-app/content/fr/8.changelog.md palabre-app/content/fr/9.changelog.md
-          rm -f palabre-app/content/en/6.troubleshooting.md palabre-app/content/en/7.troubleshooting.md palabre-app/content/en/7.roadmap.md palabre-app/content/en/8.roadmap.md palabre-app/content/en/8.changelog.md palabre-app/content/en/9.changelog.md
-          cp -R dist/content/. palabre-app/content/
+          rm -f palabre-web/content/fr/1.get-started/[0-9].*.md palabre-web/content/fr/2.agents/[0-9].*.md palabre-web/content/fr/3.usage/[0-9].*.md palabre-web/content/fr/4.configuration/[0-9].*.md palabre-web/content/fr/5.integrations/[0-9].*.md palabre-web/content/fr/5.reference/[0-9].*.md palabre-web/content/fr/6.reference/[0-9].*.md
+          rm -f palabre-web/content/en/1.get-started/[0-9].*.md palabre-web/content/en/2.agents/[0-9].*.md palabre-web/content/en/3.usage/[0-9].*.md palabre-web/content/en/4.configuration/[0-9].*.md palabre-web/content/en/5.integrations/[0-9].*.md palabre-web/content/en/5.reference/[0-9].*.md palabre-web/content/en/6.reference/[0-9].*.md
+          rm -f palabre-web/content/fr/6.troubleshooting.md palabre-web/content/fr/7.troubleshooting.md palabre-web/content/fr/7.roadmap.md palabre-web/content/fr/8.roadmap.md palabre-web/content/fr/8.changelog.md palabre-web/content/fr/9.changelog.md
+          rm -f palabre-web/content/en/6.troubleshooting.md palabre-web/content/en/7.troubleshooting.md palabre-web/content/en/7.roadmap.md palabre-web/content/en/8.roadmap.md palabre-web/content/en/8.changelog.md palabre-web/content/en/9.changelog.md
+          cp -R dist/content/. palabre-web/content/
 
       - name: Commit and push
-        working-directory: palabre-app
+        working-directory: palabre-web
         env:
           TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
         run: |
