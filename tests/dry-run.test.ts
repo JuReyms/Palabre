@@ -12,6 +12,7 @@ const config: PalabreConfig = {
 
 const options: DebateOptions = {
   mode: "debate", language: "en", topic: "Review", agentA: "codex", agentB: "claude", turns: 3,
+  roleA: "architect", roleB: "critic",
   session: { startedAt: "2026-07-12T00:00:00.000Z", localDate: "2026-07-12", timeZone: "UTC", cwd: "C:\\work" },
   files: [], pullModels: false, summaryAgent: "claude", summaryEnabled: true, earlyStopOnAgreement: true, plainOutput: false
 };
@@ -21,6 +22,25 @@ test("dry-run preview exposes resolved session metadata without runtime work", (
   assert.equal(preview.type, "dry-run");
   assert.equal(preview.configTrusted, true);
   assert.deepEqual(preview.agents.map((agent) => agent.name), ["codex", "claude"]);
+  assert.deepEqual(preview.agents.map((agent) => agent.role), ["architect", "critic"]);
   assert.equal(preview.limits.requestedResponses, 3);
   assert.deepEqual(preview.context.warnings, ["ignored file"]);
+});
+
+test("dry-run preview applies the temporary Ask role to every selected agent", () => {
+  const preview = buildDryRunPreview(
+    config,
+    "palabre.config.json",
+    true,
+    {
+      ...options,
+      mode: "ask",
+      askAgents: ["codex", "claude"],
+      askRole: "scout"
+    },
+    [],
+    ".palabre"
+  );
+
+  assert.deepEqual(preview.agents.map((agent) => agent.role), ["scout", "scout"]);
 });
