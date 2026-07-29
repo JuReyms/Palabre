@@ -20,13 +20,19 @@ export interface DryRunPreview {
 /** Construit un aperçu sans instancier d’adapter ni écrire d’artefact. */
 export function buildDryRunPreview(config: PalabreConfig, configPath: string, configTrusted: boolean, options: DebateOptions, warnings: string[], outputDir: string): DryRunPreview {
   const names = options.mode === "ask" ? options.askAgents ?? [options.agentA, options.agentB] : [options.agentA, options.agentB];
+  const roles = options.mode === "ask"
+    ? names.map((name) => options.askRole ?? config.agents[name]?.role ?? "unknown")
+    : [
+        options.roleA ?? config.agents[options.agentA]?.role ?? "unknown",
+        options.roleB ?? config.agents[options.agentB]?.role ?? "unknown"
+      ];
   return {
     v: 1,
     type: "dry-run",
     configPath: path.resolve(configPath),
     configTrusted,
     mode: options.mode,
-    agents: names.map((name) => ({ name, role: config.agents[name]?.role ?? "unknown", type: config.agents[name]?.type ?? "unknown" })),
+    agents: names.map((name, index) => ({ name, role: roles[index] ?? "unknown", type: config.agents[name]?.type ?? "unknown" })),
     summary: { enabled: options.summaryEnabled, agent: options.summaryAgent },
     context: { files: options.files.map((file) => file.path), warnings },
     limits: { turns: options.turns, requestedResponses: options.mode === "ask" ? names.length : options.turns },
