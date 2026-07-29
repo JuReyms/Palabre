@@ -785,12 +785,12 @@ Ces tests ont confirme que le mode batch est deja exploitable avant l'adapter PT
 
 La documentation doit rester a jour dans le meme changement que le code. Avant de finaliser une modification, verifier les fichiers concernes :
 
-Le script `scripts/sync_docs.py` valide et copie les pages `docs/guide/fr` et `docs/guide/en` vers les formats numerotes `content/fr` et `content/en` de Palabre-app. Ne pas recreer de logique qui devine les descriptions depuis le contenu : elles doivent etre explicites dans le frontmatter.
+Le script `scripts/sync_docs.py` valide et copie les pages `docs/guide/fr` et `docs/guide/en` vers les formats numerotes `content/fr` et `content/en` de palabre-web. Ne pas recreer de logique qui devine les descriptions depuis le contenu : elles doivent etre explicites dans le frontmatter.
 
 - `README.md` pour l'etat du MVP, les commandes principales, les limites connues et les liens de documentation.
 - `AGENTS.md` pour les decisions d'architecture, les workflows contributeur et les consignes de maintenance.
 - `CHANGELOG.md` pour les changements notables par version. Toute release CLI doit y ajouter une entree datee avant le bump/tag, avec les sections utiles (`Added`, `Changed`, `Fixed`, `Removed`, `Security`).
-- `docs/guide/fr/**.md` pour les guides utilisateur francais. Ces pages utilisent le meme format que Palabre-app/Nuxt Content : frontmatter `title` + `description`, puis contenu sans H1 de page. La traduction anglaise vit dans `docs/guide/en/**.md`.
+- `docs/guide/fr/**.md` pour les guides utilisateur francais. Ces pages utilisent le meme format que palabre-web/Nuxt Content : frontmatter `title` + `description`, puis contenu sans H1 de page. La traduction anglaise vit dans `docs/guide/en/**.md`.
 - `docs/guide/fr/roadmap.md` pour la roadmap publique francaise orientee utilisateurs : disponible aujourd'hui, prochaines ameliorations, philosophie du projet.
 - `docs/roadmap.md` pour la roadmap interne locale non versionnee : travaux faits, priorites, dettes techniques et notes de pilotage.
 
@@ -849,8 +849,8 @@ Le push du tag declenche le workflow `release.yml` qui :
 5. pack un tarball npm (`pnpm pack`) ;
 6. publie sur npm via Trusted Publishing (`npm publish --access public --provenance`) sans token npm stocke dans GitHub ;
 7. cree une release GitHub avec le tarball en artifact et les notes generees depuis les commits ;
-8. pousse `public/version.json` dans le repo `JuReyms/Palabre-app` (branche `dev`) ;
-9. cree une PR `dev -> main` dans Palabre-app, ou commente la PR deja ouverte, puis expose son lien dans le resume du workflow. La fusion manuelle de cette PR declenche le build Netlify de production et met a jour le badge de version.
+8. pousse `public/version.json` dans le repo `JuReyms/palabre-web` (branche `dev`) ;
+9. cree une PR `dev -> main` dans palabre-web, ou commente la PR deja ouverte, puis expose son lien dans le resume du workflow. La fusion manuelle de cette PR declenche le build Netlify de production et met a jour le badge de version.
 
 ### Npm Trusted Publishing
 
@@ -863,17 +863,17 @@ Le package npm `palabre` doit etre configure cote npm avec un Trusted Publisher 
 
 Ne pas stocker de `NPM_TOKEN` dans GitHub et ne pas publier depuis la machine locale pour les releases normales. Si une publication manuelle d'urgence est faite, supprimer le token local avec `npm config delete //registry.npmjs.org/:_authToken` juste apres.
 
-## Sync documentation (Palabre-app)
+## Sync documentation (palabre-web)
 
-Le repo CLI est public. Le site de documentation (`JuReyms/Palabre-app`, Nuxt SSG sur Netlify) recoit les mises a jour via deux workflows GitHub Actions qui poussent directement dans la branche `dev` de Palabre-app. Netlify produit depuis `main` : le workflow de release cree ou rappelle donc une PR `dev -> main`, dont la fusion reste manuelle.
+Le repo CLI est public. Le site de documentation (`JuReyms/palabre-web`, Nuxt SSG sur Netlify) recoit les mises a jour via deux workflows GitHub Actions qui poussent directement dans la branche `dev` de palabre-web. Netlify produit depuis `main` : le workflow de release cree ou rappelle donc une PR `dev -> main`, dont la fusion reste manuelle.
 
-Les deux workflows utilisent le secret `DOCS_REPO_TOKEN` (PAT fine-grained sur `JuReyms/Palabre-app` uniquement). Il exige `Contents = Read and write` pour la synchronisation et `Pull requests = Read and write` pour proposer le deploiement de production.
+Les deux workflows utilisent le secret `DOCS_REPO_TOKEN` (PAT fine-grained sur `JuReyms/palabre-web` uniquement). Il exige `Contents = Read and write` pour la synchronisation et `Pull requests = Read and write` pour proposer le deploiement de production.
 
 ### Workflow sync-docs.yml
 
 Declenche sur tout push dans `docs/guide/fr/**`, `scripts/sync_docs.py` ou le workflow lui-meme vers `main`.
 
-Les pages source utilisent le meme format que Palabre-app/Nuxt Content : frontmatter `title` + `description`, puis contenu sans H1 de page. Le workflow appelle `scripts/sync_docs.py`, qui valide ce format et copie les pages vers `content/fr/**` dans Palabre-app.
+Les pages source utilisent le meme format que palabre-web/Nuxt Content : frontmatter `title` + `description`, puis contenu sans H1 de page. Le workflow appelle `scripts/sync_docs.py`, qui valide ce format et copie les pages vers `content/fr/**` dans palabre-web.
 
 Convention i18n :
 
@@ -882,14 +882,14 @@ Convention i18n :
 
 Ne pas recreer de logique qui devine les descriptions depuis le contenu. Les descriptions doivent rester explicites dans le frontmatter.
 
-**Contrainte critique** : ne jamais utiliser `rm -rf palabre-app/content/*` dans le step de copie. `content/index.md` (landing page) n'est pas dans la sync et ne doit pas etre supprime — sans lui, la collection `landing` de Nuxt Content est vide, la route `/` retourne 404 et le build Netlify echoue. Le step de copie doit se limiter a `cp -R dist/content/. palabre-app/content/`.
+**Contrainte critique** : ne jamais utiliser `rm -rf palabre-web/content/*` dans le step de copie. `content/index.md` (landing page) n'est pas dans la sync et ne doit pas etre supprime — sans lui, la collection `landing` de Nuxt Content est vide, la route `/` retourne 404 et le build Netlify echoue. Le step de copie doit se limiter a `cp -R dist/content/. palabre-web/content/`.
 
 Pour ajouter une page de documentation, ajouter les versions `fr` et `en` dans le meme changement :
 
 1. Creer le fichier source dans la section adaptee de `docs/guide/fr/`.
 2. Ajouter la ligne correspondante dans `FILE_MAP` de `scripts/sync_docs.py`.
 3. Verifier localement avec `python scripts/sync_docs.py`.
-4. Si la page ajoute une nouvelle section, creer ou adapter la navigation correspondante dans Palabre-app (`content/fr/**/.navigation.yml`).
+4. Si la page ajoute une nouvelle section, creer ou adapter la navigation correspondante dans palabre-web (`content/fr/**/.navigation.yml`).
 
 Attention aux liens internes : ne pas utiliser de liens relatifs (`./autre-page.md`) dans les sources `docs/guide/fr/`. Utiliser des URLs absolutes correspondant aux routes finales du site (`/fr/get-started/...`, `/fr/agents/...`, `/fr/usage/...`, `/fr/configuration/...`, `/fr/reference/...`).
 ### Workflow release.yml (step de sync)
@@ -900,7 +900,7 @@ A chaque release, apres la creation de la release GitHub, le workflow ecrit :
 { "tag_name": "vX.Y.Z" }
 ```
 
-dans `public/version.json` de Palabre-app. Le composable `useLatestRelease.ts` de Palabre-app lit ce fichier local au lieu d'appeler l'API GitHub — ce qui evite au site de documentation d'appeler l'API GitHub a chaque affichage.
+dans `public/version.json` de palabre-web. Le composable `useLatestRelease.ts` de palabre-web lit ce fichier local au lieu d'appeler l'API GitHub — ce qui evite au site de documentation d'appeler l'API GitHub a chaque affichage.
 
 ### Nommage des versions
 

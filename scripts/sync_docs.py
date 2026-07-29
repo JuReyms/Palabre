@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sync localized docs/guide pages to the Nuxt Content tree used by Palabre-app.
+"""Sync localized docs/guide pages to the Nuxt Content tree used by palabre-web.
 
 Source pages already use the same Markdown/frontmatter format as the docs site.
 French pages live in docs/guide/fr/** and map to content/fr/**.
