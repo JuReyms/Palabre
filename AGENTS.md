@@ -912,6 +912,8 @@ Suivre semver :
 
 ## Issues GitHub
 
+Les titres, descriptions et commentaires des issues et pull requests doivent etre rediges en francais. Les messages de commit, y compris ceux produits par les workflows automatises, doivent egalement etre en francais. Les identifiants techniques et les noms de branches peuvent rester en anglais.
+
 Toute issue GitHub creee ou mise a jour par un agent doit recevoir exactement un label de type existant :
 
 - `type: bug` pour une regression ou un comportement incorrect reproductible ;

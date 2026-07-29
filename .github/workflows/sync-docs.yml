@@ -54,6 +54,6 @@ jobs:
             echo "No changes to sync"
           else
             COMMIT=$(git -C .. rev-parse --short HEAD)
-            git commit -m "sync: docs from Palabre@${COMMIT}"
+            git commit -m "docs : synchroniser depuis Palabre@${COMMIT}"
             git push origin dev
           fi
