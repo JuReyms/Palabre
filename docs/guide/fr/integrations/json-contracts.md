@@ -8,7 +8,7 @@ Ces commandes écrivent un document JSON sur stdout et terminent sans lancer de 
 - `palabre agents --json` expose `roles[]`, `agents[]` et `defaults.askAgents[]`. Chaque agent fournit son nom, type, rôle, disponibilité et une raison si nécessaire.
 - `palabre presets --json` expose les paires, leur ordre, `available`, `missingAgents[]` et `unavailableReasons[]`.
 - `palabre context scan src docs --json` expose la racine, les chemins demandés, `items[]` et `warnings[]`.
-- `palabre history --json` expose les exports récents dans `history[]`.
+- `palabre history --json` expose les 10 exports les plus récents dans `history[]`. Une intégration peut demander de 1 à 100 entrées avec `--limit <nombre>`.
 
 ## Règles de consommation
 

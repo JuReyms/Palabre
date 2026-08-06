@@ -28,10 +28,11 @@ test("--no-summary stays boolean regardless of position", () => {
 });
 
 test("single-value flags consume exactly one value", () => {
-  const parsed = parse(["--agent-a", "codex", "--agent-b", "claude", "-s", "topic"]);
+  const parsed = parse(["--agent-a", "codex", "--agent-b", "claude", "--limit", "25", "-s", "topic"]);
 
   assert.equal(parsed.flags["agent-a"], "codex");
   assert.equal(parsed.flags["agent-b"], "claude");
+  assert.equal(parsed.flags.limit, "25");
   assert.equal(parsed.flags.topic, "topic");
 });
 

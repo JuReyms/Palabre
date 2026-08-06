@@ -107,7 +107,8 @@ When no client is declared, the invocation source is `direct-cli`.
 |---------|-------------|
 | `palabre agents --json` | Lists configured agents, their role, type, and availability as JSON v1. |
 | `palabre presets --json` | Lists presets and their local availability. |
-| `palabre history --json` | Lists recent Markdown exports as JSON v1. |
+| `palabre history --json` | Lists the 10 most recent Markdown exports as JSON v1. |
+| `palabre history --json --limit 30` | Lists up to 30 exports (maximum: 100). |
 | `palabre config --ollama-models --json` | Returns local Ollama state as JSON v1 for integrations. |
 | `palabre context scan [paths...] --json` | Returns the folders, files, and warnings from the `--context` scan as JSON v1. |
 

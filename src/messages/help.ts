@@ -62,6 +62,7 @@ Usage:
 
 Flags:
   --json               sortie structuree pour integrations
+  --limit <nombre>     nombre d'exports (1 a 100, defaut: 10)
   --config <path>      chemin de config explicite
 `,
   historique: `
@@ -73,6 +74,7 @@ Usage:
 
 Flags:
   --json               sortie structuree pour integrations
+  --limit <nombre>     nombre d'exports (1 a 100, defaut: 10)
   --config <path>      chemin de config explicite
 `,
   context: `
@@ -242,6 +244,7 @@ Usage:
 
 Flags:
   --json               structured output for integrations
+  --limit <number>     number of exports (1 to 100, default: 10)
   --config <path>      explicit config path
 `,
   historique: `
@@ -253,6 +256,7 @@ Usage:
 
 Flags:
   --json               structured output for integrations
+  --limit <number>     number of exports (1 to 100, default: 10)
   --config <path>      explicit config path
 `,
   context: `
