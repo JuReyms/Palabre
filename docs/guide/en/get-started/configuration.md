@@ -1,6 +1,9 @@
 ---
 title: First configuration
 description: Create a Palabre configuration, detect installed agents, and set useful default settings.
+seo:
+  title: Create your config and detect installed agents
+  description: Create a Palabre configuration, let it detect the AI CLIs already installed on your machine, and set sensible defaults.
 ---
 
 ## Automatic first configuration

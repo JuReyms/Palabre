@@ -1,6 +1,9 @@
 ---
 title: Première configuration
 description: Créer une configuration Palabre, détecter les agents installés et définir des paramètres par défaut utiles.
+seo:
+  title: Créer sa config et détecter les agents installés
+  description: Créer une configuration Palabre, laisser détecter les CLI IA déjà installées sur votre machine et définir des valeurs par défaut.
 ---
 
 ## Première configuration automatique

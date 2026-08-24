@@ -1,6 +1,9 @@
 ---
 title: Codex
 description: Configurer Codex CLI dans Palabre, choisir éventuellement un modèle et reconnaître les erreurs fréquentes.
+seo:
+  title: Utiliser Codex CLI comme agent de débat
+  description: Configurer Codex CLI dans Palabre, choisir un modèle, l'opposer à Claude Code et reconnaître les erreurs les plus fréquentes.
 ---
 
 Codex CLI permet d'utiliser Codex depuis le terminal.

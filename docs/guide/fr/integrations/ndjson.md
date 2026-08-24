@@ -1,6 +1,9 @@
 ---
 title: Flux NDJSON v1
 description: Lire les événements de session Palabre sur stdout et construire une interface robuste.
+seo:
+  title: Lire les événements de session en NDJSON
+  description: Lire les événements de session Palabre sur stdout au format NDJSON v1 et construire une intégration robuste.
 ---
 
 `--renderer ndjson` écrit un objet JSON valide par ligne sur stdout. Chaque événement contient `v: 1` et un champ `type`.

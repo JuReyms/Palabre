@@ -1,6 +1,9 @@
 ---
 title: Debate mode
 description: Make two agents answer each other, configure turns, and obtain a comparative summary.
+seo:
+  title: "Debate mode: make two AI agents argue"
+  description: Make two AI agents answer each other in turns, set the number of rounds, and get a summary of where they disagree.
 ---
 
 Debate is Palabre's primary mode. Two agents answer each other on one subject with the context and previous responses.

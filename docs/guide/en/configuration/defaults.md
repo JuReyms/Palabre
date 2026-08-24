@@ -1,6 +1,9 @@
 ---
 title: Default settings
 description: Define or remove the agents, number of turns, and summary used by default.
+seo:
+  title: Set default agents, turns, and summary
+  description: Define the agent pair, number of turns, and summary behavior Palabre uses when you pass no flags at all.
 ---
 
 Default settings are used when you start a session without specifying all agents or all options. They can be partial: you can define only the number of turns, only the summary, or a complete agent pair.

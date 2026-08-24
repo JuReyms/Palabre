@@ -1,6 +1,9 @@
 ---
 title: JSON catalogs
 description: Consume agents, presets, context scans, and recent exports through versioned JSON.
+seo:
+  title: Versioned JSON catalogs for integrations
+  description: Read agents, presets, context scans, and recent exports through versioned JSON contracts.
 ---
 
 These commands write one JSON document to stdout and exit without starting an AI session.

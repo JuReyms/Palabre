@@ -1,6 +1,9 @@
 ---
 title: Configuration file reference
 description: Reference for the palabre.config.json format, agents, defaults, and advanced options.
+seo:
+  title: palabre.config.json reference
+  description: "Full reference for the palabre.config.json format: agents, defaults, and advanced options."
 ---
 
 This page serves as a quick reference for `palabre.config.json`.

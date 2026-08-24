@@ -1,6 +1,9 @@
 ---
 title: Intégrer Palabre
 description: Piloter Palabre depuis une extension ou un autre processus sans reproduire sa logique métier.
+seo:
+  title: Piloter Palabre depuis votre propre outil
+  description: Contrôler Palabre depuis une extension ou un autre processus sans réimplémenter sa logique d'orchestration.
 ---
 
 Palabre CLI est la source de vérité pour les agents, presets, contexte, orchestration, erreurs et exports. Une intégration lance le CLI comme processus enfant et rend ses contrats publics, sans analyser la TUI ni réimplémenter ses décisions.

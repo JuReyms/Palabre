@@ -1,6 +1,9 @@
 ---
 title: Configuration
 description: Comprendre le fichier de configuration Palabre et les commandes disponibles pour le créer ou le modifier.
+seo:
+  title: Configurer Palabre et gérer son fichier de config
+  description: Comprendre le fichier de configuration Palabre et les commandes qui le créent, l'affichent et le modifient.
 ---
 
 La configuration indique à Palabre quels agents existent, quels agents utiliser par défaut et où écrire les exports. Si `outputDir` n'est pas défini, les fichiers `.debate.md`, `.chat.md` et `.ask.md` sont créés dans le dossier `.palabre/` par défaut.

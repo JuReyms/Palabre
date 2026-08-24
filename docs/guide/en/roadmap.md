@@ -1,6 +1,9 @@
 ---
 title: Roadmap
 description: Discover what is already available in Palabre and the improvements planned for upcoming versions.
+seo:
+  title: What is shipped and what is planned
+  description: See what Palabre already does today and which improvements are planned for upcoming releases.
 ---
 
 This page gives an overview of the planned evolution of Palabre. It helps users understand where the project is headed, without committing to delivery dates.

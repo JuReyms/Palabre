@@ -1,6 +1,9 @@
 ---
 title: Command reference
 description: Reference for commands and options available in the Palabre CLI.
+seo:
+  title: "CLI reference: every command and flag"
+  description: Full reference for Palabre commands and options, including debate, chat, ask, config, and their flags.
 ---
 
 This page lists the main Palabre commands.

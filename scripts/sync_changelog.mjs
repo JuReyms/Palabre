@@ -17,11 +17,11 @@ export function sectionCounts(body) {
 export function renderFrench(changelog) {
   const start = changelog.search(/^## \[\d/m)
   if (start < 0) throw new Error('CHANGELOG.md contains no released version')
-  return `---\ntitle: Changelog\ndescription: Consulter les nouveautés, changements et corrections de chaque version de Palabre.\n---\n\nCette page est générée depuis le changelog canonique du dépôt Palabre à chaque publication.\n\n${changelog.slice(start)}`
+  return `---\ntitle: Changelog\ndescription: Consulter les nouveautés, changements et corrections de chaque version de Palabre.\nseo:\n  title: Notes de version de chaque release\n  description: Nouveautés, changements et corrections de chaque version de Palabre, la plus récente en premier.\n---\n\nCette page est générée depuis le changelog canonique du dépôt Palabre à chaque publication.\n\n${changelog.slice(start)}`
 }
 
 export function renderEnglish(changelog) {
-  const parts = [`---\ntitle: Changelog\ndescription: Review concise English highlights for every Palabre release.\n---\n\nThis page is generated from Palabre's canonical French changelog on every release.\n`]
+  const parts = [`---\ntitle: Changelog\ndescription: Review concise English highlights for every Palabre release.\nseo:\n  title: Release notes for every version\n  description: Highlights, changes, and fixes for every Palabre release, newest first.\n---\n\nThis page is generated from Palabre's canonical French changelog on every release.\n`]
   for (const match of changelog.matchAll(VERSION_RE)) {
     const { version, date, body } = match.groups
     const summary = body.match(SOCIAL_RE)?.groups?.summary.trim() ?? 'See the complete release notes.'

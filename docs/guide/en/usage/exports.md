@@ -1,6 +1,9 @@
 ---
 title: Exports
 description: Learn where Palabre writes Markdown exports and what they contain after a Debate, Chat, or Ask session.
+seo:
+  title: Markdown exports of every session
+  description: Palabre writes every session to a .debate.md, .chat.md, or .ask.md file. Learn where they go and what they contain.
 ---
 
 Each session generates a Markdown export in the folder defined by `outputDir`:

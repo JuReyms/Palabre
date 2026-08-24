@@ -1,6 +1,9 @@
 ---
 title: Agents
 description: Understand Palabre agents, their roles, their models, and the difference between external CLIs and local agents.
+seo:
+  title: Supported AI agents and how roles work
+  description: Claude Code, Codex, OpenCode, Mistral Vibe, Antigravity, and Ollama can all join a session. Compare CLI agents and local agents.
 ---
 
 A Palabre agent is a configuration entry that describes how to call an AI.

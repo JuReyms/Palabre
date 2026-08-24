@@ -1,6 +1,9 @@
 ---
 title: NDJSON v1 stream
 description: Read Palabre session events from stdout and build a robust integration UI.
+seo:
+  title: Stream session events as NDJSON
+  description: Read Palabre session events from stdout as an NDJSON v1 stream and build a resilient integration UI.
 ---
 
 `--renderer ndjson` writes one valid JSON object per line to stdout. Every event contains `v: 1` and a `type` field.

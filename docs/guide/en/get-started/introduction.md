@@ -1,6 +1,9 @@
 ---
 title: Introduction
 description: Understand what Palabre does, how it orchestrates your AI agents, and what privacy guarantees it provides.
+seo:
+  title: Multi-agent AI debates from your terminal
+  description: Palabre orchestrates Claude Code, Codex, and Ollama into structured debates from your terminal. See how it works and what stays on your machine.
 ---
 
 Palabre is a CLI/TUI orchestrator for AI agents already installed on your machine.

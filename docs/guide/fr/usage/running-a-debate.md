@@ -1,6 +1,9 @@
 ---
 title: Choisir un mode
 description: Choisir entre Débat, Chat et Ask selon le nombre d'agents et le type de réponse recherché.
+seo:
+  title: "Débat, Chat ou Ask : quel mode choisir"
+  description: "Choisir le bon mode Palabre : deux agents qui s'opposent, un agent avec qui avancer, ou plusieurs réponses indépendantes."
 ---
 
 Palabre propose trois modes. **Débat reste le mode principal** : l'accueil le présente en premier et il exploite pleinement l'orchestration contradictoire.

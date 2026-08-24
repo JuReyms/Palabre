@@ -1,6 +1,9 @@
 ---
 title: Use the TUI
 description: Understand the TUI home screen, choose modes, and configure a session without memorizing CLI options.
+seo:
+  title: Run a session from the terminal UI
+  description: Use the Palabre TUI to pick a mode, choose agents, and configure a session without memorizing CLI flags.
 ---
 
 ```bash

@@ -1,6 +1,9 @@
 ---
 title: Context and files
 description: Add context to a session with --files or --context while keeping control over the data transmitted.
+seo:
+  title: Feed your codebase to the agents
+  description: Pass source files to a session with --files or --context, and keep control over exactly what gets transmitted.
 ---
 
 Palabre can send project context to agents. This is essential for requesting a critique of code, architecture, or documentation.

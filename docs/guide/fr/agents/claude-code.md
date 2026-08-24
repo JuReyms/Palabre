@@ -1,6 +1,9 @@
 ---
 title: Claude Code
 description: Configurer Claude Code dans Palabre et comprendre ce que Palabre transmet à la CLI Claude.
+seo:
+  title: Utiliser Claude Code comme agent de débat
+  description: Configurer Claude Code dans Palabre, voir ce que Palabre transmet à la CLI Claude et l'opposer à Codex ou à un modèle local.
 ---
 
 Claude Code est la CLI d'Anthropic pour travailler avec Claude depuis le terminal.

@@ -1,6 +1,9 @@
 ---
 title: Summaries
 description: Understand the final summary, choose the summary agent, and disable the summary if needed.
+seo:
+  title: Get a summary at the end of a session
+  description: Understand how Palabre builds the final summary, choose which agent writes it, or turn it off entirely.
 ---
 
 At the end of a debate or Ask request, Palabre can ask an agent to produce a final summary.

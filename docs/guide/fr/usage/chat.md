@@ -1,6 +1,9 @@
 ---
 title: Mode Chat
 description: Converser avec un agent actif, demander un second avis et comprendre la mémoire bornée du mode Chat.
+seo:
+  title: "Mode Chat : un agent principal, un second avis"
+  description: Converser avec un agent actif, solliciter un second avis quand c'est utile et comprendre la mémoire bornée du mode Chat.
 ---
 
 Chat convient lorsqu'un seul agent suffit, avec la possibilité de consulter ponctuellement un autre agent.

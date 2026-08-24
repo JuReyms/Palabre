@@ -1,6 +1,9 @@
 ---
 title: Référence des commandes
 description: Référence des commandes et options disponibles dans la CLI Palabre.
+seo:
+  title: "Référence CLI : toutes les commandes et options"
+  description: Référence complète des commandes et options de la CLI Palabre, dont debate, chat, ask et config.
 ---
 
 Cette page liste les commandes principales de Palabre.

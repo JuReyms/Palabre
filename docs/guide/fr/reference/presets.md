@@ -1,6 +1,9 @@
 ---
 title: Presets
 description: Liste et principe des presets de paires d'agents utilisables dans les commandes courtes.
+seo:
+  title: Presets de paires d'agents
+  description: Tous les presets de paires d'agents fournis, et comment lancer un débat avec une commande courte.
 ---
 
 Les presets permettent de choisir rapidement une paire d'agents.

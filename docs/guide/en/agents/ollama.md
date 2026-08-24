@@ -1,6 +1,9 @@
 ---
 title: Ollama
 description: Use Ollama with Palabre to bring in local models or models compatible with your Ollama configuration.
+seo:
+  title: Run AI debates locally with Ollama
+  description: Use Ollama with Palabre to run debates on local models, cut API costs, and mix a local agent with a cloud one.
 ---
 
 This is useful for adding a local, lower-cost perspective, or for assigning a small model a targeted role: critic, exploration, or lightweight summary.

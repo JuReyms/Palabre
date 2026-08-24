@@ -1,6 +1,9 @@
 ---
 title: Choose a mode
 description: Choose between Debate, Chat, and Ask based on the number of agents and the kind of answer you need.
+seo:
+  title: "Debate, Chat, or Ask: which mode to use"
+  description: "Pick the right Palabre mode: two agents arguing, one agent to talk to, or several independent answers to compare."
 ---
 
 Palabre provides three modes. **Debate remains the primary mode**: the home screen shows it first and it makes full use of contradictory orchestration.

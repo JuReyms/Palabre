@@ -1,6 +1,9 @@
 ---
 title: Integrate Palabre
 description: Drive Palabre from an extension or another process without duplicating its product logic.
+seo:
+  title: Drive Palabre from your own tool
+  description: Control Palabre from an extension or another process without reimplementing its orchestration logic.
 ---
 
 Palabre CLI is the source of truth for agents, presets, context, orchestration, errors, and exports. An integration launches the CLI as a child process and renders its public contracts, without parsing the TUI or reimplementing its decisions.

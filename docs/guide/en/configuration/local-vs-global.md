@@ -1,6 +1,9 @@
 ---
 title: Local vs global configuration
 description: Choose between a global user configuration and a local configuration specific to a project.
+seo:
+  title: "Local vs global config: which one wins"
+  description: Choose between a global user configuration and a per-project local one, and know which takes precedence.
 ---
 
 Palabre can use a global configuration for all your projects, or a local configuration for a specific project.

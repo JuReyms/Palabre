@@ -1,6 +1,9 @@
 ---
 title: Installation
 description: Install Palabre from npm, verify the command, and prepare the AI agents used by debates and Ask requests.
+seo:
+  title: Install from npm and set up your AI agents
+  description: Install Palabre globally with npm, verify the command, and connect Claude Code, Codex, OpenCode, or Ollama before your first debate.
 ---
 
 ## Prerequisites

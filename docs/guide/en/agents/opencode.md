@@ -1,6 +1,9 @@
 ---
 title: OpenCode
 description: Configure OpenCode in Palabre and use it as a CLI agent in a debate pair.
+seo:
+  title: Use OpenCode as a debate agent
+  description: Configure OpenCode in Palabre and pair it with Claude Code, Codex, or a local Ollama model inside a debate.
 ---
 
 OpenCode is a development assistance CLI. Depending on your local configuration, it can use different models and providers.

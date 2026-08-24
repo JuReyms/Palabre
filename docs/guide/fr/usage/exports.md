@@ -1,6 +1,9 @@
 ---
 title: Exports
 description: Savoir où Palabre écrit les exports Markdown et ce qu'ils contiennent après une session Débat, Chat ou Ask.
+seo:
+  title: Exports Markdown de chaque session
+  description: Palabre écrit chaque session dans un fichier .debate.md, .chat.md ou .ask.md. Où ils arrivent et ce qu'ils contiennent.
 ---
 
 Chaque session génère un export Markdown dans le dossier défini par `outputDir` :

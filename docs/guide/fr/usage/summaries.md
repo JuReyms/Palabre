@@ -1,6 +1,9 @@
 ---
 title: Synthèses
 description: Comprendre la synthèse finale, choisir l'agent de synthèse et désactiver la synthèse si nécessaire.
+seo:
+  title: Obtenir une synthèse en fin de session
+  description: Comprendre comment Palabre construit la synthèse finale, choisir l'agent qui la rédige ou la désactiver.
 ---
 
 À la fin d'un débat ou d'une demande Ask, Palabre peut demander à un agent de produire une synthèse finale.
