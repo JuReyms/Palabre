@@ -130,6 +130,10 @@ export type TuiQuestionResult =
 let lastTuiInterruptAt = 0;
 const doubleInterruptMs = 1200;
 let composerReadline: ReturnType<typeof createInterface> | undefined;
+const composerReadlineKeypressHandlers = new WeakMap<
+  ReturnType<typeof createInterface>,
+  Function[]
+>();
 
 export type TuiCommandCompletionContext = "home" | "config" | "chat";
 
@@ -161,10 +165,18 @@ export function completeTuiCommand(line: string, context: TuiCommandCompletionCo
  */
 function getComposerReadline(): ReturnType<typeof createInterface> {
   if (composerReadline) return composerReadline;
+  const previousKeypressHandlers = new Set(input.listeners("keypress"));
   const rl = createInterface({
     input,
-    output
+    output,
+    // Notre picker gère Tab ; ce completer vide empêche readline d'insérer
+    // littéralement une tabulation après notre sélection.
+    completer: () => [[], ""]
   });
+  composerReadlineKeypressHandlers.set(
+    rl,
+    input.listeners("keypress").filter((listener) => !previousKeypressHandlers.has(listener))
+  );
   composerReadline = rl;
   rl.once("close", () => {
     if (composerReadline === rl) composerReadline = undefined;
@@ -244,6 +256,10 @@ export function questionWithBufferedComposer(
   return new Promise((resolve) => {
     const composerInput = streams.input;
     const composerOutput = streams.output;
+    const readlineKeypressHandlers = composerInput === input
+      ? composerReadlineKeypressHandlers.get(rl) ?? []
+      : [];
+    const controlsReadlineInput = readlineKeypressHandlers.length > 0;
     const lines: string[] = [];
     let timer: ReturnType<typeof setTimeout> | undefined;
     let completionRenderTimer: ReturnType<typeof setTimeout> | undefined;
@@ -334,11 +350,16 @@ export function questionWithBufferedComposer(
 
       clearCompletionSuffix();
       clearCompletionMenu();
-      rl.write(command.slice(rl.line.length));
+      const mutableReadline = rl as typeof rl & { line: string; cursor: number };
+      mutableReadline.line = command;
+      mutableReadline.cursor = command.length;
       selectedCommand = command;
       return true;
     };
-    const completeCommand = (_value: string, key: { name?: string }) => {
+    const completeCommand = (
+      value: string,
+      key: { ctrl?: boolean; meta?: boolean; name?: string; sequence?: string; shift?: boolean }
+    ) => {
       clearCompletionSuffix();
       clearCompletionMenu();
 
@@ -350,6 +371,7 @@ export function questionWithBufferedComposer(
 
       if (key.name === "return") {
         acceptSelectedCompletion();
+        if (controlsReadlineInput) rl.write(value, key);
         return;
       }
 
@@ -359,9 +381,12 @@ export function questionWithBufferedComposer(
           const currentIndex = Math.max(0, matches.indexOf(command ?? ""));
           const offset = key.name === "down" ? 1 : -1;
           selectedCommand = matches[(currentIndex + offset + matches.length) % matches.length];
+          queueCompletionRender();
+          return;
         }
       }
 
+      if (controlsReadlineInput) rl.write(value, key);
       queueCompletionRender();
     };
     const finishLayout = () => {
@@ -377,6 +402,7 @@ export function questionWithBufferedComposer(
       rl.off("close", onClose);
       composerInput.off("keypress", clearPlaceholder);
       composerInput.off("keypress", completeCommand);
+      for (const handler of readlineKeypressHandlers) composerInput.on("keypress", handler as (...args: any[]) => void);
     };
     const settle = (result: TuiQuestionResult) => {
       if (settled) return;
@@ -406,6 +432,7 @@ export function questionWithBufferedComposer(
     rl.once("close", onClose);
     (rl as typeof rl & { history: string[] }).history = [];
     rl.setPrompt(linePrompt);
+    for (const handler of readlineKeypressHandlers) composerInput.off("keypress", handler as (...args: any[]) => void);
     composerInput.prependListener("keypress", completeCommand);
     composerInput.prependOnceListener("keypress", clearPlaceholder);
     composerInput.resume();
