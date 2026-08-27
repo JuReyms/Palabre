@@ -36,6 +36,8 @@ ROUTE_MAP = {
     "usage/context-and-files.md": "3.usage/6.context-and-files.md",
     "usage/summaries.md": "3.usage/7.summaries.md",
     "usage/exports.md": "3.usage/8.exports.md",
+    "usage/codex-claude-debate.md": "3.usage/9.codex-claude-debate.md",
+    "usage/multi-agent-cli.md": "3.usage/10.multi-agent-cli.md",
     "configuration/overview.md": "4.configuration/1.overview.md",
     "configuration/defaults.md": "4.configuration/2.defaults.md",
     "configuration/local-vs-global.md": "4.configuration/3.local-vs-global.md",
