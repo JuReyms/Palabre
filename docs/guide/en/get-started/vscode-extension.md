@@ -1,11 +1,11 @@
 ---
 title: VS Code extension
-description: Install the Palabre extension to run Debate or Ask sessions from VS Code using agents exposed by the CLI.
+description: Install the Palabre extension to run Debate, Chat, or Ask sessions from VS Code using agents exposed by the CLI.
 ---
 
-The VS Code extension adds a Palabre panel to the editor. It lets you prepare a subject, choose agents, add workspace context, follow a Debate or Ask session, and open the Markdown export.
+The VS Code extension adds a Palabre panel to the editor. It lets you prepare a subject, choose agents, add workspace context, follow a Debate, Chat, or Ask session, and open the matching Markdown export.
 
-**Chat is currently available in the Palabre TUI and direct CLI, but not yet in the VS Code extension.**
+**In Chat, you can switch the active agent, request a one-off opinion from another agent, or continue the conversation with that agent.**
 
 The extension remains a thin client: it launches `palabre` locally and consumes the public CLI contracts. Palabre CLI remains the source of truth for agents, presets, context, errors, and exports.
 
@@ -19,7 +19,7 @@ After installation, open the Palabre panel from the sidebar.
 
 - Palabre CLI installed on the same machine;
 - Palabre CLI `0.12.0` or newer recommended;
-- at least one available agent for Ask, two for Debate.
+- at least one available agent for Chat or Ask, two for Debate.
 
 ```bash
 palabre --version
@@ -29,13 +29,13 @@ palabre presets --json
 
 ## Current features
 
-- Debate or Ask selection and available agents;
+- Debate, Chat, or Ask selection and available agents;
 - context selection through the official CLI scan;
 - NDJSON response, summary, and error rendering;
-- opening `.debate.md` and `.ask.md` exports;
+- opening `.debate.md`, `.chat.md`, and `.ask.md` exports;
 - stopping Palabre and its child agents;
 - quick settings and diagnostics.
 
-For Chat, run `palabre` in a terminal and use `/chat`.
+For Chat, choose **Chat** in the extension. The CLI keeps the conversation state and exposes the same behavior through its public NDJSON contract.
 
 If the extension cannot find Palabre, check `palabre --version` and restart VS Code. If no agent appears, run `palabre doctor` and `palabre config`.

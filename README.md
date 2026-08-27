@@ -64,7 +64,7 @@ In an interactive terminal, `palabre` opens the TUI by default. The home screen 
 
 ### VS Code extension
 
-Prefer a visual workflow inside your editor? Install [Palabre for VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode). The extension opens a Palabre sidebar, lets you run Debate or Ask sessions, attach workspace context, follow the session live, and open the Markdown export from VS Code. Chat is currently available from the Palabre TUI and direct CLI.
+Prefer a visual workflow inside your editor? Install [Palabre for VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode). The extension opens a Palabre sidebar, lets you run Debate, Chat, or Ask sessions, attach workspace context, follow each session live, and open its Markdown export from VS Code. In Chat, you can switch the active agent, request a one-off opinion from another agent, or continue the conversation with that agent.
 
 It remains a thin client: the extension launches the local `palabre` CLI and consumes the public JSON/NDJSON contracts documented below.
 
@@ -185,7 +185,7 @@ Dans un terminal interactif, `palabre` ouvre la TUI par défaut. L'accueil crée
 
 ### Extension VS Code
 
-Vous préférez piloter Palabre depuis l'éditeur ? Installez [Palabre pour VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode). L'extension ajoute une barre latérale Palabre, permet de lancer Débat ou Ask, d'ajouter du contexte de workspace, de suivre la session en direct et d'ouvrir l'export Markdown depuis VS Code. Chat est actuellement disponible depuis la TUI et la commande directe Palabre.
+Vous préférez piloter Palabre depuis l'éditeur ? Installez [Palabre pour VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode). L'extension ajoute une barre latérale Palabre, permet de lancer Débat, Chat ou Ask, d'ajouter du contexte de workspace, de suivre chaque session en direct et d'ouvrir son export Markdown depuis VS Code. En Chat, vous pouvez changer l'agent actif, demander ponctuellement l'avis d'un autre agent ou poursuivre la conversation avec lui.
 
 Elle reste un client mince : l'extension lance le CLI local `palabre` et consomme les contrats JSON/NDJSON publics documentés ci-dessous.
 
