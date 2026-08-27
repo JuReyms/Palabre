@@ -130,7 +130,6 @@ export type TuiQuestionResult =
 let lastTuiInterruptAt = 0;
 const doubleInterruptMs = 1200;
 let composerReadline: ReturnType<typeof createInterface> | undefined;
-let composerCompletionContext: TuiCommandCompletionContext = "home";
 
 export type TuiCommandCompletionContext = "home" | "config" | "chat";
 
@@ -156,6 +155,16 @@ export function completeTuiCommand(line: string, context: TuiCommandCompletionCo
   return [matches, line];
 }
 
+function commonPrefix(values: readonly string[]): string {
+  if (values.length === 0) return "";
+
+  return values.slice(1).reduce((prefix, value) => {
+    let index = 0;
+    while (index < prefix.length && prefix[index] === value[index]) index += 1;
+    return prefix.slice(0, index);
+  }, values[0]);
+}
+
 /**
  * Accueil et Config partagent le même reader. Sous ConPTY, fermer le reader qui
  * vient de recevoir SIGINT peut rendre stdin muet pour le reader suivant.
@@ -164,8 +173,7 @@ function getComposerReadline(): ReturnType<typeof createInterface> {
   if (composerReadline) return composerReadline;
   const rl = createInterface({
     input,
-    output,
-    completer: (line: string) => completeTuiCommand(line, composerCompletionContext)
+    output
   });
   composerReadline = rl;
   rl.once("close", () => {
@@ -260,6 +268,23 @@ export function questionWithBufferedComposer(
       }
       if (supportsInteractiveOutput) composerOutput.write("\u001b[0K");
     };
+    const completeCommand = (_value: string, key: { name?: string }) => {
+      if (key.name !== "tab" || rl.cursor !== rl.line.length) return;
+
+      const [matches] = completeTuiCommand(rl.line, completionContext);
+      if (matches.length === 0) return;
+
+      const prefix = commonPrefix(matches);
+      if (prefix.length > rl.line.length) {
+        rl.write(prefix.slice(rl.line.length));
+        return;
+      }
+
+      if (matches.length > 1 && supportsInteractiveOutput) {
+        composerOutput.write(`\r\n${dim(matches.join("  "))}\r\n`);
+        rl.prompt(true);
+      }
+    };
     const finishLayout = () => {
       if (!supportsInteractiveOutput) return;
       const down = Math.max(0, trailingLines - 1);
@@ -271,6 +296,7 @@ export function questionWithBufferedComposer(
       rl.off("SIGINT", onSigint);
       rl.off("close", onClose);
       composerInput.off("keypress", clearPlaceholder);
+      composerInput.off("keypress", completeCommand);
     };
     const settle = (result: TuiQuestionResult) => {
       if (settled) return;
@@ -298,8 +324,8 @@ export function questionWithBufferedComposer(
     rl.on("line", onLine);
     rl.once("SIGINT", onSigint);
     rl.once("close", onClose);
-    composerCompletionContext = completionContext;
     rl.setPrompt(linePrompt);
+    composerInput.prependListener("keypress", completeCommand);
     composerInput.prependOnceListener("keypress", clearPlaceholder);
     composerInput.resume();
     if (supportsInteractiveOutput) composerOutput.write("\u001b[?2004h");
