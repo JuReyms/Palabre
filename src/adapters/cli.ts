@@ -373,7 +373,7 @@ function createKnownCliError(adapterName: string, exitCode: number | undefined, 
 /** Cherche dans stderr une ligne signalant un modèle non supporté, pour classer l'erreur en `unsupported-model`. */
 function extractUnsupportedModelMessage(stderr: string): string | undefined {
   const lines = uniqueNonEmptyLines(stderr);
-  const match = lines.find((line) => isUnsupportedModelLine(line));
+  const match = lines.find((line) => isUnsupportedModelLine(extractJsonErrorMessage(line) ?? line));
 
   if (!match) {
     return undefined;
@@ -391,14 +391,37 @@ function isUnsupportedModelLine(line: string): boolean {
     "unsupported model",
     "model_not_found",
     "not supported when using",
+    "model requires a newer version",
     "model does not exist",
     "unknown model"
   ].some((pattern) => normalized.includes(pattern));
 }
 
 function extractJsonErrorMessage(line: string): string | undefined {
-  const match = line.match(/"message"\s*:\s*"([^"]+)"/);
-  return match?.[1];
+  const jsonStart = line.indexOf("{");
+  if (jsonStart >= 0) {
+    try {
+      const parsed: unknown = JSON.parse(line.slice(jsonStart));
+      const error = typeof parsed === "object" && parsed !== null
+        ? (parsed as { error?: unknown }).error
+        : undefined;
+      const message = typeof error === "object" && error !== null
+        ? (error as { message?: unknown }).message
+        : undefined;
+      if (typeof message === "string") return message;
+    } catch {
+      // Some CLIs prefix or truncate their JSON error; the bounded regex fallback still helps.
+    }
+  }
+
+  const match = line.match(/"message"\s*:\s*"((?:\\.|[^"\\])*)"/);
+  if (!match) return undefined;
+
+  try {
+    return JSON.parse(`"${match[1]}"`) as string;
+  } catch {
+    return match[1];
+  }
 }
 
 function summarizeCliError(stderr: string, messages: AdapterErrorMessages): string {
@@ -408,7 +431,34 @@ function summarizeCliError(stderr: string, messages: AdapterErrorMessages): stri
     return messages.noStderrCaptured;
   }
 
+  const structuredMessage = lines.map(extractJsonErrorMessage).find((message): message is string => Boolean(message));
+  if (structuredMessage) {
+    return clipLine(structuredMessage, 1_200);
+  }
+
+  const diagnostic = lines.find(isCliDiagnosticLine);
+  if (diagnostic) {
+    return clipLine(diagnostic, 1_200);
+  }
+
   return clipLine(lines.slice(-8).join("\n"), 1_200);
+}
+
+/** Repère les diagnostics textuels actionnables quand aucune erreur JSON terminale n'est disponible. */
+function isCliDiagnosticLine(line: string): boolean {
+  const normalized = line.toLowerCase();
+  return [
+    "authentication",
+    "authrequired",
+    "unauthorized",
+    "forbidden",
+    "quota",
+    "rate limit",
+    "timeout",
+    "timed out",
+    "transport",
+    "connection refused"
+  ].some((pattern) => normalized.includes(pattern));
 }
 
 /**
