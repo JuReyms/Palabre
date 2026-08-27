@@ -303,6 +303,52 @@ test("CliAdapter classifies unsupported model errors even when the CLI exits emp
   );
 });
 
+test("CliAdapter prioritizes a terminal JSON model error over prompt and MCP noise", async () => {
+  const promptNoise = "Repeated prompt context. ".repeat(80);
+  const modelMessage = "The 'gpt-5.6-sol' model requires a newer version of Codex.";
+  const apiError = JSON.stringify({ type: "error", status: 400, error: { type: "invalid_request_error", message: modelMessage } });
+  const script = [
+    `process.stderr.write(${JSON.stringify(`${promptNoise}\n`)});`,
+    "process.stderr.write('Transport channel closed: AuthRequired: No access token was provided\\n');",
+    `process.stderr.write(${JSON.stringify(apiError)});`,
+    "process.exit(1);"
+  ].join("");
+  const adapter = new CliAdapter("codex", cliConfig({ args: ["-e", script] }));
+
+  await assert.rejects(
+    adapter.generate(basePrompt()),
+    (error) => error instanceof AdapterError
+      && error.kind === "unsupported-model"
+      && error.message.includes(modelMessage)
+      && !error.message.includes("AuthRequired")
+      && typeof error.details?.stderr === "string"
+      && error.details.stderr.includes("AuthRequired")
+      && error.details.stderr.includes(promptNoise)
+  );
+});
+
+test("CliAdapter prioritizes a terminal JSON error in generic stderr summaries", async () => {
+  const promptNoise = "Repeated prompt context. ".repeat(80);
+  const apiMessage = "The provider rejected this request because the workspace is unavailable.";
+  const apiError = JSON.stringify({ type: "error", status: 503, error: { type: "service_unavailable", message: apiMessage } });
+  const script = [
+    `process.stderr.write(${JSON.stringify(`${promptNoise}\n`)});`,
+    "process.stderr.write('Transport channel closed: AuthRequired: No access token was provided\\n');",
+    `process.stderr.write(${JSON.stringify(apiError)});`,
+    "process.exit(1);"
+  ].join("");
+  const adapter = new CliAdapter("codex", cliConfig({ args: ["-e", script] }));
+
+  await assert.rejects(
+    adapter.generate(basePrompt()),
+    (error) => error instanceof AdapterError
+      && error.kind === "non-zero-exit"
+      && error.message.includes(apiMessage)
+      && !error.message.includes("AuthRequired")
+      && !error.message.includes(promptNoise)
+  );
+});
+
 test("CliAdapter strips Windows taskkill status noise from stdout", async () => {
   const script = [
     "process.stdout.write('Opération réussie : le processus de PID 42120 (processus enfant de PID 45636) a été\\n');",
