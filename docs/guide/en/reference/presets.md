@@ -1,6 +1,9 @@
 ---
 title: Presets
 description: List and principle of agent pair presets usable in short commands.
+seo:
+  title: Agent pair presets for short commands
+  description: Every built-in agent pair preset, and how to use them to start a debate with a single short command.
 ---
 
 Presets let you quickly select an agent pair.

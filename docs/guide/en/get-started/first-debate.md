@@ -1,6 +1,9 @@
 ---
 title: Run your first session
 description: Open Palabre, run a first debate from the TUI, and find its Markdown export.
+seo:
+  title: Run your first AI agent debate
+  description: Launch Palabre, pick two agents from the TUI, run a first debate, and find the Markdown export it writes.
 ---
 
 The recommended path starts with one command:

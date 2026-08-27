@@ -1,6 +1,9 @@
 ---
 title: Configuration
 description: Understand the Palabre configuration file and the commands available to create or modify it.
+seo:
+  title: Configure Palabre and manage its config file
+  description: Understand the Palabre configuration file and the commands that create, inspect, and modify it.
 ---
 
 The configuration tells Palabre which agents exist, which agents to use by default, and where to write exports. If `outputDir` is not defined, `.debate.md`, `.chat.md`, and `.ask.md` files are created in the default `.palabre/` folder.

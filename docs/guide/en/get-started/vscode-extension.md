@@ -1,6 +1,9 @@
 ---
 title: VS Code extension
 description: Install the Palabre extension to run Debate, Chat, or Ask sessions from VS Code using agents exposed by the CLI.
+seo:
+  title: "Palabre for VS Code: multi-agent AI conversations"
+  description: Install Palabre for VS Code to run Debate, Chat, or Ask sessions, compare AI agents, add project context, and follow the results in the editor.
 ---
 
 The VS Code extension adds a Palabre panel to the editor. It lets you prepare a subject, choose agents, add workspace context, follow a Debate, Chat, or Ask session, and open the matching Markdown export.

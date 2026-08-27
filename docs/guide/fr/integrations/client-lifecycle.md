@@ -1,6 +1,9 @@
 ---
 title: Cycle de vie, erreurs et identité
 description: Gérer les codes de sortie, les exports partiels, l'annulation et la provenance d'une intégration.
+seo:
+  title: Codes de sortie, annulation et exports partiels
+  description: Gérer les codes de sortie Palabre, les exports partiels, l'annulation et déclarer la provenance de votre intégration.
 ---
 
 | Code | Signification |

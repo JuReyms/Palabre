@@ -1,6 +1,9 @@
 ---
 title: Configuration locale ou globale
 description: Choisir entre configuration globale utilisateur et configuration locale propre à un projet.
+seo:
+  title: "Config locale ou globale : laquelle prime"
+  description: Choisir entre une configuration globale utilisateur et une configuration locale au projet, et savoir laquelle l'emporte.
 ---
 
 Palabre peut utiliser une configuration globale pour tous vos projets, ou une configuration locale pour un projet précis.

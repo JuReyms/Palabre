@@ -1,6 +1,9 @@
 ---
 title: JSON avancé
 description: Modifier directement le JSON de configuration pour les usages avancés et les agents personnalisés.
+seo:
+  title: Éditer palabre.config.json à la main
+  description: Modifier directement le JSON de configuration pour définir des agents personnalisés et couvrir les cas non exposés par la CLI.
 ---
 
 La plupart des réglages courants peuvent se faire avec `palabre config`. Cette page concerne les cas où vous éditez directement `palabre.config.json`.

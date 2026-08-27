@@ -1,6 +1,9 @@
 ---
 title: Skill Palabre
 description: Installer le skill Palabre pour lancer des débats directement depuis un agent IA compatible skills.
+seo:
+  title: Lancer un débat depuis un agent à skills
+  description: Installer le skill Palabre pour qu'un agent IA compatible skills lance débats et demandes Ask à votre place.
 ---
 
 Palabre fournit un skill prêt à l'emploi qui apprend à un agent IA quand et comment orchestrer un débat avec la CLI Palabre. L'agent sait alors cadrer un sujet, choisir une paire d'agents, injecter le contexte et récupérer la synthèse exportée.

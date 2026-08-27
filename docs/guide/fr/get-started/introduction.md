@@ -1,6 +1,9 @@
 ---
 title: Introduction
 description: Comprendre ce que fait Palabre, comment il orchestre vos agents IA et quelles garanties de confidentialité il apporte.
+seo:
+  title: Débats entre agents IA depuis le terminal
+  description: Palabre orchestre Claude Code, Codex et Ollama en débats structurés depuis votre terminal. Comprendre son fonctionnement et ce qui reste en local.
 ---
 
 Palabre est un orchestrateur CLI/TUI pour agents IA déjà installés sur votre machine.

@@ -1,6 +1,9 @@
 ---
 title: Utiliser la TUI
 description: Comprendre l'accueil TUI, choisir les modes et régler une session sans mémoriser les options CLI.
+seo:
+  title: Lancer une session depuis l'interface terminal
+  description: Utiliser la TUI Palabre pour choisir un mode, sélectionner les agents et régler une session sans mémoriser les options.
 ---
 
 ```bash

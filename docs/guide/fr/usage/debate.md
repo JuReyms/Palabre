@@ -1,6 +1,9 @@
 ---
 title: Mode Débat
 description: Faire dialoguer deux agents, régler les tours et obtenir une synthèse contradictoire.
+seo:
+  title: "Mode Débat : faire s'opposer deux agents IA"
+  description: Faire dialoguer deux agents IA en alternance, régler le nombre de tours et obtenir une synthèse de leurs désaccords.
 ---
 
 Débat est le mode principal de Palabre. Deux agents se répondent sur un même sujet avec le contexte et l'historique des réponses précédentes.

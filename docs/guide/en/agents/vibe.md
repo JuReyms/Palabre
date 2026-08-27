@@ -1,6 +1,9 @@
 ---
 title: Mistral Vibe
 description: Configure Mistral Vibe CLI in Palabre and use it as a CLI agent in a debate pair.
+seo:
+  title: Use Mistral Vibe as a debate agent
+  description: Configure Mistral Vibe CLI in Palabre and use it as a debate agent alongside Claude Code, Codex, or Ollama.
 ---
 
 Mistral Vibe is a development assistance CLI. Palabre uses it in programmatic mode with `--prompt`, then captures its text output.

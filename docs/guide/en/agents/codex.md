@@ -1,6 +1,9 @@
 ---
 title: Codex
 description: Configure Codex CLI in Palabre, optionally choose a model, and recognize common errors.
+seo:
+  title: Use Codex CLI as a debate agent
+  description: Configure Codex CLI in Palabre, pick a model, pair it against Claude Code, and recognize the errors that come up most often.
 ---
 
 Codex CLI lets you use Codex from the terminal.

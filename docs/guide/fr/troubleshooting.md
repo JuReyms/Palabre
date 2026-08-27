@@ -1,6 +1,9 @@
 ---
 title: Dépannage
 description: Résoudre les problèmes courants de configuration, de détection d'agents, d'Ollama ou de limites d'usage.
+seo:
+  title: Résoudre détection d'agents, Ollama et quotas
+  description: "Résoudre les problèmes Palabre les plus courants : configuration, détection des agents, Ollama et limites d'usage."
 ---
 
 Commencez par lancer le diagnostic :

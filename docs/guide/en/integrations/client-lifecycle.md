@@ -1,6 +1,9 @@
 ---
 title: Lifecycle, errors, and identity
 description: Handle exit codes, partial exports, cancellation, and integration provenance.
+seo:
+  title: Exit codes, cancellation, and partial exports
+  description: Handle Palabre exit codes, partial exports, and cancellation, and declare your integration's provenance.
 ---
 
 | Code | Meaning |

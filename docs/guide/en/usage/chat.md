@@ -1,6 +1,9 @@
 ---
 title: Chat mode
 description: Talk with one active agent, request a second opinion, and understand Chat's bounded memory.
+seo:
+  title: "Chat mode: talk to one agent, consult another"
+  description: Hold a conversation with one active agent, pull in a second opinion when you need it, and understand Chat's bounded memory.
 ---
 
 Chat fits situations where one agent is enough, with the option to consult another agent when useful.

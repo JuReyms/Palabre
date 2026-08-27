@@ -1,6 +1,9 @@
 ---
 title: Palabre skill
 description: Install the Palabre skill to run debates directly from a skills-compatible AI agent.
+seo:
+  title: Run debates from a skills-compatible agent
+  description: Install the Palabre skill so a skills-compatible AI agent can start debates and Ask requests on your behalf.
 ---
 
 Palabre ships a ready-to-use skill that teaches an AI agent when and how to orchestrate a debate with the Palabre CLI. The agent then knows how to frame a subject, pick an agent pair, inject context, and retrieve the exported summary.

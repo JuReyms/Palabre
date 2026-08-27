@@ -1,6 +1,9 @@
 ---
 title: Troubleshooting
 description: Resolve common issues with configuration, agent detection, Ollama, or usage limits.
+seo:
+  title: Fix agent detection, Ollama, and quota errors
+  description: "Resolve the most common Palabre issues: configuration, agent detection, Ollama connectivity, and usage limits."
 ---
 
 Start by running the diagnostic:

@@ -1,6 +1,9 @@
 ---
 title: Installation
 description: Installer Palabre depuis npm, vérifier la commande et préparer les agents IA utilisés par les débats et demandes Ask.
+seo:
+  title: Installer depuis npm et brancher vos agents IA
+  description: Installer Palabre globalement avec npm, vérifier la commande et connecter Claude Code, Codex, OpenCode ou Ollama avant le premier débat.
 ---
 
 ## Prérequis

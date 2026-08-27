@@ -1,6 +1,9 @@
 ---
 title: Paramètres par défaut
 description: Définir ou supprimer les agents, le nombre de tours et la synthèse utilisés par défaut.
+seo:
+  title: Définir agents, tours et synthèse par défaut
+  description: Définir la paire d'agents, le nombre de tours et le comportement de synthèse utilisés quand aucune option n'est passée.
 ---
 
 Les paramètres par défaut sont utilisés quand vous lancez une session sans préciser tous les agents ou toutes les options. Ils peuvent être partiels : vous pouvez définir seulement le nombre de tours, seulement la synthèse, ou une paire d'agents complète.

@@ -1,6 +1,9 @@
 ---
 title: Catalogues JSON
 description: Consommer les agents, presets, scans de contexte et exports récents au format JSON versionné.
+seo:
+  title: Catalogues JSON versionnés pour intégrations
+  description: Lire les agents, presets, scans de contexte et exports récents via des contrats JSON versionnés.
 ---
 
 Ces commandes écrivent un document JSON sur stdout et terminent sans lancer de session IA.

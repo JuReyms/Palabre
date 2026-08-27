@@ -1,6 +1,9 @@
 ---
 title: Agents
 description: Comprendre les agents Palabre, leurs rôles, leurs modèles et la différence entre CLIs externes et agents locaux.
+seo:
+  title: Agents IA compatibles et rôles disponibles
+  description: Claude Code, Codex, OpenCode, Mistral Vibe, Antigravity et Ollama peuvent participer à une session. Comparer agents CLI et agents locaux.
 ---
 
 Un agent Palabre est une entrée de configuration qui décrit comment appeler une IA.

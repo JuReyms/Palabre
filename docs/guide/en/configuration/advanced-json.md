@@ -1,6 +1,9 @@
 ---
 title: Advanced JSON
 description: Edit the configuration JSON directly for advanced use cases and custom agents.
+seo:
+  title: Edit palabre.config.json by hand
+  description: Edit the Palabre configuration JSON directly to define custom agents and cover cases the CLI does not expose.
 ---
 
 Most common settings can be done with `palabre config`. This page covers cases where you edit `palabre.config.json` directly.

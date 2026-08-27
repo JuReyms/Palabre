@@ -1,6 +1,9 @@
 ---
 title: Lancer une première session
 description: Ouvrir Palabre, lancer un premier débat depuis la TUI et retrouver son export Markdown.
+seo:
+  title: Lancer votre premier débat entre agents IA
+  description: Ouvrir Palabre, choisir deux agents dans la TUI, lancer un premier débat et retrouver l'export Markdown produit.
 ---
 
 Le parcours recommandé tient en une commande :

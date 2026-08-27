@@ -1,6 +1,9 @@
 ---
 title: Contexte et fichiers
 description: Ajouter du contexte à une session avec --files ou --context tout en gardant le contrôle sur les données transmises.
+seo:
+  title: Donner votre code aux agents
+  description: Transmettre des fichiers à une session avec --files ou --context, en gardant le contrôle sur les données envoyées.
 ---
 
 Palabre peut envoyer du contexte projet aux agents. C'est indispensable pour demander une critique de code, d'architecture ou de documentation.
