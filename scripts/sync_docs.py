@@ -64,6 +64,9 @@ def validate_frontmatter(path: Path, text: str) -> None:
     if missing:
         raise SystemExit(f"Missing {', '.join(missing)} in frontmatter: {path}")
 
+    if not re.search(r"^seo:\n(?:[ \t]+.*\n)*?[ \t]+title:\s*.+\n(?:[ \t]+.*\n)*?[ \t]+description:\s*.+$", meta, re.MULTILINE):
+        raise SystemExit(f"Missing seo.title or seo.description in frontmatter: {path}")
+
     body = text[match.end():].lstrip()
     if body.startswith("# "):
         raise SystemExit(f"Remove top-level H1 from body, title is frontmatter: {path}")

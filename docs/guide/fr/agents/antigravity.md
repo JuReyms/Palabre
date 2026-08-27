@@ -1,6 +1,9 @@
 ---
 title: Antigravity
 description: Configurer Antigravity CLI dans Palabre avec l'adapter PTY expérimental.
+seo:
+  title: "Configurer Antigravity CLI : PTY et --print-timeout"
+  description: Configurer Google Antigravity CLI avec Palabre, comprendre cli-pty et --print-timeout, puis résoudre les timeouts et sorties vides de la commande agy.
 ---
 
 Antigravity CLI peut être utilisé comme agent Palabre via la commande `agy`.

@@ -1,6 +1,9 @@
 ---
 title: Extension VS Code
 description: Installer l'extension Palabre pour lancer des sessions Débat, Chat ou Ask depuis VS Code avec les agents exposés par la CLI.
+seo:
+  title: "Palabre pour VS Code : conversations entre agents IA"
+  description: Installer Palabre pour VS Code afin de lancer des sessions Débat, Chat ou Ask, comparer des agents IA, ajouter le contexte du projet et suivre les résultats.
 ---
 
 L'extension VS Code ajoute un panneau Palabre dans l'éditeur. Elle permet de préparer un sujet, choisir des agents, ajouter du contexte workspace, suivre une session Débat, Chat ou Ask et ouvrir l'export Markdown correspondant.
