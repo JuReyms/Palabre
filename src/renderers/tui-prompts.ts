@@ -323,7 +323,7 @@ export function questionWithBufferedComposer(
         ...visibleMatches.map((match) => `${surfacePadding()}${match === command
           ? accent(`${glyphs().pointer} ${match}`)
           : dim(`  ${match}`)}`),
-        dim(`${surfacePadding()}↑↓ choisir · Tab compléter · Entrée lancer`)
+        dim(`${surfacePadding()}↑↓ choisir · Tab ou → compléter · Entrée lancer`)
       ];
       composerOutput.write(`\u001b[s\r\n${menuLines.join("\r\n")}\u001b[u`);
       completionMenuRows = menuLines.length;
@@ -363,9 +363,13 @@ export function questionWithBufferedComposer(
       clearCompletionSuffix();
       clearCompletionMenu();
 
-      if (key.name === "tab") {
-        acceptSelectedCompletion();
-        queueCompletionRender(25, true);
+      if (key.name === "tab" || key.name === "right") {
+        const accepted = acceptSelectedCompletion();
+        if (accepted) {
+          queueCompletionRender(25, true);
+        } else if (key.name === "right" && controlsReadlineInput) {
+          rl.write(value, key);
+        }
         return;
       }
 
