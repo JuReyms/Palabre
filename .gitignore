@@ -21,6 +21,9 @@ palabre.config.json
 .palabre/
 .antigravitycli/
 
+## Local Codex environment
+.codex/
+
 ## ressources 
 docs/ressources/
 
