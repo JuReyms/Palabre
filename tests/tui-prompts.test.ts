@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { PassThrough } from "node:stream";
 import { createInterface } from "node:readline";
 import { createTranslator } from "../src/i18n.js";
-import { normalizeBufferedComposerLines, promptTuiChatMessage, promptTuiChatMessageWithReadline, questionWithBufferedComposer, renderChatSessionPrompt, tuiHomeInterruptInput } from "../src/renderers/tui-prompts.js";
+import { completeTuiCommand, normalizeBufferedComposerLines, promptTuiChatMessage, promptTuiChatMessageWithReadline, questionWithBufferedComposer, renderChatSessionPrompt, tuiHomeInterruptInput } from "../src/renderers/tui-prompts.js";
 
 test("first Ctrl+C from a TUI view returns home and the second quits", () => {
   assert.deepEqual(tuiHomeInterruptInput("back"), { kind: "home" });
@@ -15,6 +15,18 @@ test("multiline bracketed paste is kept as one composer answer", () => {
     "\u001b[200~first line",
     "second line\u001b[201~"
   ]), "first line\nsecond line");
+});
+
+test("TUI command completion filters commands by prefix and context", () => {
+  assert.deepEqual(completeTuiCommand("/ch", "home"), [["/chat"], "/ch"]);
+  assert.deepEqual(completeTuiCommand("/ol", "config"), [["/ollama", "/ollama-url", "/ollama-host", "/ollama-model", "/ollama-sync"], "/ol"]);
+  assert.deepEqual(completeTuiCommand("/co", "chat"), [["/consult"], "/co"]);
+  assert.deepEqual(completeTuiCommand("/config", "chat"), [[], "/config"]);
+});
+
+test("TUI command completion leaves ordinary messages and command arguments untouched", () => {
+  assert.deepEqual(completeTuiCommand("discuss this", "home"), [[], "discuss this"]);
+  assert.deepEqual(completeTuiCommand("/consult codex", "chat"), [[], "/consult codex"]);
 });
 
 test("the shared composer accepts Enter after repeated Config and Home cycles", async () => {

@@ -130,6 +130,31 @@ export type TuiQuestionResult =
 let lastTuiInterruptAt = 0;
 const doubleInterruptMs = 1200;
 let composerReadline: ReturnType<typeof createInterface> | undefined;
+let composerCompletionContext: TuiCommandCompletionContext = "home";
+
+export type TuiCommandCompletionContext = "home" | "config" | "chat";
+
+const TUI_COMMAND_COMPLETIONS: Record<TuiCommandCompletionContext, readonly string[]> = {
+  home: [
+    "/new", "/retry", "/update", "/history", "/historique", "/home", "/back", "/config",
+    "/agents", "/chat", "/ask", "/debat", "/débat", "/debate", "/help", "/roles", "/quit"
+  ],
+  config: [
+    "/home", "/back", "/mode", "/default", "/interface", "/language", "/langue", "/lang",
+    "/agents", "/roles", "/turns", "/summary", "/ollama", "/ollama-url", "/ollama-host",
+    "/ollama-model", "/model", "/ollama-sync", "/quit"
+  ],
+  chat: ["/agents", "/use", "/consult", "/end", "/home", "/back", "/quit", "/exit"]
+};
+
+/** Suggestions Tab pour le premier mot d'une commande TUI, filtrées par écran. */
+export function completeTuiCommand(line: string, context: TuiCommandCompletionContext): [string[], string] {
+  if (!line.startsWith("/") || /\s/.test(line)) return [[], line];
+
+  const prefix = line.toLocaleLowerCase();
+  const matches = TUI_COMMAND_COMPLETIONS[context].filter((command) => command.toLocaleLowerCase().startsWith(prefix));
+  return [matches, line];
+}
 
 /**
  * Accueil et Config partagent le même reader. Sous ConPTY, fermer le reader qui
@@ -137,7 +162,11 @@ let composerReadline: ReturnType<typeof createInterface> | undefined;
  */
 function getComposerReadline(): ReturnType<typeof createInterface> {
   if (composerReadline) return composerReadline;
-  const rl = createInterface({ input, output });
+  const rl = createInterface({
+    input,
+    output,
+    completer: (line: string) => completeTuiCommand(line, composerCompletionContext)
+  });
   composerReadline = rl;
   rl.once("close", () => {
     if (composerReadline === rl) composerReadline = undefined;
@@ -201,7 +230,7 @@ export function promptTuiChatMessageWithReadline(
 ): Promise<TuiQuestionResult> {
   const prompt = renderChatSessionPrompt(messages);
   const linePrompt = `${surfacePadding()}${accent(glyphs().prompt)} `;
-  return questionWithBufferedComposer(rl, prompt, linePrompt, 0, streams);
+  return questionWithBufferedComposer(rl, prompt, linePrompt, 0, streams, "chat");
 }
 
 
@@ -211,7 +240,8 @@ export function questionWithBufferedComposer(
   prompt: string,
   linePrompt: string,
   trailingLines: number,
-  streams: { input: NodeJS.ReadableStream; output: NodeJS.WritableStream } = { input, output }
+  streams: { input: NodeJS.ReadableStream; output: NodeJS.WritableStream } = { input, output },
+  completionContext: TuiCommandCompletionContext = "home"
 ): Promise<TuiQuestionResult> {
   return new Promise((resolve) => {
     const composerInput = streams.input;
@@ -268,6 +298,7 @@ export function questionWithBufferedComposer(
     rl.on("line", onLine);
     rl.once("SIGINT", onSigint);
     rl.once("close", onClose);
+    composerCompletionContext = completionContext;
     rl.setPrompt(linePrompt);
     composerInput.prependOnceListener("keypress", clearPlaceholder);
     composerInput.resume();
@@ -295,7 +326,7 @@ export async function promptTuiHomeTopic(mode: TuiHomeMode = "debate", messages:
   let keepReader = false;
   try {
     const layout = homeComposerPrompt(mode, messages, options.notice, options.bare);
-    const result = await questionWithBufferedComposer(rl, layout.prompt, layout.linePrompt, layout.trailingLines);
+    const result = await questionWithBufferedComposer(rl, layout.prompt, layout.linePrompt, layout.trailingLines, undefined, "home");
     if (result.kind !== "answer") {
       keepReader = result.kind === "back";
       return tuiHomeInterruptInput(result.kind);
@@ -384,7 +415,7 @@ export async function promptTuiConfigCommand(mode: PalabreMode, messages: Messag
   let keepReader = true;
   try {
     const layout = configComposerPrompt(mode, messages);
-    const result = await questionWithBufferedComposer(rl, layout.prompt, layout.linePrompt, layout.trailingLines);
+    const result = await questionWithBufferedComposer(rl, layout.prompt, layout.linePrompt, layout.trailingLines, undefined, "config");
     if (result.kind === "quit") {
       keepReader = false;
       return { kind: "quit" };
