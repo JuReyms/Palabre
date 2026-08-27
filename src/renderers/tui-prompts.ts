@@ -146,23 +146,13 @@ const TUI_COMMAND_COMPLETIONS: Record<TuiCommandCompletionContext, readonly stri
   chat: ["/agents", "/use", "/consult", "/end", "/home", "/back", "/quit", "/exit"]
 };
 
-/** Suggestions Tab pour le premier mot d'une commande TUI, filtrées par écran. */
+/** Suggestions de commande pour le premier mot d'une commande TUI, filtrées par écran. */
 export function completeTuiCommand(line: string, context: TuiCommandCompletionContext): [string[], string] {
   if (!line.startsWith("/") || /\s/.test(line)) return [[], line];
 
   const prefix = line.toLocaleLowerCase();
   const matches = TUI_COMMAND_COMPLETIONS[context].filter((command) => command.toLocaleLowerCase().startsWith(prefix));
   return [matches, line];
-}
-
-function commonPrefix(values: readonly string[]): string {
-  if (values.length === 0) return "";
-
-  return values.slice(1).reduce((prefix, value) => {
-    let index = 0;
-    while (index < prefix.length && prefix[index] === value[index]) index += 1;
-    return prefix.slice(0, index);
-  }, values[0]);
 }
 
 /**
@@ -256,7 +246,12 @@ export function questionWithBufferedComposer(
     const composerOutput = streams.output;
     const lines: string[] = [];
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let completionRenderTimer: ReturnType<typeof setTimeout> | undefined;
     let settled = false;
+    let completionMenuRows = 0;
+    let completionSuffix = "";
+    let selectedCommand: string | undefined;
+    let completionRenderQueued = false;
     const clearPlaceholder = (
       value: string,
       key: { ctrl?: boolean; meta?: boolean; name?: string }
@@ -268,22 +263,106 @@ export function questionWithBufferedComposer(
       }
       if (supportsInteractiveOutput) composerOutput.write("\u001b[0K");
     };
-    const completeCommand = (_value: string, key: { name?: string }) => {
-      if (key.name !== "tab" || rl.cursor !== rl.line.length) return;
+    const clearCompletionSuffix = () => {
+      if (!completionSuffix || !supportsInteractiveOutput) return;
+      composerOutput.write("\u001b[0K");
+      completionSuffix = "";
+    };
+    const clearCompletionMenu = () => {
+      if (completionMenuRows === 0 || !supportsInteractiveOutput) return;
 
+      composerOutput.write("\u001b[s\r\n");
+      for (let index = 0; index < completionMenuRows; index += 1) {
+        composerOutput.write("\u001b[2K");
+        if (index < completionMenuRows - 1) composerOutput.write("\r\n");
+      }
+      composerOutput.write("\u001b[u");
+      completionMenuRows = 0;
+    };
+    const matchingCommands = () => {
+      if (rl.cursor !== rl.line.length) return [];
       const [matches] = completeTuiCommand(rl.line, completionContext);
-      if (matches.length === 0) return;
+      return matches;
+    };
+    const selectedCompletion = () => {
+      const matches = matchingCommands();
+      if (!matches.includes(selectedCommand ?? "")) selectedCommand = matches[0];
+      return { matches, command: selectedCommand };
+    };
+    const renderCompletion = () => {
+      completionRenderQueued = false;
+      clearCompletionSuffix();
+      clearCompletionMenu();
 
-      const prefix = commonPrefix(matches);
-      if (prefix.length > rl.line.length) {
-        rl.write(prefix.slice(rl.line.length));
+      const { matches, command } = selectedCompletion();
+      if (!command || command === rl.line || !supportsInteractiveOutput) return;
+
+      completionSuffix = command.slice(rl.line.length);
+      if (completionSuffix) {
+        composerOutput.write(`${dim(completionSuffix)}\u001b[${completionSuffix.length}D`);
+      }
+
+      const visibleMatches = matches.slice(0, 6);
+      const menuLines = [
+        ...visibleMatches.map((match) => `${surfacePadding()}${match === command
+          ? accent(`${glyphs().pointer} ${match}`)
+          : dim(`  ${match}`)}`),
+        dim(`${surfacePadding()}↑↓ choisir · Tab compléter · Entrée lancer`)
+      ];
+      composerOutput.write(`\u001b[s\r\n${menuLines.join("\r\n")}\u001b[u`);
+      completionMenuRows = menuLines.length;
+    };
+    const queueCompletionRender = (delay = 0, replace = false) => {
+      if (replace && completionRenderTimer) {
+        clearTimeout(completionRenderTimer);
+        completionRenderQueued = false;
+      }
+      if (completionRenderQueued) return;
+      completionRenderQueued = true;
+      completionRenderTimer = setTimeout(() => {
+        completionRenderTimer = undefined;
+        if (settled) return;
+        if (supportsInteractiveOutput) {
+          composerOutput.write(`\r\u001b[2K${linePrompt}${rl.line}`);
+        }
+        renderCompletion();
+      }, delay);
+    };
+    const acceptSelectedCompletion = () => {
+      const { command } = selectedCompletion();
+      if (!command) return false;
+
+      clearCompletionSuffix();
+      clearCompletionMenu();
+      rl.write(command.slice(rl.line.length));
+      selectedCommand = command;
+      return true;
+    };
+    const completeCommand = (_value: string, key: { name?: string }) => {
+      clearCompletionSuffix();
+      clearCompletionMenu();
+
+      if (key.name === "tab") {
+        acceptSelectedCompletion();
+        queueCompletionRender(25, true);
         return;
       }
 
-      if (matches.length > 1 && supportsInteractiveOutput) {
-        composerOutput.write(`\r\n${dim(matches.join("  "))}\r\n`);
-        rl.prompt(true);
+      if (key.name === "return") {
+        acceptSelectedCompletion();
+        return;
       }
+
+      if (key.name === "up" || key.name === "down") {
+        const { matches, command } = selectedCompletion();
+        if (matches.length > 0) {
+          const currentIndex = Math.max(0, matches.indexOf(command ?? ""));
+          const offset = key.name === "down" ? 1 : -1;
+          selectedCommand = matches[(currentIndex + offset + matches.length) % matches.length];
+        }
+      }
+
+      queueCompletionRender();
     };
     const finishLayout = () => {
       if (!supportsInteractiveOutput) return;
@@ -292,6 +371,7 @@ export function questionWithBufferedComposer(
     };
     const cleanup = () => {
       if (timer) clearTimeout(timer);
+      if (completionRenderTimer) clearTimeout(completionRenderTimer);
       rl.off("line", onLine);
       rl.off("SIGINT", onSigint);
       rl.off("close", onClose);
@@ -324,6 +404,7 @@ export function questionWithBufferedComposer(
     rl.on("line", onLine);
     rl.once("SIGINT", onSigint);
     rl.once("close", onClose);
+    (rl as typeof rl & { history: string[] }).history = [];
     rl.setPrompt(linePrompt);
     composerInput.prependListener("keypress", completeCommand);
     composerInput.prependOnceListener("keypress", clearPlaceholder);
