@@ -4,6 +4,12 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { listHistoryEntries } from "../src/history.js";
+import {
+  DEFAULT_HISTORY_LIMIT,
+  MAX_HISTORY_LIMIT,
+  resolveHistoryLimit
+} from "../src/commands/history.js";
+import { createTranslator } from "../src/i18n.js";
 
 test("listHistoryEntries reads Palabre markdown exports", async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "palabre-history-"));
@@ -38,4 +44,24 @@ test("listHistoryEntries returns an empty list when the export directory is miss
   const entries = await listHistoryEntries(path.join(os.tmpdir(), "missing-palabre-history"));
 
   assert.deepEqual(entries, []);
+});
+
+test("resolveHistoryLimit applies a bounded integration limit", () => {
+  const messages = createTranslator("fr");
+
+  assert.equal(resolveHistoryLimit(undefined, messages), DEFAULT_HISTORY_LIMIT);
+  assert.equal(resolveHistoryLimit("25", messages), 25);
+  assert.equal(resolveHistoryLimit(String(MAX_HISTORY_LIMIT), messages), MAX_HISTORY_LIMIT);
+  assert.throws(
+    () => resolveHistoryLimit("0", messages),
+    /--limit doit être un nombre entier entre 1 et 100/
+  );
+  assert.throws(
+    () => resolveHistoryLimit("101", messages),
+    /--limit doit être un nombre entier entre 1 et 100/
+  );
+  assert.throws(
+    () => resolveHistoryLimit("beaucoup", messages),
+    /--limit doit être un nombre entier entre 1 et 100/
+  );
 });
