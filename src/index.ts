@@ -10,7 +10,7 @@ import { createInterface } from "node:readline/promises";
 import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeConfig } from "./config.js";
 import { isConfigTrusted, isImplicitProjectConfig, trustConfig } from "./configTrust.js";
 import { loadProjectInputs } from "./context.js";
-import { discoverLocalTools, discoverLocalToolsForConfig } from "./discovery.js";
+import { discoverLocalTools, discoverLocalToolsForConfig, type ToolDiscovery } from "./discovery.js";
 import { runDoctor } from "./doctor.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
 import { runConfigWizard } from "./configWizard.js";
@@ -161,6 +161,7 @@ async function main(): Promise<void> {
   let tuiMode: TuiHomeMode = config.defaults?.mode ?? "debate";
   let tuiVersion = "";
   let tuiLatestVersion: string | undefined;
+  let tuiDiscovery: ToolDiscovery | undefined;
 
   const handleTuiHomeInput = async (tuiInput: TuiHomeInput): Promise<"continue" | "run" | "retry" | "quit"> => {
     let input = tuiInput;
@@ -289,7 +290,7 @@ async function main(): Promise<void> {
 
   const resumeTuiHome = async (): Promise<"run" | "quit"> => {
     for (;;) {
-      renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion });
+      renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion, discovery: tuiDiscovery });
       const nextInput = await promptTuiHomeTopic(tuiMode, messages, { notice: tuiNotice });
       tuiNotice = undefined;
       const action = await handleTuiHomeInput(nextInput);
@@ -313,12 +314,13 @@ async function main(): Promise<void> {
 
     stayInTuiAfterSession = true;
     tuiVersion = currentVersion;
+    tuiDiscovery = syncResult.discovery;
     tuiLatestVersion = latestVersion && compareSemver(currentVersion, latestVersion) < 0
       ? latestVersion
       : undefined;
 
     for (;;) {
-      renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion });
+      renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion, discovery: tuiDiscovery });
       const tuiInput = await promptTuiHomeTopic(tuiMode, messages, { notice: tuiNotice });
       tuiNotice = undefined;
       const action = await handleTuiHomeInput(tuiInput);
@@ -496,7 +498,7 @@ async function main(): Promise<void> {
       const action = await handleTuiHomeInput(nextInput);
       if (action === "quit") return;
       if (action === "continue") {
-        renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion });
+        renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion, discovery: tuiDiscovery });
         continue;
       }
       if (action === "retry") {

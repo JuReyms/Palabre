@@ -1,7 +1,7 @@
 /** @file Contrôleur des interactions TUI qui lisent et persistent la configuration Palabre. */
 import { setOllamaBaseUrl, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeConfig } from "./config.js";
 import { activeConfiguredAgentNames, isRetiredAgentName } from "./agentRegistry.js";
-import { discoverLocalToolsForConfig } from "./discovery.js";
+import { discoverLocalToolsForConfig, type ToolDiscovery } from "./discovery.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
 import { createTranslator, DEFAULT_LANGUAGE, parseLanguage } from "./i18n.js";
 import { MAX_ASK_AGENTS, validateTurns } from "./limits.js";
@@ -312,9 +312,9 @@ async function syncTuiOllamaModel(configPath: string, config: PalabreConfig, mes
  *
  * @param configPath - Fichier à réécrire uniquement si la synchronisation change la config.
  * @param config - Configuration chargée et mise à jour en mémoire.
- * @returns Les noms des agents nouvellement ajoutés, utilisés pour la notice d'accueil.
+ * @returns Les agents ajoutés et la découverte réutilisée par l'accueil.
  */
-export async function syncInteractiveDetectedAgents(configPath: string, config: PalabreConfig): Promise<{ addedAgents: string[] }> {
+export async function syncInteractiveDetectedAgents(configPath: string, config: PalabreConfig): Promise<{ addedAgents: string[]; discovery: ToolDiscovery }> {
   const discovery = await discoverLocalToolsForConfig(config);
   const result = syncDetectedAgentsDetailed(config, discovery);
 
@@ -323,7 +323,8 @@ export async function syncInteractiveDetectedAgents(configPath: string, config: 
   }
 
   return {
-    addedAgents: result.addedAgents
+    addedAgents: result.addedAgents,
+    discovery
   };
 }
 

@@ -371,6 +371,11 @@ export function dim(value: string): string {
   return supportsColor ? `${codes.dim}${value}${codes.reset}` : value;
 }
 
+/** Texte secondaire gris, sans modifier son intensité. */
+export function muted(value: string): string {
+  return supportsColor ? `${codes.gray}${value}${codes.reset}` : value;
+}
+
 /** Couleur d'accent Palabre (violet). */
 export function accent(value: string): string {
   return supportsColor ? `${codes.violet}${value}${codes.reset}` : value;
@@ -389,6 +394,11 @@ export function success(value: string): string {
 /** Token sémantique : avertissement non bloquant. */
 export function warning(value: string): string {
   return supportsColor ? `${codes.yellow}${value}${codes.reset}` : value;
+}
+
+/** Icône d'avertissement orange, distincte du texte qui l'accompagne. */
+export function warningIcon(value: string): string {
+  return supportsColor ? `${codes.orange}${value}${codes.reset}` : value;
 }
 
 /** Token sémantique : erreur. */

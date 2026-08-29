@@ -48,7 +48,7 @@ L'accueil TUI applique la même synchronisation prudente des agents connus que `
 
 | Commande | Description |
 |----------|-------------|
-| `palabre new` | Ouvre l'assistant guidé de création d'un débat ou d'une demande Ask. |
+| `palabre new` | Compose une session Chat, Débat ou Ask, affiche son récapitulatif puis permet de la lancer ou de personnaliser ses options. |
 | `palabre -s "Sujet" -t 4` | Lance avec les agents par défaut. |
 | `palabre codex-claude "Sujet" -t 4` | Lance avec un preset. |
 | `palabre run --subject "Sujet" --agent-a codex --agent-b claude` | Lance avec des agents explicites. |
@@ -74,6 +74,8 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 
 | Commande | Description |
 |----------|-------------|
+| `/` | Affiche la liste contextuelle des commandes canoniques ; les flèches, `Tab` ou `→` complètent la sélection. |
+| `/new` | Ouvre le parcours guidé de composition d'une session Chat, Débat ou Ask. |
 | `/chat` | Ouvre une conversation avec l'agent A par défaut. `/home` ou `/exit` revient à l'accueil. |
 | `/ask` | Passe l'accueil TUI en mode Ask. |
 | `/debat` | Passe l'accueil TUI en mode débat. |

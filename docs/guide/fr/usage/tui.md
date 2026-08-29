@@ -14,12 +14,22 @@ La TUI est l'interface recommandée pour une utilisation humaine. Elle crée la 
 
 ## Accueil
 
-L'accueil affiche le mode courant — Débat en premier —, les agents et rôles actifs, la synthèse, le nombre de réponses, le dossier courant et les commandes disponibles. Saisissez un sujet directement pour lancer le mode courant.
+L'accueil résume la session courante sur deux lignes : mode, agents avec leurs rôles, nombre de réponses et agent de synthèse. Il affiche ensuite les raccourcis essentiels et le dossier courant. Si un agent nécessaire à la session n'est pas disponible, un avertissement indique `/agents` ou `/config` selon le réglage à corriger.
+
+Saisissez un sujet directement pour lancer le mode courant. Tapez `/` pour ouvrir la liste contextuelle des commandes ; utilisez les flèches, `Tab` ou `→` pour compléter, puis `Entrée` pour lancer.
+
+## Composer une nouvelle session
+
+`/new` ouvre un parcours guidé commun à Chat, Débat et Ask. Choisissez le mode, les agents puis le sujet. Palabre affiche un récapitulatif compact et propose ensuite de lancer la session, de la personnaliser ou de l'annuler.
+
+La personnalisation donne accès au nombre de réponses, aux modèles transmis aux agents, à la synthèse, au contexte et aux options de rendu. Les identifiants de modèle restent ceux de la CLI concernée ; Palabre ne maintient pas de catalogue de modèles distants.
 
 ## Commandes principales
 
 | Commande | Effet |
 |----------|-------|
+| `/` | Affiche les commandes utiles dans la vue courante. |
+| `/new` | Compose une session Chat, Débat ou Ask pas à pas. |
 | `/debat` | Passe au mode principal Débat. |
 | `/chat` | Ouvre une conversation. |
 | `/ask` | Passe aux réponses indépendantes. |

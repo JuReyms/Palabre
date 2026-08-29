@@ -48,7 +48,7 @@ The TUI home screen performs the same conservative known-agent synchronization a
 
 | Command | Description |
 |---------|-------------|
-| `palabre new` | Opens the guided assistant for a debate or Ask request. |
+| `palabre new` | Composes a Chat, Debate, or Ask session, shows its summary, and then lets you launch or customize it. |
 | `palabre -s "Subject" -t 4` | Launches with default agents. |
 | `palabre codex-claude "Subject" -t 4` | Launches with a preset. |
 | `palabre run --subject "Subject" --agent-a codex --agent-b claude` | Launches with explicit agents. |
@@ -74,6 +74,8 @@ These commands are available from the TUI home screen or from `/config` dependin
 
 | Command | Description |
 |---------|-------------|
+| `/` | Displays the contextual list of canonical commands; arrow keys, `Tab`, or `→` complete the selection. |
+| `/new` | Opens the guided flow for composing a Chat, Debate, or Ask session. |
 | `/chat` | Opens a conversation with the default agent A. `/home` or `/exit` returns to the home screen. |
 | `/ask` | Switches the TUI home screen to Ask mode. |
 | `/debat` | Switches the TUI home screen to debate mode. |
