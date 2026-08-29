@@ -309,7 +309,7 @@ test("NdjsonRenderer always includes v=1 on every line", () => {
 });
 
 test("NdjsonRenderer matches the versioned debate fixture", async () => {
-  const fixture = (await readFile(path.join("tests", "fixtures", "ndjson", "debate-with-summary.ndjson"), "utf8")).trim().split("\n");
+  const fixture = (await readFile(path.join("tests", "fixtures", "ndjson", "debate-with-summary.ndjson"), "utf8")).trim().split(/\r?\n/);
   const capture = captureStdout();
   try {
     const renderer = new NdjsonRenderer();

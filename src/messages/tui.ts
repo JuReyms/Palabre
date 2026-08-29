@@ -6,6 +6,8 @@ export interface TuiMessages {
   modeLabel(mode: PalabreMode): string;
   modeValue(mode: PalabreMode): string;
   composerPlaceholder(mode: PalabreMode): string;
+  commandDescription(command: string): string;
+  completionNavigationHint: string;
   noValue: string;
   lastAskAgent: string;
   roles: string;
@@ -142,6 +144,84 @@ export interface TuiMessages {
   chatAgentsUsage: string;
 }
 
+const completionCommandAliases: Record<string, string> = {
+  "/débat": "/debat",
+  "/debate": "/debat",
+  "/historique": "/history",
+  "/langue": "/language",
+  "/lang": "/language",
+  "/ollama-host": "/ollama-url",
+  "/exit": "/quit"
+};
+
+const completionDescriptions: Record<Language, Record<string, string>> = {
+  fr: {
+    "/chat": "Converser avec un agent",
+    "/debat": "Faire confronter deux agents",
+    "/ask": "Comparer plusieurs réponses indépendantes",
+    "/agents": "Choisir les agents actifs",
+    "/roles": "Attribuer un rôle aux agents",
+    "/config": "Modifier les réglages",
+    "/help": "Afficher toutes les commandes",
+    "/history": "Consulter les derniers exports",
+    "/retry": "Relancer la dernière session",
+    "/update": "Vérifier les mises à jour",
+    "/new": "Ouvrir l'assistant guidé",
+    "/home": "Revenir à l'accueil",
+    "/back": "Revenir à l'écran précédent",
+    "/quit": "Quitter Palabre",
+    "/mode": "Changer le mode actif",
+    "/default": "Modifier les choix par défaut",
+    "/interface": "Choisir l'interface par défaut",
+    "/language": "Changer la langue",
+    "/turns": "Définir le nombre de tours",
+    "/summary": "Choisir l'agent de synthèse",
+    "/ollama": "Afficher la configuration Ollama",
+    "/ollama-model": "Choisir le modèle Ollama",
+    "/ollama-url": "Modifier l'adresse Ollama",
+    "/ollama-sync": "Synchroniser les modèles installés",
+    "/model": "Choisir le modèle Ollama",
+    "/consult": "Demander l'avis d'un autre agent",
+    "/use": "Changer d'agent dans la conversation",
+    "/end": "Terminer et exporter la conversation"
+  },
+  en: {
+    "/chat": "Talk with one agent",
+    "/debat": "Have two agents challenge each other",
+    "/ask": "Compare independent responses",
+    "/agents": "Choose the active agents",
+    "/roles": "Assign roles to agents",
+    "/config": "Change settings",
+    "/help": "Show all commands",
+    "/history": "Browse recent exports",
+    "/retry": "Run the last session again",
+    "/update": "Check for updates",
+    "/new": "Open the guided assistant",
+    "/home": "Return to home",
+    "/back": "Return to the previous screen",
+    "/quit": "Quit Palabre",
+    "/mode": "Change the active mode",
+    "/default": "Change default choices",
+    "/interface": "Choose the default interface",
+    "/language": "Change the language",
+    "/turns": "Set the number of turns",
+    "/summary": "Choose the summary agent",
+    "/ollama": "Show Ollama settings",
+    "/ollama-model": "Choose the Ollama model",
+    "/ollama-url": "Change the Ollama address",
+    "/ollama-sync": "Sync installed models",
+    "/model": "Choose the Ollama model",
+    "/consult": "Ask another agent for an opinion",
+    "/use": "Switch agent in the conversation",
+    "/end": "End and export the conversation"
+  }
+};
+
+function completionDescription(language: Language, command: string): string {
+  const canonicalCommand = completionCommandAliases[command] ?? command;
+  return completionDescriptions[language][canonicalCommand] ?? "";
+}
+
 export const tuiMessages: Record<Language, TuiMessages> = {
   fr: {
     tagline: "Orchestrez des conversations entre agents IA",
@@ -149,6 +229,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     modeLabel: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debat",
     modeValue: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debat",
     composerPlaceholder: (mode) => mode === "chat" ? "De quoi voulez-vous discuter ?" : mode === "ask" ? "Quelle question voulez-vous poser aux agents ?" : "Quel sujet voulez-vous faire débattre ?",
+    commandDescription: (command) => completionDescription("fr", command),
+    completionNavigationHint: "↑↓ choisir  ·  Tab ou → compléter  ·  Entrée lancer",
     noValue: "non definis",
     lastAskAgent: "dernier agent ask",
     roles: "Roles",
@@ -287,6 +369,8 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     modeLabel: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debate",
     modeValue: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debate",
     composerPlaceholder: (mode) => mode === "chat" ? "What would you like to discuss?" : mode === "ask" ? "What question would you like to ask the agents?" : "What topic would you like the agents to debate?",
+    commandDescription: (command) => completionDescription("en", command),
+    completionNavigationHint: "↑↓ choose  ·  Tab or → complete  ·  Enter run",
     noValue: "not set",
     lastAskAgent: "last ask agent",
     roles: "Roles",
