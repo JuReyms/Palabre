@@ -39,6 +39,18 @@ const RETIRED_AGENT_NAMES = new Set(["gemini"]);
 export function isRetiredAgentName(name: string): boolean {
   return RETIRED_AGENT_NAMES.has(name.toLowerCase());
 }
+
+/** Retourne uniquement les agents configurés encore actifs dans le produit. */
+export function activeConfiguredAgentEntries(
+  config: Pick<PalabreConfig, "agents">
+): Array<[string, AgentConfig]> {
+  return Object.entries(config.agents).filter(([name]) => !isRetiredAgentName(name));
+}
+
+/** Retourne les noms configurés qui peuvent encore être proposés à l'utilisateur. */
+export function activeConfiguredAgentNames(config: Pick<PalabreConfig, "agents">): string[] {
+  return activeConfiguredAgentEntries(config).map(([name]) => name);
+}
 /** Clé de config de l'agent Ollama local par défaut. */
 export const OLLAMA_AGENT_KEY = "ollama-local";
 

@@ -134,13 +134,19 @@ test("createTranslator returns localized preview messages", () => {
 });
 
 test("createTranslator returns localized new wizard messages", () => {
-  assert.equal(createTranslator("fr").new.title, "PALABRE - ASSISTANT DE CONFIGURATION");
-  assert.equal(createTranslator("en").new.title, "PALABRE - SETUP ASSISTANT");
+  assert.equal(createTranslator("fr").new.title, "PALABRE - NOUVELLE SESSION");
+  assert.equal(createTranslator("en").new.title, "PALABRE - NEW SESSION");
+  assert.equal(createTranslator("fr").new.launchSession("ask"), "Lancer la session Ask");
+  assert.equal(createTranslator("fr").new.turns(20), "Nombre de réponses (1 à 20)");
   assert.equal(createTranslator("en").new.detectedCli("reviewer"), "cli/reviewer detected");
   assert.equal(createTranslator("en").new.modeAsk, "Request with independent responses");
-  assert.equal(createTranslator("en").new.modelFor("codex"), "Model for codex (optional)");
+  assert.equal(createTranslator("en").new.modeChat, "Conversation with one agent");
+  assert.equal(
+    createTranslator("en").new.modelFor("opencode", "provider/model"),
+    "Model for opencode (provider/model, Enter = default)"
+  );
   assert.equal(createTranslator("en").new.yesNoSuffix(false), "y/N");
-  assert.equal(createTranslator("en").new.cancelled, "Debate creation cancelled.");
+  assert.equal(createTranslator("en").new.cancelled, "Session creation cancelled.");
 });
 
 test("createTranslator returns localized console renderer messages", () => {

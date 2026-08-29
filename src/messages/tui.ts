@@ -16,13 +16,13 @@ export interface TuiMessages {
   ollamaUrl: string;
   ollamaUrlEffective: string;
   responses: string;
+  session: string;
   folder: string;
   docs: string;
   changeMode: string;
   chatReady: string;
-  tipContext: string;
-  homeCommands: string;
-  homeModes: string;
+  homeQuickActions: string;
+  unavailableSessionAgents(agents: string, count: number, command: string): string;
   chatTip: string;
   chatComposerCommands: string;
   askTip: string;
@@ -224,7 +224,7 @@ function completionDescription(language: Language, command: string): string {
 
 export const tuiMessages: Record<Language, TuiMessages> = {
   fr: {
-    tagline: "Orchestrez des conversations entre agents IA",
+    tagline: "Orchestrez des agents IA pour éclairer vos décisions",
     updateAvailable: (current, latest) => `Mise a jour disponible: ${current} -> ${latest}. Utilise /update.`,
     modeLabel: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debat",
     modeValue: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debat",
@@ -238,14 +238,14 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     ollamaModel: "Modele Ollama",
     ollamaUrl: "Adresse Ollama",
     ollamaUrlEffective: "Adresse Ollama effective",
-    responses: "Tours",
+    responses: "Réponses",
+    session: "Session",
     folder: "Dossier",
     docs: "Docs",
     changeMode: "changer de mode",
     chatReady: "conversation",
-    tipContext: "Tip Ajoute du contexte avec --context <dossier> ou --files <fichier>.",
-    homeCommands: "/config reglages · /roles roles des agents · /help commandes disponibles",
-    homeModes: "/debat débat entre deux agents · /chat conversation · /ask réponses multiples",
+    homeQuickActions: "/ commandes · /new session guidée · /history dernières sessions",
+    unavailableSessionAgents: (agents, count, command) => `Session à vérifier : ${agents} ${count > 1 ? "indisponibles" : "indisponible"} · ${command}`,
     chatTip: "/chat : une conversation, puis un avis supplémentaire seulement si utile.",
     chatComposerCommands: "/consult <agent> avis · /use <agent> basculer · /agents liste · /end exporter · /home accueil",
     askTip: "Ask : plusieurs réponses indépendantes à la même question.",
@@ -364,7 +364,7 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     chatAgentsUsage: "Usage: /agents <agent>"
   },
   en: {
-    tagline: "Orchestrate conversations between AI agents",
+    tagline: "Orchestrate AI agents to inform your decisions",
     updateAvailable: (current, latest) => `Update available: ${current} -> ${latest}. Use /update.`,
     modeLabel: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debate",
     modeValue: (mode) => mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debate",
@@ -378,14 +378,14 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     ollamaModel: "Ollama model",
     ollamaUrl: "Ollama address",
     ollamaUrlEffective: "Effective Ollama address",
-    responses: "Turns",
+    responses: "Responses",
+    session: "Session",
     folder: "Folder",
     docs: "Docs",
     changeMode: "change mode",
     chatReady: "conversation",
-    tipContext: "Tip Add context with --context <folder> or --files <file>.",
-    homeCommands: "/config settings · /roles agent roles · /help available commands",
-    homeModes: "/debat debate between two agents · /chat conversation · /ask multiple responses",
+    homeQuickActions: "/ commands · /new guided session · /history recent sessions",
+    unavailableSessionAgents: (agents, _count, command) => `Check session: ${agents} unavailable · ${command}`,
     chatTip: "/chat: one conversation, then an extra opinion only when useful.",
     chatComposerCommands: "/consult <agent> opinion · /use <agent> switch · /agents list · /end export · /home home",
     askTip: "Ask: several independent responses to the same question.",

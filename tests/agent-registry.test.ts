@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  activeConfiguredAgentEntries,
+  activeConfiguredAgentNames,
   detectedAgentNames,
   detectionForCommand,
   isAgentDetected,
@@ -29,6 +31,19 @@ test("isRetiredAgentName keeps archived agents out of active inventories", () =>
   assert.equal(isRetiredAgentName("gemini"), true);
   assert.equal(isRetiredAgentName("Gemini"), true);
   assert.equal(isRetiredAgentName("antigravity"), false);
+});
+
+test("active configured agents exclude Gemini from every user-facing inventory", () => {
+  const config = {
+    agents: {
+      codex: { type: "cli" as const, command: "codex", role: "implementer" as const },
+      gemini: { type: "cli" as const, command: "gemini", role: "reviewer" as const },
+      antigravity: { type: "cli-pty" as const, command: "agy", role: "critic" as const }
+    }
+  };
+
+  assert.deepEqual(activeConfiguredAgentNames(config), ["codex", "antigravity"]);
+  assert.deepEqual(activeConfiguredAgentEntries(config).map(([name]) => name), ["codex", "antigravity"]);
 });
 test("detectedAgentNames lists detected agents in canonical order", () => {
   const discovery = discoveryWith({ codex: true, opencode: true, vibe: true, ollama: true });

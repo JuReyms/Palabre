@@ -1,13 +1,14 @@
 /** @file Assistant interactif `palabre new` : compose les mêmes flags qu'un lancement direct, sans second chemin d'exécution. */
-import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-import { isAgentDetected } from "./agentRegistry.js";
+import { activeConfiguredAgentEntries, isAgentDetected, normalizeCommandName } from "./agentRegistry.js";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { findPresetNameForPair } from "./presets.js";
 import { MAX_TURNS, turnsOrDefault, validateTurns } from "./limits.js";
 import type { AgentConfig, PalabreConfig, PalabreMode } from "./types.js";
 import type { Messages } from "./messages/index.js";
-import { accent, bold, brandHeader, card, clearScreen, dim, padBlock, supportsInteractiveOutput, surfaceWidth } from "./renderers/tui-theme.js";
+import { bold, brandHeader, clearScreen, dim, glyphs, padBlock, supportsInteractiveOutput, surfacePadding } from "./renderers/tui-theme.js";
+import { closeComposerReadline, getComposerReadline, questionWithBufferedComposer, type TuiCompletionChoice } from "./renderers/tui-prompts.js";
+import { sanitizeTerminalText } from "./adapters/terminal.js";
 
 const interruptedAnswer = "\u0000palabre-interrupted";
 
@@ -42,6 +43,7 @@ interface AgentChoice {
 
 interface Questioner {
   question(prompt: string): Promise<string>;
+  choose(prompt: string, choices: readonly TuiCompletionChoice[], defaultValue?: string): Promise<string>;
   close(): void;
 }
 
@@ -50,15 +52,19 @@ interface Questioner {
  * Détecte les outils locaux, liste les agents de la config et guide la composition du débat.
  * Retourne `undefined` si l'utilisateur annule (q/quit/exit ou Ctrl+C).
  */
-export async function runNewWizard(config: PalabreConfig, messages: Messages): Promise<NewCommandSelection | undefined> {
+export async function runNewWizard(
+  config: PalabreConfig,
+  messages: Messages,
+  options: { keepReaderOnInterrupt?: boolean } = {}
+): Promise<NewCommandSelection | undefined> {
   const discovery = await discoverLocalTools();
   const choices = buildAgentChoices(config, discovery, messages);
 
-  if (choices.length < 2) {
-    throw new Error(messages.new.needsTwoAgents);
+  if (choices.length < 1) {
+    throw new Error(messages.new.needsOneAgent);
   }
 
-  const rl = await createQuestioner();
+  const rl = await createQuestioner(messages, options.keepReaderOnInterrupt ?? false);
 
   try {
     renderWizardIntro(messages);
@@ -66,7 +72,26 @@ export async function runNewWizard(config: PalabreConfig, messages: Messages): P
     const mode = await askMode(rl, config.defaults?.mode ?? "debate", messages);
     if (!mode) return undefined;
 
-    if (mode === "ask") {
+    let selection: NewCommandSelection;
+
+    if (mode === "chat") {
+      const agentA = await askAgent(rl, choices, messages.new.agentA, config.defaults?.agentA, messages);
+      if (!agentA) return undefined;
+
+      const topic = await askRequiredText(rl, messages.new.topic, messages);
+      if (!topic) return undefined;
+
+      selection = {
+        mode,
+        agentA,
+        agentB: agentA,
+        topic,
+        files: [],
+        context: [],
+        showPrompt: false,
+        plainOutput: false
+      };
+    } else if (mode === "ask") {
       const askAgents = await askAgentList(rl, choices, config.defaults?.askAgents ?? defaultAskAgents(config), messages);
       if (!askAgents) return undefined;
 
@@ -76,148 +101,267 @@ export async function runNewWizard(config: PalabreConfig, messages: Messages): P
       const topic = await askRequiredText(rl, messages.new.topic, messages);
       if (!topic) return undefined;
 
-      printCommandPreview({ mode, agentA, agentB, askAgents, topic }, messages);
-      console.log(messages.new.advancedHint);
-      const launchMinimal = await askYesNo(rl, messages.new.launchMinimal, true, messages);
-      if (launchMinimal === undefined) return undefined;
-
-      if (launchMinimal) {
-        return {
-          mode,
-          agentA,
-          agentB,
-          askAgents,
-          topic,
-          files: [],
-          context: [],
-          showPrompt: false,
-          plainOutput: false
-        };
-      }
-
-      const summaryEnabled = await askYesNo(rl, messages.new.summaryEnabled, true, messages);
-      if (summaryEnabled === undefined) return undefined;
-
-      let summaryAgent: string | undefined;
-      let summaryModel: string | undefined;
-      if (summaryEnabled) {
-        summaryAgent = await askAgent(
-          rl,
-          choices,
-          messages.new.summaryAgent,
-          config.defaults?.askSummaryAgent ?? config.defaults?.summaryAgent ?? askAgents[askAgents.length - 1],
-          messages
-        );
-        if (!summaryAgent) return undefined;
-
-        summaryModel = await askOptionalText(rl, messages.new.summaryModelFor(summaryAgent));
-        if (summaryModel === undefined) return undefined;
-      }
-
-      const context = splitPaths(await askOptionalText(rl, messages.new.contextPaths));
-      const files = splitPaths(await askOptionalText(rl, messages.new.filesPaths));
-      const showPrompt = await askYesNo(rl, messages.new.showPrompt, false, messages);
-      if (showPrompt === undefined) return undefined;
-
-      const plainOutput = await askYesNo(rl, messages.new.plainOutput, false, messages);
-      if (plainOutput === undefined) return undefined;
-
-      const selection = {
+      selection = {
         mode,
         agentA,
         agentB,
         askAgents,
         topic,
-        summaryAgent,
-        summaryModel,
-        summaryEnabled,
-        files,
-        context,
-        showPrompt,
-        plainOutput
+        files: [],
+        context: [],
+        showPrompt: false,
+        plainOutput: false
       };
-      printCommandPreview(selection, messages);
-      return selection;
-    }
+    } else {
+      if (choices.length < 2) {
+        throw new Error(messages.new.needsTwoAgents);
+      }
 
-    const agentA = await askAgent(rl, choices, messages.new.agentA, config.defaults?.agentA, messages);
-    if (!agentA) return undefined;
+      const agentA = await askAgent(rl, choices, messages.new.agentA, config.defaults?.agentA, messages);
+      if (!agentA) return undefined;
 
-    const agentB = await askAgent(rl, choices.filter((choice) => choice.name !== agentA), messages.new.agentB, config.defaults?.agentB === agentA ? undefined : config.defaults?.agentB, messages);
-    if (!agentB) return undefined;
+      const agentB = await askAgent(rl, choices.filter((choice) => choice.name !== agentA), messages.new.agentB, config.defaults?.agentB === agentA ? undefined : config.defaults?.agentB, messages);
+      if (!agentB) return undefined;
 
-    const topic = await askRequiredText(rl, messages.new.topic, messages);
-    if (!topic) return undefined;
+      const topic = await askRequiredText(rl, messages.new.topic, messages);
+      if (!topic) return undefined;
 
-    printCommandPreview({ agentA, agentB, topic, turns: turnsOrDefault(config.defaults?.turns) }, messages);
-    console.log(messages.new.advancedHint);
-    const launchMinimal = await askYesNo(rl, messages.new.launchMinimal, true, messages);
-    if (launchMinimal === undefined) return undefined;
-
-    if (launchMinimal) {
-      return {
-      agentA,
-      agentB,
-      topic,
-      mode,
-      files: [],
-      context: [],
+      selection = {
+        mode,
+        agentA,
+        agentB,
+        topic,
+        turns: turnsOrDefault(config.defaults?.turns),
+        files: [],
+        context: [],
         showPrompt: false,
         plainOutput: false
       };
     }
 
-    const turns = await askNumber(rl, messages.new.turns, turnsOrDefault(config.defaults?.turns), messages);
-    if (turns === undefined) return undefined;
+    for (;;) {
+      renderSessionSummary(selection, config, messages);
+      const action = await askSessionAction(rl, mode, messages);
+      if (!action || action === "cancel") return undefined;
+      if (action === "launch") {
+        printCommandPreview(selection, messages);
+        return selection;
+      }
 
-    const modelA = await askOptionalText(rl, messages.new.modelFor(agentA));
-    if (modelA === undefined) return undefined;
-
-    const modelB = await askOptionalText(rl, messages.new.modelFor(agentB));
-    if (modelB === undefined) return undefined;
-
-    const summaryEnabled = await askYesNo(rl, messages.new.summaryEnabled, true, messages);
-    if (summaryEnabled === undefined) return undefined;
-
-    let summaryAgent: string | undefined;
-    let summaryModel: string | undefined;
-    if (summaryEnabled) {
-      summaryAgent = await askAgent(rl, choices, messages.new.summaryAgent, config.defaults?.summaryAgent ?? agentB, messages);
-      if (!summaryAgent) return undefined;
-
-      summaryModel = await askOptionalText(rl, messages.new.summaryModelFor(summaryAgent));
-      if (summaryModel === undefined) return undefined;
+      const customized = await personalizeSelection(rl, selection, choices, config, messages);
+      if (!customized) return undefined;
+      selection = customized;
     }
-
-    const context = splitPaths(await askOptionalText(rl, messages.new.contextPaths));
-    const files = splitPaths(await askOptionalText(rl, messages.new.filesPaths));
-    const showPrompt = await askYesNo(rl, messages.new.showPrompt, false, messages);
-    if (showPrompt === undefined) return undefined;
-
-    const plainOutput = await askYesNo(rl, messages.new.plainOutput, false, messages);
-    if (plainOutput === undefined) return undefined;
-
-    const selection = {
-      agentA,
-      agentB,
-      topic,
-      mode,
-      modelA,
-      modelB,
-      turns,
-      summaryAgent,
-      summaryModel,
-      summaryEnabled,
-      files,
-      context,
-      showPrompt,
-      plainOutput
-    };
-    printCommandPreview(selection, messages);
-    return selection;
   } finally {
     rl.close();
   }
+}
+
+type SessionAction = "launch" | "customize" | "cancel";
+
+async function askSessionAction(
+  rl: Questioner,
+  mode: PalabreMode,
+  messages: Messages
+): Promise<SessionAction | undefined> {
+  const choices = [
+    { value: messages.new.launchSession(mode), action: "launch" as const },
+    { value: messages.new.customize, action: "customize" as const },
+    { value: messages.new.cancel, action: "cancel" as const }
+  ];
+
+  while (true) {
+    const answer = await rl.choose(messages.new.sessionAction, choices, choices[0]!.value);
+    const value = answer.trim();
+    if (isQuit(value)) return undefined;
+    if (!value) return "launch";
+
+    const number = Number(value);
+    if (Number.isInteger(number) && number >= 1 && number <= choices.length) {
+      return choices[number - 1]?.action;
+    }
+
+    const selected = choices.find((choice) => choice.value.toLowerCase() === value.toLowerCase());
+    if (selected) return selected.action;
+    console.log(messages.new.invalidSessionAction);
+  }
+}
+
+async function personalizeSelection(
+  rl: Questioner,
+  selection: NewCommandSelection,
+  choices: AgentChoice[],
+  config: PalabreConfig,
+  messages: Messages
+): Promise<NewCommandSelection | undefined> {
+  const mode = selection.mode ?? "debate";
+  let turns = selection.turns;
+  let modelA: string | undefined;
+  let modelB: string | undefined;
+  let summaryEnabled = selection.summaryEnabled;
+  let summaryAgent = selection.summaryAgent;
+  let summaryModel: string | undefined;
+
+  if (mode === "debate") {
+    turns = await askNumber(rl, messages.new.turns(MAX_TURNS), selection.turns ?? turnsOrDefault(config.defaults?.turns), messages);
+    if (turns === undefined) return undefined;
+  }
+
+  if (mode === "chat" || mode === "debate") {
+    const changeModels = await askYesNo(
+      rl,
+      mode === "chat" ? messages.new.changeModel : messages.new.changeModels,
+      Boolean(selection.modelA || selection.modelB),
+      messages
+    );
+    if (changeModels === undefined) return undefined;
+    if (changeModels) {
+      modelA = await askOptionalText(rl, modelPrompt(messages, selection.agentA, config));
+      if (modelA === undefined) return undefined;
+      if (mode === "debate") {
+        modelB = await askOptionalText(rl, modelPrompt(messages, selection.agentB, config));
+        if (modelB === undefined) return undefined;
+      }
+    }
+  }
+
+  if (mode !== "chat") {
+    summaryEnabled = await askYesNo(rl, messages.new.summaryEnabled, selection.summaryEnabled ?? true, messages);
+    if (summaryEnabled === undefined) return undefined;
+    if (summaryEnabled) {
+      const defaultSummaryAgent = selection.summaryAgent ?? resolveDefaultSummaryAgent(selection, config);
+      summaryAgent = await askAgent(rl, choices, messages.new.summaryAgent, defaultSummaryAgent, messages);
+      if (!summaryAgent) return undefined;
+
+      const changeSummaryModel = await askYesNo(
+        rl,
+        messages.new.changeSummaryModel,
+        Boolean(selection.summaryModel),
+        messages
+      );
+      if (changeSummaryModel === undefined) return undefined;
+      if (changeSummaryModel) {
+        summaryModel = await askOptionalText(rl, summaryModelPrompt(messages, summaryAgent, config));
+        if (summaryModel === undefined) return undefined;
+      }
+    } else {
+      summaryAgent = undefined;
+    }
+  }
+
+  const contextSelection = await askContextSelection(rl, selection, messages);
+  if (!contextSelection) return undefined;
+
+  let showPrompt = selection.showPrompt;
+  if (mode !== "chat") {
+    const previewPrompt = await askYesNo(rl, messages.new.showPrompt, selection.showPrompt, messages);
+    if (previewPrompt === undefined) return undefined;
+    showPrompt = previewPrompt;
+  }
+
+  return {
+    ...selection,
+    turns,
+    modelA,
+    modelB,
+    summaryEnabled,
+    summaryAgent,
+    summaryModel,
+    context: contextSelection.context,
+    files: contextSelection.files,
+    showPrompt,
+    plainOutput: false
+  };
+}
+
+async function askContextSelection(
+  rl: Questioner,
+  selection: NewCommandSelection,
+  messages: Messages
+): Promise<{ context: string[]; files: string[] } | undefined> {
+  const choices = [
+    { value: messages.new.contextNone, kind: "none" as const },
+    { value: messages.new.contextFlexible, kind: "context" as const },
+    { value: messages.new.contextStrict, kind: "files" as const }
+  ];
+  const defaultKind = selection.files.length > 0 ? "files" : selection.context.length > 0 ? "context" : "none";
+  const defaultValue = choices.find((choice) => choice.kind === defaultKind)!.value;
+
+  while (true) {
+    const answer = await rl.choose(messages.new.contextChoice, choices, defaultValue);
+    const value = answer.trim();
+    if (isQuit(value)) return undefined;
+
+    const number = Number(value);
+    const selected = !value
+      ? choices.find((choice) => choice.kind === defaultKind)
+      : Number.isInteger(number) && number >= 1 && number <= choices.length
+        ? choices[number - 1]
+        : choices.find((choice) => choice.value.toLowerCase() === value.toLowerCase());
+
+    if (!selected) {
+      console.log(messages.new.invalidContextChoice);
+      continue;
+    }
+    if (selected.kind === "none") return { context: [], files: [] };
+
+    const label = selected.kind === "context" ? messages.new.contextPaths : messages.new.filesPaths;
+    const rawPaths = await askOptionalText(rl, label);
+    if (rawPaths === undefined) return undefined;
+    const paths = splitPaths(rawPaths);
+    return selected.kind === "context" ? { context: paths, files: [] } : { context: [], files: paths };
+  }
+}
+
+function renderSessionSummary(selection: NewCommandSelection, config: PalabreConfig, messages: Messages): void {
+  const mode = selection.mode ?? "debate";
+  const agents = mode === "chat"
+    ? selection.agentA
+    : mode === "ask"
+      ? (selection.askAgents ?? [selection.agentA, selection.agentB]).join(", ")
+      : `${selection.agentA} ↔ ${selection.agentB}`;
+  const summaryAgent = resolveDisplayedSummaryAgent(selection, config, messages);
+  const modelValues = [
+    selection.modelA ? `${selection.agentA}: ${selection.modelA}` : undefined,
+    mode === "debate" && selection.modelB ? `${selection.agentB}: ${selection.modelB}` : undefined
+  ].filter(Boolean).join(" · ") || messages.new.sessionDefaultModels;
+  const contextValue = selection.context.length > 0
+    ? selection.context.join(", ")
+    : selection.files.length > 0
+      ? selection.files.join(", ")
+      : messages.new.contextNone;
+  const rows = [
+    summaryRow(messages.new.sessionMode, mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Débat"),
+    summaryRow(messages.new.sessionAgents, agents),
+    summaryRow(messages.new.sessionTopic, selection.topic),
+    ...(mode === "debate" ? [summaryRow(messages.new.sessionResponses, String(selection.turns ?? turnsOrDefault(config.defaults?.turns)))] : []),
+    summaryRow(messages.new.sessionModels, modelValues),
+    ...(mode === "chat" ? [] : [summaryRow(messages.new.sessionSummary, summaryAgent)]),
+    summaryRow(messages.new.sessionContext, contextValue)
+  ];
+
+  console.log("");
+  console.log(padBlock([bold(messages.new.session), ...rows]).join("\n"));
+  console.log("");
+}
+
+function summaryRow(label: string, value: string): string {
+  return `  ${label.padEnd(11)}${sanitizeTerminalText(value)}`;
+}
+
+function resolveDisplayedSummaryAgent(selection: NewCommandSelection, config: PalabreConfig, messages: Messages): string {
+  if (selection.summaryEnabled === false) return messages.new.sessionNoSummary;
+  return selection.summaryAgent ?? resolveDefaultSummaryAgent(selection, config) ?? messages.new.sessionNoSummary;
+}
+
+function resolveDefaultSummaryAgent(selection: NewCommandSelection, config: PalabreConfig): string | undefined {
+  if (selection.mode === "ask") {
+    return config.defaults?.askSummaryAgent
+      ?? config.defaults?.summaryAgent
+      ?? selection.askAgents?.[selection.askAgents.length - 1]
+      ?? selection.agentB;
+  }
+  return config.defaults?.summaryAgent ?? selection.agentB;
 }
 
 async function askMode(
@@ -225,29 +369,15 @@ async function askMode(
   defaultMode: PalabreMode,
   messages: Messages
 ): Promise<PalabreMode | undefined> {
-  const choices: Array<{ value: PalabreMode; label: string }> = [
-    { value: "debate", label: messages.new.modeDebate },
-    { value: "ask", label: messages.new.modeAsk }
+  const choices: Array<TuiCompletionChoice & { value: PalabreMode }> = [
+    { value: "chat", description: messages.new.modeChat },
+    { value: "debate", description: messages.new.modeDebate },
+    { value: "ask", description: messages.new.modeAsk }
   ];
   const fallback = choices.find((choice) => choice.value === defaultMode)?.value ?? "debate";
 
-  if (supportsInteractiveOutput) {
-    const lines = choices.map((choice, index) => {
-      const marker = choice.value === fallback ? accent("(*)") : "   ";
-      return `${bold(`${index + 1})`)} ${marker} ${choice.label}`;
-    });
-    console.log(padBlock(card(lines, surfaceWidth(), messages.new.mode)).join("\n"));
-    console.log("");
-  } else {
-    console.log(messages.new.mode);
-    choices.forEach((choice, index) => {
-      const marker = choice.value === fallback ? "(*)" : "   ";
-      console.log(`  ${index + 1}) ${marker} ${choice.label}`);
-    });
-  }
-
   while (true) {
-    const answer = await rl.question(`${messages.new.mode} [${fallback}]: `);
+    const answer = await rl.choose(messages.new.mode, choices, fallback);
     const value = answer.trim().toLowerCase();
 
     if (isQuit(value)) return undefined;
@@ -258,6 +388,7 @@ async function askMode(
       return choices[number - 1]?.value;
     }
 
+    if (value === "chat" || value === "conversation") return "chat";
     if (value === "debate" || value === "débat" || value === "debat") return "debate";
     if (value === "ask" || value === "demande" || value === "question") return "ask";
 
@@ -265,45 +396,58 @@ async function askMode(
   }
 }
 
-async function createQuestioner(): Promise<Questioner> {
+async function createQuestioner(messages: Messages, keepReaderOnInterrupt: boolean): Promise<Questioner> {
   if (input.isTTY) {
-    const rl = createInterface({ input, output });
+    const rl = getComposerReadline();
+    let interrupted = false;
+    const ask = async (
+      prompt: string,
+      choices?: readonly TuiCompletionChoice[],
+      defaultValue?: string
+    ): Promise<string> => {
+      const linePrompt = `${surfacePadding()}${glyphs().prompt} `;
+      const result = await questionWithBufferedComposer(
+        rl,
+        `\n${surfacePadding()}${bold(prompt)}\n${linePrompt}`,
+        linePrompt,
+        0,
+        { input, output },
+        "navigation",
+        undefined,
+        messages.tui,
+        choices ? { choices, defaultValue, showOnEmpty: true } : undefined
+      );
+      interrupted = result.kind !== "answer";
+      return result.kind === "answer" ? result.value : interruptedAnswer;
+    };
     return {
-      question(prompt: string): Promise<string> {
-        return new Promise((resolve, reject) => {
-          let settled = false;
-          const cleanup = () => rl.off("SIGINT", onSigint);
-          const settle = (value: string) => {
-            if (settled) return;
-            settled = true;
-            cleanup();
-            resolve(value);
-          };
-          const onSigint = () => settle(interruptedAnswer);
-          rl.once("SIGINT", onSigint);
-          rl.question(prompt).then(settle, (error) => {
-            if (settled) return;
-            cleanup();
-            reject(error);
-          });
-        });
-      },
+      question: (prompt) => ask(prompt),
+      choose: (prompt, choices, defaultValue) => ask(prompt, choices, defaultValue),
       close(): void {
-        rl.close();
+        if (!interrupted || !keepReaderOnInterrupt) closeComposerReadline();
       }
     };
   }
 
   const lines = await readPipedLines();
   let index = 0;
+  const question = async (prompt: string): Promise<string> => {
+    output.write(prompt);
+    const value = lines[index];
+    index += 1;
+    output.write(`${value ?? "q"}\n`);
+    return value ?? "q";
+  };
 
   return {
-    async question(prompt: string): Promise<string> {
-      output.write(prompt);
-      const value = lines[index];
-      index += 1;
-      output.write(`${value ?? "q"}\n`);
-      return value ?? "q";
+    question,
+    async choose(prompt: string, choices: readonly TuiCompletionChoice[], defaultValue?: string): Promise<string> {
+      output.write(`${prompt}\n`);
+      choices.forEach((choice, choiceIndex) => {
+        const marker = choice.value === defaultValue ? "(*)" : "   ";
+        output.write(`  ${choiceIndex + 1}) ${marker} ${choice.value}${choice.description ? ` - ${choice.description}` : ""}\n`);
+      });
+      return question(`${prompt}${defaultValue ? ` [${defaultValue}]` : ""}: `);
     },
     close(): void {
       // Nothing to close for scripted stdin.
@@ -322,7 +466,7 @@ async function readPipedLines(): Promise<string[]> {
 }
 
 function buildAgentChoices(config: PalabreConfig, discovery: ToolDiscovery, messages: Messages): AgentChoice[] {
-  return Object.entries(config.agents)
+  return activeConfiguredAgentEntries(config)
     .map(([name, agentConfig]) => {
       const detected = isAgentDetected(name, agentConfig, discovery);
       return {
@@ -347,6 +491,21 @@ function agentStatus(_name: string, config: AgentConfig, discovery: ToolDiscover
     : messages.new.missingCli(config.role);
 }
 
+function modelPrompt(messages: Messages, agentName: string, config: PalabreConfig): string {
+  return messages.new.modelFor(agentName, modelIdentifierFormat(config.agents[agentName]));
+}
+
+function summaryModelPrompt(messages: Messages, agentName: string, config: PalabreConfig): string {
+  return messages.new.summaryModelFor(agentName, modelIdentifierFormat(config.agents[agentName]));
+}
+
+function modelIdentifierFormat(config: AgentConfig | undefined): string | undefined {
+  if ((config?.type === "cli" || config?.type === "cli-pty") && normalizeCommandName(config.command) === "opencode") {
+    return "provider/model";
+  }
+  return undefined;
+}
+
 async function askAgent(
   rl: Questioner,
   choices: AgentChoice[],
@@ -355,15 +514,10 @@ async function askAgent(
   messages: Messages
 ): Promise<string | undefined> {
   const fallback = choices.find((choice) => choice.name === defaultName)?.name ?? choices[0]?.name;
-
-  console.log(label);
-  choices.forEach((choice, index) => {
-    const marker = choice.name === fallback ? "(*)" : "   ";
-    console.log(`  ${index + 1}) ${marker} ${choice.name} - ${choice.status}`);
-  });
+  const completionChoices = choices.map((choice) => ({ value: choice.name, description: choice.status }));
 
   while (true) {
-    const answer = await rl.question(`${label} [${fallback}]: `);
+    const answer = await rl.choose(label, completionChoices, fallback);
     const value = answer.trim();
 
     if (isQuit(value)) return undefined;
@@ -484,9 +638,16 @@ async function askYesNo(
   messages: Messages
 ): Promise<boolean | undefined> {
   const suffix = messages.new.yesNoSuffix(defaultValue);
+  const choices = [
+    { value: messages.new.choiceYes },
+    { value: messages.new.choiceNo }
+  ];
+  const defaultChoice = defaultValue ? messages.new.choiceYes : messages.new.choiceNo;
 
   while (true) {
-    const answer = await rl.question(`${label} [${suffix}]: `);
+    const answer = supportsInteractiveOutput
+      ? await rl.choose(label, choices, defaultChoice)
+      : await rl.question(`${label} [${suffix}]: `);
     const value = answer.trim().toLowerCase();
 
     if (isQuit(value)) return undefined;
@@ -533,7 +694,7 @@ function renderWizardIntro(messages: Messages): void {
   console.log(padBlock([
     dim(messages.new.quitHint),
     dim(messages.new.defaultHint)
-  ]).join("\n"));
+  ].filter(Boolean)).join("\n"));
   console.log("");
 }
 
@@ -552,10 +713,12 @@ function printCommandPreview(selection: Partial<NewCommandSelection> & Pick<NewC
   console.log("");
 }
 
-function buildExplicitCommand(selection: Partial<NewCommandSelection> & Pick<NewCommandSelection, "agentA" | "agentB" | "topic">): string {
+export function buildExplicitCommand(selection: Partial<NewCommandSelection> & Pick<NewCommandSelection, "agentA" | "agentB" | "topic">): string {
   const args = ["palabre"];
 
-  if (selection.mode === "ask") {
+  if (selection.mode === "chat") {
+    args.push("chat", quoteShellArg(selection.topic), "--agent-a", selection.agentA);
+  } else if (selection.mode === "ask") {
     args.push("ask", quoteShellArg(selection.topic));
     const askAgents = selection.askAgents && selection.askAgents.length > 0 ? selection.askAgents : [selection.agentA, selection.agentB];
     args.push("--agents", ...askAgents);
@@ -571,7 +734,7 @@ function buildExplicitCommand(selection: Partial<NewCommandSelection> & Pick<New
 }
 
 function buildShortCommand(selection: Partial<NewCommandSelection> & Pick<NewCommandSelection, "agentA" | "agentB" | "topic">): string | undefined {
-  if (selection.mode === "ask") {
+  if (selection.mode === "ask" || selection.mode === "chat") {
     return undefined;
   }
 

@@ -181,14 +181,28 @@ test("renderTuiHome renders a Palabre launch screen", () => {
         agentB: "claude",
         askAgents: ["codex", "claude", "opencode"],
         askSummaryAgent: "opencode",
+        summaryAgent: "ollama-local",
         turns: 2
       },
       agents: {
         codex: { type: "cli", command: "codex", role: "architect" },
         claude: { type: "cli", command: "claude", role: "critic" },
-        opencode: { type: "cli", command: "opencode", role: "implementer" }
+        opencode: { type: "cli", command: "opencode", role: "implementer" },
+        "ollama-local": { type: "ollama", model: "test-model", role: "summarizer" }
       }
-    }, "palabre.config.json", createTranslator("en"), { mode: "debate", version: "0.7.0", latestVersion: "0.8.0" });
+    }, "palabre.config.json", createTranslator("en"), {
+      mode: "debate",
+      version: "0.7.0",
+      latestVersion: "0.8.0",
+      discovery: {
+        codex: { available: true, command: "codex" },
+        claude: { available: true, command: "claude" },
+        antigravity: { available: false, command: "agy" },
+        opencode: { available: true, command: "opencode" },
+        vibe: { available: false, command: "vibe" },
+        ollama: { available: false, commandAvailable: false, baseUrl: "http://localhost:11434", models: [] }
+      }
+    });
   } finally {
     process.stdout.write = originalWrite;
   }
@@ -196,21 +210,21 @@ test("renderTuiHome renders a Palabre launch screen", () => {
   const text = output.join("");
   assert.match(text, /___/);
   const unwrappedText = text.replace(/\|\s*\r?\n\s*\|\s*/g, " ").replace(/\s+/g, " ");
-  assert.match(text, /Orchestrate conversations between AI agents/);
-  assert.match(unwrappedText, /Orchestrate conversations between AI agents\s+v0\.7\.0/);
+  assert.match(text, /Orchestrate AI agents to inform your decisions/);
+  assert.match(unwrappedText, /Orchestrate AI agents to inform your decisions\s+v0\.7\.0/);
   assert.match(text, /v0\.7\.0/);
   assert.match(text, /Update available: 0\.7\.0 -> 0\.8\.0\. Use \/update\./);
-  assert.match(unwrappedText, /Debate\s+·\s+codex <-> claude\s+·\s+Roles\s+·\s+architect <-> critic/);
-  assert.match(unwrappedText, /Summary\s+·\s+claude\s+·\s+Turns\s+·\s+2/);
+  assert.match(unwrappedText, /Session\s+·\s+Debate\s+·\s+codex \(architect\) <-> claude \(critic\)/);
+  assert.match(unwrappedText, /2 responses\s+·\s+Summary\s+·\s+ollama-local/);
+  assert.match(unwrappedText, /Check session: ollama-local unavailable\s+·\s+\/config/);
   assert.match(text, /Folder\s+·/);
   assert.ok(text.includes(process.cwd()));
-  assert.match(text, /https:\/\/palab\.re\/en/);
-  assert.match(text, /\/config settings · \/roles agent roles · \/help available commands/);
-  assert.match(unwrappedText, /\/debat debate between two agents · \/chat conversation · \/ask multiple responses/);
-  assert.match(text, /Tip Add context/);
-  assert.ok(text.indexOf("https://palab.re/en") < text.indexOf("Tip Add context"));
-  assert.doesNotMatch(text, /\/new/);
-  assert.doesNotMatch(text, /Session/);
+  assert.ok(text.indexOf("Folder") < text.indexOf("⚠ Check session"));
+  assert.match(text, /Folder[^\n]*\n[^\n]*\n[^\n]*⚠ Check session/);
+  assert.match(unwrappedText, /\/ commands\s+·\s+\/new guided session\s+·\s+\/history recent sessions/);
+  assert.doesNotMatch(text, /https:\/\/palab\.re\/en/);
+  assert.doesNotMatch(text, /\/config settings/);
+  assert.doesNotMatch(text, /Tip Add context/);
   assert.doesNotMatch(text, /Composer/);
   assert.doesNotMatch(text, /Invite/);
   assert.doesNotMatch(text, /Config\s+palabre\.config\.json/);

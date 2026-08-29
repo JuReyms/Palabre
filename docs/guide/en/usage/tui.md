@@ -14,12 +14,22 @@ The TUI is the recommended interface for human use. It creates the global config
 
 ## Home screen
 
-The home screen displays the current mode — Debate first —, active agents and roles, summary settings, response count, working directory, and available commands. Enter a subject directly to run the current mode.
+The home screen summarizes the current session on two lines: mode, agents with their roles, response count, and summary agent. It then shows essential shortcuts and the working directory. If an agent required by the session is unavailable, a warning points to `/agents` or `/config`, depending on the setting that needs attention.
+
+Enter a subject directly to run the current mode. Type `/` to open the contextual command list; use the arrow keys, `Tab`, or `→` to complete, then press `Enter` to run.
+
+## Compose a new session
+
+`/new` opens one guided flow for Chat, Debate, and Ask. Choose the mode, agents, and subject. Palabre then shows a compact summary and lets you launch, customize, or cancel the session.
+
+Customization covers the response count, model identifiers passed to agents, summary settings, context, and rendering options. Model identifiers belong to the relevant CLI; Palabre does not maintain a catalog of remote models.
 
 ## Main commands
 
 | Command | Effect |
 |---------|--------|
+| `/` | Displays commands that are useful in the current view. |
+| `/new` | Composes a Chat, Debate, or Ask session step by step. |
 | `/debat` | Switches to the primary Debate mode. |
 | `/chat` | Opens a conversation. |
 | `/ask` | Switches to independent answers. |

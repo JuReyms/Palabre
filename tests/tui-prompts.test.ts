@@ -186,6 +186,45 @@ test("picker navigation uses scroll-safe relative cursor movement", async () => 
   }
 });
 
+test("generic TUI picker shows and accepts its default choice immediately", async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const chunks: Buffer[] = [];
+  output.on("data", (chunk: Buffer) => chunks.push(chunk));
+  const rl = createInterface({ input, output, terminal: true });
+
+  try {
+    const answer = questionWithBufferedComposer(
+      rl,
+      "mode> ",
+      "mode> ",
+      0,
+      { input, output, interactiveOutput: true },
+      "navigation",
+      undefined,
+      createTranslator("en").tui,
+      {
+        choices: [
+          { value: "chat", description: "Conversation with one agent" },
+          { value: "debate", description: "Debate between two agents" },
+          { value: "ask", description: "Independent responses" }
+        ],
+        defaultValue: "debate",
+        showOnEmpty: true
+      }
+    );
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    input.emit("keypress", "\r", { name: "return", sequence: "\r" });
+
+    assert.deepEqual(await answer, { kind: "answer", value: "debate" });
+    const rendered = Buffer.concat(chunks).toString("utf8");
+    assert.match(rendered, /Conversation with one agent/);
+    assert.match(rendered, /Debate between two agents/);
+  } finally {
+    rl.close();
+  }
+});
+
 test("informational views expose only the minimal navigation picker", async () => {
   const input = new PassThrough();
   const output = new PassThrough();

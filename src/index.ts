@@ -10,7 +10,7 @@ import { createInterface } from "node:readline/promises";
 import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeConfig } from "./config.js";
 import { isConfigTrusted, isImplicitProjectConfig, trustConfig } from "./configTrust.js";
 import { loadProjectInputs } from "./context.js";
-import { discoverLocalTools, discoverLocalToolsForConfig } from "./discovery.js";
+import { discoverLocalTools, discoverLocalToolsForConfig, type ToolDiscovery } from "./discovery.js";
 import { runDoctor } from "./doctor.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
 import { runConfigWizard } from "./configWizard.js";
@@ -45,6 +45,7 @@ import { parseInterfaceFlag, parseSessionModeFlag, resolveChatOptions, resolveRu
 import { buildChatHandoffTopic, ChatSession } from "./chatSession.js";
 import { parseChatInputLine } from "./chatProtocol.js";
 import { runTuiChatSession } from "./tuiChat.js";
+import { activeConfiguredAgentNames, isRetiredAgentName } from "./agentRegistry.js";
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
 async function main(): Promise<void> {
@@ -160,6 +161,7 @@ async function main(): Promise<void> {
   let tuiMode: TuiHomeMode = config.defaults?.mode ?? "debate";
   let tuiVersion = "";
   let tuiLatestVersion: string | undefined;
+  let tuiDiscovery: ToolDiscovery | undefined;
 
   const handleTuiHomeInput = async (tuiInput: TuiHomeInput): Promise<"continue" | "run" | "retry" | "quit"> => {
     let input = tuiInput;
@@ -286,6 +288,20 @@ async function main(): Promise<void> {
     }
   };
 
+  const resumeTuiHome = async (): Promise<"run" | "quit"> => {
+    for (;;) {
+      renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion, discovery: tuiDiscovery });
+      const nextInput = await promptTuiHomeTopic(tuiMode, messages, { notice: tuiNotice });
+      tuiNotice = undefined;
+      const action = await handleTuiHomeInput(nextInput);
+      if (action === "quit") return "quit";
+      if (action === "continue" || action === "retry") continue;
+      parsed.flags.mode = "debate";
+      parsed.flags.renderer = "tui";
+      return "run";
+    }
+  };
+
   if (shouldOpenTuiHome(parsed)) {
     const [syncResult, currentVersion, latestVersion] = await Promise.all([
       syncInteractiveDetectedAgents(configPath, config),
@@ -298,12 +314,13 @@ async function main(): Promise<void> {
 
     stayInTuiAfterSession = true;
     tuiVersion = currentVersion;
+    tuiDiscovery = syncResult.discovery;
     tuiLatestVersion = latestVersion && compareSemver(currentVersion, latestVersion) < 0
       ? latestVersion
       : undefined;
 
     for (;;) {
-      renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion });
+      renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion, discovery: tuiDiscovery });
       const tuiInput = await promptTuiHomeTopic(tuiMode, messages, { notice: tuiNotice });
       tuiNotice = undefined;
       const action = await handleTuiHomeInput(tuiInput);
@@ -318,24 +335,14 @@ async function main(): Promise<void> {
 
   for (;;) {
     if (parsed.command === "new") {
-      const selection = await runNewWizard(config, messages);
+      const selection = await runNewWizard(config, messages, { keepReaderOnInterrupt: stayInTuiAfterSession });
 
       if (!selection) {
         if (stayInTuiAfterSession) {
           tuiNotice = messages.new.cancelled;
           parsed.command = "";
           parsed.commandExplicit = false;
-          for (;;) {
-            renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion });
-            const nextInput = await promptTuiHomeTopic(tuiMode, messages, { notice: tuiNotice });
-            tuiNotice = undefined;
-            const action = await handleTuiHomeInput(nextInput);
-            if (action === "quit") return;
-            if (action === "continue" || action === "retry") continue;
-            parsed.flags.mode = "debate";
-            parsed.flags.renderer = "tui";
-            break;
-          }
+          if (await resumeTuiHome() === "quit") return;
           continue;
         }
         console.log(messages.new.cancelled);
@@ -359,6 +366,46 @@ async function main(): Promise<void> {
       if (selection.askAgents && selection.askAgents.length > 0) parsed.flags.agents = selection.askAgents;
       parsed.command = "";
       parsed.commandExplicit = false;
+
+      if (selection.mode === "chat") {
+        if (!stayInTuiAfterSession) {
+          await runChatCommand(parsed.flags, config, language, messages);
+          return;
+        }
+
+        const chatContext = await loadProjectInputs(
+          selection.files,
+          selection.context,
+          process.cwd(),
+          messages
+        );
+        printContextWarnings(chatContext.warnings, messages);
+        const chatOptions = resolveChatOptions({
+          flags: parsed.flags,
+          config,
+          language,
+          topic: selection.topic,
+          files: chatContext.files,
+          signal: debateAbortSignal()
+        }, messages);
+        const chatResult = await runTuiChatSession(
+          config,
+          chatOptions,
+          messages,
+          resolveOutputDir(config.outputDir),
+          selection.topic
+        );
+        if (chatResult.destination === "quit") return;
+        tuiMode = "chat";
+        hasCompletedTuiSession = true;
+        if (chatResult.nextInput) {
+          const action = await handleTuiHomeInput(chatResult.nextInput);
+          if (action === "quit") return;
+          if (action === "run" || action === "retry") continue;
+        }
+        if (await resumeTuiHome() === "quit") return;
+        continue;
+      }
     }
 
     const topic = optionalString(parsed.flags.topic) ?? "";
@@ -451,7 +498,7 @@ async function main(): Promise<void> {
       const action = await handleTuiHomeInput(nextInput);
       if (action === "quit") return;
       if (action === "continue") {
-        renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion });
+        renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion, discovery: tuiDiscovery });
         continue;
       }
       if (action === "retry") {
@@ -851,8 +898,8 @@ function normalizeAskAgentsForConfig(config: PalabreConfig, agents: string[], me
  * @param fieldName - Nom du champ (utilisé dans le message d'erreur).
  */
 function assertKnownAgent(config: PalabreConfig, agentName: string, fieldName: string, messages: Messages): void {
-  if (!config.agents[agentName]) {
-    throw new Error(messages.common.unknownAgentForField(fieldName, agentName, Object.keys(config.agents).join(", ")));
+  if (!config.agents[agentName] || isRetiredAgentName(agentName)) {
+    throw new Error(messages.common.unknownAgentForField(fieldName, agentName, activeConfiguredAgentNames(config).join(", ")));
   }
 }
 /**

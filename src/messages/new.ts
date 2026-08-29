@@ -1,30 +1,52 @@
-import type { Language } from "../types.js";
+import type { Language, PalabreMode } from "../types.js";
 
 export interface NewMessages {
+  needsOneAgent: string;
   needsTwoAgents: string;
   cancelled: string;
   title: string;
   quitHint: string;
   defaultHint: string;
   mode: string;
+  modeChat: string;
   modeDebate: string;
   modeAsk: string;
+  choiceYes: string;
+  choiceNo: string;
   agentA: string;
   agentB: string;
   askAgents: string;
   askAgentsPrompt(defaultValue: string): string;
   topic: string;
-  advancedHint: string;
-  launchMinimal: string;
-  turns: string;
-  modelFor(agent: string): string;
+  session: string;
+  sessionMode: string;
+  sessionAgents: string;
+  sessionTopic: string;
+  sessionResponses: string;
+  sessionSummary: string;
+  sessionModels: string;
+  sessionContext: string;
+  sessionNoSummary: string;
+  sessionDefaultModels: string;
+  launchSession(mode: PalabreMode): string;
+  customize: string;
+  cancel: string;
+  sessionAction: string;
+  turns(maxTurns: number): string;
+  changeModel: string;
+  changeModels: string;
+  modelFor(agent: string, format?: string): string;
   summaryEnabled: string;
   summaryAgent: string;
-  summaryModelFor(agent: string): string;
+  summaryModelFor(agent: string, format?: string): string;
+  changeSummaryModel: string;
+  contextChoice: string;
+  contextNone: string;
+  contextFlexible: string;
+  contextStrict: string;
   contextPaths: string;
   filesPaths: string;
   showPrompt: string;
-  plainOutput: string;
   detectedOllama(role: string, count: number): string;
   ollamaUnreachable(role: string): string;
   detectedCli(role: string): string;
@@ -32,6 +54,8 @@ export interface NewMessages {
   invalidModeChoice: string;
   invalidAgentChoice: string;
   invalidAskAgentsChoice: string;
+  invalidSessionAction: string;
+  invalidContextChoice: string;
   requiredField: string;
   invalidTurns(maxTurns: number): string;
   invalidYesNo: string;
@@ -42,38 +66,62 @@ export interface NewMessages {
 
 export const newMessages: Record<Language, NewMessages> = {
   fr: {
+    needsOneAgent: "palabre new a besoin d'au moins un agent dans la config. Lance `palabre init` ou edite ta config.",
     needsTwoAgents: "palabre new a besoin d'au moins deux agents dans la config. Lance `palabre init` ou edite ta config.",
-    cancelled: "Création de débat annulée.",
-    title: "PALABRE - ASSISTANT DE CONFIGURATION",
-    quitHint: "À tout moment: Ctrl+C pour interrompre, ou tape q, quit ou exit dans un prompt pour quitter.",
-    defaultHint: "Appuie sur Entrée pour accepter un choix par défaut (*).",
+    cancelled: "Création de session annulée.",
+    title: "PALABRE - NOUVELLE SESSION",
+    quitHint: "Entrée valider · Flèches choisir · Ctrl+C revenir",
+    defaultHint: "",
     mode: "Mode",
+    modeChat: "Conversation avec un agent",
     modeDebate: "Débat entre deux agents",
     modeAsk: "Demande avec réponses indépendantes",
+    choiceYes: "oui",
+    choiceNo: "non",
     agentA: "Agent A",
     agentB: "Agent B",
     askAgents: "Agents qui répondront indépendamment",
     askAgentsPrompt: (defaultValue) => `Agents ask, noms ou numéros séparés par des espaces (Entrée = ${defaultValue})`,
     topic: "Sujet",
-    advancedHint: "Réponds non pour choisir le nombre de réponses, les modèles, la synthèse et le contexte.",
-    launchMinimal: "Lancer maintenant avec les options par défaut ?",
-    turns: "Nombre de réponses",
-    modelFor: (agent) => `Modèle pour ${agent} (optionnel)`,
+    session: "Session",
+    sessionMode: "Mode",
+    sessionAgents: "Agents",
+    sessionTopic: "Sujet",
+    sessionResponses: "Réponses",
+    sessionSummary: "Synthèse",
+    sessionModels: "Modèles",
+    sessionContext: "Contexte",
+    sessionNoSummary: "Aucune",
+    sessionDefaultModels: "Par défaut",
+    launchSession: (mode) => `Lancer la session ${mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Débat"}`,
+    customize: "Personnaliser",
+    cancel: "Annuler",
+    sessionAction: "Que voulez-vous faire ?",
+    turns: (maxTurns) => `Nombre de réponses (1 à ${maxTurns})`,
+    changeModel: "Changer le modèle ?",
+    changeModels: "Changer les modèles ?",
+    modelFor: (agent, format) => `Modèle pour ${agent} (${format ? `${format}, ` : ""}Entrée = défaut)`,
     summaryEnabled: "Synthèse finale ?",
     summaryAgent: "Agent de synthèse",
-    summaryModelFor: (agent) => `Modèle de synthèse pour ${agent} (optionnel)`,
-    contextPaths: "Contexte dossier/fichier via --context (optionnel)",
-    filesPaths: "Fichiers stricts via --files (optionnel)",
-    showPrompt: "Afficher seulement le prompt ?",
-    plainOutput: "Rendu plain ?",
+    summaryModelFor: (agent, format) => `Modèle de synthèse pour ${agent} (${format ? `${format}, ` : ""}Entrée = défaut)`,
+    changeSummaryModel: "Changer le modèle de synthèse ?",
+    contextChoice: "Ajouter du contexte au sujet ?",
+    contextNone: "Aucun",
+    contextFlexible: "Dossier ou fichiers",
+    contextStrict: "Uniquement des fichiers précis",
+    contextPaths: "Chemins du dossier ou des fichiers",
+    filesPaths: "Chemins des fichiers précis",
+    showPrompt: "Prévisualiser le prompt sans lancer les agents ?",
     detectedOllama: (role, count) => `ollama/${role} détecté (${count} modèle(s))`,
     ollamaUnreachable: (role) => `ollama/${role} non joignable`,
     detectedCli: (role) => `cli/${role} détecté`,
     missingCli: (role) => `cli/${role} non détecté`,
-    invalidModeChoice: "Choix invalide. Tape 1, 2, débat, ask, Entrée ou q.",
+    invalidModeChoice: "Choix invalide. Choisis chat, debate ou ask, Entrée ou q.",
     invalidAgentChoice: "Choix invalide. Tape un numéro, un nom d'agent, Entrée ou q.",
     invalidAskAgentsChoice: "Choix invalide. Tape un à quatre numéros ou noms d'agents, séparés par des espaces, Entrée ou q.",
-    requiredField: "Ce champ est requis pour lancer un débat.",
+    invalidSessionAction: "Choix invalide. Choisis lancer, personnaliser ou annuler.",
+    invalidContextChoice: "Choix invalide. Choisis aucun, dossier ou fichiers précis.",
+    requiredField: "Ce champ est requis pour lancer la session.",
     invalidTurns: (maxTurns) => `Entre un nombre entier entre 1 et ${maxTurns}, Entrée ou q.`,
     invalidYesNo: "Réponds par oui, non, Entrée ou q.",
     equivalentCommands: "Commandes équivalentes:",
@@ -81,38 +129,62 @@ export const newMessages: Record<Language, NewMessages> = {
     turnsValidationLabel: "Le nombre de réponses"
   },
   en: {
+    needsOneAgent: "palabre new needs at least one agent in the config. Run `palabre init` or edit your config.",
     needsTwoAgents: "palabre new needs at least two agents in the config. Run `palabre init` or edit your config.",
-    cancelled: "Debate creation cancelled.",
-    title: "PALABRE - SETUP ASSISTANT",
-    quitHint: "At any time: Ctrl+C to interrupt, or type q, quit, or exit in a prompt to leave.",
-    defaultHint: "Press Enter to accept a default choice (*).",
+    cancelled: "Session creation cancelled.",
+    title: "PALABRE - NEW SESSION",
+    quitHint: "Enter validate · Arrows choose · Ctrl+C go back",
+    defaultHint: "",
     mode: "Mode",
+    modeChat: "Conversation with one agent",
     modeDebate: "Debate between two agents",
     modeAsk: "Request with independent responses",
+    choiceYes: "yes",
+    choiceNo: "no",
     agentA: "Agent A",
     agentB: "Agent B",
     askAgents: "Agents that will answer independently",
     askAgentsPrompt: (defaultValue) => `Ask agents, names or numbers separated by spaces (Enter = ${defaultValue})`,
     topic: "Subject",
-    advancedHint: "Answer no to choose the number of responses, models, summary, and context.",
-    launchMinimal: "Launch now with default options?",
-    turns: "Number of responses",
-    modelFor: (agent) => `Model for ${agent} (optional)`,
+    session: "Session",
+    sessionMode: "Mode",
+    sessionAgents: "Agents",
+    sessionTopic: "Subject",
+    sessionResponses: "Responses",
+    sessionSummary: "Summary",
+    sessionModels: "Models",
+    sessionContext: "Context",
+    sessionNoSummary: "None",
+    sessionDefaultModels: "Defaults",
+    launchSession: (mode) => `Launch ${mode === "chat" ? "Chat" : mode === "ask" ? "Ask" : "Debate"} session`,
+    customize: "Customize",
+    cancel: "Cancel",
+    sessionAction: "What would you like to do?",
+    turns: (maxTurns) => `Number of responses (1 to ${maxTurns})`,
+    changeModel: "Change the model?",
+    changeModels: "Change models?",
+    modelFor: (agent, format) => `Model for ${agent} (${format ? `${format}, ` : ""}Enter = default)`,
     summaryEnabled: "Final summary?",
     summaryAgent: "Summary agent",
-    summaryModelFor: (agent) => `Summary model for ${agent} (optional)`,
-    contextPaths: "Folder/file context via --context (optional)",
-    filesPaths: "Strict files via --files (optional)",
-    showPrompt: "Only show the prompt?",
-    plainOutput: "Plain output?",
+    summaryModelFor: (agent, format) => `Summary model for ${agent} (${format ? `${format}, ` : ""}Enter = default)`,
+    changeSummaryModel: "Change the summary model?",
+    contextChoice: "Add context to the subject?",
+    contextNone: "None",
+    contextFlexible: "Folder or files",
+    contextStrict: "Only specific files",
+    contextPaths: "Folder or file paths",
+    filesPaths: "Specific file paths",
+    showPrompt: "Preview the prompt without running agents?",
     detectedOllama: (role, count) => `ollama/${role} detected (${count} model(s))`,
     ollamaUnreachable: (role) => `ollama/${role} unreachable`,
     detectedCli: (role) => `cli/${role} detected`,
     missingCli: (role) => `cli/${role} not detected`,
-    invalidModeChoice: "Invalid choice. Type 1, 2, debate, ask, Enter, or q.",
+    invalidModeChoice: "Invalid choice. Choose chat, debate, or ask, Enter, or q.",
     invalidAgentChoice: "Invalid choice. Type a number, an agent name, Enter, or q.",
     invalidAskAgentsChoice: "Invalid choice. Type one to four agent numbers or names separated by spaces, Enter, or q.",
-    requiredField: "This field is required to start a debate.",
+    invalidSessionAction: "Invalid choice. Choose launch, customize, or cancel.",
+    invalidContextChoice: "Invalid choice. Choose none, folder, or specific files.",
+    requiredField: "This field is required to start the session.",
     invalidTurns: (maxTurns) => `Enter an integer between 1 and ${maxTurns}, Enter, or q.`,
     invalidYesNo: "Answer yes, no, Enter, or q.",
     equivalentCommands: "Equivalent commands:",

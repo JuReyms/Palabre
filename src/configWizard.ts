@@ -3,6 +3,7 @@ import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { syncDetectedAgents, writeConfig } from "./config.js";
 import { discoverLocalTools } from "./discovery.js";
+import { activeConfiguredAgentEntries } from "./agentRegistry.js";
 import { DEFAULT_TURNS, MAX_TURNS, turnsOrDefault, validateTurns } from "./limits.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
@@ -23,7 +24,7 @@ interface AgentChoice {
  * Écrit la config sur disque si l'utilisateur confirme ; sort sans modifier si l'utilisateur quitte.
  */
 export async function runConfigWizard(configPath: string, config: PalabreConfig, messages: Messages): Promise<void> {
-  const choices = Object.entries(config.agents).map(([name, agentConfig]) => ({ name, config: agentConfig }));
+  const choices = activeConfiguredAgentEntries(config).map(([name, agentConfig]) => ({ name, config: agentConfig }));
 
   if (choices.length < 2) {
     throw new Error(messages.config.wizardNeedsTwoAgents);
