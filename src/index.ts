@@ -22,7 +22,7 @@ import { listPresetNames, resolvePreset } from "./presets.js";
 import { listHistoryEntries } from "./history.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { createNdjsonRenderer, NdjsonRenderer } from "./renderers/ndjson.js";
-import { createTuiRenderer, promptTuiHomeTopic, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiUpdate, type TuiHomeInput, type TuiHomeMode } from "./renderers/tui.js";
+import { createTuiRenderer, promptTuiHomeTopic, promptTuiNavigation, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiUpdate, type TuiHomeInput, type TuiHomeMode } from "./renderers/tui.js";
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { buildDryRunPreview, printDryRun } from "./dryRun.js";
@@ -164,8 +164,8 @@ async function main(): Promise<void> {
   const handleTuiHomeInput = async (tuiInput: TuiHomeInput): Promise<"continue" | "run" | "retry" | "quit"> => {
     let input = tuiInput;
 
-    // Les vues informatives (/help, /history, /update) réaffichent le prompt d'accueil
-    // puis reprennent le traitement avec la nouvelle saisie, d'où la boucle.
+    // Les vues informatives (/help, /history, /update) proposent uniquement la
+    // navigation minimale, puis reviennent à l'accueil ou quittent.
     for (;;) {
       if (!input) {
         return "quit";
@@ -173,20 +173,20 @@ async function main(): Promise<void> {
 
       if (input.kind === "help") {
         renderTuiHelp(messages);
-        input = await promptTuiHomeTopic(tuiMode, messages);
+        input = await promptTuiNavigation(messages);
         continue;
       }
 
       if (input.kind === "history") {
         renderTuiHistory(await listHistoryEntries(resolveOutputDir(config.outputDir)), messages);
-        input = await promptTuiHomeTopic(tuiMode, messages);
+        input = await promptTuiNavigation(messages);
         continue;
       }
 
       if (input.kind === "update") {
         const info = await getUpdateInfo(tuiVersion);
         renderTuiUpdate(formatUpdateInstructions(info, messages), messages);
-        input = await promptTuiHomeTopic(tuiMode, messages);
+        input = await promptTuiNavigation(messages);
         continue;
       }
 

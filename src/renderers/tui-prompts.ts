@@ -135,33 +135,53 @@ const composerReadlineKeypressHandlers = new WeakMap<
   Function[]
 >();
 
-export type TuiCommandCompletionContext = "home" | "config" | "chat";
+export type TuiCommandCompletionContext = "home" | "config" | "chat" | "navigation";
+type TuiCompletionMessages = Pick<Messages["tui"], "commandDescription" | "completionNavigationHint">;
 
 const TUI_COMMAND_COMPLETIONS: Record<TuiCommandCompletionContext, readonly string[]> = {
   home: [
-    "/new", "/retry", "/update", "/history", "/historique", "/home", "/back", "/config",
-    "/agents", "/chat", "/ask", "/debat", "/débat", "/debate", "/help", "/roles", "/quit"
+    // Parcours principaux, ajustements de session, configuration, puis navigation.
+    "/chat", "/debat", "/ask", "/agents", "/roles", "/config", "/help",
+    "/history", "/retry", "/update", "/new", "/home", "/back", "/quit"
   ],
   config: [
-    "/home", "/back", "/mode", "/default", "/interface", "/language", "/langue", "/lang",
-    "/agents", "/roles", "/turns", "/summary", "/ollama", "/ollama-url", "/ollama-host",
-    "/ollama-model", "/model", "/ollama-sync", "/quit"
+    // Réglages généraux, participants, Ollama, puis navigation.
+    "/mode", "/default", "/interface", "/language", "/agents", "/roles", "/turns", "/summary",
+    "/ollama", "/ollama-model", "/ollama-url", "/ollama-sync", "/model",
+    "/home", "/back", "/quit"
   ],
-  chat: ["/agents", "/use", "/consult", "/end", "/home", "/back", "/quit", "/exit"]
+  chat: ["/consult", "/use", "/agents", "/end", "/home", "/back", "/quit"],
+  navigation: ["/home", "/back", "/quit"]
 };
 
-/** Suggestions de commande pour le premier mot d'une commande TUI, filtrées par écran. */
-export function completeTuiCommand(line: string, context: TuiCommandCompletionContext): [string[], string] {
+const HOME_MODE_COMMANDS: Record<TuiHomeMode, readonly string[]> = {
+  chat: ["/chat"],
+  ask: ["/ask"],
+  debate: ["/debat"]
+};
+
+/** Suggestions de commande pour le premier mot d'une commande TUI, filtrées par écran et mode actif. */
+export function completeTuiCommand(
+  line: string,
+  context: TuiCommandCompletionContext,
+  activeMode?: TuiHomeMode
+): [string[], string] {
   if (!line.startsWith("/") || /\s/.test(line)) return [[], line];
 
   const prefix = line.toLocaleLowerCase();
-  const matches = TUI_COMMAND_COMPLETIONS[context].filter((command) => command.toLocaleLowerCase().startsWith(prefix));
+  const activeModeCommands = context === "home" && activeMode
+    ? HOME_MODE_COMMANDS[activeMode]
+    : [];
+  const matches = TUI_COMMAND_COMPLETIONS[context].filter((command) => (
+    !activeModeCommands.includes(command)
+    && command.toLocaleLowerCase().startsWith(prefix)
+  ));
   return [matches, line];
 }
 
 /**
- * Accueil et Config partagent le même reader. Sous ConPTY, fermer le reader qui
- * vient de recevoir SIGINT peut rendre stdin muet pour le reader suivant.
+ * Les composers et assistants TUI partagent le même reader. Sous ConPTY, fermer
+ * le reader qui vient de recevoir SIGINT peut rendre stdin muet pour le suivant.
  */
 function getComposerReadline(): ReturnType<typeof createInterface> {
   if (composerReadline) return composerReadline;
@@ -197,8 +217,9 @@ export function nextTuiInterruptKind(): "back" | "quit" {
   return kind;
 }
 
-function questionWithInterrupt(rl: ReturnType<typeof createInterface>, prompt: string): Promise<TuiQuestionResult> {
+export function questionWithInterrupt(rl: ReturnType<typeof createInterface>, prompt: string): Promise<TuiQuestionResult> {
   return new Promise((resolve, reject) => {
+    const controller = new AbortController();
     let settled = false;
     const cleanup = () => rl.off("SIGINT", onSigint);
     const settle = (result: TuiQuestionResult) => {
@@ -209,12 +230,16 @@ function questionWithInterrupt(rl: ReturnType<typeof createInterface>, prompt: s
     };
     const onSigint = () => {
       const kind = nextTuiInterruptKind();
+      // Annule la question readline active sans fermer le reader partagé. Fermer ici
+      // peut laisser le prochain composer sans focus sous ConPTY ; laisser la question
+      // active ferait au contraire consommer le prochain Entrée par l'ancien callback.
+      controller.abort();
       settle({ kind });
     };
 
     rl.once("SIGINT", onSigint);
     try {
-      rl.question(prompt, (value) => settle({ kind: "answer", value }));
+      rl.question(prompt, { signal: controller.signal }, (value) => settle({ kind: "answer", value }));
     } catch (error) {
       if (settled) return;
       settled = true;
@@ -232,15 +257,47 @@ export async function promptTuiChatMessage(messages: Messages): Promise<TuiQuest
   return result;
 }
 
+/** Lit uniquement une commande de navigation après un écran informatif. */
+export async function promptTuiNavigation(messages: Messages): Promise<TuiHomeInput> {
+  if (!input.isTTY) return undefined;
+  const result = await promptTuiNavigationWithReadline(getComposerReadline(), messages);
+  if (!result) closeComposerReadline();
+  return result;
+}
+
+/** Variante injectable du mini-composer de navigation pour les tests. */
+export async function promptTuiNavigationWithReadline(
+  rl: ReturnType<typeof createInterface>,
+  messages: Messages,
+  streams: { input: NodeJS.ReadableStream; output: NodeJS.WritableStream; interactiveOutput?: boolean } = { input, output }
+): Promise<TuiHomeInput> {
+  const linePrompt = `${surfacePadding()}${accent(glyphs().prompt)} `;
+  const result = await questionWithBufferedComposer(
+    rl,
+    `\n${linePrompt}`,
+    linePrompt,
+    0,
+    streams,
+    "navigation",
+    undefined,
+    messages.tui
+  );
+  if (result.kind === "quit") return undefined;
+  if (result.kind === "answer" && ["/quit", "/q", "/exit"].includes(result.value.trim().toLowerCase())) {
+    return undefined;
+  }
+  return { kind: "home" };
+}
+
 /** Lit un message Chat sans fermer le reader partagé entre Chat, Home et Config. */
 export function promptTuiChatMessageWithReadline(
   rl: ReturnType<typeof createInterface>,
   messages: Messages,
-  streams: { input: NodeJS.ReadableStream; output: NodeJS.WritableStream } = { input, output }
+  streams: { input: NodeJS.ReadableStream; output: NodeJS.WritableStream; interactiveOutput?: boolean } = { input, output }
 ): Promise<TuiQuestionResult> {
   const prompt = renderChatSessionPrompt(messages);
   const linePrompt = `${surfacePadding()}${accent(glyphs().prompt)} `;
-  return questionWithBufferedComposer(rl, prompt, linePrompt, 0, streams, "chat");
+  return questionWithBufferedComposer(rl, prompt, linePrompt, 0, streams, "chat", undefined, messages.tui);
 }
 
 
@@ -250,12 +307,15 @@ export function questionWithBufferedComposer(
   prompt: string,
   linePrompt: string,
   trailingLines: number,
-  streams: { input: NodeJS.ReadableStream; output: NodeJS.WritableStream } = { input, output },
-  completionContext: TuiCommandCompletionContext = "home"
+  streams: { input: NodeJS.ReadableStream; output: NodeJS.WritableStream; interactiveOutput?: boolean } = { input, output },
+  completionContext: TuiCommandCompletionContext = "home",
+  activeMode?: TuiHomeMode,
+  completionMessages?: TuiCompletionMessages
 ): Promise<TuiQuestionResult> {
   return new Promise((resolve) => {
     const composerInput = streams.input;
     const composerOutput = streams.output;
+    const interactiveOutput = streams.interactiveOutput ?? supportsInteractiveOutput;
     const readlineKeypressHandlers = composerInput === input
       ? composerReadlineKeypressHandlers.get(rl) ?? []
       : [];
@@ -268,6 +328,7 @@ export function questionWithBufferedComposer(
     let completionSuffix = "";
     let selectedCommand: string | undefined;
     let completionRenderQueued = false;
+    let submissionPending = false;
     const clearPlaceholder = (
       value: string,
       key: { ctrl?: boolean; meta?: boolean; name?: string }
@@ -277,27 +338,31 @@ export function questionWithBufferedComposer(
         composerInput.prependOnceListener("keypress", clearPlaceholder);
         return;
       }
-      if (supportsInteractiveOutput) composerOutput.write("\u001b[0K");
+      if (interactiveOutput) composerOutput.write("\u001b[0K");
     };
     const clearCompletionSuffix = () => {
-      if (!completionSuffix || !supportsInteractiveOutput) return;
+      if (!completionSuffix || !interactiveOutput) return;
       composerOutput.write("\u001b[0K");
       completionSuffix = "";
     };
+    const restoreComposerCursor = (rows: number) => {
+      const cursorColumn = visibleLength(linePrompt) + rl.cursor;
+      composerOutput.write(`\u001b[${rows}A\r${cursorColumn > 0 ? `\u001b[${cursorColumn}C` : ""}`);
+    };
     const clearCompletionMenu = () => {
-      if (completionMenuRows === 0 || !supportsInteractiveOutput) return;
+      if (completionMenuRows === 0 || !interactiveOutput) return;
 
-      composerOutput.write("\u001b[s\r\n");
+      composerOutput.write("\r\n");
       for (let index = 0; index < completionMenuRows; index += 1) {
         composerOutput.write("\u001b[2K");
         if (index < completionMenuRows - 1) composerOutput.write("\r\n");
       }
-      composerOutput.write("\u001b[u");
+      restoreComposerCursor(completionMenuRows);
       completionMenuRows = 0;
     };
     const matchingCommands = () => {
       if (rl.cursor !== rl.line.length) return [];
-      const [matches] = completeTuiCommand(rl.line, completionContext);
+      const [matches] = completeTuiCommand(rl.line, completionContext, activeMode);
       return matches;
     };
     const selectedCompletion = () => {
@@ -310,35 +375,48 @@ export function questionWithBufferedComposer(
       clearCompletionSuffix();
       clearCompletionMenu();
 
+      if (submissionPending) return;
+
       const { matches, command } = selectedCompletion();
-      if (!command || command === rl.line || !supportsInteractiveOutput) return;
+      if (!command || command === rl.line || !interactiveOutput) return;
 
       completionSuffix = command.slice(rl.line.length);
       if (completionSuffix) {
         composerOutput.write(`${dim(completionSuffix)}\u001b[${completionSuffix.length}D`);
       }
 
-      const visibleMatches = matches.slice(0, 6);
+      const visibleMatches = matches.slice(0, 7);
+      const commandWidth = Math.max(...visibleMatches.map((match) => match.length));
       const menuLines = [
-        ...visibleMatches.map((match) => `${surfacePadding()}${match === command
-          ? accent(`${glyphs().pointer} ${match}`)
-          : dim(`  ${match}`)}`),
-        dim(`${surfacePadding()}↑↓ choisir · Tab ou → compléter · Entrée lancer`)
+        "",
+        ...visibleMatches.map((match) => {
+          const commandCell = match.padEnd(commandWidth);
+          const description = completionMessages?.commandDescription(match) ?? "";
+          return `${surfacePadding()}${match === command
+            ? `${accent(`${glyphs().pointer} ${commandCell}`)}${description ? `   ${description}` : ""}`
+            : `  ${commandCell}${description ? `   ${dim(description)}` : ""}`}`;
+        }),
+        "",
+        dim(`${surfacePadding()}${completionMessages?.completionNavigationHint ?? "↑↓ choisir  ·  Tab ou → compléter  ·  Entrée lancer"}`)
       ];
-      composerOutput.write(`\u001b[s\r\n${menuLines.join("\r\n")}\u001b[u`);
       completionMenuRows = menuLines.length;
+      composerOutput.write(`\r\n${menuLines.join("\r\n")}`);
+      restoreComposerCursor(completionMenuRows);
+    };
+    const cancelCompletionRender = () => {
+      if (completionRenderTimer) clearTimeout(completionRenderTimer);
+      completionRenderTimer = undefined;
+      completionRenderQueued = false;
     };
     const queueCompletionRender = (delay = 0, replace = false) => {
-      if (replace && completionRenderTimer) {
-        clearTimeout(completionRenderTimer);
-        completionRenderQueued = false;
-      }
-      if (completionRenderQueued) return;
+      if (replace) cancelCompletionRender();
+      if (submissionPending || completionRenderQueued) return;
       completionRenderQueued = true;
       completionRenderTimer = setTimeout(() => {
         completionRenderTimer = undefined;
-        if (settled) return;
-        if (supportsInteractiveOutput) {
+        completionRenderQueued = false;
+        if (settled || submissionPending) return;
+        if (interactiveOutput) {
           composerOutput.write(`\r\u001b[2K${linePrompt}${rl.line}`);
         }
         renderCompletion();
@@ -374,6 +452,7 @@ export function questionWithBufferedComposer(
       }
 
       if (key.name === "return") {
+        cancelCompletionRender();
         acceptSelectedCompletion();
         if (controlsReadlineInput) rl.write(value, key);
         return;
@@ -394,13 +473,13 @@ export function questionWithBufferedComposer(
       queueCompletionRender();
     };
     const finishLayout = () => {
-      if (!supportsInteractiveOutput) return;
+      if (!interactiveOutput) return;
       const down = Math.max(0, trailingLines - 1);
       composerOutput.write(`${down > 0 ? `\u001b[${down}B` : ""}\r\n\u001b[?2004l`);
     };
     const cleanup = () => {
       if (timer) clearTimeout(timer);
-      if (completionRenderTimer) clearTimeout(completionRenderTimer);
+      cancelCompletionRender();
       rl.off("line", onLine);
       rl.off("SIGINT", onSigint);
       rl.off("close", onClose);
@@ -420,6 +499,8 @@ export function questionWithBufferedComposer(
       value: normalizeBufferedComposerLines(lines)
     });
     const onLine = (line: string) => {
+      submissionPending = true;
+      cancelCompletionRender();
       lines.push(line);
       if (timer) clearTimeout(timer);
       timer = setTimeout(flush, 50);
@@ -440,7 +521,7 @@ export function questionWithBufferedComposer(
     composerInput.prependListener("keypress", completeCommand);
     composerInput.prependOnceListener("keypress", clearPlaceholder);
     composerInput.resume();
-    if (supportsInteractiveOutput) composerOutput.write("\u001b[?2004h");
+    if (interactiveOutput) composerOutput.write("\u001b[?2004h");
     composerOutput.write(prompt);
   });
 }
@@ -464,7 +545,7 @@ export async function promptTuiHomeTopic(mode: TuiHomeMode = "debate", messages:
   let keepReader = false;
   try {
     const layout = homeComposerPrompt(mode, messages, options.notice, options.bare);
-    const result = await questionWithBufferedComposer(rl, layout.prompt, layout.linePrompt, layout.trailingLines, undefined, "home");
+    const result = await questionWithBufferedComposer(rl, layout.prompt, layout.linePrompt, layout.trailingLines, undefined, "home", mode, messages.tui);
     if (result.kind !== "answer") {
       keepReader = result.kind === "back";
       return tuiHomeInterruptInput(result.kind);
@@ -504,6 +585,7 @@ export async function promptTuiHomeTopic(mode: TuiHomeMode = "debate", messages:
     }
 
     if (command === "/agents") {
+      keepReader = true;
       return { kind: "agents", agents: parts.slice(1) };
     }
 
@@ -524,6 +606,7 @@ export async function promptTuiHomeTopic(mode: TuiHomeMode = "debate", messages:
     }
 
     if (command === "/roles" || command === "/role") {
+      keepReader = true;
       return { kind: "roles", roles: parts.slice(1) };
     }
 
@@ -553,7 +636,7 @@ export async function promptTuiConfigCommand(mode: PalabreMode, messages: Messag
   let keepReader = true;
   try {
     const layout = configComposerPrompt(mode, messages);
-    const result = await questionWithBufferedComposer(rl, layout.prompt, layout.linePrompt, layout.trailingLines, undefined, "config");
+    const result = await questionWithBufferedComposer(rl, layout.prompt, layout.linePrompt, layout.trailingLines, undefined, "config", undefined, messages.tui);
     if (result.kind === "quit") {
       keepReader = false;
       return { kind: "quit" };
@@ -599,14 +682,12 @@ export async function promptTuiConfigCommand(mode: PalabreMode, messages: Messag
     }
 
     if (command === "/agents") {
-      keepReader = false;
       return parts.length > 1
         ? { kind: "agents", agents: parts.slice(1) }
         : { kind: "agents", agents: [] };
     }
 
     if (command === "/roles" || command === "/role") {
-      keepReader = false;
       return { kind: "roles", roles: parts.slice(1) };
     }
 
@@ -662,25 +743,39 @@ export async function promptTuiAgentsWizard(config: PalabreConfig, mode: Palabre
   }
 
   renderTuiAgentsHelp(config, mode, messages);
-  const rl = createInterface({ input, output });
+  const rl = getComposerReadline();
+  let keepReader = false;
   try {
-    const result = await questionWithInterrupt(rl, tuiPrompt(mode, messages.tui.agentsPrompt, messages));
+    const linePrompt = `${surfacePadding()}${accent(glyphs().prompt)} `;
+    const result = await questionWithBufferedComposer(
+      rl,
+      tuiPrompt(mode, messages.tui.agentsPrompt, messages),
+      linePrompt,
+      0,
+      undefined,
+      "navigation",
+      undefined,
+      messages.tui
+    );
     if (result.kind === "quit") {
       return { kind: "quit" };
     }
     if (result.kind === "back") {
+      keepReader = true;
       return { kind: "back" };
     }
     const value = result.value.trim();
     if (!value || value === "/home" || value === "/back") {
+      keepReader = true;
       return { kind: "back" };
     }
     if (value === "/quit" || value === "/q") {
       return { kind: "quit" };
     }
+    keepReader = true;
     return { kind: "agents", agents: value.split(/\s+/).filter(Boolean) };
   } finally {
-    rl.close();
+    if (!keepReader) closeComposerReadline();
   }
 }
 
@@ -691,26 +786,40 @@ export async function promptTuiRolesWizard(config: PalabreConfig, mode: PalabreM
   }
 
   renderTuiRolesHelp(mode, messages, config);
-  const rl = createInterface({ input, output });
+  const rl = getComposerReadline();
+  let keepReader = false;
   try {
-    const result = await questionWithInterrupt(rl, tuiPrompt(mode, messages.tui.rolesPrompt, messages));
+    const linePrompt = `${surfacePadding()}${accent(glyphs().prompt)} `;
+    const result = await questionWithBufferedComposer(
+      rl,
+      tuiPrompt(mode, messages.tui.rolesPrompt, messages),
+      linePrompt,
+      0,
+      undefined,
+      "navigation",
+      undefined,
+      messages.tui
+    );
     if (result.kind === "quit") {
       return { kind: "quit" };
     }
     if (result.kind === "back") {
+      keepReader = true;
       return { kind: "back" };
     }
     const answer = result.value;
     const value = answer.trim();
     if (!value || value === "/home" || value === "/back") {
+      keepReader = true;
       return { kind: "back" };
     }
     if (value === "/quit" || value === "/q") {
       return { kind: "quit" };
     }
+    keepReader = true;
     return { kind: "roles", roles: value.split(/\s+/).filter(Boolean) };
   } finally {
-    rl.close();
+    if (!keepReader) closeComposerReadline();
   }
 }
 
