@@ -137,6 +137,16 @@ const composerReadlineKeypressHandlers = new WeakMap<
 
 export type TuiCommandCompletionContext = "home" | "config" | "chat" | "navigation";
 type TuiCompletionMessages = Pick<Messages["tui"], "commandDescription" | "completionNavigationHint">;
+export interface TuiCompletionChoice {
+  value: string;
+  description?: string;
+}
+
+export interface TuiCompletionPicker {
+  choices: readonly TuiCompletionChoice[];
+  defaultValue?: string;
+  showOnEmpty?: boolean;
+}
 
 const TUI_COMMAND_COMPLETIONS: Record<TuiCommandCompletionContext, readonly string[]> = {
   home: [
@@ -183,7 +193,7 @@ export function completeTuiCommand(
  * Les composers et assistants TUI partagent le même reader. Sous ConPTY, fermer
  * le reader qui vient de recevoir SIGINT peut rendre stdin muet pour le suivant.
  */
-function getComposerReadline(): ReturnType<typeof createInterface> {
+export function getComposerReadline(): ReturnType<typeof createInterface> {
   if (composerReadline) return composerReadline;
   const previousKeypressHandlers = new Set(input.listeners("keypress"));
   const rl = createInterface({
@@ -204,7 +214,7 @@ function getComposerReadline(): ReturnType<typeof createInterface> {
   return rl;
 }
 
-function closeComposerReadline(): void {
+export function closeComposerReadline(): void {
   const rl = composerReadline;
   composerReadline = undefined;
   rl?.close();
@@ -310,7 +320,8 @@ export function questionWithBufferedComposer(
   streams: { input: NodeJS.ReadableStream; output: NodeJS.WritableStream; interactiveOutput?: boolean } = { input, output },
   completionContext: TuiCommandCompletionContext = "home",
   activeMode?: TuiHomeMode,
-  completionMessages?: TuiCompletionMessages
+  completionMessages?: TuiCompletionMessages,
+  completionPicker?: TuiCompletionPicker
 ): Promise<TuiQuestionResult> {
   return new Promise((resolve) => {
     const composerInput = streams.input;
@@ -362,12 +373,23 @@ export function questionWithBufferedComposer(
     };
     const matchingCommands = () => {
       if (rl.cursor !== rl.line.length) return [];
+      if (completionPicker) {
+        if (/\s/.test(rl.line)) return [];
+        const prefix = rl.line.toLocaleLowerCase();
+        return completionPicker.choices
+          .map((choice) => choice.value)
+          .filter((value) => value.toLocaleLowerCase().startsWith(prefix));
+      }
       const [matches] = completeTuiCommand(rl.line, completionContext, activeMode);
       return matches;
     };
     const selectedCompletion = () => {
       const matches = matchingCommands();
-      if (!matches.includes(selectedCommand ?? "")) selectedCommand = matches[0];
+      if (!matches.includes(selectedCommand ?? "")) {
+        selectedCommand = completionPicker?.defaultValue && matches.includes(completionPicker.defaultValue)
+          ? completionPicker.defaultValue
+          : matches[0];
+      }
       return { matches, command: selectedCommand };
     };
     const renderCompletion = () => {
@@ -378,20 +400,27 @@ export function questionWithBufferedComposer(
       if (submissionPending) return;
 
       const { matches, command } = selectedCompletion();
-      if (!command || command === rl.line || !interactiveOutput) return;
+      if (!command || (!completionPicker && command === rl.line) || !interactiveOutput) return;
 
       completionSuffix = command.slice(rl.line.length);
       if (completionSuffix) {
         composerOutput.write(`${dim(completionSuffix)}\u001b[${completionSuffix.length}D`);
       }
 
-      const visibleMatches = matches.slice(0, 7);
+      const selectedIndex = Math.max(0, matches.indexOf(command));
+      const visibleStart = Math.min(
+        Math.max(0, selectedIndex - 3),
+        Math.max(0, matches.length - 7)
+      );
+      const visibleMatches = matches.slice(visibleStart, visibleStart + 7);
       const commandWidth = Math.max(...visibleMatches.map((match) => match.length));
       const menuLines = [
         "",
         ...visibleMatches.map((match) => {
           const commandCell = match.padEnd(commandWidth);
-          const description = completionMessages?.commandDescription(match) ?? "";
+          const description = completionPicker?.choices.find((choice) => choice.value === match)?.description
+            ?? completionMessages?.commandDescription(match)
+            ?? "";
           return `${surfacePadding()}${match === command
             ? `${accent(`${glyphs().pointer} ${commandCell}`)}${description ? `   ${description}` : ""}`
             : `  ${commandCell}${description ? `   ${dim(description)}` : ""}`}`;
@@ -523,6 +552,7 @@ export function questionWithBufferedComposer(
     composerInput.resume();
     if (interactiveOutput) composerOutput.write("\u001b[?2004h");
     composerOutput.write(prompt);
+    if (completionPicker?.showOnEmpty) queueCompletionRender();
   });
 }
 
