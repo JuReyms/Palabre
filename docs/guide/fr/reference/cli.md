@@ -19,6 +19,7 @@ Cette page liste les commandes principales de Palabre.
 | `palabre agents` | Liste les agents déclarés et leur détection locale. |
 | `palabre -a` | Raccourci de `palabre agents`. |
 | `palabre history`, `palabre historique` | Liste les derniers exports Markdown Palabre. |
+| `palabre sessions` | Liste les checkpoints de reprise du dossier courant. |
 | `palabre context scan --json` | Prévisualise le contexte projet que Palabre retiendrait. |
 
 ## Configuration
@@ -62,10 +63,14 @@ Ajoutez `--checkpoint` à un Débat ou à une demande Ask pour enregistrer son �
 
 ```bash
 palabre codex-claude "Comparer deux options" --checkpoint
+palabre sessions
 palabre resume <session-id>
+palabre sessions delete <session-id>
 ```
 
 La reprise conserve les réponses complètes et relance uniquement le prochain tour, les agents Ask restants ou la synthèse. Avant tout appel, Palabre vérifie que la configuration est toujours approuvée et inchangée, puis compare les empreintes des fichiers de contexte. Une différence bloque la reprise afin de ne pas modifier silencieusement la décision. Le terminal demande confirmation ; utilisez `--yes` pour un lancement non interactif. Une session déjà terminée ne peut pas être reprise.
+
+`palabre sessions` affiche les 20 checkpoints les plus récents par défaut, avec leur état, mode, nombre de réponses et prochaine phase. `--limit <1-100>` borne la liste. Un JSON corrompu est signalé comme invalide sans empêcher l'affichage des autres. La suppression montre le fichier exact et demande confirmation ; en mode non interactif, `--yes` est obligatoire. Elle ne supprime jamais les exports Markdown ni les autres checkpoints.
 
 ## Conversation avec un agent
 
@@ -125,6 +130,9 @@ supporter de futures intégrations. Sans déclaration, la source indiquée est
 | `palabre presets --json` | Liste les presets et leur disponibilité locale. |
 | `palabre history --json` | Liste les 10 derniers exports Markdown au format JSON v1. |
 | `palabre history --json --limit 30` | Liste jusqu'à 30 exports (maximum : 100). |
+| `palabre sessions --json` | Liste jusqu'à 20 checkpoints au format JSON v1, valides ou invalides. |
+| `palabre sessions --json --limit 30` | Liste jusqu'à 30 checkpoints (maximum : 100). |
+| `palabre sessions delete <session-id> --yes --json` | Supprime exactement un checkpoint et confirme son identifiant au format JSON v1. |
 | `palabre config --ollama-models --json` | Renvoie l'état Ollama local au format JSON v1 pour les intégrations. |
 | `palabre context scan [paths...] --json` | Renvoie les dossiers, fichiers et avertissements du scan `--context` au format JSON v1. |
 
@@ -163,7 +171,7 @@ supporter de futures intégrations. Sans déclaration, la source indiquée est
 | `--ollama-url <url>` | Surcharge l'adresse de tous les agents Ollama pour cette session. |
 | `--pull-models` | Autorise Ollama à télécharger un modèle manquant. |
 | `--checkpoint` | Conserve un état machine versionné sous `.palabre/sessions/` pour une future reprise. |
-| `--yes` | Confirme explicitement `palabre resume` en mode non interactif. |
+| `--yes` | Confirme explicitement `palabre resume` ou une suppression de checkpoint en mode non interactif. |
 | `--summary-agent <name>` | Agent de synthèse. |
 | `--summary-model <model>` | Modèle de synthèse. |
 | `--no-summary` | Désactive la synthèse finale. |

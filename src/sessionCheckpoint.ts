@@ -117,7 +117,11 @@ export async function readSessionCheckpoint(workspace: string, id: string): Prom
     }
     throw error;
   }
-  return normalizeCheckpoint(parsed);
+  const checkpoint = normalizeCheckpoint(parsed);
+  if (checkpoint.id !== id) {
+    throw new SessionCheckpointError("invalid-checkpoint", `Checkpoint id does not match its file name: ${filePath}`);
+  }
+  return checkpoint;
 }
 
 /** Valide et reconstruit le schéma connu, en ignorant toute propriété non contractuelle. */

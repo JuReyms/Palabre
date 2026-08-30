@@ -150,6 +150,19 @@ Flags:
   --ollama-url <url>   surcharge l'adresse Ollama pour les appels repris
   --pull-models        autorise le téléchargement d'un modèle Ollama manquant
 `,
+  sessions: `
+Liste les checkpoints du dossier courant ou en supprime un explicitement.
+
+Usage:
+  palabre sessions [flags]
+  palabre sessions delete <session-id> [flags]
+
+Flags:
+  --json               sortie JSON v1 pour les intégrations
+  --limit <nombre>     nombre de checkpoints (1 à 100, défaut : 20)
+  --yes                confirme la suppression en mode non interactif
+  --language <fr|en>   force la langue
+`,
   run: `
 Lance un debat entre deux agents.
 
@@ -347,6 +360,19 @@ Flags:
   --ollama-url <url>   overrides the Ollama address for resumed calls
   --pull-models        allows downloading a missing Ollama model
 `,
+  sessions: `
+Lists checkpoints in the current directory or explicitly deletes one.
+
+Usage:
+  palabre sessions [flags]
+  palabre sessions delete <session-id> [flags]
+
+Flags:
+  --json               JSON v1 output for integrations
+  --limit <number>     number of checkpoints (1 to 100, default: 20)
+  --yes                confirms deletion in non-interactive mode
+  --language <fr|en>   forces the language
+`,
   run: `
 Runs a debate between two agents.
 
@@ -442,6 +468,7 @@ Commandes:
   presets    Lister les presets disponibles
   history    Lister les derniers exports
   resume     Reprendre une session interrompue
+  sessions   Lister ou supprimer les checkpoints
   context    Scanner le contexte projet
   config     Modifier les parametres par defaut
   doctor     Verifier la config et les outils locaux
@@ -501,6 +528,7 @@ Commands:
   presets    List available presets
   history    List recent exports
   resume     Resume an interrupted session
+  sessions   List or delete checkpoints
   context    Scan project context
   config     Edit default settings
   doctor     Check config and local tools

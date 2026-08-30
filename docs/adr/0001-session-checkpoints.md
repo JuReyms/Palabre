@@ -2,7 +2,7 @@
 
 - Statut : accepté pour le MVP
 - Date : 2026-07-12
-- Issues liées : #8, #19, #22, #70
+- Issues liées : #8, #19, #22, #70, #72
 
 ## Contexte
 
@@ -68,7 +68,7 @@ Le MVP ne rejoue jamais une réponse déjà marquée complète. Il relance seule
 
 ### Rétention et confidentialité
 
-Les checkpoints appartiennent au workspace et restent sous `.palabre/`, séparés des exports Markdown. Palabre doit fournir une commande de liste et de suppression explicite avant toute politique automatique de nettoyage.
+Les checkpoints appartiennent au workspace et restent sous `.palabre/`, séparés des exports Markdown. `palabre sessions` les liste sans laisser un fichier corrompu masquer les autres ; `palabre sessions delete <session-id>` supprime uniquement l'identifiant exact après confirmation. Aucune politique automatique de nettoyage n'est appliquée au MVP.
 
 Une future mémoire de décision est un artefact distinct : elle pourra indexer des décisions consenties par l’utilisateur, mais ne doit pas être déduite silencieusement des checkpoints.
 
