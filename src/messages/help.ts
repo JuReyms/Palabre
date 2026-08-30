@@ -137,6 +137,19 @@ Flags:
   --apply              execute les etapes de mise a jour
   --config <path>      chemin de config explicite
 `,
+  resume: `
+Reprend une session Débat ou Ask depuis son dernier checkpoint complet.
+
+Usage:
+  palabre resume <session-id>
+
+Flags:
+  --yes                confirme la reprise en mode non interactif
+  --terminal           force le rendu terminal brut
+  --renderer <kind>    auto, pretty, plain, tui ou ndjson
+  --ollama-url <url>   surcharge l'adresse Ollama pour les appels repris
+  --pull-models        autorise le téléchargement d'un modèle Ollama manquant
+`,
   run: `
 Lance un debat entre deux agents.
 
@@ -321,6 +334,19 @@ Flags:
   --apply              runs update steps
   --config <path>      explicit config path
 `,
+  resume: `
+Resumes a Debate or Ask session from its latest complete checkpoint.
+
+Usage:
+  palabre resume <session-id>
+
+Flags:
+  --yes                confirms resume in non-interactive mode
+  --terminal           forces raw terminal rendering
+  --renderer <kind>    auto, pretty, plain, tui, or ndjson
+  --ollama-url <url>   overrides the Ollama address for resumed calls
+  --pull-models        allows downloading a missing Ollama model
+`,
   run: `
 Runs a debate between two agents.
 
@@ -415,6 +441,7 @@ Commandes:
   agent-role Modifier le role durable d'un agent
   presets    Lister les presets disponibles
   history    Lister les derniers exports
+  resume     Reprendre une session interrompue
   context    Scanner le contexte projet
   config     Modifier les parametres par defaut
   doctor     Verifier la config et les outils locaux
@@ -473,6 +500,7 @@ Commands:
   agent-role Update one agent persistent role
   presets    List available presets
   history    List recent exports
+  resume     Resume an interrupted session
   context    Scan project context
   config     Edit default settings
   doctor     Check config and local tools

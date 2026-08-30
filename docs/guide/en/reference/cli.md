@@ -56,6 +56,17 @@ The TUI home screen performs the same conservative known-agent synchronization a
 | `palabre ask "Subject" --agents codex claude` | Runs a request with independent responses. |
 | `palabre chat --agent-a codex` | Opens a continued conversation with one agent. |
 
+## Resume a session
+
+Add `--checkpoint` to a Debate or Ask request to save atomic state under `.palabre/sessions/`. Palabre then prints the session id and matching resume command.
+
+```bash
+palabre codex-claude "Compare two options" --checkpoint
+palabre resume <session-id>
+```
+
+Resume keeps every complete response and calls only the next Debate turn, remaining Ask agents, or the summary. Before any call, Palabre verifies that the configuration is still trusted and unchanged, then compares the context file fingerprints. Any difference blocks resume so the decision cannot change silently. Interactive terminals ask for confirmation; use `--yes` for non-interactive execution. A completed session cannot be resumed.
+
 ## Conversation with one agent
 
 `palabre chat --agent-a <agent>` opens a terminal conversation. The first message becomes its initial context; `"Subject"` remains accepted as an optional way to prefill that context. For every message, Palabre starts a new call to the selected CLI and injects the accumulated history into it. The result can therefore remain coherent in the current session without relying on a persistent interactive session inside Codex, Claude, or another tool.
@@ -152,6 +163,7 @@ When no client is declared, the invocation source is `direct-cli`.
 | `--ollama-url <url>` | Overrides the address of every Ollama agent for this session. |
 | `--pull-models` | Allows Ollama to download a missing model. |
 | `--checkpoint` | Saves versioned machine state under `.palabre/sessions/` for future resume. |
+| `--yes` | Explicitly confirms `palabre resume` in non-interactive mode. |
 | `--summary-agent <name>` | Summary agent. |
 | `--summary-model <model>` | Summary model. |
 | `--no-summary` | Disables the final summary. |

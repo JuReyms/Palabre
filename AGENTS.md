@@ -62,6 +62,9 @@ pnpm start -- -v
 src/index.ts              CLI entrypoint et dispatch principal
 src/commands/             Commandes leaf extraites (agents, context, history, init, presets, update)
 src/runOptions.ts         Resolution centralisee des options completes d'une session
+src/sessionCheckpoint.ts  Contrat JSON v1 et stockage atomique des checkpoints
+src/sessionCheckpointRuntime.ts Writer runtime neuf ou repris
+src/sessionResume.ts      Validation et reconstruction stricte de `palabre resume`
 src/tuiController.ts      Controleur des flows de configuration TUI
 src/args.ts               Parseur d'arguments CLI (table d'arite des flags)
 src/new.ts                Assistant interactif `palabre new`
@@ -412,7 +415,9 @@ Erreurs connues classees :
 
 ## Orchestration
 
-Les sessions Débat et Ask peuvent activer des checkpoints avec `--checkpoint`. Cet opt-in écrit un état JSON v1 sous `.palabre/sessions/` avant le premier appel, après chaque réponse complète acceptée et lors de la terminaison. L'écriture est atomique et conserve l'empreinte canonique de la configuration, les références de contexte, le transcript complet validé, la synthèse et les diagnostics structurés. Les sorties brutes et réponses partielles ne sont jamais persistées. Chat reste hors périmètre. La commande de reprise sera ajoutée séparément.
+Les sessions Débat et Ask peuvent activer des checkpoints avec `--checkpoint`. Cet opt-in écrit un état JSON v1 sous `.palabre/sessions/` avant le premier appel, après chaque réponse complète acceptée et lors de la terminaison. L'écriture est atomique et conserve l'empreinte canonique de la configuration, les références de contexte, le transcript complet validé, la synthèse et les diagnostics structurés. Les sorties brutes et réponses partielles ne sont jamais persistées. Chat reste hors périmètre.
+
+`palabre resume <session-id>` valide le checkpoint, exige une configuration toujours approuvée avec la même empreinte, recharge chaque fichier de contexte avec la même empreinte et refuse toute dérive avant un appel agent. La commande affiche la phase à reprendre et demande confirmation en TTY ; `--yes` est obligatoire en non-interactif. Elle réutilise le même identifiant et le même writer atomique, ne rejoue aucune réponse complète, reprend le prochain tour Débat, les agents Ask restants ou la synthèse seule, puis produit un nouvel export Markdown complet. Une session terminée est refusée. Les commandes de liste et de suppression restent séparées.
 
 Palabre supporte trois modes de session. Le moteur d'orchestration historique garde deux modes :
 

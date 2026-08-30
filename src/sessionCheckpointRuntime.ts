@@ -1,7 +1,6 @@
 /** @file Raccord entre l'orchestrateur et le stockage atomique des checkpoints. */
 import { createHash, randomUUID } from "node:crypto";
-import { readFile, realpath } from "node:fs/promises";
-import path from "node:path";
+import { getConfigIdentity } from "./configTrust.js";
 import { SESSION_CHECKPOINT_VERSION, sessionCheckpointPath, writeSessionCheckpoint, type SessionCheckpoint } from "./sessionCheckpoint.js";
 import type { DebateFailure, DebateMessage, DebateOptions, DebateSummary, PalabreConfig, SessionCheckpointObserver } from "./types.js";
 
@@ -24,9 +23,7 @@ export async function createSessionCheckpointRuntime(
   configPath: string,
   options: DebateOptions
 ): Promise<SessionCheckpointRuntime> {
-  const requestedConfigPath = path.resolve(configPath);
-  const resolvedConfigPath = await realpath(requestedConfigPath).catch(() => requestedConfigPath);
-  const configHash = sha256(await readFile(resolvedConfigPath));
+  const configIdentity = await getConfigIdentity(configPath);
   const id = `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
   const agentNames = options.mode === "ask"
     ? options.askAgents ?? [options.agentA, options.agentB]
@@ -41,7 +38,6 @@ export async function createSessionCheckpointRuntime(
     ...(modelForAgent(options, name) ? { model: modelForAgent(options, name) } : {})
   }));
   const context = options.files.map((file) => ({ path: file.path, sha256: sha256(file.content) }));
-  let transcript: DebateMessage[] = [];
 
   const base = {
     v: SESSION_CHECKPOINT_VERSION,
@@ -52,12 +48,48 @@ export async function createSessionCheckpointRuntime(
     topic: options.topic,
     agents,
     turns: options.turns,
+    earlyStopOnAgreement: options.earlyStopOnAgreement,
     summaryEnabled: options.summaryEnabled,
     ...(options.summaryEnabled ? { summaryAgent: options.summaryAgent } : {}),
     ...(options.summaryModel ? { summaryModel: options.summaryModel } : {}),
-    config: { path: resolvedConfigPath, sha256: configHash },
+    config: configIdentity,
     context
   } satisfies Omit<SessionCheckpoint, "updatedAt" | "status" | "nextPhase" | "transcript" | "summary" | "completedPhases" | "diagnostics">;
+
+  return buildSessionCheckpointRuntime(base, options, [], options.mode, []);
+}
+
+/** Rouvre le writer d'un checkpoint validé sans changer son identité ni son état fonctionnel. */
+export function createResumedSessionCheckpointRuntime(
+  checkpoint: SessionCheckpoint,
+  options: DebateOptions
+): SessionCheckpointRuntime {
+  const {
+    updatedAt: _updatedAt,
+    status: _status,
+    nextPhase,
+    transcript,
+    summary: _summary,
+    completedPhases,
+    diagnostics: _diagnostics,
+    ...base
+  } = checkpoint;
+
+  if (!nextPhase) {
+    throw new Error(`Checkpoint ${checkpoint.id} has no phase to resume`);
+  }
+
+  return buildSessionCheckpointRuntime(base, options, transcript, nextPhase, completedPhases);
+}
+
+function buildSessionCheckpointRuntime(
+  base: Omit<SessionCheckpoint, "updatedAt" | "status" | "nextPhase" | "transcript" | "summary" | "completedPhases" | "diagnostics">,
+  options: DebateOptions,
+  initialTranscript: DebateMessage[],
+  initialNextPhase: NonNullable<SessionCheckpoint["nextPhase"]>,
+  initialCompletedPhases: SessionCheckpoint["completedPhases"]
+): SessionCheckpointRuntime {
+  let transcript = [...initialTranscript];
 
   const persist = async (state: Pick<SessionCheckpoint, "status" | "nextPhase" | "completedPhases" | "diagnostics"> & { summary?: DebateSummary }) => {
     await writeSessionCheckpoint(options.session.cwd, {
@@ -69,10 +101,15 @@ export async function createSessionCheckpointRuntime(
   };
 
   return {
-    id,
-    filePath: sessionCheckpointPath(options.session.cwd, id),
+    id: base.id,
+    filePath: sessionCheckpointPath(options.session.cwd, base.id),
     async start() {
-      await persist({ status: "running", nextPhase: options.mode, completedPhases: [], diagnostics: [] });
+      await persist({
+        status: "running",
+        nextPhase: initialNextPhase,
+        completedPhases: [...initialCompletedPhases],
+        diagnostics: []
+      });
     },
     async response(messages, modeComplete) {
       transcript = [...messages];

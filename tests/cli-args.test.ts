@@ -169,6 +169,13 @@ test("an explicit command is detected as the first positional", () => {
   assert.equal(parse(["init", "--local"]).flags.local, true);
 });
 
+test("resume keeps its session id positional and parses --yes as boolean", () => {
+  const parsed = parseArgs(["resume", "session-123", "--yes"], messages);
+  assert.equal(parsed.command, "resume");
+  assert.deepEqual(parsed.positionals, ["session-123"]);
+  assert.equal(parsed.flags.yes, true);
+});
+
 test("an ambiguous single-word subject throws", () => {
   assert.throws(() => parse(["bonjour"]), /ambiguous subject/);
 });

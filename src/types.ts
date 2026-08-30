@@ -148,7 +148,14 @@ export interface DebateOptions {
   /** Persistance explicite d'un état de reprise pour cette session. */
   checkpoint?: boolean;
   checkpointObserver?: SessionCheckpointObserver;
+  /** État validé d'une session existante ; jamais construit directement depuis des flags utilisateur. */
+  resume?: SessionResumeState;
   signal?: AbortSignal;
+}
+
+export interface SessionResumeState {
+  phase: DebateFailurePhase;
+  transcript: DebateMessage[];
 }
 
 /** Point d'observation interne appelé uniquement après l'acceptation d'une réponse complète. */

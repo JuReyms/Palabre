@@ -30,6 +30,7 @@ function checkpoint(overrides: Partial<SessionCheckpoint> = {}): SessionCheckpoi
       { name: "claude", role: "critic" }
     ],
     turns: 2,
+    earlyStopOnAgreement: true,
     summaryEnabled: true,
     summaryAgent: "claude",
     config: { path: "C:/work/palabre.config.json", sha256: HASH },
@@ -133,4 +134,10 @@ test("drops uncontracted properties instead of persisting raw process data", () 
 
   assert.equal(parsed.rawOutput, undefined);
   assert.deepEqual(parsed.transcript[0], checkpoint().transcript[0]);
+});
+
+test("older v1 checkpoints default early-stop behavior when the field is absent", () => {
+  const legacy = { ...checkpoint() } as Partial<SessionCheckpoint>;
+  delete legacy.earlyStopOnAgreement;
+  assert.equal(parseSessionCheckpoint(legacy).earlyStopOnAgreement, true);
 });

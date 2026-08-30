@@ -31,7 +31,7 @@ export async function isConfigTrusted(
 ): Promise<boolean> {
   const [store, identity] = await Promise.all([
     readTrustStore(trustPath),
-    configIdentity(configPath)
+    getConfigIdentity(configPath)
   ]);
   return store.configs[identity.path]?.sha256 === identity.sha256;
 }
@@ -43,7 +43,7 @@ export async function trustConfig(
 ): Promise<void> {
   const [store, identity] = await Promise.all([
     readTrustStore(trustPath),
-    configIdentity(configPath)
+    getConfigIdentity(configPath)
   ]);
   store.configs[identity.path] = {
     sha256: identity.sha256,
@@ -58,7 +58,7 @@ export async function refreshTrustedConfig(
   trustPath = CONFIG_TRUST_PATH
 ): Promise<void> {
   const store = await readTrustStore(trustPath);
-  const identity = await configIdentity(configPath);
+  const identity = await getConfigIdentity(configPath);
   if (!store.configs[identity.path]) {
     return;
   }
@@ -69,7 +69,8 @@ export async function refreshTrustedConfig(
   await writeTrustStore(trustPath, store);
 }
 
-async function configIdentity(configPath: string): Promise<{ path: string; sha256: string }> {
+/** Retourne le chemin canonique normalisé et l'empreinte utilisés par le registre de confiance. */
+export async function getConfigIdentity(configPath: string): Promise<{ path: string; sha256: string }> {
   const resolved = path.resolve(configPath);
   const [canonicalPath, content] = await Promise.all([
     realpath(resolved).catch(() => resolved),
