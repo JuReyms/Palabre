@@ -4,6 +4,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-08-30
+
+<!-- social: Resumable Debate and Ask sessions with atomic checkpoints, safe continuation, and explicit checkpoint management. -->
+
 ### Added
 
 - `--checkpoint` conserve explicitement un état machine versionné et atomique sous `.palabre/sessions/`, avant le premier appel, après chaque réponse complète et à la fin d'une session Débat ou Ask.
