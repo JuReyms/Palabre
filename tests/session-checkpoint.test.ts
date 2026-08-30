@@ -97,6 +97,14 @@ test("rejects malformed, incompatible, and traversal-prone checkpoints", async (
     () => parseSessionCheckpoint({ ...checkpoint(), status: "completed", nextPhase: "debate" }),
     (error: unknown) => error instanceof SessionCheckpointError && error.kind === "invalid-checkpoint"
   );
+  assert.throws(
+    () => parseSessionCheckpoint({ ...checkpoint(), agents: [checkpoint().agents[0]] }),
+    (error: unknown) => error instanceof SessionCheckpointError && error.kind === "invalid-checkpoint"
+  );
+  assert.throws(
+    () => parseSessionCheckpoint({ ...checkpoint(), summaryEnabled: false, nextPhase: "summary" }),
+    (error: unknown) => error instanceof SessionCheckpointError && error.kind === "invalid-checkpoint"
+  );
 
   await writeSessionCheckpoint(workspace, checkpoint());
   const filePath = sessionCheckpointPath(workspace, "release-path-20260830");

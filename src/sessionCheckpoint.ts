@@ -139,6 +139,22 @@ function normalizeCheckpoint(value: unknown): SessionCheckpoint {
     throw invalid("Completed checkpoints must not have a next phase; unfinished checkpoints must have one");
   }
 
+  const agents = asArray(record.agents, "agents").map(asAgent);
+  const minimumAgents = mode === "debate" ? 2 : 1;
+  if (agents.length < minimumAgents) {
+    throw invalid(`${mode} checkpoints require at least ${minimumAgents} agent${minimumAgents === 1 ? "" : "s"}`);
+  }
+
+  const summaryEnabled = asBoolean(record.summaryEnabled, "summaryEnabled");
+  const summaryAgent = record.summaryAgent === undefined ? undefined : asText(record.summaryAgent, "summaryAgent");
+  const summaryModel = record.summaryModel === undefined ? undefined : asText(record.summaryModel, "summaryModel");
+  if (summaryEnabled && !summaryAgent) {
+    throw invalid("summaryAgent is required when summaryEnabled is true");
+  }
+  if (!summaryEnabled && (nextPhase === "summary" || asArray(record.completedPhases, "completedPhases").includes("summary"))) {
+    throw invalid("summary phase requires summaryEnabled to be true");
+  }
+
   const completedPhases = asArray(record.completedPhases, "completedPhases")
     .map((phase) => asPhase(phase, mode));
   if (new Set(completedPhases).size !== completedPhases.length) {
@@ -155,11 +171,11 @@ function normalizeCheckpoint(value: unknown): SessionCheckpoint {
     mode,
     language: asLanguage(record.language),
     topic: asText(record.topic, "topic"),
-    agents: asArray(record.agents, "agents").map(asAgent),
+    agents,
     turns: asPositiveInteger(record.turns, "turns"),
-    summaryEnabled: asBoolean(record.summaryEnabled, "summaryEnabled"),
-    ...(record.summaryAgent === undefined ? {} : { summaryAgent: asText(record.summaryAgent, "summaryAgent") }),
-    ...(record.summaryModel === undefined ? {} : { summaryModel: asText(record.summaryModel, "summaryModel") }),
+    summaryEnabled,
+    ...(summaryAgent === undefined ? {} : { summaryAgent }),
+    ...(summaryModel === undefined ? {} : { summaryModel }),
     config: asConfig(record.config),
     context: asArray(record.context, "context").map(asContext),
     transcript: asArray(record.transcript, "transcript").map(asTranscriptMessage),
