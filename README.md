@@ -60,6 +60,8 @@ palabre codex-claude "Preview" --context src --show-prompt
 palabre context scan src docs --json
 palabre codex-claude "A resumable decision" --checkpoint
 # Palabre prints: palabre resume <session-id>
+palabre sessions
+palabre sessions delete <session-id>
 ```
 
 In an interactive terminal, `palabre` opens the TUI by default. The home screen creates the global config on first launch when needed, refreshes detected known agents, and gives you a composer for Debate, Chat, or Ask sessions. Use `/new` when you want to compose a session step by step. Debate remains the primary mode; `/chat` opens a conversation and `/ask` switches to independent answers, `/agents` and `/roles` help you choose the active setup, `/history` shows recent exports, and `/home` returns to the home screen. `--terminal` forces the raw renderer for logs and scripts. `palabre init` remains available for explicit setup, especially with `--local`.
@@ -183,6 +185,8 @@ palabre codex-claude "Preview" --context src --show-prompt
 palabre context scan src docs --json
 palabre codex-claude "Une décision reprenable" --checkpoint
 # Palabre affiche : palabre resume <session-id>
+palabre sessions
+palabre sessions delete <session-id>
 ```
 
 Dans un terminal interactif, `palabre` ouvre la TUI par défaut. L'accueil crée la config globale au premier lancement si nécessaire, rafraîchit les agents connus détectés et fournit un composer pour les sessions Débat, Chat ou Ask. Utilisez `/new` pour composer une session pas à pas. Débat reste le mode principal ; `/chat` ouvre une conversation et `/ask` passe aux réponses indépendantes, `/agents` et `/roles` aident à choisir la configuration courante, `/history` affiche les derniers exports, et `/home` revient à l'accueil. `--terminal` force le rendu brut pour les logs et les scripts. `palabre init` reste disponible pour un setup explicite, notamment avec `--local`.

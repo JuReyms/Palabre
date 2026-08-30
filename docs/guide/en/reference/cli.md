@@ -19,6 +19,7 @@ This page lists the main Palabre commands.
 | `palabre agents` | Lists declared agents and their local detection. |
 | `palabre -a` | Shortcut for `palabre agents`. |
 | `palabre history`, `palabre historique` | Lists recent Palabre Markdown exports. |
+| `palabre sessions` | Lists resume checkpoints in the current directory. |
 | `palabre context scan --json` | Previews the project context Palabre would retain. |
 
 ## Configuration
@@ -62,10 +63,14 @@ Add `--checkpoint` to a Debate or Ask request to save atomic state under `.palab
 
 ```bash
 palabre codex-claude "Compare two options" --checkpoint
+palabre sessions
 palabre resume <session-id>
+palabre sessions delete <session-id>
 ```
 
 Resume keeps every complete response and calls only the next Debate turn, remaining Ask agents, or the summary. Before any call, Palabre verifies that the configuration is still trusted and unchanged, then compares the context file fingerprints. Any difference blocks resume so the decision cannot change silently. Interactive terminals ask for confirmation; use `--yes` for non-interactive execution. A completed session cannot be resumed.
+
+`palabre sessions` shows the 20 most recent checkpoints by default, including their status, mode, response count, and next phase. `--limit <1-100>` bounds the list. A corrupted JSON file is reported as invalid without hiding other entries. Deletion displays the exact target and asks for confirmation; non-interactive use requires `--yes`. It never removes Markdown exports or sibling checkpoints.
 
 ## Conversation with one agent
 
@@ -125,6 +130,9 @@ When no client is declared, the invocation source is `direct-cli`.
 | `palabre presets --json` | Lists presets and their local availability. |
 | `palabre history --json` | Lists the 10 most recent Markdown exports as JSON v1. |
 | `palabre history --json --limit 30` | Lists up to 30 exports (maximum: 100). |
+| `palabre sessions --json` | Lists up to 20 valid or invalid checkpoints as JSON v1. |
+| `palabre sessions --json --limit 30` | Lists up to 30 checkpoints (maximum: 100). |
+| `palabre sessions delete <session-id> --yes --json` | Deletes exactly one checkpoint and confirms its id as JSON v1. |
 | `palabre config --ollama-models --json` | Returns local Ollama state as JSON v1 for integrations. |
 | `palabre context scan [paths...] --json` | Returns the folders, files, and warnings from the `--context` scan as JSON v1. |
 
@@ -163,7 +171,7 @@ When no client is declared, the invocation source is `direct-cli`.
 | `--ollama-url <url>` | Overrides the address of every Ollama agent for this session. |
 | `--pull-models` | Allows Ollama to download a missing model. |
 | `--checkpoint` | Saves versioned machine state under `.palabre/sessions/` for future resume. |
-| `--yes` | Explicitly confirms `palabre resume` in non-interactive mode. |
+| `--yes` | Explicitly confirms `palabre resume` or checkpoint deletion in non-interactive mode. |
 | `--summary-agent <name>` | Summary agent. |
 | `--summary-model <model>` | Summary model. |
 | `--no-summary` | Disables the final summary. |

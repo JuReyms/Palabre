@@ -18,6 +18,7 @@ import { presetsMessages, type PresetsMessages } from "./presets.js";
 import { previewMessages, type PreviewMessages } from "./preview.js";
 import { rendererMessages, type RendererMessages } from "./renderers.js";
 import { resumeMessages, type ResumeMessages } from "./resume.js";
+import { sessionsMessages, type SessionsMessages } from "./sessions.js";
 import { tuiMessages, type TuiMessages } from "./tui.js";
 import { updateMessages, type UpdateMessages } from "./update.js";
 
@@ -41,6 +42,7 @@ export interface Messages {
   preview: PreviewMessages;
   renderers: RendererMessages;
   resume: ResumeMessages;
+  sessions: SessionsMessages;
   tui: TuiMessages;
   update: UpdateMessages;
 }
@@ -66,6 +68,7 @@ export function createTranslator(language: Language): Messages {
     preview: previewMessages[language],
     renderers: rendererMessages[language],
     resume: resumeMessages[language],
+    sessions: sessionsMessages[language],
     tui: tuiMessages[language],
     update: updateMessages[language]
   };

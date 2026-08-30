@@ -141,3 +141,17 @@ test("older v1 checkpoints default early-stop behavior when the field is absent"
   delete legacy.earlyStopOnAgreement;
   assert.equal(parseSessionCheckpoint(legacy).earlyStopOnAgreement, true);
 });
+
+test("rejects a checkpoint whose embedded id differs from its file name", async (t) => {
+  const workspace = await mkdtemp(path.join(os.tmpdir(), "palabre-checkpoint-id-"));
+  t.after(() => rm(workspace, { recursive: true, force: true }));
+  await writeSessionCheckpoint(workspace, checkpoint({ id: "embedded-id" }));
+  const content = await import("node:fs/promises").then(({ readFile }) =>
+    readFile(sessionCheckpointPath(workspace, "embedded-id"), "utf8")
+  );
+  await writeFile(sessionCheckpointPath(workspace, "file-id"), content, "utf8");
+  await assert.rejects(
+    readSessionCheckpoint(workspace, "file-id"),
+    (error: unknown) => error instanceof SessionCheckpointError && error.kind === "invalid-checkpoint"
+  );
+});

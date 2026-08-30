@@ -36,6 +36,7 @@ import type { Messages } from "./messages/index.js";
 import { runAgentsCommand } from "./commands/agents.js";
 import { runContextCommand } from "./commands/context.js";
 import { runHistoryCommand } from "./commands/history.js";
+import { runSessionsCommand } from "./commands/sessions.js";
 import { runInitCommand } from "./commands/init.js";
 import { runPresetsCommand } from "./commands/presets.js";
 import { runUpdateCommand } from "./commands/update.js";
@@ -81,6 +82,11 @@ async function main(): Promise<void> {
       throw new Error(startupMessages.resume.tooManyIds);
     }
     await runResumeCommand(parsed.flags, parsed.positionals[0]!);
+    return;
+  }
+
+  if (parsed.command === "sessions") {
+    await runSessionsCommand(parsed.flags, parsed.positionals);
     return;
   }
 

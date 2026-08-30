@@ -20,7 +20,9 @@ palabre presets --json
 
 # Conserver puis reprendre une session interrompue
 palabre codex-claude "Décision importante" --checkpoint --terminal
+palabre sessions --json
 palabre resume <session-id> --yes --terminal
+palabre sessions delete <session-id> --yes
 ```
 
 Utiliser `--role-a` et `--role-b` pour des rôles temporaires en débat, ou `--ask-role` pour un rôle commun en Ask. Les rôles ne modifient pas la configuration.
@@ -43,6 +45,8 @@ Utiliser `--role-a` et `--role-b` pour des rôles temporaires en débat, ou `--a
 - `--dry-run` : prévisualiser la session résolue sans appeler d'agent ni écrire d'export.
 - `--checkpoint` : conserver un état atomique Débat/Ask ; Palabre affiche l'identifiant de reprise.
 - `palabre resume <session-id>` : reprendre uniquement la prochaine phase validée. Ajouter `--yes` depuis un agent ou un script non interactif.
+- `palabre sessions [--json]` : lister les checkpoints récents du workspace ; `--limit <1-100>` borne le résultat.
+- `palabre sessions delete <session-id>` : supprimer uniquement le checkpoint ciblé. Ajouter `--yes` depuis un agent ou un script non interactif.
 - `--terminal` : utiliser un rendu brut, préférable depuis un agent ou un script.
 - `--language fr|en` : langue de Palabre et des prompts.
 
