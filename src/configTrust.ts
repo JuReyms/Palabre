@@ -1,8 +1,9 @@
 /** @file Registre utilisateur des configurations explicitement approuvées. */
 import { createHash } from "node:crypto";
-import { mkdir, readFile, realpath, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, realpath, rm, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { writeTextFileAtomically } from "./atomicFile.js";
 
 export const CONFIG_TRUST_PATH = path.join(os.homedir(), ".palabre", "trusted-configs.json");
 
@@ -41,15 +42,17 @@ export async function trustConfig(
   configPath: string,
   trustPath = CONFIG_TRUST_PATH
 ): Promise<void> {
-  const [store, identity] = await Promise.all([
-    readTrustStore(trustPath),
-    getConfigIdentity(configPath)
-  ]);
-  store.configs[identity.path] = {
-    sha256: identity.sha256,
-    trustedAt: new Date().toISOString()
-  };
-  await writeTrustStore(trustPath, store);
+  await withTrustStoreLock(trustPath, async () => {
+    const [store, identity] = await Promise.all([
+      readTrustStore(trustPath),
+      getConfigIdentity(configPath)
+    ]);
+    store.configs[identity.path] = {
+      sha256: identity.sha256,
+      trustedAt: new Date().toISOString()
+    };
+    await writeTrustStore(trustPath, store);
+  });
 }
 
 /** Actualise une approbation existante après une écriture effectuée par Palabre. */
@@ -57,16 +60,18 @@ export async function refreshTrustedConfig(
   configPath: string,
   trustPath = CONFIG_TRUST_PATH
 ): Promise<void> {
-  const store = await readTrustStore(trustPath);
-  const identity = await getConfigIdentity(configPath);
-  if (!store.configs[identity.path]) {
-    return;
-  }
-  store.configs[identity.path] = {
-    sha256: identity.sha256,
-    trustedAt: new Date().toISOString()
-  };
-  await writeTrustStore(trustPath, store);
+  await withTrustStoreLock(trustPath, async () => {
+    const store = await readTrustStore(trustPath);
+    const identity = await getConfigIdentity(configPath);
+    if (!store.configs[identity.path]) {
+      return;
+    }
+    store.configs[identity.path] = {
+      sha256: identity.sha256,
+      trustedAt: new Date().toISOString()
+    };
+    await writeTrustStore(trustPath, store);
+  });
 }
 
 /** Retourne le chemin canonique normalisé et l'empreinte utilisés par le registre de confiance. */
@@ -95,11 +100,48 @@ async function readTrustStore(trustPath: string): Promise<ConfigTrustStore> {
 }
 
 async function writeTrustStore(trustPath: string, store: ConfigTrustStore): Promise<void> {
-  await mkdir(path.dirname(trustPath), { recursive: true, mode: 0o700 });
-  await writeFile(trustPath, `${JSON.stringify(store, null, 2)}\n`, {
-    encoding: "utf8",
-    mode: 0o600
+  await writeTextFileAtomically(trustPath, `${JSON.stringify(store, null, 2)}\n`, {
+    directoryMode: 0o700,
+    fileMode: 0o600
   });
+}
+
+/** Sérialise les mises à jour read-modify-write du registre entre processus Palabre. */
+async function withTrustStoreLock<T>(trustPath: string, operation: () => Promise<T>): Promise<T> {
+  const lockPath = `${trustPath}.lock`;
+  const deadline = Date.now() + 5_000;
+  let lock: Awaited<ReturnType<typeof open>> | undefined;
+
+  await mkdir(path.dirname(trustPath), { recursive: true, mode: 0o700 });
+
+  while (!lock) {
+    try {
+      lock = await open(lockPath, "wx", 0o600);
+    } catch (error: unknown) {
+      if (!(error && typeof error === "object" && "code" in error && error.code === "EEXIST")) {
+        throw error;
+      }
+
+      const lockAge = await stat(lockPath)
+        .then((value) => Date.now() - value.mtimeMs)
+        .catch(() => 0);
+      if (lockAge > 30_000) {
+        await rm(lockPath, { force: true }).catch(() => undefined);
+        continue;
+      }
+      if (Date.now() >= deadline) {
+        throw new Error(`Timed out waiting to update trusted configuration store: ${trustPath}`);
+      }
+      await new Promise<void>((resolve) => setTimeout(resolve, 25));
+    }
+  }
+
+  try {
+    return await operation();
+  } finally {
+    await lock.close();
+    await rm(lockPath, { force: true }).catch(() => undefined);
+  }
 }
 
 function normalizePathKey(value: string): string {

@@ -176,8 +176,18 @@ export class CliAdapter implements AgentAdapter {
           command: this.config.command
         }));
       });
-      const finishFromExitCode = (code: number | null) => {
-        if (code && code !== 0) {
+      const finishFromExitCode = (code: number | null, signal: NodeJS.Signals | null) => {
+        if (code === null) {
+          finish(new AdapterError(
+            "non-zero-exit",
+            this.name,
+            `${this.name} was terminated by signal ${signal ?? "unknown"}.`,
+            { exitCode: null, signal, stderr: cleanCliOutput(decodeCliBytes(stderrChunks)) }
+          ));
+          return;
+        }
+
+        if (code !== 0) {
           finish(createCliExitError(this.name, code, decodeCliBytes(stderrChunks), errorMessages));
           return;
         }

@@ -53,8 +53,8 @@ export function extractPtyUsageLimitMessage(text: string): string | undefined {
     const hasErrorPrefix = /^(error|fatal|warning)\s*:/i.test(line.trim());
 
     return /^individual quota reached(?:[.!:]|$)/i.test(cleaned)
-      || /\b(resource_exhausted|insufficient_quota)\b/i.test(cleaned)
-      || /\bhttp\s*429\b/i.test(cleaned)
+      || (hasErrorPrefix && /\b(resource_exhausted|insufficient_quota)\b/i.test(cleaned))
+      || (hasErrorPrefix && /\bhttp\s*429\b/i.test(cleaned))
       || /^too many requests(?:[.!:]|$)/i.test(cleaned)
       || (hasErrorPrefix && isUsageLimitLine(normalized));
   });

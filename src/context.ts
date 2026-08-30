@@ -247,16 +247,18 @@ function shouldIgnore(relativePath: string, basename: string, gitignoreRules: st
 }
 
 function matchesGitignoreRule(relativePath: string, basename: string, rule: string): boolean {
-  const normalizedRule = normalizePath(rule).replace(/\/$/, "");
+  const normalizedInput = normalizePath(rule);
+  const anchoredAtRoot = normalizedInput.startsWith("/");
+  const normalizedRule = normalizedInput.replace(/^\/+/, "").replace(/\/$/, "");
 
   if (normalizedRule.includes("*")) {
     const pattern = `^${globToRegex(normalizedRule)}$`;
-    return new RegExp(pattern).test(relativePath) || new RegExp(pattern).test(basename);
+    return new RegExp(pattern).test(relativePath) || (!anchoredAtRoot && new RegExp(pattern).test(basename));
   }
 
   return relativePath === normalizedRule ||
     relativePath.startsWith(`${normalizedRule}/`) ||
-    basename === normalizedRule;
+    (!anchoredAtRoot && basename === normalizedRule);
 }
 
 function isLikelyTextFile(filePath: string): boolean {

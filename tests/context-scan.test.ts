@@ -52,3 +52,20 @@ test("buildContextScan reports missing context paths as warnings", async () => {
   assert.equal(result.warnings.length, 1);
   assert.match(result.warnings[0] ?? "", /missing\.md/);
 });
+
+test("buildContextScan honors root-anchored .gitignore rules", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "palabre-context-gitignore-"));
+  t.after(() => import("node:fs/promises").then(({ rm }) => rm(root, { recursive: true, force: true })));
+  await mkdir(path.join(root, "nested"));
+  await writeFile(path.join(root, ".gitignore"), "/secrets.local.json\n", "utf8");
+  await writeFile(path.join(root, "README.md"), "# Safe\n", "utf8");
+  await writeFile(path.join(root, "secrets.local.json"), "{\"token\":\"private\"}\n", "utf8");
+  await writeFile(path.join(root, "nested", "secrets.local.json"), "{\"token\":\"allowed\"}\n", "utf8");
+
+  const result = await buildContextScan(["."], root, createTranslator("en"));
+
+  assert.deepEqual(
+    result.items.filter((item) => item.kind === "file").map((item) => item.path),
+    ["nested/secrets.local.json", "README.md"]
+  );
+});

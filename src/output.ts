@@ -25,7 +25,7 @@ export async function writeDebateMarkdown(
 ): Promise<string> {
   const safeDate = new Date().toISOString().replace(/[:.]/g, "-");
   const extension = options.mode === "ask" ? "ask" : "debate";
-  const fileName = `palabre-${slugifyTopic(options.topic)}-${safeDate}.${extension}.md`;
+  const fileName = `palabre-${slugifyTopic(options.topic, extension === "ask" ? "ask" : "debat")}-${safeDate}.${extension}.md`;
   const filePath = path.resolve(outputDir, fileName);
 
   await mkdir(path.dirname(filePath), { recursive: true });
@@ -35,7 +35,7 @@ export async function writeDebateMarkdown(
   return filePath;
 }
 
-function slugifyTopic(topic: string): string {
+function slugifyTopic(topic: string, fallback: string): string {
   const slug = topic
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -45,7 +45,7 @@ function slugifyTopic(topic: string): string {
     .slice(0, 64)
     .replace(/-+$/g, "");
 
-  return slug || "debat";
+  return slug || fallback;
 }
 
 /**

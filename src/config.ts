@@ -1,9 +1,10 @@
 /** @file Chargement, génération et validation de la config Palabre, ainsi que la synchronisation des agents/modèles Ollama détectés. */
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { applyDetectedCommands, detectedAgentNames } from "./agentRegistry.js";
 import { refreshTrustedConfig } from "./configTrust.js";
+import { writeTextFileAtomically } from "./atomicFile.js";
 import type { CliAgentConfig, PalabreConfig } from "./types.js";
 import type { ToolDiscovery } from "./discovery.js";
 import type { Messages } from "./messages/index.js";
@@ -391,8 +392,7 @@ export async function writeConfig(
   config: PalabreConfig = exampleConfig
 ): Promise<void> {
   const resolved = path.resolve(configPath);
-  await mkdir(path.dirname(resolved), { recursive: true });
-  await writeFile(resolved, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  await writeTextFileAtomically(resolved, `${JSON.stringify(config, null, 2)}\n`);
   await refreshTrustedConfig(resolved);
 }
 

@@ -231,6 +231,19 @@ test("CliAdapter rejects non-zero exits even when stdout has content", async () 
   );
 });
 
+test("CliAdapter rejects a terminated process even when stdout has content", async () => {
+  const adapter = new CliAdapter("mock", cliConfig({
+    args: ["-e", "process.stdout.write('partial answer'); setTimeout(() => process.kill(process.pid, 'SIGTERM'), 10)"]
+  }));
+
+  await assert.rejects(
+    adapter.generate(basePrompt()),
+    (error) => error instanceof AdapterError
+      && error.kind === "non-zero-exit"
+      && (error.details?.exitCode === null || error.details?.exitCode === 1)
+  );
+});
+
 test("CliAdapter classifies usage limit errors", async () => {
   const adapter = new CliAdapter("mock", cliConfig({
     args: ["-e", "process.stderr.write('ERROR: usage limit reached. Try again later.'); process.exit(1)"]
@@ -253,6 +266,20 @@ test("PTY quota detection preserves normal answers discussing rate limits", () =
   assert.equal(
     extractPtyUsageLimitMessage("A rate limit controls how often a client may call an API."),
     undefined
+  );
+});
+
+test("PTY quota detection preserves normal answers mentioning machine quota codes", () => {
+  assert.equal(
+    extractPtyUsageLimitMessage("An API can return HTTP 429 or RESOURCE_EXHAUSTED when a client sends too many requests."),
+    undefined
+  );
+});
+
+test("PTY quota detection accepts prefixed machine quota diagnostics", () => {
+  assert.match(
+    extractPtyUsageLimitMessage("ERROR: HTTP 429 RESOURCE_EXHAUSTED") ?? "",
+    /HTTP 429/
   );
 });
 

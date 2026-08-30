@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { writeChatMarkdown } from "../src/chatOutput.js";
 import { createTranslator } from "../src/i18n.js";
-import { renderDebateMarkdown } from "../src/output.js";
+import { renderDebateMarkdown, writeDebateMarkdown } from "../src/output.js";
 import type { DebateOptions } from "../src/types.js";
 
 function baseOptions(overrides: Partial<DebateOptions> = {}): DebateOptions {
@@ -140,4 +144,22 @@ test("renderDebateMarkdown includes interruption metadata", () => {
   assert.match(markdown, /\| Phase \| debate \|/);
   assert.match(markdown, /\| Agent \| codex \|/);
   assert.match(markdown, /\| Error kind \| output-too-large \|/);
+});
+
+test("export fallback filenames use debat, ask, and chat", async (t) => {
+  const outputDir = await mkdtemp(path.join(os.tmpdir(), "palabre-output-fallback-"));
+  t.after(() => rm(outputDir, { recursive: true, force: true }));
+  const messages = createTranslator("en");
+
+  await writeDebateMarkdown(outputDir, baseOptions({ topic: "" }), [], undefined, undefined, messages);
+  await writeDebateMarkdown(outputDir, baseOptions({ mode: "ask", topic: "", askAgents: ["codex", "claude"] }), [], undefined, undefined, messages);
+  await writeChatMarkdown(outputDir, "", [], baseOptions().session, {
+    reason: "user-end",
+    endedAt: "2026-05-13T10:01:00.000Z"
+  }, messages);
+
+  const names = await readdir(outputDir);
+  assert.ok(names.some((name) => /^palabre-debat-.*\.debate\.md$/.test(name)));
+  assert.ok(names.some((name) => /^palabre-ask-.*\.ask\.md$/.test(name)));
+  assert.ok(names.some((name) => /^palabre-chat-.*\.chat\.md$/.test(name)));
 });
