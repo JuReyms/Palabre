@@ -157,6 +157,7 @@ Flags:
   --renderer <kind>    auto, pretty, plain, tui ou ndjson
   --show-prompt        affiche le prompt sans appeler d'agent
   --dry-run            prévisualise la session sans appeler d'agent ni écrire d'export
+  --checkpoint         conserve un état de reprise sous .palabre/sessions
 `,
 chat: `
 Discute avec un agent unique dans une session locale stateless.
@@ -196,6 +197,7 @@ Flags:
   --renderer <kind>    auto, pretty, plain, tui ou ndjson
   --show-prompt        affiche le prompt sans appeler d'agent
   --dry-run            prévisualise la session sans appeler d'agent ni écrire d'export
+  --checkpoint         conserve un état de reprise sous .palabre/sessions
 `
 };
 
@@ -339,6 +341,7 @@ Flags:
   --renderer <kind>    auto, pretty, plain, tui, or ndjson
   --show-prompt        shows the prompt without calling an agent
   --dry-run            previews the session without calling agents or writing an export
+  --checkpoint         saves resumable state under .palabre/sessions
 `,
 
 chat: `
@@ -377,6 +380,7 @@ Flags:
   --renderer <kind>    auto, pretty, plain, tui, or ndjson
   --show-prompt        shows the prompt without calling an agent
   --dry-run            previews the session without calling agents or writing an export
+  --checkpoint         saves resumable state under .palabre/sessions
 `
 };
 

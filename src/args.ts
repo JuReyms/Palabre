@@ -42,6 +42,7 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
   "show-prompt": { arity: "boolean" },
   "dry-run": { arity: "boolean" },
   "pull-models": { arity: "boolean" },
+  checkpoint: { arity: "boolean" },
   "trust-config": { arity: "boolean" },
   local: { arity: "boolean" },
   apply: { arity: "boolean" },

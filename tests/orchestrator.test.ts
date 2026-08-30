@@ -21,6 +21,54 @@ test("runDebate can early-stop on explicit English agreement", async () => {
   assert.equal(result.stopReason, "Clear agreement detected after a complete round.");
 });
 
+test("runDebate checkpoints only complete accepted responses", async () => {
+  const snapshots: Array<{ length: number; modeComplete: boolean }> = [];
+  const config: PalabreConfig = {
+    agents: {
+      first: scriptedCliAgent("First point."),
+      second: scriptedCliAgent("Second point.")
+    }
+  };
+  const result = await runDebate(config, debateOptions({
+    turns: 2,
+    summaryEnabled: false,
+    checkpointObserver: {
+      async response(transcript, modeComplete) {
+        snapshots.push({ length: transcript.length, modeComplete });
+      }
+    }
+  }), undefined, createTranslator("en"));
+
+  assert.equal(result.failure, undefined);
+  assert.deepEqual(snapshots, [
+    { length: 1, modeComplete: false },
+    { length: 2, modeComplete: true }
+  ]);
+});
+
+test("runDebate marks an early-stop checkpoint as mode-complete", async () => {
+  const completions: boolean[] = [];
+  const config: PalabreConfig = {
+    agents: {
+      first: scriptedCliAgent("First point."),
+      second: scriptedCliAgent("Complete agreement. Nothing to add.")
+    }
+  };
+  const result = await runDebate(config, debateOptions({
+    language: "en",
+    turns: 4,
+    summaryEnabled: false,
+    checkpointObserver: {
+      async response(_transcript, modeComplete) {
+        completions.push(modeComplete);
+      }
+    }
+  }), undefined, createTranslator("en"));
+
+  assert.equal(result.messages.length, 2);
+  assert.deepEqual(completions, [false, true]);
+});
+
 test("runDebate stops before launching the next turn when aborted", async () => {
   const controller = new AbortController();
   const config: PalabreConfig = {

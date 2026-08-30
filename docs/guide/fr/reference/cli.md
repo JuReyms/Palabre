@@ -151,6 +151,7 @@ supporter de futures intégrations. Sans déclaration, la source indiquée est
 | `--model-b <model>` | Modèle transmis à l'agent B. |
 | `--ollama-url <url>` | Surcharge l'adresse de tous les agents Ollama pour cette session. |
 | `--pull-models` | Autorise Ollama à télécharger un modèle manquant. |
+| `--checkpoint` | Conserve un état machine versionné sous `.palabre/sessions/` pour une future reprise. |
 | `--summary-agent <name>` | Agent de synthèse. |
 | `--summary-model <model>` | Modèle de synthèse. |
 | `--no-summary` | Désactive la synthèse finale. |

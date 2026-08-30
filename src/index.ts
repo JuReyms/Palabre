@@ -46,6 +46,7 @@ import { buildChatHandoffTopic, ChatSession } from "./chatSession.js";
 import { parseChatInputLine } from "./chatProtocol.js";
 import { runTuiChatSession } from "./tuiChat.js";
 import { activeConfiguredAgentNames, isRetiredAgentName } from "./agentRegistry.js";
+import { createSessionCheckpointRuntime } from "./sessionCheckpointRuntime.js";
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
 async function main(): Promise<void> {
@@ -446,9 +447,17 @@ async function main(): Promise<void> {
     process.exitCode = undefined;
     const renderer = createRendererFromFlags(parsed.flags, options.plainOutput, config.defaults?.interface, messages);
     context.warnings.forEach((warning) => renderer.warning(warning));
+    const checkpointRuntime = options.checkpoint
+      ? await createSessionCheckpointRuntime(config, configPath, options)
+      : undefined;
+    if (checkpointRuntime) {
+      options.checkpointObserver = checkpointRuntime;
+      await checkpointRuntime.start();
+    }
     const result = options.mode === "ask"
       ? await runAsk(config, options, renderer, messages)
       : await runDebate(config, options, renderer, messages);
+    await checkpointRuntime?.finish(result);
     const outputPath = await writeDebateMarkdown(
       resolveOutputDir(config.outputDir),
       result.options,

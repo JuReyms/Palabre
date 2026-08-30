@@ -112,9 +112,11 @@ export async function runDebate(
     }
 
     transcript.push(outcome.message);
+    const agreementReached = shouldStopOnAgreement(options, transcript, messages);
+    await options.checkpointObserver?.response(transcript, turn >= options.turns || agreementReached);
     renderer?.message(outcome.message.content);
 
-    if (shouldStopOnAgreement(options, transcript, messages)) {
+    if (agreementReached) {
       stopReason = messages.orchestrator.agreementStopReason;
       renderer?.notice(messages.orchestrator.earlyStop(stopReason));
       break;
@@ -224,6 +226,7 @@ export async function runAsk(
     }
 
     transcript.push(outcome.message);
+    await options.checkpointObserver?.response(transcript, response >= agents.length);
     if (renderer?.askResponseMessage) {
       renderer.askResponseMessage(outcome.message.content);
     } else {

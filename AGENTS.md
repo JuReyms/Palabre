@@ -412,6 +412,8 @@ Erreurs connues classees :
 
 ## Orchestration
 
+Les sessions Débat et Ask peuvent activer des checkpoints avec `--checkpoint`. Cet opt-in écrit un état JSON v1 sous `.palabre/sessions/` avant le premier appel, après chaque réponse complète acceptée et lors de la terminaison. L'écriture est atomique et conserve l'empreinte canonique de la configuration, les références de contexte, le transcript complet validé, la synthèse et les diagnostics structurés. Les sorties brutes et réponses partielles ne sont jamais persistées. Chat reste hors périmètre. La commande de reprise sera ajoutée séparément.
+
 Palabre supporte trois modes de session. Le moteur d'orchestration historique garde deux modes :
 
 - `debate` : alterne entre deux agents pendant `turns` tours.

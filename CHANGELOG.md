@@ -4,6 +4,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Added
+
+- `--checkpoint` conserve explicitement un état machine versionné et atomique sous `.palabre/sessions/`, avant le premier appel, après chaque réponse complète et à la fin d'une session Débat ou Ask.
+
 ## [0.14.0] - 2026-08-30
 
 <!-- social: A redesigned /new flow for Chat, Debate, and Ask, a clearer TUI home, and faster, more reliable slash-command navigation. -->

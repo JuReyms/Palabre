@@ -2,7 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { AgentRole, DebateMessage, Language, OrchestrationMode } from "./types.js";
+import type { AgentRole, DebateMessage, DebateSummary, Language, OrchestrationMode } from "./types.js";
 
 export const SESSION_CHECKPOINT_VERSION = 1 as const;
 
@@ -53,6 +53,7 @@ export interface SessionCheckpoint {
   config: SessionCheckpointConfig;
   context: SessionCheckpointContext[];
   transcript: DebateMessage[];
+  summary?: DebateSummary;
   completedPhases: SessionCheckpointPhase[];
   diagnostics: SessionCheckpointDiagnostic[];
 }
@@ -160,6 +161,10 @@ function normalizeCheckpoint(value: unknown): SessionCheckpoint {
   if (new Set(completedPhases).size !== completedPhases.length) {
     throw invalid("completedPhases must not contain duplicates");
   }
+  const summary = record.summary === undefined ? undefined : asSummary(record.summary);
+  if (completedPhases.includes("summary") !== Boolean(summary)) {
+    throw invalid("A completed summary phase must include its summary, and vice versa");
+  }
 
   return {
     v: SESSION_CHECKPOINT_VERSION,
@@ -179,8 +184,19 @@ function normalizeCheckpoint(value: unknown): SessionCheckpoint {
     config: asConfig(record.config),
     context: asArray(record.context, "context").map(asContext),
     transcript: asArray(record.transcript, "transcript").map(asTranscriptMessage),
+    ...(summary === undefined ? {} : { summary }),
     completedPhases,
     diagnostics: asArray(record.diagnostics, "diagnostics").map((diagnostic) => asDiagnostic(diagnostic, mode))
+  };
+}
+
+function asSummary(value: unknown): DebateSummary {
+  const record = asRecord(value, "summary must be an object");
+  return {
+    agent: asText(record.agent, "summary.agent"),
+    role: asAgentRole(record.role, "summary.role"),
+    content: asText(record.content, "summary.content"),
+    createdAt: asDate(record.createdAt, "summary.createdAt")
   };
 }
 
