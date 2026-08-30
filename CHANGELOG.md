@@ -4,6 +4,33 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-08-30
+
+<!-- social: A redesigned /new flow for Chat, Debate, and Ask, a clearer TUI home, and faster, more reliable slash-command navigation. -->
+
+### Added
+
+- `/new` propose un parcours guidé commun à Chat, Débat et Ask, avec choix des agents, récapitulatif de session, lancement immédiat ou personnalisation des options avancées.
+- Le composer affiche une liste contextuelle et documentée dès la saisie de `/`, navigable avec les flèches, `Tab` ou `→`, sans dupliquer les alias d'une même commande.
+- `palabre history --json --limit <1-100>` permet aux intégrations de borner explicitement le nombre d'exports retournés.
+
+### Changed
+
+- L'accueil TUI résume la session active dans une carte compacte, met en avant les raccourcis essentiels et signale seulement les agents requis qui sont indisponibles.
+- Les commandes proposées sont ordonnées selon le parcours utilisateur, masquent le mode déjà actif et se réduisent à la navigation essentielle dans les vues informatives.
+- Les guides français et anglais documentent le nouvel accueil, le picker contextuel et la composition guidée d'une session.
+
+### Fixed
+
+- La navigation dans les listes TUI ne duplique plus leur rendu après l'utilisation des flèches et annule les rafraîchissements différés lors de la validation d'une commande.
+- Le focus revient correctement au composer après une vue secondaire ou un retour avec `Ctrl+C`.
+- Les diagnostics Codex privilégient l'erreur JSON terminale utile au lieu du bruit de prompt ou de démarrage MCP.
+- Le dry-run reflète les rôles temporaires réellement appliqués à la session.
+
+### Removed
+
+- Gemini n'est plus généré, détecté ni proposé comme agent connu ou preset actif ; les anciennes configurations peuvent encore le conserver comme CLI personnalisée, tandis qu'Antigravity reste l'intégration Google de référence.
+
 ## [0.13.0] - 2026-07-21
 
 ### Added
