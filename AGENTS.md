@@ -830,6 +830,7 @@ Les releases sont gerees via des tags Git. Deux workflows GitHub Actions sont en
 
 - `.github/workflows/ci.yml` : type check + tests + build sur chaque push `main` et chaque PR.
 - `.github/workflows/release.yml` : type check + tests + build + pack + publication npm via Trusted Publishing + creation de release GitHub sur chaque tag `v*`.
+- `.github/workflows/release-social.yml` : reprise manuelle ciblée du post Bluesky pour un tag déjà publié, sans republier npm ni recréer la release.
 
 ### Preparer et publier une release
 
@@ -861,6 +862,8 @@ Le push du tag declenche le workflow `release.yml` qui :
 7. cree une release GitHub avec le tarball en artifact et les notes generees depuis les commits ;
 8. pousse `public/version.json` dans le repo `JuReyms/palabre-web` (branche `dev`) ;
 9. cree une PR `dev -> main` dans palabre-web, ou commente la PR deja ouverte, puis expose son lien dans le resume du workflow. La fusion manuelle de cette PR declenche le build Netlify de production et met a jour le badge de version.
+
+Les workflows de release et de synchronisation documentaire recréent la branche `dev` de `palabre-web` depuis `main` lorsqu'elle a été supprimée après fusion. Si le workflow principal s'interrompt après la publication npm mais avant le post social, ne jamais republier le même tag : déclencher manuellement `release-social.yml` avec le tag existant.
 
 ### Npm Trusted Publishing
 

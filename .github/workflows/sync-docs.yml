@@ -32,7 +32,12 @@ jobs:
           TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
         run: |
           git clone https://x-access-token:${TOKEN}@github.com/JuReyms/palabre-web.git palabre-web
-          cd palabre-web && git checkout dev
+          cd palabre-web
+          if git ls-remote --exit-code --heads origin dev >/dev/null 2>&1; then
+            git checkout -B dev origin/dev
+          else
+            git checkout -b dev
+          fi
 
       - name: Copy files
         run: |
