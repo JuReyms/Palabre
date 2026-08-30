@@ -56,7 +56,7 @@ This setting is separate from `--summary-agent`, so debate and Ask can use diffe
 palabre config --mode chat
 ```
 
-Accepted values are `debate`, `chat`, and `ask`. Debate remains the primary mode. Chat uses `defaults.agentA` as its initial active agent; Ask uses `defaults.askAgents`. In the TUI, switch modes with `/debat`, `/chat`, or `/ask`.
+Accepted values are `debate`, `chat`, and `ask`. Debate remains the primary mode. Chat uses `defaults.agentA` as its initial active agent; Ask uses `defaults.askAgents`. In the TUI, switch modes with `/debate`, `/chat`, or `/ask` (`/debat` remains accepted as an alias).
 
 ## Set the number of turns
 

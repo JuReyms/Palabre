@@ -238,6 +238,7 @@ async function loadGitignoreRules(cwd: string): Promise<string[]> {
   }
 }
 
+/** Retourne `true` pour les exclusions natives ou une règle `.gitignore` prise en charge. */
 function shouldIgnore(relativePath: string, basename: string, gitignoreRules: string[]): boolean {
   if (DEFAULT_EXCLUDED_NAMES.has(basename)) {
     return true;
@@ -246,6 +247,10 @@ function shouldIgnore(relativePath: string, basename: string, gitignoreRules: st
   return gitignoreRules.some((rule) => matchesGitignoreRule(relativePath, basename, rule));
 }
 
+/**
+ * Compare un chemin relatif à une règle `.gitignore` simple.
+ * Les règles préfixées par `/` ne correspondent qu'à la racine du scan.
+ */
 function matchesGitignoreRule(relativePath: string, basename: string, rule: string): boolean {
   const normalizedInput = normalizePath(rule);
   const anchoredAtRoot = normalizedInput.startsWith("/");
@@ -274,6 +279,7 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/** Transforme le glob réduit pris en charge (`*`) en fragment d'expression régulière échappé. */
 function globToRegex(value: string): string {
   return value
     .split("*")

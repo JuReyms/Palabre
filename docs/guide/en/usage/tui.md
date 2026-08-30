@@ -32,7 +32,7 @@ Customization covers the response count, model identifiers passed to agents, sum
 |---------|--------|
 | `/` | Displays commands that are useful in the current view. |
 | `/new` | Composes a Chat, Debate, or Ask session step by step. |
-| `/debat` | Switches to the primary Debate mode. |
+| `/debate` | Switches to the primary Debate mode. Alias: `/debat`. |
 | `/chat` | Opens a conversation. |
 | `/ask` | Switches to independent answers. |
 | `/agents` | Displays or changes agents. |

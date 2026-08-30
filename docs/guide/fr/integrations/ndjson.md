@@ -16,6 +16,7 @@ seo:
 | `turn-start`, `message` | Tour et réponse Débat. |
 | `ask-response-start`, `ask-response` | Réponse Ask. |
 | `summary-start`, `summary-message` | Synthèse. |
+| `dry-run` | Prévisualisation résolue sans appel d'agent ni export. |
 | `error` | Échec structuré. |
 | `done` | Fin métier et chemin d'export, éventuellement nul. |
 
@@ -42,8 +43,8 @@ Les commandes texte historiques restent acceptées pour les usages humains. Une 
 
 ```json
 {"v":1,"type":"thinking-start","agent":"codex","role":"implementer"}
-{"v":1,"type":"message","turn":1,"agent":"codex","role":"implementer","content":"..."}
 {"v":1,"type":"thinking-end"}
+{"v":1,"type":"message","turn":1,"agent":"codex","role":"implementer","content":"..."}
 {"v":1,"type":"done","outputPath":"C:\\project\\.palabre\\session.debate.md"}
 ```
 

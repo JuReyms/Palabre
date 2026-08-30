@@ -1,6 +1,7 @@
 /** @file Validation et normalisation communes des noms de modèles renvoyés par Ollama. */
 import { cleanTerminalOutput } from "./adapters/terminal.js";
 
+/** Extrait et nettoie les noms de modèles d'une réponse Ollama `/api/tags` non fiable. */
 export function ollamaModelNames(payload: unknown): string[] {
   if (!payload || typeof payload !== "object" || !("models" in payload)) return [];
   const models = (payload as { models?: unknown }).models;

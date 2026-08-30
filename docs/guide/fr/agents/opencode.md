@@ -30,7 +30,7 @@ palabre config --sync-agents
 
 ## Windows
 
-Sur Windows, `shell: true` est souvent nécessaire pour les wrappers npm ou PowerShell comme `opencode`.
+Sur Windows, la configuration générée peut activer `shell` pour un wrapper npm ou PowerShell. Palabre tente d'abord l'exécutable natif, puis le shim PowerShell `.ps1` ; ne forcez cette option que si votre installation en a besoin.
 
 ## Offres et limites
 
@@ -48,7 +48,6 @@ Palabre ne choisit pas le modèle OpenCode à votre place. OpenCode utilise son 
   "command": "opencode",
   "args": ["run", "--pure"],
   "promptMode": "stdin",
-  "shell": true,
   "role": "reviewer"
 }
 ```

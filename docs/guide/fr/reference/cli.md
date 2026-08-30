@@ -148,6 +148,7 @@ supporter de futures intégrations. Sans déclaration, la source indiquée est
 | `--tui` | Force l'interface TUI, même si la configuration demande le rendu terminal. |
 | `--terminal`, `--no-tui` | Utilise un rendu terminal brut. Aussi utile avec `palabre doctor` pour les logs. |
 | `--plain` | Alias historique de `--terminal`. |
+| `--json` | Demande la sortie JSON des commandes qui la proposent, ou l'objet résolu de `dry-run`. |
 | `--renderer <auto\|pretty\|plain\|tui\|ndjson>` | Choisit le renderer terminal ou intégration. `tui` active l'interface terminal plein écran. |
 
 ## Options de débat

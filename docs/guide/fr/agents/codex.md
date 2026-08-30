@@ -42,12 +42,11 @@ Palabre transmet seulement le prompt. Si vous indiquez `--model-a` ou `--model-b
   "command": "codex",
   "args": ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only"],
   "promptMode": "stdin",
-  "shell": true,
   "role": "implementer"
 }
 ```
 
-Sur Windows, `shell: true` est souvent nécessaire pour les wrappers installés via npm ou PowerShell comme `codex`. Claude est différent dans beaucoup d'installations Windows : `claude.exe` est généralement appelé directement avec `shell: false`.
+Sur Windows, la configuration générée active `shell` pour certains wrappers npm ou PowerShell. Palabre tente d'abord l'exécutable natif, puis le shim PowerShell `.ps1` ; ne forcez cette option que si votre installation en a besoin. Claude est différent dans beaucoup d'installations Windows : `claude.exe` est généralement appelé directement avec `shell: false`.
 
 ## Utilisation
 

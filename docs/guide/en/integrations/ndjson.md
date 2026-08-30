@@ -16,6 +16,7 @@ seo:
 | `turn-start`, `message` | Debate turn and answer. |
 | `ask-response-start`, `ask-response` | Ask answer. |
 | `summary-start`, `summary-message` | Summary. |
+| `dry-run` | Resolved preview without an agent call or export. |
 | `error` | Structured failure. |
 | `done` | Business completion and export path, possibly null. |
 
@@ -42,8 +43,8 @@ Legacy text commands remain available for human use. Integrations should use JSO
 
 ```json
 {"v":1,"type":"thinking-start","agent":"codex","role":"implementer"}
-{"v":1,"type":"message","turn":1,"agent":"codex","role":"implementer","content":"..."}
 {"v":1,"type":"thinking-end"}
+{"v":1,"type":"message","turn":1,"agent":"codex","role":"implementer","content":"..."}
 {"v":1,"type":"done","outputPath":"C:\\project\\.palabre\\session.debate.md"}
 ```
 

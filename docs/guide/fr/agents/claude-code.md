@@ -57,10 +57,6 @@ Le default Palabre limite les outils Claude à `Read`, `Glob` et `Grep` : l'agen
 inspecter le projet sans modifier de fichier ni lancer de commande. Une configuration `args`
 personnalisée reste inchangée.
 
-Le default Palabre limite les outils Claude à `Read`, `Glob` et `Grep` : l'agent peut
-inspecter le projet sans modifier de fichier ni lancer de commande. Une configuration `args`
-personnalisée reste inchangée.
-
 Claude fonctionne souvent bien comme `reviewer` ou `summarizer`.
 
 ## Utilisation

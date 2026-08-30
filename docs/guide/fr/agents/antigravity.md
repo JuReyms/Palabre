@@ -26,7 +26,7 @@ palabre config --sync-agents
 
 ## Transition Gemini
 
-Google indique que Gemini CLI cessera de servir les requêtes des utilisateurs individuels gratuits et Google AI Pro/Ultra le 18 juin 2026, tandis que les clients Enterprise conservent un accès selon leurs licences.
+Google a annoncé la transition de Gemini CLI vers Antigravity CLI pour les utilisateurs individuels, tandis que les clients Enterprise conservent un accès selon leurs licences.
 
 Référence officielle : [Transitioning Gemini CLI to Antigravity CLI](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/)
 

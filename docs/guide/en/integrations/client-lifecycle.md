@@ -14,7 +14,7 @@ seo:
 
 Always wait for process termination. `error` describes the business failure; the code confirms final state.
 
-An `error` event may include phase, agent, role, turn, a stable `kind`, message, and details. Kinds include `command-not-found`, `spawn-failed`, `timeout`, `idle-timeout`, `output-too-large`, `empty-output`, `non-zero-exit`, `usage-limit`, `model-unavailable`, `model-pull-failed`, `http-error`, and `cancelled`. Branch on `kind`, not message text.
+An `error` event may include phase, agent, role, turn, a stable `kind`, message, and details. Kinds include `command-not-found`, `spawn-failed`, `timeout`, `idle-timeout`, `output-too-large`, `empty-output`, `non-zero-exit`, `usage-limit`, `unsupported-model`, `model-unavailable`, `model-pull-failed`, `http-error`, and `cancelled`. Branch on `kind`, not message text.
 
 Palabre attempts to preserve responses in a partial export after failure. Accept `done` with a path followed by a non-zero code. Cancellation must remain distinct from an error.
 

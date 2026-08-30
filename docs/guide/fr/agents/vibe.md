@@ -24,10 +24,11 @@ palabre config --sync-agents
 
 ## Windows
 
-Sur Windows, `shell: true` est souvent nécessaire pour les wrappers comme `vibe`.
+Sur Windows, la configuration générée peut activer `shell` pour un wrapper comme `vibe`.
 Palabre évite toutefois de transmettre le prompt via `cmd.exe` : il préfère l'exécutable natif,
-puis le shim PowerShell `.ps1` généré par npm ou pnpm. Si aucun de ces chemins sûrs n'est
-disponible, le lancement est refusé avec une erreur actionnable.
+puis le shim PowerShell `.ps1` généré par npm ou pnpm. Ne forcez cette option que si votre
+installation en a besoin ; si aucun chemin sûr n'est disponible, le lancement est refusé avec
+une erreur actionnable.
 
 ## Modèle par défaut
 
@@ -42,7 +43,6 @@ Palabre ne choisit pas le modèle Mistral Vibe à votre place. Vibe utilise sa p
   "args": ["--output", "text", "--trust", "--enabled-tools", "read", "--enabled-tools", "grep", "--prompt"],
   "promptMode": "argument",
   "modelArg": "--model",
-  "shell": true,
   "role": "reviewer"
 }
 ```

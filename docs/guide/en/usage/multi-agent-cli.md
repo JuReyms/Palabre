@@ -1,6 +1,6 @@
 ---
 title: Use multiple AI agents from the terminal
-description: Choose between Debate, Ask, and Chat to orchestrate several AI agents through one CLI and keep an actionable result.
+description: Choose between Debate, Chat, and Ask to orchestrate several AI agents through one CLI and keep an actionable result.
 seo:
   title: Multi-agent AI CLI for debates and answer comparison
   description: Use Palabre as a multi-agent CLI to run Codex and Claude Code debates, compare up to four answers, or consult a second AI agent.
@@ -15,8 +15,8 @@ Palabre is not an additional provider. Each agent keeps its own authentication, 
 | Mode | Agents | Interaction | Primary use |
 |------|--------|-------------|-------------|
 | Debate | 2 | Agents answer each other | Challenge a decision and resolve disagreements |
-| Ask | 1 to 4 | Independent answers | Compare analyses without mutual influence |
 | Chat | 1 active, explicit consultations | Ongoing conversation | Work with one agent and request a second opinion when needed |
+| Ask | 1 to 4 | Independent answers | Compare analyses without mutual influence |
 
 ## Make two agents debate
 

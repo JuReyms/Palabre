@@ -40,6 +40,7 @@ The main features are available:
 - final summary with consensus, disagreements, proposed actions, and conclusion;
 - Markdown export `.debate.md`, `.chat.md`, or `.ask.md` with a name based on the subject;
 - local export history with `palabre history`, `palabre history --json`, and `/history` in the TUI;
+- opt-in checkpoints for Debate and Ask, with `palabre sessions` and `palabre resume <session-id>` without replaying already accepted answers;
 - partial export preserved if an agent fails during the debate or final summary;
 - diagnostics with `palabre doctor`;
 - machine-readable output with `palabre agents --json`, `palabre presets --json`, `palabre context scan --json`, and the NDJSON renderer;
@@ -64,7 +65,7 @@ The `palabre config` command, the TUI `/config` view, first-run configuration, a
 
 ### Conversation after the debate
 
-After the final summary of a Debate or Ask session, `/chat` can now continue with one active agent. The transferred context records its provenance and carries over the subject with the final summary, or the six most recent exchanges when no summary exists. The conversation remains stateless and bounded; persistent sessions, streaming, and restart recovery remain separate future work.
+After the final summary of a Debate or Ask session, `/chat` can now continue with one active agent. The transferred context records its provenance and carries over the subject with the final summary, or the six most recent exchanges when no summary exists. The conversation remains stateless and bounded; persistent Chat sessions and streaming remain separate future work.
 
 ### Tests and stability
 
@@ -74,7 +75,7 @@ Reproducible tests already cover the CLI adapter, the NDJSON renderer, preset av
 
 These topics are considered after the CLI stabilizes:
 
-- resuming a debate from an existing transcript;
+- resuming a debate from an existing Markdown export, distinct from `palabre resume`, which resumes a Palabre checkpoint;
 - OpenAI-compatible local provider for LM Studio, LocalAI, vLLM, or equivalent;
 - ongoing maintenance of the French and English documentation;
 - continued refinement of the multilingual French/English CLI interface, with a future interactive language choice in first-run or configuration flows;
