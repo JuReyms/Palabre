@@ -64,10 +64,11 @@ export async function runDebate(
     createAgent(options.agentB, agentBConfig, { ollamaUrl: options.ollamaUrl })
   ];
 
-  const transcript: DebateMessage[] = [];
+  const transcript: DebateMessage[] = [...(options.resume?.transcript ?? [])];
   let stopReason: string | undefined;
+  const firstTurnIndex = options.resume?.phase === "summary" ? options.turns : transcript.length;
 
-  for (let index = 0; index < options.turns; index += 1) {
+  for (let index = firstTurnIndex; index < options.turns; index += 1) {
     const cancellation = cancellationFailureIfAborted(options, messages, {
       phase: "debate",
       turn: index + 1
@@ -175,9 +176,10 @@ export async function runAsk(
   })));
 
   const agents = agentEntries.map(([name, agentConfig]) => createAgent(name, agentConfig, { ollamaUrl: options.ollamaUrl }));
-  const transcript: DebateMessage[] = [];
+  const transcript: DebateMessage[] = [...(options.resume?.transcript ?? [])];
+  const firstAgentIndex = options.resume?.phase === "summary" ? agents.length : transcript.length;
 
-  for (let index = 0; index < agents.length; index += 1) {
+  for (let index = firstAgentIndex; index < agents.length; index += 1) {
     const current = agents[index];
     const response = index + 1;
     const cancellation = cancellationFailureIfAborted(options, messages, {

@@ -17,6 +17,10 @@ palabre ask "Comparer ces approches" --agents codex claude opencode --terminal
 
 # Lister les presets disponibles
 palabre presets --json
+
+# Conserver puis reprendre une session interrompue
+palabre codex-claude "Décision importante" --checkpoint --terminal
+palabre resume <session-id> --yes --terminal
 ```
 
 Utiliser `--role-a` et `--role-b` pour des rôles temporaires en débat, ou `--ask-role` pour un rôle commun en Ask. Les rôles ne modifient pas la configuration.
@@ -37,6 +41,8 @@ Utiliser `--role-a` et `--role-b` pour des rôles temporaires en débat, ou `--a
 - `--pull-models` : autoriser Ollama à télécharger un modèle manquant.
 - `--show-prompt` : afficher le prompt du premier tour sans appeler d'agent.
 - `--dry-run` : prévisualiser la session résolue sans appeler d'agent ni écrire d'export.
+- `--checkpoint` : conserver un état atomique Débat/Ask ; Palabre affiche l'identifiant de reprise.
+- `palabre resume <session-id>` : reprendre uniquement la prochaine phase validée. Ajouter `--yes` depuis un agent ou un script non interactif.
 - `--terminal` : utiliser un rendu brut, préférable depuis un agent ou un script.
 - `--language fr|en` : langue de Palabre et des prompts.
 

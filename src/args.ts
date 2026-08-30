@@ -43,6 +43,7 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
   "dry-run": { arity: "boolean" },
   "pull-models": { arity: "boolean" },
   checkpoint: { arity: "boolean" },
+  yes: { arity: "boolean" },
   "trust-config": { arity: "boolean" },
   local: { arity: "boolean" },
   apply: { arity: "boolean" },
@@ -99,6 +100,7 @@ const COMMANDS = new Set([
   "presets",
   "history",
   "historique",
+  "resume",
   "context",
   "chat"
 ]);

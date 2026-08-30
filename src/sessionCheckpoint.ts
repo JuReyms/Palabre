@@ -47,6 +47,7 @@ export interface SessionCheckpoint {
   topic: string;
   agents: SessionCheckpointAgent[];
   turns: number;
+  earlyStopOnAgreement: boolean;
   summaryEnabled: boolean;
   summaryAgent?: string;
   summaryModel?: string;
@@ -178,6 +179,9 @@ function normalizeCheckpoint(value: unknown): SessionCheckpoint {
     topic: asText(record.topic, "topic"),
     agents,
     turns: asPositiveInteger(record.turns, "turns"),
+    earlyStopOnAgreement: record.earlyStopOnAgreement === undefined
+      ? true
+      : asBoolean(record.earlyStopOnAgreement, "earlyStopOnAgreement"),
     summaryEnabled,
     ...(summaryAgent === undefined ? {} : { summaryAgent }),
     ...(summaryModel === undefined ? {} : { summaryModel }),

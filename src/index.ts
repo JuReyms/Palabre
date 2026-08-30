@@ -46,7 +46,8 @@ import { buildChatHandoffTopic, ChatSession } from "./chatSession.js";
 import { parseChatInputLine } from "./chatProtocol.js";
 import { runTuiChatSession } from "./tuiChat.js";
 import { activeConfiguredAgentNames, isRetiredAgentName } from "./agentRegistry.js";
-import { createSessionCheckpointRuntime } from "./sessionCheckpointRuntime.js";
+import { createResumedSessionCheckpointRuntime, createSessionCheckpointRuntime } from "./sessionCheckpointRuntime.js";
+import { prepareSessionResume } from "./sessionResume.js";
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
 async function main(): Promise<void> {
@@ -69,6 +70,17 @@ async function main(): Promise<void> {
     const result = await runDoctor(optionalString(parsed.flags.config), Boolean(parsed.flags.plain || parsed.flags.terminal), optionalString(parsed.flags.language));
     console.log(result.output);
     process.exitCode = result.ok ? 0 : 1;
+    return;
+  }
+
+  if (parsed.command === "resume") {
+    if (parsed.positionals.length === 0) {
+      throw new Error(startupMessages.resume.idRequired);
+    }
+    if (parsed.positionals.length > 1) {
+      throw new Error(startupMessages.resume.tooManyIds);
+    }
+    await runResumeCommand(parsed.flags, parsed.positionals[0]!);
     return;
   }
 
@@ -453,6 +465,7 @@ async function main(): Promise<void> {
     if (checkpointRuntime) {
       options.checkpointObserver = checkpointRuntime;
       await checkpointRuntime.start();
+      renderer.notice(messages.resume.checkpointReady(checkpointRuntime.id));
     }
     const result = options.mode === "ask"
       ? await runAsk(config, options, renderer, messages)
@@ -519,6 +532,66 @@ async function main(): Promise<void> {
       parsed.flags.renderer = "tui";
       break;
     }
+  }
+}
+
+/** Valide, confirme puis reprend une session existante sans rejouer les réponses complètes. */
+async function runResumeCommand(flags: ParsedArgs["flags"], id: string): Promise<void> {
+  const prepared = await prepareSessionResume(id, {
+    workspace: process.cwd(),
+    ollamaUrl: optionalString(flags["ollama-url"]),
+    pullModels: Boolean(flags["pull-models"]),
+    plainOutput: Boolean(flags.plain || flags.terminal),
+    signal: debateAbortSignal()
+  });
+  const { checkpoint, config, options, messages } = prepared;
+  const renderer = createRendererFromFlags(flags, options.plainOutput, config.defaults?.interface, messages);
+  const rendererKind = rendererKindFromFlags(flags, messages);
+
+  renderer.notice(messages.resume.preview(
+    checkpoint.id,
+    checkpoint.mode,
+    checkpoint.topic,
+    checkpoint.transcript.length,
+    checkpoint.nextPhase!
+  ));
+
+  if (!flags.yes) {
+    const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY && rendererKind !== "ndjson");
+    if (!interactive) {
+      throw new Error(messages.resume.yesRequired);
+    }
+    const prompt = createInterface({ input: process.stdin, output: process.stdout });
+    try {
+      const answer = (await prompt.question(messages.resume.confirmPrompt)).trim().toLowerCase();
+      if (!["o", "oui", "y", "yes"].includes(answer)) {
+        renderer.notice(messages.resume.declined);
+        return;
+      }
+    } finally {
+      prompt.close();
+    }
+  }
+
+  const checkpointRuntime = createResumedSessionCheckpointRuntime(checkpoint, options);
+  options.checkpointObserver = checkpointRuntime;
+  await checkpointRuntime.start();
+  const result = options.mode === "ask"
+    ? await runAsk(config, options, renderer, messages)
+    : await runDebate(config, options, renderer, messages);
+  await checkpointRuntime.finish(result);
+  const outputPath = await writeDebateMarkdown(
+    resolveOutputDir(config.outputDir),
+    result.options,
+    result.messages,
+    result.summary,
+    result.stopReason,
+    messages,
+    result.failure
+  );
+  renderer.done(outputPath);
+  if (result.failure) {
+    process.exitCode = result.failure.kind === "cancelled" ? 130 : 1;
   }
 }
 

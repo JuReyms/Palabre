@@ -56,6 +56,17 @@ L'accueil TUI applique la même synchronisation prudente des agents connus que `
 | `palabre ask "Sujet" --agents codex claude` | Lance une demande avec des réponses indépendantes. |
 | `palabre chat --agent-a codex` | Ouvre une conversation suivie avec un seul agent. |
 
+## Reprendre une session
+
+Ajoutez `--checkpoint` à un Débat ou à une demande Ask pour enregistrer son état atomique sous `.palabre/sessions/`. Palabre affiche alors l'identifiant et la commande de reprise correspondante.
+
+```bash
+palabre codex-claude "Comparer deux options" --checkpoint
+palabre resume <session-id>
+```
+
+La reprise conserve les réponses complètes et relance uniquement le prochain tour, les agents Ask restants ou la synthèse. Avant tout appel, Palabre vérifie que la configuration est toujours approuvée et inchangée, puis compare les empreintes des fichiers de contexte. Une différence bloque la reprise afin de ne pas modifier silencieusement la décision. Le terminal demande confirmation ; utilisez `--yes` pour un lancement non interactif. Une session déjà terminée ne peut pas être reprise.
+
 ## Conversation avec un agent
 
 `palabre chat --agent-a <agent>` ouvre une conversation dans le terminal. Le premier message devient son contexte initial ; `"Sujet"` reste accepté en option pour préremplir ce contexte. À chaque message, Palabre lance un nouvel appel à la CLI sélectionnée et lui réinjecte l'historique déjà accumulé. Le résultat reste donc cohérent dans la session courante, sans dépendre d'une session interactive persistante chez Codex, Claude ou un autre outil.
@@ -152,6 +163,7 @@ supporter de futures intégrations. Sans déclaration, la source indiquée est
 | `--ollama-url <url>` | Surcharge l'adresse de tous les agents Ollama pour cette session. |
 | `--pull-models` | Autorise Ollama à télécharger un modèle manquant. |
 | `--checkpoint` | Conserve un état machine versionné sous `.palabre/sessions/` pour une future reprise. |
+| `--yes` | Confirme explicitement `palabre resume` en mode non interactif. |
 | `--summary-agent <name>` | Agent de synthèse. |
 | `--summary-model <model>` | Modèle de synthèse. |
 | `--no-summary` | Désactive la synthèse finale. |

@@ -2,7 +2,7 @@
 
 - Statut : accepté pour le MVP
 - Date : 2026-07-12
-- Issues liées : #8, #19, #22
+- Issues liées : #8, #19, #22, #70
 
 ## Contexte
 
