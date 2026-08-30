@@ -63,6 +63,7 @@ export function resolveRunOptions(input: ResolveRunOptionsInput, messages: Messa
     summaryEnabled: !flags["no-summary"],
     earlyStopOnAgreement: !flags["no-early-stop"],
     plainOutput: Boolean(flags.plain || flags.terminal),
+    checkpoint: Boolean(flags.checkpoint),
     signal
   };
 }

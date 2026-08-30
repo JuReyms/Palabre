@@ -151,6 +151,7 @@ When no client is declared, the invocation source is `direct-cli`.
 | `--model-b <model>` | Model passed to agent B. |
 | `--ollama-url <url>` | Overrides the address of every Ollama agent for this session. |
 | `--pull-models` | Allows Ollama to download a missing model. |
+| `--checkpoint` | Saves versioned machine state under `.palabre/sessions/` for future resume. |
 | `--summary-agent <name>` | Summary agent. |
 | `--summary-model <model>` | Summary model. |
 | `--no-summary` | Disables the final summary. |

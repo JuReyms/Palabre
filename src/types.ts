@@ -145,7 +145,15 @@ export interface DebateOptions {
   summaryEnabled: boolean;
   earlyStopOnAgreement: boolean;
   plainOutput: boolean;
+  /** Persistance explicite d'un état de reprise pour cette session. */
+  checkpoint?: boolean;
+  checkpointObserver?: SessionCheckpointObserver;
   signal?: AbortSignal;
+}
+
+/** Point d'observation interne appelé uniquement après l'acceptation d'une réponse complète. */
+export interface SessionCheckpointObserver {
+  response(transcript: readonly DebateMessage[], modeComplete: boolean): Promise<void>;
 }
 
 

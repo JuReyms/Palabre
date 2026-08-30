@@ -40,6 +40,11 @@ test("run options prioritize explicit agents over preset and config defaults", (
   assert.equal(options.summaryAgent, "codex");
 });
 
+test("run options preserve the explicit checkpoint opt-in", () => {
+  const options = resolve({ checkpoint: true }, config({ agentA: "codex", agentB: "claude" }));
+  assert.equal(options.checkpoint, true);
+});
+
 test("ask mode uses configured agents and ask summary agent", () => {
   const options = resolve({}, config({
     mode: "ask",

@@ -71,7 +71,13 @@ test("rewriting a checkpoint replaces the complete state without temporary lefto
     status: "completed",
     nextPhase: null,
     updatedAt: "2026-08-30T12:04:00.000Z",
-    completedPhases: ["debate", "summary"]
+    completedPhases: ["debate", "summary"],
+    summary: {
+      agent: "claude",
+      role: "summarizer",
+      content: "Décision finale.",
+      createdAt: "2026-08-30T12:03:00.000Z"
+    }
   }));
 
   const restored = await readSessionCheckpoint(workspace, "release-path-20260830");
