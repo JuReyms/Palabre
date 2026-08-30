@@ -37,6 +37,7 @@ export type TuiHomeInput =
   | { kind: "config" }
   | { kind: "mode"; mode: TuiHomeMode }
   | { kind: "help" }
+  | { kind: "invalid"; message: string }
   | { kind: "agents"; agents: string[] }
   | { kind: "roles"; roles: string[] }
   | undefined;
@@ -268,9 +269,9 @@ export async function promptTuiChatMessage(messages: Messages): Promise<TuiQuest
 }
 
 /** Lit uniquement une commande de navigation après un écran informatif. */
-export async function promptTuiNavigation(messages: Messages): Promise<TuiHomeInput> {
+export async function promptTuiNavigation(messages: Messages, label = messages.tui.navigationPrompt): Promise<TuiHomeInput> {
   if (!input.isTTY) return undefined;
-  const result = await promptTuiNavigationWithReadline(getComposerReadline(), messages);
+  const result = await promptTuiNavigationWithReadline(getComposerReadline(), messages, undefined, label);
   if (!result) closeComposerReadline();
   return result;
 }
@@ -279,24 +280,31 @@ export async function promptTuiNavigation(messages: Messages): Promise<TuiHomeIn
 export async function promptTuiNavigationWithReadline(
   rl: ReturnType<typeof createInterface>,
   messages: Messages,
-  streams: { input: NodeJS.ReadableStream; output: NodeJS.WritableStream; interactiveOutput?: boolean } = { input, output }
+  streams: { input: NodeJS.ReadableStream; output: NodeJS.WritableStream; interactiveOutput?: boolean } = { input, output },
+  label = messages.tui.navigationPrompt
 ): Promise<TuiHomeInput> {
-  const linePrompt = `${surfacePadding()}${accent(glyphs().prompt)} `;
-  const result = await questionWithBufferedComposer(
-    rl,
-    `\n${linePrompt}`,
-    linePrompt,
-    0,
-    streams,
-    "navigation",
-    undefined,
-    messages.tui
-  );
-  if (result.kind === "quit") return undefined;
-  if (result.kind === "answer" && ["/quit", "/q", "/exit"].includes(result.value.trim().toLowerCase())) {
-    return undefined;
+  let notice: string | undefined;
+  for (;;) {
+    const layout = navigationComposerPrompt(messages, label, notice);
+    notice = undefined;
+    const result = await questionWithBufferedComposer(
+      rl,
+      layout.prompt,
+      layout.linePrompt,
+      layout.trailingLines,
+      streams,
+      "navigation",
+      undefined,
+      messages.tui
+    );
+    if (result.kind === "quit") return undefined;
+    if (result.kind === "back") return { kind: "home" };
+
+    const command = result.value.trim().toLowerCase();
+    if (["/quit", "/q", "/exit"].includes(command)) return undefined;
+    if (!command || ["/home", "/back", "/b"].includes(command)) return { kind: "home" };
+    notice = messages.tui.unknownCommand;
   }
-  return { kind: "home" };
 }
 
 /** Lit un message Chat sans fermer le reader partagé entre Chat, Home et Config. */
@@ -641,7 +649,7 @@ export async function promptTuiHomeTopic(mode: TuiHomeMode = "debate", messages:
     }
 
     if (value.startsWith("/")) {
-      return { kind: "help" };
+      return { kind: "invalid", message: messages.tui.unknownCommand };
     }
 
     const composerInput = parseComposerTopic(value);
@@ -700,7 +708,7 @@ export async function promptTuiConfigCommand(mode: PalabreMode, messages: Messag
       if (value === "tui" || value === "terminal") {
         return { kind: "interface", interfaceName: value };
       }
-      return { kind: "unknown", message: "Usage: /interface <tui|terminal>" };
+      return { kind: "unknown", message: messages.tui.interfaceUsage };
     }
 
     if (command === "/language" || command === "/langue" || command === "/lang") {
@@ -708,7 +716,7 @@ export async function promptTuiConfigCommand(mode: PalabreMode, messages: Messag
       if (value === "fr" || value === "en") {
         return { kind: "language", language: value };
       }
-      return { kind: "unknown", message: "Usage: /language <fr|en>" };
+      return { kind: "unknown", message: messages.tui.languageUsage };
     }
 
     if (command === "/agents") {
@@ -861,9 +869,7 @@ function homeComposerPrompt(
   bare = false
 ): { prompt: string; linePrompt: string; trailingLines: number } {
   return framedComposerPrompt(
-    mode,
-    messages,
-    messages.tui.subject,
+    promptTrail(mode, messages.tui.subject, messages),
     messages.tui.composerPlaceholder(mode),
     undefined,
     notice,
@@ -872,13 +878,21 @@ function homeComposerPrompt(
 }
 
 /** Variante Config du composer partagé. */
-function configComposerPrompt(mode: TuiHomeMode, messages: Messages): ComposerPromptLayout {
+function configComposerPrompt(_mode: TuiHomeMode, messages: Messages): ComposerPromptLayout {
   return framedComposerPrompt(
-    mode,
-    messages,
-    messages.tui.configPrompt,
+    sectionTrail(messages.tui.configScreen),
     messages.tui.configComposerPlaceholder,
-    messages.tui.configComposerTip
+    undefined
+  );
+}
+
+/** Variante partagée des écrans informatifs : même règle, même curseur, retour explicite. */
+function navigationComposerPrompt(messages: Messages, label: string, notice?: string): ComposerPromptLayout {
+  return framedComposerPrompt(
+    sectionTrail(label),
+    messages.tui.navigationComposerPlaceholder,
+    undefined,
+    notice
   );
 }
 
@@ -890,9 +904,7 @@ interface ComposerPromptLayout {
 
 /** Primitive commune aux composers Accueil et Config. */
 function framedComposerPrompt(
-  mode: TuiHomeMode,
-  messages: Messages,
-  labelPrefix: string,
+  trail: string,
   placeholder: string,
   tip: string | undefined,
   notice?: string,
@@ -907,10 +919,9 @@ function framedComposerPrompt(
     : [];
   const lines = [
     "",
-    `${padding}${labeledRule(promptTrail(mode, labelPrefix, messages), violet)}`,
+    `${padding}${labeledRule(trail, violet)}`,
     ...(notice ? promptNoticeLines(notice) : []),
     ...tipLines,
-    ...(tip ? [`${padding}${violet(glyphs().h.repeat(surfaceWidth()))}`] : []),
     `${promptPrefix}${dim(placeholder)}`
   ];
   const prompt = lines.join("\n");
@@ -970,6 +981,8 @@ export function renderChatSessionPrompt(messages: Messages): string {
   const padding = surfacePadding();
   return [
     "",
+    `${padding}${labeledRule(sectionTrail(messages.tui.modeValue("chat")), violet)}`,
+    "",
     ...wrapLine(messages.tui.chatComposerCommands, surfaceWidth()).map((line) => `${padding}${dim(line)}`),
     "",
     `${padding}${accent(glyphs().prompt)} `
@@ -988,16 +1001,16 @@ function promptNoticeLines(notice: string): string[] {
   return wrapLine(notice, contentWidth).map((line) => `${padding}${line}`);
 }
 
-function promptModeLabel(mode: TuiHomeMode, messages: Messages): string {
-  return mode === "chat" ? "Mode chat" : `Mode ${messages.tui.modeValue(mode).toLowerCase()}`;
-}
-
 function promptTrail(mode: TuiHomeMode, labelPrefix: string, messages: Messages): string {
-  const parts = [bold("Palabre"), accent(promptModeLabel(mode, messages))];
+  const parts = [bold("Palabre"), accent(messages.tui.modeValue(mode))];
   if (labelPrefix !== messages.tui.subject) {
     parts.push(bold(labelPrefix));
   }
   return parts.join(` ${dim(glyphs().pointer)} `);
+}
+
+function sectionTrail(label: string): string {
+  return [bold("Palabre"), accent(label)].join(` ${dim(glyphs().pointer)} `);
 }
 
 function composerInputBox(mode: PalabreMode, labelPrefix: string, width: number, messages: Messages): string[] {

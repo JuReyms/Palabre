@@ -31,7 +31,7 @@ export function renderTuiChat(agentName: string, transcript: DebateMessage[], me
   const recent = transcript.slice(-6);
   const lines = [
     "",
-    ...padBlock([brandHeader()]),
+    ...padBlock([brandHeader(`Palabre ${messages.tui.modeValue("chat")}`)]),
     ""
   ];
 

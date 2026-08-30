@@ -14,9 +14,11 @@ The TUI is the recommended interface for human use. It creates the global config
 
 ## Home screen
 
-The home screen summarizes the current session on two lines: mode, agents with their roles, response count, and summary agent. It then shows essential shortcuts and the working directory. If an agent required by the session is unavailable, a warning points to `/agents` or `/config`, depending on the setting that needs attention.
+The home screen summarizes the current session on two lines: mode, agents, roles, response count, and summary agent. It then shows essential shortcuts, the `--context` and `--files` syntaxes, and the working directory. If an agent required by the session is unavailable, a warning appears below the directory and points to `/agents` or `/config`, depending on the setting that needs attention.
 
 Enter a subject directly to run the current mode. Type `/` to open the contextual command list; use the arrow keys, `Tab`, or `→` to complete, then press `Enter` to run.
+
+`/help` groups commands around the user journey: start, prepare, continue, then navigate. `/config` first shows the active session and common settings; type `/` in its composer to reach advanced settings. An unknown command now produces an explicit message on every screen instead of silently changing views.
 
 ## Compose a new session
 

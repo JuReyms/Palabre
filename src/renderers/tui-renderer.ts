@@ -184,7 +184,7 @@ class TuiRenderer implements DebateRenderer {
 
     return [
       "",
-      ...padBlock([brandHeader()]),
+      ...padBlock([brandHeader(`Palabre ${this.messages.tui.modeValue(options.mode)}`)]),
       "",
       ...padBlock(main),
       ""

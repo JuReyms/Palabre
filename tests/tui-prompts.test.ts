@@ -243,6 +243,35 @@ test("informational views expose only the minimal navigation picker", async () =
   }
 });
 
+test("informational views keep their composer and explain invalid commands", async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const chunks: Buffer[] = [];
+  output.on("data", (chunk: Buffer) => chunks.push(chunk));
+  const rl = createInterface({ input, output, terminal: false });
+
+  try {
+    const navigation = promptTuiNavigationWithReadline(
+      rl,
+      createTranslator("en"),
+      { input, output },
+      "Help"
+    );
+    input.write("/unknown\n");
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    input.write("/home\n");
+
+    assert.deepEqual(await navigation, { kind: "home" });
+    const rendered = Buffer.concat(chunks).toString("utf8");
+    assert.match(rendered, /Palabre.*Help/);
+    assert.doesNotMatch(rendered, /Palabre.*\/help/);
+    assert.match(rendered, /Unknown command/);
+    assert.match(rendered, /Enter to return/);
+  } finally {
+    rl.close();
+  }
+});
+
 test("Chat keeps one reader across messages and buffers multiline paste", async () => {
   const input = new PassThrough();
   const output = new PassThrough();
@@ -274,5 +303,6 @@ test("active Chat composer shows only session commands and the prompt cursor", (
   assert.match(text, /\/end/);
   assert.match(text, /\/home/);
   assert.match(text, />/);
+  assert.match(text, /Palabre.*Chat/);
   assert.doesNotMatch(text, /Mode chat|one conversation/);
 });
