@@ -5,7 +5,7 @@ import { resolveExecutablePath, resolveNativeWindowsExecutable, resolvePowerShel
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliPtyAgentConfig } from "../types.js";
-import { DEFAULT_TIMEOUT_MS, extractPtyUsageLimitMessage, resolveMaxOutputBytes, utf8ChildProcessEnv, withModelArgs } from "./cli-shared.js";
+import { DEFAULT_TIMEOUT_MS, extractPtyUsageLimitMessage, extractRetryAfter, resolveMaxOutputBytes, utf8ChildProcessEnv, withModelArgs } from "./cli-shared.js";
 import { cleanPtyOutput, cleanTerminalOutput } from "./terminal.js";
 
 type PtyProcess = ReturnType<typeof import("node-pty").spawn>;
@@ -101,9 +101,11 @@ export class CliPtyAdapter implements AgentAdapter {
         // sont acceptés pour éviter de rejeter une réponse normale parlant de rate-limit.
         const usageLimitMessage = extractPtyUsageLimitMessage(content);
         if (usageLimitMessage) {
+          const retryAfter = extractRetryAfter(usageLimitMessage);
           reject(new AdapterError("usage-limit", this.name, errorMessages.usageLimit(this.name, usageLimitMessage), {
             ...(exitCode === undefined || exitCode === 0 ? {} : { exitCode }),
-            raw: output
+            raw: output,
+            ...(retryAfter === undefined ? {} : { retryAfter })
           }));
           return;
         }

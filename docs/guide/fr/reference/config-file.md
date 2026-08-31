@@ -23,7 +23,8 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
     "askAgents": ["codex", "claude"],
     "summaryAgent": "claude",
     "askSummaryAgent": "claude",
-    "turns": 4
+    "turns": 4,
+    "interface": "tui"
   },
   "agents": {
     "codex": {
@@ -31,7 +32,6 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
       "command": "codex",
       "args": ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only"],
       "promptMode": "stdin",
-      "shell": true,
       "role": "implementer"
     },
     "claude": {
@@ -64,6 +64,7 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 | `summaryAgent` | string | Agent de synthèse finale du mode débat, et fallback du mode ask. |
 | `askSummaryAgent` | string | Agent de synthèse finale spécifique au mode ask. |
 | `turns` | number | Nombre total de réponses, entre 1 et 20. |
+| `interface` | `tui` ou `terminal` | Interface par défaut pour les sessions interactives. |
 
 ## Agent CLI
 
@@ -73,12 +74,14 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 | `command` | string | Commande à lancer. |
 | `args` | string[] | Arguments transmis. |
 | `promptMode` | `stdin` ou `argument` | Manière de transmettre le prompt. |
-| `shell` | boolean | Lance via le shell système. |
+| `shell` | boolean | Lance via le shell système. La configuration générée l'active seulement pour certains wrappers Windows. |
 | `role` | string | Rôle de l'agent. |
 | `model` | string | Modèle par défaut optionnel. |
 | `modelArg` | string | Flag modèle optionnel. |
 | `timeoutMs` | number | Timeout global. |
 | `idleTimeoutMs` | number | Timeout d'inactivité. |
+| `maxOutputBytes` | number | Taille maximale cumulée de stdout et stderr, 50 Mio par défaut. |
+| `allowEmptyOutput` | boolean | Autorise exceptionnellement une réponse CLI vide. |
 | `cols` / `rows` | number | Dimensions du pseudo-terminal pour `cli-pty`. |
 
 ## Agent Ollama
@@ -95,3 +98,4 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 | `unloadOtherModels` | boolean | Décharge les autres modèles. |
 | `keepAlive` | string | Maintien du modèle chargé. |
 | `temperature` | number | Variation des réponses. |
+| `maxOutputBytes` | number | Taille maximale de chaque réponse HTTP bufferisée, 50 Mio par défaut. |

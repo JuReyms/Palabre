@@ -17,7 +17,7 @@ palabre
 Then:
 
 ```text
-/debat
+/debate
 /agents codex claude
 /roles architect critic
 Review this plan and resolve the important disagreements

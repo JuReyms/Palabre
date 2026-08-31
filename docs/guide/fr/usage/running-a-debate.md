@@ -35,3 +35,7 @@ Choisissez Chat lorsqu'un agent suffit, avec un second avis ponctuel via `/consu
 Choisissez Ask pour recueillir jusqu'à quatre réponses indépendantes avant leur comparaison. Consultez le [guide Ask](/fr/usage/ask).
 
 Pour une utilisation humaine, commencez par `palabre` et utilisez la [TUI](/fr/usage/tui). Les extensions doivent utiliser les [contrats d'intégration](/fr/integrations/overview), pas analyser le rendu TUI.
+
+## Reprendre sans rejouer les réponses
+
+Ajoutez `--checkpoint` à un Débat ou à une demande Ask si la session doit pouvoir reprendre après un arrêt. Palabre enregistre l'état sous `.palabre/sessions/`, puis `palabre sessions` le liste et `palabre resume <session-id>` relance uniquement la prochaine étape. La reprise vérifie la configuration et le contexte avant d'appeler un agent ; consultez la [référence CLI](/fr/reference/cli#reprendre-une-session) pour les confirmations et la suppression ciblée.

@@ -18,16 +18,23 @@ export interface TuiMessages {
   responses: string;
   session: string;
   folder: string;
+  directory: string;
   docs: string;
   changeMode: string;
-  chatReady: string;
-  homeQuickActions: string;
+  homeCommands: string;
+  homeGuidedSession: string;
+  homeRecentSessions: string;
+  homeContext: string;
+  helpContext: string;
+  helpFiles: string;
   unavailableSessionAgents(agents: string, count: number, command: string): string;
   chatTip: string;
   chatComposerCommands: string;
   askTip: string;
   debateTip: string;
   helpTitle: string;
+  helpScreen: string;
+  helpCardTitle: string;
   helpAsk: string;
   helpChat: string;
   helpDebate: string;
@@ -40,8 +47,13 @@ export interface TuiMessages {
   helpUpdate: string;
   helpHelp: string;
   helpQuit: string;
-  helpFallback: string;
+  helpSectionStart: string;
+  helpSectionPrepare: string;
+  helpSectionContinue: string;
+  helpSectionPalabre: string;
   historyTitle: string;
+  historyScreen: string;
+  historyCardTitle: string;
   historyEmpty: string;
   historyOpenHint: string;
   historyFile: string;
@@ -49,11 +61,13 @@ export interface TuiMessages {
   historyCount(mode: PalabreMode | "chat"): string;
   retryUnavailable: string;
   agentsTitle: string;
+  agentsCardTitle: string;
   activeMode: string;
   activeAgents: string;
   availableAgents: string;
   example: string;
   rolesTitle: string;
+  rolesCardTitle: string;
   currentConfig: string;
   availableRoles: string;
   roleImplementer: string;
@@ -63,8 +77,11 @@ export interface TuiMessages {
   roleReviewer: string;
   roleSummarizer: string;
   configTitle: string;
-  /** Titre de la section des reglages generaux de l'ecran /config. */
-  configSectionGeneral: string;
+  configScreen: string;
+  configSectionSession: string;
+  configSectionEdit: string;
+  configSectionApplication: string;
+  configMoreCommands: string;
   /** Label du fichier exporte dans le panneau de fin de session. */
   exportedFile: string;
   /** Label du dossier d'export dans le panneau de fin de session. */
@@ -73,7 +90,6 @@ export interface TuiMessages {
   interface: string;
   language: string;
   availableAgentsShort: string;
-  availableCommands: string;
   noConfiguredAgents: string;
   or: string;
   modeConfigCommand: string;
@@ -82,7 +98,11 @@ export interface TuiMessages {
   subject: string;
   configPrompt: string;
   configComposerPlaceholder: string;
-  configComposerTip: string;
+  navigationPrompt: string;
+  navigationComposerPlaceholder: string;
+  updateTitle: string;
+  updateScreen: string;
+  updateCardTitle: string;
   agentsPrompt: string;
   rolesPrompt: string;
   sessionDone: string;
@@ -241,16 +261,23 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     responses: "Réponses",
     session: "Session",
     folder: "Dossier",
+    directory: "Dossier",
     docs: "Docs",
     changeMode: "changer de mode",
-    chatReady: "conversation",
-    homeQuickActions: "/ commandes · /new session guidée · /history dernières sessions",
+    homeCommands: "Commandes",
+    homeGuidedSession: "Session guidée",
+    homeRecentSessions: "Sessions récentes",
+    homeContext: "Contexte",
+    helpContext: "ajouter un dossier en contexte",
+    helpFiles: "ajouter des fichiers précis",
     unavailableSessionAgents: (agents, count, command) => `Session à vérifier : ${agents} ${count > 1 ? "indisponibles" : "indisponible"} · ${command}`,
     chatTip: "/chat : une conversation, puis un avis supplémentaire seulement si utile.",
     chatComposerCommands: "/consult <agent> avis · /use <agent> basculer · /agents liste · /end exporter · /home accueil",
     askTip: "Ask : plusieurs réponses indépendantes à la même question.",
     debateTip: "Débat : deux agents confrontent leurs points de vue avant la synthèse.",
-    helpTitle: "Commandes TUI",
+    helpTitle: "Palabre Aide",
+    helpScreen: "Aide",
+    helpCardTitle: "Commandes",
     helpAsk: "mode Ask",
     helpChat: "ouvrir une conversation",
     helpDebate: "mode Debat",
@@ -263,20 +290,27 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     helpUpdate: "voir les informations de mise a jour",
     helpHelp: "aide",
     helpQuit: "quitter",
-    helpFallback: "Tape un sujet ou une commande.",
-    historyTitle: "Historique Palabre",
+    helpSectionStart: "Démarrer une session",
+    helpSectionPrepare: "Préparer la session",
+    helpSectionContinue: "Continuer votre travail",
+    helpSectionPalabre: "Naviguer dans Palabre",
+    historyTitle: "Palabre Historique",
+    historyScreen: "Historique",
+    historyCardTitle: "Sessions récentes",
     historyEmpty: "Aucun export trouve pour le moment.",
     historyOpenHint: "Le chemin du fichier est cliquable dans les terminaux compatibles.",
     historyFile: "Fichier",
     historyMode: (mode) => mode === "chat" ? "Conversation" : mode === "ask" ? "Mode ask" : "Mode debat",
     historyCount: (mode) => mode === "chat" ? "Messages" : mode === "ask" ? "Reponses" : "Tours",
     retryUnavailable: "Aucune session a relancer pour le moment.",
-    agentsTitle: "Agents Palabre",
+    agentsTitle: "Palabre Agents",
+    agentsCardTitle: "Choisir les agents",
     activeMode: "Mode actif",
     activeAgents: "Agents actifs",
     availableAgents: "Agents disponibles",
     example: "Exemple",
-    rolesTitle: "Roles Palabre",
+    rolesTitle: "Palabre Rôles",
+    rolesCardTitle: "Choisir les rôles",
     currentConfig: "Config actuelle",
     availableRoles: "Roles disponibles",
     roleImplementer: "propose une solution concrete",
@@ -285,15 +319,18 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     roleScout: "explore les pistes et inconnues",
     roleReviewer: "cherche risques et tests manquants",
     roleSummarizer: "synthetise fidelement",
-    configTitle: "Configuration Palabre",
-    configSectionGeneral: "Général",
+    configTitle: "Palabre Configuration",
+    configScreen: "Configuration",
+    configSectionSession: "Session active",
+    configSectionEdit: "Modifier la session",
+    configSectionApplication: "Application",
+    configMoreCommands: "Tape / pour afficher tous les réglages disponibles.",
     exportedFile: "Fichier exporté",
     exportedFolder: "Dossier d'export",
     configFile: "Config",
     interface: "Interface",
     language: "Langue",
     availableAgentsShort: "Agents dispo",
-    availableCommands: "Commandes disponibles",
     noConfiguredAgents: "aucun agent configure",
     or: "ou",
     modeConfigCommand: "basculer et definir par defaut",
@@ -302,7 +339,11 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     subject: "Sujet",
     configPrompt: "Config",
     configComposerPlaceholder: "Saisissez une commande de configuration…",
-    configComposerTip: "/home accueil · Ctrl+C retour · /quit quitter",
+    navigationPrompt: "Navigation",
+    navigationComposerPlaceholder: "Entrée pour revenir · /home accueil · /quit quitter",
+    updateTitle: "Palabre Mise à jour",
+    updateScreen: "Mise à jour",
+    updateCardTitle: "Mise à jour",
     agentsPrompt: "Agents",
     rolesPrompt: "Roles",
     sessionDone: "Session terminee",
@@ -381,16 +422,23 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     responses: "Responses",
     session: "Session",
     folder: "Folder",
+    directory: "Directory",
     docs: "Docs",
     changeMode: "change mode",
-    chatReady: "conversation",
-    homeQuickActions: "/ commands · /new guided session · /history recent sessions",
+    homeCommands: "Commands",
+    homeGuidedSession: "Guided session",
+    homeRecentSessions: "Recent sessions",
+    homeContext: "Context",
+    helpContext: "add a folder as context",
+    helpFiles: "add specific files",
     unavailableSessionAgents: (agents, _count, command) => `Check session: ${agents} unavailable · ${command}`,
     chatTip: "/chat: one conversation, then an extra opinion only when useful.",
     chatComposerCommands: "/consult <agent> opinion · /use <agent> switch · /agents list · /end export · /home home",
     askTip: "Ask: several independent responses to the same question.",
     debateTip: "Debate: two agents challenge each other before the summary.",
-    helpTitle: "TUI Commands",
+    helpTitle: "Palabre Help",
+    helpScreen: "Help",
+    helpCardTitle: "Commands",
     helpAsk: "Ask mode",
     helpChat: "open a conversation",
     helpDebate: "Debate mode",
@@ -403,8 +451,13 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     helpUpdate: "show update information",
     helpHelp: "help",
     helpQuit: "quit",
-    helpFallback: "Type a topic or a command.",
+    helpSectionStart: "Start a session",
+    helpSectionPrepare: "Prepare the session",
+    helpSectionContinue: "Continue your work",
+    helpSectionPalabre: "Navigate Palabre",
     historyTitle: "Palabre History",
+    historyScreen: "History",
+    historyCardTitle: "Recent sessions",
     historyEmpty: "No export found yet.",
     historyOpenHint: "The file path is clickable in compatible terminals.",
     historyFile: "File",
@@ -412,11 +465,13 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     historyCount: (mode) => mode === "chat" ? "Messages" : mode === "ask" ? "Responses" : "Turns",
     retryUnavailable: "No session to retry yet.",
     agentsTitle: "Palabre Agents",
+    agentsCardTitle: "Choose agents",
     activeMode: "Active mode",
     activeAgents: "Active agents",
     availableAgents: "Available agents",
     example: "Example",
     rolesTitle: "Palabre Roles",
+    rolesCardTitle: "Choose roles",
     currentConfig: "Current config",
     availableRoles: "Available roles",
     roleImplementer: "proposes a concrete solution",
@@ -426,14 +481,17 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     roleReviewer: "looks for risks and missing tests",
     roleSummarizer: "summarizes faithfully",
     configTitle: "Palabre Configuration",
-    configSectionGeneral: "General",
+    configScreen: "Configuration",
+    configSectionSession: "Active session",
+    configSectionEdit: "Edit session",
+    configSectionApplication: "Application",
+    configMoreCommands: "Type / to show every available setting.",
     exportedFile: "Exported file",
     exportedFolder: "Export folder",
     configFile: "Config",
     interface: "Interface",
     language: "Language",
     availableAgentsShort: "Agents",
-    availableCommands: "Available commands",
     noConfiguredAgents: "no configured agent",
     or: "or",
     modeConfigCommand: "switch and set as default",
@@ -443,7 +501,11 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     configPrompt: "Config",
     agentsPrompt: "Agents",
     configComposerPlaceholder: "Enter a configuration command…",
-    configComposerTip: "/home home · Ctrl+C back · /quit quit",
+    navigationPrompt: "Navigation",
+    navigationComposerPlaceholder: "Enter to return · /home home · /quit quit",
+    updateTitle: "Palabre Update",
+    updateScreen: "Update",
+    updateCardTitle: "Update",
     rolesPrompt: "Roles",
     sessionDone: "Session complete",
     sessionHistoryHint: "Find your exports again with /history.",

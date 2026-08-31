@@ -28,7 +28,7 @@ test("TuiRenderer renders a lightweight terminal dashboard", () => {
   }
 
   const text = output.join("");
-  assert.match(text, /PALABRE/);
+  assert.match(text, /Palabre Debate/);
   assert.doesNotMatch(text, /___/);
   assert.match(text, /DEBATE/);
   assert.match(text, /Subject: TUI test/);
@@ -214,14 +214,15 @@ test("renderTuiHome renders a Palabre launch screen", () => {
   assert.match(unwrappedText, /Orchestrate AI agents to inform your decisions\s+v0\.7\.0/);
   assert.match(text, /v0\.7\.0/);
   assert.match(text, /Update available: 0\.7\.0 -> 0\.8\.0\. Use \/update\./);
-  assert.match(unwrappedText, /Session\s+·\s+Debate\s+·\s+codex \(architect\) <-> claude \(critic\)/);
-  assert.match(unwrappedText, /2 responses\s+·\s+Summary\s+·\s+ollama-local/);
+  assert.match(unwrappedText, /Session\s+·\s+Debate\s+·\s+Agents\s+·\s+codex <-> claude\s+·\s+Roles\s+·\s+architect <-> critic/);
+  assert.match(unwrappedText, /Responses\s+·\s+2\s+·\s+Summary\s+·\s+ollama-local/);
   assert.match(unwrappedText, /Check session: ollama-local unavailable\s+·\s+\/config/);
-  assert.match(text, /Folder\s+·/);
+  assert.match(text, /Directory\s+·/);
   assert.ok(text.includes(process.cwd()));
-  assert.ok(text.indexOf("Folder") < text.indexOf("⚠ Check session"));
-  assert.match(text, /Folder[^\n]*\n[^\n]*\n[^\n]*⚠ Check session/);
-  assert.match(unwrappedText, /\/ commands\s+·\s+\/new guided session\s+·\s+\/history recent sessions/);
+  assert.ok(text.indexOf("Directory") < text.indexOf("⚠ Check session"));
+  assert.ok(text.indexOf("Context") < text.indexOf("Directory"));
+  assert.match(unwrappedText, /Commands\s+·\s+\/\s+·\s+\/help\s+·\s+\/config\s+·\s+Guided session \/new\s+·\s+Recent sessions \/history/);
+  assert.match(unwrappedText, /Context\s+·\s+--context <directory>\s+·\s+--files <file\.\.\.>/);
   assert.doesNotMatch(text, /https:\/\/palab\.re\/en/);
   assert.doesNotMatch(text, /\/config settings/);
   assert.doesNotMatch(text, /Tip Add context/);
@@ -258,7 +259,12 @@ test("renderTuiHelp renders slash commands", () => {
 
   const text = output.join("");
   assert.doesNotMatch(text, /___/);
-  assert.match(text, /Commandes TUI/);
+  assert.match(text, /Palabre Aide/);
+  assert.match(text, /\+- Commandes -+/);
+  assert.match(text, /Démarrer une session/);
+  assert.match(text, /Préparer la session/);
+  assert.match(text, /Continuer votre travail/);
+  assert.match(text, /Naviguer dans Palabre/);
   assert.match(text, /\/ask/);
   assert.match(text, /mode Ask/);
   assert.match(text, /\/debat/);
@@ -270,7 +276,8 @@ test("renderTuiHelp renders slash commands", () => {
   assert.match(text, /\/update/);
   assert.match(text, /\/home/);
   assert.match(text, /\/quit/);
-  assert.match(text, /Tape un sujet ou une commande/);
+  assert.match(text, /--context <dossier>/);
+  assert.match(text, /--files <fichiers>/);
   assert.doesNotMatch(text, /plusieurs reponses independantes/);
 });
 
@@ -290,6 +297,8 @@ test("renderTuiUpdate renders update instructions inside the TUI", () => {
 
   const text = output.join("");
   assert.match(text, /PALABRE 0\.7\.0/);
+  assert.match(text, /Palabre Update/);
+  assert.match(text, /\+- Update -+/);
   assert.match(text, /pnpm add --global palabre@latest/);
 });
 
@@ -317,7 +326,8 @@ test("renderTuiHistory renders recent exports", () => {
   }
 
   const text = output.join("");
-  assert.match(text, /Historique Palabre/);
+  assert.match(text, /Palabre Historique/);
+  assert.match(text, /Sessions récentes/);
   assert.match(text, /Mode debat/);
   assert.match(text, /Fichier/);
   assert.match(text, /Dossier/);
@@ -373,7 +383,8 @@ test("renderTuiRolesHelp renders available roles", () => {
 
   const text = output.join("");
   assert.doesNotMatch(text, /___/);
-  assert.match(text, /Roles Palabre/);
+  assert.match(text, /Palabre Rôles/);
+  assert.match(text, /Choisir les rôles/);
   assert.match(text, /implementer/);
   assert.match(text, /critic/);
   assert.match(text, /Exemple: Debat > Roles > implementer critic/);
@@ -408,7 +419,8 @@ test("renderTuiAgentsHelp renders configured agents", () => {
 
   const text = output.join("");
   assert.doesNotMatch(text, /___/);
-  assert.match(text, /Agents Palabre/);
+  assert.match(text, /Palabre Agents/);
+  assert.match(text, /Choisir les agents/);
   assert.match(text, /Agents actifs/);
   assert.match(text, /codex <-> claude/);
   assert.match(text, /Agents disponibles/);
@@ -503,34 +515,25 @@ test("renderTuiConfig keeps the Palabre brand header", () => {
   const text = output.join("");
   assert.doesNotMatch(text, /___/);
   assert.match(text, /Palabre Configuration/);
-  assert.match(text, /General/);
+  assert.match(text, /Active session/);
+  assert.equal(text.match(/Active session/g)?.length, 1);
+  assert.match(text, /Edit session/);
   assert.match(text, /Active agents/);
-  assert.match(text, /Agents/);
+  assert.match(text, /Application/);
   assert.match(text, /Language/);
   assert.match(text, /\/language/);
-  assert.match(text, /Available commands/);
-  assert.match(text, /Ollama model/);
-  assert.match(text, /llama3\.2:3b/);
-  assert.match(text, /Ollama address/);
-  assert.match(text, /Effective Ollama address/);
-  assert.match(text, /http:\/\/localhost:11434/);
-  assert.match(text, /http:\/\/gpu-box:11434/);
-  assert.match(text, /\/ollama/);
-  assert.match(text, /\/ollama-model/);
-  assert.match(text, /\/ollama-url/);
-  assert.match(text, /<url\|default>/);
-  assert.match(text, /\/ollama-sync/);
+  assert.match(text, /Type \/ to show every available setting/);
   assert.match(text, /Usage: \/agents <agentA> <agentB>/);
   assert.match(text, /Usage: \/roles <role\.\.\.>/);
   assert.match(text, /Usage: \/turns <turns>/);
   assert.match(text, /Usage: \/summary <agent\|none>/);
-  assert.match(text, /Usage: \/ollama-model <model>/);
   assert.match(text, /Usage: \/interface <tui\|terminal>/);
   assert.match(text, /Usage: \/language <fr\|en>/);
-  assert.match(text, /\/home/);
   assert.match(text, /Debate/);
   assert.match(text, /Roles\s+implementer <-> critic/);
+  assert.match(text, /Config\s+·\s+palabre\.config\.json/);
   assert.doesNotMatch(text, /gemini/);
+  assert.doesNotMatch(text, /Ollama model|Ollama address|\/ollama-model/);
   assert.doesNotMatch(text, /\/default/);
   assert.doesNotMatch(text, /Current config/);
   assert.doesNotMatch(text, /Langue/);
@@ -553,7 +556,7 @@ test("renderTuiComposer renders a framed subject input hint", () => {
 
   const text = output.join("");
   assert.match(text, /Palabre/);
-  assert.match(text, /Mode ask/);
+  assert.match(text, /Ask/);
   assert.doesNotMatch(text, /Sujet/);
   assert.match(text, /Quelle question voulez-vous poser aux agents/);
   assert.doesNotMatch(text, /Tip Ajoute du contexte/);
@@ -577,12 +580,11 @@ test("renderTuiComposer renders config commands in config mode", () => {
 
   const text = output.join("");
   assert.match(text, /Palabre/);
-  assert.match(text, /Mode debat/);
   assert.match(text, /Config/);
   assert.match(text, /Saisissez une commande de configuration/);
-  assert.match(text, /\/home accueil · Ctrl\+C retour · \/quit quitter/);
-  assert.ok(text.indexOf("/home accueil") < text.indexOf("Saisissez une commande de configuration"));
-  assert.ok((text.match(/-+/g) ?? []).length >= 2);
+  assert.doesNotMatch(text, /Mode debat/);
+  assert.doesNotMatch(text, /\/home accueil · Ctrl\+C retour · \/quit quitter/);
+  assert.ok((text.match(/-+/g) ?? []).length >= 1);
   assert.doesNotMatch(text, /Débat :|Debate:/);
   assert.doesNotMatch(text, /\/agents/);
   assert.doesNotMatch(text, /\/back/);
@@ -654,7 +656,7 @@ test("Chat composer uses the standard prompt cursor instead of a You label", () 
   }
 
   const text = output.join("");
-  assert.match(text, /Mode chat/);
+  assert.match(text, /Palabre > Chat/);
   assert.match(text, />/);
   assert.doesNotMatch(text, /You:/);
   assert.match(text, /What would you like to discuss/);

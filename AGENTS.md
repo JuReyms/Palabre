@@ -60,7 +60,7 @@ pnpm start -- -v
 
 ```text
 src/index.ts              CLI entrypoint et dispatch principal
-src/commands/             Commandes leaf extraites (agents, context, history, init, presets, update)
+src/commands/             Commandes leaf et utilitaires partages (agents, context, history, init, presets, sessions, shared, update)
 src/runOptions.ts         Resolution centralisee des options completes d'une session
 src/sessionCheckpoint.ts  Contrat JSON v1 et stockage atomique des checkpoints
 src/sessionInventory.ts   Liste bornée et suppression ciblée des checkpoints
@@ -71,6 +71,7 @@ src/args.ts               Parseur d'arguments CLI (table d'arite des flags)
 src/new.ts                Assistant interactif `palabre new`
 src/config.ts             Chargement, generation et validation de config
 src/discovery.ts          Detection locale des CLIs et d'Ollama pendant init
+src/doctor.ts             Diagnostics de configuration et de disponibilite locale
 src/agentRegistry.ts      Source de verite des agents CLI connus (mapping commande -> decouverte)
 src/exec.ts               Resolution d'extensions executables partagee
 src/types.ts              Contrats partages
@@ -165,10 +166,10 @@ Presets CLI ↔ CLI (20) :
 
 Presets CLI ↔ Ollama local (10) :
 
-- `codex-ollama`, `ollama-codex`
-- `claude-ollama`, `ollama-claude`
 - `opencode-ollama`, `ollama-opencode`
 - `vibe-ollama`, `ollama-vibe`
+- `codex-ollama`, `ollama-codex`
+- `claude-ollama`, `ollama-claude`
 - `antigravity-ollama`, `ollama-antigravity`
 
 Total : 30 presets. Toute paire X-Y a sa variante inversee Y-X. La variante inversee differe surtout par "qui parle en premier" — les roles restent ceux configures dans la config utilisateur, pas determines par la position.
@@ -254,7 +255,8 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 
 - `codex`
 - `claude.exe` puis `claude` sur Windows, `claude` ailleurs
-- `agy` (Antigravity CLI)
+- `opencode`
+- `agy`, puis `antigravity` (Antigravity CLI)
 - `vibe` (Mistral Vibe CLI)
 - `ollama`
 - l'API Ollama locale via `GET http://localhost:11434/api/tags`
@@ -597,7 +599,7 @@ palabre claude-antigravity "quel jour sommes nous ?" -t 4
 palabre -s "quel jour sommes nous ?" -t 2
 ```
 
-`--subject` est le nom long recommande pour le sujet. `-s` est l'alias court, et `--topic` reste accepte pour compatibilite. Si le premier argument positionnel est un preset connu, il devient `--preset`. Le positionnel suivant devient le sujet. Si le premier argument n'est pas un preset ni une commande (`init`, `update`, `help`, etc.), il devient directement le sujet, sauf s'il ressemble fortement a une commande connue (`nex` pour `new`, par exemple), auquel cas Palabre affiche une erreur de commande inconnue.
+`--subject` est le nom long recommande pour le sujet. `-s` est l'alias court, et `--topic` reste accepte pour compatibilite. Si le premier argument positionnel est un preset connu, il devient `--preset`. Le positionnel suivant devient le sujet. Un sujet positionnel doit contenir plusieurs mots ; pour un seul mot, utiliser `-s "mot"` afin d'eviter toute ambiguite avec une commande ou un preset. Une faute qui ressemble fortement a une commande connue (`nex` pour `new`, par exemple) produit une erreur de commande inconnue.
 
 ## Aide CLI
 
@@ -900,7 +902,7 @@ Ne pas recreer de logique qui devine les descriptions depuis le contenu. Les des
 Pour ajouter une page de documentation, ajouter les versions `fr` et `en` dans le meme changement :
 
 1. Creer le fichier source dans la section adaptee de `docs/guide/fr/`.
-2. Ajouter la ligne correspondante dans `FILE_MAP` de `scripts/sync_docs.py`.
+2. Ajouter la ligne correspondante dans `ROUTE_MAP` de `scripts/sync_docs.py`.
 3. Verifier localement avec `python scripts/sync_docs.py`.
 4. Si la page ajoute une nouvelle section, creer ou adapter la navigation correspondante dans palabre-web (`content/fr/**/.navigation.yml`).
 

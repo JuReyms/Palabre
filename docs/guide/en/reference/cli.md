@@ -94,7 +94,7 @@ These commands are available from the TUI home screen or from `/config` dependin
 | `/new` | Opens the guided flow for composing a Chat, Debate, or Ask session. |
 | `/chat` | Opens a conversation with the default agent A. `/home` or `/exit` returns to the home screen. |
 | `/ask` | Switches the TUI home screen to Ask mode. |
-| `/debat` | Switches the TUI home screen to debate mode. |
+| `/debate` | Switches the TUI home screen to debate mode. Alias: `/debat`. |
 | `/agents` | Displays available agents or updates active agents when names are provided. |
 | `/roles` | Displays available roles or updates active roles when roles are provided. In Ask mode, a single role such as `/roles critic` applies to all Ask agents. |
 | `/config` | Opens TUI settings. |
@@ -148,6 +148,7 @@ When no client is declared, the invocation source is `direct-cli`.
 | `--tui` | Forces the TUI interface, even if configuration asks for terminal rendering. |
 | `--terminal`, `--no-tui` | Uses raw terminal rendering. Also useful with `palabre doctor` for logs. |
 | `--plain` | Historical alias for `--terminal`. |
+| `--json` | Requests JSON output from commands that support it, or the resolved `dry-run` object. |
 | `--renderer <auto\|pretty\|plain\|tui\|ndjson>` | Selects the terminal or integration renderer. `tui` enables the full-terminal interface. |
 
 ## Debate options

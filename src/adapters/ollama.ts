@@ -84,71 +84,68 @@ export class OllamaAdapter implements AgentAdapter {
       configUrl: this.config.baseUrl
     });
 
-    if (this.config.validateModel !== false) {
-      await this.ensureModelAvailable(baseUrl, errorMessages);
-    }
-
-    if (this.config.unloadOtherModels !== false) {
-      await this.unloadOtherRunningModels(baseUrl, errorMessages);
-    }
-
-    const controller = new AbortController();
-    const abortListener = () => controller.abort();
-    prompt.signal?.addEventListener("abort", abortListener, { once: true });
-    const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs ?? 120_000);
-
     try {
-      const response = await fetch(`${baseUrl}/api/chat`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          model: this.config.model,
-          stream: false,
-          ...(this.config.keepAlive !== undefined ? { keep_alive: this.config.keepAlive } : {}),
-          messages: [
-            {
-              role: "system",
-              content: this.config.systemPrompt ?? translator.prompt.ollamaSystemPrompt
-            },
-            {
-              role: "user",
-              content: formatAgentPrompt(prompt)
+      if (this.config.validateModel !== false) {
+        await this.ensureModelAvailable(baseUrl, errorMessages, prompt.signal);
+      }
+
+      if (this.config.unloadOtherModels !== false) {
+        await this.unloadOtherRunningModels(baseUrl, errorMessages, prompt.signal);
+      }
+
+      const { controller, dispose } = timedAbortController(prompt.signal, this.config.timeoutMs ?? 120_000);
+      try {
+        const response = await fetch(`${baseUrl}/api/chat`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({
+            model: this.config.model,
+            stream: false,
+            ...(this.config.keepAlive !== undefined ? { keep_alive: this.config.keepAlive } : {}),
+            messages: [
+              {
+                role: "system",
+                content: this.config.systemPrompt ?? translator.prompt.ollamaSystemPrompt
+              },
+              {
+                role: "user",
+                content: formatAgentPrompt(prompt)
+              }
+            ],
+            options: {
+              temperature: this.config.temperature ?? 0.2
             }
-          ],
-          options: {
-            temperature: this.config.temperature ?? 0.2
-          }
-        }),
-        signal: controller.signal
-      });
-
-      const data = await this.readJson<OllamaChatResponse>(response, errorMessages);
-
-      if (!response.ok || data.error) {
-        throw new AdapterError("http-error", this.name, safeRemoteText(data.error, `Ollama HTTP ${response.status}`), {
-          status: response.status
+          }),
+          signal: controller.signal
         });
+
+        const data = await this.readJson<OllamaChatResponse>(response, errorMessages);
+
+        if (!response.ok || data.error) {
+          throw new AdapterError("http-error", this.name, safeRemoteText(data.error, `Ollama HTTP ${response.status}`), {
+            status: response.status
+          });
+        }
+
+        const content = cleanTerminalOutput(typeof data.message?.content === "string" ? data.message.content : "");
+
+        if (!content) {
+          throw new AdapterError("empty-output", this.name, `${this.name} produced empty output.`);
+        }
+
+        return {
+          content
+        };
+      } finally {
+        dispose();
       }
-
-      const content = cleanTerminalOutput(typeof data.message?.content === "string" ? data.message.content : "");
-
-      if (!content) {
-        throw new AdapterError("empty-output", this.name, `${this.name} produced empty output.`);
-      }
-
-      return {
-        content
-      };
     } catch (error) {
       if (prompt.signal?.aborted) {
         throw cancelledError(this.name);
       }
       throw error;
-    } finally {
-      clearTimeout(timeout);
-      prompt.signal?.removeEventListener("abort", abortListener);
     }
   }
 
@@ -157,15 +154,15 @@ export class OllamaAdapter implements AgentAdapter {
    * Si absent et `autoPullModel` est faux, lève `model-unavailable` avec la liste des modèles détectés.
    * Si absent et `autoPullModel` est vrai, déclenche le pull puis re-vérifie.
    */
-  private async ensureModelAvailable(baseUrl: string, messages: AdapterErrorMessages): Promise<void> {
-    const available = await this.isModelAvailable(baseUrl, messages);
+  private async ensureModelAvailable(baseUrl: string, messages: AdapterErrorMessages, signal?: AbortSignal): Promise<void> {
+    const available = await this.isModelAvailable(baseUrl, messages, signal);
 
     if (available) {
       return;
     }
 
     if (!this.config.autoPullModel) {
-      const models = await this.listAvailableModels(baseUrl, messages);
+      const models = await this.listAvailableModels(baseUrl, messages, signal);
       throw new AdapterError(
         "model-unavailable",
         this.name,
@@ -175,26 +172,25 @@ export class OllamaAdapter implements AgentAdapter {
     }
 
     process.stderr.write(`\n${messages.ollamaPullProgress(this.config.model)}\n`);
-    await this.pullModel(baseUrl, messages);
+    await this.pullModel(baseUrl, messages, signal);
 
-    if (!(await this.isModelAvailable(baseUrl, messages))) {
+    if (!(await this.isModelAvailable(baseUrl, messages, signal))) {
       throw new AdapterError("model-pull-failed", this.name, messages.ollamaModelStillUnavailable(this.config.model));
     }
   }
 
-  private async isModelAvailable(baseUrl: string, messages: AdapterErrorMessages): Promise<boolean> {
-    const models = await this.listAvailableModels(baseUrl, messages);
+  private async isModelAvailable(baseUrl: string, messages: AdapterErrorMessages, signal?: AbortSignal): Promise<boolean> {
+    const models = await this.listAvailableModels(baseUrl, messages, signal);
     return models.includes(this.config.model);
   }
 
-  private async listAvailableModels(baseUrl: string, messages: AdapterErrorMessages): Promise<string[]> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs ?? 120_000);
+  private async listAvailableModels(baseUrl: string, messages: AdapterErrorMessages, signal?: AbortSignal): Promise<string[]> {
+    const { controller, dispose } = timedAbortController(signal, this.config.timeoutMs ?? 120_000);
 
     try {
       return await this.fetchAvailableModels(baseUrl, controller.signal, messages);
     } finally {
-      clearTimeout(timeout);
+      dispose();
     }
   }
 
@@ -211,9 +207,8 @@ export class OllamaAdapter implements AgentAdapter {
   }
 
   /** Déclenche `POST /api/pull` et attend sa fin ; timeout dédié `pullTimeoutMs` (30 min par défaut). */
-  private async pullModel(baseUrl: string, messages: AdapterErrorMessages): Promise<void> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.config.pullTimeoutMs ?? 1_800_000);
+  private async pullModel(baseUrl: string, messages: AdapterErrorMessages, signal?: AbortSignal): Promise<void> {
+    const { controller, dispose } = timedAbortController(signal, this.config.pullTimeoutMs ?? 1_800_000);
 
     try {
       const response = await fetch(`${baseUrl}/api/pull`, {
@@ -242,19 +237,18 @@ export class OllamaAdapter implements AgentAdapter {
       const message = error instanceof Error ? error.message : String(error);
       throw new AdapterError("model-pull-failed", this.name, messages.ollamaPullFailed(this.config.model, message));
     } finally {
-      clearTimeout(timeout);
+      dispose();
     }
   }
 
   /** Décharge séquentiellement, via `GET /api/ps`, tout modèle chargé autre que celui de cet agent. */
-  private async unloadOtherRunningModels(baseUrl: string, messages: AdapterErrorMessages): Promise<void> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs ?? 120_000);
+  private async unloadOtherRunningModels(baseUrl: string, messages: AdapterErrorMessages, signal?: AbortSignal): Promise<void> {
+    const { controller, dispose } = timedAbortController(signal, this.config.timeoutMs ?? 120_000);
 
     try {
       await this.unloadOtherRunningModelsWithSignal(baseUrl, controller.signal, messages);
     } finally {
-      clearTimeout(timeout);
+      dispose();
     }
   }
 
@@ -296,6 +290,28 @@ export class OllamaAdapter implements AgentAdapter {
       throw error;
     }
   }
+}
+
+/** Relie l'annulation de session au timeout spécifique de chaque requête Ollama. */
+function timedAbortController(parent: AbortSignal | undefined, timeoutMs: number): {
+  controller: AbortController;
+  dispose: () => void;
+} {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (parent?.aborted) {
+    abort();
+  }
+  parent?.addEventListener("abort", abort, { once: true });
+  const timeout = setTimeout(abort, timeoutMs);
+
+  return {
+    controller,
+    dispose: () => {
+      clearTimeout(timeout);
+      parent?.removeEventListener("abort", abort);
+    }
+  };
 }
 
 function safeRemoteText(value: unknown, fallback: string): string {

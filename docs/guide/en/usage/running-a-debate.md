@@ -19,7 +19,7 @@ Palabre provides three modes. **Debate remains the primary mode**: the home scre
 Choose Debate to challenge a decision, find blind spots, or obtain a recommendation built from explicit disagreement.
 
 ```text
-/debat
+/debate
 /agents codex claude
 Review this architecture and recommend a decision
 ```
@@ -35,3 +35,7 @@ Choose Chat when one agent is enough, with a second opinion through `/consult`. 
 Choose Ask to collect up to four independent answers before comparing them. See the [Ask guide](/en/usage/ask).
 
 For human use, start with `palabre` and use the [TUI](/en/usage/tui). Extensions should consume the [integration contracts](/en/integrations/overview), not parse TUI output.
+
+## Resume without replaying answers
+
+Add `--checkpoint` to a Debate or Ask request when a session should survive an interruption. Palabre records state under `.palabre/sessions/`; `palabre sessions` lists it and `palabre resume <session-id>` starts only the next step. Resume validates configuration and context before calling an agent; see the [CLI reference](/en/reference/cli#resume-a-session) for confirmations and targeted deletion.

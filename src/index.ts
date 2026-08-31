@@ -192,22 +192,27 @@ async function main(): Promise<void> {
         return "quit";
       }
 
+      if (input.kind === "invalid") {
+        tuiNotice = input.message;
+        return "continue";
+      }
+
       if (input.kind === "help") {
         renderTuiHelp(messages);
-        input = await promptTuiNavigation(messages);
+        input = await promptTuiNavigation(messages, messages.tui.helpScreen);
         continue;
       }
 
       if (input.kind === "history") {
         renderTuiHistory(await listHistoryEntries(resolveOutputDir(config.outputDir)), messages);
-        input = await promptTuiNavigation(messages);
+        input = await promptTuiNavigation(messages, messages.tui.historyScreen);
         continue;
       }
 
       if (input.kind === "update") {
         const info = await getUpdateInfo(tuiVersion);
         renderTuiUpdate(formatUpdateInstructions(info, messages), messages);
-        input = await promptTuiNavigation(messages);
+        input = await promptTuiNavigation(messages, messages.tui.updateScreen);
         continue;
       }
 

@@ -1,6 +1,6 @@
 ---
 title: Utiliser plusieurs agents IA dans le terminal
-description: Choisir entre Débat, Ask et Chat pour orchestrer plusieurs agents IA avec une seule CLI et conserver un résultat exploitable.
+description: Choisir entre Débat, Chat et Ask pour orchestrer plusieurs agents IA avec une seule CLI et conserver un résultat exploitable.
 seo:
   title: CLI multi-agents IA pour débattre et comparer des réponses
   description: Utilisez Palabre comme CLI multi-agents pour faire débattre Codex et Claude Code, comparer jusqu'à quatre réponses ou consulter un second agent.
@@ -15,8 +15,8 @@ Palabre n'est pas un provider supplémentaire. Chaque agent conserve son authent
 | Mode | Agents | Interaction | Usage principal |
 |------|--------|-------------|-----------------|
 | Débat | 2 | Les agents se répondent | Challenger une décision et résoudre des désaccords |
-| Ask | 1 à 4 | Réponses indépendantes | Comparer plusieurs analyses sans influence mutuelle |
 | Chat | 1 actif, consultations explicites | Conversation suivie | Avancer avec un agent et demander un second avis au besoin |
+| Ask | 1 à 4 | Réponses indépendantes | Comparer plusieurs analyses sans influence mutuelle |
 
 ## Faire débattre deux agents
 

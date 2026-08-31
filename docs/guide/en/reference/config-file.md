@@ -23,7 +23,8 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
     "askAgents": ["codex", "claude"],
     "summaryAgent": "claude",
     "askSummaryAgent": "claude",
-    "turns": 4
+    "turns": 4,
+    "interface": "tui"
   },
   "agents": {
     "codex": {
@@ -31,7 +32,6 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
       "command": "codex",
       "args": ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only"],
       "promptMode": "stdin",
-      "shell": true,
       "role": "implementer"
     },
     "claude": {
@@ -64,6 +64,7 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 | `summaryAgent` | string | Final summary agent for debate mode, and fallback for ask mode. |
 | `askSummaryAgent` | string | Ask-specific final summary agent. |
 | `turns` | number | Total number of turns, between 1 and 20. |
+| `interface` | `tui` or `terminal` | Default interface for interactive sessions. |
 
 ## CLI agent
 
@@ -73,12 +74,14 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 | `command` | string | Command to run. |
 | `args` | string[] | Arguments passed. |
 | `promptMode` | `stdin` or `argument` | How the prompt is passed. |
-| `shell` | boolean | Runs via the system shell. |
+| `shell` | boolean | Runs through the system shell. Generated configuration only enables it for selected Windows wrappers. |
 | `role` | string | Agent role. |
 | `model` | string | Optional default model. |
 | `modelArg` | string | Optional model flag. |
 | `timeoutMs` | number | Global timeout. |
 | `idleTimeoutMs` | number | Idle timeout. |
+| `maxOutputBytes` | number | Maximum combined stdout and stderr size, 50 MiB by default. |
+| `allowEmptyOutput` | boolean | Exceptionally allows an empty CLI response. |
 | `cols` / `rows` | number | Pseudo-terminal dimensions for `cli-pty`. |
 
 ## Ollama agent
@@ -95,3 +98,4 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 | `unloadOtherModels` | boolean | Unloads other models. |
 | `keepAlive` | string | Duration to keep the model loaded. |
 | `temperature` | number | Response variation. |
+| `maxOutputBytes` | number | Maximum size of each buffered HTTP response, 50 MiB by default. |

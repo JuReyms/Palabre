@@ -12,10 +12,8 @@ import type { ToolDiscovery } from "../discovery.js";
 import { sanitizeTerminalText } from "../adapters/terminal.js";
 import { isRetiredAgentName } from "../agentRegistry.js";
 import { listAgentsWithAvailability } from "../presets.js";
-import { DEFAULT_OLLAMA_BASE_URL, resolveOllamaBaseUrl } from "../ollamaUrl.js";
 import {
   accent,
-  agentLabel,
   bold,
   brandHeader,
   card,
@@ -52,27 +50,37 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
   const isChat = mode === "chat";
   const activeAgentNames = activeAgentNamesForMode(config, mode as PalabreMode);
   const agentSeparator = mode === "ask" ? ", " : " <-> ";
-  const activeAgentsWithRoles = activeAgentNames.length > 0
-    ? activeAgentNames.map((agent) => `${agent} (${roleFor(config, agent, messages)})`).join(agentSeparator)
+  const activeAgents = activeAgentNames.length > 0
+    ? activeAgentNames.join(agentSeparator)
     : messages.tui.noValue;
+  const activeRoles = roleLineForMode(config, mode as PalabreMode, messages);
   const summary = activeSummaryAgentForMode(config, mode as PalabreMode, activeAgentNames, messages);
   const version = state.version ?? "0.0.0";
   const updateLines = state.latestVersion
     ? [accent(messages.tui.updateAvailable(version, state.latestVersion))]
     : [];
-  const sessionDetails = [
-    `${accent(messages.tui.session)} ${dim("·")} ${accent(isChat ? "Chat" : messages.tui.modeValue(mode as PalabreMode))} ${dim("·")} ${activeAgentsWithRoles}`
-  ];
+  const separator = ` ${dim("·")} `;
+  const sessionDetails = [[
+    `${accent(messages.tui.session)}${separator}${isChat ? "Chat" : messages.tui.modeValue(mode as PalabreMode)}`,
+    `${accent(messages.tui.availableAgentsShort)}${separator}${activeAgents}`,
+    `${accent(messages.tui.roles)}${separator}${activeRoles}`
+  ]];
   if (!isChat) {
-    const responseDetail = mode === "debate" ? `${String(defaults.turns ?? "?")} ${messages.tui.responses.toLowerCase()} ${dim("·")} ` : "";
-    sessionDetails.push(`${responseDetail}${accent(messages.tui.summary)} ${dim("·")} ${summary}`);
+    const responseCount = mode === "ask" ? activeAgentNames.length : defaults.turns ?? "?";
+    sessionDetails.push([
+      `${accent(messages.tui.responses)}${separator}${String(responseCount)}`,
+      `${accent(messages.tui.summary)}${separator}${summary}`
+    ]);
   }
 
-  const separator = ` ${dim("·")} `;
   const contentWidth = width - 4;
-  const sessionLines = sessionDetails.flatMap((detail) => packItems([detail], contentWidth, separator));
-  const quickActionLines = packItems(messages.tui.homeQuickActions.split(" · ").map(highlightSlashCommands), contentWidth, separator);
-  const folderLines = labeledFullValueLines(messages.tui.folder, process.cwd(), contentWidth);
+  const sessionLines = sessionDetails.flatMap((details) => packItems(details, contentWidth, separator));
+  const quickActionLines = packItems([
+    `${accent(messages.tui.homeCommands)}${separator}/${separator}/help${separator}/config`,
+    `${accent(messages.tui.homeGuidedSession)} /new`,
+    `${accent(messages.tui.homeRecentSessions)} /history`
+  ], contentWidth, separator);
+  const folderLines = labeledFullValueLines(messages.tui.directory, process.cwd(), contentWidth);
   const unavailableAgents = state.discovery
     ? unavailableActiveAgentNames(config, state.discovery, activeAgentNames, isChat ? undefined : summary, messages)
     : [];
@@ -89,6 +97,7 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
       ...sessionLines,
       "",
       ...quickActionLines,
+      `${accent(messages.tui.homeContext)} ${dim("·")} --context <${messages.tui.directory.toLowerCase()}> ${dim("·")} --files <${messages.tui.historyFile.toLowerCase()}...>`,
       ...folderLines,
       ...(warningLines.length > 0 ? ["", ...warningLines] : []),
     ], width))
@@ -106,9 +115,9 @@ export function renderTuiUpdate(instructions: string, _messages: Messages): void
   const width = surfaceWidth();
   process.stdout.write([
     "",
-    ...padBlock([brandHeader()]),
+    ...padBlock([brandHeader(_messages.tui.updateTitle)]),
     "",
-    ...padBlock(card(instructions.split(/\r?\n/), width)),
+    ...padBlock(card(instructions.split(/\r?\n/), width, _messages.tui.updateCardTitle)),
     ""
   ].join("\n"));
 }
@@ -125,24 +134,32 @@ export function renderTuiHelp(messages: Messages): void {
     ...padBlock([brandHeader(messages.tui.helpTitle)]),
     "",
     ...padBlock(card([
+      bold(messages.tui.helpSectionStart),
+      "",
       row("/chat", messages.tui.helpChat),
       row("/ask", messages.tui.helpAsk),
       row("/debat", messages.tui.helpDebate),
+      row("/new", messages.tui.helpNew),
+      "",
+      bold(messages.tui.helpSectionPrepare),
       "",
       row("/agents", messages.tui.helpAgents),
       row("/roles", messages.tui.helpRoles),
       row("/config", messages.tui.helpConfig),
+      row("--context <dossier>", messages.tui.helpContext),
+      row("--files <fichiers>", messages.tui.helpFiles),
       "",
-      row("/new", messages.tui.helpNew),
+      bold(messages.tui.helpSectionContinue),
+      "",
       row("/retry", messages.tui.helpRetry),
       row("/history", messages.tui.helpHistory),
+      "",
+      bold(messages.tui.helpSectionPalabre),
+      "",
       row("/update", messages.tui.helpUpdate),
       row("/home", messages.tui.backCommand),
-      row("/help", messages.tui.helpHelp),
-      row("/quit", messages.tui.helpQuit),
-      "",
-      dim(messages.tui.helpFallback)
-    ], width)),
+      row("/quit", messages.tui.helpQuit)
+    ], width, messages.tui.helpCardTitle)),
     ""
   ].join("\n"));
 }
@@ -170,7 +187,7 @@ export function renderTuiAgentsHelp(config: PalabreConfig, mode: PalabreMode, me
       ...agentInventoryRows(config, messages),
       "",
       dim(`${messages.tui.example}: ${messages.tui.modeLabel(mode)} > ${messages.tui.agentsPrompt} > ${exampleAgents.join(" ")}`)
-    ], width)),
+    ], width, messages.tui.agentsCardTitle)),
     ""
   ].join("\n"));
 }
@@ -203,7 +220,7 @@ export function renderTuiRolesHelp(mode: PalabreMode, messages: Messages, config
       row("summarizer", messages.tui.roleSummarizer),
       "",
       dim(`${messages.tui.example}: ${messages.tui.modeLabel(mode)} > ${messages.tui.rolesPrompt} > ${exampleRoles.join(" ")}`)
-    ], Math.min(width, 82))),
+    ], Math.min(width, 82), messages.tui.rolesCardTitle)),
     ""
   ].join("\n"));
 }
@@ -239,7 +256,7 @@ export function renderTuiHistory(entries: HistoryEntry[], messages: Messages): v
       ...entryRows,
       "",
       dim(messages.tui.historyOpenHint)
-    ], width)),
+    ], width, messages.tui.historyCardTitle)),
     ""
   ].join("\n"));
 }
@@ -262,48 +279,28 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
   const summary = mode === "ask"
     ? defaults.askSummaryAgent ?? defaults.summaryAgent ?? messages.tui.lastAskAgent
     : defaults.summaryAgent ?? defaults.agentB ?? messages.tui.noValue;
-  const ollamaAgent = config.agents["ollama-local"];
-  const ollamaModel = ollamaAgent?.type === "ollama" ? ollamaAgent.model : undefined;
-  const ollamaUrl = ollamaAgent?.type === "ollama" ? ollamaAgent.baseUrl ?? DEFAULT_OLLAMA_BASE_URL : undefined;
-  const ollamaEffectiveUrl = ollamaUrl ? safeEffectiveOllamaUrl(ollamaUrl) : undefined;
-
-  const generalBox = card(rows([
-    [messages.tui.activeMode, messages.tui.modeValue(mode as PalabreMode)],
-    [messages.tui.configFile, configPath],
-    [messages.tui.interface, defaults.interface ?? "tui"],
-    [messages.tui.language, config.language ?? "fr"],
-    [messages.tui.availableAgentsShort, agentInventoryLine(config, messages)]
-  ]), width, messages.tui.configSectionGeneral);
-
-  const ollamaBox = ollamaModel
-    ? card(rows([
-        [messages.tui.ollamaModel, ollamaModel] as const,
-        ...(ollamaUrl ? [[messages.tui.ollamaUrl, ollamaUrl] as const] : []),
-        ...(ollamaEffectiveUrl && ollamaEffectiveUrl !== ollamaUrl ? [[messages.tui.ollamaUrlEffective, ollamaEffectiveUrl] as const] : [])
-      ]), width, "Ollama")
-    : [];
-
   const sessionEntries: RowEntry[] = isChat ? [
+        [messages.tui.session, messages.tui.modeValue(mode)],
         [messages.tui.activeAgents, defaults.agentA ?? messages.tui.noValue],
-        [messages.tui.roles, defaults.agentA ? roleFor(config, defaults.agentA, messages) : messages.tui.noValue],
-        [messages.tui.summary, messages.tui.chatReady]
+        [messages.tui.roles, defaults.agentA ? roleFor(config, defaults.agentA, messages) : messages.tui.noValue]
       ] : mode === "ask"
     ? [
+        [messages.tui.session, messages.tui.modeValue(mode)],
         [messages.tui.activeAgents, askAgents],
         [messages.tui.roles, askRoles],
+        [messages.tui.responses, String(activeAgentNamesForMode(config, "ask").length)],
         [messages.tui.summary, summary]
       ]
     : [
+        [messages.tui.session, messages.tui.modeValue(mode)],
         [messages.tui.activeAgents, debateAgents],
         [messages.tui.roles, debateRoles],
-        [messages.tui.summary, summary],
-        [messages.tui.responses, String(defaults.turns ?? "?")]
+        [messages.tui.responses, String(defaults.turns ?? "?")],
+        [messages.tui.summary, summary]
       ];
-  const sessionBox = card(rows(sessionEntries), width, isChat ? "Chat" : messages.tui.modeValue(mode as PalabreMode));
+  const sessionBox = card(rows(sessionEntries), width, messages.tui.configSectionSession);
 
-  const commandRows = [
-    bold(messages.tui.availableCommands),
-    "",
+  const editSessionRows = [
     ...(isChat ? [
           row("/agents", messages.tui.chatAgentsUsage),
           row("/roles", messages.tui.rolesUsage)
@@ -319,44 +316,35 @@ export function renderTuiConfig(config: PalabreConfig, configPath: string, mode:
           row("/turns", messages.tui.turnsUsage),
           row("/summary", messages.tui.summaryUsage)
         ]),
-    row("/mode", messages.tui.modeConfigCommand),
-    ...(ollamaModel ? [
-      row("/ollama", messages.tui.ollamaInfoCommand),
-      row("/ollama-model", messages.tui.ollamaModelUsage),
-      row("/ollama-url", messages.tui.ollamaUrlCommand),
-      row("/ollama-sync", messages.tui.ollamaSyncCommand)
-    ] : []),
+    row("/mode", messages.tui.modeConfigCommand)
+  ];
+  const applicationRows = [
+    row(messages.tui.language, config.language ?? "fr"),
+    row(messages.tui.interface, defaults.interface ?? "tui"),
+    "",
     row("/interface", messages.tui.interfaceUsage),
     row("/language", messages.tui.languageUsage),
     "",
-    row("/home", messages.tui.backCommand),
-    row("/quit", messages.tui.quitCommand)
+    dim(messages.tui.configMoreCommands),
+    "",
+    ...labeledFullValueLines(messages.tui.configFile, configPath, width - 4)
   ];
 
   const lines = [
     "",
     ...padBlock([brandHeader(messages.tui.configTitle)]),
     "",
-    ...padBlock(generalBox),
-    "",
     ...padBlock(sessionBox),
-    ...(ollamaBox.length > 0 ? ["", ...padBlock(ollamaBox)] : []),
     "",
-    ...padBlock(commandRows),
+    ...padBlock(card(editSessionRows, width, messages.tui.configSectionEdit)),
+    "",
+    ...padBlock(card(applicationRows, width, messages.tui.configSectionApplication)),
     ...(state.message ? ["", ...padBlock([state.message])] : [])
   ];
 
   process.stdout.write(lines.join("\n") + "\n");
 }
 
-/** Résout l'URL Ollama effective sans lever : retombe sur `OLLAMA_HOST` ou l'URL config brute. */
-function safeEffectiveOllamaUrl(configUrl: string): string {
-  try {
-    return resolveOllamaBaseUrl({ configUrl });
-  } catch {
-    return process.env.OLLAMA_HOST?.trim() || configUrl;
-  }
-}
 /** Conserve une valeur complète et indente ses continuations sous son intitulé. */
 function labeledFullValueLines(label: string, value: string, width: number): string[] {
   const prefix = `${accent(label)} ${dim("·")} `;
@@ -373,10 +361,6 @@ function labeledFullValueLines(label: string, value: string, width: number): str
     : [prefix];
 }
 
-/** Met en évidence les commandes slash tout en laissant leur description localisée neutre. */
-function highlightSlashCommands(value: string): string {
-  return value.replace(/\/(?:[a-z][a-z-]*)?/gi, (command) => accent(command));
-}
 
 function activeSummaryAgentForMode(
   config: PalabreConfig,
@@ -446,14 +430,6 @@ function activeAgentNamesForMode(config: PalabreConfig, mode: PalabreMode): stri
   return [defaults.agentA, defaults.agentB].filter((agent): agent is string =>
     typeof agent === "string" && Boolean(config.agents[agent]) && !isRetiredAgentName(agent)
   );
-}
-
-function agentInventoryLine(config: PalabreConfig, messages: Messages): string {
-  const agents = Object.entries(config.agents)
-    .filter(([name]) => !isRetiredAgentName(name))
-    .map(([name]) => name)
-    .sort();
-  return agents.length > 0 ? agents.map(agentLabel).join(", ") : messages.tui.noValue;
 }
 
 function agentInventoryRows(config: PalabreConfig, messages: Messages): string[] {

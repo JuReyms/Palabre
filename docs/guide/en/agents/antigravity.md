@@ -26,7 +26,7 @@ palabre config --sync-agents
 
 ## Gemini Transition
 
-Google says Gemini CLI will stop serving requests for free individual users and Google AI Pro/Ultra users on June 18, 2026, while Enterprise customers keep access according to their licenses.
+Google announced the transition from Gemini CLI to Antigravity CLI for individual users, while Enterprise customers retain access according to their licenses.
 
 Official reference: [Transitioning Gemini CLI to Antigravity CLI](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/)
 

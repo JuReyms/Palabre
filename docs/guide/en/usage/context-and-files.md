@@ -15,6 +15,8 @@ Palabre can send project context to agents. This is essential for requesting a c
 | `--files` | You explicitly choose the files. An invalid path stops the command. |
 | `--context` | Palabre scans text files or folders with limits and exclusions. |
 
+`--files` is strict: 64 KiB maximum per file and 192 KiB in total; a binary file, folder, or invalid path stops the session. `--context` is tolerant: it walks folders, ignores files it cannot retain, and reports warnings without cancelling the session.
+
 ## Explicit files
 
 ```bash

@@ -6,7 +6,7 @@ import { resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePow
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
-import { clipLine, DEFAULT_TIMEOUT_MS, extractUsageLimitMessage, resolveMaxOutputBytes, stripLogPrefix, uniqueNonEmptyLines, utf8ChildProcessEnv, withModelArgs } from "./cli-shared.js";
+import { clipLine, DEFAULT_TIMEOUT_MS, extractRetryAfter, extractUsageLimitMessage, resolveMaxOutputBytes, stripLogPrefix, uniqueNonEmptyLines, utf8ChildProcessEnv, withModelArgs } from "./cli-shared.js";
 import { cleanTerminalOutput } from "./terminal.js";
 
 /**
@@ -176,8 +176,18 @@ export class CliAdapter implements AgentAdapter {
           command: this.config.command
         }));
       });
-      const finishFromExitCode = (code: number | null) => {
-        if (code && code !== 0) {
+      const finishFromExitCode = (code: number | null, signal: NodeJS.Signals | null) => {
+        if (code === null) {
+          finish(new AdapterError(
+            "non-zero-exit",
+            this.name,
+            `${this.name} was terminated by signal ${signal ?? "unknown"}.`,
+            { exitCode: null, signal, stderr: cleanCliOutput(decodeCliBytes(stderrChunks)) }
+          ));
+          return;
+        }
+
+        if (code !== 0) {
           finish(createCliExitError(this.name, code, decodeCliBytes(stderrChunks), errorMessages));
           return;
         }
@@ -341,6 +351,7 @@ function createCliExitError(adapterName: string, exitCode: number, stderr: strin
 function createKnownCliError(adapterName: string, exitCode: number | undefined, stderr: string, messages: AdapterErrorMessages): AdapterError | undefined {
   const cleanedStderr = cleanCliOutput(stderr);
   const usageLimitMessage = extractUsageLimitMessage(cleanedStderr);
+  const retryAfter = usageLimitMessage ? extractRetryAfter(usageLimitMessage) : undefined;
   const unsupportedModelMessage = extractUnsupportedModelMessage(cleanedStderr);
 
   if (usageLimitMessage) {
@@ -350,7 +361,8 @@ function createKnownCliError(adapterName: string, exitCode: number | undefined, 
       messages.usageLimit(adapterName, usageLimitMessage),
       {
         ...(exitCode === undefined ? {} : { exitCode }),
-        stderr: cleanedStderr
+        stderr: cleanedStderr,
+        ...(retryAfter === undefined ? {} : { retryAfter })
       }
     );
   }

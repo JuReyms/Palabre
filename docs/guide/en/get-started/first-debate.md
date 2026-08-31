@@ -16,7 +16,7 @@ In an interactive terminal, Palabre creates the global configuration on first la
 
 ## 1. Start a Debate
 
-Debate is the primary mode. If needed, enter `/debat`, then choose the pair:
+Debate is the primary mode. If needed, enter `/debate`, then choose the pair:
 
 ```text
 /agents codex claude

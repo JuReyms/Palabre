@@ -1,19 +1,27 @@
 /** @file Chargement, génération et validation de la config Palabre, ainsi que la synchronisation des agents/modèles Ollama détectés. */
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { applyDetectedCommands, detectedAgentNames } from "./agentRegistry.js";
 import { refreshTrustedConfig } from "./configTrust.js";
+import { writeTextFileAtomically } from "./atomicFile.js";
 import type { CliAgentConfig, PalabreConfig } from "./types.js";
 import type { ToolDiscovery } from "./discovery.js";
 import type { Messages } from "./messages/index.js";
 
+/** Nom de la configuration Palabre courante dans un dossier de projet. */
 export const DEFAULT_CONFIG_PATH = "palabre.config.json";
+/** Ancien nom de configuration conservé uniquement pour la migration. */
 export const LEGACY_CONFIG_PATH = "chicane.config.json";
+/** Dossier utilisateur et projet réservé aux données Palabre. */
 export const CONFIG_DIR_NAME = ".palabre";
+/** Chemin de la configuration globale Palabre. */
 export const GLOBAL_CONFIG_PATH = path.join(os.homedir(), CONFIG_DIR_NAME, DEFAULT_CONFIG_PATH);
+/** Chemin de l'ancienne configuration globale, lu seulement pour la migration. */
 export const GLOBAL_LEGACY_CONFIG_PATH = path.join(os.homedir(), CONFIG_DIR_NAME, LEGACY_CONFIG_PATH);
+/** Modèle Ollama léger retenu lorsqu'aucun modèle local n'est détecté. */
 export const DEFAULT_OLLAMA_MODEL = "nemotron-3-nano:4b";
+/** Dossier de sortie dédié utilisé quand aucun dossier n'est configuré. */
 export const DEFAULT_OUTPUT_DIR = ".palabre";
 
 const CLAUDE_SAFE_ARGS = [
@@ -44,6 +52,7 @@ const VIBE_SAFE_ARGS = [
   "--prompt"
 ];
 
+/** Configuration complète écrite lors d'une initialisation, avant adaptation à la découverte locale. */
 export const exampleConfig: PalabreConfig = {
   language: "fr",
   outputDir: DEFAULT_OUTPUT_DIR,
@@ -391,8 +400,7 @@ export async function writeConfig(
   config: PalabreConfig = exampleConfig
 ): Promise<void> {
   const resolved = path.resolve(configPath);
-  await mkdir(path.dirname(resolved), { recursive: true });
-  await writeFile(resolved, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  await writeTextFileAtomically(resolved, `${JSON.stringify(config, null, 2)}\n`);
   await refreshTrustedConfig(resolved);
 }
 

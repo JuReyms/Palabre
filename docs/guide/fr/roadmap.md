@@ -40,6 +40,7 @@ Les fonctionnalités principales sont disponibles :
 - synthèse finale avec consensus, désaccords, actions proposées et conclusion ;
 - export Markdown `.debate.md`, `.chat.md` ou `.ask.md` avec nom basé sur le sujet ;
 - historique local des exports avec `palabre history`, `palabre history --json` et `/history` dans la TUI ;
+- checkpoints opt-in pour Débat et Ask, avec `palabre sessions` et `palabre resume <session-id>` sans rejouer les réponses déjà validées ;
 - export partiel conservé si un agent plante pendant le débat ou la synthèse ;
 - diagnostic avec `palabre doctor` ;
 - sortie machine-readable avec `palabre agents --json`, `palabre presets --json`, `palabre context scan --json` et le renderer NDJSON ;
@@ -65,7 +66,7 @@ La commande `palabre config`, la vue TUI `/config`, la configuration de premier 
 
 ### Conversation après le débat
 
-Après la synthèse finale d'un débat ou d'un Ask, `/chat` permet maintenant de poursuivre avec un agent actif. Le contexte transmis indique sa provenance et reprend le sujet avec la synthèse finale, ou les six échanges récents lorsqu'aucune synthèse n'existe. La conversation reste stateless et bornée ; les sessions persistantes, le streaming et la reprise après redémarrage restent des évolutions distinctes.
+Après la synthèse finale d'un débat ou d'un Ask, `/chat` permet maintenant de poursuivre avec un agent actif. Le contexte transmis indique sa provenance et reprend le sujet avec la synthèse finale, ou les six échanges récents lorsqu'aucune synthèse n'existe. La conversation reste stateless et bornée ; les sessions Chat persistantes et le streaming restent des évolutions distinctes.
 
 ### Tests et stabilité
 
@@ -75,7 +76,7 @@ Les tests reproductibles couvrent déjà l'adapter CLI, le renderer NDJSON, la d
 
 Ces sujets sont envisagés après stabilisation du CLI :
 
-- reprise d'un débat depuis un transcript existant ;
+- reprise d'un débat depuis un export Markdown existant, distincte de `palabre resume` qui reprend un checkpoint Palabre ;
 - provider compatible OpenAI local pour LM Studio, LocalAI, vLLM ou équivalent ;
 - maintenance continue de la documentation française et anglaise ;
 - interface CLI multilingue français/anglais à continuer d'affiner, avec un futur choix interactif de langue dans les flows de premier lancement ou de configuration ;

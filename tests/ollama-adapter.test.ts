@@ -260,6 +260,51 @@ test("OllamaAdapter rejects HTTP response bodies above maxOutputBytes", async ()
   }
 });
 
+test("OllamaAdapter cancels an in-progress model pull when the session is aborted", async () => {
+  const originalFetch = globalThis.fetch;
+  const abortController = new AbortController();
+  let pullStarted: (() => void) | undefined;
+
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.endsWith("/api/tags")) {
+      return Promise.resolve(new Response(JSON.stringify({ models: [] }), {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }));
+    }
+    if (url.endsWith("/api/pull")) {
+      pullStarted?.();
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+      });
+    }
+    throw new Error(`Unexpected fetch URL: ${url}`);
+  }) as typeof fetch;
+
+  try {
+    const adapter = new OllamaAdapter("ollama-local", {
+      type: "ollama",
+      model: "test-model",
+      role: "critic",
+      autoPullModel: true,
+      unloadOtherModels: false
+    });
+    const started = new Promise<void>((resolve) => { pullStarted = resolve; });
+    const pending = adapter.generate({ ...agentPrompt("en"), signal: abortController.signal });
+
+    await started;
+    abortController.abort();
+
+    await assert.rejects(
+      pending,
+      (error) => error instanceof AdapterError && error.kind === "cancelled"
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 function agentPrompt(language: AgentPrompt["language"]): AgentPrompt {
   return {
     language,

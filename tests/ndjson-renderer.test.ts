@@ -238,6 +238,7 @@ test("NdjsonRenderer emits structured error events", () => {
       turn: 3,
       kind: "non-zero-exit",
       message: "antigravity exited with code 1",
+      retryAfter: 45,
       details: { exitCode: 1 },
     });
   } finally {
@@ -250,6 +251,7 @@ test("NdjsonRenderer emits structured error events", () => {
   assert.equal(event.phase, "summary");
   assert.equal(event.agent, "antigravity");
   assert.equal(event.kind, "non-zero-exit");
+  assert.equal(event.retryAfter, 45);
   assert.equal(event.details.exitCode, 1);
 });
 

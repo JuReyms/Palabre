@@ -14,9 +14,11 @@ La TUI est l'interface recommandée pour une utilisation humaine. Elle crée la 
 
 ## Accueil
 
-L'accueil résume la session courante sur deux lignes : mode, agents avec leurs rôles, nombre de réponses et agent de synthèse. Il affiche ensuite les raccourcis essentiels et le dossier courant. Si un agent nécessaire à la session n'est pas disponible, un avertissement indique `/agents` ou `/config` selon le réglage à corriger.
+L'accueil résume la session courante sur deux lignes : mode, agents, rôles, nombre de réponses et agent de synthèse. Il affiche ensuite les raccourcis essentiels, les syntaxes `--context` et `--files`, puis le dossier courant. Si un agent nécessaire à la session n'est pas disponible, un avertissement apparaît sous le dossier et indique `/agents` ou `/config` selon le réglage à corriger.
 
 Saisissez un sujet directement pour lancer le mode courant. Tapez `/` pour ouvrir la liste contextuelle des commandes ; utilisez les flèches, `Tab` ou `→` pour compléter, puis `Entrée` pour lancer.
+
+`/help` regroupe les commandes selon le parcours utilisateur : démarrer, préparer, continuer puis naviguer. `/config` montre d'abord la session active et les réglages courants ; tapez `/` dans son composeur pour accéder aux réglages avancés. Une commande inconnue affiche un message explicite dans chaque écran au lieu de changer de vue silencieusement.
 
 ## Composer une nouvelle session
 
