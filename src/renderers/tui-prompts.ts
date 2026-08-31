@@ -7,6 +7,7 @@ import { createInterface } from "node:readline";
 import { stdin as input, stdout as output } from "node:process";
 import type { Language, PalabreConfig, PalabreInterface, PalabreMode } from "../types.js";
 import type { Messages } from "../messages/index.js";
+import { canApplyUpdate, type UpdateInfo } from "../update.js";
 import { renderTuiAgentsHelp, renderTuiRolesHelp } from "./tui-screens.js";
 import {
   accent,
@@ -33,6 +34,7 @@ export type TuiHomeInput =
   | { kind: "retry" }
   | { kind: "history" }
   | { kind: "update" }
+  | { kind: "apply-update" }
   | { kind: "home" }
   | { kind: "config" }
   | { kind: "mode"; mode: TuiHomeMode }
@@ -140,6 +142,8 @@ export type TuiCommandCompletionContext = "home" | "config" | "chat" | "navigati
 type TuiCompletionMessages = Pick<Messages["tui"], "commandDescription" | "completionNavigationHint">;
 export interface TuiCompletionChoice {
   value: string;
+  /** Libellé affiché lorsque la valeur technique doit rester courte et saisissable. */
+  label?: string;
   description?: string;
 }
 
@@ -274,6 +278,40 @@ export async function promptTuiNavigation(messages: Messages, label = messages.t
   const result = await promptTuiNavigationWithReadline(getComposerReadline(), messages, undefined, label);
   if (!result) closeComposerReadline();
   return result;
+}
+
+/** Lit la confirmation explicite de l'écran `/update` avec le même composer et le même Ctrl+C que les autres vues. */
+export async function promptTuiUpdate(info: UpdateInfo, messages: Messages): Promise<TuiHomeInput> {
+  if (!input.isTTY) return { kind: "home" };
+
+  const rl = getComposerReadline();
+  const layout = updateComposerPrompt(messages);
+  const choices: TuiCompletionChoice[] = canApplyUpdate(info)
+    ? [
+        { value: "update", label: info.channel === "source" ? messages.tui.updateSourceActionNow : messages.tui.updateActionNow },
+        { value: "later", label: messages.tui.updateLater }
+      ]
+    : [{ value: "later", label: messages.tui.updateLater }];
+  const result = await questionWithBufferedComposer(
+    rl,
+    layout.prompt,
+    layout.linePrompt,
+    layout.trailingLines,
+    undefined,
+    "navigation",
+    undefined,
+    messages.tui,
+    { choices, defaultValue: choices[0]?.value, showOnEmpty: true }
+  );
+
+  if (result.kind === "quit") {
+    closeComposerReadline();
+    return undefined;
+  }
+  if (result.kind === "back") return { kind: "home" };
+  return result.value.trim().toLocaleLowerCase() === "update"
+    ? { kind: "apply-update" }
+    : { kind: "home" };
 }
 
 /** Variante injectable du mini-composer de navigation pour les tests. */
@@ -421,12 +459,15 @@ export function questionWithBufferedComposer(
         Math.max(0, matches.length - 7)
       );
       const visibleMatches = matches.slice(visibleStart, visibleStart + 7);
-      const commandWidth = Math.max(...visibleMatches.map((match) => match.length));
+      const commandWidth = Math.max(...visibleMatches.map((match) => (
+        completionPicker?.choices.find((choice) => choice.value === match)?.label ?? match
+      ).length));
       const menuLines = [
         "",
         ...visibleMatches.map((match) => {
-          const commandCell = match.padEnd(commandWidth);
-          const description = completionPicker?.choices.find((choice) => choice.value === match)?.description
+          const choice = completionPicker?.choices.find((item) => item.value === match);
+          const commandCell = (choice?.label ?? match).padEnd(commandWidth);
+          const description = choice?.description
             ?? completionMessages?.commandDescription(match)
             ?? "";
           return `${surfacePadding()}${match === command
@@ -893,6 +934,15 @@ function navigationComposerPrompt(messages: Messages, label: string, notice?: st
     messages.tui.navigationComposerPlaceholder,
     undefined,
     notice
+  );
+}
+
+/** Variante de l'écran update : un choix actionnable, sans introduire un second système de saisie. */
+function updateComposerPrompt(messages: Messages): ComposerPromptLayout {
+  return framedComposerPrompt(
+    sectionTrail(messages.tui.updateScreen),
+    messages.tui.updateComposerPlaceholder,
+    undefined
   );
 }
 

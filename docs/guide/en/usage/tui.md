@@ -20,6 +20,8 @@ Enter a subject directly to run the current mode. Type `/` to open the contextua
 
 `/help` groups commands around the user journey: start, prepare, continue, then navigate. `/config` first shows the active session and common settings; type `/` in its composer to reach advanced settings. An unknown command now produces an explicit message on every screen instead of silently changing views.
 
+`/update` opens a dedicated card: installed version, available npm version when Palabre comes from a package, detected channel, and the exact action. From a Git checkout, it simply identifies the checkout version and offers to synchronize it; it does not compare it with npm. Choose **Update now** or **Sync checkout** only after checking that action; **Not now** returns home. The card links to release notes for package installations.
+
 ## Compose a new session
 
 `/new` opens one guided flow for Chat, Debate, and Ask. Choose the mode, agents, and subject. Palabre then shows a compact summary and lets you launch, customize, or cancel the session.
@@ -39,6 +41,7 @@ Customization covers the response count, model identifiers passed to agents, sum
 | `/roles` | Displays or changes roles. |
 | `/config` | Opens settings. |
 | `/history` | Displays recent exports. |
+| `/update` | Checks and proposes the update matching the installation. |
 | `/help` | Displays all commands. |
 | `/home` | Returns home. |
 | `/quit` | Quits Palabre. |

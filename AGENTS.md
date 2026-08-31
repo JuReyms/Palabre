@@ -277,9 +277,11 @@ Le wizard affiche une commande equivalente avant execution. Cette sortie est int
 
 ## Update
 
-`palabre update` affiche les etapes de mise a jour adaptees au mode d'installation.
+`palabre update` detecte le canal de l'installation en cours : checkout Git, package global npm, pnpm, Yarn ou Bun. La detection compare le package execute aux racines globales interrogees localement ; une provenance ambigue reste `unknown` et ne declenche jamais une mutation.
 
-Depuis un checkout git, `palabre update --apply` execute :
+La commande par defaut affiche le diagnostic et demande une confirmation unique en TTY avant toute ecriture. `--check` et `--dry-run` restent sans effet de bord ; `--yes` applique le plan sans confirmation. `--apply` est conserve comme alias compatible de `--yes`. En non-interactif, une application exige `--yes` (ou `--apply`). L'ecran TUI `/update` presente exactement le meme plan et une action explicite `Mettre a jour maintenant`.
+
+Depuis un checkout git, le plan execute :
 
 ```bash
 git pull --ff-only
@@ -288,7 +290,7 @@ pnpm build
 pnpm link --global
 ```
 
-Pour une installation package, la commande affiche les commandes `pnpm add --global palabre@latest` ou `npm install --global palabre@latest`. Garder ce mode explicite : une mise a jour peut toucher le reseau, le store global pnpm et le lien global.
+Pour une installation package, le plan execute la syntaxe native du gestionnaire detecte, avec la version npm resolue (par exemple `pnpm add --global palabre@0.16.1` ou `npm install --global palabre@0.16.1`). Si npm est indisponible ou si la version executee est deja courante, Palabre ne modifie pas l'installation package. Une mise a jour peut toucher le reseau, le store global et le lien global : garder l'action explicite et ne jamais construire une ligne de shell non structuree.
 
 ## Adapter CLI actuel
 
@@ -781,7 +783,7 @@ Combinaisons validees localement :
 - alias sujet `palabre -s "sujet" -t 2`
 - detection des limites d'usage CLI type Codex/Claude/Antigravity par simulation stderr
 - `init` avec config globale et `init --local` dans un dossier temporaire pour verifier la detection locale
-- `update` en mode instructions
+- `update --check` et `update --dry-run`, avec plan adapte au canal source/npm/pnpm/Yarn/Bun
 - etat "agent en cours" en rendu pretty
 - synthese finale avec `defaults.summaryAgent`, fallback agent B
 - `--no-summary`

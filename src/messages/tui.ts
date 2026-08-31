@@ -103,6 +103,22 @@ export interface TuiMessages {
   updateTitle: string;
   updateScreen: string;
   updateCardTitle: string;
+  updateInstalledVersion: string;
+  updateSourceVersion: string;
+  updateAvailableVersion: string;
+  updateChannel: string;
+  updateChannelValue(channel: string): string;
+  updateAction: string;
+  updateNotes: string;
+  updateAvailableStatus: string;
+  updateSourceStatus: string;
+  updateCurrentStatus: string;
+  updateCheckUnavailable: string;
+  updateUnknownStatus: string;
+  updateActionNow: string;
+  updateSourceActionNow: string;
+  updateLater: string;
+  updateComposerPlaceholder: string;
   agentsPrompt: string;
   rolesPrompt: string;
   sessionDone: string;
@@ -344,6 +360,25 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     updateTitle: "Palabre Mise à jour",
     updateScreen: "Mise à jour",
     updateCardTitle: "Mise à jour",
+    updateInstalledVersion: "Version installée",
+    updateSourceVersion: "Version du checkout",
+    updateAvailableVersion: "Disponible",
+    updateChannel: "Canal",
+    updateChannelValue: (channel) => ({
+      source: "checkout Git", "npm-global": "npm global", "pnpm-global": "pnpm global",
+      "yarn-global": "Yarn global", "bun-global": "Bun global", unknown: "inconnu"
+    })[channel] ?? channel,
+    updateAction: "Action",
+    updateNotes: "Notes",
+    updateAvailableStatus: "Une mise à jour est disponible.",
+    updateSourceStatus: "Installation depuis le dépôt : synchronisation optionnelle.",
+    updateCurrentStatus: "Palabre est à jour.",
+    updateCheckUnavailable: "Vérification npm indisponible : aucune mise à jour automatique.",
+    updateUnknownStatus: "Installation non reconnue : aucune modification automatique.",
+    updateActionNow: "Mettre à jour maintenant",
+    updateSourceActionNow: "Synchroniser le checkout",
+    updateLater: "Pas maintenant",
+    updateComposerPlaceholder: "↑↓ choisir · Entrée confirmer · Ctrl+C retour",
     agentsPrompt: "Agents",
     rolesPrompt: "Roles",
     sessionDone: "Session terminee",
@@ -506,6 +541,25 @@ export const tuiMessages: Record<Language, TuiMessages> = {
     updateTitle: "Palabre Update",
     updateScreen: "Update",
     updateCardTitle: "Update",
+    updateInstalledVersion: "Installed version",
+    updateSourceVersion: "Checkout version",
+    updateAvailableVersion: "Available",
+    updateChannel: "Channel",
+    updateChannelValue: (channel) => ({
+      source: "Git checkout", "npm-global": "global npm", "pnpm-global": "global pnpm",
+      "yarn-global": "global Yarn", "bun-global": "global Bun", unknown: "unknown"
+    })[channel] ?? channel,
+    updateAction: "Action",
+    updateNotes: "Notes",
+    updateAvailableStatus: "An update is available.",
+    updateSourceStatus: "Source repository installation: synchronization is optional.",
+    updateCurrentStatus: "Palabre is up to date.",
+    updateCheckUnavailable: "npm check unavailable: no automatic update.",
+    updateUnknownStatus: "Installation not recognized: no automatic change.",
+    updateActionNow: "Update now",
+    updateSourceActionNow: "Sync checkout",
+    updateLater: "Not now",
+    updateComposerPlaceholder: "↑↓ choose · Enter confirm · Ctrl+C back",
     rolesPrompt: "Roles",
     sessionDone: "Session complete",
     sessionHistoryHint: "Find your exports again with /history.",

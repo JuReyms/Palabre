@@ -99,7 +99,7 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 | `/roles` | Affiche les rôles disponibles ou modifie les rôles actifs si des rôles sont fournis. En mode Ask, un seul rôle comme `/roles critic` s'applique à tous les agents Ask. |
 | `/config` | Ouvre les réglages TUI. |
 | `/history` | Affiche les derniers exports Markdown. Alias : `/historique`. |
-| `/update` | Vérifie la version npm et affiche les instructions de mise à jour adaptées. |
+| `/update` | Ouvre l'écran de mise à jour adapté au canal d'installation détecté. |
 | `/ollama` | Affiche le modèle Ollama configuré et les modèles installés depuis `/config`. |
 | `/ollama-url <url|default>` | Configure l'adresse de tous les agents Ollama depuis `/config`. |
 | `/ollama-model <modele>` | Change le modèle configuré de `ollama-local` depuis `/config`. |
@@ -185,5 +185,8 @@ supporter de futures intégrations. Sans déclaration, la source indiquée est
 
 | Commande | Description |
 |----------|-------------|
-| `palabre update` | Affiche les instructions de mise à jour. |
-| `palabre update --apply` | Applique la mise à jour depuis un checkout git. |
+| `palabre update` | Affiche le plan puis demande une confirmation TTY avant une mise à jour sûre. |
+| `palabre update --check` | Vérifie la version et le canal sans modifier la machine. |
+| `palabre update --dry-run` | Affiche les étapes exactes sans les lancer. |
+| `palabre update --yes` | Applique un plan sûr sans confirmation interactive. |
+| `palabre update --apply` | Alias compatible de `--yes`. |

@@ -27,6 +27,13 @@ test("--no-summary stays boolean regardless of position", () => {
   assert.equal(after.flags.preset, "codex-claude");
 });
 
+test("--check stays boolean for the update command", () => {
+  const parsed = parse(["update", "--check"]);
+
+  assert.equal(parsed.command, "update");
+  assert.equal(parsed.flags.check, true);
+});
+
 test("single-value flags consume exactly one value", () => {
   const parsed = parse(["--agent-a", "codex", "--agent-b", "claude", "--limit", "25", "-s", "topic"]);
 

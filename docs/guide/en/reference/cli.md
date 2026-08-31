@@ -99,7 +99,7 @@ These commands are available from the TUI home screen or from `/config` dependin
 | `/roles` | Displays available roles or updates active roles when roles are provided. In Ask mode, a single role such as `/roles critic` applies to all Ask agents. |
 | `/config` | Opens TUI settings. |
 | `/history` | Shows recent Markdown exports. Alias: `/historique`. |
-| `/update` | Checks the npm version and displays installation-specific update instructions. |
+| `/update` | Opens the update screen for the detected installation channel. |
 | `/ollama` | Displays the configured Ollama model and installed models from `/config`. |
 | `/ollama-url <url|default>` | Configures the address of every Ollama agent from `/config`. |
 | `/ollama-model <model>` | Changes the configured `ollama-local` model from `/config`. |
@@ -185,5 +185,8 @@ When no client is declared, the invocation source is `direct-cli`.
 
 | Command | Description |
 |---------|-------------|
-| `palabre update` | Displays update instructions. |
-| `palabre update --apply` | Applies the update from a git checkout. |
+| `palabre update` | Displays the plan then asks for TTY confirmation before a safe update. |
+| `palabre update --check` | Checks the version and channel without changing the machine. |
+| `palabre update --dry-run` | Displays the exact steps without running them. |
+| `palabre update --yes` | Applies a safe plan without interactive confirmation. |
+| `palabre update --apply` | Compatible alias for `--yes`. |
