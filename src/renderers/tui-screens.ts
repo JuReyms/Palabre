@@ -12,6 +12,7 @@ import type { ToolDiscovery } from "../discovery.js";
 import { sanitizeTerminalText } from "../adapters/terminal.js";
 import { isRetiredAgentName } from "../agentRegistry.js";
 import { listAgentsWithAvailability } from "../presets.js";
+import { formatUpdateStep, hasAvailableUpdate, type UpdateInfo } from "../update.js";
 import {
   accent,
   bold,
@@ -106,21 +107,56 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
   process.stdout.write(lines.join("\n") + "\n");
 }
 
-/** Affiche les instructions de mise a jour sans quitter le TUI. */
-export function renderTuiUpdate(instructions: string, _messages: Messages): void {
+/** Affiche l'état et l'action de mise à jour dans une carte Palabre dédiée. */
+export function renderTuiUpdate(info: UpdateInfo, messages: Messages): void {
   if (supportsInteractiveOutput) {
     clearScreen();
   }
 
   const width = surfaceWidth();
+  const separator = ` ${dim("·")} `;
+  const versionDetails = info.channel === "source"
+    ? [`${accent(messages.tui.updateSourceVersion)}${separator}${info.version}`]
+    : info.latestVersion
+    ? packItems([
+        `${accent(messages.tui.updateInstalledVersion)}${separator}${info.version}`,
+        `${accent(messages.tui.updateAvailableVersion)}${separator}${info.latestVersion}`
+      ], width - 4, separator)
+    : [`${accent(messages.tui.updateInstalledVersion)}${separator}${info.version}`];
+  const channel = `${accent(messages.tui.updateChannel)}${separator}${messages.tui.updateChannelValue(info.channel)}`;
+  const status = info.channel === "source"
+    ? messages.tui.updateSourceStatus
+    : info.channel === "unknown"
+      ? messages.tui.updateUnknownStatus
+      : !info.latestVersion
+        ? messages.tui.updateCheckUnavailable
+        : hasAvailableUpdate(info)
+          ? messages.tui.updateAvailableStatus
+          : messages.tui.updateCurrentStatus;
+  const actionLines = info.steps.length > 0
+    ? info.steps.map((step, index) => index === 0
+      ? `${accent(messages.tui.updateAction)}${separator}${formatUpdateStep(step)}`
+      : `  ${formatUpdateStep(step)}`)
+    : [];
+  const notes = info.channel === "source" || !info.latestVersion
+    ? undefined
+    : `${accent(messages.tui.updateNotes)}${separator}${terminalLink(`v${info.latestVersion}`, `https://github.com/JuReyms/Palabre/releases/tag/v${info.latestVersion}`)}`;
   process.stdout.write([
     "",
-    ...padBlock([brandHeader(_messages.tui.updateTitle)]),
+    ...padBlock([brandHeader(messages.tui.updateTitle)]),
     "",
-    ...padBlock(card(instructions.split(/\r?\n/), width, _messages.tui.updateCardTitle)),
+    ...padBlock(card([
+      ...versionDetails,
+      channel,
+      "",
+      status,
+      ...(actionLines.length > 0 ? ["", ...actionLines] : []),
+      ...(notes ? ["", notes] : [])
+    ], width, messages.tui.updateCardTitle)),
     ""
   ].join("\n"));
 }
+
 
 /** Affiche l'aide interne du composer TUI. */
 export function renderTuiHelp(messages: Messages): void {

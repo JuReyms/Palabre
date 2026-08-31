@@ -242,13 +242,15 @@ Testez la commande hors de Palabre, puis vérifiez `args`, `promptMode`, `shell`
 
 ## Mise à jour
 
-Pour voir les étapes :
+Pour vérifier sans modifier la machine :
 
 ```bash
-palabre update
+palabre update --check
 ```
 
-Avec les versions récentes de pnpm, `palabre@latest` peut parfois rester temporairement sur une ancienne version à cause des garde-fous de chaîne d'approvisionnement. Dans ce cas, `palabre update` affiche aussi une commande avec la version exacte quand il peut lire npm :
+`palabre update` détecte le checkout Git, npm, pnpm, Yarn ou Bun global et affiche l'action exacte. Dans un terminal interactif, il demande une confirmation unique avant toute mutation. Utilisez `--dry-run` pour prévisualiser les étapes ou `--yes` en automatisation explicitement autorisée.
+
+Avec les versions récentes de pnpm, `palabre@latest` peut parfois rester temporairement sur une ancienne version à cause des garde-fous de chaîne d'approvisionnement. Palabre utilise donc la version npm exacte quand elle est disponible :
 
 ```bash
 pnpm add --global palabre@0.8.1
@@ -260,10 +262,10 @@ Adaptez le numéro à la version affichée par `palabre update` ou par :
 pnpm view palabre version
 ```
 
-Pour appliquer depuis un checkout git :
+Si le canal est inconnu ou ambigu, Palabre ne modifie rien. Réinstallez alors avec le gestionnaire utilisé initialement, par exemple :
 
 ```bash
-palabre update --apply
+pnpm add --global palabre@latest
 ```
 
-`update --apply` concerne surtout les installations depuis le dépôt source.
+`--apply` reste un alias compatible de `--yes`.

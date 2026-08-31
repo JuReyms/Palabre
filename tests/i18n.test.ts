@@ -106,20 +106,24 @@ test("createTranslator returns localized update messages", () => {
   assert.equal(createTranslator("en").update.upToDate, "PALABRE is up to date.");
   assert.equal(createTranslator("en").update.stepFailed("pnpm", "build", "1"), "pnpm build failed with exit code 1.");
   assert.match(
-    createTranslator("en").update.instructions({ version: "0.4.0", projectRoot: "C:\\repo\\Palabre", sourceCheckout: true }),
+    createTranslator("en").update.instructions({ version: "0.4.0", projectRoot: "C:\\repo\\Palabre", sourceCheckout: true, channel: "source", steps: ["git pull --ff-only"], hasAvailableUpdate: false }),
     /Source repository installation detected/
   );
   assert.match(
-    createTranslator("en").update.instructions({ version: "0.4.0", latestVersion: "0.7.0", projectRoot: "C:\\repo\\Palabre", sourceCheckout: false }),
-    /Package installation detected/
+    createTranslator("en").update.instructions({ version: "0.4.0", latestVersion: "0.7.0", projectRoot: "C:\\repo\\Palabre", sourceCheckout: false, channel: "pnpm-global", steps: ["pnpm add --global palabre@0.7.0"], hasAvailableUpdate: true }),
+    /Detected channel: global pnpm/
   );
   assert.match(
-    createTranslator("en").update.instructions({ version: "0.4.0", latestVersion: "0.7.0", projectRoot: "C:\\repo\\Palabre", sourceCheckout: false }),
+    createTranslator("en").update.instructions({ version: "0.4.0", latestVersion: "0.7.0", projectRoot: "C:\\repo\\Palabre", sourceCheckout: false, channel: "pnpm-global", steps: ["pnpm add --global palabre@0.7.0"], hasAvailableUpdate: true }),
     /pnpm add --global palabre@0\.7\.0/
   );
   assert.match(
-    createTranslator("en").update.instructions({ version: "0.4.0", projectRoot: "C:\\repo\\Palabre", sourceCheckout: false }),
-    /pnpm view palabre version/
+    createTranslator("en").update.instructions({ version: "0.4.0", projectRoot: "C:\\repo\\Palabre", sourceCheckout: false, channel: "unknown", steps: [], hasAvailableUpdate: false }),
+    /Ambiguous origin/
+  );
+  assert.match(
+    createTranslator("en").update.instructions({ version: "0.4.0", projectRoot: "C:\\repo\\Palabre", sourceCheckout: false, channel: "pnpm-global", steps: [], hasAvailableUpdate: false }),
+    /npm check unavailable: no automatic update/
   );
 });
 

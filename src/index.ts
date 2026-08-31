@@ -22,15 +22,15 @@ import { listPresetNames, resolvePreset } from "./presets.js";
 import { listHistoryEntries } from "./history.js";
 import { createConsoleRenderer } from "./renderers/console.js";
 import { createNdjsonRenderer, NdjsonRenderer } from "./renderers/ndjson.js";
-import { createTuiRenderer, promptTuiHomeTopic, promptTuiNavigation, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiUpdate, type TuiHomeInput, type TuiHomeMode } from "./renderers/tui.js";
+import { createTuiRenderer, promptTuiHomeTopic, promptTuiNavigation, promptTuiUpdate, renderTuiHelp, renderTuiHistory, renderTuiHome, renderTuiUpdate, type TuiHomeInput, type TuiHomeMode } from "./renderers/tui.js";
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { buildDryRunPreview, printDryRun } from "./dryRun.js";
-import { formatUpdateInstructions, getUpdateInfo } from "./update.js";
+import { applyUpdate, getUpdateInfo, hasAvailableUpdate } from "./update.js";
 import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { clearTuiRunOverrides } from "./tuiState.js";
 import { formatOllamaUrlError, OllamaUrlError } from "./ollamaUrl.js";
-import { compareSemver, getLatestPackageVersion, getPackageVersion } from "./version.js";
+import { getPackageVersion } from "./version.js";
 import { isAgentRole, VALID_AGENT_ROLES, type DebateOptions, type PalabreConfig, type PalabreInterface } from "./types.js";
 import type { Messages } from "./messages/index.js";
 import { runAgentsCommand } from "./commands/agents.js";
@@ -185,8 +185,8 @@ async function main(): Promise<void> {
   const handleTuiHomeInput = async (tuiInput: TuiHomeInput): Promise<"continue" | "run" | "retry" | "quit"> => {
     let input = tuiInput;
 
-    // Les vues informatives (/help, /history, /update) proposent uniquement la
-    // navigation minimale, puis reviennent à l'accueil ou quittent.
+    // Les vues informatives (/help, /history) proposent uniquement la navigation
+    // minimale. `/update` conserve le même retour, avec une action explicite dédiée.
     for (;;) {
       if (!input) {
         return "quit";
@@ -211,9 +211,15 @@ async function main(): Promise<void> {
 
       if (input.kind === "update") {
         const info = await getUpdateInfo(tuiVersion);
-        renderTuiUpdate(formatUpdateInstructions(info, messages), messages);
-        input = await promptTuiNavigation(messages, messages.tui.updateScreen);
+        renderTuiUpdate(info, messages);
+        input = await promptTuiUpdate(info, messages);
         continue;
+      }
+
+      if (input.kind === "apply-update") {
+        await applyUpdate(await getUpdateInfo(tuiVersion), messages);
+        tuiNotice = messages.update.updateComplete;
+        return "continue";
       }
 
       if (input.kind === "home") {
@@ -327,11 +333,11 @@ async function main(): Promise<void> {
   };
 
   if (shouldOpenTuiHome(parsed)) {
-    const [syncResult, currentVersion, latestVersion] = await Promise.all([
+    const [syncResult, currentVersion] = await Promise.all([
       syncInteractiveDetectedAgents(configPath, config),
-      getPackageVersion(),
-      getLatestPackageVersion()
+      getPackageVersion()
     ]);
+    const tuiUpdateInfo = await getUpdateInfo(currentVersion);
     if (!tuiNotice && syncResult.addedAgents.length > 0) {
       tuiNotice = messages.config.syncAdded(configPath, syncResult.addedAgents.join(", "));
     }
@@ -339,9 +345,9 @@ async function main(): Promise<void> {
     stayInTuiAfterSession = true;
     tuiVersion = currentVersion;
     tuiDiscovery = syncResult.discovery;
-    tuiLatestVersion = latestVersion && compareSemver(currentVersion, latestVersion) < 0
-      ? latestVersion
-      : undefined;
+    tuiLatestVersion = tuiUpdateInfo.channel === "source" || !hasAvailableUpdate(tuiUpdateInfo)
+      ? undefined
+      : tuiUpdateInfo.latestVersion;
 
     for (;;) {
       renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion, discovery: tuiDiscovery });

@@ -40,6 +40,7 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
   "no-summary": { arity: "boolean" },
   "no-early-stop": { arity: "boolean" },
   "show-prompt": { arity: "boolean" },
+  check: { arity: "boolean" },
   "dry-run": { arity: "boolean" },
   "pull-models": { arity: "boolean" },
   checkpoint: { arity: "boolean" },

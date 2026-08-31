@@ -5,6 +5,7 @@ import { createTuiRenderer, parseComposerTopic, parseTuiOllamaUrlCommand, render
 import { createTranslator } from "../src/i18n.js";
 import { packItems } from "../src/renderers/tui-theme.js";
 import type { DebateFailure, DebateOptions } from "../src/types.js";
+import type { UpdateInfo } from "../src/update.js";
 
 // Force le repli ASCII des glyphes pour des assertions stables quel que soit le terminal.
 process.env.PALABRE_ASCII = "1";
@@ -281,7 +282,7 @@ test("renderTuiHelp renders slash commands", () => {
   assert.doesNotMatch(text, /plusieurs reponses independantes/);
 });
 
-test("renderTuiUpdate renders update instructions inside the TUI", () => {
+test("renderTuiUpdate renders a dedicated update card inside the TUI", () => {
   const output: string[] = [];
   const originalWrite = process.stdout.write;
   process.stdout.write = ((chunk: string | Uint8Array) => {
@@ -290,16 +291,55 @@ test("renderTuiUpdate renders update instructions inside the TUI", () => {
   }) as typeof process.stdout.write;
 
   try {
-    renderTuiUpdate("PALABRE 0.7.0\n\nRecommended update:\n  pnpm add --global palabre@latest", createTranslator("en"));
+    const info: UpdateInfo = {
+      version: "0.7.0",
+      latestVersion: "0.8.0",
+      projectRoot: "C:\\repo\\Palabre",
+      sourceCheckout: false,
+      channel: "pnpm-global",
+      steps: [{ command: "pnpm", args: ["add", "--global", "palabre@0.8.0"] }]
+    };
+    renderTuiUpdate(info, createTranslator("en"));
   } finally {
     process.stdout.write = originalWrite;
   }
 
   const text = output.join("");
-  assert.match(text, /PALABRE 0\.7\.0/);
   assert.match(text, /Palabre Update/);
   assert.match(text, /\+- Update -+/);
-  assert.match(text, /pnpm add --global palabre@latest/);
+  assert.match(text, /Installed version\s+.*0\.7\.0/);
+  assert.match(text, /Available\s+.*0\.8\.0/);
+  assert.match(text, /Channel\s+.*global pnpm/);
+  assert.match(text, /pnpm add --global palabre@0\.8\.0/);
+  assert.match(text, /releases\/tag\/v0\.8\.0/);
+});
+
+test("renderTuiUpdate keeps a source checkout separate from npm releases", () => {
+  const output: string[] = [];
+  const originalWrite = process.stdout.write;
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    renderTuiUpdate({
+      version: "0.16.0",
+      projectRoot: "C:\\repo\\Palabre",
+      sourceCheckout: true,
+      channel: "source",
+      steps: [{ command: "git", args: ["pull", "--ff-only"] }]
+    }, createTranslator("en"));
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  const text = output.join("");
+  assert.match(text, /Checkout version\s+.*0\.16\.0/);
+  assert.match(text, /Source repository installation: synchronization is optional\./);
+  assert.match(text, /git pull --ff-only/);
+  assert.doesNotMatch(text, /Available\s+.*0\./);
+  assert.doesNotMatch(text, /releases\/tag/);
 });
 
 test("renderTuiHistory renders recent exports", () => {

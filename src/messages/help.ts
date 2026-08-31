@@ -134,7 +134,10 @@ Usage:
   palabre update [flags]
 
 Flags:
-  --apply              execute les etapes de mise a jour
+  --check              verifie canal et version sans modifier
+  --dry-run            previsualise les etapes sans modifier
+  --yes                confirme l'application sans prompt
+  --apply              alias compatible de --yes
   --config <path>      chemin de config explicite
 `,
   resume: `
@@ -344,7 +347,10 @@ Usage:
   palabre update [flags]
 
 Flags:
-  --apply              runs update steps
+  --check              checks channel and version without changing anything
+  --dry-run            previews the steps without changing anything
+  --yes                confirms application without a prompt
+  --apply              compatible alias for --yes
   --config <path>      explicit config path
 `,
   resume: `

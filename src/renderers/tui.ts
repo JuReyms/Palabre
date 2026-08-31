@@ -22,6 +22,7 @@ export {
   promptTuiHomeTopic,
   promptTuiChatMessage,
   promptTuiNavigation,
+  promptTuiUpdate,
   promptTuiRolesWizard,
   renderTuiComposer,
   type TuiAgentsWizardInput,

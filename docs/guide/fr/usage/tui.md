@@ -20,6 +20,8 @@ Saisissez un sujet directement pour lancer le mode courant. Tapez `/` pour ouvri
 
 `/help` regroupe les commandes selon le parcours utilisateur : démarrer, préparer, continuer puis naviguer. `/config` montre d'abord la session active et les réglages courants ; tapez `/` dans son composeur pour accéder aux réglages avancés. Une commande inconnue affiche un message explicite dans chaque écran au lieu de changer de vue silencieusement.
 
+`/update` ouvre une carte dédiée : version installée, version npm disponible quand Palabre vient d'un package, canal détecté et action exacte. Depuis un checkout Git, elle indique simplement la version du dépôt et propose de le synchroniser ; elle ne le compare pas à npm. Choisissez **Mettre à jour maintenant** ou **Synchroniser le checkout** uniquement après avoir vérifié cette action ; **Pas maintenant** revient à l'accueil. Les notes de release sont liées depuis les installations package.
+
 ## Composer une nouvelle session
 
 `/new` ouvre un parcours guidé commun à Chat, Débat et Ask. Choisissez le mode, les agents puis le sujet. Palabre affiche un récapitulatif compact et propose ensuite de lancer la session, de la personnaliser ou de l'annuler.
@@ -39,6 +41,7 @@ La personnalisation donne accès au nombre de réponses, aux modèles transmis a
 | `/roles` | Affiche ou modifie les rôles. |
 | `/config` | Ouvre les réglages. |
 | `/history` | Affiche les exports récents. |
+| `/update` | Vérifie puis propose la mise à jour adaptée à l'installation. |
 | `/help` | Affiche toutes les commandes. |
 | `/home` | Revient à l'accueil. |
 | `/quit` | Quitte Palabre. |
