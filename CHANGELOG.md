@@ -4,6 +4,24 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-08-31
+
+<!-- social: A calmer, more consistent TUI, clearer recovery guidance, and hardened adapters and local config handling. -->
+
+### Added
+
+- Les erreurs d'agent peuvent désormais indiquer un délai de reprise structuré (`retryAfter`), y compris dans les événements NDJSON destinés aux intégrations.
+
+### Changed
+
+- Les écrans TUI, leur fil d'Ariane, leurs cartes et le composer partagent une navigation et une présentation cohérentes ; l'accueil met plus clairement en avant la session, les commandes essentielles et l'ajout de contexte.
+- Les guides français et anglais décrivent les comportements actuels des agents, de la configuration, du contexte et des contrats d'intégration.
+
+### Fixed
+
+- Les écritures de configuration, la confiance associée et les lancements d'agents locaux sont plus robustes, notamment face aux shims Windows, aux sorties et aux erreurs d'adapters variables.
+- Les diagnostics Ollama, le scan de contexte, les exports et les événements NDJSON conservent leurs limites et leurs messages utiles dans davantage de cas limites.
+
 ## [0.15.0] - 2026-08-30
 
 <!-- social: Resumable Debate and Ask sessions with atomic checkpoints, safe continuation, and explicit checkpoint management. -->
