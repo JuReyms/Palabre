@@ -319,6 +319,8 @@ export interface DebateFailure {
   turn?: number;
   kind: AdapterFailureKind | "unknown";
   message: string;
+  /** Délai de reprise best-effort : secondes, timestamp ISO ou heure locale `HH:mm`. */
+  retryAfter?: number | string;
   details?: Record<string, unknown>;
 }
 

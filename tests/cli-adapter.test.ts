@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { CliAdapter } from "../src/adapters/cli.js";
-import { DEFAULT_MAX_OUTPUT_BYTES, extractPtyUsageLimitMessage, resolveMaxOutputBytes } from "../src/adapters/cli-shared.js";
+import { DEFAULT_MAX_OUTPUT_BYTES, extractPtyUsageLimitMessage, extractRetryAfter, resolveMaxOutputBytes } from "../src/adapters/cli-shared.js";
 import { AdapterError } from "../src/errors.js";
 import type { AgentPrompt, CliAgentConfig } from "../src/types.js";
 
@@ -269,6 +269,27 @@ test("PTY quota detection preserves normal answers discussing rate limits", () =
   );
 });
 
+test("usage-limit retry-after parsing stays best-effort across supported formats", () => {
+  assert.equal(extractRetryAfter("Rate limit reached. Retry in 45s."), 45);
+  assert.equal(extractRetryAfter("Individual quota reached. Resets in 1h5m13s."), 3913);
+  assert.equal(extractRetryAfter("Usage limit. Try again at 1:17 AM."), "01:17");
+  assert.equal(extractRetryAfter("Rate limit. Retry at 2026-09-01T13:17:00Z."), "2026-09-01T13:17:00.000Z");
+  assert.equal(extractRetryAfter("Usage limit reached. Please upgrade."), undefined);
+});
+
+test("CliAdapter exposes a parsed usage-limit retry-after in error details", async () => {
+  const adapter = new CliAdapter("mock", cliConfig({
+    args: ["-e", "process.stderr.write('ERROR: usage limit reached. Try again at 1:17 AM.'); process.exit(1)"]
+  }));
+
+  await assert.rejects(
+    adapter.generate(basePrompt()),
+    (error) => error instanceof AdapterError
+      && error.kind === "usage-limit"
+      && error.details?.retryAfter === "01:17"
+  );
+});
+
 test("PTY quota detection preserves normal answers mentioning machine quota codes", () => {
   assert.equal(
     extractPtyUsageLimitMessage("An API can return HTTP 429 or RESOURCE_EXHAUSTED when a client sends too many requests."),
@@ -297,6 +318,7 @@ test("CliAdapter classifies Antigravity individual quota errors", async () => {
     (error) => error instanceof AdapterError
       && error.kind === "usage-limit"
       && error.message.includes("Individual quota reached")
+      && error.details?.retryAfter === 558313
   );
 });
 

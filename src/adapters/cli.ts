@@ -6,7 +6,7 @@ import { resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePow
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
-import { clipLine, DEFAULT_TIMEOUT_MS, extractUsageLimitMessage, resolveMaxOutputBytes, stripLogPrefix, uniqueNonEmptyLines, utf8ChildProcessEnv, withModelArgs } from "./cli-shared.js";
+import { clipLine, DEFAULT_TIMEOUT_MS, extractRetryAfter, extractUsageLimitMessage, resolveMaxOutputBytes, stripLogPrefix, uniqueNonEmptyLines, utf8ChildProcessEnv, withModelArgs } from "./cli-shared.js";
 import { cleanTerminalOutput } from "./terminal.js";
 
 /**
@@ -351,6 +351,7 @@ function createCliExitError(adapterName: string, exitCode: number, stderr: strin
 function createKnownCliError(adapterName: string, exitCode: number | undefined, stderr: string, messages: AdapterErrorMessages): AdapterError | undefined {
   const cleanedStderr = cleanCliOutput(stderr);
   const usageLimitMessage = extractUsageLimitMessage(cleanedStderr);
+  const retryAfter = usageLimitMessage ? extractRetryAfter(usageLimitMessage) : undefined;
   const unsupportedModelMessage = extractUnsupportedModelMessage(cleanedStderr);
 
   if (usageLimitMessage) {
@@ -360,7 +361,8 @@ function createKnownCliError(adapterName: string, exitCode: number | undefined, 
       messages.usageLimit(adapterName, usageLimitMessage),
       {
         ...(exitCode === undefined ? {} : { exitCode }),
-        stderr: cleanedStderr
+        stderr: cleanedStderr,
+        ...(retryAfter === undefined ? {} : { retryAfter })
       }
     );
   }

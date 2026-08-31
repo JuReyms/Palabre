@@ -477,6 +477,7 @@ function toDebateFailure(
       turn: context.turn,
       kind: error.kind,
       message: error.message,
+      retryAfter: retryAfterFromDetails(error.details),
       details: error.details
     };
   }
@@ -497,6 +498,12 @@ function toDebateFailure(
     kind: "unknown",
     message: error instanceof Error ? error.message : String(error)
   };
+}
+
+/** Lit le délai de reprise structuré d'un adapter sans faire échouer un ancien adapter. */
+function retryAfterFromDetails(details: Record<string, unknown> | undefined): number | string | undefined {
+  const value = details?.retryAfter;
+  return typeof value === "string" || (typeof value === "number" && Number.isFinite(value)) ? value : undefined;
 }
 
 /** Résout le model override pour un agent donné. Retourne `undefined` si l'agent n'est ni A ni B. */

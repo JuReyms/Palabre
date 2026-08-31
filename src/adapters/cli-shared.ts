@@ -61,6 +61,70 @@ export function extractPtyUsageLimitMessage(text: string): string | undefined {
 
   return match ? clipLine(stripLogPrefix(match), 500) : undefined;
 }
+
+/**
+ * Extrait une indication de reprise d'un diagnostic de quota déjà reconnu.
+ * Une durée devient un nombre de secondes ; un timestamp ISO est normalisé ;
+ * une heure sans date reste une heure locale `HH:mm`. Les formats inconnus ne
+ * constituent pas une erreur et retournent `undefined`.
+ */
+export function extractRetryAfter(value: string): number | string | undefined {
+  const isoMatch = value.match(/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:?\d{2})\b/);
+
+  if (isoMatch) {
+    const parsed = new Date(isoMatch[0]);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString();
+    }
+  }
+
+  const durationMatch = value.match(/\b(?:retry|try again|resets?|available)\s+(?:in|after)\s+((?:\d+\s*(?:h(?:ours?)?|m(?:in(?:utes?)?)?|s(?:ec(?:onds?)?)?)\s*)+)/i);
+  if (durationMatch) {
+    const seconds = durationInSeconds(durationMatch[1]);
+    if (seconds !== undefined) {
+      return seconds;
+    }
+  }
+
+  const timeMatch = value.match(/\b(?:retry|try again|resets?|available)\s+at\s+(\d{1,2}):(\d{2})(?:\s*([ap]m))?\b/i);
+  if (timeMatch) {
+    return normalizeClockTime(timeMatch[1], timeMatch[2], timeMatch[3]);
+  }
+
+  return undefined;
+}
+
+/** Convertit une suite compacte comme `1h5m13s` ou `45 seconds` en secondes. */
+function durationInSeconds(value: string): number | undefined {
+  const parts = [...value.matchAll(/(\d+)\s*(h(?:ours?)?|m(?:in(?:utes?)?)?|s(?:ec(?:onds?)?)?)/gi)];
+  if (parts.length === 0) return undefined;
+
+  return parts.reduce((total, [, amount, unit]) => {
+    const multiplier = unit[0]?.toLowerCase() === "h" ? 3600 : unit[0]?.toLowerCase() === "m" ? 60 : 1;
+    return total + Number(amount) * multiplier;
+  }, 0);
+}
+
+/** Normalise une heure de reprise sans date dans le format local portable `HH:mm`. */
+function normalizeClockTime(hourText: string | undefined, minuteText: string | undefined, meridiemText: string | undefined): string | undefined {
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const meridiem = meridiemText?.toLowerCase();
+
+  if (!Number.isInteger(hour) || !Number.isInteger(minute) || minute < 0 || minute > 59) {
+    return undefined;
+  }
+
+  if (meridiem) {
+    if (hour < 1 || hour > 12) return undefined;
+    const normalizedHour = (hour % 12) + (meridiem === "pm" ? 12 : 0);
+    return `${String(normalizedHour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+  }
+
+  if (hour < 0 || hour > 23) return undefined;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
 function isUsageLimitLine(line: string): boolean {
   const normalized = line.toLowerCase();
 
