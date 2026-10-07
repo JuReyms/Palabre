@@ -90,20 +90,25 @@ describe("parseNpmPowerShellShim : seule la forme npm est reconnue", () => {
 });
 
 describe("executableFromNpmShim", () => {
-  test("shim reconnu : interpréteur Node et script du paquet, lancés directement", () => {
+  // Interpréteur factice dans le dossier du shim : test portable, indépendant du Node installé.
+  test("shim reconnu : interpréteur Node du dossier du shim et script du paquet, lancés directement", () => {
+    const dir = npmBin({ "codex.ps1": npmPowerShellShim(SCRIPT), [SCRIPT]: "", "node.exe": "" });
+    const resolved = executableFromNpmShim(path.join(dir, "codex.ps1"));
+    assert.ok(resolved.status === "resolved");
+    assert.equal(resolved.kind, "npm-shim");
+    assert.equal(resolved.executable.command, path.join(dir, "node.exe"));
+    assert.deepEqual(resolved.executable.prefixArgs, [path.join(dir, ...SCRIPT.split("/"))]);
+  });
+
+  // Sans Node local, le shim npm lance `node.exe` du PATH : sémantique Windows, comme le seul appelant
+  // de production (`resolveWindows`). Ailleurs, Node s'appelle `node` et ce repli ne s'applique pas.
+  test("Windows : sans Node dans le dossier du shim, node.exe du PATH", { skip: process.platform !== "win32" }, () => {
     const dir = npmBin({ "codex.ps1": npmPowerShellShim(SCRIPT), [SCRIPT]: "" });
     const resolved = executableFromNpmShim(path.join(dir, "codex.ps1"));
     assert.ok(resolved.status === "resolved");
     assert.equal(resolved.kind, "npm-shim");
     assert.deepEqual(resolved.executable.prefixArgs, [path.join(dir, ...SCRIPT.split("/"))]);
-    assert.match(path.basename(resolved.executable.command).toLowerCase(), /^node(\.exe)?$/);
-  });
-
-  test("Node du dossier du shim prioritaire, comme dans le shim", () => {
-    const dir = npmBin({ "codex.ps1": npmPowerShellShim(SCRIPT), [SCRIPT]: "", "node.exe": "" });
-    const resolved = executableFromNpmShim(path.join(dir, "codex.ps1"));
-    assert.ok(resolved.status === "resolved");
-    assert.equal(resolved.executable.command, path.join(dir, "node.exe"));
+    assert.equal(path.basename(resolved.executable.command).toLowerCase(), "node.exe");
   });
 
   test("script hors du dossier, non JavaScript ou absent : refusé", () => {
