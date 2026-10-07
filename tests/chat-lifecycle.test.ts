@@ -1,6 +1,7 @@
 /**
  * Cycle de vie de Chat (#101) : lignes vides sur stdin, terminaison NDJSON après une erreur
- * d'agent et refus explicite de `--dry-run`. Agents factices Node, dossiers temporaires.
+ * d'agent ou une annulation, rôle effectif d'une consultation et refus explicite de `--dry-run`.
+ * Agents factices Node, dossiers temporaires.
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
@@ -9,6 +10,7 @@ import { mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { pathToFileURL } from "node:url";
 
 const entry = path.resolve(".tmp", "test-dist", "src", "index.js");
 // Agent qui répond en citant le dernier message reçu, et agent qui échoue (code 1).
@@ -16,6 +18,65 @@ const echo = "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',(
 const broken = "process.stdin.resume(); process.stdin.on('end',()=>process.exit(1))";
 
 interface Run { code: number | null; stdout: string; stderr: string }
+
+// Module chargé par `--import` dans le seul processus CLI testé. Il observe les événements NDJSON
+// écrits sur stdout : `PALABRE_TEST_ABORT_AT` émet l'événement `SIGINT` traité par le gestionnaire
+// d'annulation du CLI (sans prétendre simuler une touche Ctrl+C native), et
+// `PALABRE_TEST_LIST_AT` note sur stderr le nombre d'exports présents à cet instant.
+const hookSource = `
+import { readdirSync } from "node:fs";
+const write = process.stdout.write.bind(process.stdout);
+let aborted = false;
+process.stdout.write = (chunk, ...rest) => {
+  const result = write(chunk, ...rest);
+  for (const line of String(chunk).split("\\n").filter(Boolean)) {
+    let event; try { event = JSON.parse(line); } catch { continue; }
+    if (event.type === process.env.PALABRE_TEST_LIST_AT) {
+      const count = readdirSync(process.env.PALABRE_TEST_LIST_DIR).filter((name) => name.endsWith(".chat.md")).length;
+      process.stderr.write("exports-at-" + event.type + "=" + count + "\\n");
+    }
+    if (!aborted && event.type === process.env.PALABRE_TEST_ABORT_AT) {
+      aborted = true;
+      setTimeout(() => process.emit("SIGINT"), 50);
+    }
+  }
+  return result;
+};
+`;
+
+async function hookUrl(): Promise<string> {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "palabre-chat-hook-"));
+  const file = path.join(dir, "hook.mjs");
+  await writeFile(file, hookSource, "utf8");
+  return pathToFileURL(file).href;
+}
+
+/**
+ * Lance le CLI avec le hook, en gardant stdin **ouvert** : les lignes sont écrites sans fermer
+ * l'entrée. stdin n'est fermé qu'après l'événement `done`, pour vérifier qu'une fermeture
+ * ultérieure ne change pas l'issue.
+ */
+async function runWithOpenStdin(args: string[], lines: string[], env: Record<string, string>): Promise<Run & { doneWhileOpen: boolean }> {
+  const hook = await hookUrl();
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, ["--import", hook, entry, ...args], { stdio: ["pipe", "pipe", "pipe"], env: { ...process.env, ...env } });
+    let stdout = "";
+    let stderr = "";
+    let doneWhileOpen = false;
+    const guard = setTimeout(() => child.kill(), 20_000);
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+      if (!doneWhileOpen && /"type":"done"/.test(stdout)) {
+        doneWhileOpen = true;
+        child.stdin.end();
+      }
+    });
+    child.stderr.on("data", (chunk) => { stderr += chunk; });
+    child.on("error", reject);
+    child.on("close", (code) => { clearTimeout(guard); resolve({ code, stdout, stderr, doneWhileOpen }); });
+    for (const line of lines) child.stdin.write(`${line}\n`);
+  });
+}
 
 function run(args: string[], input: string): Promise<Run> {
   return new Promise((resolve, reject) => {
@@ -38,12 +99,15 @@ async function setup(options: { outputDir?: string } = {}) {
   const agent = (script: string, role: string) => ({
     type: "cli", command: process.execPath, args: ["-e", counted(script)], promptMode: "stdin", shell: false, role
   });
+  // `flaky` répond au premier appel puis échoue : il sert d'agent initial puis d'agent consulté.
+  const flakyCalls = path.join(dir, "flaky.log");
+  const flaky = `const fs=require('fs');const n=fs.existsSync(${JSON.stringify(flakyCalls)})?fs.readFileSync(${JSON.stringify(flakyCalls)},'utf8').length:0;fs.appendFileSync(${JSON.stringify(flakyCalls)},'x');process.stdin.resume();process.stdin.on('end',()=>{if(n>0)process.exit(1);process.stdout.write('first answer')})`;
   const configPath = path.join(dir, "palabre.config.json");
   await writeFile(configPath, JSON.stringify({
     language: "en",
     outputDir: options.outputDir ?? dir,
     defaults: { agentA: "ok" },
-    agents: { ok: agent(echo, "reviewer"), broken: agent(broken, "critic") }
+    agents: { ok: agent(echo, "reviewer"), broken: agent(broken, "critic"), flaky: agent(flaky, "critic") }
   }), "utf8");
   const base = ["--config", configPath, "--trust-config"];
   const exports = async () => (await readdir(dir)).filter((name) => name.endsWith(".chat.md"));
@@ -163,4 +227,72 @@ test("Chat refuses --dry-run before starting: no start event, no agent call, no 
     assert.equal(await env.callCount(), 0);
     assert.deepEqual(await env.exports(), []);
   }
+});
+
+test("cancelling while Chat waits for its first message ends the flow: cancelled error, done null, code 130", async () => {
+  const env = await setup();
+  const result = await runWithOpenStdin(["chat", "--json", ...env.base], [], { PALABRE_TEST_ABORT_AT: "start" });
+
+  assert.equal(result.doneWhileOpen, true, "done must arrive while stdin is still open");
+  assert.equal(result.code, 130, result.stderr);
+  const flow = events(result.stdout);
+  assert.deepEqual(flow.map((event) => event.type), ["start", "error", "done"]);
+  assert.deepEqual(flow[1], { v: 1, type: "error", phase: "chat", kind: "cancelled", message: flow[1].message });
+  assert.deepEqual(flow[2], { v: 1, type: "done", outputPath: null });
+  assert.deepEqual(await env.exports(), []);
+  assert.equal(await env.callCount(), 0);
+});
+
+test("cancelling between two messages exports the partial transcript and does not blame the finished send", async () => {
+  const env = await setup();
+  const result = await runWithOpenStdin(["chat", "--json", ...env.base], [json({ type: "chat-send", content: "first-marker" })], { PALABRE_TEST_ABORT_AT: "chat-message" });
+
+  assert.equal(result.doneWhileOpen, true, "done must arrive while stdin is still open");
+  assert.equal(result.code, 130, result.stderr);
+  const flow = events(result.stdout);
+  assert.deepEqual(flow.slice(-3).map((event) => event.type), ["chat-message", "error", "done"]);
+  const error = flow.at(-2);
+  assert.equal(error.kind, "cancelled");
+  // Au repos, aucune action n'est en cours : ni action, ni agent, ni rôle hérités du dernier envoi.
+  assert.equal("action" in error, false);
+  assert.equal("agent" in error, false);
+  assert.equal("role" in error, false);
+  assert.equal(flow.filter((event) => event.type === "done").length, 1);
+  assert.match(flow.at(-1).outputPath, /\.chat\.md$/);
+  assert.match(await readFile(flow.at(-1).outputPath, "utf8"), /first-marker/);
+  assert.equal(await env.callCount(), 1);
+});
+
+test("a consultation announces the agent's effective role, temporary override included", async () => {
+  const env = await setup();
+  const input = [
+    json({ type: "chat-send", content: "first-marker" }),
+    json({ type: "chat-use", agent: "ok" }),
+    json({ type: "chat-consult", agent: "flaky" })
+  ];
+  const result = await run(["chat", "--json", "--agent-a", "flaky", "--role-a", "architect", ...env.base], input.join("\n") + "\n");
+
+  assert.equal(result.code, 1, result.stderr);
+  const flow = events(result.stdout);
+  assert.equal(flow.find((event) => event.type === "chat-message").role, "architect");
+  assert.equal(flow.find((event) => event.type === "chat-consultation-start").role, "architect");
+  assert.equal(flow.filter((event) => event.type === "thinking-start").at(-1).role, "architect");
+  const error = flow.find((event) => event.type === "error");
+  assert.deepEqual([error.action, error.agent, error.role], ["consult", "flaky", "architect"]);
+});
+
+test("the error event is emitted before the partial export is written", async () => {
+  const env = await setup();
+  const result = await runWithOpenStdin(["chat", "--json", ...env.base], [
+    json({ type: "chat-send", content: "first-marker" }),
+    json({ type: "chat-use", agent: "broken" }),
+    json({ type: "chat-send", content: "Fail now" })
+  ], { PALABRE_TEST_LIST_AT: "error", PALABRE_TEST_LIST_DIR: env.dir });
+
+  assert.equal(result.code, 1, result.stderr);
+  assert.match(result.stderr, /exports-at-error=0/);
+  const flow = events(result.stdout);
+  assert.deepEqual(flow.slice(-2).map((event) => event.type), ["error", "done"]);
+  assert.match(flow.at(-1).outputPath, /\.chat\.md$/);
+  assert.equal((await env.exports()).length, 1);
 });

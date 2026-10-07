@@ -45,7 +45,8 @@ Fin d'une session Chat :
 - une ligne vide ou composée d'espaces est ignorée et ne ferme pas Chat ;
 - `chat-end` (ou `/end`) écrit l'export, puis émet `done` avec son chemin ;
 - `/exit`, `/quit`, `/home` et la fin de stdin terminent sans export : `done` porte `outputPath: null` ;
-- une erreur d'agent émet `error`, puis `done` avec le chemin de l'export partiel, ou `null` si cet export échoue. Le code de sortie vaut 1, ou 130 après une annulation. Les commandes suivantes ne sont pas traitées.
+- une erreur d'agent émet `error`, puis Palabre écrit l'export partiel et émet `done` avec son chemin, ou `null` si cet export échoue. Le code de sortie vaut 1. Les commandes suivantes ne sont pas traitées ;
+- une annulation (Ctrl+C) termine Chat de la même façon, y compris pendant l'attente d'un message : `error` avec `kind: "cancelled"`, puis `done`, et code de sortie 130. Au repos, l'erreur ne porte ni `action` ni `agent`. Sans aucun message échangé, aucun export n'est écrit et `done` porte `null`.
 
 Après `start`, Chat émet donc toujours exactement un `done`. L'événement `error` de Chat porte `phase: "chat"`, `action` (`send`, `consult` ou `end`), `agent` et `role` quand ils sont connus, ainsi que `kind`, `message` et les champs optionnels `retryAfter` et `details`, comme pour Débat et Ask.
 

@@ -702,9 +702,11 @@ de ligne et de ne pas confondre le contenu utilisateur avec une commande slash.
 
 Cycle de vie de Chat (#101) :
 
-- une ligne vide ou d'espaces est ignorée (`parseChatInputLine` rend `blank`), en NDJSON comme en terminal : un séparateur accidentel ne ferme jamais Chat ;
+- une ligne vide ou d'espaces est ignorée (`parseChatInputLine` rend `blank`), en NDJSON comme en terminal : un séparateur accidentel ne ferme jamais Chat. La TUI (`src/tuiChat.ts`) garde son retour à l'accueil sur saisie vide, suivi séparément ;
 - `chat-end` / `/end` exporte puis émet `done` avec le chemin ; `/exit`, `/quit`, `/home` et la fin de stdin terminent sans export (`done` avec `null`). Aucun export automatique sur EOF ;
-- après `start`, une erreur runtime émet `error` (`ChatFailure` : `phase: "chat"`, `action` `send` | `consult` | `end`, `agent`, `role`, `kind`, `message`, `retryAfter`, `details`), écrit l'export partiel, puis émet exactement un `done` avec son chemin, ou `null` si l'export échoue. Code de sortie 1, ou 130 si annulée. L'erreur n'est pas relancée : rien n'est écrit hors du flux. `ChatFailure` est distinct de `DebateFailure` ; les deux partagent la classification `classifyRuntimeError` (`src/runtimeFailure.ts`) ;
+- après `start`, une erreur runtime émet `error` (`ChatFailure` : `phase: "chat"`, `action` `send` | `consult` | `end`, `agent`, `role`, `kind`, `message`, `retryAfter`, `details`), puis écrit l'export partiel et émet exactement un `done` avec son chemin, ou `null` sans transcript ou si l'export échoue. `error` précède l'export, qui peut être lent. Code de sortie 1, ou 130 si annulée. L'erreur n'est pas relancée : rien n'est écrit hors du flux. `ChatFailure` est distinct de `DebateFailure` ; les deux partagent la classification `classifyRuntimeError` (`src/runtimeFailure.ts`) ;
+- l'annulation interrompt aussi l'attente d'une ligne : l'abort ferme la lecture de stdin (listener retiré en fin de session), puis la même terminaison s'applique avec `kind: "cancelled"`. Au repos, l'erreur ne porte ni `action` ni `agent` : elle n'est jamais attribuée à la dernière action terminée. Ce comportement vaut pour le NDJSON ; le parcours terminal n'est pas modifié ;
+- le rôle annoncé pour une consultation (`chat-consultation-start`, `thinking-start`, `error`) vient de `ChatSession.agentConfig`, qui applique les overrides runtime (`--role-a`), et non du rôle brut de la config ;
 - `--dry-run` est refusé en Chat (`chat`, `run --mode chat`, TUI) avant toute lecture de stdin, tout événement, appel agent ou export. Aucune prévisualisation Chat n'existe pour l'instant.
 
 Exemple de session minimale :

@@ -1355,9 +1355,12 @@ async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig,
  * Exécute Chat sur stdin tout en garantissant une ligne JSON valide par événement stdout.
  *
  * Après `start`, le flux se termine toujours par exactement un `done` : export de `chat-end`,
- * `null` pour une fermeture explicite ou la fin de stdin, ou chemin de l'export partiel (`null`
- * s'il échoue) après un événement `error` de phase `chat`. Une erreur fixe le code de sortie
- * (1, ou 130 si annulée) sans être relancée, pour ne rien écrire hors du flux.
+ * `null` pour une fermeture explicite ou la fin de stdin, ou, après un événement `error` de phase
+ * `chat`, chemin de l'export partiel (`null` sans transcript ou si l'export échoue). Une erreur
+ * fixe le code de sortie (1, ou 130 si annulée) sans être relancée, pour ne rien écrire hors du flux.
+ *
+ * L'annulation interrompt aussi l'attente d'une ligne : seul un appel agent écoute le signal, donc
+ * la lecture de stdin est fermée dès l'abort. Une fermeture ultérieure de stdin ne change rien.
  */
 async function runChatNdjson(
   chat: ChatSession,
@@ -1373,19 +1376,25 @@ async function runChatNdjson(
 
   // Action en cours, pour localiser une éventuelle erreur dans l'événement `error`.
   let current: Pick<import("./types.js").ChatFailure, "action" | "agent" | "role"> = {};
+  const signal = options.signal;
+  const stopReading = () => readline.close();
+  signal?.addEventListener("abort", stopReading, { once: true });
   try {
-    await runChatNdjsonCommands(chat, renderer, outputDir, readline, messages, (action) => { current = action; });
+    await runChatNdjsonCommands(chat, renderer, outputDir, readline, messages, signal, (action) => { current = action; });
   } catch (error) {
     const failure: import("./types.js").ChatFailure = {
       phase: "chat",
       ...current,
       ...failureFields(classifyRuntimeError(error, messages), current.agent),
-      ...(options.signal?.aborted ? { kind: "cancelled" as const } : {})
+      ...(signal?.aborted ? { kind: "cancelled" as const } : {})
     };
-    const outputPath = await exportFailedChat(chat, outputDir, error);
+    // L'erreur est annoncée avant l'export, qui peut être lent ou échouer sans la masquer.
     renderer.chatError(failure);
+    const outputPath = chat.messages.length > 0 ? await exportFailedChat(chat, outputDir, error) : undefined;
     renderer.done(outputPath ?? null);
     process.exitCode = failure.kind === "cancelled" ? 130 : 1;
+  } finally {
+    signal?.removeEventListener("abort", stopReading);
   }
 }
 
@@ -1402,8 +1411,10 @@ async function runChatNdjsonCommands(
   outputDir: string,
   readline: ReturnType<typeof createInterface>,
   messages: Messages,
+  signal: AbortSignal | undefined,
   track: (action: Pick<import("./types.js").ChatFailure, "action" | "agent" | "role">) => void
 ): Promise<void> {
+  if (signal?.aborted) throw new Error(messages.orchestrator.cancelled);
   for await (const line of readline) {
     track({});
     const parsedInput = parseChatInputLine(line);
@@ -1454,9 +1465,11 @@ async function runChatNdjsonCommands(
         renderer.notice(messages.chat.unknownAgent(input.agent));
         continue;
       }
-      track({ action: "consult", agent: input.agent, role: target.role });
-      renderer.chatConsultationStart(input.agent, target.role);
-      renderer.thinkingStart(input.agent, target.role);
+      // Rôle effectif de la consultation (overrides runtime inclus), pas le rôle brut de la config.
+      const role = chat.agentConfig(input.agent).role;
+      track({ action: "consult", agent: input.agent, role });
+      renderer.chatConsultationStart(input.agent, role);
+      renderer.thinkingStart(input.agent, role);
       let opinion: Awaited<ReturnType<ChatSession["consult"]>>;
       try {
         opinion = await chat.consult(input.agent);
@@ -1484,6 +1497,10 @@ async function runChatNdjsonCommands(
     if (chat.droppedMessageCount > 0) renderer.notice(messages.chat.contextTrimmed(chat.droppedMessageCount));
   }
 
+  // La lecture s'arrête à la fin de stdin, ou parce que l'annulation l'a fermée. Au repos, aucune
+  // action n'est en cours : l'annulation n'est pas attribuée à la dernière action terminée.
+  track({});
+  if (signal?.aborted) throw new Error(messages.orchestrator.cancelled);
   renderer.done(null);
 }
 

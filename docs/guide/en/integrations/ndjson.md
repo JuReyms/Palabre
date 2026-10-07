@@ -45,7 +45,8 @@ How a Chat session ends:
 - a blank or whitespace-only line is ignored and does not close Chat;
 - `chat-end` (or `/end`) writes the export, then emits `done` with its path;
 - `/exit`, `/quit`, `/home`, and the end of stdin finish without an export: `done` carries `outputPath: null`;
-- an agent error emits `error`, then `done` with the path of the partial export, or `null` if that export fails. The exit code is 1, or 130 after a cancellation. Later commands are not processed.
+- an agent error emits `error`, then Palabre writes the partial export and emits `done` with its path, or `null` if that export fails. The exit code is 1. Later commands are not processed;
+- a cancellation (Ctrl+C) ends Chat the same way, including while it waits for a message: `error` with `kind: "cancelled"`, then `done`, and exit code 130. When idle, the error carries no `action` or `agent`. If no message was exchanged, no export is written and `done` carries `null`.
 
 After `start`, Chat therefore always emits exactly one `done`. Chat's `error` event carries `phase: "chat"`, `action` (`send`, `consult`, or `end`), `agent` and `role` when known, plus `kind`, `message`, and the optional `retryAfter` and `details` fields, as for Debate and Ask.
 
