@@ -2,6 +2,7 @@
 import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
 import { resolveExecutablePath, resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePowerShellShim } from "../exec.js";
+import { directNpmShimLaunch } from "../npmShim.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliPtyAgentConfig } from "../types.js";
@@ -180,8 +181,9 @@ export class CliPtyAdapter implements AgentAdapter {
 }
 
 /**
- * Résout un lancement PTY sûr. Sous Windows, préfère un binaire natif ou le shim PowerShell
- * npm/pnpm ; refuse les arguments non fiables si seul un wrapper interprété reste disponible.
+ * Résout un lancement PTY sûr. Sous Windows, préfère un binaire natif, puis un shim npm reconnu
+ * lancé via Node et le script du paquet, puis un autre shim PowerShell (pnpm, modifié) ; refuse les
+ * arguments non fiables si seul un wrapper interprété reste disponible.
  */
 function resolvePtyLaunch(
   command: string,
@@ -199,6 +201,13 @@ function resolvePtyLaunch(
     return { command: native, argsPrefix: [] };
   }
 
+  // Shim npm reconnu : Node et le script du paquet, sans PowerShell (#98).
+  const npmShim = directNpmShimLaunch(command);
+  if (npmShim) {
+    return { command: npmShim.command, argsPrefix: npmShim.prefixArgs };
+  }
+
+  // Repli pour un shim d'une autre forme (pnpm, shim modifié) : PowerShell, avec ses limites.
   const shim = resolvePowerShellShim(command);
   const powerShellExecutable = shim ? resolvePowerShellExecutable() : undefined;
   if (shim && powerShellExecutable) {
