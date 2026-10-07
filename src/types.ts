@@ -324,6 +324,27 @@ export interface DebateFailure {
   details?: Record<string, unknown>;
 }
 
+/** Action Chat interrompue par une erreur runtime : envoi, consultation ou export final. */
+export type ChatFailureAction = "send" | "consult" | "end";
+
+/**
+ * Erreur runtime structurée d'une session Chat, émise dans l'événement NDJSON `error`.
+ *
+ * Distincte de `DebateFailure` : Chat n'a ni tour ni phase de débat. `kind` reprend la taxonomie
+ * des adapters ; `action` est absente seulement si l'erreur survient hors de toute action.
+ */
+export interface ChatFailure {
+  phase: "chat";
+  action?: ChatFailureAction;
+  agent?: string;
+  role?: AgentRole;
+  kind: AdapterFailureKind | "unknown";
+  message: string;
+  /** Délai de reprise best-effort : secondes, timestamp ISO ou heure locale `HH:mm`. */
+  retryAfter?: number | string;
+  details?: Record<string, unknown>;
+}
+
 /** Métadonnées d'un agent affichées dans le récap de démarrage. */
 export interface DebateStartAgentInfo {
   name: string;

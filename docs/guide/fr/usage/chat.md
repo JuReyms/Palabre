@@ -33,3 +33,7 @@ palabre chat --agent-a codex
 ```
 
 `--role-a`, `--model-a`, `--language`, `--files` et `--context` restent disponibles. L'export `.chat.md` conserve le transcript, l'heure et la raison de fin, sans synthèse automatique.
+
+En commande directe comme pour une intégration NDJSON, une ligne vide ne termine pas la conversation. `/end` l'enregistre ; `/exit`, `/home` ou la fin de l'entrée la terminent sans export. Si un agent échoue, Palabre enregistre la transcription partielle. Dans la TUI, une saisie vide revient encore à l'accueil sans enregistrer. `--dry-run` n'est pas disponible en Chat : la commande est refusée sans rien lancer.
+
+Les intégrations pilotent Chat avec le [flux NDJSON](/fr/integrations/ndjson).

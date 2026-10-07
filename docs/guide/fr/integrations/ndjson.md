@@ -40,6 +40,23 @@ Pour une intégration, chaque commande Chat doit être un objet JSON v1 sur une 
 
 Les commandes texte historiques restent acceptées pour les usages humains. Une intégration doit utiliser les objets JSON afin que le contenu d'un message ne puisse pas être confondu avec une commande.
 
+Fin d'une session Chat :
+
+- une ligne vide ou composée d'espaces est ignorée et ne ferme pas Chat ;
+- `chat-end` (ou `/end`) écrit l'export, puis émet `done` avec son chemin ;
+- `/exit`, `/quit`, `/home` et la fin de stdin terminent sans export : `done` porte `outputPath: null` ;
+- une erreur d'agent émet `error`, puis Palabre écrit l'export partiel et émet `done` avec son chemin, ou `null` si cet export échoue. Le code de sortie vaut 1. Les commandes suivantes ne sont pas traitées ;
+- une annulation (Ctrl+C) termine Chat de la même façon, y compris pendant l'attente d'un message : `error` avec `kind: "cancelled"`, puis `done`, et code de sortie 130. Au repos, l'erreur ne porte ni `action` ni `agent`. Sans aucun message échangé, aucun export n'est écrit et `done` porte `null`.
+
+Après `start`, Chat émet donc toujours exactement un `done`. L'événement `error` de Chat porte `phase: "chat"`, `action` (`send`, `consult` ou `end`), `agent` et `role` quand ils sont connus, ainsi que `kind`, `message` et les champs optionnels `retryAfter` et `details`, comme pour Débat et Ask.
+
+```json
+{"v":1,"type":"error","phase":"chat","action":"consult","agent":"vibe","role":"critic","kind":"non-zero-exit","message":"..."}
+{"v":1,"type":"done","outputPath":"C:\\project\\.palabre\\session.chat.md"}
+```
+
+`--dry-run` n'existe pas pour Chat : la commande est refusée avant tout événement, sans appel d'agent ni export.
+
 
 ```json
 {"v":1,"type":"thinking-start","agent":"codex","role":"implementer"}

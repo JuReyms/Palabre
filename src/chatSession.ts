@@ -36,6 +36,15 @@ export class ChatSession {
     return this.runtimeConfig(this.activeName);
   }
 
+  /**
+   * Configuration effective d'un agent pour cette session, overrides runtime inclus (`--role-a`,
+   * `--model-a` pour l'agent initial). Source unique du rôle annoncé par les renderers, y compris
+   * pour une consultation. Lève si l'agent est inconnu ou retiré.
+   */
+  agentConfig(agentName: string): AgentConfig {
+    return this.runtimeConfig(agentName);
+  }
+
   get topic(): string {
     return this.topicValue;
   }

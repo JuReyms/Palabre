@@ -188,7 +188,7 @@ When no client is declared, the invocation source is `direct-cli`.
 | `--files <paths...>` | Injects specific files. |
 | `--context <paths...>` | Scans text files or folders. |
 | `--show-prompt` | Displays the first turn prompt without calling any agent. |
-| `--dry-run` | Previews the resolved session without calling agents or writing an export. |
+| `--dry-run` | Previews the resolved Debate or Ask session without calling agents or writing an export. Refused in Chat. |
 
 ## Update
 

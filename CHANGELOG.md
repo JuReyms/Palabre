@@ -8,6 +8,13 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 - `palabre relay` transmet un message à une conversation Codex ou Claude Code fermée et renvoie sa réponse en un seul appel : reprise en lecture seule renforcée, refus si la conversation est ouverte ou son état invérifiable, statut de délivrance sans renvoi automatique, sortie `--json` v1 et export `.relay.md`. Le relay entre agents dont les conversations restent ouvertes n'est pas encore couvert (#96).
 
+### Fixed
+
+- Chat ne se ferme plus sur une ligne vide : la conversation continue et `/end` exporte tous les échanges (#101).
+- En NDJSON, une erreur d'agent pendant Chat émet désormais un événement `error` (`phase: "chat"`), puis un seul `done` avec le chemin de l'export partiel, ou `null` si cet export échoue. Une annulation pendant l'attente d'un message termine aussi le flux, avec le code 130 (#101).
+- Une consultation Chat annonce le rôle effectif de l'agent consulté, rôle temporaire `--role-a` compris (#101).
+- `--dry-run` est refusé explicitement en Chat, avant tout appel d'agent ou export, au lieu d'être ignoré (#101).
+
 ## [0.16.0] - 2026-08-31
 
 <!-- social: A calmer, more consistent TUI, clearer recovery guidance, and hardened adapters and local config handling. -->
