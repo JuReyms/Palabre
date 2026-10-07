@@ -1,26 +1,50 @@
 ---
 title: Palabre skill
-description: Install the Palabre skill to run debates directly from a skills-compatible AI agent.
+description: Install the Palabre skill so a skills-compatible AI agent knows when to use Chat, Debate, Ask, or Relay.
 seo:
-  title: Run debates from a skills-compatible agent
-  description: Install the Palabre skill so a skills-compatible AI agent can start debates and Ask requests on your behalf.
+  title: Use Palabre from a skills-compatible agent
+  description: Install the Palabre skill so Claude Code, Codex, or another skills-compatible agent can choose between Chat, Debate, Ask, and Relay.
 ---
 
-Palabre ships a ready-to-use skill that teaches an AI agent when and how to orchestrate a debate with the Palabre CLI. The agent then knows how to frame a subject, pick an agent pair, inject context, and retrieve the exported summary.
+Palabre ships a ready-to-use skill. It teaches an AI agent that Palabre is available, when to use it, and how to choose the right path:
 
-The skill follows the open [agentskills.io](https://agentskills.io) standard, so it is portable across Hermes Agent, Claude, Codex, and any skills-compatible agent.
+| Path | When the agent picks it |
+|------|-------------------------|
+| [Chat](/en/usage/chat) | Move forward with one agent, ask for a one-off second opinion, continue after a summary. |
+| [Debate](/en/usage/debate) | Confront two positions and work through the disagreements. |
+| [Ask](/en/usage/ask) | Collect up to four independent opinions before comparing them. |
+| [Relay](/en/usage/relay) | Query a closed Claude Code or Codex conversation that already holds the context. |
 
-The skill does not replace the CLI: it drives `palabre` locally. Palabre CLI remains the source of truth for agents, presets, and exports.
+The skill follows the open [agentskills.io](https://agentskills.io) standard, so it is portable across Claude Code, Codex, Hermes Agent, and any skills-compatible agent.
+
+The skill does not replace the CLI: it drives `palabre` locally. Palabre CLI remains the source of truth for agents, presets, sessions, and exports.
 
 ## Install the skill
 
-In **Hermes Agent**:
+The skill is a folder: [`skills/palabre`](https://github.com/JuReyms/Palabre/tree/main/skills/palabre) in the repository, and `skills/palabre` in the installed npm package. Copy the whole folder, references included, to the location your agent expects.
 
-```bash
-hermes skills install JuReyms/Palabre/skills/palabre
-```
+| Agent | For all your projects | For one project |
+|-------|-----------------------|-----------------|
+| Claude Code | `~/.claude/skills/palabre/` | `.claude/skills/palabre/` |
+| Codex | `~/.codex/skills/palabre/` | `.agents/skills/palabre/` |
+| Hermes Agent | `hermes skills install JuReyms/Palabre/skills/palabre` | — |
 
-For other agents (Claude desktop, Claude Code…), follow that agent's own skill-install procedure pointing at [`skills/palabre`](https://github.com/JuReyms/Palabre/tree/main/skills/palabre) in the repository.
+For Claude desktop or another agent, follow its own skill-install procedure pointing at this folder.
+
+After updating Palabre, copy the folder again: the installed copy is not updated automatically.
+
+## When the agent sees the skill
+
+An agent loads its skill list when a session starts or resumes. After installing, open a new session or resume one: a session that is already running may not see the skill.
+
+| Agent | New session | Session resumed after installing |
+|-------|-------------|----------------------------------|
+| Claude Code 2.1.85 and 2.1.292 | Skill visible | Skill visible |
+| Codex 0.151.0 | Skill visible | Skill visible |
+
+These behaviors were verified in non-interactive mode (`claude -p`, `codex exec`), with a project skill and throwaway sessions. They may change with other versions. If the agent does not mention Palabre, remind it that the `palabre` skill is available.
+
+Keep a single active copy of the skill. If an older version is also installed, for example a `palabre` skill added to your Claude account and then synced, the agent may follow the older one: update or remove it.
 
 ## Requirements
 
@@ -38,11 +62,10 @@ palabre agents
 
 ## What the skill adds
 
-- automatic debate triggering when the user asks to compare two approaches, get a critical review, or a contradictory second opinion — the agent runs `palabre` without asking again, inferring the subject from context;
-- selection of a complementary agent pair (proposer / reviewer) and targeted context injection through `--files` or `--context`;
-- privacy guard: the agent warns before injecting sensitive code and can suggest a fully local pair (Ollama);
-- economy mode: recommends a local Ollama model when the topic does not warrant two premium agents;
-- language handling (`fr`/`en`) based on the user's language;
-- restitution: offers to display the full transcript directly in the conversation, or just the summary;
-- follow-up: turn actions into tasks, apply the consensus (agreed points only), dig into a disagreement, or export as a PR comment / ADR;
-- compatibility with integrations that maintain their own debate index, such as a VS Code extension index in `.palabre/`.
+- **Path selection**: Chat, Debate, Ask, or Relay depending on the need, without running Palabre for a simple task or forcing a Debate for every second-opinion request.
+- **Chat driven properly**: the agent uses the [NDJSON stream](/en/integrations/ndjson) and JSON commands on stdin (`chat-send`, `chat-consult`, `chat-use`, `chat-agents`, `chat-end`), never an imitation of the TUI. It knows Chat's bounded memory: six recent messages, no resume after the process ends.
+- **Three kinds of resume kept apart**: the host agent's session, Palabre [checkpoints](/en/reference/cli#resume-a-session) for Debate and Ask, and resuming an external conversation through Relay.
+- **Careful Relay**: target chosen by you, closed conversation, unauthenticated sender, target history modified, no automatic resend depending on the delivery status.
+- **Controlled context**: `--files` or `--context`, with a warning before sending sensitive content; Ollama to stay local.
+- **You stay in control**: installation, authentication, configuration, config approval, and updates remain your decisions. The `implementer` role is a proposal instruction, not a permission to write.
+- **Restitution**: the agent reads the export (`.chat.md`, `.debate.md`, `.ask.md`, or `.relay.md`) and gives you decisions, disagreements, limits, and next steps.

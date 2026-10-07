@@ -4,12 +4,17 @@ import process from "node:process";
 
 const root = process.cwd();
 const skillDir = path.join(root, "skills", "palabre");
-const requiredFiles = [
-  "SKILL.md",
-  "agents/openai.yaml",
+const references = [
+  "references/chat.md",
   "references/cli.md",
+  "references/relay.md",
   "references/outputs.md"
 ];
+const requiredFiles = ["SKILL.md", "agents/openai.yaml", ...references];
+// Limites du standard agentskills.io pour la description, et budget de concision du point d'entrée :
+// les détails vont dans les références, chargées à la demande.
+const MAX_DESCRIPTION_LENGTH = 1024;
+const MAX_SKILL_LINES = 120;
 
 const fail = (message) => {
   console.error(`Skill validation failed: ${message}`);
@@ -34,17 +39,29 @@ if (skill) {
     const fields = frontmatter[1].trim().split(/\r?\n/).filter(Boolean);
     if (fields.length !== 2 || !fields[0].startsWith("name:") || !fields[1].startsWith("description:")) {
       fail("SKILL.md frontmatter must contain only name and description");
+    } else {
+      const description = fields[1].slice("description:".length).trim();
+      if (description.length > MAX_DESCRIPTION_LENGTH) fail(`description exceeds ${MAX_DESCRIPTION_LENGTH} characters`);
+      // La description sert à la découverte : elle doit nommer les quatre parcours.
+      for (const route of ["Chat", "Débat", "Ask", "Relay"]) {
+        if (!description.includes(route)) fail(`description must mention the ${route} route`);
+      }
     }
   }
 
-  for (const reference of ["references/cli.md", "references/outputs.md"]) {
+  if (skill.split(/\r?\n/).length > MAX_SKILL_LINES) fail(`SKILL.md exceeds ${MAX_SKILL_LINES} lines; move details to references`);
+  for (const reference of references) {
     if (!skill.includes(`\`${reference}\``)) fail(`SKILL.md must link to ${reference}`);
   }
 }
 
 const combined = [...files.values()].join("\n");
 if (/\bgemini\b/i.test(combined)) fail("the retired Gemini agent is still referenced");
-for (const requiredTerm of ["`ask`", "--dry-run", "--terminal", "outputDir"]) {
+for (const requiredTerm of [
+  "palabre chat", "palabre ask", "palabre relay", "--renderer ndjson",
+  "chat-send", "chat-consult", "chat-use", "chat-agents", "chat-end",
+  "--dry-run", "--terminal", "--checkpoint", "persisted-no-reply", "outputDir"
+]) {
   if (!combined.includes(requiredTerm)) fail(`missing current CLI concept: ${requiredTerm}`);
 }
 

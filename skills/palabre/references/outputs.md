@@ -1,8 +1,21 @@
 # Palabre — restitution, historique et exports
 
+## Retrouver l'export
+
+Les exports sont écrits dans `outputDir` (par défaut `.palabre/`) :
+
+| Parcours | Extension | Où lire le chemin |
+| --- | --- | --- |
+| Débat | `.debate.md` | Sortie terminal, ou `done.outputPath` en NDJSON |
+| Ask | `.ask.md` | Idem |
+| Chat | `.chat.md` | `done.outputPath` après `chat-end` (`null` sans `chat-end`) |
+| Relay | `.relay.md` | `exportPath` du `relay-result` (`null` avec `--no-export`) |
+
+Débat et Ask contiennent une synthèse (consensus, désaccords, actions, conclusion) séparée du transcript ; Chat et Relay n'en ont pas. Un export partiel avec une section `Interruption` signale un échec : le dire à l'utilisateur.
+
 ## Historique et index optionnel
 
-Utiliser `palabre history` ou `palabre history --json` pour retrouver les exports récents. Les exports sont écrits dans `outputDir` (par défaut `.palabre/`) et portent l'extension `.debate.md` ou `.ask.md`.
+`palabre history` ou `palabre history --json` liste les exports récents `.debate.md`, `.ask.md` et `.chat.md` (pas `.relay.md`).
 
 Si le projet a besoin d'un registre de décisions versionné, créer un index Markdown à l'emplacement adapté au projet ; `.palabre/INDEX.md` est une convention possible, pas un export maintenu automatiquement par Palabre. Après une session, ajouter par exemple :
 
@@ -14,9 +27,13 @@ Si le projet a besoin d'un registre de décisions versionné, créer un index Ma
 
 Créer le fichier avec l'en-tête de tableau s'il n'existe pas. Cet index permet de retrouver rapidement les décisions prises et d'éviter de rejouer un débat déjà tranché.
 
+## Restituer à l'utilisateur
+
+Résumer simplement : décision ou recommandation, désaccords restants, limites (agent en échec, contexte partiel, refus), prochaines étapes. Proposer le transcript complet ou la synthèse seule ; si l'utilisateur a demandé l'affichage automatique, le faire sans redemander.
+
 ## Appliquer le consensus
 
-Proposer d'implémenter directement les corrections sur lesquelles **les deux agents s'accordent** (sections Consensus / Actions). Ne toucher qu'aux points consensuels ; laisser de côté les points en désaccord. Après application, résumer les changements faits et lister ce qui a été volontairement écarté (et pourquoi).
+Sur demande de l'utilisateur, implémenter les corrections sur lesquelles **les agents s'accordent** (sections Consensus / Actions). Ne toucher qu'aux points consensuels ; laisser de côté les points en désaccord. Après application, résumer les changements faits et lister ce qui a été volontairement écarté (et pourquoi). Pour approfondir un point, proposer un Chat avec la synthèse comme contexte initial (`references/chat.md`).
 
 ## Export ciblé
 
