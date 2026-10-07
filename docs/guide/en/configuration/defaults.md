@@ -58,6 +58,8 @@ palabre config --mode chat
 
 Accepted values are `debate`, `chat`, and `ask`. Debate remains the primary mode. Chat uses `defaults.agentA` as its initial active agent; Ask uses `defaults.askAgents`. In the TUI, switch modes with `/debate`, `/chat`, or `/ask` (`/debat` remains accepted as an alias).
 
+The default mode also applies to direct launches: `palabre run`, `palabre -s "Subject"`, and `palabre "A subject in several words"`. In Chat mode, the subject becomes the conversation's initial context. `--mode debate`, `--mode ask`, or `--mode chat` always takes precedence over this setting, without changing it. A preset selects an agent pair for Debate or Ask: in Chat mode, it is refused with an explicit message. Use `--agent-a <agent>` instead, or add `--mode debate`. Running `palabre` without a subject still opens the home screen.
+
 ## Set the number of turns
 
 ```bash
