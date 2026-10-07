@@ -1,9 +1,9 @@
 /** @file Session de chat TUI : saisie et rendu au-dessus du contrôleur Chat partagé. */
 import { ChatSession } from "./chatSession.js";
-import { nextTuiInterruptKind, promptTuiChatMessage, promptTuiHomeTopic, type TuiHomeInput } from "./renderers/tui-prompts.js";
+import { nextTuiInterruptKind, promptTuiChatMessage, promptTuiHomeTopic, type TuiHomeInput, type TuiQuestionResult } from "./renderers/tui-prompts.js";
 import { renderTuiChat, renderTuiChatComplete } from "./renderers/tui-chat.js";
 import { createTuiRenderer } from "./renderers/tui-renderer.js";
-import type { AgentRole, ChatOptions, DebateRenderer, PalabreConfig } from "./types.js";
+import type { AgentRole, ChatOptions, DebateMessage, DebateRenderer, PalabreConfig } from "./types.js";
 import type { Messages } from "./messages/index.js";
 
 export interface TuiChatSessionResult {
@@ -11,16 +11,47 @@ export interface TuiChatSessionResult {
   nextInput?: TuiHomeInput;
 }
 
+/**
+ * Entrées et sorties terminal de la session Chat TUI. Les valeurs par défaut pilotent le vrai
+ * terminal ; les tests fournissent une saisie scriptée et un rendu capturé, sans TTY.
+ */
+export interface TuiChatIo {
+  promptMessage(messages: Messages): Promise<TuiQuestionResult>;
+  promptHomeTopic(messages: Messages): Promise<TuiHomeInput>;
+  render(agentName: string, transcript: DebateMessage[], messages: Messages, notice?: string): void;
+  renderComplete(outputPath: string, messages: Messages): void;
+  thinking: Pick<DebateRenderer, "thinkingStart" | "thinkingEnd">;
+}
+
+function defaultTuiChatIo(messages: Messages): TuiChatIo {
+  return {
+    promptMessage: promptTuiChatMessage,
+    promptHomeTopic: (translations) => promptTuiHomeTopic("chat", translations, { bare: true }),
+    render: renderTuiChat,
+    renderComplete: renderTuiChatComplete,
+    thinking: createTuiRenderer(messages)
+  };
+}
+
+/**
+ * Boucle de la conversation Chat dans la TUI.
+ *
+ * Une saisie vide ou composée d'espaces reste dans la conversation et redemande une entrée, sans
+ * appel agent ni export (#103). `/home`, `/back`, `/exit` et `/quit` reviennent à l'accueil sans
+ * export ; `/end` exporte. Le rôle affiché pendant une génération est le rôle effectif de l'agent,
+ * overrides runtime compris (`ChatSession.agentConfig`).
+ */
 export async function runTuiChatSession(
   config: PalabreConfig,
   options: ChatOptions,
   messages: Messages,
   outputDir: string,
   initialMessage?: string,
-  initialNotice?: string
+  initialNotice?: string,
+  io: TuiChatIo = defaultTuiChatIo(messages)
 ): Promise<TuiChatSessionResult> {
   const chat = new ChatSession(config, options, messages);
-  const renderer = createTuiRenderer(messages);
+  const renderer = io.thinking;
   let notice = initialNotice;
 
   try {
@@ -29,18 +60,20 @@ export async function runTuiChatSession(
     }
 
     for (;;) {
-      renderTuiChat(chat.activeAgentName, chat.messages, messages, notice);
+      io.render(chat.activeAgentName, chat.messages, messages, notice);
       notice = undefined;
-      const input = await promptTuiChatMessage(messages);
+      const input = await io.promptMessage(messages);
       if (input.kind !== "answer") return { destination: tuiChatInterruptResult(input.kind) };
 
       const value = input.value.trim();
-      if (!value || value === "/exit" || value === "/quit" || value === "/home" || value === "/back") return { destination: "home" };
+      // Une saisie vide ne quitte jamais la conversation : seules les commandes explicites le font.
+      if (!value) continue;
+      if (value === "/exit" || value === "/quit" || value === "/home" || value === "/back") return { destination: "home" };
       if (value === "/end") {
         if (chat.messages.length === 0) { notice = messages.chat.consultationUnavailable; continue; }
         const outputPath = await chat.export(outputDir, userEndedChat());
-        renderTuiChatComplete(outputPath, messages);
-        const nextInput = await promptTuiHomeTopic("chat", messages, { bare: true });
+        io.renderComplete(outputPath, messages);
+        const nextInput = await io.promptHomeTopic(messages);
         return nextInput
           ? { destination: "home", nextInput }
           : { destination: "quit" };
@@ -64,9 +97,11 @@ export async function runTuiChatSession(
         const consultedAgent = chat.availableAgents.find((agent) => agent.name === agentName);
         if (!consultedAgent) { notice = messages.chat.unknownAgent(agentName); continue; }
         notice = messages.chat.consulting(agentName);
-        renderTuiChat(chat.activeAgentName, chat.messages, messages, notice);
+        io.render(chat.activeAgentName, chat.messages, messages, notice);
+        // Rôle effectif de la consultation (overrides runtime inclus), pas le rôle brut de la config.
+        const consultedRole = chat.agentConfig(consultedAgent.name).role;
         try {
-          await runChatTurnWithThinking(renderer, agentName, consultedAgent.role, () => chat.consult(agentName));
+          await runChatTurnWithThinking(renderer, agentName, consultedRole, () => chat.consult(agentName));
           notice = trimNotice(chat, messages);
         } catch (error) {
           if (error instanceof Error && error.message === messages.common.unknownAgent(agentName)) {
