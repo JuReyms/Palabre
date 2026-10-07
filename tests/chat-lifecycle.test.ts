@@ -237,7 +237,7 @@ test("cancelling while Chat waits for its first message ends the flow: cancelled
   assert.equal(result.code, 130, result.stderr);
   const flow = events(result.stdout);
   assert.deepEqual(flow.map((event) => event.type), ["start", "error", "done"]);
-  assert.deepEqual(flow[1], { v: 1, type: "error", phase: "chat", kind: "cancelled", message: flow[1].message });
+  assert.deepEqual(flow[1], { v: 1, type: "error", phase: "chat", kind: "cancelled", message: "Conversation cancelled by the user." });
   assert.deepEqual(flow[2], { v: 1, type: "done", outputPath: null });
   assert.deepEqual(await env.exports(), []);
   assert.equal(await env.callCount(), 0);
@@ -253,6 +253,7 @@ test("cancelling between two messages exports the partial transcript and does no
   assert.deepEqual(flow.slice(-3).map((event) => event.type), ["chat-message", "error", "done"]);
   const error = flow.at(-2);
   assert.equal(error.kind, "cancelled");
+  assert.equal(error.message, "Conversation cancelled by the user.");
   // Au repos, aucune action n'est en cours : ni action, ni agent, ni rôle hérités du dernier envoi.
   assert.equal("action" in error, false);
   assert.equal("agent" in error, false);

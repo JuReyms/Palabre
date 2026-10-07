@@ -1414,7 +1414,7 @@ async function runChatNdjsonCommands(
   signal: AbortSignal | undefined,
   track: (action: Pick<import("./types.js").ChatFailure, "action" | "agent" | "role">) => void
 ): Promise<void> {
-  if (signal?.aborted) throw new Error(messages.orchestrator.cancelled);
+  if (signal?.aborted) throw new Error(messages.chat.cancelled);
   for await (const line of readline) {
     track({});
     const parsedInput = parseChatInputLine(line);
@@ -1500,7 +1500,7 @@ async function runChatNdjsonCommands(
   // La lecture s'arrête à la fin de stdin, ou parce que l'annulation l'a fermée. Au repos, aucune
   // action n'est en cours : l'annulation n'est pas attribuée à la dernière action terminée.
   track({});
-  if (signal?.aborted) throw new Error(messages.orchestrator.cancelled);
+  if (signal?.aborted) throw new Error(messages.chat.cancelled);
   renderer.done(null);
 }
 
