@@ -76,6 +76,7 @@ src/discovery.ts          Detection locale des CLIs et d'Ollama pendant init
 src/doctor.ts             Diagnostics de configuration et de disponibilite locale
 src/agentRegistry.ts      Source de verite des agents CLI connus (mapping commande -> decouverte)
 src/exec.ts               Resolution d'extensions executables partagee
+src/npmShim.ts            Reconnaissance stricte des shims PowerShell npm, lancement direct sans PowerShell (adapters et Relay)
 src/types.ts              Contrats partages
 src/prompt.ts             Rendu des prompts agent
 src/context.ts            Chargement des fichiers et dossiers de contexte
@@ -313,9 +314,14 @@ prompt en argument ou un model override contenant des metacaracteres quand un wr
 necessaire. Pour Claude Code, preferer `claude.exe` avec `"shell": false`, car `stdin` est
 capture correctement dans ce mode.
 
-Pour les CLIs qui exigent un prompt en argument, Palabre tente ensuite le shim PowerShell `.ps1`
-frere genere par npm/pnpm et le lance sans `cmd.exe`. CLI et PTY partagent la resolution PATH mise
-en cache dans `src/exec.ts`; sans executable natif ni shim PowerShell, le lancement est refuse.
+Sous Windows, l'ordre de lancement (CLI et PTY) est : executable natif ; shim PowerShell `.ps1` frere
+genere par npm, reconnu ligne a ligne et lance directement, sans PowerShell (Node et le script du
+paquet, ou l'executable natif du paquet pour la variante native) ; autre shim PowerShell (pnpm, shim
+modifie), lance par PowerShell sans `cmd.exe` ; sinon wrapper shell, refuse pour un prompt en
+argument. La reconnaissance du shim npm est partagee avec Relay dans `src/npmShim.ts` (#98) : avec
+Windows PowerShell 5.1, le shim refuse l'argument `-`, retire les guillemets internes et remplace les
+caracteres non ASCII de stdin par `?`. Le repli PowerShell garde ces limites pour les shims pnpm ou
+modifies. CLI et PTY partagent la resolution PATH mise en cache dans `src/exec.ts`.
 
 Les defaults Palabre appliquent une politique d'outils en lecture seule quand la CLI l'expose :
 Claude est limite a `Read,Glob,Grep`, Vibe a `read,grep`, et OpenCode utilise `--pure` pour

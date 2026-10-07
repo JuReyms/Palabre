@@ -46,7 +46,7 @@ Palabre only passes the prompt. If you specify `--model-a` or `--model-b`, the v
 }
 ```
 
-On Windows, generated configuration enables `shell` for some npm or PowerShell wrappers. Palabre first tries the native executable, then the PowerShell `.ps1` shim; only force this option when your installation needs it. Claude is different in many Windows installations: `claude.exe` is generally called directly with `shell: false`.
+On Windows, generated configuration enables `shell` for some npm or PowerShell wrappers. Palabre first tries the native executable. For a CLI installed with npm, it reads the `.ps1` shim and launches Node and the package script directly, without PowerShell, which preserves accents and arguments. Another PowerShell shim, for example from pnpm, is still launched through PowerShell; only force this option when your installation needs it. Claude is different in many Windows installations: `claude.exe` is generally called directly with `shell: false`.
 
 ## Usage
 

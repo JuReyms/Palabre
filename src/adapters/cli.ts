@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
 import { resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePowerShellShim } from "../exec.js";
+import { directNpmShimLaunch } from "../npmShim.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
@@ -216,8 +217,9 @@ function decodeCliBytes(chunks: readonly Buffer[]): string {
 
 /**
  * Évite que des valeurs runtime non fiables (prompt, transcript, modèle) soient reparsées par
- * `cmd.exe`. Un exécutable Windows natif peut toujours être lancé directement ; les wrappers
- * shell ne sont sûrs qu'avec le prompt sur stdin et un identifiant de modèle sans métacaractère.
+ * `cmd.exe`. Ordre sous Windows : exécutable natif ; shim npm reconnu, lancé via Node et le script
+ * du paquet ; autre shim PowerShell (pnpm, modifié), lancé par PowerShell ; sinon wrapper shell,
+ * sûr seulement avec le prompt sur stdin et un identifiant de modèle sans métacaractère.
  */
 function resolveWindowsSpawnSafety(
   command: string,
@@ -232,12 +234,20 @@ function resolveWindowsSpawnSafety(
   }
 
   const nativeCommand = resolveNativeWindowsExecutable(command);
-  const powerShellShim = resolvePowerShellShim(command);
-  const powerShellExecutable = powerShellShim ? resolvePowerShellExecutable() : undefined;
-
   if (nativeCommand && !isWindowsAppsExecutionAlias(nativeCommand)) {
     return { command: nativeCommand, shell: false, argsPrefix: [] };
   }
+
+  // Shim npm reconnu : Node et le script du paquet, sans PowerShell, qui altérerait stdin UTF-8,
+  // les guillemets des arguments et l'argument `-` (#98).
+  const npmShim = directNpmShimLaunch(command);
+  if (npmShim) {
+    return { command: npmShim.command, shell: false, argsPrefix: npmShim.prefixArgs };
+  }
+
+  // Repli pour un shim d'une autre forme (pnpm, shim modifié) : PowerShell, avec ses limites.
+  const powerShellShim = resolvePowerShellShim(command);
+  const powerShellExecutable = powerShellShim ? resolvePowerShellExecutable() : undefined;
   if (powerShellShim && powerShellExecutable) {
     return {
       command: powerShellExecutable,

@@ -26,7 +26,7 @@ palabre config --sync-agents
 
 Sur Windows, la configuration générée peut activer `shell` pour un wrapper comme `vibe`.
 Palabre évite toutefois de transmettre le prompt via `cmd.exe` : il préfère l'exécutable natif,
-puis le shim PowerShell `.ps1` généré par npm ou pnpm. Ne forcez cette option que si votre
+puis le shim npm `.ps1` lancé directement sans PowerShell, puis un autre shim PowerShell (pnpm, par exemple). Ne forcez cette option que si votre
 installation en a besoin ; si aucun chemin sûr n'est disponible, le lancement est refusé avec
 une erreur actionnable.
 
