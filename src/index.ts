@@ -47,6 +47,7 @@ import { parseInterfaceFlag, parseSessionModeFlag, resolveChatOptions, resolveRu
 import { buildChatHandoffTopic, ChatSession } from "./chatSession.js";
 import { parseChatInputLine } from "./chatProtocol.js";
 import { classifyRuntimeError } from "./runtimeFailure.js";
+import { isDirectChatLaunch, shouldOpenTuiHome } from "./launchDispatch.js";
 import { runTuiChatSession } from "./tuiChat.js";
 import { activeConfiguredAgentNames, isRetiredAgentName } from "./agentRegistry.js";
 import { createResumedSessionCheckpointRuntime, createSessionCheckpointRuntime } from "./sessionCheckpointRuntime.js";
@@ -177,10 +178,7 @@ async function main(): Promise<void> {
 
   assertRunnableConfig(config, messages, configPath);
 
-  const explicitRunChat = parsed.command === "run"
-    && parsed.commandExplicit
-    && (optionalString(parsed.flags.mode) ?? config.defaults?.mode) === "chat";
-  if (parsed.command === "chat" || explicitRunChat) {
+  if (isDirectChatLaunch(parsed, config)) {
     await runChatCommand(parsed.flags, config, language, messages);
     return;
   }
@@ -1148,22 +1146,6 @@ function createAutoRenderer(
 }
 
 /**
- * Détermine si l'accueil TUI doit s'ouvrir : commande `run` implicite, sans sujet, preset
- * ni flag de rendu déjà fourni. Toute intention explicite de lancer directement un débat
- * (topic, `--renderer`, `--json`, `--plain`, `--terminal`) désactive l'accueil.
- */
-function shouldOpenTuiHome(parsed: ParsedArgs): boolean {
-  return parsed.command === "run"
-    && !parsed.commandExplicit
-    && parsed.positionals.length === 0
-    && optionalString(parsed.flags.topic) === undefined
-    && optionalString(parsed.flags.renderer) === undefined
-    && parsed.flags.json !== true
-    && parsed.flags.plain !== true
-    && parsed.flags.terminal !== true;
-}
-
-/**
  * Écrit les avertissements de contexte sur `stderr`.
  * @param warnings - Messages d'avertissement issus du chargement des fichiers de contexte.
  */
@@ -1256,9 +1238,20 @@ function assertChatDryRunUnsupported(flags: ParsedArgs["flags"], messages: Messa
   if (flags["dry-run"]) throw new Error(messages.chat.dryRunUnsupported);
 }
 
+/**
+ * Refuse un preset en Chat avant tout lancement. Un preset désigne une paire d'agents pour Débat ou
+ * Ask ; Chat n'a qu'un agent actif. Le diagnostic porte sur cette combinaison, au lieu d'ignorer le
+ * preset en silence ou de déclarer le mode Chat inconnu.
+ */
+function assertChatPresetUnsupported(flags: ParsedArgs["flags"], messages: Messages): void {
+  const preset = optionalString(flags.preset);
+  if (preset) throw new Error(messages.chat.presetUnsupported(preset));
+}
+
 /** Lance une conversation locale stateless avec consultation explicite. */
 async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig, language: import("./types.js").Language, messages: Messages): Promise<void> {
   assertChatDryRunUnsupported(flags, messages);
+  assertChatPresetUnsupported(flags, messages);
   const topic = optionalString(flags.topic) ?? "";
   const context = await loadProjectInputs(
     getStringListFlag(flags.files),

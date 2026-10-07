@@ -69,6 +69,7 @@ src/sessionResume.ts      Validation et reconstruction stricte de `palabre resum
 src/externalSessions/     Relay vers une session externe : socle (types, lancement, enveloppe, issues), contrat d'adapter, adapters Claude Code et Codex
 src/tuiController.ts      Controleur des flows de configuration TUI
 src/args.ts               Parseur d'arguments CLI (table d'arite des flags)
+src/launchDispatch.ts     Decision de lancement d'une commande run : accueil TUI ou Chat direct selon le mode effectif
 src/new.ts                Assistant interactif `palabre new`
 src/config.ts             Chargement, generation et validation de config
 src/discovery.ts          Detection locale des CLIs et d'Ollama pendant init
@@ -861,6 +862,8 @@ palabre -s "quel jour sommes nous ?" -t 2
 ```
 
 `--subject` est le nom long recommande pour le sujet. `-s` est l'alias court, et `--topic` reste accepte pour compatibilite. Si le premier argument positionnel est un preset connu, il devient `--preset`. Le positionnel suivant devient le sujet. Un sujet positionnel doit contenir plusieurs mots ; pour un seul mot, utiliser `-s "mot"` afin d'eviter toute ambiguite avec une commande ou un preset. Une faute qui ressemble fortement a une commande connue (`nex` pour `new`, par exemple) produit une erreur de commande inconnue.
+
+Ces formes courtes suivent le mode effectif, `--mode` puis `defaults.mode`, exactement comme `palabre run` (#104). La décision vit dans `src/launchDispatch.ts` : `isDirectChatLaunch` envoie vers Chat toute commande `run` qui n'ouvre pas l'accueil TUI (`shouldOpenTuiHome`) quand ce mode est `chat`. Le lancement nu garde l'accueil et son mode par défaut. Un preset en mode Chat est refusé avec un diagnostic ciblé (`chat.presetUnsupported`), plutôt qu'ignoré ou signalé comme « mode inconnu ». Les chemins Chat gardent le refus de `--dry-run`.
 
 ## Aide CLI
 

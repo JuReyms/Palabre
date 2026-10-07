@@ -18,6 +18,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 - En NDJSON, une erreur d'agent pendant Chat émet désormais un événement `error` (`phase: "chat"`), puis un seul `done` avec le chemin de l'export partiel, ou `null` si cet export échoue. Une annulation pendant l'attente d'un message termine aussi le flux, avec le code 130 (#101).
 - Une consultation Chat annonce le rôle effectif de l'agent consulté, rôle temporaire `--role-a` compris (#101).
 - `--dry-run` est refusé explicitement en Chat, avant tout appel d'agent ou export, au lieu d'être ignoré (#101).
+- Avec le mode Chat, par défaut ou via `--mode chat`, le raccourci `palabre -s "Sujet"` et le sujet positionnel ouvrent Chat comme `palabre run`, au lieu d'échouer sur « mode inconnu ». Un preset en mode Chat est refusé avec un message explicite au lieu d'être ignoré (#104).
 
 ## [0.16.0] - 2026-08-31
 

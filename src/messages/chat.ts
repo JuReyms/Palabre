@@ -7,7 +7,7 @@ export interface ChatMessages {
   availableAgents(agents: ChatAvailableAgent[]): string; consultUsage: string; useUsage: string; agentsUsage: string; unknownAgent(name: string): string;
   consultationUnavailable: string; consulting(agentName: string): string; switchedTo(agentName: string): string; contextTrimmed(count: number): string; continuedFromSession(mode: string): string;
   endHint: string; sessionEnded: string; exportedFile: string; exportedFolder: string; returnHint: string; failureExported(path: string): string;
-  dryRunUnsupported: string; cancelled: string;
+  dryRunUnsupported: string; cancelled: string; presetUnsupported(preset: string): string;
   exportTitle: string; exportSubject: string; exportAgents: string; exportStartedAt: string; exportEndedAt: string; exportStopReason: string; exportStopReasonValue(reason: ChatStopReason): string; exportError: string; exportMessages: string;
 }
 export const chatMessages: Record<Language, ChatMessages> = {
@@ -18,6 +18,7 @@ export const chatMessages: Record<Language, ChatMessages> = {
     contextTrimmed: (count) => `Contexte borné : ${count} ancien(s) message(s) ne sont plus renvoyés à l'agent.`,
     dryRunUnsupported: "--dry-run n'est pas disponible en Chat : aucune conversation n'a été démarrée. Utilisez-le avec Débat ou Ask.",
     cancelled: "Conversation annulée par l'utilisateur.",
+    presetUnsupported: (preset) => `Le preset ${preset} choisit une paire d'agents pour Débat ou Ask ; Chat n'utilise qu'un agent actif. Utilisez --agent-a <agent> pour Chat, ou --mode debate (ou ask) avec ce preset.`,
     continuedFromSession: (mode) => `Contexte initial repris depuis la dernière session ${mode} : sujet et synthèse, ou échanges récents en l'absence de synthèse.`,
     endHint: "`/end` pour enregistrer et terminer · `/home` pour revenir sans enregistrer.", sessionEnded: "Conversation terminée", exportedFile: "Fichier exporté", exportedFolder: "Dossier d'export", returnHint: "Appuyez sur Entrée pour revenir à l'accueil.", failureExported: (path) => `Conversation interrompue : transcription partielle enregistrée dans ${path}.`, exportTitle: "# Conversation Palabre", exportSubject: "Contexte initial", exportAgents: "Agents", exportStartedAt: "Session démarrée", exportEndedAt: "Session terminée", exportStopReason: "Fin de session", exportStopReasonValue: (reason) => reason === "user-end" ? "Terminée par l'utilisateur avec /end" : "Interrompue par une erreur", exportError: "Erreur", exportMessages: "Messages"
   },
@@ -28,6 +29,7 @@ export const chatMessages: Record<Language, ChatMessages> = {
     contextTrimmed: (count) => `Bounded context: ${count} older message(s) are no longer sent to the agent.`,
     dryRunUnsupported: "--dry-run is not available in Chat: no conversation was started. Use it with Debate or Ask.",
     cancelled: "Conversation cancelled by the user.",
+    presetUnsupported: (preset) => `The ${preset} preset selects an agent pair for Debate or Ask; Chat uses a single active agent. Use --agent-a <agent> for Chat, or --mode debate (or ask) with this preset.`,
     continuedFromSession: (mode) => `Initial context continued from the latest ${mode} session: subject and summary, or recent exchanges when no summary exists.`,
     endHint: "`/end` to save and finish · `/home` to return without saving.", sessionEnded: "Conversation ended", exportedFile: "Exported file", exportedFolder: "Export folder", returnHint: "Press Enter to return home.", failureExported: (path) => `Conversation interrupted: partial transcript saved to ${path}.`, exportTitle: "# Palabre conversation", exportSubject: "Initial context", exportAgents: "Agents", exportStartedAt: "Session started", exportEndedAt: "Session ended", exportStopReason: "Session end", exportStopReasonValue: (reason) => reason === "user-end" ? "Ended by the user with /end" : "Interrupted by an error", exportError: "Error", exportMessages: "Messages"
   }

@@ -58,6 +58,8 @@ palabre config --mode chat
 
 Les valeurs acceptées sont `debate`, `chat` et `ask`. Débat reste le mode principal. Chat utilise `defaults.agentA` comme agent actif initial ; Ask utilise `defaults.askAgents`. Dans la TUI, changez de mode avec `/debat`, `/chat` ou `/ask`.
 
+Le mode par défaut s'applique aussi aux lancements directs : `palabre run`, `palabre -s "Sujet"` et `palabre "Un sujet en plusieurs mots"`. Avec le mode Chat, le sujet devient le contexte initial de la conversation. `--mode debate`, `--mode ask` ou `--mode chat` l'emporte toujours sur ce réglage, sans le modifier. Un preset choisit une paire d'agents pour Débat ou Ask : en mode Chat, il est refusé avec un message explicite. Utilisez alors `--agent-a <agent>`, ou ajoutez `--mode debate`. Le lancement `palabre` sans sujet ouvre toujours l'accueil.
+
 ## Définir le nombre de tours
 
 ```bash
