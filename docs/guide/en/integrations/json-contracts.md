@@ -15,6 +15,8 @@ These commands write one JSON document to stdout and exit without starting an AI
 - `palabre sessions --json` exposes the 20 most recent checkpoints in `sessions[]`, with a limit from 1 to 100. A valid entry contains `valid`, `id`, `status`, `mode`, `topic`, `updatedAt`, `responses`, `nextPhase`, and `resumable`. A corrupted entry contains `valid: false`, `id`, `updatedAt`, and a stable `warning`, without raw contents or an absolute path.
 - `palabre sessions delete <session-id> --yes --json` confirms the targeted deletion with `{ "v": 1, "deleted": { "id": "..." } }`.
 
+`palabre relay … --json` is the only command on this page that runs an AI: it relays a message to a closed Codex or Claude Code conversation. It writes a single `{ "v": 1, "type": "relay-result", ... }` object with `status`, `exitCode`, `from`, `to`, `reply` (only for `replied`), `delivery` (`status`, `persisted`, `inActiveBranch`), `identity`, `observedModels`, `error` (`kind`, `message`, `reason`), `exportPath` and `durationMs`. An integration relies on `delivery.status` to decide whether to resend, never on the absence of a reply. Details: [Relay to a conversation](/en/usage/relay).
+
 ## Consumption rules
 
 - check `v`;

@@ -16,6 +16,7 @@ import { outputMessages, type OutputMessages } from "./output.js";
 import { promptMessages, type PromptMessages } from "./prompt.js";
 import { presetsMessages, type PresetsMessages } from "./presets.js";
 import { previewMessages, type PreviewMessages } from "./preview.js";
+import { relayMessages, type RelayMessages } from "./relay.js";
 import { rendererMessages, type RendererMessages } from "./renderers.js";
 import { resumeMessages, type ResumeMessages } from "./resume.js";
 import { sessionsMessages, type SessionsMessages } from "./sessions.js";
@@ -40,6 +41,7 @@ export interface Messages {
   prompt: PromptMessages;
   presets: PresetsMessages;
   preview: PreviewMessages;
+  relay: RelayMessages;
   renderers: RendererMessages;
   resume: ResumeMessages;
   sessions: SessionsMessages;
@@ -66,6 +68,7 @@ export function createTranslator(language: Language): Messages {
     prompt: promptMessages[language],
     presets: presetsMessages[language],
     preview: previewMessages[language],
+    relay: relayMessages[language],
     renderers: rendererMessages[language],
     resume: resumeMessages[language],
     sessions: sessionsMessages[language],

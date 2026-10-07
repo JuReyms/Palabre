@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseArgs } from "../src/args.js";
+import { findFirstPositionalIndex, parseArgs } from "../src/args.js";
 import { createTranslator } from "../src/i18n.js";
 
 const messages = createTranslator("en");
@@ -8,6 +8,34 @@ const messages = createTranslator("en");
 function parse(args: string[]) {
   return parseArgs(args, messages);
 }
+
+test("findFirstPositionalIndex locates the command without mistaking an option value for it", () => {
+  assert.equal(findFirstPositionalIndex(["relay"]), 0);
+  assert.equal(findFirstPositionalIndex(["--json", "--language", "de", "relay"]), 3);
+  assert.equal(findFirstPositionalIndex(["--json", "relay", "--version"]), 1);
+  assert.equal(findFirstPositionalIndex(["-v", "relay"]), 1);
+  // Valeurs consommées par une option : jamais prises pour la commande.
+  assert.equal(findFirstPositionalIndex(["--config", "relay", "relay"]), 2);
+  assert.equal(findFirstPositionalIndex(["-s", "relay"]), -1);
+  assert.equal(findFirstPositionalIndex(["--agents", "relay", "codex"]), -1);
+  assert.equal(findFirstPositionalIndex(["--set-defaults", "a", "b", "relay"]), 3);
+  // Comme parseArgs : une option inconnue ne consomme rien, une valeur en `-` non plus.
+  assert.equal(findFirstPositionalIndex(["--inconnue", "relay"]), 1);
+  assert.equal(findFirstPositionalIndex(["--config", "--json", "relay"]), 2);
+  assert.equal(findFirstPositionalIndex(["--json"]), -1);
+});
+
+test("findFirstPositionalIndex agrees with parseArgs on the detected command", () => {
+  for (const args of [["--json", "relay"], ["--config", "x.json", "sessions"], ["-s", "Sujet", "-t", "2"], ["--agents", "codex", "claude"], ["--plain", "codex-claude", "Sujet en deux mots"]]) {
+    const index = findFirstPositionalIndex(args);
+    const parsed = parse(args);
+    if (parsed.commandExplicit) {
+      assert.equal(args[index], parsed.command, args.join(" "));
+    } else {
+      assert.ok(index === -1 || args[index] === parsed.positionals[0] || parsed.flags.preset === args[index], args.join(" "));
+    }
+  }
+});
 
 test("a boolean flag does not swallow the following preset positional", () => {
   const parsed = parse(["--plain", "codex-claude", "mon sujet"]);

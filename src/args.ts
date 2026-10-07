@@ -104,8 +104,40 @@ const COMMANDS = new Set([
   "resume",
   "sessions",
   "context",
-  "chat"
+  "chat",
+  "relay"
 ]);
+
+/**
+ * Position du premier argument positionnel, c'est-à-dire de la commande éventuelle, sans rien
+ * valider ni lever. Suit la même table d'arité que `parseArgs` : une valeur consommée par une
+ * option (`--config relay`, `-s relay`) n'est jamais prise pour la commande. Sert à aiguiller
+ * `relay` avant les validations et handlers généraux.
+ * @returns L'index du jeton, ou `-1` s'il n'y a aucun positionnel.
+ */
+export function findFirstPositionalIndex(args: readonly string[]): number {
+  for (let index = 0; index < args.length; index += 1) {
+    const value = args[index]!;
+    if (!value.startsWith("-")) return index;
+    if (value === "-s" || value === "-t") {
+      // Comme `parseArgs`, une valeur qui commence par `-` n'est pas consommée.
+      if (args[index + 1] !== undefined && !args[index + 1]!.startsWith("-")) index += 1;
+      continue;
+    }
+    if (!value.startsWith("--")) continue;
+    const spec = FLAG_SPECS[normalizeFlagName(value.slice(2))];
+    if (spec?.arity === "single") {
+      if (args[index + 1] !== undefined && !args[index + 1]!.startsWith("-")) index += 1;
+    } else if (spec?.arity === "multi") {
+      let consumed = 0;
+      while (args[index + 1] && !args[index + 1]!.startsWith("-") && (spec.max === undefined || consumed < spec.max)) {
+        index += 1;
+        consumed += 1;
+      }
+    }
+  }
+  return -1;
+}
 
 /**
  * Parse `process.argv` en une structure typée `ParsedArgs`.
