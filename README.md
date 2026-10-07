@@ -98,15 +98,15 @@ The NDJSON v1 stream is treated as a public integration API. Compatible addition
 
 ### Skill for AI agents
 
-PALABRE ships a ready-to-use skill that teaches an AI agent when and how to run Palabre sessions. It follows the open [agentskills.io](https://agentskills.io) standard, so it is portable across Hermes Agent, Claude, Codex, and any skills-compatible agent.
+PALABRE ships a ready-to-use skill that teaches an AI agent that Palabre is available, when to use it, and which path to choose: Chat, Debate, Ask, or Relay. It follows the open [agentskills.io](https://agentskills.io) standard, so it is portable across Claude Code, Codex, Hermes Agent, and any skills-compatible agent.
 
-Install it in **Hermes Agent**:
+Copy the `skills/palabre` folder to `~/.claude/skills/` (Claude Code) or `~/.agents/skills/` (Codex), or install it in **Hermes Agent**:
 
 ```bash
 hermes skills install JuReyms/Palabre/skills/palabre
 ```
 
-For other agents (Claude desktop, Claude Code…), see the docs: [Palabre skill](https://palab.re/en/get-started/skill).
+Locations per project, and discovery in new and resumed sessions: [Palabre skill](https://palab.re/en/get-started/skill).
 
 The skill is versioned under [skills/palabre](./skills/palabre).
 
@@ -225,15 +225,15 @@ Le flux NDJSON v1 est traité comme une API publique d'intégration. Les ajouts 
 
 ### Skill pour agents IA
 
-PALABRE fournit un skill prêt à l'emploi qui apprend à un agent IA quand et comment lancer des sessions Palabre. Il suit le standard ouvert [agentskills.io](https://agentskills.io) : il est donc portable entre Hermes Agent, Claude, Codex et tout agent compatible skills.
+PALABRE fournit un skill prêt à l'emploi qui apprend à un agent IA que Palabre est disponible, quand l'utiliser et quel parcours choisir : Chat, Débat, Ask ou Relay. Il suit le standard ouvert [agentskills.io](https://agentskills.io) : il est donc portable entre Claude Code, Codex, Hermes Agent et tout agent compatible skills.
 
-Installation dans **Hermes Agent** :
+Copiez le dossier `skills/palabre` dans `~/.claude/skills/` (Claude Code) ou `~/.agents/skills/` (Codex), ou installez-le dans **Hermes Agent** :
 
 ```bash
 hermes skills install JuReyms/Palabre/skills/palabre
 ```
 
-Pour les autres agents (Claude desktop, Claude Code…), voir la doc : [Skill Palabre](https://palab.re/fr/get-started/skill).
+Emplacements par projet et découverte dans les sessions neuves et reprises : [Skill Palabre](https://palab.re/fr/get-started/skill).
 
 Le skill est versionné dans [skills/palabre](./skills/palabre).
 
