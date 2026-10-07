@@ -72,6 +72,14 @@ Resume keeps every complete response and calls only the next Debate turn, remain
 
 `palabre sessions` shows the 20 most recent checkpoints by default, including their status, mode, response count, and next phase. `--limit <1-100>` bounds the list. A corrupted JSON file is reported as invalid without hiding other entries. Deletion displays the exact target and asks for confirmation; non-interactive use requires `--yes`. It never removes Markdown exports or sibling checkpoints.
 
+## Ask a closed conversation
+
+```bash
+palabre relay --from codex:<session> --to claude:<session> "Can you review this plan?"
+```
+
+`palabre relay` sends a message to a **closed** Codex or Claude Code conversation and returns its reply, in hardened read-only mode. The target conversation history is modified, and nothing is ever resent automatically. See [Relay to a conversation](/en/usage/relay).
+
 ## Conversation with one agent
 
 `palabre chat --agent-a <agent>` opens a terminal conversation. The first message becomes its initial context; `"Subject"` remains accepted as an optional way to prefill that context. For every message, Palabre starts a new call to the selected CLI and injects the accumulated history into it. The result can therefore remain coherent in the current session without relying on a persistent interactive session inside Codex, Claude, or another tool.
@@ -133,6 +141,7 @@ When no client is declared, the invocation source is `direct-cli`.
 | `palabre sessions --json` | Lists up to 20 valid or invalid checkpoints as JSON v1. |
 | `palabre sessions --json --limit 30` | Lists up to 30 checkpoints (maximum: 100). |
 | `palabre sessions delete <session-id> --yes --json` | Deletes exactly one checkpoint and confirms its id as JSON v1. |
+| `palabre relay --from <agent>:<session> --to <agent>:<session> "…" --json` | Relays a message to a closed conversation and returns a `relay-result` JSON v1 object, whatever the outcome. |
 | `palabre config --ollama-models --json` | Returns local Ollama state as JSON v1 for integrations. |
 | `palabre context scan [paths...] --json` | Returns the folders, files, and warnings from the `--context` scan as JSON v1. |
 

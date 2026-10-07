@@ -4,6 +4,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Added
+
+- `palabre relay` transmet un message à une conversation Codex ou Claude Code fermée et renvoie sa réponse en un seul appel : reprise en lecture seule renforcée, refus si la conversation est ouverte ou son état invérifiable, statut de délivrance sans renvoi automatique, sortie `--json` v1 et export `.relay.md`. Le relay entre agents dont les conversations restent ouvertes n'est pas encore couvert (#96).
+
 ### Fixed
 
 - Chat ne se ferme plus sur une ligne vide : la conversation continue et `/end` exporte tous les échanges (#101).

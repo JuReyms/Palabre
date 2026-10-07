@@ -27,7 +27,7 @@ import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { buildDryRunPreview, printDryRun } from "./dryRun.js";
 import { applyUpdate, getUpdateInfo, hasAvailableUpdate } from "./update.js";
-import { getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
+import { findFirstPositionalIndex, getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { clearTuiRunOverrides } from "./tuiState.js";
 import { formatOllamaUrlError, OllamaUrlError } from "./ollamaUrl.js";
 import { getPackageVersion } from "./version.js";
@@ -39,6 +39,7 @@ import { runHistoryCommand } from "./commands/history.js";
 import { runSessionsCommand } from "./commands/sessions.js";
 import { runInitCommand } from "./commands/init.js";
 import { runPresetsCommand } from "./commands/presets.js";
+import { runRelayCommand } from "./commands/relay.js";
 import { runUpdateCommand } from "./commands/update.js";
 import { optionalString } from "./commands/shared.js";
 import { runTuiAgentsWizard, runTuiConfigLoop, runTuiRolesWizard, syncInteractiveDetectedAgents } from "./tuiController.js";
@@ -54,6 +55,15 @@ import { prepareSessionResume } from "./sessionResume.js";
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
 async function main(): Promise<void> {
   const rawArgs = process.argv.slice(2);
+  // `relay` gère lui-même ses arguments, sa langue et la confiance de la config : il est aiguillé
+  // avant toute validation ou handler général (langue, parseur, `--version`, `--help`), même
+  // précédé d'options, pour que ses erreurs restent structurées (`--json`) et qu'aucune question
+  // interactive ne soit posée. Tous les jetons sont repassés à son parseur strict.
+  const commandIndex = findFirstPositionalIndex(rawArgs);
+  if (commandIndex >= 0 && rawArgs[commandIndex] === "relay") {
+    await runRelayCommand(["relay", ...rawArgs.slice(0, commandIndex), ...rawArgs.slice(commandIndex + 1)]);
+    return;
+  }
   const startupLanguage = resolveLanguage({ explicitLanguage: findRawLanguageFlag(rawArgs) });
   const startupMessages = createTranslator(startupLanguage);
   const parsed = parseArgs(rawArgs, startupMessages);

@@ -72,6 +72,14 @@ La reprise conserve les réponses complètes et relance uniquement le prochain t
 
 `palabre sessions` affiche les 20 checkpoints les plus récents par défaut, avec leur état, mode, nombre de réponses et prochaine phase. `--limit <1-100>` borne la liste. Un JSON corrompu est signalé comme invalide sans empêcher l'affichage des autres. La suppression montre le fichier exact et demande confirmation ; en mode non interactif, `--yes` est obligatoire. Elle ne supprime jamais les exports Markdown ni les autres checkpoints.
 
+## Interroger une conversation fermée
+
+```bash
+palabre relay --from codex:<session> --to claude:<session> "Peux-tu relire ce plan ?"
+```
+
+`palabre relay` transmet un message à une conversation Codex ou Claude Code **fermée** et renvoie sa réponse, en lecture seule renforcée. L'historique de la conversation cible est modifié, et aucun renvoi automatique n'a lieu. Voir [Relay vers une conversation](/fr/usage/relay).
+
 ## Conversation avec un agent
 
 `palabre chat --agent-a <agent>` ouvre une conversation dans le terminal. Le premier message devient son contexte initial ; `"Sujet"` reste accepté en option pour préremplir ce contexte. À chaque message, Palabre lance un nouvel appel à la CLI sélectionnée et lui réinjecte l'historique déjà accumulé. Le résultat reste donc cohérent dans la session courante, sans dépendre d'une session interactive persistante chez Codex, Claude ou un autre outil.
@@ -133,6 +141,7 @@ supporter de futures intégrations. Sans déclaration, la source indiquée est
 | `palabre sessions --json` | Liste jusqu'à 20 checkpoints au format JSON v1, valides ou invalides. |
 | `palabre sessions --json --limit 30` | Liste jusqu'à 30 checkpoints (maximum : 100). |
 | `palabre sessions delete <session-id> --yes --json` | Supprime exactement un checkpoint et confirme son identifiant au format JSON v1. |
+| `palabre relay --from <agent>:<session> --to <agent>:<session> "…" --json` | Relaie un message vers une conversation fermée et renvoie un objet JSON v1 `relay-result`, quelle que soit l'issue. |
 | `palabre config --ollama-models --json` | Renvoie l'état Ollama local au format JSON v1 pour les intégrations. |
 | `palabre context scan [paths...] --json` | Renvoie les dossiers, fichiers et avertissements du scan `--context` au format JSON v1. |
 
