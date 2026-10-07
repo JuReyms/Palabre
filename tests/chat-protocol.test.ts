@@ -30,6 +30,15 @@ test("legacy Chat commands remain supported", () => {
   });
 });
 
+test("blank Chat lines are ignored instead of closing the session (#101)", () => {
+  assert.deepEqual(parseChatInputLine(""), { kind: "blank" });
+  assert.deepEqual(parseChatInputLine("   \t"), { kind: "blank" });
+  for (const close of ["/exit", "/quit", "/home"]) {
+    assert.deepEqual(parseChatInputLine(close), { kind: "command", command: { v: 1, type: "chat-close" } });
+  }
+  assert.deepEqual(parseChatInputLine("/end"), { kind: "command", command: { v: 1, type: "chat-end" } });
+});
+
 test("invalid structured Chat input is rejected without becoming a user message", () => {
   assert.equal(parseChatInputLine('{"v":2,"type":"chat-end"}').kind, "error");
   assert.equal(parseChatInputLine('{"v":1,"type":"chat-send","content":""}').kind, "error");

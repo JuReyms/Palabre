@@ -680,8 +680,8 @@ Types d'evenements emis aujourd'hui :
 | `chat-consultation-start` | debut d'une consultation explicite | `agent`, `role` |
 | `chat-consultation` | avis ajoute au transcript | `agent`, `role`, `content`, `createdAt` |
 | `chat-agent-changed` | changement d'agent actif via `/use` | `agent`, `role` |
-| `error` | erreur runtime structurée pendant le debat, ask ou la synthese | `phase` (`debate`, `ask` ou `summary`), `kind`, `message`, optionnels `agent`, `role`, `turn`, `details` |
-| `done` | fin de session ; export ecrit quand demande | `outputPath` (`null` si Chat se termine sans `/end`) |
+| `error` | erreur runtime structurée pendant le debat, ask, la synthese ou Chat | `phase` (`debate`, `ask`, `summary` ou `chat`), `kind`, `message`, optionnels `agent`, `role`, `turn` (hors Chat), `action` (Chat : `send`, `consult` ou `end`), `retryAfter`, `details` |
+| `done` | fin de session ; export ecrit quand demande | `outputPath` (`null` si Chat se termine sans `/end`, ou si l'export partiel échoue après une erreur) |
 
 En mode Chat avec `--renderer ndjson`, les integrations pilotent stdin avec
 une ligne JSON par action. Le contrat d'entree v1 accepte :
@@ -699,6 +699,13 @@ integration doit utiliser les entrees structurees afin de conserver les sauts
 de ligne et de ne pas confondre le contenu utilisateur avec une commande slash.
 `chat-user-message` est emis dès acceptation du message, avant
 `thinking-start`, afin que les clients puissent l'afficher immediatement.
+
+Cycle de vie de Chat (#101) :
+
+- une ligne vide ou d'espaces est ignorée (`parseChatInputLine` rend `blank`), en NDJSON comme en terminal : un séparateur accidentel ne ferme jamais Chat ;
+- `chat-end` / `/end` exporte puis émet `done` avec le chemin ; `/exit`, `/quit`, `/home` et la fin de stdin terminent sans export (`done` avec `null`). Aucun export automatique sur EOF ;
+- après `start`, une erreur runtime émet `error` (`ChatFailure` : `phase: "chat"`, `action` `send` | `consult` | `end`, `agent`, `role`, `kind`, `message`, `retryAfter`, `details`), écrit l'export partiel, puis émet exactement un `done` avec son chemin, ou `null` si l'export échoue. Code de sortie 1, ou 130 si annulée. L'erreur n'est pas relancée : rien n'est écrit hors du flux. `ChatFailure` est distinct de `DebateFailure` ; les deux partagent la classification `classifyRuntimeError` (`src/runtimeFailure.ts`) ;
+- `--dry-run` est refusé en Chat (`chat`, `run --mode chat`, TUI) avant toute lecture de stdin, tout événement, appel agent ou export. Aucune prévisualisation Chat n'existe pour l'instant.
 
 Exemple de session minimale :
 

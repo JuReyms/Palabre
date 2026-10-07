@@ -45,6 +45,7 @@ import { runTuiAgentsWizard, runTuiConfigLoop, runTuiRolesWizard, syncInteractiv
 import { parseInterfaceFlag, parseSessionModeFlag, resolveChatOptions, resolveRunOptions } from "./runOptions.js";
 import { buildChatHandoffTopic, ChatSession } from "./chatSession.js";
 import { parseChatInputLine } from "./chatProtocol.js";
+import { classifyRuntimeError } from "./runtimeFailure.js";
 import { runTuiChatSession } from "./tuiChat.js";
 import { activeConfiguredAgentNames, isRetiredAgentName } from "./agentRegistry.js";
 import { createResumedSessionCheckpointRuntime, createSessionCheckpointRuntime } from "./sessionCheckpointRuntime.js";
@@ -277,6 +278,7 @@ async function main(): Promise<void> {
       }
 
       if (tuiMode === "chat" && input.kind === "topic") {
+        assertChatDryRunUnsupported(parsed.flags, messages);
         const chatContext = await loadProjectInputs(input.files ?? [], input.context ?? [], process.cwd(), messages);
         printContextWarnings(chatContext.warnings, messages);
         const chatOptions = resolveChatOptions({
@@ -398,6 +400,7 @@ async function main(): Promise<void> {
       parsed.commandExplicit = false;
 
       if (selection.mode === "chat") {
+        assertChatDryRunUnsupported(parsed.flags, messages);
         if (!stayInTuiAfterSession) {
           await runChatCommand(parsed.flags, config, language, messages);
           return;
@@ -1235,8 +1238,17 @@ function safeStartupLanguage(args: string[]) {
   }
 }
 
+/**
+ * Refuse `--dry-run` en Chat avant toute lecture de stdin, tout appel agent et tout export.
+ * Chat n'a pas de prévisualisation : ignorer l'option lancerait une vraie conversation.
+ */
+function assertChatDryRunUnsupported(flags: ParsedArgs["flags"], messages: Messages): void {
+  if (flags["dry-run"]) throw new Error(messages.chat.dryRunUnsupported);
+}
+
 /** Lance une conversation locale stateless avec consultation explicite. */
 async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig, language: import("./types.js").Language, messages: Messages): Promise<void> {
+  assertChatDryRunUnsupported(flags, messages);
   const topic = optionalString(flags.topic) ?? "";
   const context = await loadProjectInputs(
     getStringListFlag(flags.files),
@@ -1265,7 +1277,12 @@ async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig,
     process.stdout.write(`${messages.chat.intro(chat.activeAgentName, chat.activeAgentConfig.role)}\n${messages.chat.exitHint}\n${messages.chat.endHint}\n\n${topic ? messages.chat.questionPrompt : messages.chat.openingPrompt}`);
     for await (const line of readline) {
       const userMessage = line.trim();
-      if (!userMessage || userMessage === "/exit" || userMessage === "/quit" || userMessage === "/home") break;
+      // Une ligne vide ne ferme jamais Chat : seule une commande explicite ou la fin de stdin le fait.
+      if (!userMessage) {
+        process.stdout.write(chat.messages.length > 0 || chat.topic ? messages.chat.questionPrompt : messages.chat.openingPrompt);
+        continue;
+      }
+      if (userMessage === "/exit" || userMessage === "/quit" || userMessage === "/home") break;
 
       if (userMessage === "/end") {
         if (chat.messages.length === 0) {
@@ -1334,7 +1351,14 @@ async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig,
   }
 }
 
-/** Exécute Chat sur stdin tout en garantissant une ligne JSON valide par événement stdout. */
+/**
+ * Exécute Chat sur stdin tout en garantissant une ligne JSON valide par événement stdout.
+ *
+ * Après `start`, le flux se termine toujours par exactement un `done` : export de `chat-end`,
+ * `null` pour une fermeture explicite ou la fin de stdin, ou chemin de l'export partiel (`null`
+ * s'il échoue) après un événement `error` de phase `chat`. Une erreur fixe le code de sortie
+ * (1, ou 130 si annulée) sans être relancée, pour ne rien écrire hors du flux.
+ */
 async function runChatNdjson(
   chat: ChatSession,
   options: import("./types.js").ChatOptions,
@@ -1347,8 +1371,43 @@ async function runChatNdjson(
   renderer.chatStart(options, { name: chat.activeAgentName, config: chat.activeAgentConfig });
   warnings.forEach((warning) => renderer.warning(warning));
 
+  // Action en cours, pour localiser une éventuelle erreur dans l'événement `error`.
+  let current: Pick<import("./types.js").ChatFailure, "action" | "agent" | "role"> = {};
+  try {
+    await runChatNdjsonCommands(chat, renderer, outputDir, readline, messages, (action) => { current = action; });
+  } catch (error) {
+    const failure: import("./types.js").ChatFailure = {
+      phase: "chat",
+      ...current,
+      ...failureFields(classifyRuntimeError(error, messages), current.agent),
+      ...(options.signal?.aborted ? { kind: "cancelled" as const } : {})
+    };
+    const outputPath = await exportFailedChat(chat, outputDir, error);
+    renderer.chatError(failure);
+    renderer.done(outputPath ?? null);
+    process.exitCode = failure.kind === "cancelled" ? 130 : 1;
+  }
+}
+
+/** Champs d'erreur classés ; l'agent nommé par l'adapter n'est repris que si l'action en cours ne le connaît pas. */
+function failureFields(classified: ReturnType<typeof classifyRuntimeError>, agent: string | undefined) {
+  const { adapterName, ...fields } = classified;
+  return agent || !adapterName ? fields : { ...fields, agent: adapterName };
+}
+
+/** Boucle de commandes Chat NDJSON ; toute erreur remonte à `runChatNdjson`, qui termine le flux. */
+async function runChatNdjsonCommands(
+  chat: ChatSession,
+  renderer: NdjsonRenderer,
+  outputDir: string,
+  readline: ReturnType<typeof createInterface>,
+  messages: Messages,
+  track: (action: Pick<import("./types.js").ChatFailure, "action" | "agent" | "role">) => void
+): Promise<void> {
   for await (const line of readline) {
+    track({});
     const parsedInput = parseChatInputLine(line);
+    if (parsedInput.kind === "blank") continue;
     if (parsedInput.kind === "error") {
       renderer.notice(parsedInput.message);
       continue;
@@ -1365,6 +1424,7 @@ async function runChatNdjson(
         renderer.notice(messages.chat.consultationUnavailable);
         continue;
       }
+      track({ action: "end" });
       renderer.done(await chat.export(outputDir, userEndedChat()));
       return;
     }
@@ -1394,6 +1454,7 @@ async function runChatNdjson(
         renderer.notice(messages.chat.unknownAgent(input.agent));
         continue;
       }
+      track({ action: "consult", agent: input.agent, role: target.role });
       renderer.chatConsultationStart(input.agent, target.role);
       renderer.thinkingStart(input.agent, target.role);
       let opinion: Awaited<ReturnType<ChatSession["consult"]>>;
@@ -1409,6 +1470,7 @@ async function runChatNdjson(
 
     const activeAgent = chat.activeAgentName;
     const activeRole = chat.activeAgentConfig.role;
+    track({ action: "send", agent: activeAgent, role: activeRole });
     let turn: Awaited<ReturnType<ChatSession["send"]>>;
     try {
       turn = await chat.send(input.content, (user) => {

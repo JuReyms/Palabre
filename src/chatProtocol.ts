@@ -12,12 +12,20 @@ export type ChatInputCommand =
 
 export type ChatInputParseResult =
   | { kind: "command"; command: ChatInputCommand }
+  | { kind: "blank" }
   | { kind: "error"; message: string };
 
-/** Parse une ligne stdin structurée ou une commande terminal historique. */
+/**
+ * Parse une ligne stdin structurée ou une commande terminal historique.
+ *
+ * Une ligne vide ou composée d'espaces est `blank` : elle est ignorée et ne ferme jamais Chat,
+ * pour qu'un séparateur accidentel ne fasse pas perdre la conversation. Seuls `/exit`, `/quit` et
+ * `/home` ferment sans export ; `/end` ou `chat-end` exportent.
+ */
 export function parseChatInputLine(line: string): ChatInputParseResult {
   const trimmed = line.trim();
-  if (!trimmed || trimmed === "/exit" || trimmed === "/quit" || trimmed === "/home") {
+  if (!trimmed) return { kind: "blank" };
+  if (trimmed === "/exit" || trimmed === "/quit" || trimmed === "/home") {
     return { kind: "command", command: { v: 1, type: "chat-close" } };
   }
 

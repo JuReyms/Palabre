@@ -179,7 +179,7 @@ supporter de futures intégrations. Sans déclaration, la source indiquée est
 | `--files <paths...>` | Injecte des fichiers précis. |
 | `--context <paths...>` | Scanne fichiers ou dossiers texte. |
 | `--show-prompt` | Affiche le prompt du premier tour sans appeler d'agent. |
-| `--dry-run` | Prévisualise la session résolue sans appeler d'agent ni écrire d'export. |
+| `--dry-run` | Prévisualise la session Débat ou Ask résolue sans appeler d'agent ni écrire d'export. Refusé en Chat. |
 
 ## Mise à jour
 
