@@ -19,6 +19,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 - Une consultation Chat annonce le rôle effectif de l'agent consulté, rôle temporaire `--role-a` compris (#101).
 - `--dry-run` est refusé explicitement en Chat, avant tout appel d'agent ou export, au lieu d'être ignoré (#101).
 - Avec le mode Chat, par défaut ou via `--mode chat`, le raccourci `palabre -s "Sujet"` et le sujet positionnel ouvrent Chat comme `palabre run`, au lieu d'échouer sur « mode inconnu ». Un preset en mode Chat est refusé avec un message explicite au lieu d'être ignoré (#104).
+- Dans la TUI, une saisie vide ou composée d'espaces ne quitte plus la conversation Chat sans export : elle est ignorée. L'indicateur d'une consultation affiche le rôle effectif de l'agent, rôle temporaire `--role-a` compris (#103).
 
 ## [0.16.0] - 2026-08-31
 

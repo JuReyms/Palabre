@@ -35,7 +35,7 @@ Après `start`, attendre donc toujours un `done` unique, puis le code de sortie.
 
 Versions et parcours où ces règles ne valent pas encore :
 - **Palabre 0.16.0 et antérieures** (avant #101) : une ligne vide ferme Chat sans export ; une erreur d'agent arrête le flux sans `error` ni `done`, avec l'export partiel annoncé sur stderr seulement ; `--dry-run` est ignoré et lance une vraie conversation. Vérifier `palabre --version` et éviter les lignes vides dans le flux ;
-- **TUI** (suivi dans #103) : une saisie vide revient à l'accueil sans enregistrer, et l'indicateur d'une consultation affiche le rôle brut de la config au lieu d'un rôle temporaire ;
+- **TUI avant #103** : une saisie vide revient à l'accueil sans enregistrer, et l'indicateur d'une consultation affiche le rôle brut de la config au lieu d'un rôle temporaire ;
 - **commande directe sans `--renderer ndjson`** : une annulation pendant l'attente d'un message n'est pas gérée comme en NDJSON. Préférer le flux NDJSON pour piloter Chat.
 
 Exemple (PowerShell ; en bash, utiliser un heredoc) :
@@ -76,7 +76,7 @@ palabre chat "Suite du débat sur <sujet>. Synthèse retenue : <synthèse>" --ag
 
 ## Depuis la TUI (utilisateur humain)
 
-`palabre`, puis `/chat`. `/agents <agent>` choisit l'agent actif, `/consult <agent>` demande un avis, `/use <agent>` change d'interlocuteur, `/end` enregistre et termine, `/home` revient sans enregistrer. Une saisie vide revient aussi à l'accueil sans enregistrer (#103).
+`palabre`, puis `/chat`. `/agents <agent>` choisit l'agent actif, `/consult <agent>` demande un avis, `/use <agent>` change d'interlocuteur, `/end` enregistre et termine, `/home` revient sans enregistrer. Une saisie vide est ignorée (depuis #103) ; avant, elle revenait à l'accueil sans enregistrer.
 
 ## Export
 
