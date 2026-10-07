@@ -17,6 +17,11 @@ interface KnownCliAgent {
   commandAliases: readonly string[];
   /** Clé correspondante dans `ToolDiscovery`. */
   discoveryKey: "codex" | "claude" | "antigravity" | "opencode" | "vibe";
+  /**
+   * Fournisseur de session externe pris en charge par `palabre relay` (voir AGENTS.md, section
+   * "Relay externe"). Absent pour les CLIs dont la reprise de session n'est pas vérifiée.
+   */
+  externalSession?: "codex" | "claude";
 }
 
 /**
@@ -25,8 +30,8 @@ interface KnownCliAgent {
  * géré séparément via `discovery.ollama`.
  */
 const KNOWN_CLI_AGENTS: readonly KnownCliAgent[] = [
-  { configKey: "codex", commandAliases: ["codex"], discoveryKey: "codex" },
-  { configKey: "claude", commandAliases: ["claude"], discoveryKey: "claude" },
+  { configKey: "codex", commandAliases: ["codex"], discoveryKey: "codex", externalSession: "codex" },
+  { configKey: "claude", commandAliases: ["claude"], discoveryKey: "claude", externalSession: "claude" },
   { configKey: "antigravity", commandAliases: ["agy", "antigravity"], discoveryKey: "antigravity" },
   { configKey: "opencode", commandAliases: ["opencode"], discoveryKey: "opencode" },
   { configKey: "vibe", commandAliases: ["vibe"], discoveryKey: "vibe" }
@@ -64,6 +69,16 @@ export function normalizeCommandName(command: string): string {
     .pop()
     ?.toLowerCase()
     .replace(/\.(exe|cmd|bat|ps1)$/i, "") ?? command.toLowerCase();
+}
+
+/**
+ * Fournisseur de session externe d'une commande d'agent CLI connue, pour `palabre relay`.
+ * Retourne `undefined` pour une CLI connue sans reprise vérifiée ou pour une commande custom :
+ * Palabre ne connaît pas sa sémantique de reprise.
+ */
+export function externalSessionProviderForCommand(command: string): "codex" | "claude" | undefined {
+  const normalized = normalizeCommandName(command);
+  return KNOWN_CLI_AGENTS.find((agent) => agent.commandAliases.includes(normalized))?.externalSession;
 }
 
 /**

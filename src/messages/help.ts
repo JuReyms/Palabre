@@ -153,6 +153,44 @@ Flags:
   --ollama-url <url>   surcharge l'adresse Ollama pour les appels repris
   --pull-models        autorise le téléchargement d'un modèle Ollama manquant
 `,
+  relay: `
+Transmet un message à une conversation Codex ou Claude Code fermée et renvoie sa réponse.
+
+Usage:
+  palabre relay --from <agent>:<session> --to <agent>:<session> "<message>"
+  palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <chemin>
+
+Flags:
+  --from <agent>:<uuid>   expéditeur, étiquette déclarative (jamais lancé)
+  --to <agent>:<uuid>     agent cible de la config et identifiant de sa conversation
+  --message-file <path>   lit le message dans un fichier (64 Kio au plus)
+  --timeout <secondes>    délai maximal, de 10 à 3600 (défaut : 600)
+  --json                  sortie JSON v1 pour les intégrations
+  --no-export             n'écrit pas l'export .relay.md
+  --config <path>         chemin de config explicite
+  --trust-config          approuve la config résolue (aucune question n'est posée)
+  --language <fr|en>      force la langue
+
+Limites :
+  La conversation cible doit être fermée : aucun TUI, desktop, IDE ni exécution en cours.
+  Le relay entre agents dont les conversations restent ouvertes n'est pas pris en charge.
+
+Garanties conditionnelles :
+  Avec les options imposées par Palabre et sur les versions de CLI vérifiées, la cible ne
+  dispose d'aucun outil d'écriture, et les hooks et la commande notify non gérés sont
+  neutralisés. Les serveurs MCP sont neutralisés sous réserve que la configuration ne change
+  pas entre l'inspection et la reprise. Ces garanties ne couvrent ni les politiques
+  administrées, ni les versions de CLI non vérifiées.
+  Pendant le tour relayé, Codex perd ses plugins, connecteurs et serveurs MCP ; Claude n'a
+  que les outils de lecture. La configuration n'est pas modifiée.
+
+Effets :
+  Lecture seule ne veut pas dire sans effet : le message enveloppé, la réponse et les appels
+  d'outils de lecture sont ajoutés à l'historique de la conversation cible, même après un
+  échec, et Palabre ne peut pas les retirer.
+  Aucun renvoi automatique : not-delivered permet un nouvel envoi sans doublon ;
+  persisted-no-reply et unknown déconseillent de renvoyer sans vérification.
+`,
   sessions: `
 Liste les checkpoints du dossier courant ou en supprime un explicitement.
 
@@ -366,6 +404,43 @@ Flags:
   --ollama-url <url>   overrides the Ollama address for resumed calls
   --pull-models        allows downloading a missing Ollama model
 `,
+  relay: `
+Sends one message to a closed Codex or Claude Code conversation and returns its reply.
+
+Usage:
+  palabre relay --from <agent>:<session> --to <agent>:<session> "<message>"
+  palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <path>
+
+Flags:
+  --from <agent>:<uuid>   sender, declarative label (never launched)
+  --to <agent>:<uuid>     target config agent and its conversation identifier
+  --message-file <path>   reads the message from a file (64 KiB at most)
+  --timeout <seconds>     maximum duration, 10 to 3600 (default: 600)
+  --json                  JSON v1 output for integrations
+  --no-export             does not write the .relay.md export
+  --config <path>         explicit config path
+  --trust-config          trusts the resolved config (no question is asked)
+  --language <fr|en>      force language
+
+Limits:
+  The target conversation must be closed: no TUI, desktop, IDE or running exec.
+  Relay between agents whose conversations stay open is not supported.
+
+Conditional guarantees:
+  With the options enforced by Palabre and on verified CLI versions, the target has no
+  write tool, and unmanaged hooks and the notify command are neutralized. MCP servers are
+  neutralized provided the configuration does not change between inspection and resume.
+  These guarantees cover neither administered policies nor unverified CLI versions.
+  During the relayed turn, Codex loses its plugins, connectors and MCP servers; Claude only
+  has read tools. The configuration is not modified.
+
+Effects:
+  Read-only does not mean side-effect free: the enveloped message, the reply and any read
+  tool calls are added to the target conversation history, even after a failure, and
+  Palabre cannot remove them.
+  No automatic resend: not-delivered allows sending again without a duplicate;
+  persisted-no-reply and unknown advise against resending without checking.
+`,
   sessions: `
 Lists checkpoints in the current directory or explicitly deletes one.
 
@@ -475,6 +550,7 @@ Commandes:
   history    Lister les derniers exports
   resume     Reprendre une session interrompue
   sessions   Lister ou supprimer les checkpoints
+  relay      Interroger une conversation Codex ou Claude Code fermee
   context    Scanner le contexte projet
   config     Modifier les parametres par defaut
   doctor     Verifier la config et les outils locaux
@@ -535,6 +611,7 @@ Commands:
   history    List recent exports
   resume     Resume an interrupted session
   sessions   List or delete checkpoints
+  relay      Ask a closed Codex or Claude Code conversation
   context    Scan project context
   config     Edit default settings
   doctor     Check config and local tools
