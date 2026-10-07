@@ -8,7 +8,7 @@ Les exports sont écrits dans `outputDir` (par défaut `.palabre/`) :
 | --- | --- | --- |
 | Débat | `.debate.md` | Sortie terminal, ou `done.outputPath` en NDJSON |
 | Ask | `.ask.md` | Idem |
-| Chat | `.chat.md` | `done.outputPath` après `chat-end` (`null` sans `chat-end`) |
+| Chat | `.chat.md` | `done.outputPath` après `chat-end`, ou export partiel après une erreur ; `null` sinon |
 | Relay | `.relay.md` | `exportPath` du `relay-result` (`null` avec `--no-export`) |
 
 Débat et Ask contiennent une synthèse (consensus, désaccords, actions, conclusion) séparée du transcript ; Chat et Relay n'en ont pas. Un export partiel avec une section `Interruption` signale un échec : le dire à l'utilisateur.

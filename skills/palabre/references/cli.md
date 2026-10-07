@@ -17,12 +17,13 @@ Lire ces contrats plutôt que deviner : la disponibilité est calculée par le C
 Deux agents se répondent avec le sujet, le contexte et l'historique ; synthèse finale par défaut (consensus, désaccords, actions, conclusion).
 
 ```bash
-palabre -s "Sujet du débat" -t 4 --terminal                              # agents par défaut
-palabre codex-claude -s "Critique ce plan" --files docs/plan.md -t 4 --terminal   # preset
-palabre run --subject "Sujet" --agent-a codex --agent-b claude -t 4 --terminal   # agents explicites
-palabre run --subject "Sujet" --agent-a codex --agent-b claude --dry-run --json  # prévisualisation, aucun appel
+palabre run --mode debate -s "Sujet du débat" -t 4 --terminal                                      # agents par défaut
+palabre codex-claude --mode debate -s "Critique ce plan" --files docs/plan.md -t 4 --terminal   # preset
+palabre run --mode debate --subject "Sujet" --agent-a codex --agent-b claude -t 4 --terminal   # agents explicites
+palabre run --mode debate --subject "Sujet" --agent-a codex --agent-b claude --dry-run --json  # prévisualisation, aucun appel
 ```
 
+- **Toujours passer `--mode debate`** : sans lui, `palabre -s`, `palabre run` et les presets suivent `defaults.mode` de l'utilisateur, qui peut être Ask ou Chat. `palabre ask` et `palabre chat` fixent déjà leur parcours.
 - `-t, --turns <1-20>` : **total** de réponses, pas par agent (4 = bon défaut, 6-8 pour un sujet complexe).
 - Arrêt anticipé possible après un tour complet si un accord explicite est détecté ; `--no-early-stop` va au bout.
 - `--role-a`, `--role-b` : rôles temporaires (`implementer`, `reviewer`, `architect`, `scout`, `critic`, `summarizer`).
@@ -57,7 +58,8 @@ Ollama ne lit pas le workspace : il ne voit que le prompt, les fichiers transmis
 ## Checkpoints (Débat et Ask)
 
 ```bash
-palabre codex-claude "Décision importante" --checkpoint --terminal
+palabre codex-claude --mode debate -s "Décision importante" --checkpoint --terminal   # Débat
+palabre ask "Question importante" --agents codex claude --checkpoint --terminal    # Ask
 palabre sessions --json                 # 20 plus récents ; --limit <1-100>
 palabre resume <session-id> --yes --terminal
 palabre sessions delete <session-id> --yes   # seulement à la demande de l'utilisateur

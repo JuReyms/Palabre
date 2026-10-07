@@ -12,7 +12,7 @@ Relay ne fait pas dialoguer deux conversations ouvertes, et ne renvoie rien dans
 - **Cible fermée.** Aucun TUI, desktop, IDE ni exécution ne doit y être attaché. La conversation de l'agent hôte est ouverte : elle ne peut pas être la cible.
 - **Expéditeur déclaratif.** `--from <agent>:<uuid>` est une étiquette recopiée dans l'enveloppe, ni lancée ni vérifiée. Utiliser l'identifiant de votre propre conversation s'il est connu (variables observées, non garanties : `CLAUDE_CODE_SESSION_ID` pour Claude Code récent, `CODEX_THREAD_ID` pour Codex) ; sinon le demander. Ne jamais inventer d'identifiant.
 - **Agent cible** : nom d'un agent CLI Codex ou Claude Code de la config (`codex`, `claude`, `claude-opus`…).
-- **Effet visible.** Le message et la réponse sont ajoutés à l'historique de la cible, même en cas d'échec. Annoncer cet effet à l'utilisateur.
+- **Effet possible sur la cible.** Un relay lancé peut modifier l'historique de la cible : le message, la réponse et les lectures de l'agent y sont ajoutés, et le message peut y rester même sans réponse valide. Annoncer cet effet à l'utilisateur avant de lancer. Après coup, lire `delivery.status` (ci-dessous) pour savoir ce qui est établi : un refus avant lancement (`not-delivered`) n'a rien écrit.
 
 ## Commande
 

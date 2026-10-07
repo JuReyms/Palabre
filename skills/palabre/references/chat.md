@@ -20,13 +20,23 @@ Ne pas simuler la TUI ni analyser son rendu. Utiliser le contrat existant : `--r
 | `{"v":1,"type":"chat-agents"}` | Liste des agents de la config | `chat-agents` |
 | `{"v":1,"type":"chat-end"}` | Termine et écrit l'export `.chat.md` | `done` avec `outputPath` |
 
-Règles vérifiées sur le CLI :
+Règles du CLI :
 - les commandes sont traitées **dans l'ordre**, chacune après la réponse précédente : un fichier de commandes peut donc être envoyé d'un coup ;
 - `content` garde ses sauts de ligne (`\n` dans le JSON) ; une commande doit tenir sur **une seule ligne** ;
-- **une ligne vide termine Chat sans export** ; la fin de stdin aussi (`done` avec `outputPath: null`). Toujours finir par `chat-end` pour obtenir un export ;
+- une ligne vide ou d'espaces est **ignorée** ;
+- `/exit`, `/quit`, `/home` et la **fin de stdin** terminent sans export (`done` avec `outputPath: null`). Toujours finir par `chat-end` pour obtenir un export ;
 - `chat-consult` et `chat-end` exigent au moins un message : sinon, une `notice` est émise et Chat continue ;
 - un agent inconnu donne une `notice`, sans arrêt ;
-- une erreur d'agent arrête Chat avec un code non nul, sans événement `error` ni `done` : le chemin de l'export partiel et l'erreur sont écrits sur stderr.
+- une **erreur d'agent** émet `error` (`phase: "chat"`, `action` `send`, `consult` ou `end`, `agent`, `role`, `kind`, `message`), puis écrit l'export partiel et émet **un seul** `done` avec son chemin (`null` si l'export échoue). Code de sortie 1. Les commandes suivantes ne sont pas traitées ;
+- une **annulation** (Ctrl+C), même pendant l'attente d'un message, suit le même chemin avec `kind: "cancelled"` et le code 130. Au repos, l'erreur ne porte ni `action` ni `agent`. Sans message échangé, `done` porte `null` ;
+- `--dry-run` est **refusé** avant tout événement : code 1, stdout vide, message sur stderr.
+
+Après `start`, attendre donc toujours un `done` unique, puis le code de sortie.
+
+Versions et parcours où ces règles ne valent pas encore :
+- **Palabre 0.16.0 et antérieures** (avant #101) : une ligne vide ferme Chat sans export ; une erreur d'agent arrête le flux sans `error` ni `done`, avec l'export partiel annoncé sur stderr seulement ; `--dry-run` est ignoré et lance une vraie conversation. Vérifier `palabre --version` et éviter les lignes vides dans le flux ;
+- **TUI** (suivi dans #103) : une saisie vide revient à l'accueil sans enregistrer, et l'indicateur d'une consultation affiche le rôle brut de la config au lieu d'un rôle temporaire ;
+- **commande directe sans `--renderer ndjson`** : une annulation pendant l'attente d'un message n'est pas gérée comme en NDJSON. Préférer le flux NDJSON pour piloter Chat.
 
 Exemple (PowerShell ; en bash, utiliser un heredoc) :
 
@@ -53,7 +63,7 @@ Un agent hôte qui exécute des commandes ponctuelles ne peut pas répondre en c
 - `--files <chemins...>`, `--context <chemins...>` : contexte projet, comme en Débat.
 - `--language fr|en`, `--config <chemin>`.
 
-`--dry-run` ne s'applique pas à Chat.
+`--dry-run` n'existe pas pour Chat (refusé depuis #101).
 
 ## Poursuivre après un Débat ou un Ask
 
@@ -66,7 +76,7 @@ palabre chat "Suite du débat sur <sujet>. Synthèse retenue : <synthèse>" --ag
 
 ## Depuis la TUI (utilisateur humain)
 
-`palabre`, puis `/chat`. `/agents <agent>` choisit l'agent actif, `/consult <agent>` demande un avis, `/use <agent>` change d'interlocuteur, `/end` enregistre et termine, `/home` revient sans enregistrer.
+`palabre`, puis `/chat`. `/agents <agent>` choisit l'agent actif, `/consult <agent>` demande un avis, `/use <agent>` change d'interlocuteur, `/end` enregistre et termine, `/home` revient sans enregistrer. Une saisie vide revient aussi à l'accueil sans enregistrer (#103).
 
 ## Export
 

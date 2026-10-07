@@ -64,6 +64,11 @@ for (const requiredTerm of [
 ]) {
   if (!combined.includes(requiredTerm)) fail(`missing current CLI concept: ${requiredTerm}`);
 }
+// `palabre -s`, `palabre run` et les presets suivent `defaults.mode` de l'utilisateur (Débat, Ask
+// ou Chat) : un exemple doit fixer son parcours avec `--mode`.
+for (const example of combined.matchAll(/palabre (?:run|-s|[a-z]+-[a-z]+) [^`\n]+/g)) {
+  if (!example[0].includes("--mode")) fail(`example must set --mode explicitly: ${example[0].trim()}`);
+}
 
 const metadata = files.get("agents/openai.yaml");
 if (metadata && (!/display_name: "Palabre"/.test(metadata) || !/short_description: ".{25,64}"/.test(metadata) || !/default_prompt: "Use \$palabre /.test(metadata))) {

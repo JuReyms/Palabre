@@ -26,8 +26,10 @@ The skill is a folder: [`skills/palabre`](https://github.com/JuReyms/Palabre/tre
 | Agent | For all your projects | For one project |
 |-------|-----------------------|-----------------|
 | Claude Code | `~/.claude/skills/palabre/` | `.claude/skills/palabre/` |
-| Codex | `~/.codex/skills/palabre/` | `.agents/skills/palabre/` |
+| Codex | `~/.agents/skills/palabre/` | `.agents/skills/palabre/` |
 | Hermes Agent | `hermes skills install JuReyms/Palabre/skills/palabre` | — |
+
+For Codex, `~/.agents/skills/` is the user location given by the [Codex documentation](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills). The older `~/.codex/skills/` location is still read by Codex 0.151.0.
 
 For Claude desktop or another agent, follow its own skill-install procedure pointing at this folder.
 
@@ -42,7 +44,7 @@ An agent loads its skill list when a session starts or resumes. After installing
 | Claude Code 2.1.85 and 2.1.292 | Skill visible | Skill visible |
 | Codex 0.151.0 | Skill visible | Skill visible |
 
-These behaviors were verified in non-interactive mode (`claude -p`, `codex exec`), with a project skill and throwaway sessions. They may change with other versions. If the agent does not mention Palabre, remind it that the `palabre` skill is available.
+These behaviors were verified in non-interactive mode (`claude -p`, `codex exec`), with a project skill and throwaway sessions. User locations, the TUI, desktop apps, and IDEs were not verified. These behaviors may change with other versions. If the agent does not mention Palabre, remind it that the `palabre` skill is available.
 
 Keep a single active copy of the skill. If an older version is also installed, for example a `palabre` skill added to your Claude account and then synced, the agent may follow the older one: update or remove it.
 

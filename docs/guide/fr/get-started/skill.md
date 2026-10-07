@@ -26,8 +26,10 @@ Le skill est un dossier : [`skills/palabre`](https://github.com/JuReyms/Palabre/
 | Agent | Pour tous vos projets | Pour un seul projet |
 |-------|-----------------------|---------------------|
 | Claude Code | `~/.claude/skills/palabre/` | `.claude/skills/palabre/` |
-| Codex | `~/.codex/skills/palabre/` | `.agents/skills/palabre/` |
+| Codex | `~/.agents/skills/palabre/` | `.agents/skills/palabre/` |
 | Hermes Agent | `hermes skills install JuReyms/Palabre/skills/palabre` | — |
+
+Pour Codex, `~/.agents/skills/` est l'emplacement utilisateur indiqué par la [documentation de Codex](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills). L'ancien emplacement `~/.codex/skills/` reste lu par Codex 0.151.0.
 
 Pour Claude desktop ou un autre agent, suivez sa procédure d'installation de skills en pointant vers ce dossier.
 
@@ -42,7 +44,7 @@ Un agent charge la liste des skills quand une session démarre ou reprend. Aprè
 | Claude Code 2.1.85 et 2.1.292 | Skill visible | Skill visible |
 | Codex 0.151.0 | Skill visible | Skill visible |
 
-Ces comportements ont été vérifiés en mode non interactif (`claude -p`, `codex exec`), avec un skill de projet et des sessions jetables. Ils peuvent changer avec d'autres versions. Si l'agent ne mentionne pas Palabre, rappelez-lui que le skill `palabre` est disponible.
+Ces comportements ont été vérifiés en mode non interactif (`claude -p`, `codex exec`), avec un skill de projet et des sessions jetables. Les emplacements utilisateur, la TUI, les applications de bureau et les IDE n'ont pas été vérifiés. Ces comportements peuvent changer avec d'autres versions. Si l'agent ne mentionne pas Palabre, rappelez-lui que le skill `palabre` est disponible.
 
 Une seule copie du skill doit rester active. Si une ancienne version est aussi installée, par exemple un skill `palabre` ajouté à votre compte Claude puis synchronisé, l'agent peut suivre l'ancienne : mettez-la à jour ou retirez-la.
 

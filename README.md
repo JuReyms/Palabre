@@ -100,7 +100,7 @@ The NDJSON v1 stream is treated as a public integration API. Compatible addition
 
 PALABRE ships a ready-to-use skill that teaches an AI agent that Palabre is available, when to use it, and which path to choose: Chat, Debate, Ask, or Relay. It follows the open [agentskills.io](https://agentskills.io) standard, so it is portable across Claude Code, Codex, Hermes Agent, and any skills-compatible agent.
 
-Copy the `skills/palabre` folder to `~/.claude/skills/` (Claude Code) or `~/.codex/skills/` (Codex), or install it in **Hermes Agent**:
+Copy the `skills/palabre` folder to `~/.claude/skills/` (Claude Code) or `~/.agents/skills/` (Codex), or install it in **Hermes Agent**:
 
 ```bash
 hermes skills install JuReyms/Palabre/skills/palabre
@@ -227,7 +227,7 @@ Le flux NDJSON v1 est traité comme une API publique d'intégration. Les ajouts 
 
 PALABRE fournit un skill prêt à l'emploi qui apprend à un agent IA que Palabre est disponible, quand l'utiliser et quel parcours choisir : Chat, Débat, Ask ou Relay. Il suit le standard ouvert [agentskills.io](https://agentskills.io) : il est donc portable entre Claude Code, Codex, Hermes Agent et tout agent compatible skills.
 
-Copiez le dossier `skills/palabre` dans `~/.claude/skills/` (Claude Code) ou `~/.codex/skills/` (Codex), ou installez-le dans **Hermes Agent** :
+Copiez le dossier `skills/palabre` dans `~/.claude/skills/` (Claude Code) ou `~/.agents/skills/` (Codex), ou installez-le dans **Hermes Agent** :
 
 ```bash
 hermes skills install JuReyms/Palabre/skills/palabre

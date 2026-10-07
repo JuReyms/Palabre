@@ -20,7 +20,7 @@ Quand l'utilisateur le demande explicitement (« lance un palabre », « fais d�
 | Besoin | Parcours | Commande de départ |
 | --- | --- | --- |
 | Avancer avec un agent, clarifier, poursuivre après une synthèse ; second avis ponctuel | **Chat** | `palabre chat --agent-a <agent> --renderer ndjson` (commandes JSON sur stdin) |
-| Confronter deux positions et travailler les désaccords | **Débat** | `palabre -s "<sujet>" -t 4 --terminal` |
+| Confronter deux positions et travailler les désaccords | **Débat** | `palabre run --mode debate -s "<sujet>" -t 4 --terminal` |
 | Avis indépendants (1 à 4 agents), sans influence mutuelle | **Ask** | `palabre ask "<sujet>" --agents <a> <b> --terminal` |
 | Interroger une conversation Claude Code ou Codex **fermée** qui a déjà le contexte | **Relay** | `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> "<message>" --json` |
 
@@ -33,7 +33,7 @@ Repères :
 
 - **La session de l'agent hôte** (Claude Code, Codex) : gérée par l'hôte, pas par Palabre.
 - **Checkpoints Palabre** : Débat et Ask seulement, avec `--checkpoint`, puis `palabre sessions` et `palabre resume <id> --yes`. Chat n'a pas de checkpoint : sa mémoire vit dans le processus et se perd à sa fin.
-- **Relay** : Palabre reprend la conversation **d'un fournisseur** (Claude Code ou Codex) pour un seul échange. Il modifie l'historique de cette conversation.
+- **Relay** : Palabre reprend la conversation **d'un fournisseur** (Claude Code ou Codex) pour un seul échange. Il peut en modifier l'historique : `delivery.status` dit ce qui est établi.
 
 ## Garde-fous
 
