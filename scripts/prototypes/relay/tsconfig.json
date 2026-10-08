@@ -1,0 +1,8 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "../../..",
+    "outDir": "../../../.tmp/relay-open"
+  },
+  "include": ["open-response.ts", "open-response.test.ts"]
+}
