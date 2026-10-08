@@ -66,7 +66,7 @@ src/sessionCheckpoint.ts  Contrat JSON v1 et stockage atomique des checkpoints
 src/sessionInventory.ts   Liste bornée et suppression ciblée des checkpoints
 src/sessionCheckpointRuntime.ts Writer runtime neuf ou repris
 src/sessionResume.ts      Validation et reconstruction stricte de `palabre resume`
-src/externalSessions/     Relay vers une session externe : socle (types, lancement, enveloppe, issues), contrat d'adapter, adapters Claude Code et Codex ; relay --open (B1) : openReader (corrélation pure), openRollout (lectures bornées), codexQueue (dépôt), openRelay (déroulé)
+src/externalSessions/     Relay vers une session externe : socle (types, lancement, enveloppe, issues), contrat d'adapter, adapters Claude Code et Codex ; relay --open (B1) : openReader (corrélation pure), openRollout (lectures bornées), codexQueue (dépôt), openRelay (déroulé) ; lecteur Claude (B2.1, non branché) : claudeOpenReader (corrélation pure)
 src/tuiController.ts      Controleur des flows de configuration TUI
 src/args.ts               Parseur d'arguments CLI (table d'arite des flags)
 src/launchDispatch.ts     Decision de lancement d'une commande run : accueil TUI ou Chat direct selon le mode effectif
@@ -1078,6 +1078,13 @@ Relay vers une conversation ouverte (#96, B1, `palabre relay --open`) : le contr
 `tests/relay-command.test.ts` utilisent des historiques factices, une horloge simulée, un faux
 `codex queue` et, sous Windows, un verrou tenu par le test : aucun agent réel, aucun quota. Les
 sondes locales `open-*.mjs` ne sont pas versionnées ni lancées par `pnpm test`.
+
+Lecteur Claude d'une conversation ouverte (#96, B2.1) : contrat dans
+`scripts/prototypes/relay/CONTRAT-B2.md`, code dans `src/externalSessions/claudeOpenReader.ts`, fonction
+pure non branchée à une commande. `tests/external-sessions-claude-open.test.ts` utilise des transcripts
+factices et un squelette anonymisé d'un transcript Claude desktop jetable
+(`tests/fixtures/external-sessions/claude-open-peer-turns.jsonl` : champs structurels, identifiants et
+textes synthétiques). Aucun envoi, aucun appel de modèle.
 
 Avant de livrer une modification :
 
