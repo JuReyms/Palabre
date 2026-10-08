@@ -5,7 +5,7 @@ Statut au 8 octobre 2026 :
 - **B2.2a** (transport par un messager gardé, pilote Windows) : implémenté avec des tests sans
   quota, en relecture. La sémantique réelle des permissions n'est **pas** démontrée ;
 - **B2.3** (essais réels jetables, puis notre conversation active avec accord au moment même) :
-  soumis à un accord séparé.
+  soumis à un accord séparé ; protocole proposé dans `PROTOCOLE-B23.md`, non lancé.
 
 Rien n'est publié. #96 reste ouverte.
 
@@ -373,6 +373,12 @@ y échoue, l'envoi est refusé.
 
 ## B2.3 (accord séparé)
 
-Les essais réels jetables reprennent la liste du plan B2.2. Ensuite seulement vient notre
-conversation active, avec un accord au moment même. L'éventuelle promotion vers `not-delivered`
+Protocole proposé, non lancé : `PROTOCOLE-B23.md`. Il couvre :
+- des conversations jetables seulement, dans une racine dédiée, avec un manifeste vérifié avant
+  chaque envoi ;
+- la liste des essais : nominal, garde consulté, pannes du garde, unicité, modes de la cible,
+  cible occupée, Claude desktop ;
+- un budget plafonné et des critères d'arrêt.
+
+Ensuite seulement vient notre conversation active, avec un accord au moment même. L'éventuelle promotion vers `not-delivered`
 ne sera examinée qu'après ces essais.
