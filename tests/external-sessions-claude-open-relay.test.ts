@@ -294,7 +294,8 @@ describe("B2.2 : refus avant tout envoi (not-delivered)", () => {
     const result = await h.run();
     assert.equal(result.outcome.status, "cancelled");
     assert.equal(result.delivery.status, "unknown");
-    assert.match(result.messenger.diagnostic ?? "", /guard-revocation-failed/);
+    // Même séparateur que les autres diagnostics du messager.
+    assert.equal(result.messenger.diagnostic, "messenger-cancelled,guard-revocation-failed");
     assert.equal(getEventListeners(h.controller.signal, "abort").length, 0);
   });
 });

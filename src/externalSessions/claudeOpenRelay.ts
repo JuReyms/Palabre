@@ -306,7 +306,7 @@ export async function runClaudeOpenRelay(input: ClaudeOpenRelayInput, deps: Clau
     }
     input.onAttempt?.();
     const result = await settleAfterLaunch(run, stateDir, located.transcriptPath, baseline);
-    if (revocationFailed) result.messenger.diagnostic = [result.messenger.diagnostic, "guard-revocation-failed"].filter(Boolean).join(";");
+    if (revocationFailed) result.messenger.diagnostic = [result.messenger.diagnostic, "guard-revocation-failed"].filter(Boolean).join(",");
     return result;
   } finally {
     input.signal.removeEventListener("abort", revoke);
