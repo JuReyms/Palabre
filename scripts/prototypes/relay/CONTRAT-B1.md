@@ -21,7 +21,8 @@ essais listés plus bas. Les shims pnpm (#109) restent un chantier distinct.
 
 Sources : [bilan de Claude](https://github.com/JuReyms/Palabre/issues/96#issuecomment-6048846894),
 [revue indépendante](https://github.com/JuReyms/Palabre/issues/96#issuecomment-6048964688),
-[relecture de ce contrat](https://github.com/JuReyms/Palabre/pull/110#issuecomment-6049573390).
+[relecture de ce contrat](https://github.com/JuReyms/Palabre/pull/110#issuecomment-6049573390),
+[relecture des corrections](https://github.com/JuReyms/Palabre/pull/110#issuecomment-6049723456).
 
 ## Décisions proposées
 
@@ -118,6 +119,12 @@ S'il précède la référence ou le début du tour, il ne participe pas à l'éc
 apparaît pendant le tour relayé, même avant le message relayé, le lecteur conserve l'ambiguïté
 `unbound-concurrent-user`. Aucun préfixe textuel n'est une preuve de provenance système, et
 aucune liste d'exemptions n'est ajoutée sans critère observé et vérifiable.
+Dans la trace jetable relue par Claude, ce contexte est écrit **après `task_started` au premier
+tour** ; dans le tour relayé observé, Codex écrit un message de rôle `developer`. Ce dernier est
+ignoré pour la preuve de réception et le contrôle des saisies concurrentes, comme tout message
+de ce rôle : il ne devient ni une saisie utilisateur ni une réponse d'agent. Un contexte `user`
+injecté dans un tour relayé reste à observer lors des essais réels ; les cas factices ne prouvent
+pas sa fréquence ni ses déclencheurs.
 
 Dans la trace réelle sont observés `task_started`, les deux `item_completed` et `task_complete`
 avec `last_agent_message`, sans `thread_id` ni `status` sur cette terminaison. Les noms `error`,
@@ -133,6 +140,43 @@ seulement les fenêtres du fichier fourni ; aucun des deux ne dépose de message
 verrou ou ne pilote d'agent. Les statuts internes `awaiting-*`, `failed`, `ambiguous` et `unreadable` **ne sont
 pas de nouveaux statuts CLI**. L'intégration devra garder les raisons de diagnostic et les
 preuves antérieures. Les types et statuts du produit restent inchangés.
+
+### Arrêt de l'attente et exceptions du collecteur
+
+Le futur lot transport doit appliquer cette politique, sans relancer le dépôt :
+
+| Observation | Politique d'attente |
+| --- | --- |
+| `awaiting-message`, `awaiting-reply` | Continuer les lectures dans le budget total, sauf délai ou annulation. |
+| `replied` | Arrêter et rendre uniquement la réponse corrélée. |
+| `failed`, `ambiguous` | Arrêter sans réponse ; ne pas attendre une hypothétique clarification ultérieure. |
+| `unreadable` | Arrêter sans réponse ; ne pas réessayer la lecture dans cette tentative. |
+
+Ces choix sont une politique prudente du relay, pas une affirmation que les fichiers du
+fournisseur ne peuvent jamais être réparés ou complétés. Une ambiguïté, y compris
+`envelope-altered`, met fin à cette tentative. Une dernière ligne partielle normalement en
+cours d'écriture reste ignorée par le lecteur et donne `awaiting-*` tant qu'aucune observation
+terminale n'existe ; elle n'est pas à elle seule une erreur `unreadable`.
+
+Après **chaque** observation, mémoriser toute preuve `persisted: true`, y compris pendant
+`awaiting-reply`. À l'arrêt, au délai ou à l'annulation, appeler `settleOpenDelivery` avec cette
+preuve antérieure et l'état de tentative. Une lecture illisible ne l'efface jamais : après dépôt,
+`unreadable` donne `unknown` sans preuve, ou `persisted-no-reply` avec une preuve antérieure.
+
+`captureOpenRollout` et `readOpenRollout` lèvent des exceptions, contrairement à
+`inspectOpenReply`. L'appelant futur doit les traduire selon la frontière de dépôt :
+
+| Moment de l'exception | Traduction requise |
+| --- | --- |
+| Avant toute tentative de dépôt | Refus et aucun appel `queue` : `not-delivered`, sous réserve d'une preuve contradictoire conformément à `settleOpenDelivery`. |
+| Dès que le dépôt a été tenté, y compris avant son accusé | Observation `unreadable`, `persisted: unknown`, sans réponse, arrêt de l'attente ; `unknown` sans preuve antérieure, `persisted-no-reply` si une preuve est conservée. |
+
+Cette règle couvre les erreurs explicites (`history-replaced`, `added-too-large`,
+`identity-incomplete`, `baseline-incomplete`…) et les exceptions de lecture, d'ouverture ou de
+décodage. Le diagnostic doit garder la catégorie utile sans exposer le contenu brut ou un chemin
+privé provenant de l'exception. Ni une exception ni l'annulation ne prouvent que la file a
+supprimé le message. La boucle d'attente et cette traduction ne sont **pas implémentées** dans
+ce lot : leur comportement doit être vérifié avec les tests du futur transport.
 
 Commande reproductible, comprise dans `pnpm test` et la CI :
 
@@ -167,6 +211,10 @@ implémentés ; les essais doivent couvrir Unicode hors BMP, guillemets, antisla
 - [ ] Définition vérifiable du récepteur compatible ; le verrou seul ne suffit pas.
 - [ ] Essais jetables : cible déjà en génération, deux messages en file, message long et
       multiligne, saisie humaine concurrente, fermeture entre sonde et dépôt.
+- [ ] Contexte `user` injecté après `task_started` dans un tour relayé : relever sa forme et
+      vérifier l'ambiguïté prudente ; distinguer les messages `developer`, ignorés par la corrélation.
+- [ ] Boucle d'attente : arrêt sur les observations terminales, exceptions avant/après tentative
+      de dépôt correctement traduites et preuve de réception antérieure conservée.
 - [ ] Timeout et Ctrl+C après acceptation : pas de succès inventé, de nouvelle reprise ni de
       renvoi automatique ; présence éventuelle en file correctement signalée. Relever les formats
       exacts d'échec et d'annulation au lieu de présenter les événements factices comme vérifiés.

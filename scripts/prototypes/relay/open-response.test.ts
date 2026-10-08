@@ -80,6 +80,25 @@ describe("B1 : le tour doit commencer après la référence", () => {
       assert.equal(observe(rows).reason, "unbound-concurrent-user");
     });
   }
+  for (const beforeRelay of [true, false]) {
+    test(`message developer pendant le tour, ${beforeRelay ? "avant" : "après"} le relay : aucune saisie concurrente`, () => {
+      const context = user("<environment_context>nouveau dossier</environment_context>");
+      (context.payload as Row).role = "developer";
+      const rows = beforeRelay ? [context, ...success()] : [user(), bound(), context, final(), complete()];
+      const result = observe(rows);
+      assert.equal(result.status, "replied");
+      assert.equal(result.reply, "Réponse finale.\nÉté « intact ».");
+    });
+  }
+  test("le nonce dans un message developer ne prouve pas la réception du relay", () => {
+    const context = user(ENVELOPE);
+    (context.payload as Row).role = "developer";
+    const result = observe([context, final(), complete()]);
+    assert.equal(result.status, "awaiting-message");
+    assert.equal(result.persisted, false);
+    assert.equal(result.reply, undefined);
+    assert.equal(settleOpenDelivery(result, true).status, "unknown");
+  });
   for (const changed of [ENVELOPE.replaceAll("\n", "\r\n"), ENVELOPE.replace("De :", "De  :"), ENVELOPE.slice(0, -10)]) {
     test("enveloppe modifiée avec nonce : diagnostic explicite, sans preuve ni réponse", () => {
       const result = observe([user(changed), bound("turn-a", changed), final(), complete()]);
