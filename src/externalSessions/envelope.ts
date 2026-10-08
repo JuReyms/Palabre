@@ -78,15 +78,22 @@ export function buildEnvelope(input: { from: SessionRef; nonce: string; message:
 /**
  * Enveloppe de `--open` (B1) : la cible garde ses outils et permissions. Le texte annonce un
  * expéditeur déclaré non authentifié et une demande d'un autre agent, jamais une autorisation
- * humaine. Le nonce figure dans l'en-tête : le lecteur exige l'enveloppe exacte.
+ * humaine. Le nonce figure dans l'en-tête : le lecteur exige l'enveloppe exacte. Vers Claude
+ * (B2.2), la consigne de réponse demande de répondre dans la conversation, sans `SendMessage`.
  */
-export function buildOpenEnvelope(input: { from: SessionRef; nonce: string; message: string }, messages: RelayMessages): string {
+export function buildOpenEnvelope(
+  input: { from: SessionRef; nonce: string; message: string },
+  messages: RelayMessages,
+  provider: "codex" | "claude" = "codex"
+): string {
   const open = messages.openEnvelope;
   return [
     open.header(input.nonce),
     open.from(input.from.agent, input.from.sessionId),
     open.notice,
-    open.replyHint,
+    // Une cible Claude pourrait répondre par SendMessage au messager, déjà terminé : la réponse
+    // est demandée dans la conversation, où le lecteur la corrèle.
+    provider === "claude" ? open.claudeReplyHint : open.replyHint,
     "",
     input.message
   ].join("\n");

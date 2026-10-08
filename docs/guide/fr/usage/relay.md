@@ -1,6 +1,6 @@
 ---
 title: Relay vers une conversation
-description: Transmettre un message à une conversation Codex ou Claude Code fermée, ou à une conversation Codex ouverte avec --open, et récupérer sa réponse avec palabre relay.
+description: Transmettre un message à une conversation Codex ou Claude Code fermée, ou à une conversation ouverte avec --open, et récupérer sa réponse avec palabre relay.
 seo:
   title: palabre relay, interroger une conversation Codex ou Claude Code
   description: Envoyer un message à une conversation Codex ou Claude Code existante, fermée, et recevoir sa réponse en un seul appel, en lecture seule renforcée.
@@ -16,7 +16,7 @@ palabre relay --from codex:<session-expéditeur> --to claude:<session-cible> "Pe
 
 Sans `--open`, la conversation cible doit être **fermée** : aucun TUI, desktop, IDE ni exécution en cours ne doit y être attaché. Sinon, le relay est refusé avant tout envoi (`target-busy`). Il est aussi refusé quand Palabre ne peut pas vérifier l'état de la conversation (`target-state-unknown`).
 
-Pour une conversation Codex **ouverte**, utilisez `--open` (section suivante). Le relay vers une conversation Claude Code ouverte n'est pas encore disponible ; il est suivi dans l'issue [#96](https://github.com/JuReyms/Palabre/issues/96).
+Pour une conversation **ouverte**, utilisez `--open` (sections suivantes) : Codex, ou Claude Code en pilote expérimental, sous Windows.
 
 ## Conversation Codex ouverte (`--open`)
 
@@ -36,6 +36,21 @@ Avec `--open`, Palabre dépose le message dans une conversation Codex **ouverte*
 
 Versions vérifiées : Codex CLI 0.151.0 (TUI) et Codex desktop 26.930.7945.0 (app-server 0.160.1). Le format de l'historique de Codex n'est pas un schéma public : une autre version n'est pas bloquée, mais la corrélation de la réponse n'y est pas garantie.
 
+## Conversation Claude Code ouverte (`--open`, pilote expérimental)
+
+```bash
+palabre relay --open --from codex:<session-expéditeur> --to claude:<session-cible> "Peux-tu relire ce plan ?"
+```
+
+Quand l'agent cible est Claude Code, `--open` envoie le message à une conversation **ouverte** (terminal ou Claude desktop) par la messagerie entre sessions de Claude Code. Palabre lance pour cela un messager `claude -p` (modèle `haiku`), puis lit la réponse dans le transcript de la conversation. C'est un **pilote expérimental**, réservé à Windows, qui demande Claude Code 2.1.292 ou plus récent. Ses garanties n'ont pas encore été vérifiées sur la vraie CLI.
+
+- **Envoi contrôlé par Palabre.** Le messager ne peut envoyer qu'avec l'accord d'un garde fourni par Palabre. Le garde autorise un seul envoi, vers la conversation prévue, avec le texte exact du message. Le modèle du messager ne voit jamais votre message.
+- **La conversation doit être ouverte et identifiable.** Palabre la cherche dans la liste des sessions vivantes (`claude agents`) : absente, le relay est refusé (`target-not-open`) ; si son nom est partagé par une autre session ou si la liste est illisible, aussi (`target-state-unknown`). Une conversation ne peut pas se relayer un message à elle-même.
+- **Réception selon les réglages de la cible.** Une conversation en mode « contourner les permissions », ou réglée pour garder ou refuser les messages des autres sessions, peut ne jamais recevoir le message. Palabre l'indique alors comme « réception non observée », avec une délivrance inconnue.
+- **Pas de lecture seule.** La conversation répond avec ses propres outils et permissions.
+- **Conversation occupée.** Si elle travaille déjà, le message se mêle au tour en cours. Palabre ne rend alors pas de réponse, mais indique que le message a été reçu.
+- **Aucun renvoi automatique.** Un message peut être traité plus tard ; ne le renvoyez pas sans vérifier la conversation.
+
 ## Désigner les conversations
 
 - `--to <agent>:<session>` : `<agent>` est le nom d'un agent CLI Codex ou Claude Code de votre configuration (`codex`, `claude`, `claude-opus`…). `<session>` est l'identifiant de la conversation (un UUID).
@@ -50,7 +65,7 @@ Aucune conversation n'est choisie implicitement.
 | Option | Rôle |
 | --- | --- |
 | `"<message>"` ou `--message-file <chemin>` | Le message, 64 Kio au plus. Utilisez un fichier pour un message qui commence par `-`. |
-| `--open` | Vise une conversation Codex ouverte (voir plus haut). |
+| `--open` | Vise une conversation ouverte : Codex, ou Claude Code en pilote expérimental (voir plus haut). |
 | `--timeout <secondes>` | Délai maximal, de 10 à 3600 secondes (600 par défaut). |
 | `--json` | Un seul objet JSON v1 sur stdout, quelle que soit l'issue. |
 | `--no-export` | N'écrit pas l'export `.relay.md`. |
@@ -134,7 +149,9 @@ Avec `--open` seulement, l'objet ajoute des champs optionnels :
 - `queue` : `attempted` (un dépôt a été tenté), `accepted` (`true` pour un accusé reconnu, `"unknown"` sans preuve, `false` seulement si votre Codex ne connaît pas `queue`), `itemId` et `diagnostic` ;
 - `correlation` : statut et raison de la lecture de l'historique ;
 - `receiver` : toujours `"unverified"` ;
-- `targetPermissions` : approbation, bac à sable et réseau appliqués au tour relayé, ou `"unknown"`.
+- `targetPermissions` : approbation, bac à sable et réseau appliqués au tour relayé (Codex), mode de permissions au début du tour (Claude), ou `"unknown"`.
+
+Vers Claude Code, `messenger` remplace `queue` : `attempted`, `guard` (garde chargé ou non), `guardConsulted`, `sendAllowed` (`true`, `false` ou `"unknown"`), `toolResult`, `model` et `diagnostic`. Ce sont des diagnostics, pas des preuves de réception. `queued` indique que la mise en file du message a été observée.
 
 Si l'enveloppe n'est pas retrouvée dans l'historique après un dépôt, le message d'erreur indique « réception non observée » : le message peut encore être traité plus tard.
 

@@ -208,9 +208,13 @@ export interface RelayExport {
   message: string;
   reply?: string;
   error?: string;
-  /** Diagnostic de `--open` (B1) ; absent sans `--open`, ce qui laisse l'export Relay A inchangé. */
+  /**
+   * Diagnostic de `--open` ; absent sans `--open`, ce qui laisse l'export Relay A inchangé. `queue`
+   * est propre à Codex (B1), `messenger` à Claude (B2.2).
+   */
   open?: {
-    queue: string;
+    queue?: string;
+    messenger?: string;
     correlation: string | null;
     receiver: string;
     targetPermissions: string | null;
@@ -250,7 +254,8 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     ...(report.open
       ? [
         [labels.mode, "open"],
-        [labels.queue, report.open.queue],
+        ...(report.open.queue !== undefined ? [[labels.queue, report.open.queue]] : []),
+        ...(report.open.messenger !== undefined ? [[labels.messenger, report.open.messenger]] : []),
         [labels.correlation, report.open.correlation ?? labels.none],
         [labels.receiver, report.open.receiver],
         [labels.targetPermissions, report.open.targetPermissions ?? labels.unknown]
@@ -264,7 +269,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     "| --- | --- |",
     ...rows.map(([label, value]) => `| ${escapeTableCell(label!)} | ${escapeTableCell(value!)} |`),
     "",
-    `> ${report.open ? labels.openNotice : labels.readOnlyNotice}`,
+    `> ${report.open ? (report.to.provider === "claude" ? labels.openClaudeNotice : labels.openNotice) : labels.readOnlyNotice}`,
     "",
     `## ${labels.message}`,
     "",

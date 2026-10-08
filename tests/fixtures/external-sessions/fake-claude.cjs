@@ -14,6 +14,11 @@
 const fs = require("node:fs");
 
 const argv = process.argv.slice(2);
+// `--open` (B2.2) : version, registre, dossier des transcripts et messager gardé.
+if (argv[0] === "--version" || argv[0] === "agents" || argv[0] === "auth" || argv.includes("--permission-prompt-tool")) {
+  require("./fake-claude-open.cjs");
+  return;
+}
 const mode = process.env.FAKE_CLAUDE_MODE || "ok";
 const OTHER = "99999999-9999-4999-8999-999999999999";
 const target = argv[argv.indexOf("--resume") + 1];

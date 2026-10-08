@@ -39,6 +39,19 @@ async function readIdentity(file: FileHandle, size: number): Promise<string> {
   throw new Error(size >= OPEN_READ_LIMITS.firstLineBytes ? "identity-too-large" : "identity-incomplete");
 }
 
+/**
+ * Première ligne terminée d'un historique, plafonnée à 1 Mio, sans lire le reste du fichier.
+ * Partagée avec la localisation du transcript Claude de B2.
+ */
+export async function readOpenFirstLine(filename: string, openFile: OpenFile = open): Promise<string> {
+  const file = await openFile(filename, "r");
+  try {
+    const stat = await file.stat();
+    if (!stat.isFile() || !Number.isSafeInteger(stat.size)) throw new Error("invalid-history");
+    return await readIdentity(file, stat.size);
+  } finally { await file.close(); }
+}
+
 /** Rollout localisé pour B1 : chemin et dossier de travail, lus dans la seule première ligne. */
 export type OpenLocateResult =
   | { status: "found"; historyPath: string; cwd: string }
