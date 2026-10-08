@@ -34,10 +34,19 @@ function fakeCli(capture: string): string {
 }
 
 /**
- * Dossier de binaires pnpm jetable : shim `.ps1`, wrapper `.cmd` voisin (qui échoue s'il est lancé)
- * et fausse CLI. `link` place le script hors du dossier du shim, comme `pnpm link --global`.
+ * Fausse CLI pour un prompt écrit dans le pseudo-terminal : lecture en mode brut, puis capture
+ * après 800 ms sans nouvelle donnée (le terminal n'a pas de fin d'entrée).
  */
-function pnpmBin(options: { link?: boolean; shim?: (script: string) => string; extra?: Record<string, string>; withScript?: boolean } = {}) {
+function fakePtyStdinCli(capture: string): string {
+  return `let input='',idle;const done=()=>{require('fs').writeFileSync(${JSON.stringify(capture)},JSON.stringify({argv:process.argv.slice(2),stdin:input,nodePath:process.env.NODE_PATH??null}));process.stdout.write('ok');process.exit(0)};if(process.stdin.isTTY)process.stdin.setRawMode(true);process.stdin.setEncoding('utf8');process.stdin.on('data',c=>{input+=c;clearTimeout(idle);idle=setTimeout(done,800)});`;
+}
+
+/**
+ * Dossier de binaires pnpm jetable : shim `.ps1`, wrapper `.cmd` voisin (qui échoue s'il est lancé)
+ * et fausse CLI. `link` place le script hors du dossier du shim, comme `pnpm link --global` ;
+ * `ptyStdin` installe la fausse CLI qui lit le prompt écrit dans le pseudo-terminal.
+ */
+function pnpmBin(options: { link?: boolean; ptyStdin?: boolean; shim?: (script: string) => string; extra?: Record<string, string>; withScript?: boolean } = {}) {
   const base = path.join(root, `case-${++counter}`);
   const dir = path.join(base, "pnpm");
   const capture = path.join(base, "capture.json");
@@ -47,7 +56,7 @@ function pnpmBin(options: { link?: boolean; shim?: (script: string) => string; e
     "fake.cmd": "@echo off\r\nexit /b 99\r\n",
     ...options.extra
   };
-  if (options.withScript !== false) files[script] = fakeCli(capture);
+  if (options.withScript !== false) files[script] = options.ptyStdin ? fakePtyStdinCli(capture) : fakeCli(capture);
   for (const [name, content] of Object.entries(files)) {
     const file = path.resolve(dir, name);
     mkdirSync(path.dirname(file), { recursive: true });
@@ -226,6 +235,20 @@ describe("adapters Windows : shim pnpm lancé via Node, sans PowerShell", () => 
     const seen = bin.capture();
     assert.deepEqual(seen.argv.slice(0, 4), STRUCTURED_ARGS.slice(0, 4));
     assert.match(seen.argv.at(-1) ?? "", /Sujet "cité" & été/);
+    assert.equal(seen.nodePath, `${SHIM_NODE_PATH};C:\\herite`);
+  });
+
+  test("PTY, prompt sur stdin : accents sur plusieurs lignes, JSON avec guillemets, argument - et NODE_PATH", { skip }, async () => {
+    const bin = pnpmBin({ ptyStdin: true });
+    const adapter = new CliPtyAdapter("mock-pty", { type: "cli-pty", command: bin.command, args: STRUCTURED_ARGS, promptMode: "stdin", role: "reviewer", timeoutMs: 20_000 });
+
+    await withInheritedNodePath("C:\\herite", () => adapter.generate(prompt(TOPIC)));
+
+    const seen = bin.capture();
+    assert.deepEqual(seen.argv, STRUCTURED_ARGS);
+    assert.match(seen.stdin, /Une réponse française : été\./);
+    assert.match(seen.stdin, /Deuxième ligne « citée »/);
+    assert.doesNotMatch(seen.stdin, /\?\?/);
     assert.equal(seen.nodePath, `${SHIM_NODE_PATH};C:\\herite`);
   });
 
