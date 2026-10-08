@@ -102,6 +102,20 @@ describe("B1 : le tour doit commencer après la référence", () => {
     ["deux parties", () => { const row = environmentContext(); ((row.payload as Row).content as Row[]).push({ type: "input_text", text: "suite" }); return [row, ...success()]; }],
     ["lié à un UserMessage du même tour", () => { const row = environmentContext(); const text = (((row.payload as Row).content as Row[])[0]!).text as string; return [row, bound("turn-a", text), ...success()]; }]
   ];
+  const limited: Array<[string, string, () => Row[]]> = [
+    ["nonce de la demande dans le contexte", "nonce-in-environment-context",
+      () => [environmentContext("turn-a", undefined, `<environment_context>\n  <note>${NONCE}</note>\n</environment_context>`), ...success()]],
+    ["contextes dupliqués", "multiple-environment-contexts", () => [environmentContext(), environmentContext(), ...success()]],
+    ["contextes distincts", "multiple-environment-contexts",
+      () => [environmentContext(), environmentContext("turn-a", undefined, "<environment_context>\n  <cwd>C:\\autre</cwd>\n</environment_context>"), ...success()]]
+  ];
+  for (const [label, reason, rows] of limited) {
+    test(`environment_context refusé (${label}) : ambigu, sans réponse, réception conservée`, () => {
+      const result = observe(rows());
+      assert.deepEqual(result, { status: "ambiguous", persisted: true, reason, turnId: "turn-a" });
+      assert.deepEqual(settleOpenDelivery(result, true), { status: "persisted-no-reply", persisted: true });
+    });
+  }
   for (const [label, rows] of rejected) {
     test(`environment_context refusé (${label}) : ambiguïté prudente`, () => {
       const result = observe(rows());

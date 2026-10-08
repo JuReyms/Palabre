@@ -11,10 +11,13 @@ Déposer une notification dans une conversation existante ouverte, puis rendre s
 même appelant. L'humain ne copie plus la notification entre les agents ; les décisions et le
 travail restent dans les issues et PR. Un relay reste un message et une réponse, sans boucle.
 
-Le pilote envisagé est Codex dans un **TUI ordinaire sous Windows**. Les traces de Claude et la
-revue indépendante confirment un échange avec Codex 0.151.0. Elles ne démontrent pas les autres
-versions, une cible occupée, les applications desktop ou les IDE. Le mainteneur utilise
-l'application Codex : le pilote TUI seul **ne termine donc pas #96**.
+Le pilote envisagé est Codex sous Windows, dans un TUI ordinaire ou dans **Codex desktop**,
+l'application qu'utilise le mainteneur. Sur des conversations jetables, un échange est vérifié avec
+Codex 0.151.0 (TUI) et avec Codex desktop 26.930.7945.0 (app-server 0.160.1) : cible au repos,
+cible en génération, deux messages successifs, message long et multiligne, et fil fermé, où le
+dépôt est différé jusqu'à l'ouverture. Ces essais ne démontrent ni les autres versions, ni les
+IDE, ni macOS ou Linux, ni Codex desktop comme expéditeur, bloqué par son bac à sable.
+#96 reste ouverte.
 
 Le transport `queue` et le lecteur ne doivent pas être intégrés à la CLI avant les décisions et
 essais listés plus bas. Les shims pnpm (#109) restent un chantier distinct.
@@ -138,12 +141,17 @@ Il n'est toléré que si **toutes** ces conditions sont réunies :
   `["environments.environment_context"]` ;
 - une seule partie textuelle, formée d'un seul bloc `<environment_context>…</environment_context>`
   sans autre texte ;
-- aucune liaison `UserMessage` de ce texte.
+- aucune liaison `UserMessage` de ce texte ;
+- aucune occurrence du nonce de la demande dans ce texte ;
+- une seule exemption par tour.
 
 Une balise seule, une métadonnée absente, d'un autre tour ou mêlée à d'autres types, un texte
 hors du bloc, un contexte après le message relayé ou lié dans le même tour restent ambigus
-(`unbound-concurrent-user` ou `multiple-users-in-turn`). Aucun autre préfixe textuel n'est une
-preuve de provenance système.
+(`unbound-concurrent-user` ou `multiple-users-in-turn`). Un contexte qui cite le nonce donne
+`nonce-in-environment-context`. Un second contexte exemptable dans le même tour, identique ou
+distinct, donne `multiple-environment-contexts`. Dans tous ces cas, aucune réponse n'est rendue
+et la preuve de réception est conservée (`persisted-no-reply` à l'arrêt). Aucun autre préfixe
+textuel n'est une preuve de provenance système.
 
 **Formats d'échec.** Dans les traces réelles sont observés `task_started`, les deux
 `item_completed` et `task_complete` avec `last_agent_message`, sans `thread_id` ni `status`.

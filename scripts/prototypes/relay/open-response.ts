@@ -105,9 +105,9 @@ export function captureOpenBaseline(reference: OpenReference): OpenBaseline {
  *
  * Succès : enveloppe exacte dans un message utilisateur neuf, item UserMessage du même texte
  * lié à la cible et à un tour commencé après l'offset, un seul utilisateur et une seule réponse
- * final_answer dans ce tour, puis task_complete sans `error` avec un texte identique. Seul un
- * contexte d'environnement porteur de la métadonnée du tour, avant le relay, échappe à la règle
- * des saisies non liées. Tout conflit reste explicite.
+ * final_answer dans ce tour, puis task_complete sans `error` avec un texte identique. Un seul
+ * contexte d'environnement par tour, porteur de la métadonnée du tour, sans le nonce et placé
+ * avant le relay, échappe à la règle des saisies non liées. Tout conflit reste explicite.
  * Les anciens event_msg/user_message et agent_message ne suffisent pas à identifier un tour.
  */
 export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): OpenObservation {
@@ -192,6 +192,8 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
   if (final.thread_id !== request.threadId) return observation("ambiguous", "unidentified-final-thread", turnId);
   // Une seconde saisie brute peut manquer d'événement typé. Ne pas supposer alors qu'elle
   // appartient à un autre tour ; seules des liaisons uniques et explicites le démontrent.
+  // Une seule exemption de contexte par tour : un doublon, même identique, reste ambigu.
+  let exemptedContext = false;
   for (const row of fresh.slice(position(starts[0]!) + 1, completionPosition)) {
     if (row === users[0]) continue;
     const payload = object(row.payload);
@@ -201,7 +203,13 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
       const item = object(event.item);
       return text !== undefined && event.type === "item_completed" && item?.type === "UserMessage" && contentText(item.content) === text;
     });
-    if (bindings.length === 0 && fresh.indexOf(row) < userPosition && isTurnEnvironmentContext(payload, turnId)) continue;
+    if (bindings.length === 0 && fresh.indexOf(row) < userPosition && isTurnEnvironmentContext(payload, turnId)) {
+      // Un contexte qui cite le nonce pourrait porter la demande : il n'est jamais exempté.
+      if (text!.includes(request.nonce)) return observation("ambiguous", "nonce-in-environment-context", turnId);
+      if (exemptedContext) return observation("ambiguous", "multiple-environment-contexts", turnId);
+      exemptedContext = true;
+      continue;
+    }
     const binding = bindings[0];
     if (bindings.length !== 1 || !binding || binding.thread_id !== request.threadId
       || typeof binding.turn_id !== "string" || binding.turn_id === "" || binding.turn_id === turnId
