@@ -12,6 +12,10 @@
  * ouverte (verrou tenu). Après la même résolution de config, d'agent et d'exécutable (D21), la
  * localisation est bornée et le dépôt passe par `codex queue` (`runOpenRelay`). La cible garde ses
  * outils et permissions ; les champs JSON propres à `--open` n'apparaissent qu'avec cette option.
+ *
+ * `--open` vers Claude Code (B2.2, pilote Windows) passe par un messager `claude -p` dont le garde
+ * de Palabre est l'hôte de permissions (`runClaudeOpenRelay`) ; le champ `messenger` y remplace
+ * `queue`, propre à Codex.
  */
 import { readFile, stat } from "node:fs/promises";
 import os from "node:os";
@@ -22,6 +26,7 @@ import { configExists, loadConfig, resolveDefaultConfigPath, resolveOutputDir } 
 import { isConfigTrusted, trustConfig } from "../configTrust.js";
 import { exchange, exchangeOutcome, type ExchangeResult, type ExternalExecutable, type ExternalSessionAdapter } from "../externalSessions/adapter.js";
 import { ClaudeSessionAdapter } from "../externalSessions/claude.js";
+import { defaultClaudeOpenRelayDeps, runClaudeOpenRelay, type ClaudeMessengerReport, type ClaudeOpenRelayResult } from "../externalSessions/claudeOpenRelay.js";
 import { CodexSessionAdapter } from "../externalSessions/codex.js";
 import { buildEnvelope, buildOpenEnvelope, createNonce, MAX_RELAY_MESSAGE_BYTES, parseSessionRef, validateRelayMessage } from "../externalSessions/envelope.js";
 import type { OpenTurnContext } from "../externalSessions/openReader.js";
@@ -81,10 +86,17 @@ export interface RelayResultV1 {
    */
   mode?: "open";
   queue?: OpenQueueReport;
+  /** Cible Claude (B2.2) : diagnostic du messager, à la place de `queue`. */
+  messenger?: ClaudeMessengerReport;
+  /** Cible Claude (B2.2) : forme exacte de file observée, diagnostic sans effet sur la délivrance. */
+  queued?: boolean;
   correlation?: { status: string; reason: string };
   receiver?: "unverified";
-  targetPermissions?: Omit<OpenTurnContext, "model"> | "unknown";
+  targetPermissions?: TargetPermissions | "unknown";
 }
+
+/** Permissions relevées dans le seul tour corrélé : Codex (B1) ou Claude (B2.2). */
+type TargetPermissions = Omit<OpenTurnContext, "model"> | { permissionMode: string };
 
 /** État partagé avec le gestionnaire d'erreur interne, pour qualifier la délivrance. */
 interface RelayContext {
@@ -212,6 +224,18 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (resolution.status === "command-not-found") throw new RelayRefusal({ status: "command-not-found" });
   if (resolution.status === "unsupported-executable") throw invalid("unsupported-executable");
 
+  if (context.open && provider === "claude") {
+    if (process.platform !== "win32") throw invalid("unsupported-agent", context.messages.relay.open.claudeWindowsOnly);
+    return relayOpenClaude(context, {
+      to: to.value,
+      from: from.value,
+      message,
+      timeoutMs: timeoutSeconds * 1000,
+      executable: resolution.executable,
+      outputDir: resolveOutputDir(config.outputDir),
+      exportResult: flags["no-export"] !== true
+    });
+  }
   if (context.open) {
     if (provider !== "codex") throw invalid("unsupported-agent", context.messages.relay.open.unsupportedProvider);
     return relayOpen(context, {
@@ -324,6 +348,63 @@ async function relayOpen(
   return result;
 }
 
+/**
+ * `--open` vers Claude Code (B2.2) : messager `claude -p` sous le contrôle du garde, puis réponse
+ * corrélée par le lecteur B2.1. Préconditions, référence, envoi et attente partagent une seule
+ * échéance (`runClaudeOpenRelay`). L'environnement de l'appelant sert à l'auto-ciblage, avant
+ * nettoyage. Aucun renvoi automatique.
+ */
+async function relayOpenClaude(
+  context: RelayContext,
+  input: { to: SessionRef; from: SessionRef; message: string; timeoutMs: number; executable: ExternalExecutable; outputDir: string; exportResult: boolean }
+): Promise<RelayResultV1> {
+  const nonce = createNonce();
+  const envelope = buildOpenEnvelope({ from: input.from, nonce, message: input.message }, context.messages.relay, "claude");
+  const controller = new AbortController();
+  const onInterrupt = () => controller.abort();
+  process.once("SIGINT", onInterrupt);
+  let open: ClaudeOpenRelayResult;
+  try {
+    open = await runClaudeOpenRelay({
+      executable: input.executable,
+      sessionId: input.to.sessionId,
+      envelope,
+      nonce,
+      callerEnv: process.env,
+      timeoutMs: input.timeoutMs,
+      signal: controller.signal,
+      onAttempt: () => { context.exchangeStarted = true; }
+    }, defaultClaudeOpenRelayDeps());
+  } finally {
+    process.removeListener("SIGINT", onInterrupt);
+  }
+  const result = buildResult(context, {
+    outcome: open.outcome,
+    delivery: open.delivery,
+    reply: open.reply,
+    identity: open.identity,
+    observedModels: open.observedModels,
+    message: claudeOpenErrorMessage(open, context.messages),
+    claudeOpen: open
+  });
+  // Un refus avant le lancement du messager n'a rien envoyé : pas d'export.
+  if (input.exportResult && open.messenger.attempted) {
+    result.exportPath = await exportRelay(input.outputDir, result, { nonce, message: input.message, startedAt: context.startedAt }, context.messages);
+  }
+  return result;
+}
+
+/** Message d'erreur de `--open` vers Claude : issue, diagnostic court, réception non observée. */
+function claudeOpenErrorMessage(open: ClaudeOpenRelayResult, messages: Messages): string | undefined {
+  if (open.outcome.status === "replied") return undefined;
+  const relayMessages = messages.relay;
+  const tooLarge = open.outcome.status === "invalid-request" && open.outcome.reason === "message-too-large";
+  const parts = [tooLarge ? relayMessages.open.claudeMessageTooLarge(open.diagnostic ?? "") : errorMessage(open.outcome, messages)];
+  if (open.diagnostic && !tooLarge) parts.push(relayMessages.open.diagnostic(open.diagnostic));
+  if (open.messenger.attempted && !open.receptionObserved) parts.push(relayMessages.open.claudeReceptionNotObserved);
+  return parts.join(" ");
+}
+
 /** Message d'erreur de `--open` : issue, diagnostic court, et réception non observée après tentative. */
 function openErrorMessage(open: OpenRelayResult, messages: Messages): string | undefined {
   if (open.outcome.status === "replied") return undefined;
@@ -336,7 +417,8 @@ function openErrorMessage(open: OpenRelayResult, messages: Messages): string | u
 }
 
 /** Résumé borné des permissions relevées dans le tour corrélé. */
-function permissionsSummary(permissions: Omit<OpenTurnContext, "model">): string {
+function permissionsSummary(permissions: TargetPermissions): string {
+  if ("permissionMode" in permissions) return `permissionMode=${permissions.permissionMode}`;
   return [
     permissions.approvalPolicy ? `approval=${permissions.approvalPolicy}` : undefined,
     permissions.sandbox ? `sandbox=${permissions.sandbox}` : undefined,
@@ -437,16 +519,22 @@ function buildResult(
     /** Message d'erreur déjà composé (mode `--open`), prioritaire sur le message de l'issue. */
     message?: string;
     open?: OpenRelayResult;
+    claudeOpen?: ClaudeOpenRelayResult;
   }
 ): RelayResultV1 {
   const { outcome } = input;
+  // Cible Claude : `messenger` et `queued` à la place de `queue`, propre à Codex.
+  const providerFields: Partial<RelayResultV1> = context.provider === "claude"
+    ? { messenger: input.claudeOpen?.messenger ?? { attempted: false }, queued: input.claudeOpen?.queued ?? false }
+    : { queue: input.open?.queue ?? { attempted: false } };
+  const correlation = input.open?.correlation ?? input.claudeOpen?.correlation;
   const openFields: Partial<RelayResultV1> = context.open
     ? {
       mode: "open",
-      queue: input.open?.queue ?? { attempted: false },
-      ...(input.open?.correlation ? { correlation: input.open.correlation } : {}),
+      ...providerFields,
+      ...(correlation ? { correlation } : {}),
       receiver: "unverified",
-      targetPermissions: input.open?.targetPermissions ?? "unknown"
+      targetPermissions: input.open?.targetPermissions ?? input.claudeOpen?.targetPermissions ?? "unknown"
     }
     : {};
   return {
@@ -495,6 +583,25 @@ async function exportRelay(
       message: input.message,
       reply: result.reply,
       error: result.error?.message,
+      ...(result.mode === "open" && result.messenger
+        ? {
+          open: {
+            messenger: [
+              `attempted=${result.messenger.attempted}`,
+              ...(result.messenger.guard !== undefined ? [`guard=${result.messenger.guard}`] : []),
+              ...(result.messenger.guardConsulted !== undefined ? [`guardConsulted=${result.messenger.guardConsulted}`] : []),
+              ...(result.messenger.sendAllowed !== undefined ? [`sendAllowed=${result.messenger.sendAllowed}`] : []),
+              ...(result.messenger.toolResult !== undefined ? [`toolResult=${result.messenger.toolResult}`] : []),
+              ...(result.messenger.model !== undefined ? [`model=${result.messenger.model}`] : []),
+              ...(result.messenger.diagnostic ? [`diagnostic=${result.messenger.diagnostic}`] : []),
+              `queued=${result.queued === true}`
+            ].join(", "),
+            correlation: result.correlation ? `${result.correlation.status} (${result.correlation.reason})` : null,
+            receiver: result.receiver ?? "unverified",
+            targetPermissions: result.targetPermissions && result.targetPermissions !== "unknown" ? permissionsSummary(result.targetPermissions) : null
+          }
+        }
+        : {}),
       ...(result.mode === "open" && result.queue
         ? {
           open: {
@@ -533,7 +640,7 @@ function writeResult(result: RelayResultV1, json: boolean, messages: Messages): 
     lines.push(messages.relay.delivery(result.delivery.status));
   }
   if (result.mode === "open") {
-    lines.push(messages.relay.open.unverifiedReceiver);
+    lines.push(result.to?.provider === "claude" ? messages.relay.open.claudeUnverifiedReceiver : messages.relay.open.unverifiedReceiver);
     if (result.targetPermissions && result.targetPermissions !== "unknown") lines.push(messages.relay.open.permissions(permissionsSummary(result.targetPermissions)));
   }
   if (result.exportPath) lines.push(messages.relay.exportWritten(result.exportPath));

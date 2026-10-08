@@ -7,7 +7,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 ### Added
 
 - `palabre relay` transmet un message à une conversation Codex ou Claude Code fermée et renvoie sa réponse en un seul appel : reprise en lecture seule renforcée, refus si la conversation est ouverte ou son état invérifiable, statut de délivrance sans renvoi automatique, sortie `--json` v1 et export `.relay.md`.
-- `palabre relay --open` (pilote, Codex sous Windows) dépose un message dans une conversation Codex ouverte, dans le TUI ou dans Codex desktop, par `codex queue`, puis rend sa réponse corrélée au bon tour. La conversation doit être ouverte (`target-not-open` sinon, sans dépôt) ; elle répond avec ses propres outils et permissions, sans garantie de lecture seule. Un seul délai couvre préparation, dépôt et attente ; un message déposé peut être traité plus tard, sans renvoi automatique. L'historique n'est jamais lu en entier. Le relay vers une conversation Claude Code ouverte reste à faire (#96).
+- `palabre relay --open` (pilote, Codex sous Windows) dépose un message dans une conversation Codex ouverte, dans le TUI ou dans Codex desktop, par `codex queue`, puis rend sa réponse corrélée au bon tour. La conversation doit être ouverte (`target-not-open` sinon, sans dépôt) ; elle répond avec ses propres outils et permissions, sans garantie de lecture seule. Un seul délai couvre préparation, dépôt et attente ; un message déposé peut être traité plus tard, sans renvoi automatique. L'historique n'est jamais lu en entier.
+- `palabre relay --open` vers une conversation Claude Code ouverte (pilote expérimental, Windows, Claude Code 2.1.292 ou plus) : un messager `claude -p` (`haiku`) envoie le message par la messagerie entre sessions, sous le contrôle d'un garde de Palabre qui autorise un seul envoi, vers la conversation prévue, avec le texte exact. Le modèle du messager ne voit pas le message. La réponse est corrélée dans le transcript de la cible. Après l'envoi, la délivrance reste inconnue sans preuve dans ce transcript ; les garanties du garde restent à vérifier sur la vraie CLI (#96).
 
 ### Changed
 
@@ -15,6 +16,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Fixed
 
+- Le garde du relais expérimental vers Claude refuse les demandes encore en attente après annulation, déconnexion ou échéance. Les sondes préalables conservent aussi l'annulation ou le délai dépassé lorsque le processus termine normalement ; la délivrance reste inconnue après lancement sans réception prouvée (#96).
 - Chat ne se ferme plus sur une ligne vide : la conversation continue et `/end` exporte tous les échanges (#101).
 - En NDJSON, une erreur d'agent pendant Chat émet désormais un événement `error` (`phase: "chat"`), puis un seul `done` avec le chemin de l'export partiel, ou `null` si cet export échoue. Une annulation pendant l'attente d'un message termine aussi le flux, avec le code 130 (#101).
 - Une consultation Chat annonce le rôle effectif de l'agent consulté, rôle temporaire `--role-a` compris (#101).

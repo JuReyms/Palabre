@@ -155,18 +155,18 @@ Flags:
 `,
   relay: `
 Transmet un message à une conversation Codex ou Claude Code fermée et renvoie sa réponse.
-Avec --open, dépose le message dans une conversation Codex ouverte et attend sa réponse.
+Avec --open, envoie le message à une conversation ouverte (Codex, ou Claude Code en pilote) et attend sa réponse.
 
 Usage:
   palabre relay --from <agent>:<session> --to <agent>:<session> "<message>"
   palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <chemin>
-  palabre relay --open --from <agent>:<session> --to <agent-codex>:<session> "<message>"
+  palabre relay --open --from <agent>:<session> --to <agent-codex|agent-claude>:<session> "<message>"
 
 Flags:
   --from <agent>:<uuid>   expéditeur, étiquette déclarative (jamais lancé)
   --to <agent>:<uuid>     agent cible de la config et identifiant de sa conversation
   --message-file <path>   lit le message dans un fichier (64 Kio au plus)
-  --open                  vise une conversation Codex ouverte (TUI ou Codex desktop)
+  --open                  vise une conversation ouverte (Codex ; Claude Code en pilote)
   --timeout <secondes>    délai maximal, de 10 à 3600 (défaut : 600)
   --json                  sortie JSON v1 pour les intégrations
   --no-export             n'écrit pas l'export .relay.md
@@ -186,6 +186,14 @@ Avec --open (pilote Codex, Windows) :
   permissions : aucune lecture seule n'est garantie, et les garanties ci-dessous ne s'appliquent
   pas. Un message déposé peut être traité après le délai, même sans être affiché ; Ctrl+C
   n'annule pas un dépôt, et il n'y a aucun renvoi automatique.
+
+Avec --open vers Claude Code (pilote expérimental, Windows, Claude Code 2.1.292 ou plus) :
+  Un messager claude -p (modèle haiku) envoie le message par la messagerie entre sessions. Un
+  garde de Palabre n'autorise qu'un seul envoi, vers la conversation prévue, avec le texte exact ;
+  le modèle du messager ne voit pas le message. La conversation doit figurer seule sous son nom
+  dans claude agents. Après l'envoi, la délivrance reste inconnue sans preuve dans le transcript ;
+  une cible qui garde ou refuse les messages des autres sessions peut ne jamais le recevoir.
+  Ces garanties restent à vérifier sur la vraie CLI.
 
 Garanties conditionnelles :
   Avec les options imposées par Palabre et sur les versions de CLI vérifiées, la cible ne
@@ -420,18 +428,18 @@ Flags:
 `,
   relay: `
 Sends one message to a closed Codex or Claude Code conversation and returns its reply.
-With --open, queues the message into an open Codex conversation and waits for its reply.
+With --open, sends the message to an open conversation (Codex, or Claude Code as a pilot) and waits for its reply.
 
 Usage:
   palabre relay --from <agent>:<session> --to <agent>:<session> "<message>"
   palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <path>
-  palabre relay --open --from <agent>:<session> --to <codex-agent>:<session> "<message>"
+  palabre relay --open --from <agent>:<session> --to <codex-agent|claude-agent>:<session> "<message>"
 
 Flags:
   --from <agent>:<uuid>   sender, declarative label (never launched)
   --to <agent>:<uuid>     target config agent and its conversation identifier
   --message-file <path>   reads the message from a file (64 KiB at most)
-  --open                  targets an open Codex conversation (TUI or Codex desktop)
+  --open                  targets an open conversation (Codex; Claude Code as a pilot)
   --timeout <seconds>     maximum duration, 10 to 3600 (default: 600)
   --json                  JSON v1 output for integrations
   --no-export             does not write the .relay.md export
@@ -451,6 +459,14 @@ With --open (Codex pilot, Windows):
   and permissions: no read-only guarantee applies, and the guarantees below do not apply.
   A queued message may be processed after the timeout, even without being displayed; Ctrl+C
   does not cancel a queued message, and there is no automatic resend.
+
+With --open to Claude Code (experimental pilot, Windows, Claude Code 2.1.292 or later):
+  A claude -p messenger (haiku model) sends the message through cross-session messaging. A
+  Palabre guard allows a single send, to the intended conversation, with the exact text; the
+  messenger model never sees the message. The conversation must be the only one with its name
+  in claude agents. After sending, delivery stays unknown without proof in the transcript; a
+  target that holds or refuses messages from other sessions may never receive it.
+  These guarantees remain to be verified against the real CLI.
 
 Conditional guarantees:
   With the options enforced by Palabre and on verified CLI versions, the target has no

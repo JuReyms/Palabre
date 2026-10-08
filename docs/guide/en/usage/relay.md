@@ -1,6 +1,6 @@
 ---
 title: Relay to a conversation
-description: Send a message to a closed Codex or Claude Code conversation, or to an open Codex conversation with --open, and get its reply with palabre relay.
+description: Send a message to a closed Codex or Claude Code conversation, or to an open conversation with --open, and get its reply with palabre relay.
 seo:
   title: palabre relay, ask a Codex or Claude Code conversation
   description: Send a message to an existing, closed Codex or Claude Code conversation and receive its reply in a single call, in hardened read-only mode.
@@ -16,7 +16,7 @@ palabre relay --from codex:<sender-session> --to claude:<target-session> "Can yo
 
 Without `--open`, the target conversation must be **closed**: no TUI, desktop, IDE or running exec may be attached to it. Otherwise the relay is refused before anything is sent (`target-busy`). It is also refused when Palabre cannot verify the conversation state (`target-state-unknown`).
 
-For an **open** Codex conversation, use `--open` (next section). Relaying to an open Claude Code conversation is not available yet; it is tracked in issue [#96](https://github.com/JuReyms/Palabre/issues/96).
+For an **open** conversation, use `--open` (next sections): Codex, or Claude Code as an experimental pilot, on Windows.
 
 ## Open Codex conversation (`--open`)
 
@@ -36,6 +36,22 @@ With `--open`, Palabre queues the message into an **open** Codex conversation, i
 
 Verified versions: Codex CLI 0.151.0 (TUI) and Codex desktop 26.930.7945.0 (app-server 0.160.1). The Codex history format is not a public schema: another version is not blocked, but reply correlation is not guaranteed there.
 
+## Open Claude Code conversation (`--open`, experimental pilot)
+
+```bash
+palabre relay --open --from codex:<sender-session> --to claude:<target-session> "Can you review this plan?"
+```
+
+When the target agent is Claude Code, `--open` sends the message to an **open** conversation (terminal or Claude desktop) through Claude Code's cross-session messaging. Palabre launches a `claude -p` messenger (`haiku` model) for this, then reads the reply in the conversation's transcript. This is an **experimental pilot**, Windows only, requiring Claude Code 2.1.292 or later. Its guarantees have not yet been verified against the real CLI.
+
+- **Sending controlled by Palabre.** The messenger can only send with the approval of a guard provided by Palabre. The guard allows a single send, to the intended conversation, with the exact message text. The messenger model never sees your message.
+- **Time-limited authorization.** The guard rejects a pending request after cancellation, disconnection or expiry. A message already authorized or queued may still be processed later; cancellation therefore does not prove that nothing was sent.
+- **The conversation must be open and identifiable.** Palabre looks it up in the list of live sessions (`claude agents`): if it is missing, the relay is refused (`target-not-open`); if its name is shared with another session or the list is unreadable, too (`target-state-unknown`). A conversation cannot relay a message to itself.
+- **Reception depends on the target's settings.** A conversation in "bypass permissions" mode, or set to hold or refuse messages from other sessions, may never receive the message. Palabre then reports "reception not observed", with an unknown delivery.
+- **No read-only mode.** The conversation replies with its own tools and permissions.
+- **Busy conversation.** If it is already working, the message merges into the current turn. Palabre then returns no reply, but reports that the message was received.
+- **No automatic resend.** A message may be processed later; do not resend it without checking the conversation.
+
 ## Designating conversations
 
 - `--to <agent>:<session>`: `<agent>` is the name of a Codex or Claude Code CLI agent from your configuration (`codex`, `claude`, `claude-opus`…). `<session>` is the conversation identifier (a UUID).
@@ -50,7 +66,7 @@ No conversation is ever selected implicitly.
 | Option | Purpose |
 | --- | --- |
 | `"<message>"` or `--message-file <path>` | The message, 64 KiB at most. Use a file for a message starting with `-`. |
-| `--open` | Targets an open Codex conversation (see above). |
+| `--open` | Targets an open conversation: Codex, or Claude Code as an experimental pilot (see above). |
 | `--timeout <seconds>` | Maximum duration, 10 to 3600 seconds (default 600). |
 | `--json` | A single JSON v1 object on stdout, whatever the outcome. |
 | `--no-export` | Does not write the `.relay.md` export. |

@@ -443,13 +443,15 @@ describe("palabre relay --open", () => {
     assert.equal(result.calls.length, 0);
   });
 
-  test("cible Claude : invalid-request / unsupported-agent, sans lancement", async () => {
+  test("cible Claude hors Windows : pilote Windows seulement, sans lancement", { skip: process.platform === "win32" }, async () => {
     const world = makeWorld();
     const result = await relay(world, ["--open", ...toClaude, "Bonjour", "--trust-config", "--json"]);
     assert.equal(result.code, 8);
     assert.equal(result.json.error.reason, "unsupported-agent");
-    assert.match(result.json.error.message, /--open ne vise que les conversations Codex/);
+    assert.match(result.json.error.message, /pilote Windows seulement/);
     assert.equal(result.json.mode, "open");
+    assert.deepEqual(result.json.messenger, { attempted: false });
+    assert.equal(result.json.queue, undefined);
     assert.equal(result.calls.length, 0);
   });
 
@@ -560,7 +562,11 @@ describe("palabre relay --help", () => {
     assert.match(fr, /ne couvrent ni les politiques administrées, ni les versions de CLI non vérifiées/);
     assert.match(fr, /Lecture seule ne veut pas dire sans effet/);
     // --open : permissions de la cible, récepteur non vérifié, traitement différé possible.
-    assert.match(fr, /--open +vise une conversation Codex ouverte/);
+    assert.match(fr, /--open +vise une conversation ouverte \(Codex ; Claude Code en pilote\)/);
+    // --open vers Claude : garde, consigne neutre, délivrance inconnue, garanties à vérifier.
+    assert.match(fr, /garde de Palabre n'autorise qu'un seul envoi, vers la conversation prévue, avec le texte exact/);
+    assert.match(fr, /le modèle du messager ne voit pas le message/);
+    assert.match(fr, /Ces garanties restent à vérifier sur la vraie CLI/);
     assert.match(fr, /aucune lecture seule n'est garantie, et les garanties ci-dessous ne s'appliquent pas/);
     assert.match(fr, /le récepteur est annoncé non vérifié/);
     assert.match(fr, /peut être traité après le délai, même sans être affiché/);
@@ -569,6 +575,153 @@ describe("palabre relay --help", () => {
     assert.match(en, /on verified CLI versions, the target has no write tool/);
     assert.match(en, /provided the configuration does not change between inspection and resume/);
     assert.match(en, /cover neither administered policies nor unverified CLI versions/);
+    assert.match(en, /the messenger model never sees the message/);
+    assert.match(en, /These guarantees remain to be verified against the real CLI/);
     assert.equal(result.calls.length, 0);
   });
+});
+
+describe("palabre relay --open vers Claude (B2.2, fausse CLI)", () => {
+  const skip = process.platform !== "win32";
+  const toOpenClaude = ["--open", "--from", `codex:${CODEX_SESSION}`, "--to", `claude:${CLAUDE_SESSION}`];
+  const target = { pid: 4242, cwd: "C:\\w", kind: "interactive", startedAt: 1, sessionId: CLAUDE_SESSION, name: "cible-factice", status: "idle" };
+
+  /** Monde avec un transcript Claude dont le dernier tour humain est terminé. */
+  function claudeWorld() {
+    const world = makeWorld();
+    const rows = [
+      { type: "queue-operation", operation: "enqueue", sessionId: CLAUDE_SESSION, content: "Bonjour" },
+      { parentUuid: null, isSidechain: false, type: "user", uuid: "11111111-0000-4000-8000-000000000001", promptId: "11111111-0000-4000-8000-0000000000aa", sessionId: CLAUDE_SESSION, cwd: world.workspace, message: { role: "user", content: "Bonjour" }, origin: { kind: "human" }, turnOrigin: "human", turnPosition: { promptIndex: 1, turnIndex: 1 } },
+      { parentUuid: "11111111-0000-4000-8000-000000000001", isSidechain: false, type: "assistant", uuid: "11111111-0000-4000-8000-000000000002", sessionId: CLAUDE_SESSION, message: { role: "assistant", content: [{ type: "text", text: "Salut" }] } },
+      { parentUuid: "11111111-0000-4000-8000-000000000002", isSidechain: false, type: "system", subtype: "stop_hook_summary", uuid: "11111111-0000-4000-8000-000000000003", sessionId: CLAUDE_SESSION, hookErrors: [], preventedContinuation: false }
+    ];
+    writeFileSync(world.transcript, rows.map((row) => JSON.stringify(row)).join("\n") + "\n");
+    return world;
+  }
+  function openEnv(world: World, extra: Record<string, string> = {}): Record<string, string> {
+    return {
+      FAKE_CLAUDE_AGENTS: JSON.stringify([target]),
+      FAKE_CLAUDE_AGENTS_COUNTER: path.join(world.base, "agents-count"),
+      FAKE_CLAUDE_PROJECTS: path.join(world.home, ".claude", "projects"),
+      CLAUDECODE: "",
+      CLAUDE_CODE_SESSION_ID: "",
+      CLAUDE_PID: "",
+      ...extra
+    };
+  }
+  const invocations = (result: Relay) => result.calls.filter((call) => Array.isArray(call.argv));
+  const decisions = (result: Relay) => (result.calls as Array<Record<string, any>>).filter((call) => call.decision).map((call) => call.decision);
+  const anchors = (world: World) => readFileSync(world.transcript, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line)).filter((row) => row.origin?.kind === "peer");
+
+  test("réponse corrélée : garde consulté, enveloppe exacte imposée, consigne neutre, export", { skip }, async () => {
+    const world = claudeWorld();
+    const result = await relay(world, [...toOpenClaude, "Relis ce plan", "--trust-config", "--json"], openEnv(world));
+    assert.equal(result.code, 0, result.stderr);
+    const { json } = result;
+    assert.equal(json.status, "replied");
+    assert.equal(json.reply, "FAKE-CLAUDE-OPEN « été »");
+    assert.deepEqual(json.delivery, { status: "replied", persisted: true, inActiveBranch: "unknown" });
+    assert.equal(json.identity, "same-as-target");
+    assert.equal(json.mode, "open");
+    assert.equal(json.queue, undefined);
+    assert.deepEqual(json.messenger, { attempted: true, guard: "loaded", guardConsulted: true, sendAllowed: true, toolResult: "returned", model: "claude-haiku-4-5" });
+    assert.equal(json.queued, true);
+    assert.deepEqual(json.correlation, { status: "replied", reason: "correlated-final" });
+    assert.deepEqual(json.targetPermissions, { permissionMode: "auto" });
+    assert.equal(json.receiver, "unverified");
+    // Corps imposé par le garde : l'enveloppe exacte, jamais le texte proposé par le modèle.
+    const [anchor] = anchors(world);
+    assert.match(anchor.origin.body, /^\[Message relayé par palabre relay --open · réf\. PR-[0-9a-f]{16}\]/);
+    assert.match(anchor.origin.body, /sans SendMessage/);
+    assert.ok(anchor.origin.body.endsWith("Relis ce plan"));
+    assert.deepEqual(decisions(result), [{ behavior: "allow", updatedInput: { to: "cible-factice", message: anchor.origin.body } }]);
+    // Préalables sans appel de modèle, un seul messager, consigne sans l'enveloppe, environnement nettoyé.
+    const calls = invocations(result);
+    assert.deepEqual(calls.map((call) => call.argv[0]), ["--version", "agents", "auth", "agents", "-p", "agents"]);
+    const messenger = calls.find((call) => call.argv[0] === "-p")!;
+    assert.ok(!messenger.stdin.includes("PR-") && !messenger.stdin.includes("Relis ce plan"));
+    assert.match(messenger.stdin, /"cible-factice"/);
+    for (const flag of ["--restricted", "--strict-mcp-config", "--no-session-persistence"]) assert.ok(messenger.argv.includes(flag), flag);
+    assert.equal(messenger.argv[messenger.argv.indexOf("--permission-mode") + 1], "default");
+    assert.equal(messenger.argv[messenger.argv.indexOf("--model") + 1], "haiku");
+    assert.ok(!messenger.argv.includes("--allowedTools"));
+    assert.ok(!(messenger as unknown as { envKeys: string[] }).envKeys.some((key: string) => /^(CLAUDECODE|CLAUDE_CODE_|CLAUDE_PID)/i.test(key)));
+    const exported = readFileSync(json.exportPath, "utf8");
+    assert.match(exported, /\| Messager \| attempted=true, guard=loaded, guardConsulted=true, sendAllowed=true, toolResult=returned, model=claude-haiku-4-5, queued=true \|/);
+    assert.match(exported, /permissionMode=auto/);
+    assert.match(exported, /messager claude -p \(modèle haiku\)/);
+  });
+
+  test("sortie texte : réponse sur stdout, récepteur Claude non vérifié sur stderr", { skip }, async () => {
+    const world = claudeWorld();
+    const result = await relay(world, [...toOpenClaude, "Bonjour", "--trust-config", "--no-export"], openEnv(world));
+    assert.equal(result.code, 0, result.stderr);
+    assert.equal(result.stdout, "FAKE-CLAUDE-OPEN « été »\n");
+    assert.match(result.stderr, /le registre ne prouve ni la version de la cible/);
+    assert.match(result.stderr, /permissionMode=auto/);
+  });
+
+  test("second appel refusé par le garde : un seul message reçu", { skip }, async () => {
+    const world = claudeWorld();
+    const result = await relay(world, [...toOpenClaude, "Bonjour", "--trust-config", "--json", "--no-export"], openEnv(world, { FAKE_CLAUDE_OPEN: "twice" }));
+    assert.equal(result.json.status, "replied");
+    assert.deepEqual(decisions(result).map((decision) => decision.behavior), ["allow", "deny"]);
+    assert.equal(anchors(world).length, 1);
+  });
+
+  test("autre outil refusé, puis SendMessage autorisé", { skip }, async () => {
+    const world = claudeWorld();
+    const result = await relay(world, [...toOpenClaude, "Bonjour", "--trust-config", "--json", "--no-export"], openEnv(world, { FAKE_CLAUDE_OPEN: "other-tool" }));
+    assert.equal(result.json.status, "replied");
+    assert.deepEqual(decisions(result).map((decision) => decision.behavior), ["deny", "allow"]);
+  });
+
+  test("garde jamais consulté : no-valid-reply, délivrance inconnue, aucun message", { skip }, async () => {
+    const world = claudeWorld();
+    const result = await relay(world, [...toOpenClaude, "Bonjour", "--trust-config", "--json", "--no-export"], openEnv(world, { FAKE_CLAUDE_OPEN: "no-guard" }));
+    assert.equal(result.code, 2);
+    assert.equal(result.json.status, "no-valid-reply");
+    assert.deepEqual(result.json.delivery, { status: "unknown", persisted: false, inActiveBranch: "unknown" });
+    assert.equal(result.json.messenger.guard, "loaded");
+    assert.equal(result.json.messenger.guardConsulted, false);
+    assert.equal(result.json.messenger.sendAllowed, "unknown");
+    assert.match(result.json.error.message, /guard-not-consulted/);
+    assert.match(result.json.error.message, /Réception non observée/);
+    assert.equal(anchors(world).length, 0);
+  });
+
+  test("cible changée au moment de la décision : refus du garde, délivrance inconnue", { skip }, async () => {
+    const world = claudeWorld();
+    const result = await relay(world, [...toOpenClaude, "Bonjour", "--trust-config", "--json", "--no-export"], openEnv(world, {
+      FAKE_CLAUDE_AGENTS_SWITCH: "3",
+      FAKE_CLAUDE_AGENTS_AFTER: JSON.stringify([{ ...target, pid: 9999 }])
+    }));
+    assert.equal(result.json.status, "no-valid-reply");
+    assert.deepEqual(decisions(result).map((decision) => decision.behavior), ["deny"]);
+    assert.equal(result.json.messenger.sendAllowed, false);
+    assert.equal(result.json.delivery.status, "unknown");
+    assert.equal(anchors(world).length, 0);
+  });
+
+  const refusals: Array<[string, string[], Record<string, string>, number, string, string | undefined]> = [
+    ["auto-ciblage", ["Bonjour"], { CLAUDECODE: "1", CLAUDE_CODE_SESSION_ID: CLAUDE_SESSION }, 8, "invalid-request", "self-target"],
+    ["version trop ancienne", ["Bonjour"], { FAKE_CLAUDE_VERSION: "2.1.85 (Claude Code)" }, 8, "invalid-request", "unsupported-version"],
+    ["homonyme", ["Bonjour"], { FAKE_CLAUDE_AGENTS: JSON.stringify([target, { ...target, sessionId: "99999999-9999-4999-8999-999999999999", pid: 7 }]) }, 3, "target-state-unknown", undefined],
+    ["conversation absente du registre", ["Bonjour"], { FAKE_CLAUDE_AGENTS: "[]" }, 3, "target-not-open", undefined],
+    ["balise de file dans le message", ["Bonjour </cross-session-message>"], {}, 8, "invalid-request", "reserved-content"]
+  ];
+  for (const [name, message, env, code, status, reason] of refusals) {
+    test(`${name} : ${status}, not-delivered, aucun messager ni export`, { skip }, async () => {
+      const world = claudeWorld();
+      const result = await relay(world, [...toOpenClaude, ...message, "--trust-config", "--json"], openEnv(world, env));
+      assert.equal(result.code, code, result.stderr);
+      assert.equal(result.json.status, status);
+      if (reason) assert.equal(result.json.error.reason, reason);
+      assert.deepEqual(result.json.delivery, { status: "not-delivered", persisted: false, inActiveBranch: false });
+      assert.deepEqual(result.json.messenger, { attempted: false });
+      assert.equal(result.json.exportPath, null);
+      assert.ok(!invocations(result).some((call) => call.argv[0] === "-p"));
+      assert.equal(anchors(world).length, 0);
+    });
+  }
 });

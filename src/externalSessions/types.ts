@@ -152,7 +152,13 @@ export type InvalidRequestReason =
   | "config-untrusted"
   | "config-unavailable"
   | "unsupported-executable"
-  | "invalid-working-directory";
+  | "invalid-working-directory"
+  /** `--open` vers Claude (B2.2) seulement : l'appelant est la cible, ou cela n'est pas vérifiable. */
+  | "self-target"
+  /** `--open` vers Claude (B2.2) seulement : version du messager inférieure au seuil du pilote ou illisible. */
+  | "unsupported-version"
+  /** `--open` vers Claude (B2.2) seulement : l'enveloppe contient la balise de file réservée. */
+  | "reserved-content";
 
 /** Issue d'un relay et code de sortie ; `reason` n'est présent que pour `invalid-request`. */
 export interface RelayOutcome {

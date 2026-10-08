@@ -66,7 +66,7 @@ src/sessionCheckpoint.ts  Contrat JSON v1 et stockage atomique des checkpoints
 src/sessionInventory.ts   Liste bornée et suppression ciblée des checkpoints
 src/sessionCheckpointRuntime.ts Writer runtime neuf ou repris
 src/sessionResume.ts      Validation et reconstruction stricte de `palabre resume`
-src/externalSessions/     Relay vers une session externe : socle (types, lancement, enveloppe, issues), contrat d'adapter, adapters Claude Code et Codex ; relay --open (B1) : openReader (corrélation pure), openRollout (lectures bornées), codexQueue (dépôt), openRelay (déroulé) ; lecteur Claude (B2.1, non branché) : claudeOpenReader (corrélation pure)
+src/externalSessions/     Relay vers une session externe : socle (types, lancement, enveloppe, issues), contrat d'adapter, adapters Claude Code et Codex ; relay --open (B1) : openReader (corrélation pure), openRollout (lectures bornées), codexQueue (dépôt), openRelay (déroulé) ; relay --open vers Claude (B2.1 et B2.2a, pilote Windows) : claudeOpenReader (corrélation pure), claudeOpen (préconditions et messager), claudeGuard et claudeGuardServer (garde d'envoi, hôte de permissions MCP), claudeOpenRelay (déroulé)
 src/tuiController.ts      Controleur des flows de configuration TUI
 src/args.ts               Parseur d'arguments CLI (table d'arite des flags)
 src/launchDispatch.ts     Decision de lancement d'une commande run : accueil TUI ou Chat direct selon le mode effectif
@@ -521,7 +521,7 @@ et la version du client quand elle est fournie.
 
 `palabre relay` transmet **un** message à une conversation Codex ou Claude Code existante, récupère **une** réponse, puis termine. Sans `--open`, il vise les conversations **fermées** : aucun processus (TUI, desktop, IDE, `exec`, `-p`) n'y est attaché.
 
-Avec `--open` (lot B1, pilote Codex sous Windows, non publié), il dépose le message dans une conversation Codex **ouverte** (TUI ou Codex desktop) par `codex queue`, puis attend la réponse corrélée dans le rollout. La cible garde ses outils et permissions. Voir la section « Relay vers une conversation ouverte » plus bas. Claude Code (B2) et Codex desktop comme expéditeur restent hors de ce lot : l'objectif de l'issue #96 n'est pas entièrement résolu.
+Avec `--open` (lot B1, pilote Codex sous Windows, non publié), il dépose le message dans une conversation Codex **ouverte** (TUI ou Codex desktop) par `codex queue`, puis attend la réponse corrélée dans le rollout. La cible garde ses outils et permissions. Voir la section « Relay vers une conversation ouverte » plus bas. Vers une conversation Claude Code ouverte (lot B2.2a, pilote Windows, non publié), le message passe par un messager `claude -p` dont le garde de Palabre est l'hôte de permissions ; voir « Relay vers une conversation Claude ouverte ». La sémantique réelle des permissions n'est pas encore démontrée (B2.3). Codex desktop comme expéditeur reste hors de ce lot : l'objectif de l'issue #96 n'est pas entièrement résolu.
 
 Le relay est distinct de deux mécanismes existants :
 
@@ -726,7 +726,7 @@ Un échec de lancement donne `cli-failure` pour la reprise, et `neutralization-f
 | 5 | `identity-mismatch` | `persisted-no-reply` ou `unknown`. Le texte d'une autre session n'est jamais rendu comme `reply` |
 | 6 | `session-not-found` | `not-delivered` |
 | 7 | `command-not-found` : exécutable de la CLI cible introuvable | `not-delivered` |
-| 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory` | `not-delivered` |
+| 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory` ; avec `--open` vers Claude seulement : `self-target`, `unsupported-version`, `reserved-content` | `not-delivered` |
 | 130 | `cancelled` (Ctrl+C) | `not-delivered` avant lancement, sinon `unknown` |
 
 - `command-not-found` signale une installation à corriger, pas un défaut de Palabre. Le code 127 est écarté, car un shell le rend déjà quand `palabre` lui-même est introuvable.
@@ -824,11 +824,33 @@ Après un échec du déposant (code non nul, accusé absent ou étranger, plafon
 - Le format du rollout est expérimental (Codex 0.151.0 en TUI, app-server 0.160.1 de Codex desktop 26.930.7945.0), pas un schéma public.
 - L'export `.relay.md` ajoute le mode, le dépôt, la corrélation, le récepteur et les permissions relevées, avec un avertissement propre à `--open`. Un refus avant tentative n'écrit pas d'export.
 
+### Relay vers une conversation Claude ouverte (`--open`, B2.2a)
+
+Contrat de référence : `scripts/prototypes/relay/CONTRAT-B2.md`. Pilote **Windows seulement** ; ailleurs, `invalid-request` / `unsupported-agent`. Code : `claudeOpen.ts` (préconditions, messager), `claudeGuard.ts` et `claudeGuardServer.ts` (garde), `claudeOpenRelay.ts` (déroulé), lecteur B2.1 `claudeOpenReader.ts`.
+
+Sous **une seule échéance** :
+1. Enveloppe propre à Claude (réponse dans la conversation, sans `SendMessage`) : au plus 8 192 unités UTF-16, sans NUL (`message-too-large`), sans balise `<cross-session-message` (`reserved-content`).
+2. Préalables sans appel de modèle, par l'exécutable résolu (D21) :
+   - `claude --version` : forme exacte, 2.1.292 au moins, sinon `unsupported-version` ;
+   - `claude agents --json` : registre strict ; cible absente `target-not-open` ; registre non conforme, doublon, nom non adressable ou homonyme `target-state-unknown` ;
+   - auto-ciblage, d'après `CLAUDE_CODE_SESSION_ID` et `CLAUDE_PID` de l'appelant avant nettoyage (`self-target`, refus prudent sous `CLAUDECODE` sans ces variables) ;
+   - `claude auth status` pour le dossier des transcripts (messager déclaré non connecté : `cli-failure` avant lancement), puis un seul `<uuid>.jsonl`, première ligne vérifiée.
+3. Référence bornée du transcript, puis nouveau contrôle du registre (même UUID, nom et `pid`).
+4. Un seul messager `claude -p --restricted --strict-mcp-config --mcp-config <garde> --permission-mode default --permission-prompt-tool mcp__palabre_guard__decide --tools SendMessage --settings <ask SendMessage, crossSessionInbound refuse, disableAllHooks> --model haiku --max-turns 2 --max-budget-usd 0.25 --no-session-persistence --name palabre-relay --output-format stream-json --verbose`, sans shell, dans un dossier privé supprimé à la fin, en `min(120 s, budget restant)`. Ni `--allowedTools`, ni `dontAsk`, ni modèle de repli. La consigne donne le nom et un texte de remplacement : l'enveloppe n'entre jamais dans le contexte du modèle.
+5. Le garde (serveur MCP stdio, Node courant) n'autorise que `SendMessage`, vérifie la validité de la tentative (marqueur `active`, échéance `expiresAt`, annulation MCP) avant et après la relecture du registre, réserve l'unique envoi par création exclusive de `reserved`, revérifie la validité, puis impose `updatedInput = { to, message }` exacts. `allowed` n'est écrit qu'avec cette autorisation : c'est le diagnostic `sendAllowed`, pas le verrou d'exclusivité. Toute erreur donne un refus.
+6. Lecteur B2.1 jusqu'à une observation terminale, l'échéance ou l'annulation, contrôlées avant et après chaque lecture.
+
+**Délivrance** : `not-delivered` avant le lancement du messager ; ensuite `unknown` sans preuve dans le transcript, `persisted-no-reply` avec une réception exacte, `replied` avec une réponse corrélée. L'état du garde ne promeut jamais vers `not-delivered`. Après un échec, une annulation ou une échéance, l'issue principale et toute réception prouvée sont conservées, et aucune réponse n'est rendue.
+
+**JSON v1** (optionnel, avec `--open` vers Claude) : `messenger` au lieu de `queue` (`attempted`, `guard` `loaded`/`not-loaded`/`unknown`, `guardConsulted`, `sendAllowed` `true`/`false`/`"unknown"`, `toolResult`, `model`, `diagnostic`), `queued`, `correlation`, `receiver: "unverified"`, `targetPermissions: { permissionMode }`. Un garde chargé n'est pas un garde consulté ; ce sont des diagnostics, jamais des preuves.
+
+**Limites** : sémantique réelle des permissions non démontrée (B2.3) ; politiques administrées non couvertes ; course résiduelle sur le nom ; règles de réception de la cible (`hold` conserve sans expirer s'il est explicite, `refuse` supprime, `hold` par défaut d'une cible qui contourne les permissions expire après `dialogExpiry`, mode Plan conditionnel) ; aucun accusé côté Claude desktop ; message mêlé à un tour en cours.
+
 ### Hors périmètre de cette version
 
 - Le fork d'une conversation.
 - La détection automatique de l'expéditeur.
-- Avec `--open` : Claude Code (lot B2), Codex desktop comme expéditeur (bloqué par son bac à sable), l'app-server `--remote`, les IDE, macOS et Linux.
+- Avec `--open` : Codex desktop comme expéditeur (bloqué par son bac à sable), les essais réels B2.3 vers Claude, l'app-server `--remote`, les IDE, macOS et Linux.
 - Sans `--open` : les desktops, IDE et conversations ouvertes.
 - Les chaînes de relay et le retry.
 - Palabre-vscode, qui consommera `--json` sans recalculer l'état.
@@ -1079,12 +1101,14 @@ Relay vers une conversation ouverte (#96, B1, `palabre relay --open`) : le contr
 `codex queue` et, sous Windows, un verrou tenu par le test : aucun agent réel, aucun quota. Les
 sondes locales `open-*.mjs` ne sont pas versionnées ni lancées par `pnpm test`.
 
-Lecteur Claude d'une conversation ouverte (#96, B2.1) : contrat dans
-`scripts/prototypes/relay/CONTRAT-B2.md`, code dans `src/externalSessions/claudeOpenReader.ts`, fonction
-pure non branchée à une commande. `tests/external-sessions-claude-open.test.ts` utilise des transcripts
-factices et un squelette anonymisé d'un transcript Claude desktop jetable
+Relay vers une conversation Claude ouverte (#96, B2.1 et B2.2a) : contrat dans
+`scripts/prototypes/relay/CONTRAT-B2.md`. `tests/external-sessions-claude-open.test.ts` (lecteur) utilise des
+transcripts factices et un squelette anonymisé d'un transcript Claude desktop jetable
 (`tests/fixtures/external-sessions/claude-open-peer-turns.jsonl` : champs structurels, identifiants et
-textes synthétiques). Aucun envoi, aucun appel de modèle.
+textes synthétiques). `tests/external-sessions-claude-guard.test.ts` (garde, y compris en sous-processus),
+`tests/external-sessions-claude-open-relay.test.ts` (déroulé, horloge simulée) et `tests/relay-command.test.ts`
+(bout en bout sous Windows, fausse CLI `fake-claude-open.cjs` qui lance réellement le garde) ne font aucun envoi
+ni appel de modèle. Ils ne valident pas la sémantique réelle des permissions de Claude Code (B2.3).
 
 Avant de livrer une modification :
 

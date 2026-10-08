@@ -1,15 +1,20 @@
 # Relay vers une conversation Claude ouverte : contrat B2
 
-Statut au 8 octobre 2026 : **lot B2.1 en relecture** (lecteur pur du transcript Claude Code et ses
-tests), non branché à une commande, non publié. B2.2 (transport par le messager et garde d'envoi)
-et B2.3 (essais réels jetables, puis notre conversation active avec accord au moment même) restent
-à valider. #96 reste ouverte.
+Statut au 8 octobre 2026 :
+- **B2.1** (lecteur pur du transcript Claude Code) : validé dans son périmètre expérimental (#112) ;
+- **B2.2a** (transport par un messager gardé, pilote Windows) : implémenté avec des tests sans
+  quota, en relecture. La sémantique réelle des permissions n'est **pas** démontrée ;
+- **B2.3** (essais réels jetables, puis notre conversation active avec accord au moment même) :
+  soumis à un accord séparé ; protocole proposé dans `PROTOCOLE-B23.md`, non lancé.
+
+Rien n'est publié. #96 reste ouverte.
 
 Sources :
 [plan B2](https://github.com/JuReyms/Palabre/issues/96#issuecomment-6059060083),
 [plan révisé](https://github.com/JuReyms/Palabre/issues/96#issuecomment-6059196072),
 [précisions après la deuxième relecture](https://github.com/JuReyms/Palabre/issues/96#issuecomment-6060631916),
-et les relectures de Codex transmises par le mainteneur (feu vert pour B2.1 seulement).
+[plan B2.2](https://github.com/JuReyms/Palabre/issues/96#issuecomment-6062453243),
+et les relectures de Codex transmises par le mainteneur.
 
 ## Portée de B2.1
 
@@ -176,12 +181,207 @@ forme de file exacte puis altérée, squelette anonymisé (11 tours
 corrélés), transcript de 151 Mio en lectures bornées. Une mutation de chaque règle clé fait échouer
 au moins un test.
 
-## Suite (non validée)
+## B2.2 : envoi par un messager gardé (lot B2.2a)
 
-- **B2.2, transport.** Garde d'envoi : tant qu'un blocage effectif en cas de panne n'est pas
-  démontré sur la vraie CLI, toute tentative lancée reste `unknown`, et l'unicité n'est pas promise.
-  Piste : `SendMessage` non préautorisé, `--permission-mode dontAsk`, autorisation par une décision
-  `allow` explicite d'un hook. Registre, version du messager, auto-ciblage, budget unique et refus
-  avant l'envoi d'une enveloppe contenant la balise de file.
-- **B2.3, essais réels jetables**, avec accord séparé, puis notre conversation active avec accord
-  au moment même.
+Décisions validées à la relecture du [plan B2.2](https://github.com/JuReyms/Palabre/issues/96#issuecomment-6062453243) :
+- **garde** par un hôte de permissions MCP, au lieu d'un hook ;
+- **consigne neutre** donnée au modèle, avec substitution du destinataire et du message par le garde ;
+- **pilote Windows** seulement ;
+- **messager `haiku`**, distinct du modèle de la cible, sans modèle de repli.
+
+Code :
+- `src/externalSessions/claudeOpen.ts` : préconditions et formats ;
+- `claudeGuard.ts` et `claudeGuardServer.ts` : le garde ;
+- `claudeOpenRelay.ts` : le déroulé ;
+- branchement dans `palabre relay --open` quand l'agent cible est Claude Code.
+
+### Déroulé, sous une seule échéance `--timeout`
+
+1. **Enveloppe** : `buildOpenEnvelope` avec une consigne propre à Claude (répondre dans la
+   conversation, sans `SendMessage`). Elle est refusée sans aucun lancement si :
+   - elle dépasse 8 192 unités UTF-16 ou contient un NUL (`message-too-large`) ;
+   - elle contient la balise de file réservée (`reserved-content`).
+2. **Version du messager** : `claude --version` doit rendre exactement `X.Y.Z (Claude Code)`, au
+   moins 2.1.292. Sinon, `unsupported-version`.
+3. **Registre** (`claude agents --json`, 10 s et 1 Mio au plus) :
+   - toute entrée non conforme rend le registre invérifiable : `target-state-unknown` ;
+   - UUID absent d'une liste valide : `target-not-open` ;
+   - doublon, nom non adressable (vide, multiligne, avec crochets) ou homonyme vivant :
+     `target-state-unknown`.
+4. **Auto-ciblage**, d'après l'environnement de l'appelant avant nettoyage (`self-target`) :
+   - `CLAUDE_CODE_SESSION_ID` égal à l'UUID, ou `CLAUDE_PID` égal au `pid` de la cible ;
+   - refus prudent si `CLAUDECODE` est présent sans aucune des deux variables.
+5. **Transcript** :
+   - dossier lu par `claude auth status` (`projectsDirectory`, sinon `configDirectory/projects`) ;
+     un messager déclaré non connecté (`loggedIn: false`) est refusé avant tout lancement
+     (`cli-failure`, `messenger-not-logged-in`) ;
+   - un seul `projects/*/<uuid>.jsonl`, dont la première ligne porte le `sessionId` ;
+   - illisible : `target-state-unknown` ; absent ou ambigu : `session-not-found`.
+6. **Référence** du transcript (lectures bornées de B1), puis **nouveau contrôle du registre**
+   (même UUID, même nom, même `pid`). Sinon, aucun lancement.
+7. **Messager** : un seul lancement, sans shell, dans un dossier temporaire privé (supprimé à la
+   fin), environnement nettoyé, en `min(120 s, budget restant)` et 1 Mio au plus :
+
+   ```text
+   claude -p --restricted --strict-mcp-config --mcp-config <garde seul>
+             --permission-mode default --permission-prompt-tool mcp__palabre_guard__decide
+             --tools SendMessage --settings <ask SendMessage, crossSessionInbound refuse, disableAllHooks>
+             --model haiku --max-turns 2 --max-budget-usd 0.25 --no-session-persistence
+             --name palabre-relay --output-format stream-json --verbose
+   ```
+
+   Aucune préautorisation (`--allowedTools`), ni `dontAsk`, ni modèle de repli. La consigne (stdin)
+   donne le nom résolu et un texte de remplacement : l'enveloppe n'entre jamais dans le contexte
+   du modèle.
+8. **Attente** : lecteur B2.1 toutes les 500 ms, jusqu'à une observation terminale, l'échéance ou
+   l'annulation. Ces deux dernières sont contrôlées avant et après chaque lecture.
+
+### Garde
+
+Le garde est un serveur MCP stdio, lancé par la CLI avec l'interpréteur Node courant. Il lit
+`guard.json` dans le dossier privé : nom, UUID, `pid`, enveloppe et son empreinte, exécutable
+résolu et échéance absolue Unix (`expiresAt`). Le fichier `active` doit encore porter le marqueur
+exact de validité. Pour chaque demande, dans cet ordre :
+1. seul `SendMessage` est autorisé ;
+2. l'état doit être valide ;
+3. la demande ne doit pas être annulée, la tentative doit être active et son échéance non atteinte ;
+4. le registre est relu avec l'exécutable de la cible, au plus pendant le budget restant
+   (plafond 10 s), avec le signal d'annulation MCP ; après l'attente, les contrôles de validité
+   sont répétés avant de vérifier qu'il désigne la même cible ;
+5. le fichier `reserved` est créé de façon exclusive : un second appel est refusé, même en
+   parallèle ou depuis un autre processus ;
+6. un dernier contrôle de validité précède la réponse
+   `{ behavior: "allow", updatedInput: { to, message } }` exacte. Une réservation devenue tardive
+   reste consommée, mais ne produit pas d'autorisation. Le diagnostic `allowed` n'est écrit que
+   pour une décision d'autorisation, afin de ne pas confondre réservation et `sendAllowed`.
+
+Toute erreur donne un refus. Chaque décision est ajoutée à `consulted.jsonl`.
+
+`notifications/cancelled` invalide immédiatement la demande indiquée, y compris si elle attend
+dans la file du serveur. Une déconnexion de l'hôte invalide les demandes encore en attente ;
+aucune réponse n'est écrite pour une demande annulée. Palabre retire le marqueur `active` lors
+de l'annulation, à l'échéance du messager et dès son retour, puis retire son listener et son
+timer en quittant la tentative. Un échec du retrait est signalé par `guard-revocation-failed`.
+Ces contrôles ne révoquent pas un envoi déjà autorisé ou mis en file ; ils ne changent pas la
+règle de délivrance `unknown` après lancement sans preuve de réception. Leur effet sur la vraie
+CLI reste à vérifier en B2.3.
+
+Les sondes préalables (version, registre et authentification) recontrôlent annulation et budget
+après le retour du processus, avant toute interprétation de la sortie, même après un exit 0.
+
+Le format de la demande (`{ tool_name, input, tool_use_id? }`) et de la réponse (texte JSON
+`behavior` / `updatedInput` / `message`) suit la documentation publique. Il **reste à vérifier**
+sur la vraie CLI (B2.3), comme l'environnement fourni au serveur MCP. Si la relecture du registre
+y échoue, l'envoi est refusé.
+
+### Délivrance et diagnostics
+
+- Avant le lancement du messager : `not-delivered`, sans export.
+- Après le lancement : **`unknown`** tant que le transcript ne prouve rien. Une entrée de pair au
+  corps exact donne `persisted-no-reply`, et une réponse corrélée donne `replied`. **Aucune
+  promotion vers `not-delivered`** à ce stade, même sans autorisation enregistrée.
+- Champ JSON `messenger` (au lieu de `queue`, propre à Codex). Ce sont des diagnostics, jamais des
+  preuves :
+  - `attempted` ;
+  - `guard` (`loaded`, `not-loaded` ou `unknown`, d'après `system/init`). **Un garde chargé n'a pas
+    forcément été consulté** ;
+  - `guardConsulted` ;
+  - `sendAllowed` : `true` (autorisation enregistrée), `false` (garde consulté sans autorisation)
+    ou `"unknown"` ;
+  - `toolResult` (`returned` ou `absent`, texte non recopié) ;
+  - `model` ;
+  - `diagnostic`, par exemple `messenger-model-unexpected` si le modèle annoncé n'est pas `haiku`.
+- `queued` : forme exacte de file observée, sans effet sur la délivrance.
+- `targetPermissions: { permissionMode }`, tiré de l'ancre corrélée seulement.
+- Issue primaire du messager :
+  - arrêt (`timeout`, `output-too-large`, `cancelled`) ;
+  - code non nul (`cli-failure`) ;
+  - aucune autorisation enregistrée (`no-valid-reply`, avec `guard-not-loaded`,
+    `guard-not-consulted` ou `send-not-allowed`).
+- **Échec, annulation et échéance.** L'issue principale est conservée, ainsi que toute réception
+  déjà prouvée. Une dernière lecture bornée peut encore relever une réception, sauf après
+  annulation ou échéance. **Aucune réponse n'est rendue** après un échec, une annulation ou un
+  dépassement du délai, même si le transcript en contient une.
+
+### Limites
+
+- **Sémantique réelle des permissions non démontrée.** La fausse CLI vérifie seulement le code de
+  Palabre. B2.3 devra montrer que `SendMessage` passe par le garde avec la règle `ask`, et qu'un
+  garde absent, en échec, sans réponse ou au JSON invalide bloque l'envoi.
+- **Politiques administrées** : elles peuvent contourner la règle `ask` (hook `PermissionRequest`
+  administré, `allowManagedPermissionRulesOnly`, règles administrées). Elles ne sont pas couvertes.
+- **Course résiduelle** : un nom peut changer de propriétaire entre la relecture du registre par le
+  garde et l'envoi. La messagerie n'offre pas d'adressage immuable par UUID.
+- **Règles de réception de la cible** (documentation, section *Control inbound messages*) :
+  - `crossSessionInbound: hold` **conserve** le message sans le remettre. Un `hold` explicite
+    n'expire pas : le message n'est remis que si une valeur `accept` s'applique plus tard ;
+  - `refuse` **supprime** le message ;
+  - sans valeur applicable, la décision dépend des deux modes : une cible qui demande les
+    permissions reçoit le message du messager (mode `default`). Une cible qui contourne les
+    permissions le **garde pour approbation**. Seul ce `hold` par défaut expire au délai
+    `dialogExpiry` (5 minutes par défaut, `"never"` possible). Claude desktop ne peut pas afficher
+    l'approbation ;
+  - **mode Plan** : il compte comme un contournement des permissions seulement dans une session
+    de terminal interactive où le contournement est disponible. Ailleurs, il compte comme une
+    demande de permissions.
+
+  Palabre ne lit pas ces réglages. Le lecteur reste à « message non observé », puis `unknown` à
+  l'échéance, sans renvoi.
+- **Aucun accusé** pour une session Claude desktop ; seul le transcript fait foi.
+- **Cible occupée** : le message est lu entre deux appels d'outils, d'où
+  `turn-start-not-proven`, puis `persisted-no-reply`.
+- **Codex desktop comme expéditeur** : bloqué par son bac à sable, hors de ce lot.
+
+### Tests B2.2a (sans quota)
+
+- `tests/external-sessions-claude-guard.test.ts` (35 cas) :
+  - version, registre, auto-ciblage, dossier, balise, localisation ;
+  - arguments, réglages et consigne du messager ;
+  - lecture du flux ;
+  - décisions du garde : autre outil, état, cible changée, réservation, erreur, 8 demandes
+    parallèles pour une seule autorisation ;
+  - serveur MCP en flux mémoire et en vrai sous-processus ;
+  - registre retardé puis annulation, échéance ou retrait de validité ;
+  - annulation MCP d'une demande en cours ou en file, déconnexion, validité du marqueur ;
+  - réservation devenue tardive, sans faux diagnostic d'autorisation.
+- `tests/external-sessions-claude-open-relay.test.ts` (38 cas) : déroulé avec horloge simulée et
+  transcript temporaire réel :
+  - nominal ;
+  - refus avant envoi, dont un messager non connecté ;
+  - garde chargé mais non consulté ;
+  - garde non chargé ;
+  - consulté sans autorisation ;
+  - réception sans autorisation enregistrée ;
+  - `hold` ;
+  - file seule ;
+  - modèle inattendu ;
+  - échec, échéance et annulation après réception, sans réponse ;
+  - lecture tardive ;
+  - tour en cours ;
+  - lecture en échec après preuve ;
+  - budget épuisé ;
+  - annulation et échéance au retour des sondes, même avec sortie inutilisable et exit normal ;
+  - retrait du marqueur pendant le messager, à son échéance et avant les lectures de réponse.
+- `tests/relay-command.test.ts` (Windows) : bout en bout avec une fausse CLI qui lance réellement
+  le garde compilé :
+  - enveloppe exacte imposée, consigne neutre, environnement nettoyé ;
+  - second appel et autre outil refusés ;
+  - garde non consulté ;
+  - cible changée au moment de la décision ;
+  - refus avant envoi, sortie texte, export.
+- Hors Windows : refus du pilote.
+
+## B2.3 (accord séparé)
+
+Protocole proposé, non lancé : `PROTOCOLE-B23.md`. Il couvre :
+- des conversations jetables seulement, dans une racine dédiée, avec un manifeste vérifié avant
+  chaque envoi ;
+- une zone isolée (`CLAUDE_CONFIG_DIR` dédié, isolement vérifié à sec) pour tous les essais
+  tant que le passage par le garde n'est pas établi, puis Claude desktop seulement après ;
+- des cibles sans serveur MCP, avec contrôle des outils exposés ;
+- la liste des essais : nominal, garde consulté, pannes du garde, unicité, modes de la cible,
+  cible occupée, Claude desktop ;
+- un budget plafonné et des critères d'arrêt.
+
+Ensuite seulement vient notre conversation active, avec un accord au moment même. L'éventuelle promotion vers `not-delivered`
+ne sera examinée qu'après ces essais.
