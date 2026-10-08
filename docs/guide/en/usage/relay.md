@@ -1,6 +1,6 @@
 ---
 title: Relay to a conversation
-description: Send a message to a closed Codex or Claude Code conversation and get its reply with palabre relay.
+description: Send a message to a closed Codex or Claude Code conversation, or to an open Codex conversation with --open, and get its reply with palabre relay.
 seo:
   title: palabre relay, ask a Codex or Claude Code conversation
   description: Send a message to an existing, closed Codex or Claude Code conversation and receive its reply in a single call, in hardened read-only mode.
@@ -12,11 +12,29 @@ seo:
 palabre relay --from codex:<sender-session> --to claude:<target-session> "Can you review this plan?"
 ```
 
-## Closed conversations only
+## Closed conversations by default
 
-The target conversation must be **closed**: no TUI, desktop, IDE or running exec may be attached to it. Otherwise the relay is refused before anything is sent (`target-busy`). It is also refused when Palabre cannot verify the conversation state (`target-state-unknown`).
+Without `--open`, the target conversation must be **closed**: no TUI, desktop, IDE or running exec may be attached to it. Otherwise the relay is refused before anything is sent (`target-busy`). It is also refused when Palabre cannot verify the conversation state (`target-state-unknown`).
 
-Making two agents talk while their conversations stay open is not possible yet. This need is tracked in issue [#96](https://github.com/JuReyms/Palabre/issues/96).
+For an **open** Codex conversation, use `--open` (next section). Relaying to an open Claude Code conversation is not available yet; it is tracked in issue [#96](https://github.com/JuReyms/Palabre/issues/96).
+
+## Open Codex conversation (`--open`)
+
+```bash
+palabre relay --open --from claude:<sender-session> --to codex:<target-session> "Can you review this plan?"
+```
+
+With `--open`, Palabre queues the message into an **open** Codex conversation, in the TUI or in Codex desktop, with the `codex queue` command. It then waits for that conversation's reply in its history and returns it to you. This is a **pilot**, limited to Codex on Windows.
+
+- **The conversation must be open.** Its write lock must be held, otherwise nothing is queued (`target-not-open`). The lock is checked again right before queuing.
+- **No read-only mode.** The open conversation replies with its own tools, MCP servers and permissions, and Codex desktop applies its current permissions to the relayed turn. The read-only guarantees of relay without `--open` therefore do not apply. The relayed message states that it comes from another, unauthenticated agent and authorizes no action.
+- **Unverified receiver.** A held lock proves neither that the conversation is displayed nor that it processes the message. Codex desktop keeps a conversation loaded after you leave it, and processes it without displaying it.
+- **Deferred processing is possible.** A queued message may be processed after the timeout, even once Palabre has stopped. Ctrl+C does not cancel a queued message, and there is no automatic resend.
+- **Size.** The message is passed as a command argument: the full envelope is limited to 8,192 UTF-16 units. Beyond that, the relay is refused (`message-too-large`).
+- **A single timeout.** `--timeout` covers preparation, queuing and waiting.
+- **Large histories.** Palabre only reads the first line of the history and what is appended after queuing, whatever its size.
+
+Verified versions: Codex CLI 0.151.0 (TUI) and Codex desktop 26.930.7945.0 (app-server 0.160.1). The Codex history format is not a public schema: another version is not blocked, but reply correlation is not guaranteed there.
 
 ## Designating conversations
 
@@ -32,6 +50,7 @@ No conversation is ever selected implicitly.
 | Option | Purpose |
 | --- | --- |
 | `"<message>"` or `--message-file <path>` | The message, 64 KiB at most. Use a file for a message starting with `-`. |
+| `--open` | Targets an open Codex conversation (see above). |
 | `--timeout <seconds>` | Maximum duration, 10 to 3600 seconds (default 600). |
 | `--json` | A single JSON v1 object on stdout, whatever the outcome. |
 | `--no-export` | Does not write the `.relay.md` export. |
@@ -79,7 +98,7 @@ Palabre never resends a message automatically. The delivery status tells you wha
 | 0 | `replied` |
 | 1 | `internal-error` |
 | 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large` |
-| 3 | `target-busy`, `target-state-unknown`, `neutralization-failed` |
+| 3 | `target-busy`, `target-state-unknown`, `neutralization-failed`, `target-not-open` (with `--open`) |
 | 4 | `timeout` |
 | 5 | `identity-mismatch` (the reply does not come from the target and is not returned) |
 | 6 | `session-not-found` |
@@ -108,6 +127,16 @@ Palabre never resends a message automatically. The delivery status tells you wha
 ```
 
 `reply` is present only for `replied`. For any other outcome, `error` contains `kind`, `message` and, for `invalid-request`, `reason`. `inActiveBranch` is a diagnostic.
+
+With `--open` only, the object adds optional fields:
+
+- `mode`: `"open"`;
+- `queue`: `attempted` (a queue attempt was made), `accepted` (`true` for a recognized acknowledgment, `"unknown"` without proof, `false` only if your Codex does not know `queue`), `itemId` and `diagnostic`;
+- `correlation`: status and reason of the history reading;
+- `receiver`: always `"unverified"`;
+- `targetPermissions`: approval, sandbox and network applied to the relayed turn, or `"unknown"`.
+
+If the envelope is not found in the history after queuing, the error message says "reception not observed": the message may still be processed later.
 
 ## Export
 

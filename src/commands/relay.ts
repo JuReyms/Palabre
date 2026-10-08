@@ -7,21 +7,32 @@
  * historique et dossier de la cible, attachement, puis échange (étape préalable et reprise),
  * issue, délivrance, export et sortie. Aucun retry : le statut de délivrance dit à l'appelant
  * s'il peut renvoyer sans risque de doublon.
+ *
+ * `--open` (B1, Codex seulement) inverse la condition d'attachement : la conversation doit être
+ * ouverte (verrou tenu). Après la même résolution de config, d'agent et d'exécutable (D21), la
+ * localisation est bornée et le dépôt passe par `codex queue` (`runOpenRelay`). La cible garde ses
+ * outils et permissions ; les champs JSON propres à `--open` n'apparaissent qu'avec cette option.
  */
 import { readFile, stat } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { sanitizeTerminalText } from "../adapters/terminal.js";
 import { externalSessionProviderForCommand, isRetiredAgentName } from "../agentRegistry.js";
 import { configExists, loadConfig, resolveDefaultConfigPath, resolveOutputDir } from "../config.js";
 import { isConfigTrusted, trustConfig } from "../configTrust.js";
-import { exchange, exchangeOutcome, type ExchangeResult, type ExternalSessionAdapter } from "../externalSessions/adapter.js";
+import { exchange, exchangeOutcome, type ExchangeResult, type ExternalExecutable, type ExternalSessionAdapter } from "../externalSessions/adapter.js";
 import { ClaudeSessionAdapter } from "../externalSessions/claude.js";
 import { CodexSessionAdapter } from "../externalSessions/codex.js";
-import { buildEnvelope, createNonce, MAX_RELAY_MESSAGE_BYTES, parseSessionRef, validateRelayMessage } from "../externalSessions/envelope.js";
+import { buildEnvelope, buildOpenEnvelope, createNonce, MAX_RELAY_MESSAGE_BYTES, parseSessionRef, validateRelayMessage } from "../externalSessions/envelope.js";
+import type { OpenTurnContext } from "../externalSessions/openReader.js";
+import { defaultOpenRelayDeps, runOpenRelay, type OpenQueueReport, type OpenRelayResult } from "../externalSessions/openRelay.js";
+import { locateOpenRollout } from "../externalSessions/openRollout.js";
 import { assessTarget, classifyDelivery, RELAY_EXIT_CODES, refusalOutcome, type PreLaunchRefusal } from "../externalSessions/outcome.js";
 import { resolveExternalExecutable } from "../externalSessions/resolve.js";
 import type {
   DeliveryVerdict,
   ExternalProvider,
+  ExternalTarget,
   InvalidRequestReason,
   RelayOutcome,
   RelayStatus,
@@ -41,7 +52,7 @@ export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 /** Options de `palabre relay` qui attendent une valeur. */
 const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "config", "language"]);
 /** Options de `palabre relay` sans valeur. */
-const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help"]);
+const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open"]);
 /** Alias acceptés, comme pour les autres commandes. */
 const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
 
@@ -64,6 +75,15 @@ export interface RelayResultV1 {
   error: { kind: RelayStatus; message: string; reason?: InvalidRequestReason } | null;
   exportPath: string | null;
   durationMs: number;
+  /**
+   * Champs optionnels propres à `--open` (B1), présents seulement avec `--open` : la sortie sans
+   * `--open` reste identique, champ pour champ. `status` peut alors valoir `target-not-open`.
+   */
+  mode?: "open";
+  queue?: OpenQueueReport;
+  correlation?: { status: string; reason: string };
+  receiver?: "unverified";
+  targetPermissions?: Omit<OpenTurnContext, "model"> | "unknown";
 }
 
 /** État partagé avec le gestionnaire d'erreur interne, pour qualifier la délivrance. */
@@ -75,6 +95,8 @@ interface RelayContext {
   provider: ExternalProvider | null;
   /** Vrai dès que l'échange a commencé : une erreur interne rend alors la délivrance inconnue. */
   exchangeStarted: boolean;
+  /** `--open` (B1) : dépôt dans une conversation Codex ouverte. */
+  open: boolean;
 }
 
 /** Erreur de validation : arrête le relay avec un refus avant lancement. */
@@ -107,7 +129,8 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
     from: null,
     to: null,
     provider: null,
-    exchangeStarted: false
+    exchangeStarted: false,
+    open: rawArgs.includes("--open")
   };
   if (rawArgs.includes("--help") || rawArgs.includes("-h")) {
     console.log(context.messages.help.renderCommand("relay"));
@@ -189,6 +212,19 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (resolution.status === "command-not-found") throw new RelayRefusal({ status: "command-not-found" });
   if (resolution.status === "unsupported-executable") throw invalid("unsupported-executable");
 
+  if (context.open) {
+    if (provider !== "codex") throw invalid("unsupported-agent", context.messages.relay.open.unsupportedProvider);
+    return relayOpen(context, {
+      to: to.value,
+      from: from.value,
+      message,
+      timeoutMs: timeoutSeconds * 1000,
+      executable: resolution.executable,
+      outputDir: resolveOutputDir(config.outputDir),
+      exportResult: flags["no-export"] !== true
+    });
+  }
+
   // Claude : cadre opérateur fixe (D22) dans la langue du relay, sans aucun contenu du message.
   const adapter: ExternalSessionAdapter = provider === "claude"
     ? new ClaudeSessionAdapter({ operatorFrame: context.messages.relay.operatorFrame })
@@ -233,6 +269,79 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     result.exportPath = await exportRelay(resolveOutputDir(config.outputDir), result, { nonce, message, startedAt: context.startedAt }, context.messages);
   }
   return result;
+}
+
+/**
+ * `--open` (B1) : dépôt dans une conversation Codex ouverte, puis réponse corrélée. Localisation
+ * bornée (première ligne du rollout seulement) ; Ctrl+C est géré avant la référence, le dépôt et
+ * l'attente, qui partagent une seule échéance (`runOpenRelay`). Aucun renvoi automatique.
+ */
+async function relayOpen(
+  context: RelayContext,
+  input: { to: SessionRef; from: SessionRef; message: string; timeoutMs: number; executable: ExternalExecutable; outputDir: string; exportResult: boolean }
+): Promise<RelayResultV1> {
+  const home = path.join(os.homedir(), ".codex");
+  const located = await locateOpenRollout(home, input.to.sessionId);
+  if (located.status !== "found") {
+    throw located.status === "session-not-found" ? new RelayRefusal({ status: "session-not-found" }) : invalid("invalid-working-directory");
+  }
+  const adapter = new CodexSessionAdapter({ home });
+  const target: ExternalTarget = { agent: input.to.agent, provider: "codex", sessionId: input.to.sessionId, cwd: located.cwd };
+  const nonce = createNonce();
+  const envelope = buildOpenEnvelope({ from: input.from, nonce, message: input.message }, context.messages.relay);
+  const controller = new AbortController();
+  const onInterrupt = () => controller.abort();
+  process.once("SIGINT", onInterrupt);
+  let open: OpenRelayResult;
+  try {
+    open = await runOpenRelay({
+      executable: input.executable,
+      sessionId: input.to.sessionId,
+      cwd: located.cwd,
+      historyPath: located.historyPath,
+      envelope,
+      nonce,
+      timeoutMs: input.timeoutMs,
+      signal: controller.signal,
+      onAttempt: () => { context.exchangeStarted = true; }
+    }, defaultOpenRelayDeps(() => adapter.probe(target)));
+  } finally {
+    process.removeListener("SIGINT", onInterrupt);
+  }
+  const result = buildResult(context, {
+    outcome: open.outcome,
+    delivery: open.delivery,
+    reply: open.reply,
+    identity: open.identity,
+    observedModels: open.observedModels,
+    message: openErrorMessage(open, context.messages),
+    open
+  });
+  // Un refus avant tentative n'a rien exécuté : pas d'export, comme pour Relay A.
+  if (input.exportResult && open.queue.attempted) {
+    result.exportPath = await exportRelay(input.outputDir, result, { nonce, message: input.message, startedAt: context.startedAt }, context.messages);
+  }
+  return result;
+}
+
+/** Message d'erreur de `--open` : issue, diagnostic court, et réception non observée après tentative. */
+function openErrorMessage(open: OpenRelayResult, messages: Messages): string | undefined {
+  if (open.outcome.status === "replied") return undefined;
+  const relayMessages = messages.relay;
+  const tooLarge = open.outcome.status === "invalid-request" && open.outcome.reason === "message-too-large";
+  const parts = [tooLarge ? relayMessages.open.messageTooLarge(open.diagnostic ?? "") : errorMessage(open.outcome, messages)];
+  if (open.diagnostic && !tooLarge) parts.push(relayMessages.open.diagnostic(open.diagnostic));
+  if (open.queue.attempted && !open.receptionObserved) parts.push(relayMessages.open.receptionNotObserved);
+  return parts.join(" ");
+}
+
+/** Résumé borné des permissions relevées dans le tour corrélé. */
+function permissionsSummary(permissions: Omit<OpenTurnContext, "model">): string {
+  return [
+    permissions.approvalPolicy ? `approval=${permissions.approvalPolicy}` : undefined,
+    permissions.sandbox ? `sandbox=${permissions.sandbox}` : undefined,
+    permissions.network ? `network=${permissions.network}` : undefined
+  ].filter((part) => part !== undefined).join(", ");
 }
 
 /**
@@ -325,9 +434,21 @@ function buildResult(
     identity?: SessionIdentity | null;
     observedModels?: string[];
     detail?: string;
+    /** Message d'erreur déjà composé (mode `--open`), prioritaire sur le message de l'issue. */
+    message?: string;
+    open?: OpenRelayResult;
   }
 ): RelayResultV1 {
   const { outcome } = input;
+  const openFields: Partial<RelayResultV1> = context.open
+    ? {
+      mode: "open",
+      queue: input.open?.queue ?? { attempted: false },
+      ...(input.open?.correlation ? { correlation: input.open.correlation } : {}),
+      receiver: "unverified",
+      targetPermissions: input.open?.targetPermissions ?? "unknown"
+    }
+    : {};
   return {
     v: 1,
     type: "relay-result",
@@ -341,9 +462,10 @@ function buildResult(
     observedModels: input.observedModels ?? [],
     error: outcome.status === "replied"
       ? null
-      : { kind: outcome.status, message: errorMessage(outcome, context.messages, input.detail), ...(outcome.reason ? { reason: outcome.reason } : {}) },
+      : { kind: outcome.status, message: input.message ?? errorMessage(outcome, context.messages, input.detail), ...(outcome.reason ? { reason: outcome.reason } : {}) },
     exportPath: null,
-    durationMs: Date.now() - context.startedAt
+    durationMs: Date.now() - context.startedAt,
+    ...openFields
   };
 }
 
@@ -372,7 +494,21 @@ async function exportRelay(
       startedAt: new Date(input.startedAt).toISOString(),
       message: input.message,
       reply: result.reply,
-      error: result.error?.message
+      error: result.error?.message,
+      ...(result.mode === "open" && result.queue
+        ? {
+          open: {
+            queue: [
+              `attempted=${result.queue.attempted}`,
+              ...(result.queue.accepted !== undefined ? [`accepted=${result.queue.accepted}`] : []),
+              ...(result.queue.diagnostic ? [`diagnostic=${result.queue.diagnostic}`] : [])
+            ].join(", "),
+            correlation: result.correlation ? `${result.correlation.status} (${result.correlation.reason})` : null,
+            receiver: result.receiver ?? "unverified",
+            targetPermissions: result.targetPermissions && result.targetPermissions !== "unknown" ? permissionsSummary(result.targetPermissions) : null
+          }
+        }
+        : {})
     }, messages);
   } catch {
     return null;
@@ -395,6 +531,10 @@ function writeResult(result: RelayResultV1, json: boolean, messages: Messages): 
   } else {
     lines.push(`${messages.relay.failed(result.status)} ${result.error?.message ?? ""}`.trim());
     lines.push(messages.relay.delivery(result.delivery.status));
+  }
+  if (result.mode === "open") {
+    lines.push(messages.relay.open.unverifiedReceiver);
+    if (result.targetPermissions && result.targetPermissions !== "unknown") lines.push(messages.relay.open.permissions(permissionsSummary(result.targetPermissions)));
   }
   if (result.exportPath) lines.push(messages.relay.exportWritten(result.exportPath));
   process.stderr.write(`${lines.map((line) => sanitizeTerminalText(line)).join("\n")}\n`);

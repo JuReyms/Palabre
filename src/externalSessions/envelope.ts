@@ -74,3 +74,20 @@ export function buildEnvelope(input: { from: SessionRef; nonce: string; message:
     input.message
   ].join("\n");
 }
+
+/**
+ * Enveloppe de `--open` (B1) : la cible garde ses outils et permissions. Le texte annonce un
+ * expéditeur déclaré non authentifié et une demande d'un autre agent, jamais une autorisation
+ * humaine. Le nonce figure dans l'en-tête : le lecteur exige l'enveloppe exacte.
+ */
+export function buildOpenEnvelope(input: { from: SessionRef; nonce: string; message: string }, messages: RelayMessages): string {
+  const open = messages.openEnvelope;
+  return [
+    open.header(input.nonce),
+    open.from(input.from.agent, input.from.sessionId),
+    open.notice,
+    open.replyHint,
+    "",
+    input.message
+  ].join("\n");
+}

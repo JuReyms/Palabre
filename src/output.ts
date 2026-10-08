@@ -208,6 +208,13 @@ export interface RelayExport {
   message: string;
   reply?: string;
   error?: string;
+  /** Diagnostic de `--open` (B1) ; absent sans `--open`, ce qui laisse l'export Relay A inchangé. */
+  open?: {
+    queue: string;
+    correlation: string | null;
+    receiver: string;
+    targetPermissions: string | null;
+  };
 }
 
 /**
@@ -239,7 +246,16 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     [labels.identity, report.identity ?? labels.none],
     [labels.observedModels, report.observedModels.length > 0 ? report.observedModels.join(", ") : labels.none],
     [labels.nonce, report.nonce],
-    [labels.startedAt, report.startedAt]
+    [labels.startedAt, report.startedAt],
+    ...(report.open
+      ? [
+        [labels.mode, "open"],
+        [labels.queue, report.open.queue],
+        [labels.correlation, report.open.correlation ?? labels.none],
+        [labels.receiver, report.open.receiver],
+        [labels.targetPermissions, report.open.targetPermissions ?? labels.unknown]
+      ]
+      : [])
   ];
   const content = [
     `# ${labels.title}`,
@@ -248,7 +264,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     "| --- | --- |",
     ...rows.map(([label, value]) => `| ${escapeTableCell(label!)} | ${escapeTableCell(value!)} |`),
     "",
-    `> ${labels.readOnlyNotice}`,
+    `> ${report.open ? labels.openNotice : labels.readOnlyNotice}`,
     "",
     `## ${labels.message}`,
     "",
