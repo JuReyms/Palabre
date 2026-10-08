@@ -68,6 +68,21 @@ function contentText(value: unknown): string | undefined {
   return parts.join("\n");
 }
 
+/**
+ * Exception observée avec Codex desktop 0.160.1 : au premier tour après un changement
+ * d'environnement ou de permissions, Codex ajoute un message `user` de contexte sans liaison
+ * UserMessage. Il n'est toléré que s'il porte la métadonnée interne du tour corrélé et une seule
+ * partie textuelle formée d'un seul bloc `<environment_context>`. Une balise seule reste ambiguë.
+ */
+function isTurnEnvironmentContext(payload: JsonObject, turnId: string): boolean {
+  const metadata = object(payload.internal_chat_message_metadata_passthrough);
+  const kinds = metadata?.content_item_kinds;
+  if (metadata?.turn_id !== turnId || !Array.isArray(kinds) || kinds.length !== 1 || kinds[0] !== "environments.environment_context") return false;
+  if (!Array.isArray(payload.content) || payload.content.length !== 1) return false;
+  const text = contentText(payload.content)?.trim();
+  return text !== undefined && /^<environment_context>(?:(?!<\/?environment_context>)[\s\S])*<\/environment_context>$/.test(text);
+}
+
 function digest(value: Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
 }
@@ -90,7 +105,9 @@ export function captureOpenBaseline(reference: OpenReference): OpenBaseline {
  *
  * Succès : enveloppe exacte dans un message utilisateur neuf, item UserMessage du même texte
  * lié à la cible et à un tour commencé après l'offset, un seul utilisateur et une seule réponse
- * final_answer dans ce tour, puis task_complete avec un texte identique. Tout conflit reste explicite.
+ * final_answer dans ce tour, puis task_complete sans `error` avec un texte identique. Seul un
+ * contexte d'environnement porteur de la métadonnée du tour, avant le relay, échappe à la règle
+ * des saisies non liées. Tout conflit reste explicite.
  * Les anciens event_msg/user_message et agent_message ne suffisent pas à identifier un tour.
  */
 export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): OpenObservation {
@@ -160,6 +177,9 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
   // Hypothèses défensives testées sur fixtures : ces formats d'échec du rollout restent à
   // observer réellement. Une erreur non attribuable au tour ne prouve pas sa terminaison.
   if (turn.some((event) => ["error", "turn_aborted", "task_cancelled", "task_failed"].includes(String(event.type)))) return observation("failed", "turn-failed-or-cancelled", turnId);
+  // Format observé (Codex 0.151.0, modèle refusé) : task_complete porte `error` et
+  // last_agent_message: null. Échec même sans réponse finale, et même si un texte final existe.
+  if (turn.some((event) => event.type === "task_complete" && event.error !== undefined && event.error !== null)) return observation("failed", "completion-error", turnId);
   const finals = turn.filter((event) => event.type === "item_completed" && object(event.item)?.type === "AgentMessage" && object(event.item)?.phase === "final_answer");
   const completions = turn.filter((event) => event.type === "task_complete");
   if (finals.length > 1 || completions.length > 1) return observation("ambiguous", "multiple-finals-or-completions", turnId);
@@ -181,6 +201,7 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
       const item = object(event.item);
       return text !== undefined && event.type === "item_completed" && item?.type === "UserMessage" && contentText(item.content) === text;
     });
+    if (bindings.length === 0 && fresh.indexOf(row) < userPosition && isTurnEnvironmentContext(payload, turnId)) continue;
     const binding = bindings[0];
     if (bindings.length !== 1 || !binding || binding.thread_id !== request.threadId
       || typeof binding.turn_id !== "string" || binding.turn_id === "" || binding.turn_id === turnId

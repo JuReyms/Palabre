@@ -80,6 +80,35 @@ describe("B1 : le tour doit commencer après la référence", () => {
       assert.equal(observe(rows).reason, "unbound-concurrent-user");
     });
   }
+  // Forme observée avec Codex desktop 0.160.1 au premier tour après un changement de permissions.
+  function environmentContext(turnId = "turn-a", kinds: unknown = ["environments.environment_context"], text = "<environment_context>\n  <cwd>C:\\factice</cwd>\n</environment_context>"): Row {
+    const row = user(text);
+    (row.payload as Row).internal_chat_message_metadata_passthrough = { turn_id: turnId, create_time: 1, content_item_kinds: kinds };
+    return row;
+  }
+  test("environment_context avec la métadonnée du tour, avant le relay : réponse corrélée", () => {
+    const result = observe([environmentContext(), ...success()]);
+    assert.equal(result.status, "replied");
+    assert.equal(result.reply, "Réponse finale.\nÉté « intact ».");
+  });
+  const rejected: Array<[string, () => Row[]]> = [
+    ["après le relay", () => [user(), bound(), environmentContext(), final(), complete()]],
+    ["métadonnée d'un autre tour", () => [environmentContext("turn-other"), ...success()]],
+    ["métadonnée absente", () => { const row = environmentContext(); delete (row.payload as Row).internal_chat_message_metadata_passthrough; return [row, ...success()]; }],
+    ["types de contenu mêlés", () => [environmentContext("turn-a", ["plugins.recommendations", "environments.environment_context"]), ...success()]],
+    ["type de contenu différent", () => [environmentContext("turn-a", ["user.text"]), ...success()]],
+    ["texte hors du bloc", () => [environmentContext("turn-a", undefined, "<environment_context></environment_context>\nAutre consigne"), ...success()]],
+    ["deux blocs", () => [environmentContext("turn-a", undefined, "<environment_context>a</environment_context><environment_context>b</environment_context>"), ...success()]],
+    ["deux parties", () => { const row = environmentContext(); ((row.payload as Row).content as Row[]).push({ type: "input_text", text: "suite" }); return [row, ...success()]; }],
+    ["lié à un UserMessage du même tour", () => { const row = environmentContext(); const text = (((row.payload as Row).content as Row[])[0]!).text as string; return [row, bound("turn-a", text), ...success()]; }]
+  ];
+  for (const [label, rows] of rejected) {
+    test(`environment_context refusé (${label}) : ambiguïté prudente`, () => {
+      const result = observe(rows());
+      assert.equal(result.status, "ambiguous");
+      assert.equal(result.reply, undefined);
+    });
+  }
   for (const beforeRelay of [true, false]) {
     test(`message developer pendant le tour, ${beforeRelay ? "avant" : "après"} le relay : aucune saisie concurrente`, () => {
       const context = user("<environment_context>nouveau dossier</environment_context>");
@@ -150,6 +179,29 @@ describe("B1 : réponse finale liée au bon tour", () => {
       assert.equal(settleOpenDelivery(result, true).status, "persisted-no-reply");
     });
   }
+  // Forme observée avec Codex 0.151.0 quand le modèle est refusé par le compte.
+  function completeWithError(turnId = "turn-a", reply: string | null = null): Row {
+    return { type: "event_msg", payload: { type: "task_complete", turn_id: turnId, last_agent_message: reply, error: { message: "modèle refusé", codex_error_info: "other" } } };
+  }
+  test("task_complete avec error et sans réponse finale : échec, preuve de réception conservée", () => {
+    const result = observe([user(), bound(), completeWithError()]);
+    assert.deepEqual(result, { status: "failed", persisted: true, reason: "completion-error", turnId: "turn-a" });
+    assert.deepEqual(settleOpenDelivery(result, true), { status: "persisted-no-reply", persisted: true });
+  });
+  test("task_complete avec error et texte final identique : pas de faux succès", () => {
+    const result = observe([user(), bound(), final(), completeWithError("turn-a", "Réponse finale.\nÉté « intact »." )]);
+    assert.equal(result.status, "failed");
+    assert.equal(result.reason, "completion-error");
+    assert.equal(result.reply, undefined);
+  });
+  test("task_complete avec error d'un autre tour : la réponse corrélée reste valable", () => {
+    assert.equal(observe([...success(), completeWithError("turn-other")]).status, "replied");
+  });
+  test("task_complete avec error: null n'est pas un échec", () => {
+    const row = complete();
+    (row.payload as Row).error = null;
+    assert.equal(observe([user(), bound(), final(), row]).status, "replied");
+  });
   test("une erreur d'un autre tour ne remplace pas une réponse corrélée", () => {
     assert.equal(observe([...success(), { type: "event_msg", payload: { type: "error", turn_id: "turn-other" } }]).status, "replied");
   });

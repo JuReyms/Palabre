@@ -22,7 +22,8 @@ essais listés plus bas. Les shims pnpm (#109) restent un chantier distinct.
 Sources : [bilan de Claude](https://github.com/JuReyms/Palabre/issues/96#issuecomment-6048846894),
 [revue indépendante](https://github.com/JuReyms/Palabre/issues/96#issuecomment-6048964688),
 [relecture de ce contrat](https://github.com/JuReyms/Palabre/pull/110#issuecomment-6049573390),
-[relecture des corrections](https://github.com/JuReyms/Palabre/pull/110#issuecomment-6049723456).
+[relecture des corrections](https://github.com/JuReyms/Palabre/pull/110#issuecomment-6049723456),
+[essais Codex desktop et Claude desktop](https://github.com/JuReyms/Palabre/issues/96#issuecomment-6050285877).
 
 ## Décisions proposées
 
@@ -30,7 +31,7 @@ Sources : [bilan de Claude](https://github.com/JuReyms/Palabre/issues/96#issueco
 | --- | --- |
 | Activation | Option explicite telle que `--open`, sans bascule automatique. Nom et acceptation des garanties **à décider** ; l'option n'existe pas aujourd'hui. |
 | Cible | UUID explicite, config approuvée, commande résolue sans shell par les règles Relay D21. Pas de nom flou, de dernière conversation ni de changement de modèle. |
-| Surface | Capacité du récepteur à consommer la file à vérifier. Un verrou **tenu**, pas seulement présent, prouve un écrivain ; il ne prouve ni un TUI ni son repos. Une surface inconnue ne devient pas implicitement compatible. La preuve ou déclaration de surface et ses limites restent **à définir**. |
+| Surface | Capacité du récepteur à consommer la file à vérifier. Un verrou **tenu**, pas seulement présent, est **obligatoire avant le dépôt** ; sans lui, aucun appel `queue` (`not-delivered`). Il prouve un écrivain, mais ne garantit ni un TUI, ni son repos, ni l'affichage, ni la consommation du message : Codex desktop garde un fil chargé et le traite sans l'afficher. Un message déposé peut encore être traité après le délai ; aucun renvoi automatique. Une surface inconnue ne devient pas implicitement compatible. La preuve ou déclaration de surface et ses limites restent **à définir**. |
 | Droits | La conversation ouverte conserve ses outils, hooks, MCP, permissions et demandes d'approbation. Palabre ne promet aucune lecture seule et ne modifie pas ces réglages. **Acceptation produit requise avant implementation.** |
 | Provenance | Enveloppe claire, expéditeur déclaré non authentifié, nonce neuf, contenu marqué comme demande d'un autre agent. Un message n'est jamais présenté comme une autorisation humaine à exécuter une action ou à lever une restriction. Le texte exact reste **à relire**. |
 | Dépôt | Un seul appel `codex queue --message <TEXT>`, arguments structurés, cwd de la cible. Limite propre à B1 et vérification de la ligne Windows complète avant dépôt, détaillées ci-dessous ; les 64 Kio de Relay A ne s'appliquent pas. Un accusé valide identifie la tentative et la file, pas une réponse. Pas de reprise concurrente, de fork ni de repli `exec resume`. |
@@ -67,11 +68,15 @@ Le constat `Queued` vers une cible fermée doit être formulé précisément : a
 traité pendant l'essai, mais une vérification sans modèle sur une copie isolée a trouvé le
 message dans `queued_items` de `queue_1.sqlite`. Il pourrait être traité ultérieurement. Ne pas
 consulter ni modifier cette base privée dans le produit ; elle sert ici uniquement de preuve.
+Les essais Codex desktop l'ont confirmé : un message déposé vers un fil fermé n'a pas été traité
+pendant 45 s, puis l'a été dès l'ouverture du fil dans l'application, 49 s après le dépôt. Le
+dépôt vers une cible fermée est donc **différé**, pas perdu ; d'où le verrou obligatoire.
 
 ## Prototype de corrélation testé hors ligne
 
 `open-response.ts` est une fonction pure, non importée par `src/`. Son dialecte est celui des
-événements liés à un tour observés dans le rollout Codex 0.151.0 ; ce n'est pas un schéma public
+événements liés à un tour observés dans les rollouts Codex 0.151.0 (TUI) et 0.160.1 (app-server
+de Codex desktop 26.930.7945.0) ; ce n'est pas un schéma public
 garanti par OpenAI. Les historiques factices sont construits dans `open-response.test.ts`.
 
 Avant le dépôt, le collecteur expérimental `open-rollout.ts` mémorise l'offset de fin d'une ligne
@@ -103,10 +108,11 @@ Le lecteur exige :
 - un seul utilisateur dans ce tour (des messages fusionnés ou une intervention humaine dans le
   même tour rendent la réponse ambiguë) ;
 - toute autre saisie utilisateur apparue après le début du tour et avant sa terminaison doit
-  être explicitement liée à un autre tour ; une saisie sans liaison identifiable interdit l'attribution ;
+  être explicitement liée à un autre tour ; une saisie sans liaison identifiable interdit
+  l'attribution, sauf le contexte d'environnement strictement délimité plus bas ;
 - une seule réponse `AgentMessage`, `phase: final_answer`, de ce thread et de ce tour ;
-- un `task_complete` du même tour, après la réponse, avec `last_agent_message` identique, et
-  aucun échec ou abandon de ce tour.
+- un `task_complete` du même tour, après la réponse, avec `last_agent_message` identique, sans
+  `error` non nul, et aucun échec ou abandon de ce tour.
 
 Les commentaires intermédiaires et les événements d'un autre tour ne terminent pas l'attente.
 Une dernière ligne partielle est ignorée jusqu'à sa complétion. Une ligne terminée corrompue,
@@ -115,23 +121,40 @@ une identité incohérente ou un témoin remplacé interdit tout succès. L'anci
 nécessaire : le prototype ne l'accepte pas comme preuve de réponse.
 
 Un message `user` comme `<environment_context>` peut être injecté sans liaison `UserMessage`.
-S'il précède la référence ou le début du tour, il ne participe pas à l'échange analysé. S'il
-apparaît pendant le tour relayé, même avant le message relayé, le lecteur conserve l'ambiguïté
-`unbound-concurrent-user`. Aucun préfixe textuel n'est une preuve de provenance système, et
-aucune liste d'exemptions n'est ajoutée sans critère observé et vérifiable.
-Dans la trace jetable relue par Claude, ce contexte est écrit **après `task_started` au premier
-tour** ; dans le tour relayé observé, Codex écrit un message de rôle `developer`. Ce dernier est
-ignoré pour la preuve de réception et le contrôle des saisies concurrentes, comme tout message
-de ce rôle : il ne devient ni une saisie utilisateur ni une réponse d'agent. Un contexte `user`
-injecté dans un tour relayé reste à observer lors des essais réels ; les cas factices ne prouvent
-pas sa fréquence ni ses déclencheurs.
+S'il précède la référence ou le début du tour, il ne participe pas à l'échange analysé. Les
+messages de rôle `developer` sont ignorés pour la preuve de réception et le contrôle des saisies
+concurrentes : ils ne deviennent ni une saisie utilisateur ni une réponse d'agent.
 
-Dans la trace réelle sont observés `task_started`, les deux `item_completed` et `task_complete`
-avec `last_agent_message`, sans `thread_id` ni `status` sur cette terminaison. Les noms `error`,
-`turn_aborted`, `task_cancelled`, `task_failed` et `task_complete.status` testés sont **des
-hypothèses défensives factices, pas des formats d'échec vérifiés**. Il faut relever les événements
-réels lors des essais d'annulation et d'erreur. Sans événement attribuable au tour et sans fin
-valide, l'attente future se termine au délai en `persisted-no-reply` si le message est reçu.
+**Contexte d'environnement observé dans un tour relayé.** Avec Codex desktop (app-server 0.160.1),
+au premier tour d'un fil dans l'application après un changement d'environnement ou de
+permissions, Codex écrit un message `user` `<environment_context>` après `task_started` et avant
+le message relayé, sans liaison `UserMessage` (deux fils sur deux dans ce cas, aucun quand les
+permissions ne changeaient pas). Ce message porte `internal_chat_message_metadata_passthrough`
+avec `content_item_kinds: ["environments.environment_context"]` et le `turn_id` du tour corrélé.
+Il n'est toléré que si **toutes** ces conditions sont réunies :
+
+- dans le tour corrélé, après son `task_started` et **avant** le message relayé ;
+- métadonnée présente, `turn_id` égal au tour corrélé, `content_item_kinds` exactement
+  `["environments.environment_context"]` ;
+- une seule partie textuelle, formée d'un seul bloc `<environment_context>…</environment_context>`
+  sans autre texte ;
+- aucune liaison `UserMessage` de ce texte.
+
+Une balise seule, une métadonnée absente, d'un autre tour ou mêlée à d'autres types, un texte
+hors du bloc, un contexte après le message relayé ou lié dans le même tour restent ambigus
+(`unbound-concurrent-user` ou `multiple-users-in-turn`). Aucun autre préfixe textuel n'est une
+preuve de provenance système.
+
+**Formats d'échec.** Dans les traces réelles sont observés `task_started`, les deux
+`item_completed` et `task_complete` avec `last_agent_message`, sans `thread_id` ni `status`.
+Un échec réel a été relevé avec Codex 0.151.0 (modèle refusé par le compte) : `task_complete`
+porte un objet `error` et `last_agent_message: null`. Un `task_complete` du tour corrélé avec
+`error` non nul donne `failed`, raison `completion-error`, même sans réponse finale, et empêche
+un succès même si un texte final identique existe ; `error: null` n'est pas un échec. Les noms
+`error` (événement), `turn_aborted`, `task_cancelled`, `task_failed` et `task_complete.status`
+restent **des hypothèses défensives factices**. Il faut relever les événements réels lors des
+essais d'annulation. Sans événement attribuable au tour et sans fin valide, l'attente future se
+termine au délai en `persisted-no-reply` si le message est reçu.
 Le lecteur assemble les parties textuelles par `\n` ; si le fournisseur les assemble autrement
 dans `last_agent_message`, il conserve l'ambiguïté plutôt que normaliser la réponse.
 
@@ -209,19 +232,23 @@ implémentés ; les essais doivent couvrir Unicode hors BMP, guillemets, antisla
 - [ ] Relecture indépendante de ce contrat et du lecteur, notamment de la liaison des tours.
 - [ ] Décision du mainteneur sur le pilote TUI et l'absence de garantie de lecture seule.
 - [ ] Définition vérifiable du récepteur compatible ; le verrou seul ne suffit pas.
-- [ ] Essais jetables : cible déjà en génération, deux messages en file, message long et
-      multiligne, saisie humaine concurrente, fermeture entre sonde et dépôt.
-- [ ] Contexte `user` injecté après `task_started` dans un tour relayé : relever sa forme et
-      vérifier l'ambiguïté prudente ; distinguer les messages `developer`, ignorés par la corrélation.
+- [ ] Essais jetables. Faits avec Codex desktop : cible en génération (le second message attend
+      la fin du tour), deux messages successifs, message long et multiligne (7 501 unités UTF-16),
+      fil fermé (dépôt différé jusqu'à l'ouverture). Restent : saisie humaine concurrente,
+      fermeture entre sonde et dépôt, TUI avec les mêmes cas.
+- [x] Contexte `user` injecté après `task_started` dans un tour relayé : forme relevée avec Codex
+      desktop, exception stricte par métadonnée, messages `developer` ignorés.
 - [ ] Boucle d'attente : arrêt sur les observations terminales, exceptions avant/après tentative
       de dépôt correctement traduites et preuve de réception antérieure conservée.
 - [ ] Timeout et Ctrl+C après acceptation : pas de succès inventé, de nouvelle reprise ni de
-      renvoi automatique ; présence éventuelle en file correctement signalée. Relever les formats
-      exacts d'échec et d'annulation au lieu de présenter les événements factices comme vérifiés.
+      renvoi automatique ; présence éventuelle en file correctement signalée. Relever le format
+      exact d'annulation (le format d'échec `task_complete.error` est relevé) au lieu de présenter
+      les événements factices comme vérifiés.
 - [ ] Versions et format exact de sortie de `queue` relevés ; limites sur arguments Windows et
       taille du rollout traitées sans parsing de sortie optimiste.
-- [ ] Vérification spécifique de Codex desktop pour le besoin réel ; résultat positif, négatif
-      ou inconnu publié sans assimiler desktop et TUI. #96 reste ouverte tant que nécessaire.
+- [x] Vérification spécifique de Codex desktop pour le besoin réel : dépôt et réponse corrélée
+      vérifiés sur fils jetables, résultats publiés sur #96 sans assimiler desktop et TUI.
+      Codex desktop comme expéditeur reste bloqué par son bac à sable. #96 reste ouverte.
 - [ ] Proposition explicite des évolutions JSON, diagnostics, codes de sortie et exports, avec
       mention des permissions de la cible ; documentation FR/EN et tests de Relay A.
 
