@@ -376,6 +376,9 @@ y échoue, l'envoi est refusé.
 Protocole proposé, non lancé : `PROTOCOLE-B23.md`. Il couvre :
 - des conversations jetables seulement, dans une racine dédiée, avec un manifeste vérifié avant
   chaque envoi ;
+- une zone isolée (`CLAUDE_CONFIG_DIR` dédié, isolement vérifié à sec) pour tous les essais
+  tant que le passage par le garde n'est pas établi, puis Claude desktop seulement après ;
+- des cibles sans serveur MCP, avec contrôle des outils exposés ;
 - la liste des essais : nominal, garde consulté, pannes du garde, unicité, modes de la cible,
   cible occupée, Claude desktop ;
 - un budget plafonné et des critères d'arrêt.
