@@ -66,8 +66,21 @@ la réception, pas l'authentification de l'expéditeur déclaré.
   une entrée `user` qui porte `turnOrigin` ou `turnPosition`.
 
 **Segment** : chaîne linéaire depuis l'ancre, dans l'ordre du fichier, jusqu'à la **première** fin
-valide. Les entrées sans `uuid` (file, `last-prompt`, titres…) sont ignorées. Les tours suivants
-sont hors segment.
+valide. Les tours suivants sont hors segment.
+
+**Entrées sans identifiant de chaîne** (`uuid` absent, `null` ou vide), entre l'ancre et la fin (ou
+après l'ancre tant qu'aucune fin n'est observée) :
+
+- métadonnées relevées (`CLAUDE_METADATA_TYPES` : `queue-operation`, `last-prompt`,
+  `custom-title`, `agent-name`, `atis-latch`, `file-history-snapshot`) : admises, ignorées ;
+- entrée de conversation (`user`, `assistant`, `system`, `attachment`) : structurellement invalide,
+  `malformed-entry-in-turn`. Un message humain, un pair ou une fin sans `uuid` ne disparaît donc
+  jamais de l'analyse ;
+- autre type : `unknown-entry-in-turn`.
+
+Une ancre exacte sans `uuid` prouve la réception, mais jamais un début de tour
+(`malformed-entry-in-turn`). Avant l'ancre ou après la fin, ces entrées n'appartiennent pas au tour
+relayé et restent sans effet. Dans tous ces cas, `persisted: true` est conservé.
 
 | Entrée chaînée | Règle | Sinon |
 | --- | --- | --- |
@@ -93,8 +106,9 @@ sont hors segment.
 - seules des pièces jointes relevées séparent la dernière entrée `assistant` de la fin
   (`unknown-terminal`) ;
 - aucun appel d'outil sans résultat (`unresolved-tool-call`) ;
-- aucune entrée chaînée hors segment entre l'ancre et la fin : `broken-chain` si son parent est
-  inconnu (compaction, lien manquant), `concurrent-branch` sinon.
+- aucune entrée hors segment entre l'ancre et la fin, hors métadonnées relevées : entrée sans
+  `uuid` (règles ci-dessus), puis entrée chaînée, `broken-chain` si son parent est inconnu
+  (compaction, lien manquant), `concurrent-branch` sinon.
 
 Sans fin : `awaiting-reply` / `end-not-observed`, jamais de repli sur `stop_reason: end_turn`. Une
 entrée hors segment après l'ancre rend l'attente `ambiguous` de la même façon.
@@ -123,7 +137,12 @@ réception est une décision reportée après B2.3.
 `persisted-no-reply` dès qu'une réception exacte est prouvée, y compris pour `ambiguous` ou `failed` ;
 `unknown` sinon après une tentative.
 
-## Choix d'implémentation soumis à la relecture
+## Choix d'implémentation
+
+Les sept choix ci-dessous ont été jugés acceptables à la relecture de `da5abae`. Cette relecture a
+relevé un point P2, corrigé ensuite : le filtre sur `uuid` ignorait aussi des entrées de conversation
+mal formées (message humain ou fin inconnue sans `uuid`, ou avec `uuid: null`), et une réponse
+restait corrélée. Voir « Entrées sans identifiant de chaîne ».
 
 1. **Pièce jointe avant la fin.** Le contrat demandait une fin dont le parent est la dernière entrée
    `assistant`. Dans le transcript jetable, 1 fin sur 12 (tour humain) a une pièce jointe pour
@@ -145,12 +164,15 @@ réception est une décision reportée après B2.3.
 
 ## Tests B2.1
 
-`tests/external-sessions-claude-open.test.ts` (73 cas, sans quota) : tour simple, tours successifs,
+`tests/external-sessions-claude-open.test.ts` (87 cas, sans quota) : tour simple, tours successifs,
 tour suivant hors segment, tour humain commencé avant la référence, outils (liés, deux appels pour un
 résultat, résultat consommé deux fois, orphelin, mauvais `promptId`, blocs mêlés, injection entre
 deux appels), début non prouvé avec réception conservée, `promptId` absent, contradictoire ou déjà vu
 (ancre exclue), types et fins inconnus, branches concurrentes, compaction, autre identité, nonce
-cité, doublon d'enveloppe, forme de file exacte puis altérée, squelette anonymisé (11 tours
+cité, doublon d'enveloppe, entrées de conversation sans `uuid` (absent, `null`, vide ; message,
+pair, assistant, pièce jointe, fin connue ou inconnue ; ancre), type non chaîné inconnu,
+métadonnées relevées pendant le tour, entrée mal formée avant l'ancre ou dans le tour suivant,
+forme de file exacte puis altérée, squelette anonymisé (11 tours
 corrélés), transcript de 151 Mio en lectures bornées. Une mutation de chaque règle clé fait échouer
 au moins un test.
 

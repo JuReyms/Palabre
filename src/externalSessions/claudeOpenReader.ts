@@ -57,7 +57,23 @@ export const CLAUDE_ANNEX_ATTACHMENTS: ReadonlySet<string> = new Set([
   "total_tokens_reminder"
 ]);
 
-const QUEUE_OPEN = /^<cross-session-message from="[^"\r\n]*" from-name="[^"\r\n]*" from-mode="[^"\r\n]*">\n/;
+/**
+ * Entrées de conversation : elles doivent toujours porter un `uuid` non vide. Sans lui, elles
+ * sont structurellement invalides, jamais assimilées à des métadonnées.
+ */
+const CONVERSATION_TYPES: ReadonlySet<string> = new Set(["assistant", "attachment", "system", "user"]);
+
+/** Métadonnées non chaînées relevées dans le transcript jetable (2.1.293), admises pendant un tour. */
+export const CLAUDE_METADATA_TYPES: ReadonlySet<string> = new Set([
+  "agent-name", "atis-latch", "custom-title", "file-history-snapshot", "last-prompt", "queue-operation"
+]);
+
+/** Identifiant de chaîne exploitable : chaîne non vide. */
+function hasChainId(row: JsonObject): boolean {
+  return typeof row.uuid === "string" && row.uuid !== "";
+}
+
+const QUEUE_OPEN =/^<cross-session-message from="[^"\r\n]*" from-name="[^"\r\n]*" from-mode="[^"\r\n]*">\n/;
 const QUEUE_CLOSE = "\n</cross-session-message>";
 
 function object(value: unknown): JsonObject | undefined {
@@ -82,7 +98,7 @@ function isTurnStart(row: JsonObject): boolean {
 
 /** Forme d'une fin valide, sans la liaison au segment (vérifiée par l'appelant quand elle est visible). */
 function isEndForm(row: JsonObject | undefined, sessionId: string): boolean {
-  return row?.type === "system" && row.subtype === "stop_hook_summary" && typeof row.uuid === "string"
+  return row?.type === "system" && row.subtype === "stop_hook_summary" && hasChainId(row)
     && row.preventedContinuation === false && Array.isArray(row.hookErrors) && row.hookErrors.length === 0
     && row.isSidechain === false && row.sessionId === sessionId;
 }
@@ -120,7 +136,7 @@ function readWitness(witness: Uint8Array, wholeFile: boolean): WitnessState {
     let row: JsonObject | undefined;
     try { row = object(JSON.parse(line)); } catch { return empty; }
     if (!row) return empty;
-    if (typeof row.uuid === "string") { state.uuids.add(row.uuid); state.lastChained = row; }
+    if (hasChainId(row)) { state.uuids.add(row.uuid as string); state.lastChained = row; }
     if (isTurnStart(row) && typeof row.promptId === "string") state.promptIds.add(row.promptId);
   }
   return state;
@@ -136,7 +152,8 @@ function readWitness(witness: Uint8Array, wholeFile: boolean): WitnessState {
  * Réponse : la même entrée doit aussi ouvrir un tour (`turnOrigin: "peer"`, `promptIndex: 1`,
  * `promptId` UUID distinct des autres débuts de tour visibles, parent égal à une fin valide). Le
  * segment suit la chaîne jusqu'à la première fin valide ; il n'admet que des `assistant`, des
- * pièces jointes relevées et des résultats d'outils liés à leur appel. Le texte rendu est celui du
+ * pièces jointes relevées et des résultats d'outils liés à leur appel ; entre l'ancre et la fin, seules
+ * des métadonnées relevées peuvent rester sans `uuid`. Le texte rendu est celui du
  * groupe `assistant` final, après le dernier résultat d'outil. Les tours suivants sont hors segment.
  */
 export function inspectClaudeOpenReply(snapshot: OpenSnapshot, request: ClaudeOpenRequest): ClaudeOpenObservation {
@@ -180,17 +197,19 @@ export function inspectClaudeOpenReply(snapshot: OpenSnapshot, request: ClaudeOp
   // Index de la chaîne de l'ajout ; la référence ne fournit que sa dernière entrée chaînée.
   const witness = readWitness(snapshot.witness, snapshot.witness.byteLength === baseline.bytes);
   const position = new Map(fresh.map((row, index) => [row, index]));
-  const chained = fresh.filter((row) => typeof row.uuid === "string");
+  const chained = fresh.filter(hasChainId);
   const counts = new Map<string, number>();
   const children = new Map<string, JsonObject[]>();
   for (const row of chained) {
     counts.set(row.uuid as string, (counts.get(row.uuid as string) ?? 0) + 1);
     if (typeof row.parentUuid === "string") children.set(row.parentUuid, [...(children.get(row.parentUuid) ?? []), row]);
   }
-  const unique = (row: JsonObject) => typeof row.uuid === "string" && counts.get(row.uuid) === 1 && !witness.uuids.has(row.uuid);
+  const unique = (row: JsonObject) => hasChainId(row) && counts.get(row.uuid as string) === 1 && !witness.uuids.has(row.uuid as string);
   const knownParent = (row: JsonObject) => typeof row.parentUuid === "string"
     && (counts.has(row.parentUuid) || row.parentUuid === witness.lastChained?.uuid);
 
+  // Une ancre sans identifiant de chaîne prouve la réception, jamais un début de tour.
+  if (!hasChainId(anchor)) return received("ambiguous", "malformed-entry-in-turn");
   // Début de tour : parent égal à une fin valide, de la référence ou de l'ajout, avant l'ancre.
   const parentUuid = anchor.parentUuid;
   const parentInAdded = typeof parentUuid === "string" ? chained.find((row) => row.uuid === parentUuid) : undefined;
@@ -218,16 +237,27 @@ export function inspectClaudeOpenReply(snapshot: OpenSnapshot, request: ClaudeOp
     const value: ClaudeTurnContext = { ...(models.length ? { models: [...models] } : {}), ...(permissionMode ? { permissionMode } : {}) };
     return Object.keys(value).length ? value : undefined;
   };
-  // Une entrée chaînée hors segment, après l'ancre, est une branche ou un lien rompu (compaction).
-  const strays = (until: number) => chained.filter((row) => position.get(row)! > position.get(anchor)! && position.get(row)! < until && !segment.includes(row));
+  /**
+   * Entrées hors segment écrites après l'ancre et avant `until`. Seules les métadonnées relevées
+   * sont admises. Une entrée de conversation sans `uuid` valide est mal formée ; un type non
+   * chaîné inconnu reste ambigu ; une entrée chaînée est une branche ou un lien rompu (compaction).
+   */
+  const outOfSegment = (until: number): string | undefined => {
+    const rows = fresh.filter((row) => position.get(row)! > position.get(anchor)! && position.get(row)! < until && !segment.includes(row));
+    const loose = rows.filter((row) => !hasChainId(row));
+    if (loose.some((row) => CONVERSATION_TYPES.has(row.type as string))) return "malformed-entry-in-turn";
+    if (loose.some((row) => !CLAUDE_METADATA_TYPES.has(row.type as string))) return "unknown-entry-in-turn";
+    const strays = rows.filter(hasChainId);
+    if (strays.length === 0) return undefined;
+    return strays.some((row) => !knownParent(row)) ? "broken-chain" : "concurrent-branch";
+  };
   let end: JsonObject | undefined;
   for (let current = anchor; !end;) {
     const next = children.get(current.uuid as string) ?? [];
     if (next.length > 1) return anchored("ambiguous", "concurrent-branch");
     if (next.length === 0) {
-      const stray = strays(fresh.length);
-      if (stray.length) return anchored("ambiguous", stray.some((row) => !knownParent(row)) ? "broken-chain" : "concurrent-branch");
-      return anchored("awaiting-reply", "end-not-observed");
+      const issue = outOfSegment(fresh.length);
+      return issue ? anchored("ambiguous", issue) : anchored("awaiting-reply", "end-not-observed");
     }
     const row = next[0]!;
     if (position.get(row)! < position.get(current)!) return anchored("ambiguous", "invalid-chain-order");
@@ -265,8 +295,8 @@ export function inspectClaudeOpenReply(snapshot: OpenSnapshot, request: ClaudeOp
     current = row;
   }
 
-  const stray = strays(position.get(end)!);
-  if (stray.length) return anchored("ambiguous", stray.some((row) => !knownParent(row)) ? "broken-chain" : "concurrent-branch");
+  const issue = outOfSegment(position.get(end)!);
+  if (issue) return anchored("ambiguous", issue);
   // Seules des pièces jointes relevées peuvent séparer la dernière réponse de la fin.
   const body = segment.slice(0, -1);
   const last = [...body].reverse().find((row) => row.type !== "attachment");

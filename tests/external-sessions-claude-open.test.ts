@@ -385,6 +385,76 @@ describe("B2.1 : contrôles globaux de l'ajout", () => {
   });
 });
 
+describe("B2.1 : entrées sans identifiant de chaîne (régressions de la revue de da5abae)", () => {
+  /** Retire ou remplace l'uuid d'une entrée construite, sans changer le reste de sa forme. */
+  const withoutChainId = (make: Maker, uuid?: unknown): Maker => (parent) => {
+    const { uuid: _removed, ...row } = make(parent);
+    return uuid === undefined ? row : { ...row, uuid };
+  };
+  const malformed: Array<[string, Maker]> = [
+    ["message humain sans uuid", withoutChainId(human("Consigne glissée"))],
+    ["message humain avec uuid null", withoutChainId(human("Consigne glissée"), null)],
+    ["message humain avec uuid vide", withoutChainId(human("Consigne glissée"), "")],
+    ["fin inconnue sans uuid", withoutChainId(stop({ preventedContinuation: true }))],
+    ["fin valide sans uuid", withoutChainId(stop())],
+    ["assistant sans uuid", withoutChainId(assistant(text("Texte détaché")))],
+    ["pièce jointe sans uuid", withoutChainId(attachment())],
+    ["second pair sans uuid", withoutChainId(peer({ body: "Autre pair" }))]
+  ];
+  for (const [name, loose] of malformed) {
+    test(`${name}, avant la fin valide : malformed-entry-in-turn, réception conservée`, () => {
+      const head = chain(END, [peer(), assistant(thinking)]);
+      // L'entrée sans uuid ne rompt pas la chaîne : la fin valide reste liée à la réponse.
+      const rows = [...head, loose(head.at(-1)!.uuid as string), ...chain(head.at(-1)!.uuid as string, [assistant(text(REPLY)), stop()])];
+      const result = observe(rows);
+      assert.equal(result.status, "ambiguous");
+      assert.equal(result.reason, "malformed-entry-in-turn");
+      assert.equal(result.persisted, true);
+      assert.equal(result.reply, undefined);
+      assert.equal(settleOpenDelivery(result, true).status, "persisted-no-reply");
+    });
+  }
+  test("entrée mal formée après l'ancre, sans fin encore : ambiguë plutôt qu'en attente", () => {
+    const head = chain(END, [peer(), assistant(thinking)]);
+    const result = observe([...head, withoutChainId(human("Consigne glissée"))(head.at(-1)!.uuid as string)]);
+    assert.equal(result.reason, "malformed-entry-in-turn");
+    assert.equal(result.persisted, true);
+  });
+  test("ancre exacte sans uuid : réception prouvée, jamais un début de tour", () => {
+    const result = observe([withoutChainId(peer())(END), ...chain(END, [assistant(text(REPLY)), stop()])]);
+    assert.equal(result.reason, "malformed-entry-in-turn");
+    assert.equal(result.persisted, true);
+    assert.equal(result.reply, undefined);
+  });
+  test("type non chaîné inconnu pendant le tour : unknown-entry-in-turn", () => {
+    const head = chain(END, [peer(), assistant(thinking)]);
+    const rows = [...head, { type: "summary", sessionId: SESSION }, ...chain(head.at(-1)!.uuid as string, [assistant(text(REPLY)), stop()])];
+    assert.equal(observe(rows).reason, "unknown-entry-in-turn");
+  });
+  test("métadonnées relevées pendant le tour : réponse corrélée", () => {
+    const head = chain(END, [peer(), assistant(thinking)]);
+    const metadata: Row[] = [
+      queued("Message suivant mis en file"), dequeued, { type: "last-prompt", lastPrompt: "…", leafUuid: head.at(-1)!.uuid, sessionId: SESSION },
+      { type: "custom-title", customTitle: "Titre factice", sessionId: SESSION }, { type: "agent-name", agentName: "pair-factice", sessionId: SESSION },
+      { type: "atis-latch", sessionId: SESSION }, { type: "file-history-snapshot", messageId: uid(), isSnapshotUpdate: true }
+    ];
+    const result = observe([...head, ...metadata, ...chain(head.at(-1)!.uuid as string, [assistant(text(REPLY)), stop()])]);
+    assert.equal(result.status, "replied");
+    assert.equal(result.reply, REPLY);
+  });
+  test("entrée mal formée dans le tour suivant, après la fin : réponse corrélée", () => {
+    const first = simpleTurn();
+    const next = chain(first.at(-1)!.uuid as string, [human("Tour suivant"), assistant(thinking)]);
+    const result = observe([...first, ...next, withoutChainId(stop({ preventedContinuation: true }))(next.at(-1)!.uuid as string), { type: "summary", sessionId: SESSION }]);
+    assert.equal(result.status, "replied");
+    assert.equal(result.reply, REPLY);
+  });
+  test("entrée mal formée avant l'ancre, hors du tour relayé : sans effet", () => {
+    const result = observe([withoutChainId(human("Ancienne consigne"))(END), ...simpleTurn()]);
+    assert.equal(result.status, "replied");
+  });
+});
+
 describe("B2.1 : forme de file, diagnostic seulement", () => {
   test("file exacte sans ancre : queued, persisted false, délivrance inconnue", () => {
     const result = observe([queued()]);
