@@ -82,8 +82,24 @@ describe("dépôt B1 : accusé de codex queue", () => {
     assert.deepEqual(parseQueueAck(`Queued for thread ${THREAD}.`, THREAD), { status: "absent" });
     assert.deepEqual(parseQueueAck(`Queued message a for thread ${THREAD}.\nQueued message b for thread ${THREAD}.\n`, THREAD), { status: "absent" });
   });
-  test("refus certain de l'analyseur d'arguments seulement", () => {
-    assert.equal(isQueueUnsupported("error: unrecognized subcommand 'queue'"), true);
-    assert.equal(isQueueUnsupported("Error: queue database unavailable"), false);
+  // Forme observée avec l'analyseur de Codex 0.151.0 pour une sous-commande inconnue.
+  const AUTHENTIC = "error: unexpected argument '--thread' found\n\n  tip: to pass '--thread' as a value, use '-- --thread'\n\nUsage: codex [OPTIONS] [PROMPT]\n       codex [OPTIONS] <COMMAND> [ARGS]\n\nFor more information, try '--help'.\n";
+  test("refus authentique de l'analyseur d'arguments : reconnu, y compris en CRLF", () => {
+    assert.equal(isQueueUnsupported({ exitCode: 2, stdout: "", stderr: AUTHENTIC }), true);
+    assert.equal(isQueueUnsupported({ exitCode: 2, stdout: "", stderr: AUTHENTIC.replaceAll("\n", "\r\n") }), true);
+  });
+  test("mention citée, accusé contradictoire, autre code ou autre forme : jamais un refus certain", () => {
+    const cases = [
+      { exitCode: 1, stdout: `Queued message a for thread ${THREAD}.\n`, stderr: "warning: nested tool reported unrecognized subcommand 'queue'; deposit was already accepted" },
+      { exitCode: 2, stdout: `Queued message a for thread ${THREAD}.\n`, stderr: AUTHENTIC },
+      { exitCode: 1, stdout: "", stderr: AUTHENTIC },
+      { exitCode: 2, stdout: "", stderr: "error: unrecognized subcommand 'queuefoo'\n" },
+      { exitCode: 2, stdout: "", stderr: "error: unrecognized subcommand 'queue'\n" },
+      { exitCode: 2, stdout: "", stderr: `note: ${AUTHENTIC}` },
+      // Codex qui connaît queue : erreur d'option avec l'usage de la sous-commande.
+      { exitCode: 2, stdout: "", stderr: "error: unexpected argument '--thread' found\n\nUsage: codex queue [OPTIONS] --thread <THREAD> --message <TEXT>\n" },
+      { exitCode: 1, stdout: "", stderr: "Error: queue database unavailable" }
+    ];
+    for (const run of cases) assert.equal(isQueueUnsupported(run), false, JSON.stringify(run).slice(0, 120));
   });
 });

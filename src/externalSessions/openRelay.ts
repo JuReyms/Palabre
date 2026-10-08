@@ -178,13 +178,17 @@ export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): 
   const secondLock = lockRefusal(deps.probe());
   if (secondLock) return refuse(outcome(secondLock), "lock-released-before-queue");
 
-  // 5. Dépôt.
+  // 5. Dépôt, seulement avec un budget strictement positif mesuré juste avant le lancement : la
+  // sonde a pu consommer le temps restant. Ce contrôle ne rend pas sonde et lancement atomiques.
+  if (input.signal.aborted) return refuse(outcome("cancelled"));
+  const queueBudget = remaining();
+  if (queueBudget <= 0) return refuse(outcome("timeout"), "budget-exhausted-before-queue");
   const run = await deps.run({
     command: input.executable.command,
     args,
     cwd: input.cwd,
     stdin: "",
-    timeoutMs: Math.min(QUEUE_LIMITS.timeoutMs, remaining()),
+    timeoutMs: Math.min(QUEUE_LIMITS.timeoutMs, queueBudget),
     maxOutputBytes: QUEUE_LIMITS.maxOutputBytes,
     signal: input.signal
   });
@@ -213,7 +217,10 @@ export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): 
     const current = observation ?? { status: "awaiting-message" as const, persisted: false, reason: "not-inspected" };
     // Une observation `replied` ne vaut réponse que si l'issue l'est aussi (jamais après un échec du déposant).
     const settled = settleOpenDelivery(final.status === "replied" ? current : { ...current, status: current.status === "replied" ? "awaiting-reply" : current.status }, true, persisted);
-    const context = current.status === "replied" || current.status === "failed" ? current.context : undefined;
+    // Relevé du tour seulement quand l'issue repose sur ce tour : jamais après annulation ou échéance.
+    const context = (final.status === "replied" && current.status === "replied") || (final.status === "cli-failure" && current.status === "failed")
+      ? current.context
+      : undefined;
     const { model, ...permissions } = context ?? {};
     return {
       outcome: final,
@@ -235,8 +242,8 @@ export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): 
     primary = outcome(run.stopReason);
     queue.diagnostic = `queue-${run.stopReason}`;
   } else if (run.exitCode !== 0) {
-    if (isQueueUnsupported(run.stderr)) {
-      // Refus documenté de l'analyseur d'arguments : rien n'a été déposé.
+    if (isQueueUnsupported(run)) {
+      // Refus certain de l'analyseur d'arguments, sous sa forme observée : rien n'a été déposé.
       return { ...base, outcome: outcome("cli-failure"), delivery: NOT_DELIVERED, queue: { attempted: true, accepted: false, diagnostic: "queue-unsupported" }, diagnostic: "queue-unsupported" };
     }
     primary = outcome("cli-failure");
@@ -259,13 +266,16 @@ export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): 
     return finish(primary);
   }
 
-  // 6. Attente de la réponse corrélée.
+  // 6. Attente de la réponse corrélée. Annulation et échéance sont contrôlées avant chaque lecture
+  // et après son retour, avant d'accepter une issue terminale : une lecture terminée trop tard ne
+  // rend jamais de réponse, mais sa preuve de réception est conservée.
   for (;;) {
     if (input.signal.aborted) return finish(outcome("cancelled"));
+    if (remaining() <= 0) return finish(outcome("timeout"));
     await inspect();
-    if (!observation!.status.startsWith("awaiting")) break;
     if (input.signal.aborted) return finish(outcome("cancelled"));
     if (remaining() <= 0) return finish(outcome("timeout"));
+    if (!observation!.status.startsWith("awaiting")) break;
     await deps.sleep(Math.min(OPEN_POLL_MS, remaining()), input.signal);
   }
   const terminal = observation!;

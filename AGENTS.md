@@ -780,8 +780,8 @@ La validation des arguments, la config approuvée, l'agent et l'exécutable (D21
 3. **Contrôle du dépôt** (`codexQueue.ts`) : enveloppe complète d'au plus 8 192 unités UTF-16 ; aucun NUL ; ligne de commande Windows réellement sérialisée (exécutable, arguments préfixés D21, arguments et échappement libuv, NUL final) d'au plus 32 767 unités. Sinon `invalid-request` / `message-too-large`, sans dépôt.
 4. **Référence** du rollout (`captureOpenRollout`) : une fin de ligne partielle est réessayée pendant 2 s au plus, dans le budget et annulable ; ensuite, `no-valid-reply` avec la raison, sans dépôt.
 5. **Nouveau contrôle du verrou** immédiatement avant le dépôt. Il réduit la fenêtre de course sans rendre vérification et dépôt atomiques. Verrou libéré : `target-not-open` ; invérifiable : `target-state-unknown`, sans dépôt.
-6. **Un seul `codex queue --thread <uuid> --message <enveloppe>`**, lancé par `runExternalProcess` : sans shell, dans le dossier de la cible, environnement nettoyé, stdin vide, en `min(60 s, budget restant)` et 1 Mio au plus. Dès qu'un processus est créé, la tentative compte.
-7. **Attente** : lectures bornées de l'ajout (`readOpenRollout`, `inspectOpenReply`) toutes les 500 ms jusqu'à une observation terminale, l'échéance ou l'annulation. Toute preuve de réception est mémorisée.
+6. **Un seul `codex queue --thread <uuid> --message <enveloppe>`**, lancé par `runExternalProcess` : sans shell, dans le dossier de la cible, environnement nettoyé, stdin vide, en `min(60 s, budget restant)` et 1 Mio au plus. Annulation et budget sont recontrôlés juste avant le lancement : si la sonde a épuisé le budget, `timeout` sans dépôt (ce contrôle ne rend pas sonde et lancement atomiques). Dès qu'un processus est créé, la tentative compte.
+7. **Attente** : lectures bornées de l'ajout (`readOpenRollout`, `inspectOpenReply`) toutes les 500 ms jusqu'à une observation terminale, l'échéance ou l'annulation. Annulation et échéance sont contrôlées avant chaque lecture **et après son retour**, avant d'accepter une observation terminale : une lecture terminée après Ctrl+C ou après l'échéance donne `cancelled` ou `timeout`, sans réponse. Toute preuve de réception est mémorisée.
 
 L'enveloppe `--open` annonce un expéditeur déclaré non authentifié et une demande d'un autre agent : ce n'est pas une instruction de l'utilisateur, elle n'autorise aucune action et ne lève aucune restriction. Ctrl+C est géré avant la référence ; le gestionnaire est retiré en fin de relay.
 
@@ -794,9 +794,9 @@ L'enveloppe `--open` annonce un expéditeur déclaré non authentifié et une de
 | Enveloppe, NUL ou ligne Windows hors limite | `invalid-request`, `message-too-large` / 8 | `not-delivered` |
 | Référence toujours partielle ou illisible | `no-valid-reply` / 2, raison conservée | `not-delivered` |
 | Lancement impossible, aucun enfant créé | `command-not-found`, `invalid-request` / `invalid-working-directory` ou `cli-failure` | `not-delivered` |
-| CLI sans sous-commande `queue` (refus de son analyseur d'arguments) | `cli-failure` / 2 | `not-delivered` |
-| Ctrl+C, y compris pendant la référence ou `queue` | `cancelled` / 130 | `not-delivered` avant tentative, sinon selon la preuve |
-| Échéance, y compris pendant `queue` | `timeout` / 4 | idem |
+| CLI sans sous-commande `queue` : refus de son analyseur d'arguments sous la forme observée avec Codex 0.151.0 pour une sous-commande inconnue, exigée en entier (code 2, stdout vide, première ligne `error: unexpected argument '--thread' found`, usage `Usage: codex [OPTIONS] [PROMPT]`) | `cli-failure` / 2 | `not-delivered`. Toute autre sortie, simple mention dans un journal ou accusé contradictoire, garde l'incertitude |
+| Ctrl+C, y compris pendant la référence, `queue` ou une lecture | `cancelled` / 130 | `not-delivered` avant tentative, sinon selon la preuve |
+| Échéance, y compris juste avant le lancement, pendant `queue` ou pendant une lecture | `timeout` / 4 | idem |
 | Plafond de sortie de `queue` | `output-too-large` / 2 | selon la preuve ; la sortie partielle n'est jamais un accusé |
 | `queue` terminé en non-zéro | `cli-failure` / 2 | selon la preuve |
 | `queue` terminé à zéro, accusé absent, non conforme ou d'une autre conversation | `no-valid-reply` / 2 | selon la preuve |

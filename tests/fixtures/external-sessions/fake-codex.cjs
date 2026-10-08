@@ -58,7 +58,8 @@ process.stdin.on("end", () => {
     const queueMode = process.env.FAKE_CODEX_QUEUE || "reply";
     const ack = (id) => process.stdout.write(`Queued message 01a1-item for thread ${id}.\n`);
     if (queueMode === "unsupported") {
-      process.stderr.write("error: unrecognized subcommand 'queue'\n");
+      // Forme observée avec l'analyseur de Codex 0.151.0 pour une sous-commande inconnue.
+      process.stderr.write("error: unexpected argument '--thread' found\n\n  tip: to pass '--thread' as a value, use '-- --thread'\n\nUsage: codex [OPTIONS] [PROMPT]\n       codex [OPTIONS] <COMMAND> [ARGS]\n\nFor more information, try '--help'.\n");
       process.exitCode = 2;
       return;
     }

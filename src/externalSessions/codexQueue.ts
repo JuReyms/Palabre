@@ -89,9 +89,19 @@ export function parseQueueAck(stdout: string, sessionId: string): QueueAck {
 }
 
 /**
- * Refus documenté par l'analyseur d'arguments de la CLI, avant toute action : une CLI qui ne
- * connaît pas `queue` ne dépose rien. Seul cet échec, certain, permet `not-delivered` après lancement.
+ * Refus certain de l'analyseur d'arguments d'une CLI qui ne connaît pas `queue` : rien n'est déposé.
+ * Seul cet échec permet `not-delivered` après lancement ; toute autre sortie garde l'incertitude.
+ *
+ * Forme observée avec l'analyseur de Codex CLI 0.151.0 pour une sous-commande inconnue : le mot est
+ * pris pour l'invite positionnelle de premier niveau, puis `--thread` est refusé. Exigée en entier :
+ * code 2, stdout vide (aucun accusé), première ligne de stderr exactement
+ * `error: unexpected argument '--thread' found` et usage de premier niveau
+ * `Usage: codex [OPTIONS] [PROMPT]`. Une simple mention dans un journal, un accusé contradictoire,
+ * un autre code ou l'usage de `codex queue` ne suffisent jamais.
  */
-export function isQueueUnsupported(stderr: string): boolean {
-  return /unrecognized subcommand ['"]?queue['"]?/i.test(stderr);
+export function isQueueUnsupported(run: { exitCode: number | null; stdout: string; stderr: string }): boolean {
+  if (run.exitCode !== 2 || run.stdout.trim() !== "") return false;
+  const lines = run.stderr.replace(/\r\n/g, "\n").split("\n");
+  return lines[0] === "error: unexpected argument '--thread' found"
+    && lines.some((line) => line.trim() === "Usage: codex [OPTIONS] [PROMPT]");
 }

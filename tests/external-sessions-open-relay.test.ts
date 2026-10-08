@@ -222,6 +222,38 @@ describe("B1 : refus sans dépôt", () => {
 });
 
 describe("B1 : budget unique et arrêts pendant le dépôt", () => {
+  test("régression : seconde sonde qui épuise le budget : timeout, aucun lancement, not-delivered", async () => {
+    const file = rollout();
+    const h = harness(file);
+    const probe = h.deps.probe;
+    h.deps.probe = () => {
+      const result = probe();
+      if (h.calls.probe === 2) h.clock.now = 11_000;
+      return result;
+    };
+    const result = await runOpenRelay(input(file), h.deps);
+    assert.equal(result.outcome.status, "timeout");
+    assert.equal(result.outcome.exitCode, 4);
+    assert.equal(result.diagnostic, "budget-exhausted-before-queue");
+    assert.deepEqual(result.queue, { attempted: false });
+    assert.equal(result.delivery.status, "not-delivered");
+    assert.equal(h.calls.run.length, 0);
+  });
+  test("Ctrl+C pendant la seconde sonde : cancelled, aucun lancement", async () => {
+    const file = rollout();
+    const controller = new AbortController();
+    const h = harness(file);
+    const probe = h.deps.probe;
+    h.deps.probe = () => {
+      const result = probe();
+      if (h.calls.probe === 2) controller.abort();
+      return result;
+    };
+    const result = await runOpenRelay(input(file, { signal: controller.signal }), h.deps);
+    assert.equal(result.outcome.status, "cancelled");
+    assert.equal(result.delivery.status, "not-delivered");
+    assert.equal(h.calls.run.length, 0);
+  });
   test("budget de 10 s avec dépôt lent : timeout du dépôt borné au budget restant, puis timeout", async () => {
     const file = rollout();
     const h = harness(file, {
@@ -303,13 +335,30 @@ describe("B1 : échecs du déposant après tentative", () => {
       assert.equal(result.delivery.status, "unknown");
     });
   }
-  test("CLI sans queue (refus de l'analyseur) : cli-failure, not-delivered, acceptation false", async () => {
+  test("CLI sans queue (refus authentique de l'analyseur) : cli-failure, not-delivered, acceptation false", async () => {
     const file = rollout();
-    const h = harness(file, { onRun: () => queued({ exitCode: 2, stdout: "", stderr: "error: unrecognized subcommand 'queue'" }) });
+    const stderr = "error: unexpected argument '--thread' found\n\n  tip: to pass '--thread' as a value, use '-- --thread'\n\nUsage: codex [OPTIONS] [PROMPT]\n       codex [OPTIONS] <COMMAND> [ARGS]\n\nFor more information, try '--help'.\n";
+    const h = harness(file, { onRun: () => queued({ exitCode: 2, stdout: "", stderr }) });
     const result = await runOpenRelay(input(file), h.deps);
     assert.equal(result.outcome.status, "cli-failure");
     assert.equal(result.delivery.status, "not-delivered");
     assert.deepEqual(result.queue, { attempted: true, accepted: false, diagnostic: "queue-unsupported" });
+  });
+  test("régression : mention « unrecognized subcommand 'queue' » dans un journal, avec accusé et réception : jamais not-delivered", async () => {
+    const file = rollout();
+    const h = harness(file, {
+      onRun: () => {
+        appendRows(file, fullTurn());
+        return queued({ exitCode: 1, stderr: "warning: nested tool reported unrecognized subcommand 'queue'; deposit was already accepted" });
+      }
+    });
+    const result = await runOpenRelay(input(file), h.deps);
+    assert.equal(result.outcome.status, "cli-failure");
+    assert.deepEqual(result.queue, { attempted: true, accepted: "unknown", diagnostic: "queue-exit-1" });
+    assert.equal(h.calls.read, 1, "la dernière lecture bornée a lieu");
+    assert.equal(result.delivery.status, "persisted-no-reply");
+    assert.equal(result.receptionObserved, true);
+    assert.equal(result.reply, undefined);
   });
 });
 
@@ -322,7 +371,56 @@ describe("B1 : attente et lecteur", () => {
     assert.equal(result.delivery.status, "unknown");
     assert.equal(result.receptionObserved, false);
     assert.deepEqual(result.correlation, { status: "awaiting-message", reason: "envelope-not-observed" });
-    assert.equal(h.calls.read, 2_000 / OPEN_POLL_MS + 1);
+    // Lectures à 0, 500, 1 000 et 1 500 ms ; à l'échéance, aucune lecture supplémentaire.
+    assert.equal(h.calls.read, 2_000 / OPEN_POLL_MS);
+  });
+  test("régression : Ctrl+C pendant une lecture qui rapporte une réponse : cancelled, sans réponse, réception conservée", async () => {
+    const file = rollout();
+    const controller = new AbortController();
+    const h = harness(file, {
+      onRun: () => { appendRows(file, fullTurn()); return queued(); },
+      read: async (name, base) => { const snapshot = await readOpenRollout(name, base); controller.abort(); return snapshot; }
+    });
+    const result = await runOpenRelay(input(file, { signal: controller.signal }), h.deps);
+    assert.equal(result.outcome.status, "cancelled");
+    assert.equal(result.outcome.exitCode, 130);
+    assert.equal(result.reply, undefined);
+    assert.equal(result.identity, "unavailable");
+    assert.equal(result.delivery.status, "persisted-no-reply");
+    assert.equal(result.targetPermissions, "unknown");
+    assert.deepEqual(result.observedModels, []);
+  });
+  test("régression : lecture terminée après l'échéance avec une réponse : timeout, sans réponse, réception conservée", async () => {
+    const file = rollout();
+    const h = harness(file, {
+      onRun: () => { appendRows(file, fullTurn()); return queued(); },
+      read: async (name, base) => { const snapshot = await readOpenRollout(name, base); h.clock.now = 11_000; return snapshot; }
+    });
+    const result = await runOpenRelay(input(file), h.deps);
+    assert.equal(result.outcome.status, "timeout");
+    assert.equal(result.outcome.exitCode, 4);
+    assert.equal(result.reply, undefined);
+    assert.equal(result.delivery.status, "persisted-no-reply");
+  });
+  test("une observation terminale d'échec ne masque pas l'annulation pendant la lecture", async () => {
+    const file = rollout();
+    const controller = new AbortController();
+    const h = harness(file, {
+      onRun: () => { appendRows(file, [started(), context(), user(), item("UserMessage", ENVELOPE), complete(null, { message: "modèle refusé" })]); return queued(); },
+      read: async (name, base) => { const snapshot = await readOpenRollout(name, base); controller.abort(); return snapshot; }
+    });
+    const result = await runOpenRelay(input(file, { signal: controller.signal }), h.deps);
+    assert.equal(result.outcome.status, "cancelled");
+    assert.equal(result.delivery.status, "persisted-no-reply");
+  });
+  test("échéance atteinte au réveil entre deux lectures : timeout, sans nouvelle lecture", async () => {
+    const file = rollout();
+    const h = harness(file, { onRun: () => { appendRows(file, [started(), user(), item("UserMessage", ENVELOPE)]); return queued(); } });
+    h.deps.sleep = async () => { h.clock.now += 20_000; };
+    const result = await runOpenRelay(input(file), h.deps);
+    assert.equal(result.outcome.status, "timeout");
+    assert.equal(h.calls.read, 1);
+    assert.equal(result.delivery.status, "persisted-no-reply");
   });
   test("enveloppe reçue sans réponse à l'échéance : timeout, persisted-no-reply", async () => {
     const file = rollout();
