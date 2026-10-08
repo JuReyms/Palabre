@@ -209,6 +209,30 @@ export function probeCodexLock(lock: LockProbe): TargetProbe {
   return { attachment, activity: "unknown", processes: [], evidence };
 }
 
+/**
+ * Rollouts `rollout-*-<session>.jsonl` sous `<home>/sessions/**` et `<home>/archived_sessions/**`.
+ * Un identifiant invalide ne désigne aucun fichier. Partagé par Relay A et par la localisation
+ * bornée de B1 ; plusieurs résultats signifient une cible ambiguë, refusée par les appelants.
+ */
+export function findCodexRollouts(home: string, sessionId: string): string[] {
+  if (!isSessionId(sessionId)) return [];
+  const suffix = `-${sessionId.toLowerCase()}.jsonl`;
+  const found: string[] = [];
+  for (const root of [path.join(home, "sessions"), path.join(home, "archived_sessions")]) {
+    let entries: string[];
+    try {
+      entries = readdirSync(root, { recursive: true }) as string[];
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const name = path.basename(entry).toLowerCase();
+      if (name.startsWith("rollout-") && name.endsWith(suffix)) found.push(path.join(root, entry));
+    }
+  }
+  return found;
+}
+
 /** Refus de l'étape préalable selon l'échec de lancement de `codex mcp list`. */
 function preparationLaunchRefusal(run: ExternalProcessResult): PreLaunchRefusal {
   if (run.stopReason === "cancelled") return { status: "cancelled" };
@@ -230,22 +254,7 @@ export class CodexSessionAdapter implements ExternalSessionAdapter {
 
   /** Rollouts portant l'identifiant, dans les sessions actives et archivées. */
   private rollouts(sessionId: string): string[] {
-    if (!isSessionId(sessionId)) return [];
-    const suffix = `-${sessionId.toLowerCase()}.jsonl`;
-    const found: string[] = [];
-    for (const root of [path.join(this.home, "sessions"), path.join(this.home, "archived_sessions")]) {
-      let entries: string[];
-      try {
-        entries = readdirSync(root, { recursive: true }) as string[];
-      } catch {
-        continue;
-      }
-      for (const entry of entries) {
-        const name = path.basename(entry).toLowerCase();
-        if (name.startsWith("rollout-") && name.endsWith(suffix)) found.push(path.join(root, entry));
-      }
-    }
-    return found;
+    return findCodexRollouts(this.home, sessionId);
   }
 
   /**

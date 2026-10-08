@@ -1,7 +1,9 @@
 /**
- * @file Prototype B1 : corrélation hors ligne d'une réponse Codex dans un rollout.
- * Aucun accès disque, envoi, polling, reprise ni appel de modèle. Ce dialecte expérimental utilise
- * les item_completed liés à un thread/tour observés avec Codex 0.151.0 sous Windows.
+ * @file Relay B1 (`palabre relay --open`) : corrélation d'une réponse Codex dans un rollout (voir
+ * AGENTS.md, section "Relay externe", et `scripts/prototypes/relay/CONTRAT-B1.md`).
+ * Fonctions pures : aucun accès disque, envoi, attente, reprise ni appel de modèle. Le dialecte
+ * expérimental utilise les item_completed liés à un thread et à un tour, observés avec Codex 0.151.0
+ * (TUI) et 0.160.1 (app-server de Codex desktop) sous Windows ; ce n'est pas un schéma public.
  */
 import { createHash } from "node:crypto";
 
@@ -39,6 +41,20 @@ export interface OpenObservation {
   reason: string;
   turnId?: string;
   reply?: string;
+  /** Relevé du `turn_context` du seul tour corrélé ; présent pour `replied` et `failed` quand il est attribuable. */
+  context?: OpenTurnContext;
+}
+
+/**
+ * Modèle et permissions effectivement appliqués au tour corrélé, relevés après coup pour
+ * diagnostic. Champs bornés et sélectionnés : ni chemins, ni `turn_context` complet. Un champ
+ * absent est inconnu ; il n'est jamais repris d'un autre tour ni du dernier profil historique.
+ */
+export interface OpenTurnContext {
+  model?: string;
+  approvalPolicy?: string;
+  sandbox?: string;
+  network?: "enabled" | "restricted";
 }
 
 /** Statuts existants de délivrance, proposés pour B1 sans ajouter « queued » à leur sens. */
@@ -81,6 +97,33 @@ function isTurnEnvironmentContext(payload: JsonObject, turnId: string): boolean 
   if (!Array.isArray(payload.content) || payload.content.length !== 1) return false;
   const text = contentText(payload.content)?.trim();
   return text !== undefined && /^<environment_context>(?:(?!<\/?environment_context>)[\s\S])*<\/environment_context>$/.test(text);
+}
+
+/** Valeur courte et sans caractère de contrôle, recopiable dans un diagnostic. */
+const CONTEXT_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/;
+
+/**
+ * Relève le `turn_context` du tour corrélé. Il doit être unique dans l'ajout et porter le même
+ * `turn_id` ; sinon le relevé est inconnu (`undefined`). Le réseau vient du profil de permissions,
+ * à défaut de `sandbox_policy.network_access`.
+ */
+function turnContextOf(fresh: readonly JsonObject[], turnId: string): OpenTurnContext | undefined {
+  const contexts = fresh.filter((row) => row.type === "turn_context" && object(row.payload)?.turn_id === turnId);
+  if (contexts.length !== 1) return undefined;
+  const payload = object(contexts[0]!.payload)!;
+  const token = (value: unknown) => (typeof value === "string" && CONTEXT_TOKEN.test(value) ? value : undefined);
+  const sandboxPolicy = object(payload.sandbox_policy);
+  const profileNetwork = object(payload.permission_profile)?.network;
+  const network = profileNetwork === "enabled" || profileNetwork === "restricted"
+    ? profileNetwork
+    : typeof sandboxPolicy?.network_access === "boolean" ? (sandboxPolicy.network_access ? "enabled" : "restricted") : undefined;
+  const context: OpenTurnContext = {
+    ...(token(payload.model) ? { model: token(payload.model) } : {}),
+    ...(token(payload.approval_policy) ? { approvalPolicy: token(payload.approval_policy) } : {}),
+    ...(token(sandboxPolicy?.type) ? { sandbox: token(sandboxPolicy?.type) } : {}),
+    ...(network ? { network } : {})
+  };
+  return Object.keys(context).length > 0 ? context : undefined;
 }
 
 function digest(value: Uint8Array): string {
@@ -152,7 +195,13 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
     return altered ? { status: "ambiguous", persisted: "unknown", reason: "envelope-altered" }
       : { status: "awaiting-message", persisted: false, reason: "envelope-not-observed" };
   }
-  const observation = (status: OpenObservation["status"], reason: string, turnId?: string): OpenObservation => ({ status, persisted: true, reason, ...(turnId ? { turnId } : {}) });
+  const withContext = (turnId: string) => {
+    const context = turnContextOf(fresh, turnId);
+    return context ? { context } : {};
+  };
+  // Le relevé du tour n'accompagne qu'un échec lié au tour : jamais une ambiguïté.
+  const observation = (status: OpenObservation["status"], reason: string, turnId?: string): OpenObservation =>
+    ({ status, persisted: true, reason, ...(turnId ? { turnId } : {}), ...(status === "failed" && turnId ? withContext(turnId) : {}) });
   if (users.length !== 1) return observation("ambiguous", "duplicate-envelope");
   const events = fresh.filter((row) => row.type === "event_msg").map((row) => object(row.payload)).filter((row): row is JsonObject => row !== undefined);
   const bound = events.filter((event) => {
@@ -220,7 +269,7 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
   if (completion.status !== undefined && completion.status !== "completed") return observation("failed", "unsuccessful-completion", turnId);
   const reply = contentText(object(final.item)?.content);
   if (reply === undefined || reply.trim() === "" || typeof completion.last_agent_message !== "string" || completion.last_agent_message !== reply) return observation("ambiguous", "completion-text-mismatch", turnId);
-  return { status: "replied", persisted: true, reason: "correlated-final", turnId, reply };
+  return { status: "replied", persisted: true, reason: "correlated-final", turnId, reply, ...withContext(turnId) };
 }
 
 /**

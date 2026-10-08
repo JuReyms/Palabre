@@ -155,15 +155,18 @@ Flags:
 `,
   relay: `
 Transmet un message à une conversation Codex ou Claude Code fermée et renvoie sa réponse.
+Avec --open, dépose le message dans une conversation Codex ouverte et attend sa réponse.
 
 Usage:
   palabre relay --from <agent>:<session> --to <agent>:<session> "<message>"
   palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <chemin>
+  palabre relay --open --from <agent>:<session> --to <agent-codex>:<session> "<message>"
 
 Flags:
   --from <agent>:<uuid>   expéditeur, étiquette déclarative (jamais lancé)
   --to <agent>:<uuid>     agent cible de la config et identifiant de sa conversation
   --message-file <path>   lit le message dans un fichier (64 Kio au plus)
+  --open                  vise une conversation Codex ouverte (TUI ou Codex desktop)
   --timeout <secondes>    délai maximal, de 10 à 3600 (défaut : 600)
   --json                  sortie JSON v1 pour les intégrations
   --no-export             n'écrit pas l'export .relay.md
@@ -172,8 +175,17 @@ Flags:
   --language <fr|en>      force la langue
 
 Limites :
-  La conversation cible doit être fermée : aucun TUI, desktop, IDE ni exécution en cours.
-  Le relay entre agents dont les conversations restent ouvertes n'est pas pris en charge.
+  Sans --open, la conversation cible doit être fermée : aucun TUI, desktop, IDE ni exécution
+  en cours.
+
+Avec --open (pilote Codex, Windows) :
+  La conversation cible doit être ouverte : son verrou d'écriture doit être tenu, sinon rien
+  n'est déposé (target-not-open). Le message passe par codex queue ; l'enveloppe complète est
+  limitée à 8 192 unités UTF-16. Le verrou ne prouve ni l'affichage ni la consommation du
+  message : le récepteur est annoncé non vérifié. La cible répond avec ses propres outils et
+  permissions : aucune lecture seule n'est garantie, et les garanties ci-dessous ne s'appliquent
+  pas. Un message déposé peut être traité après le délai, même sans être affiché ; Ctrl+C
+  n'annule pas un dépôt, et il n'y a aucun renvoi automatique.
 
 Garanties conditionnelles :
   Avec les options imposées par Palabre et sur les versions de CLI vérifiées, la cible ne
@@ -408,15 +420,18 @@ Flags:
 `,
   relay: `
 Sends one message to a closed Codex or Claude Code conversation and returns its reply.
+With --open, queues the message into an open Codex conversation and waits for its reply.
 
 Usage:
   palabre relay --from <agent>:<session> --to <agent>:<session> "<message>"
   palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <path>
+  palabre relay --open --from <agent>:<session> --to <codex-agent>:<session> "<message>"
 
 Flags:
   --from <agent>:<uuid>   sender, declarative label (never launched)
   --to <agent>:<uuid>     target config agent and its conversation identifier
   --message-file <path>   reads the message from a file (64 KiB at most)
+  --open                  targets an open Codex conversation (TUI or Codex desktop)
   --timeout <seconds>     maximum duration, 10 to 3600 (default: 600)
   --json                  JSON v1 output for integrations
   --no-export             does not write the .relay.md export
@@ -425,8 +440,17 @@ Flags:
   --language <fr|en>      force language
 
 Limits:
-  The target conversation must be closed: no TUI, desktop, IDE or running exec.
-  Relay between agents whose conversations stay open is not supported.
+  Without --open, the target conversation must be closed: no TUI, desktop, IDE or running
+  exec.
+
+With --open (Codex pilot, Windows):
+  The target conversation must be open: its write lock must be held, otherwise nothing is
+  queued (target-not-open). The message goes through codex queue; the full envelope is
+  limited to 8,192 UTF-16 units. The lock proves neither the display nor the consumption of
+  the message: the receiver is reported as unverified. The target replies with its own tools
+  and permissions: no read-only guarantee applies, and the guarantees below do not apply.
+  A queued message may be processed after the timeout, even without being displayed; Ctrl+C
+  does not cancel a queued message, and there is no automatic resend.
 
 Conditional guarantees:
   With the options enforced by Palabre and on verified CLI versions, the target has no

@@ -120,7 +120,10 @@ export interface DeliveryVerdict {
 /** Refus de CLI observés sans aucune écriture dans l'historique de la cible. */
 export type CertainRefusal = "target-busy" | "session-not-found";
 
-/** Issue d'un relay ; le code de sortie associé est dans `RELAY_EXIT_CODES` (`outcome.ts`). */
+/**
+ * Issue d'un relay ; le code de sortie associé est dans `RELAY_EXIT_CODES` (`outcome.ts`).
+ * `target-not-open` n'est produit qu'avec `--open` (B1) : la sortie sans `--open` ne le rencontre pas.
+ */
 export type RelayStatus =
   | "replied"
   | "internal-error"
@@ -130,6 +133,7 @@ export type RelayStatus =
   | "output-too-large"
   | "target-busy"
   | "target-state-unknown"
+  | "target-not-open"
   | "neutralization-failed"
   | "timeout"
   | "identity-mismatch"

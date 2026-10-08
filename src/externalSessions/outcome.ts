@@ -36,6 +36,7 @@ export const RELAY_EXIT_CODES: Readonly<Record<RelayStatus, number>> = {
   "output-too-large": 2,
   "target-busy": 3,
   "target-state-unknown": 3,
+  "target-not-open": 3,
   "neutralization-failed": 3,
   "timeout": 4,
   "identity-mismatch": 5,
@@ -52,13 +53,14 @@ const CERTAINLY_NOT_DELIVERED: ReadonlySet<RelayStatus> = new Set<RelayStatus>([
   "session-not-found",
   "target-busy",
   "target-state-unknown",
+  "target-not-open",
   "neutralization-failed"
 ]);
 
 /** Refus prononcé avant tout lancement de la CLI de reprise. */
 export type PreLaunchRefusal =
   | { status: "invalid-request"; reason: InvalidRequestReason }
-  | { status: "command-not-found" | "session-not-found" | "target-busy" | "target-state-unknown" | "neutralization-failed" | "cancelled" };
+  | { status: "command-not-found" | "session-not-found" | "target-busy" | "target-state-unknown" | "target-not-open" | "neutralization-failed" | "cancelled" };
 
 function outcome(status: RelayStatus, reason?: InvalidRequestReason): RelayOutcome {
   return reason === undefined

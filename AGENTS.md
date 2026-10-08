@@ -66,7 +66,7 @@ src/sessionCheckpoint.ts  Contrat JSON v1 et stockage atomique des checkpoints
 src/sessionInventory.ts   Liste bornée et suppression ciblée des checkpoints
 src/sessionCheckpointRuntime.ts Writer runtime neuf ou repris
 src/sessionResume.ts      Validation et reconstruction stricte de `palabre resume`
-src/externalSessions/     Relay vers une session externe : socle (types, lancement, enveloppe, issues), contrat d'adapter, adapters Claude Code et Codex
+src/externalSessions/     Relay vers une session externe : socle (types, lancement, enveloppe, issues), contrat d'adapter, adapters Claude Code et Codex ; relay --open (B1) : openReader (corrélation pure), openRollout (lectures bornées), codexQueue (dépôt), openRelay (déroulé)
 src/tuiController.ts      Controleur des flows de configuration TUI
 src/args.ts               Parseur d'arguments CLI (table d'arite des flags)
 src/launchDispatch.ts     Decision de lancement d'une commande run : accueil TUI ou Chat direct selon le mode effectif
@@ -519,9 +519,9 @@ et la version du client quand elle est fournie.
 
 État : la commande `palabre relay` est disponible (lots A0 à A4, non publiée). Elle vit dans `src/commands/relay.ts`, le socle et les adapters dans `src/externalSessions/`. Le smoke réel avec de vrais agents (A5) reste à faire avant publication.
 
-`palabre relay` transmet **un** message à une conversation Codex ou Claude Code existante, récupère **une** réponse, puis termine. Il vise les conversations **fermées** : aucun processus (TUI, desktop, IDE, `exec`, `-p`) n'y est attaché.
+`palabre relay` transmet **un** message à une conversation Codex ou Claude Code existante, récupère **une** réponse, puis termine. Sans `--open`, il vise les conversations **fermées** : aucun processus (TUI, desktop, IDE, `exec`, `-p`) n'y est attaché.
 
-Cette version ne permet pas de faire dialoguer deux agents dont les conversations restent ouvertes. Ce besoin, objectif de l'issue #96, n'est pas résolu.
+Avec `--open` (lot B1, pilote Codex sous Windows, non publié), il dépose le message dans une conversation Codex **ouverte** (TUI ou Codex desktop) par `codex queue`, puis attend la réponse corrélée dans le rollout. La cible garde ses outils et permissions. Voir la section « Relay vers une conversation ouverte » plus bas. Claude Code (B2) et Codex desktop comme expéditeur restent hors de ce lot : l'objectif de l'issue #96 n'est pas entièrement résolu.
 
 Le relay est distinct de deux mécanismes existants :
 
@@ -721,7 +721,7 @@ Un échec de lancement donne `cli-failure` pour la reprise, et `neutralization-f
 | 0 | `replied` | `replied` |
 | 1 | `internal-error` (défaut de Palabre) | `not-delivered` avant lancement, sinon `unknown` |
 | 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large` | `persisted-no-reply` ou `unknown` ; `not-delivered` si aucun processus n'a été lancé |
-| 3 | `target-busy`, `target-state-unknown`, `neutralization-failed` | `not-delivered` |
+| 3 | `target-busy`, `target-state-unknown`, `neutralization-failed`, `target-not-open` (avec `--open` seulement) | `not-delivered` |
 | 4 | `timeout` | `persisted-no-reply` ou `unknown` |
 | 5 | `identity-mismatch` | `persisted-no-reply` ou `unknown`. Le texte d'une autre session n'est jamais rendu comme `reply` |
 | 6 | `session-not-found` | `not-delivered` |
@@ -762,14 +762,74 @@ Un seul objet JSON est écrit sur stdout, quelle que soit l'issue :
 - La politique de version est celle du renderer NDJSON.
 - En sortie texte, la réponse va sur stdout. L'issue et les erreurs vont sur stderr, assainies par `sanitizeTerminalText`.
 - L'export `.relay.md` contient l'expéditeur, la cible (avec les identifiants de session), le message, la réponse ou l'issue, et la délivrance.
+- Avec `--open` seulement, l'objet ajoute des champs optionnels (décrits plus bas) et `status` peut valoir `target-not-open`. Cette valeur d'énumération et ces champs ne concernent que l'opt-in `--open` : la sortie sans `--open` est identique, champ pour champ, et ses consommateurs ne rencontrent pas le nouveau statut.
+
+### Relay vers une conversation ouverte (`--open`, B1)
+
+Contrat de référence : `scripts/prototypes/relay/CONTRAT-B1.md`, relu dans la PR #110. Pilote **Codex seulement, sous Windows** ; une cible Claude donne `invalid-request` / `unsupported-agent`. Hors Windows, le verrou ne peut pas être éprouvé : l'issue est `target-state-unknown`, sans dépôt.
+
+```text
+palabre relay --open --from <agent>:<session> --to <agent-codex>:<session> ("<message>" | --message-file <chemin>)
+              [--timeout <secondes>] [--json] [--no-export] [--config <chemin>] [--trust-config] [--language <fr|en>]
+```
+
+La validation des arguments, la config approuvée, l'agent et l'exécutable (D21) sont ceux de Relay A. Ensuite (`src/externalSessions/openRelay.ts`), sous **une seule échéance** `--timeout` couvrant référence, dépôt et attente :
+
+1. **Localisation bornée** (`locateOpenRollout`) : rollout par UUID, doublons refusés, première ligne seulement (1 Mio au plus), `session_meta.id` et dossier de travail validés. L'historique n'est jamais chargé en entier, quelle que soit sa taille. Aucun modèle n'est recherché : B1 ne lance aucune reprise.
+2. **Verrou tenu** obligatoire : absent ou libre, `target-not-open` ; invérifiable, `target-state-unknown`. Aucun dépôt dans les deux cas.
+3. **Contrôle du dépôt** (`codexQueue.ts`) : enveloppe complète d'au plus 8 192 unités UTF-16 ; aucun NUL ; ligne de commande Windows réellement sérialisée (exécutable, arguments préfixés D21, arguments et échappement libuv, NUL final) d'au plus 32 767 unités. Sinon `invalid-request` / `message-too-large`, sans dépôt.
+4. **Référence** du rollout (`captureOpenRollout`) : une fin de ligne partielle est réessayée pendant 2 s au plus, dans le budget et annulable ; ensuite, `no-valid-reply` avec la raison, sans dépôt.
+5. **Nouveau contrôle du verrou** immédiatement avant le dépôt. Il réduit la fenêtre de course sans rendre vérification et dépôt atomiques. Verrou libéré : `target-not-open` ; invérifiable : `target-state-unknown`, sans dépôt.
+6. **Un seul `codex queue --thread <uuid> --message <enveloppe>`**, lancé par `runExternalProcess` : sans shell, dans le dossier de la cible, environnement nettoyé, stdin vide, en `min(60 s, budget restant)` et 1 Mio au plus. Dès qu'un processus est créé, la tentative compte.
+7. **Attente** : lectures bornées de l'ajout (`readOpenRollout`, `inspectOpenReply`) toutes les 500 ms jusqu'à une observation terminale, l'échéance ou l'annulation. Toute preuve de réception est mémorisée.
+
+L'enveloppe `--open` annonce un expéditeur déclaré non authentifié et une demande d'un autre agent : ce n'est pas une instruction de l'utilisateur, elle n'autorise aucune action et ne lève aucune restriction. Ctrl+C est géré avant la référence ; le gestionnaire est retiré en fin de relay.
+
+**Issues.** Avant tentative, la délivrance est toujours `not-delivered`. Après tentative, elle vient de `settleOpenDelivery` : `persisted-no-reply` dès qu'une preuve de réception existe (actuelle ou conservée), sinon `unknown`.
+
+| Cas | Issue / code | Délivrance |
+| --- | --- | --- |
+| Verrou absent ou libre (avant ou juste avant le dépôt) | `target-not-open` / 3 | `not-delivered` |
+| Sonde invérifiable | `target-state-unknown` / 3 | `not-delivered` |
+| Enveloppe, NUL ou ligne Windows hors limite | `invalid-request`, `message-too-large` / 8 | `not-delivered` |
+| Référence toujours partielle ou illisible | `no-valid-reply` / 2, raison conservée | `not-delivered` |
+| Lancement impossible, aucun enfant créé | `command-not-found`, `invalid-request` / `invalid-working-directory` ou `cli-failure` | `not-delivered` |
+| CLI sans sous-commande `queue` (refus de son analyseur d'arguments) | `cli-failure` / 2 | `not-delivered` |
+| Ctrl+C, y compris pendant la référence ou `queue` | `cancelled` / 130 | `not-delivered` avant tentative, sinon selon la preuve |
+| Échéance, y compris pendant `queue` | `timeout` / 4 | idem |
+| Plafond de sortie de `queue` | `output-too-large` / 2 | selon la preuve ; la sortie partielle n'est jamais un accusé |
+| `queue` terminé en non-zéro | `cli-failure` / 2 | selon la preuve |
+| `queue` terminé à zéro, accusé absent, non conforme ou d'une autre conversation | `no-valid-reply` / 2 | selon la preuve |
+| Observation `failed` du tour corrélé (dont `task_complete.error`) | `cli-failure` / 2 | `persisted-no-reply` |
+| Observation `ambiguous` ou `unreadable` | `no-valid-reply` / 2 | selon la preuve |
+| Observation `awaiting-*` à l'échéance | `timeout` / 4 | selon la preuve |
+| Observation `replied` | `replied` / 0 | `replied` |
+
+Après un échec du déposant (code non nul, accusé absent ou étranger, plafond), une dernière lecture bornée peut relever une réception, si le budget le permet et sans annulation. Elle ne remplace jamais l'issue primaire, ne rend jamais de réponse et n'efface aucune preuve. Aucun renvoi, aucune reprise `exec resume`.
+
+**Champs JSON v1 optionnels, avec `--open` seulement :**
+
+- `mode: "open"` ;
+- `queue` : `{ attempted, accepted?, itemId?, diagnostic? }`. `accepted` vaut `true` pour un accusé reconnu et lié à la cible, `false` seulement pour le refus certain d'une CLI sans `queue`, `"unknown"` sinon : une absence d'accusé n'est pas un refus. `itemId` n'est présent que pour un accusé reconnu, et ne prouve pas la réception du texte exact ;
+- `correlation` : `{ status, reason }`, statut et raison exacts du lecteur. Absent tant que rien n'a été inspecté ;
+- `receiver: "unverified"` : le verrou tenu ne prouve ni la surface, ni la version, ni l'affichage, ni la consommation du message. La version de la CLI qui dépose n'est pas celle du récepteur, et aucun binaire desktop n'est recherché ni exécuté. Une version inconnue n'est pas bloquée dans ce pilote explicite ;
+- `targetPermissions` : `{ approvalPolicy?, sandbox?, network? }` relevés dans le `turn_context` **du seul tour corrélé** (réponse ou échec lié), ou `"unknown"`. Jamais repris d'un autre tour ni du dernier profil historique ; ni chemins, ni `turn_context` complet.
+
+`identity` vaut `same-as-target` seulement pour `replied` (liaison au fil et au tour prouvée), `unavailable` sinon. `observedModels` vient du seul tour corrélé. `inActiveBranch` vaut `unknown` après tentative. Sans enveloppe observée après une tentative, le message d'erreur dit « réception non observée » : un format inconnu ou une lecture manquée ne prouvent pas l'absence de consommation, et le message peut être traité plus tard.
+
+**Engagements et limites propres à `--open` :**
+
+- Aucune lecture seule : la conversation ouverte répond avec ses outils, MCP, hooks et permissions, et Codex desktop applique ses permissions courantes au tour relayé. Palabre ne neutralise ni ne modifie ces réglages. Les garanties conditionnelles de Relay A ne s'appliquent pas.
+- Un message déposé peut être traité après le délai, même sans être affiché : Codex desktop garde un fil chargé après qu'on l'a quitté. Ni l'échéance, ni Ctrl+C, ni la fermeture de Palabre ne retirent un message de la file.
+- Le format du rollout est expérimental (Codex 0.151.0 en TUI, app-server 0.160.1 de Codex desktop 26.930.7945.0), pas un schéma public.
+- L'export `.relay.md` ajoute le mode, le dépôt, la corrélation, le récepteur et les permissions relevées, avec un avertissement propre à `--open`. Un refus avant tentative n'écrit pas d'export.
 
 ### Hors périmètre de cette version
 
 - Le fork d'une conversation.
-- `codex queue`.
 - La détection automatique de l'expéditeur.
-- Les desktops et IDE.
-- Les conversations ouvertes.
+- Avec `--open` : Claude Code (lot B2), Codex desktop comme expéditeur (bloqué par son bac à sable), l'app-server `--remote`, les IDE, macOS et Linux.
+- Sans `--open` : les desktops, IDE et conversations ouvertes.
 - Les chaînes de relay et le retry.
 - Palabre-vscode, qui consommera `--json` sans recalculer l'état.
 
@@ -1012,13 +1072,12 @@ Ces points sont a evaluer au cas par cas si un consommateur reel les demande. Ev
 
 ## Tests et verification
 
-Le contrat proposé pour Relay vers une conversation ouverte (#96, B1) et son lecteur hors ligne
-vivent dans `scripts/prototypes/relay/CONTRAT-B1.md`, `open-response.ts` (corrélation pure) et
-`open-rollout.ts` (lecture positionnelle bornée d'un fichier explicitement fourni). Ils ne sont
-pas appelés par la CLI et ne lancent aucun agent. `pnpm test:relay-open` compile et teste ce prototype
-avec des historiques en mémoire ou fichiers temporaires factices ; la commande est incluse dans
-`pnpm test` et la CI. Elle ne lance pas les sondes locales `open-*.mjs`, qui consomment des quotas.
-Le contrat Relay A reste inchangé.
+Relay vers une conversation ouverte (#96, B1, `palabre relay --open`) : le contrat vit dans
+`scripts/prototypes/relay/CONTRAT-B1.md` ; le code dans `src/externalSessions/` (`openReader`,
+`openRollout`, `codexQueue`, `openRelay`). Les tests `tests/external-sessions-open*.test.ts` et
+`tests/relay-command.test.ts` utilisent des historiques factices, une horloge simulée, un faux
+`codex queue` et, sous Windows, un verrou tenu par le test : aucun agent réel, aucun quota. Les
+sondes locales `open-*.mjs` ne sont pas versionnées ni lancées par `pnpm test`.
 
 Avant de livrer une modification :
 

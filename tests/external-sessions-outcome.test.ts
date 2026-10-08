@@ -47,6 +47,7 @@ describe("codes de sortie", () => {
       "output-too-large": 2,
       "target-busy": 3,
       "target-state-unknown": 3,
+      "target-not-open": 3,
       "neutralization-failed": 3,
       "timeout": 4,
       "identity-mismatch": 5,

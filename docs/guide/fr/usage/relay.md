@@ -1,6 +1,6 @@
 ---
 title: Relay vers une conversation
-description: Transmettre un message à une conversation Codex ou Claude Code fermée et récupérer sa réponse avec palabre relay.
+description: Transmettre un message à une conversation Codex ou Claude Code fermée, ou à une conversation Codex ouverte avec --open, et récupérer sa réponse avec palabre relay.
 seo:
   title: palabre relay, interroger une conversation Codex ou Claude Code
   description: Envoyer un message à une conversation Codex ou Claude Code existante, fermée, et recevoir sa réponse en un seul appel, en lecture seule renforcée.
@@ -12,11 +12,29 @@ seo:
 palabre relay --from codex:<session-expéditeur> --to claude:<session-cible> "Peux-tu relire ce plan ?"
 ```
 
-## Conversation fermée uniquement
+## Conversation fermée par défaut
 
-La conversation cible doit être **fermée** : aucun TUI, desktop, IDE ni exécution en cours ne doit y être attaché. Sinon, le relay est refusé avant tout envoi (`target-busy`). Il est aussi refusé quand Palabre ne peut pas vérifier l'état de la conversation (`target-state-unknown`).
+Sans `--open`, la conversation cible doit être **fermée** : aucun TUI, desktop, IDE ni exécution en cours ne doit y être attaché. Sinon, le relay est refusé avant tout envoi (`target-busy`). Il est aussi refusé quand Palabre ne peut pas vérifier l'état de la conversation (`target-state-unknown`).
 
-Faire dialoguer deux agents dont les conversations restent ouvertes n'est pas encore possible. Ce besoin est suivi dans l'issue [#96](https://github.com/JuReyms/Palabre/issues/96).
+Pour une conversation Codex **ouverte**, utilisez `--open` (section suivante). Le relay vers une conversation Claude Code ouverte n'est pas encore disponible ; il est suivi dans l'issue [#96](https://github.com/JuReyms/Palabre/issues/96).
+
+## Conversation Codex ouverte (`--open`)
+
+```bash
+palabre relay --open --from claude:<session-expéditeur> --to codex:<session-cible> "Peux-tu relire ce plan ?"
+```
+
+Avec `--open`, Palabre dépose le message dans une conversation Codex **ouverte**, dans le TUI ou dans Codex desktop, avec la commande `codex queue`. Il attend ensuite la réponse de cette conversation dans son historique, puis vous la rend. C'est un **pilote**, réservé à Codex sous Windows.
+
+- **La conversation doit être ouverte.** Son verrou d'écriture doit être tenu, sinon rien n'est déposé (`target-not-open`). Le verrou est contrôlé de nouveau juste avant le dépôt.
+- **Pas de lecture seule.** La conversation ouverte répond avec ses propres outils, serveurs MCP et permissions, et Codex desktop applique ses permissions courantes au tour relayé. Les garanties de lecture seule du relay sans `--open` ne s'appliquent donc pas. Le message relayé indique qu'il vient d'un autre agent, non authentifié, et qu'il n'autorise aucune action.
+- **Récepteur non vérifié.** Le verrou tenu ne prouve ni que la conversation est affichée, ni qu'elle traite le message. Codex desktop garde une conversation chargée après qu'on l'a quittée, et la traite sans l'afficher.
+- **Traitement différé possible.** Un message déposé peut être traité après le délai, même si Palabre s'est arrêté. Ctrl+C n'annule pas un dépôt, et il n'y a aucun renvoi automatique.
+- **Taille.** Le message passe en argument de commande : l'enveloppe complète est limitée à 8 192 unités UTF-16. Au-delà, le relay est refusé (`message-too-large`).
+- **Un seul délai.** `--timeout` couvre la préparation, le dépôt et l'attente.
+- **Historiques volumineux.** Palabre ne lit que la première ligne de l'historique et ce qui s'y ajoute après le dépôt, quelle que soit sa taille.
+
+Versions vérifiées : Codex CLI 0.151.0 (TUI) et Codex desktop 26.930.7945.0 (app-server 0.160.1). Le format de l'historique de Codex n'est pas un schéma public : une autre version n'est pas bloquée, mais la corrélation de la réponse n'y est pas garantie.
 
 ## Désigner les conversations
 
@@ -32,6 +50,7 @@ Aucune conversation n'est choisie implicitement.
 | Option | Rôle |
 | --- | --- |
 | `"<message>"` ou `--message-file <chemin>` | Le message, 64 Kio au plus. Utilisez un fichier pour un message qui commence par `-`. |
+| `--open` | Vise une conversation Codex ouverte (voir plus haut). |
 | `--timeout <secondes>` | Délai maximal, de 10 à 3600 secondes (600 par défaut). |
 | `--json` | Un seul objet JSON v1 sur stdout, quelle que soit l'issue. |
 | `--no-export` | N'écrit pas l'export `.relay.md`. |
@@ -79,7 +98,7 @@ Palabre ne renvoie jamais un message automatiquement. Le statut de délivrance i
 | 0 | `replied` |
 | 1 | `internal-error` |
 | 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large` |
-| 3 | `target-busy`, `target-state-unknown`, `neutralization-failed` |
+| 3 | `target-busy`, `target-state-unknown`, `neutralization-failed`, `target-not-open` (avec `--open`) |
 | 4 | `timeout` |
 | 5 | `identity-mismatch` (la réponse ne vient pas de la cible et n'est pas rendue) |
 | 6 | `session-not-found` |
@@ -108,6 +127,16 @@ Palabre ne renvoie jamais un message automatiquement. Le statut de délivrance i
 ```
 
 `reply` n'est présent que pour `replied`. Pour toute autre issue, `error` contient `kind`, `message` et, pour `invalid-request`, `reason`. `inActiveBranch` est un diagnostic.
+
+Avec `--open` seulement, l'objet ajoute des champs optionnels :
+
+- `mode` : `"open"` ;
+- `queue` : `attempted` (un dépôt a été tenté), `accepted` (`true` pour un accusé reconnu, `"unknown"` sans preuve, `false` seulement si votre Codex ne connaît pas `queue`), `itemId` et `diagnostic` ;
+- `correlation` : statut et raison de la lecture de l'historique ;
+- `receiver` : toujours `"unverified"` ;
+- `targetPermissions` : approbation, bac à sable et réseau appliqués au tour relayé, ou `"unknown"`.
+
+Si l'enveloppe n'est pas retrouvée dans l'historique après un dépôt, le message d'erreur indique « réception non observée » : le message peut encore être traité plus tard.
 
 ## Export
 

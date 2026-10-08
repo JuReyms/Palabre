@@ -1,9 +1,13 @@
 # Relay vers une conversation ouverte : contrat B1 proposé
 
-Statut au 8 octobre 2026 : **proposition à relire, pas un contrat produit adopté**.
-Le mainteneur a autorisé la préparation du contrat et des tests factices. Cela ne vaut pas
-validation d'un lancement avec les droits de la cible, ni implémentation de `--open`.
-Le contrat en vigueur de Relay A reste dans `AGENTS.md`.
+Statut au 8 octobre 2026 : **contrat relu dans la PR #110, transport implémenté par le lot B1**
+(`palabre relay --open`), non publié. Décisions retenues après la
+[revue du plan](https://github.com/JuReyms/Palabre/issues/96#issuecomment-6050672839) :
+permissions de la cible acceptées et seulement relevées après coup (option A), récepteur annoncé
+**non vérifié** (limite assumée du pilote, pas une preuve de compatibilité), enveloppe de 8 192
+unités UTF-16 au plus, un seul nouveau statut `target-not-open`. Le contrat produit, avec la table
+complète des issues, est dans `AGENTS.md` (section « Relay vers une conversation ouverte »). Le
+contrat de Relay A sans `--open` est inchangé.
 
 ## Objectif et portée
 
@@ -32,10 +36,10 @@ Sources : [bilan de Claude](https://github.com/JuReyms/Palabre/issues/96#issueco
 
 | Sujet | Proposition et état |
 | --- | --- |
-| Activation | Option explicite telle que `--open`, sans bascule automatique. Nom et acceptation des garanties **à décider** ; l'option n'existe pas aujourd'hui. |
+| Activation | Option explicite `--open`, sans bascule automatique (lot B1). |
 | Cible | UUID explicite, config approuvée, commande résolue sans shell par les règles Relay D21. Pas de nom flou, de dernière conversation ni de changement de modèle. |
-| Surface | Capacité du récepteur à consommer la file à vérifier. Un verrou **tenu**, pas seulement présent, est **obligatoire avant le dépôt** ; sans lui, aucun appel `queue` (`not-delivered`). Il prouve un écrivain, mais ne garantit ni un TUI, ni son repos, ni l'affichage, ni la consommation du message : Codex desktop garde un fil chargé et le traite sans l'afficher. Un message déposé peut encore être traité après le délai ; aucun renvoi automatique. Une surface inconnue ne devient pas implicitement compatible. La preuve ou déclaration de surface et ses limites restent **à définir**. |
-| Droits | La conversation ouverte conserve ses outils, hooks, MCP, permissions et demandes d'approbation. Palabre ne promet aucune lecture seule et ne modifie pas ces réglages. **Acceptation produit requise avant implementation.** |
+| Surface | Capacité du récepteur à consommer la file à vérifier. Un verrou **tenu**, pas seulement présent, est **obligatoire avant le dépôt** ; sans lui, aucun appel `queue` (`not-delivered`). Il prouve un écrivain, mais ne garantit ni un TUI, ni son repos, ni l'affichage, ni la consommation du message : Codex desktop garde un fil chargé et le traite sans l'afficher. Un message déposé peut encore être traité après le délai ; aucun renvoi automatique. Une surface inconnue ne devient pas implicitement compatible : sans preuve de surface disponible, le pilote annonce un récepteur **non vérifié** (`receiver: "unverified"`), limite assumée. |
+| Droits | La conversation ouverte conserve ses outils, hooks, MCP, permissions et demandes d'approbation. Palabre ne promet aucune lecture seule et ne modifie pas ces réglages. **Accepté (option A)** : les permissions du seul tour corrélé sont relevées après coup, pour diagnostic. |
 | Provenance | Enveloppe claire, expéditeur déclaré non authentifié, nonce neuf, contenu marqué comme demande d'un autre agent. Un message n'est jamais présenté comme une autorisation humaine à exécuter une action ou à lever une restriction. Le texte exact reste **à relire**. |
 | Dépôt | Un seul appel `codex queue --message <TEXT>`, arguments structurés, cwd de la cible. Limite propre à B1 et vérification de la ligne Windows complète avant dépôt, détaillées ci-dessous ; les 64 Kio de Relay A ne s'appliquent pas. Un accusé valide identifie la tentative et la file, pas une réponse. Pas de reprise concurrente, de fork ni de repli `exec resume`. |
 | Attente | Budget total borné, annulation locale, snapshots append-only bornés, pas de renvoi automatique. Timeout, Ctrl+C et fermeture de Palabre ne prouvent pas la suppression d'un message en file. |
@@ -75,14 +79,14 @@ Les essais Codex desktop l'ont confirmé : un message déposé vers un fil ferm�
 pendant 45 s, puis l'a été dès l'ouverture du fil dans l'application, 49 s après le dépôt. Le
 dépôt vers une cible fermée est donc **différé**, pas perdu ; d'où le verrou obligatoire.
 
-## Prototype de corrélation testé hors ligne
+## Corrélation et lectures bornées
 
-`open-response.ts` est une fonction pure, non importée par `src/`. Son dialecte est celui des
+`src/externalSessions/openReader.ts` contient des fonctions pures. Leur dialecte est celui des
 événements liés à un tour observés dans les rollouts Codex 0.151.0 (TUI) et 0.160.1 (app-server
 de Codex desktop 26.930.7945.0) ; ce n'est pas un schéma public
-garanti par OpenAI. Les historiques factices sont construits dans `open-response.test.ts`.
+garanti par OpenAI. Les historiques factices sont construits dans `tests/external-sessions-open.test.ts`.
 
-Avant le dépôt, le collecteur expérimental `open-rollout.ts` mémorise l'offset de fin d'une ligne
+Avant le dépôt, le collecteur `src/externalSessions/openRollout.ts` mémorise l'offset de fin d'une ligne
 complète, l'empreinte SHA-256 de la première ligne et celle des 64 derniers Kio avant l'offset
 (ou du fichier entier s'il est plus court). Il ouvre seulement le fichier explicitement fourni,
 en lecture seule, sans découvrir de conversation. Il lit ensuite la première ligne (1 Mio max),
@@ -121,7 +125,7 @@ Les commentaires intermédiaires et les événements d'un autre tour ne terminen
 Une dernière ligne partielle est ignorée jusqu'à sa complétion. Une ligne terminée corrompue,
 une identité incohérente ou un témoin remplacé interdit tout succès. L'ancien couple
 `event_msg/user_message` + `agent_message` n'offre pas la liaison
-nécessaire : le prototype ne l'accepte pas comme preuve de réponse.
+nécessaire : le lecteur ne l'accepte pas comme preuve de réponse.
 
 Un message `user` comme `<environment_context>` peut être injecté sans liaison `UserMessage`.
 S'il précède la référence ou le début du tour, il ne participe pas à l'échange analysé. Les
@@ -161,20 +165,20 @@ porte un objet `error` et `last_agent_message: null`. Un `task_complete` du tour
 un succès même si un texte final identique existe ; `error: null` n'est pas un échec. Les noms
 `error` (événement), `turn_aborted`, `task_cancelled`, `task_failed` et `task_complete.status`
 restent **des hypothèses défensives factices**. Il faut relever les événements réels lors des
-essais d'annulation. Sans événement attribuable au tour et sans fin valide, l'attente future se
+essais d'annulation. Sans événement attribuable au tour et sans fin valide, l'attente se
 termine au délai en `persisted-no-reply` si le message est reçu.
 Le lecteur assemble les parties textuelles par `\n` ; si le fournisseur les assemble autrement
 dans `last_agent_message`, il conserve l'ambiguïté plutôt que normaliser la réponse.
 
-La fonction pure `open-response.ts` ne lit aucun fichier. Le collecteur `open-rollout.ts` lit
-seulement les fenêtres du fichier fourni ; aucun des deux ne dépose de message, ne sonde de
-verrou ou ne pilote d'agent. Les statuts internes `awaiting-*`, `failed`, `ambiguous` et `unreadable` **ne sont
-pas de nouveaux statuts CLI**. L'intégration devra garder les raisons de diagnostic et les
-preuves antérieures. Les types et statuts du produit restent inchangés.
+Le lecteur `openReader.ts` ne lit aucun fichier. Le collecteur `openRollout.ts` lit seulement
+les fenêtres du fichier fourni ; aucun des deux ne dépose de message, ne sonde de verrou ou ne
+pilote d'agent. Les statuts internes `awaiting-*`, `failed`, `ambiguous` et `unreadable` **ne sont
+pas des statuts CLI** : `openRelay.ts` les traduit en issues existantes et garde les raisons de
+diagnostic (`correlation`) et les preuves antérieures.
 
 ### Arrêt de l'attente et exceptions du collecteur
 
-Le futur lot transport doit appliquer cette politique, sans relancer le dépôt :
+Le transport (`runOpenRelay`, `src/externalSessions/openRelay.ts`) applique cette politique, sans relancer le dépôt :
 
 | Observation | Politique d'attente |
 | --- | --- |
@@ -195,7 +199,7 @@ preuve antérieure et l'état de tentative. Une lecture illisible ne l'efface ja
 `unreadable` donne `unknown` sans preuve, ou `persisted-no-reply` avec une preuve antérieure.
 
 `captureOpenRollout` et `readOpenRollout` lèvent des exceptions, contrairement à
-`inspectOpenReply`. L'appelant futur doit les traduire selon la frontière de dépôt :
+`inspectOpenReply`. `runOpenRelay` les traduit selon la frontière de dépôt :
 
 | Moment de l'exception | Traduction requise |
 | --- | --- |
@@ -206,20 +210,20 @@ Cette règle couvre les erreurs explicites (`history-replaced`, `added-too-large
 `identity-incomplete`, `baseline-incomplete`…) et les exceptions de lecture, d'ouverture ou de
 décodage. Le diagnostic doit garder la catégorie utile sans exposer le contenu brut ou un chemin
 privé provenant de l'exception. Ni une exception ni l'annulation ne prouvent que la file a
-supprimé le message. La boucle d'attente et cette traduction ne sont **pas implémentées** dans
-ce lot : leur comportement doit être vérifié avec les tests du futur transport.
+supprimé le message. La boucle d'attente et cette traduction sont implémentées dans
+`runOpenRelay` et testées avec une horloge simulée (`tests/external-sessions-open-relay.test.ts`).
 
-Commande reproductible, comprise dans `pnpm test` et la CI :
+Ces tests font partie de `pnpm test` et de la CI :
 
 ```powershell
-pnpm test:relay-open
+pnpm test
 ```
 
 Les quatre sondes `open-*.mjs` de Claude restent locales et non commitées. Elles ne sont pas
-appelées par cette commande ni par la CI. Leur lecteur expérimental n'est pas corrigé dans ce
+appelées par `pnpm test` ni par la CI. Leur lecteur expérimental n'est pas corrigé dans ce
 lot ; il devra utiliser une corrélation validée et échouer réellement si la preuve manque.
 
-## Budget de message Windows à intégrer avec le transport
+## Budget de message Windows
 
 L'aide vérifiée par Claude pour Codex 0.151.0 n'expose que `--message <TEXT>` pour `queue`,
 sans entrée stdin ni fichier. Windows limite `CreateProcessW` à **32 767 unités UTF-16,
@@ -228,37 +232,42 @@ script, les arguments fixes, l'UUID, l'enveloppe complète et l'échappement des
 antislashs consomment ce budget.
 [Référence Microsoft](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw).
 
-Proposition pour le lot transport : plafonner l'enveloppe complète à **8 192 unités UTF-16**,
-puis vérifier aussi la taille de la ligne effectivement sérialisée par le lancement Node.
-Ce plafond prudent ne suffit pas à lui seul pour des chemins ou arguments longs. Tout dépassement
-doit être refusé avant dépôt, avec `invalid-request` / raison `message-too-large`, sans tronquer
-le contenu, lancer la CLI ou modifier Relay A. Ce contrôle et sa traduction ne sont pas encore
-implémentés ; les essais doivent couvrir Unicode hors BMP, guillemets, antislashs et chemins longs.
+Implémenté dans `src/externalSessions/codexQueue.ts` : l'enveloppe complète est plafonnée à
+**8 192 unités UTF-16**, puis la ligne réellement sérialisée (exécutable, arguments préfixés D21,
+arguments, échappement libuv et NUL final) est vérifiée contre la limite de 32 767. Un NUL
+incorporé est refusé. Tout dépassement est refusé avant dépôt, avec `invalid-request` / raison
+`message-too-large`, sans tronquer le contenu ni lancer la CLI. Un test Windows vérifie le calcul
+à la limite réelle : 32 767 unités sont lancées, 32 768 donnent `ENAMETOOLONG`. Les tests couvrent
+Unicode hors BMP, guillemets, antislashs et chemins longs.
 
-## Conditions avant intégration B1
+## Conditions d'intégration B1
 
-- [ ] Relecture indépendante de ce contrat et du lecteur, notamment de la liaison des tours.
-- [ ] Décision du mainteneur sur le pilote TUI et l'absence de garantie de lecture seule.
-- [ ] Définition vérifiable du récepteur compatible ; le verrou seul ne suffit pas.
+- [x] Relecture indépendante de ce contrat et du lecteur, notamment de la liaison des tours (#110).
+- [x] Décision sur le pilote et l'absence de garantie de lecture seule : option A, permissions de
+      la cible relevées après coup dans le seul tour corrélé.
+- [x] Récepteur : pas de définition vérifiable disponible. Remplacé par une **limite assumée** du
+      pilote : verrou tenu obligatoire, récepteur annoncé `unverified`, version inconnue non
+      bloquée. Ce n'est pas la satisfaction du critère « récepteur compatible vérifié ».
 - [ ] Essais jetables. Faits avec Codex desktop : cible en génération (le second message attend
       la fin du tour), deux messages successifs, message long et multiligne (7 501 unités UTF-16),
       fil fermé (dépôt différé jusqu'à l'ouverture). Restent : saisie humaine concurrente,
       fermeture entre sonde et dépôt, TUI avec les mêmes cas.
 - [x] Contexte `user` injecté après `task_started` dans un tour relayé : forme relevée avec Codex
       desktop, exception stricte par métadonnée, messages `developer` ignorés.
-- [ ] Boucle d'attente : arrêt sur les observations terminales, exceptions avant/après tentative
-      de dépôt correctement traduites et preuve de réception antérieure conservée.
+- [x] Boucle d'attente : arrêt sur les observations terminales, exceptions avant/après tentative
+      de dépôt correctement traduites et preuve de réception antérieure conservée (tests factices).
 - [ ] Timeout et Ctrl+C après acceptation : pas de succès inventé, de nouvelle reprise ni de
-      renvoi automatique ; présence éventuelle en file correctement signalée. Relever le format
+      renvoi automatique, « réception non observée » signalée (fait, tests factices). Reste à relever le format
       exact d'annulation (le format d'échec `task_complete.error` est relevé) au lieu de présenter
       les événements factices comme vérifiés.
-- [ ] Versions et format exact de sortie de `queue` relevés ; limites sur arguments Windows et
-      taille du rollout traitées sans parsing de sortie optimiste.
+- [x] Format exact de l'accusé de `queue` (0.151.0) lu strictement, accusé étranger jamais accepté ;
+      limites sur arguments Windows et taille du rollout traitées.
 - [x] Vérification spécifique de Codex desktop pour le besoin réel : dépôt et réponse corrélée
       vérifiés sur fils jetables, résultats publiés sur #96 sans assimiler desktop et TUI.
       Codex desktop comme expéditeur reste bloqué par son bac à sable. #96 reste ouverte.
-- [ ] Proposition explicite des évolutions JSON, diagnostics, codes de sortie et exports, avec
-      mention des permissions de la cible ; documentation FR/EN et tests de Relay A.
+- [x] Évolutions JSON (champs optionnels, statut `target-not-open`), diagnostics, codes de sortie
+      et exports, avec mention des permissions de la cible ; documentation FR/EN ; sortie de Relay A
+      inchangée et testée.
 
 ## Alternatives et suite Claude
 

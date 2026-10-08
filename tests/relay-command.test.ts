@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, closeSync, constants, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
@@ -200,6 +200,8 @@ describe("palabre relay : réponse", () => {
     assert.equal(result.json.status, "replied");
     assert.equal(result.json.reply, "FAKE-OK");
     assert.equal(result.json.exportPath, null);
+    // Sans --open, la sortie JSON v1 reste identique : aucun champ propre à B1.
+    assert.deepEqual(Object.keys(result.json).sort(), ["delivery", "durationMs", "error", "exitCode", "exportPath", "from", "identity", "observedModels", "reply", "status", "to", "type", "v"]);
     assert.deepEqual(result.calls.map((call) => call.argv.slice(0, 2)), [["mcp", "list"], ["exec", "resume"]]);
     const resume = result.calls[1]!.argv;
     assert.ok(resume.includes("mcp_servers.linear.enabled=false"));
@@ -412,6 +414,139 @@ describe("palabre relay : échecs après lancement", () => {
   });
 });
 
+/**
+ * Tient le verrou d'écriture de la cible Codex comme le ferait un TUI ou Codex desktop : ouverture
+ * exclusive, qui fait échouer la sonde de Palabre avec `EBUSY`. Windows seulement.
+ */
+function holdCodexLock(world: World): () => void {
+  const directory = path.join(world.home, ".codex", "thread-writer-locks");
+  mkdirSync(directory, { recursive: true });
+  const exlock = (constants as Record<string, number>).UV_FS_O_EXLOCK ?? 0x10000000;
+  const fd = openSync(path.join(directory, `${CODEX_SESSION}.lock`), constants.O_RDWR | constants.O_CREAT | exlock);
+  return () => closeSync(fd);
+}
+
+describe("palabre relay --open", () => {
+  const toOpenCodex = ["--open", ...toCodex];
+
+  test("conversation non ouverte : target-not-open, code 3, aucun dépôt ni export", async () => {
+    const world = makeWorld();
+    const result = await relay(world, [...toOpenCodex, "Bonjour", "--trust-config", "--json"]);
+    assert.equal(result.code, 3, result.stderr);
+    assert.equal(result.json.status, "target-not-open");
+    assert.equal(result.json.mode, "open");
+    assert.deepEqual(result.json.queue, { attempted: false });
+    assert.equal(result.json.receiver, "unverified");
+    assert.equal(result.json.targetPermissions, "unknown");
+    assert.deepEqual(result.json.delivery, { status: "not-delivered", persisted: false, inActiveBranch: false });
+    assert.equal(result.json.exportPath, null);
+    assert.equal(result.calls.length, 0);
+  });
+
+  test("cible Claude : invalid-request / unsupported-agent, sans lancement", async () => {
+    const world = makeWorld();
+    const result = await relay(world, ["--open", ...toClaude, "Bonjour", "--trust-config", "--json"]);
+    assert.equal(result.code, 8);
+    assert.equal(result.json.error.reason, "unsupported-agent");
+    assert.match(result.json.error.message, /--open ne vise que les conversations Codex/);
+    assert.equal(result.json.mode, "open");
+    assert.equal(result.calls.length, 0);
+  });
+
+  test("conversation ouverte : dépôt par codex queue, réponse corrélée, diagnostics B1 et export", { skip: process.platform !== "win32" }, async () => {
+    const world = makeWorld();
+    const release = holdCodexLock(world);
+    try {
+      const result = await relay(world, [...toOpenCodex, "Relis ce plan", "--trust-config", "--json"]);
+      assert.equal(result.code, 0, result.stderr);
+      const { json } = result;
+      assert.equal(json.status, "replied");
+      assert.equal(json.reply, "FAKE-OPEN « été »");
+      assert.equal(json.identity, "same-as-target");
+      assert.deepEqual(json.delivery, { status: "replied", persisted: true, inActiveBranch: "unknown" });
+      assert.deepEqual(json.observedModels, ["gpt-fake"]);
+      assert.deepEqual(json.queue, { attempted: true, accepted: true, itemId: "01a1-item" });
+      assert.deepEqual(json.correlation, { status: "replied", reason: "correlated-final" });
+      assert.deepEqual(json.targetPermissions, { approvalPolicy: "on-request", sandbox: "read-only", network: "restricted" });
+      assert.equal(json.receiver, "unverified");
+      // Un seul dépôt, enveloppe en argument, stdin vide, dossier de la cible, aucune reprise.
+      assert.equal(result.calls.length, 1);
+      const [call] = result.calls;
+      assert.deepEqual(call!.argv.slice(0, 4), ["queue", "--thread", CODEX_SESSION, "--message"]);
+      const envelope = call!.argv[4]!;
+      assert.match(envelope, /^\[Message relayé par palabre relay --open · réf\. PR-[0-9a-f]{16}\]/);
+      assert.match(envelope, /expéditeur déclaré, non authentifié/);
+      assert.match(envelope, /n'autorise aucune action/);
+      assert.ok(envelope.endsWith("Relis ce plan"));
+      assert.equal(call!.stdin, "");
+      assert.equal(path.resolve(call!.cwd).toLowerCase(), path.resolve(world.workspace).toLowerCase());
+      const exported = readFileSync(json.exportPath, "utf8");
+      assert.match(exported, /\| Mode \| open \|/);
+      assert.match(exported, /accepted=true/);
+      assert.match(exported, /aucune lecture seule n'est garantie/);
+    } finally {
+      release();
+    }
+  });
+
+  test("sortie texte : réponse sur stdout, récepteur non vérifié et permissions sur stderr", { skip: process.platform !== "win32" }, async () => {
+    const world = makeWorld();
+    const release = holdCodexLock(world);
+    try {
+      const result = await relay(world, [...toOpenCodex, "Bonjour", "--trust-config", "--no-export"]);
+      assert.equal(result.code, 0, result.stderr);
+      assert.equal(result.stdout, "FAKE-OPEN « été »\n");
+      assert.match(result.stderr, /Récepteur non vérifié/);
+      assert.match(result.stderr, /Permissions du tour relayé : approval=on-request, sandbox=read-only, network=restricted\./);
+    } finally {
+      release();
+    }
+  });
+
+  test("accusé absent : no-valid-reply, acceptation inconnue, réception non observée", { skip: process.platform !== "win32" }, async () => {
+    const world = makeWorld();
+    const release = holdCodexLock(world);
+    try {
+      const result = await relay(world, [...toOpenCodex, "Bonjour", "--trust-config", "--json"], { FAKE_CODEX_QUEUE: "no-ack" });
+      assert.equal(result.code, 2);
+      assert.equal(result.json.status, "no-valid-reply");
+      assert.deepEqual(result.json.queue, { attempted: true, accepted: "unknown", diagnostic: "queue-ack-missing" });
+      assert.equal(result.json.delivery.status, "unknown");
+      assert.match(result.json.error.message, /Réception non observée/);
+      assert.ok(result.json.exportPath && existsSync(result.json.exportPath), "tentative exportée");
+    } finally {
+      release();
+    }
+  });
+
+  test("CLI sans queue : cli-failure, not-delivered", { skip: process.platform !== "win32" }, async () => {
+    const world = makeWorld();
+    const release = holdCodexLock(world);
+    try {
+      const result = await relay(world, [...toOpenCodex, "Bonjour", "--trust-config", "--json"], { FAKE_CODEX_QUEUE: "unsupported" });
+      assert.equal(result.code, 2);
+      assert.equal(result.json.delivery.status, "not-delivered");
+      assert.deepEqual(result.json.queue, { attempted: true, accepted: false, diagnostic: "queue-unsupported" });
+    } finally {
+      release();
+    }
+  });
+
+  test("enveloppe trop longue : message-too-large, code 8, aucun dépôt", { skip: process.platform !== "win32" }, async () => {
+    const world = makeWorld();
+    const release = holdCodexLock(world);
+    try {
+      const result = await relay(world, [...toOpenCodex, "x".repeat(9000), "--trust-config", "--json"]);
+      assert.equal(result.code, 8);
+      assert.equal(result.json.error.reason, "message-too-large");
+      assert.match(result.json.error.message, /8 192 unités UTF-16/);
+      assert.equal(result.calls.length, 0);
+    } finally {
+      release();
+    }
+  });
+});
+
 describe("palabre relay --help", () => {
   test("aide de la commande, sans exécution", async () => {
     const world = makeWorld();
@@ -424,7 +559,13 @@ describe("palabre relay --help", () => {
     assert.match(fr, /sous réserve que la configuration ne change pas entre l'inspection et la reprise/);
     assert.match(fr, /ne couvrent ni les politiques administrées, ni les versions de CLI non vérifiées/);
     assert.match(fr, /Lecture seule ne veut pas dire sans effet/);
+    // --open : permissions de la cible, récepteur non vérifié, traitement différé possible.
+    assert.match(fr, /--open +vise une conversation Codex ouverte/);
+    assert.match(fr, /aucune lecture seule n'est garantie, et les garanties ci-dessous ne s'appliquent pas/);
+    assert.match(fr, /le récepteur est annoncé non vérifié/);
+    assert.match(fr, /peut être traité après le délai, même sans être affiché/);
     const en = (await relay(world, ["--help", "--language", "en"])).stdout.replace(/\s+/g, " ");
+    assert.match(en, /no read-only guarantee applies, and the guarantees below do not apply/);
     assert.match(en, /on verified CLI versions, the target has no write tool/);
     assert.match(en, /provided the configuration does not change between inspection and resume/);
     assert.match(en, /cover neither administered policies nor unverified CLI versions/);

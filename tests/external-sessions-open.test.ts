@@ -4,8 +4,8 @@ import { describe, test } from "node:test";
 import { mkdtemp, open, appendFile, writeFile, rm, truncate } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { captureOpenBaseline as captureReference, inspectOpenReply as inspectWindow, OPEN_READ_LIMITS, settleOpenDelivery, type OpenRequest, type OpenBaseline } from "./open-response.js";
-import { captureOpenRollout, readOpenRollout } from "./open-rollout.js";
+import { captureOpenBaseline as captureReference, inspectOpenReply as inspectWindow, OPEN_READ_LIMITS, settleOpenDelivery, type OpenRequest, type OpenBaseline } from "../src/externalSessions/openReader.js";
+import { captureOpenRollout, readOpenRollout } from "../src/externalSessions/openRollout.js";
 
 // Seulement pour les petits fixtures : le collecteur réel ci-dessus utilise des lectures
 // positionnelles. Cette conversion ne fait pas partie de l'API du prototype.

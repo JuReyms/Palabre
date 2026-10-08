@@ -9,6 +9,9 @@
  *   FAKE_CODEX_MCP_EXIT  code de sortie non nul simulé pour `codex mcp list` ;
  *   FAKE_CODEX_ROLLOUT   rollout de la cible, où le message reçu est ajouté (modes qui jouent un tour) ;
  *   FAKE_CODEX_MARKER    fichier où chaque invocation ajoute une ligne JSON { argv, cwd, stdin, envKeys }.
+ *   FAKE_CODEX_QUEUE     comportement de `queue` (relay --open) : reply (accusé, puis tour complet
+ *                        ajouté au rollout, comme le ferait le récepteur), ack-only, no-ack,
+ *                        foreign-ack, unsupported (refus de l'analyseur d'arguments), fail.
  *
  * Aucun réseau ; aucune écriture hors des chemins fournis.
  */
@@ -47,6 +50,41 @@ process.stdin.on("end", () => {
       return;
     }
     process.stdout.write(process.env.FAKE_CODEX_MCP ?? "[]");
+    return;
+  }
+  if (argv[0] === "queue") {
+    const thread = argv[argv.indexOf("--thread") + 1];
+    const message = argv[argv.indexOf("--message") + 1];
+    const queueMode = process.env.FAKE_CODEX_QUEUE || "reply";
+    const ack = (id) => process.stdout.write(`Queued message 01a1-item for thread ${id}.\n`);
+    if (queueMode === "unsupported") {
+      process.stderr.write("error: unrecognized subcommand 'queue'\n");
+      process.exitCode = 2;
+      return;
+    }
+    if (queueMode === "fail") {
+      process.stderr.write("Error: queue database unavailable\n");
+      process.exitCode = 1;
+      return;
+    }
+    if (queueMode === "no-ack") return;
+    if (queueMode === "foreign-ack") {
+      ack(OTHER);
+      return;
+    }
+    ack(thread);
+    if (queueMode === "ack-only") return;
+    // Tour traité par le récepteur, au format Codex 0.151.0 / 0.160.1.
+    const turnId = "turn-relayed";
+    const rows = [
+      { type: "event_msg", payload: { type: "task_started", turn_id: turnId } },
+      { type: "turn_context", payload: { turn_id: turnId, model: "gpt-fake", approval_policy: "on-request", sandbox_policy: { type: "read-only" }, permission_profile: { network: "restricted" }, cwd: process.cwd() } },
+      { type: "response_item", payload: { type: "message", role: "user", content: [{ type: "input_text", text: message }] } },
+      { type: "event_msg", payload: { type: "item_completed", thread_id: thread, turn_id: turnId, item: { type: "UserMessage", content: [{ type: "text", text: message }] } } },
+      { type: "event_msg", payload: { type: "item_completed", thread_id: thread, turn_id: turnId, item: { type: "AgentMessage", phase: "final_answer", content: [{ type: "Text", text: "FAKE-OPEN « été »" }] } } },
+      { type: "event_msg", payload: { type: "task_complete", turn_id: turnId, last_agent_message: "FAKE-OPEN « été »" } }
+    ];
+    fs.appendFileSync(process.env.FAKE_CODEX_ROLLOUT, rows.map((row) => JSON.stringify(row)).join("\n") + "\n");
     return;
   }
   const target = argv[argv.length - 2];
