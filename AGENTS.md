@@ -76,7 +76,7 @@ src/discovery.ts          Detection locale des CLIs et d'Ollama pendant init
 src/doctor.ts             Diagnostics de configuration et de disponibilite locale
 src/agentRegistry.ts      Source de verite des agents CLI connus (mapping commande -> decouverte)
 src/exec.ts               Resolution d'extensions executables partagee
-src/npmShim.ts            Reconnaissance stricte des shims PowerShell npm, lancement direct sans PowerShell (adapters et Relay)
+src/npmShim.ts            Reconnaissance stricte des shims PowerShell npm et pnpm, lancement direct sans PowerShell (adapters ; Relay : forme npm Node + script seulement)
 src/types.ts              Contrats partages
 src/prompt.ts             Rendu des prompts agent
 src/context.ts            Chargement des fichiers et dossiers de contexte
@@ -315,13 +315,31 @@ necessaire. Pour Claude Code, preferer `claude.exe` avec `"shell": false`, car `
 capture correctement dans ce mode.
 
 Sous Windows, l'ordre de lancement (CLI et PTY) est : executable natif ; shim PowerShell `.ps1` frere
-genere par npm, reconnu ligne a ligne et lance directement, sans PowerShell (Node et le script du
-paquet, ou l'executable natif du paquet pour la variante native) ; autre shim PowerShell (pnpm, shim
-modifie), lance par PowerShell sans `cmd.exe` ; sinon wrapper shell, refuse pour un prompt en
-argument. La reconnaissance du shim npm est partagee avec Relay dans `src/npmShim.ts` (#98) : avec
-Windows PowerShell 5.1, le shim refuse l'argument `-`, retire les guillemets internes et remplace les
-caracteres non ASCII de stdin par `?`. Le repli PowerShell garde ces limites pour les shims pnpm ou
-modifies. CLI et PTY partagent la resolution PATH mise en cache dans `src/exec.ts`.
+genere par npm ou par pnpm, reconnu ligne a ligne et lance directement, sans PowerShell (Node et le
+script du paquet, ou l'executable natif du paquet pour la variante native npm) ; autre shim
+PowerShell (shim modifie, forme inconnue), lance par PowerShell sans `cmd.exe` ; sinon wrapper
+shell, refuse pour un prompt en argument. Avec Windows PowerShell 5.1, le shim refuse l'argument
+`-`, retire les guillemets internes et remplace les caracteres non ASCII de stdin par `?` ; le repli
+PowerShell garde ces limites. CLI et PTY partagent la resolution PATH mise en cache dans
+`src/exec.ts`.
+
+Shims pnpm (#109), dans `src/npmShim.ts` :
+- modele `PNPM_SHIM_TEMPLATE` releve sur pnpm 10 (paquets globaux et `pnpm link --global`), copie
+  conforme exigee ; seuls varient la valeur Windows de `NODE_PATH`, sa valeur POSIX et le script ;
+- valeurs litterales seulement (ni `$`, ni accent grave, ni guillemet droit ou typographique double,
+  ni caractere de controle) ; `NODE_PATH` Windows forme de dossiers absolus avec lettre de lecteur ;
+  script relatif en `/`, avec des `..` seulement en tete, termine par `.js`, `.cjs` ou `.mjs` ;
+- `NODE_PATH` reproduit comme le shim par `withShimNodePath`, sur une copie de l'environnement du
+  processus lance : valeur du shim si la valeur heritee est absente ou vide, sinon
+  `<valeur du shim>;<valeur heritee>` ;
+- lien global (script hors du dossier du shim) accepte seulement si le chemin est litteral et si la
+  cible resolue existe et est un fichier JavaScript : Palabre lance exactement ce que le shim
+  lancerait ;
+- non pris en charge, donc repli PowerShell : script sans extension JavaScript (par exemple `tsc`
+  ou `vsce`), cible native, `pnpx`, shim modifie.
+
+Relay (D21) reste limite a la forme npm Node + script : un shim pnpm y donne
+`unsupported-executable`.
 
 Les defaults Palabre appliquent une politique d'outils en lecture seule quand la CLI l'expose :
 Claude est limite a `Read,Glob,Grep`, Vibe a `read,grep`, et OpenCode utilise `--pure` pour

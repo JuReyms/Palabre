@@ -30,7 +30,7 @@ palabre config --sync-agents
 
 ## Windows
 
-Sur Windows, la configuration générée peut activer `shell` pour un wrapper npm ou PowerShell. Palabre tente d'abord l'exécutable natif. Pour une installation npm, il lit le shim `.ps1` et lance directement l'exécutable du paquet, sans PowerShell, ce qui préserve les accents et les arguments. Un autre shim PowerShell, par exemple de pnpm, reste lancé par PowerShell ; ne forcez cette option que si votre installation en a besoin.
+Sur Windows, la configuration générée peut activer `shell` pour un wrapper npm ou PowerShell. Palabre tente d'abord l'exécutable natif. Pour une installation npm, il lit le shim `.ps1` et lance directement l'exécutable du paquet, sans PowerShell, ce qui préserve les accents et les arguments. Une installation pnpm dont le shim désigne un script `.js` est aussi lancée directement, avec le `NODE_PATH` du shim. Un shim d'une autre forme (modifié, ou dont le script n'est pas un fichier `.js`) reste lancé par PowerShell ; ne forcez cette option que si votre installation en a besoin.
 
 ## Offres et limites
 

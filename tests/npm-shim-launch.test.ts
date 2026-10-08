@@ -104,7 +104,7 @@ describe("résolution d'un shim npm pour les adapters", () => {
     assert.deepEqual(directNpmShimLaunch(path.join(bin.dir, "fake.ps1")), directNpmShimLaunch(bin.command));
   });
 
-  test("shim d'une autre forme (pnpm, modifié) : pas de lancement direct, le repli reste possible", () => {
+  test("shim npm modifié : pas de lancement direct, le repli reste possible", () => {
     const pnpmLike = npmPowerShellShim(SCRIPT).replace("$ret=0", "$env:NODE_PATH=\"C:\\pnpm\\node_modules\"\r\n$ret=0");
     const bin = npmBin({ shim: pnpmLike, extra: { "node.exe": "" } });
     assert.equal(directNpmShimLaunch(bin.command), undefined);
