@@ -1,7 +1,22 @@
-/** @file Cas factices B1 : jamais de CLI, session, socket ni appel de modèle réel. */
+/** @file Cas factices B1, en mémoire ou fichiers temporaires : aucun appel d'agent réel. */
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { captureOpenBaseline, inspectOpenReply, settleOpenDelivery, type OpenRequest } from "./open-response.js";
+import { mkdtemp, open, appendFile, writeFile, rm, truncate } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { captureOpenBaseline as captureReference, inspectOpenReply as inspectWindow, OPEN_READ_LIMITS, settleOpenDelivery, type OpenRequest, type OpenBaseline } from "./open-response.js";
+import { captureOpenRollout, readOpenRollout } from "./open-rollout.js";
+
+// Seulement pour les petits fixtures : le collecteur réel ci-dessus utilise des lectures
+// positionnelles. Cette conversion ne fait pas partie de l'API du prototype.
+function captureOpenBaseline(snapshot: string): OpenBaseline {
+  const bytes = Buffer.from(snapshot);
+  return captureReference({ bytes: bytes.length, firstLine: snapshot.slice(0, snapshot.indexOf("\n") + 1), witness: bytes.subarray(Math.max(0, bytes.length - OPEN_READ_LIMITS.witnessBytes)) });
+}
+function inspectOpenReply(snapshot: string, input: OpenRequest) {
+  const bytes = Buffer.from(snapshot);
+  return inspectWindow({ bytes: bytes.length, firstLine: snapshot.slice(0, snapshot.indexOf("\n") + 1), witness: bytes.subarray(Math.max(0, input.baseline.bytes - OPEN_READ_LIMITS.witnessBytes), input.baseline.bytes), added: bytes.subarray(input.baseline.bytes) }, input);
+}
 
 const THREAD = "11111111-1111-4111-8111-111111111111";
 const FOREIGN = "22222222-2222-4222-8222-222222222222";
@@ -19,12 +34,62 @@ function item(type: string, turnId: string, text: string, phase?: string, thread
   return { type: "event_msg", payload: { type: "item_completed", thread_id: threadId, turn_id: turnId, item: { type, content: [{ type: type === "AgentMessage" ? "Text" : "text", text }], ...(phase ? { phase } : {}) } } };
 }
 const bound = (turnId = "turn-a", envelope = ENVELOPE) => item("UserMessage", turnId, envelope);
+const started = (turnId = "turn-a"): Row => ({ type: "event_msg", payload: { type: "task_started", turn_id: turnId } });
 const final = (turnId = "turn-a", reply = "Réponse finale.\nÉté « intact »." ) => item("AgentMessage", turnId, reply, "final_answer");
 function complete(turnId = "turn-a", reply = "Réponse finale.\nÉté « intact »." ): Row {
   return { type: "event_msg", payload: { type: "task_complete", turn_id: turnId, last_agent_message: reply } };
 }
-const observe = (rows: Row[], input = request) => inspectOpenReply(prefix + lines(rows), input);
+const observe = (rows: Row[], input = request) => inspectOpenReply(prefix + lines([started(), ...rows]), input);
 const success = () => [user(), bound(), final(), complete()];
+
+describe("B1 : le tour doit commencer après la référence", () => {
+  test("régression : un tour humain en cours avant dépôt ne donne aucun replied", () => {
+    const before = prefix + lines([started(), user("Consigne humaine"), bound("turn-a", "Consigne humaine")]);
+    const input = { ...request, baseline: captureOpenBaseline(before) };
+    const result = inspectOpenReply(before + lines([user(), bound(), final("turn-a", "Réponse humaine"), complete("turn-a", "Réponse humaine")]), input);
+    assert.equal(result.status, "ambiguous");
+    assert.equal(result.reason, "turn-start-not-observed-after-baseline");
+    assert.equal(result.persisted, true);
+    assert.equal(result.reply, undefined);
+    assert.equal(settleOpenDelivery(result, true).status, "persisted-no-reply");
+  });
+  test("un ancien tour terminé puis un nouveau tour identifié donnent la bonne réponse", () => {
+    const before = prefix + lines([started("old"), user("Consigne humaine"), bound("old", "Consigne humaine"), final("old", "Ancienne réponse"), complete("old", "Ancienne réponse")]);
+    assert.equal(inspectOpenReply(before + lines([started(), ...success()]), { ...request, baseline: captureOpenBaseline(before) }).status, "replied");
+  });
+  test("début manquant, même avec une réponse finale cohérente", () => {
+    assert.equal(inspectOpenReply(prefix + lines(success()), request).reason, "turn-start-not-observed-after-baseline");
+  });
+  test("le début d'un autre tour ne suffit pas", () => {
+    assert.equal(inspectOpenReply(prefix + lines([started("other"), ...success()]), request).status, "ambiguous");
+  });
+  test("début écrit après le message utilisateur", () => {
+    assert.equal(inspectOpenReply(prefix + lines([user(), started(), bound(), final(), complete()]), request).reason, "invalid-event-order");
+  });
+  test("deux débuts du même tour interdisent un succès", () => {
+    assert.equal(observe([started(), ...success()]).reason, "duplicate-turn-start");
+  });
+  test("environment_context antérieur à la référence n'est pas une saisie concurrente", () => {
+    const before = prefix + lines([user("<environment_context>ancien dossier</environment_context>")]);
+    assert.equal(inspectOpenReply(before + lines([started(), ...success()]), { ...request, baseline: captureOpenBaseline(before) }).status, "replied");
+  });
+  for (const beforeRelay of [true, false]) {
+    test(`environment_context pendant le tour, ${beforeRelay ? "avant" : "après"} le relay : ambiguïté prudente`, () => {
+      const context = user("<environment_context>nouveau dossier</environment_context>");
+      const rows = beforeRelay ? [context, ...success()] : [user(), bound(), context, final(), complete()];
+      assert.equal(observe(rows).reason, "unbound-concurrent-user");
+    });
+  }
+  for (const changed of [ENVELOPE.replaceAll("\n", "\r\n"), ENVELOPE.replace("De :", "De  :"), ENVELOPE.slice(0, -10)]) {
+    test("enveloppe modifiée avec nonce : diagnostic explicite, sans preuve ni réponse", () => {
+      const result = observe([user(changed), bound("turn-a", changed), final(), complete()]);
+      assert.equal(result.reason, "envelope-altered");
+      assert.equal(result.persisted, "unknown");
+      assert.equal(settleOpenDelivery(result, true).status, "unknown");
+      assert.equal(result.reply, undefined);
+    });
+  }
+});
 
 describe("B1 : réponse finale liée au bon tour", () => {
   test("réponse finale exacte, Unicode et lignes multiples conservés", () => {
@@ -42,7 +107,7 @@ describe("B1 : réponse finale liée au bon tour", () => {
   test("deux relays dans des tours distincts, même entrelacés, gardent leurs réponses", () => {
     const otherNonce = "PR-fedcba9876543210";
     const otherEnvelope = ENVELOPE.replace(NONCE, otherNonce);
-    const rows = [user(), bound(), user(otherEnvelope), bound("turn-b", otherEnvelope), final("turn-b", "Réponse B"), complete("turn-b", "Réponse B"), final(), complete()];
+    const rows = [user(), bound(), started("turn-b"), user(otherEnvelope), bound("turn-b", otherEnvelope), final("turn-b", "Réponse B"), complete("turn-b", "Réponse B"), final(), complete()];
     assert.equal(observe(rows).reply, "Réponse finale.\nÉté « intact ».");
     assert.equal(observe(rows, { ...request, nonce: otherNonce, envelope: otherEnvelope }).reply, "Réponse B");
   });
@@ -68,6 +133,12 @@ describe("B1 : réponse finale liée au bon tour", () => {
   }
   test("une erreur d'un autre tour ne remplace pas une réponse corrélée", () => {
     assert.equal(observe([...success(), { type: "event_msg", payload: { type: "error", turn_id: "turn-other" } }]).status, "replied");
+  });
+  test("erreur sans turn_id et sans terminaison valide : attendre, pas inventer un échec corrélé", () => {
+    const result = observe([user(), bound(), { type: "event_msg", payload: { type: "error", message: "forme non vérifiée" } }]);
+    assert.equal(result.status, "awaiting-reply");
+    assert.equal(settleOpenDelivery(result, true).status, "persisted-no-reply");
+    assert.equal(result.reply, undefined);
   });
 });
 
@@ -172,8 +243,11 @@ describe("B1 : instantanés et preuve de réception", () => {
   test("la mention du nonce par l'assistant seul ne prouve pas la réception", () => {
     assert.equal(observe([final("turn-a", ENVELOPE), complete("turn-a", ENVELOPE)]).status, "awaiting-message");
   });
-  test("la présence du nonce dans un texte utilisateur différent ne suffit pas", () => {
-    assert.equal(observe([user("Citation : " + ENVELOPE), bound("turn-a", "Citation : " + ENVELOPE), final(), complete()]).status, "awaiting-message");
+  test("la présence du nonce dans un texte utilisateur différent reste incertaine", () => {
+    const result = observe([user("Citation : " + ENVELOPE), bound("turn-a", "Citation : " + ENVELOPE), final(), complete()]);
+    assert.equal(result.reason, "envelope-altered");
+    assert.equal(result.persisted, "unknown");
+    assert.equal(result.reply, undefined);
   });
   test("une ancienne occurrence avant le dépôt n'est pas une réception nouvelle", () => {
     const old = prefix + lines(success());
@@ -185,7 +259,7 @@ describe("B1 : instantanés et preuve de réception", () => {
     assert.equal(inspectOpenReply(prefix + tail, request).status, "awaiting-message");
   });
   test("la terminaison complète attend sa fin de ligne", () => {
-    const head = prefix + lines([user(), bound(), final()]);
+    const head = prefix + lines([started(), user(), bound(), final()]);
     const tail = JSON.stringify(complete());
     assert.equal(inspectOpenReply(head + tail, request).status, "awaiting-reply");
     assert.equal(inspectOpenReply(head + tail + "\n", request).status, "replied");
@@ -200,7 +274,7 @@ describe("B1 : instantanés et preuve de réception", () => {
     assert.equal(inspectOpenReply(prefix + "42\n", request).reason, "invalid-record");
   });
   test("préfixe remplacé, même si le nonce réapparaît ensuite", () => {
-    const result = inspectOpenReply(prefix.replace(THREAD, FOREIGN) + lines(success()), request);
+    const result = inspectOpenReply(prefix.trimEnd() + " \n" + lines(success()), request);
     assert.equal(result.reason, "history-replaced");
     assert.equal(result.persisted, "unknown");
   });
@@ -209,16 +283,15 @@ describe("B1 : instantanés et preuve de réception", () => {
   });
   test("UTF-8 dans le préfixe : position en octets et non en caractères", () => {
     const head = lines([meta, { type: "test_metadata", text: "Été « é »" }]);
-    assert.equal(inspectOpenReply(head + lines(success()), { ...request, baseline: captureOpenBaseline(head) }).status, "replied");
+    assert.equal(inspectOpenReply(head + lines([started(), ...success()]), { ...request, baseline: captureOpenBaseline(head) }).status, "replied");
   });
   test("CRLF dans le préfixe et le nouveau tour", () => {
     const head = prefix.replaceAll("\n", "\r\n");
-    assert.equal(inspectOpenReply(head + lines(success()).replaceAll("\n", "\r\n"), { ...request, baseline: captureOpenBaseline(head) }).status, "replied");
+    assert.equal(inspectOpenReply(head + lines([started(), ...success()]).replaceAll("\n", "\r\n"), { ...request, baseline: captureOpenBaseline(head) }).status, "replied");
   });
   test("identité de session absente ou différente", () => {
-    const empty = captureOpenBaseline("");
-    assert.equal(inspectOpenReply(lines(success()), { ...request, baseline: empty }).reason, "identity-mismatch");
-    assert.equal(inspectOpenReply(lines([{ type: "session_meta", payload: { id: FOREIGN } }, ...success()]), { ...request, baseline: empty }).reason, "identity-mismatch");
+    assert.equal(inspectOpenReply(lines(success()), request).reason, "identity-mismatch");
+    assert.equal(inspectOpenReply(lines([{ type: "session_meta", payload: { id: FOREIGN } }, ...success()]), request).reason, "identity-mismatch");
   });
   test("deux identités dans le même historique", () => {
     assert.equal(observe([meta, ...success()]).reason, "identity-mismatch");
@@ -227,8 +300,8 @@ describe("B1 : instantanés et preuve de réception", () => {
     assert.equal(observe(success(), { ...request, nonce: "absent" }).reason, "invalid-request");
   });
   test("empreinte ou longueur de référence invalides", () => {
-    assert.equal(observe(success(), { ...request, baseline: { bytes: -1, sha256: request.baseline.sha256 } }).reason, "invalid-baseline");
-    assert.equal(observe(success(), { ...request, baseline: { bytes: 0, sha256: "incorrect" } }).reason, "invalid-baseline");
+    assert.equal(observe(success(), { ...request, baseline: { ...request.baseline, bytes: -1 } }).reason, "invalid-baseline");
+    assert.equal(observe(success(), { ...request, baseline: { ...request.baseline, sha256: "incorrect" } }).reason, "invalid-baseline");
   });
 });
 
@@ -256,5 +329,121 @@ describe("B1 : délivrance au timeout ou à l'annulation", () => {
     const result = settleOpenDelivery(observe([user(), bound(), final(), complete("turn-a", "Mauvais texte")]), true);
     assert.equal(result.status, "persisted-no-reply");
     assert.equal(result.reply, undefined);
+  });
+});
+
+describe("B1 : lectures positionnelles sur fichiers factices", () => {
+  async function temporary(run: (filename: string) => Promise<void>) {
+    const directory = await mkdtemp(path.join(os.tmpdir(), "palabre-b1-"));
+    try { await run(path.join(directory, "rollout.jsonl")); }
+    finally { await rm(directory, { recursive: true, force: true }); }
+  }
+  test("historique de 151 Mio : seuls identité, témoin et ajout sont fournis au lecteur", async () => {
+    await temporary(async (filename) => {
+      const size = 151 * 1024 * 1024;
+      const file = await open(filename, "w");
+      try {
+        await file.write(Buffer.from(prefix), 0, Buffer.byteLength(prefix), 0);
+        await file.truncate(size);
+        await file.write(Buffer.from("\n"), 0, 1, size - 1);
+      } finally { await file.close(); }
+      const baseline = await captureOpenRollout(filename);
+      assert.equal(baseline.bytes, size);
+      const appended = lines([started(), ...success()]);
+      await appendFile(filename, appended);
+      const snapshot = await readOpenRollout(filename, baseline);
+      assert.equal(snapshot.bytes, size + Buffer.byteLength(appended));
+      assert.equal(snapshot.firstLine, prefix);
+      assert.equal(snapshot.witness.byteLength, OPEN_READ_LIMITS.witnessBytes);
+      assert.equal(snapshot.added.byteLength, Buffer.byteLength(appended));
+      assert.equal(inspectWindow(snapshot, { ...request, baseline }).status, "replied");
+    });
+  });
+  test("ajout trop grand : refus avant son chargement, pas de plafond sur l'ancien historique", async () => {
+    await temporary(async (filename) => {
+      await writeFile(filename, prefix);
+      const baseline = await captureOpenRollout(filename);
+      await truncate(filename, baseline.bytes + OPEN_READ_LIMITS.addedBytes + 1);
+      await assert.rejects(readOpenRollout(filename, baseline), /added-too-large/);
+      assert.equal(inspectWindow({ bytes: baseline.bytes + OPEN_READ_LIMITS.addedBytes + 1, firstLine: prefix, witness: Buffer.from(prefix), added: Buffer.alloc(0) }, { ...request, baseline }).reason, "added-too-large");
+    });
+  });
+  test("deux lectures après le même offset suivent la réception puis la réponse", async () => {
+    await temporary(async (filename) => {
+      await writeFile(filename, prefix);
+      const baseline = await captureOpenRollout(filename);
+      await appendFile(filename, lines([started(), user(), bound()]));
+      assert.equal(inspectWindow(await readOpenRollout(filename, baseline), { ...request, baseline }).status, "awaiting-reply");
+      await appendFile(filename, lines([final(), complete()]));
+      assert.equal(inspectWindow(await readOpenRollout(filename, baseline), { ...request, baseline }).status, "replied");
+    });
+  });
+  test("témoin modifié sans troncature : pas de réponse", async () => {
+    await temporary(async (filename) => {
+      const before = prefix + lines([{ type: "factice", value: "ancien" }]);
+      await writeFile(filename, before);
+      const baseline = await captureOpenRollout(filename);
+      await writeFile(filename, before.replace("ancien", "change") + lines([started(), ...success()]));
+      assert.equal(inspectWindow(await readOpenRollout(filename, baseline), { ...request, baseline }).reason, "history-replaced");
+    });
+  });
+  test("première ligne remplacée : identité différente refusée", async () => {
+    await temporary(async (filename) => {
+      await writeFile(filename, prefix);
+      const baseline = await captureOpenRollout(filename);
+      await writeFile(filename, prefix.replace(THREAD, FOREIGN) + lines([started(), ...success()]));
+      assert.equal(inspectWindow(await readOpenRollout(filename, baseline), { ...request, baseline }).reason, "identity-mismatch");
+    });
+  });
+  test("identité contrôlée en première ligne, sans parser les anciennes lignes", async () => {
+    await temporary(async (filename) => {
+      await writeFile(filename, prefix + "ancien contenu non parsé\n");
+      const baseline = await captureOpenRollout(filename);
+      await appendFile(filename, lines([started(), ...success()]));
+      assert.equal(inspectWindow(await readOpenRollout(filename, baseline), { ...request, baseline }).status, "replied");
+    });
+  });
+  test("historique tronqué : erreur explicite du collecteur", async () => {
+    await temporary(async (filename) => {
+      await writeFile(filename, prefix);
+      const baseline = await captureOpenRollout(filename);
+      await truncate(filename, 0);
+      await assert.rejects(readOpenRollout(filename, baseline), /history-replaced/);
+    });
+  });
+  test("ancienne fin de ligne partielle : référence refusée avant dépôt", async () => {
+    await temporary(async (filename) => {
+      await writeFile(filename, prefix + '{"type":"incomplet"');
+      await assert.rejects(captureOpenRollout(filename), /baseline-incomplete/);
+    });
+  });
+  test("caractère UTF-8 partiel en fin d'ajout : ignoré jusqu'à complétion", async () => {
+    await temporary(async (filename) => {
+      await writeFile(filename, prefix);
+      const baseline = await captureOpenRollout(filename);
+      const done = Buffer.from(lines([started(), ...success()]));
+      await appendFile(filename, Buffer.concat([done, Buffer.from([0xc3])]));
+      assert.equal(inspectWindow(await readOpenRollout(filename, baseline), { ...request, baseline }).status, "replied");
+      await appendFile(filename, Buffer.from([10]));
+      assert.equal(inspectWindow(await readOpenRollout(filename, baseline), { ...request, baseline }).reason, "invalid-utf8");
+    });
+  });
+  test("première ligne trop grande : lecture bornée", async () => {
+    await temporary(async (filename) => {
+      await writeFile(filename, "x");
+      await truncate(filename, OPEN_READ_LIMITS.firstLineBytes + 1);
+      await assert.rejects(captureOpenRollout(filename), /identity-too-large/);
+    });
+  });
+  test("une réécriture hors identité et témoin est indétectable : limite documentée", async () => {
+    await temporary(async (filename) => {
+      await writeFile(filename, prefix + "ancien milieu" + "x".repeat(OPEN_READ_LIMITS.witnessBytes) + "\n");
+      const baseline = await captureOpenRollout(filename);
+      const file = await open(filename, "r+");
+      try { await file.write(Buffer.from("change"), 0, 6, Buffer.byteLength(prefix)); }
+      finally { await file.close(); }
+      await appendFile(filename, lines([started(), ...success()]));
+      assert.equal(inspectWindow(await readOpenRollout(filename, baseline), { ...request, baseline }).status, "replied");
+    });
   });
 });

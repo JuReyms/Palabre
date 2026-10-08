@@ -1013,10 +1013,12 @@ Ces points sont a evaluer au cas par cas si un consommateur reel les demande. Ev
 ## Tests et verification
 
 Le contrat proposé pour Relay vers une conversation ouverte (#96, B1) et son lecteur hors ligne
-vivent dans `scripts/prototypes/relay/CONTRAT-B1.md` et `open-response.ts`. Le lecteur n'est pas
-appelé par la CLI et ne lance aucun agent. `pnpm test:relay-open` compile et teste ce prototype
-avec des historiques factices ; la commande est incluse dans `pnpm test` et la CI. Elle ne lance
-pas les sondes locales `open-*.mjs`, qui consomment des quotas. Le contrat Relay A reste inchangé.
+vivent dans `scripts/prototypes/relay/CONTRAT-B1.md`, `open-response.ts` (corrélation pure) et
+`open-rollout.ts` (lecture positionnelle bornée d'un fichier explicitement fourni). Ils ne sont
+pas appelés par la CLI et ne lancent aucun agent. `pnpm test:relay-open` compile et teste ce prototype
+avec des historiques en mémoire ou fichiers temporaires factices ; la commande est incluse dans
+`pnpm test` et la CI. Elle ne lance pas les sondes locales `open-*.mjs`, qui consomment des quotas.
+Le contrat Relay A reste inchangé.
 
 Avant de livrer une modification :
 

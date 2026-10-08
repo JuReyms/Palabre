@@ -20,7 +20,8 @@ Le transport `queue` et le lecteur ne doivent pas être intégrés à la CLI ava
 essais listés plus bas. Les shims pnpm (#109) restent un chantier distinct.
 
 Sources : [bilan de Claude](https://github.com/JuReyms/Palabre/issues/96#issuecomment-6048846894),
-[revue indépendante](https://github.com/JuReyms/Palabre/issues/96#issuecomment-6048964688).
+[revue indépendante](https://github.com/JuReyms/Palabre/issues/96#issuecomment-6048964688),
+[relecture de ce contrat](https://github.com/JuReyms/Palabre/pull/110#issuecomment-6049573390).
 
 ## Décisions proposées
 
@@ -31,7 +32,7 @@ Sources : [bilan de Claude](https://github.com/JuReyms/Palabre/issues/96#issueco
 | Surface | Capacité du récepteur à consommer la file à vérifier. Un verrou **tenu**, pas seulement présent, prouve un écrivain ; il ne prouve ni un TUI ni son repos. Une surface inconnue ne devient pas implicitement compatible. La preuve ou déclaration de surface et ses limites restent **à définir**. |
 | Droits | La conversation ouverte conserve ses outils, hooks, MCP, permissions et demandes d'approbation. Palabre ne promet aucune lecture seule et ne modifie pas ces réglages. **Acceptation produit requise avant implementation.** |
 | Provenance | Enveloppe claire, expéditeur déclaré non authentifié, nonce neuf, contenu marqué comme demande d'un autre agent. Un message n'est jamais présenté comme une autorisation humaine à exécuter une action ou à lever une restriction. Le texte exact reste **à relire**. |
-| Dépôt | Un seul appel `codex queue`, arguments structurés, cwd de la cible, limite actuelle de 64 Kio pour le message. Un accusé valide identifie la tentative et la file, pas une réponse. Pas de reprise concurrente, de fork ni de repli `exec resume`. |
+| Dépôt | Un seul appel `codex queue --message <TEXT>`, arguments structurés, cwd de la cible. Limite propre à B1 et vérification de la ligne Windows complète avant dépôt, détaillées ci-dessous ; les 64 Kio de Relay A ne s'appliquent pas. Un accusé valide identifie la tentative et la file, pas une réponse. Pas de reprise concurrente, de fork ni de repli `exec resume`. |
 | Attente | Budget total borné, annulation locale, snapshots append-only bornés, pas de renvoi automatique. Timeout, Ctrl+C et fermeture de Palabre ne prouvent pas la suppression d'un message en file. |
 | Résultat | Réponse finale du tour lié au message, avec preuve de terminaison cohérente. Toute ambiguïté est exposée sans réponse et sans consigne de renvoi « sans risque ». |
 | Compatibilité | Relay A, D21 et ses refus restent inchangés. Pas d'ajout silencieux au JSON v1 ou aux codes de sortie ; un lot d'intégration proposera explicitement diagnostics, champs optionnels, codes et traductions. |
@@ -57,6 +58,9 @@ Une preuve de réception observée reste mémorisée si un snapshot ultérieur d
 base de la file. Un snapshot lu sans nonce donne `persisted: false`, mais ne prouve pas la
 non-délivrance future. Si la lecture est impossible, la preuve vaut `unknown` ; une preuve
 antérieure `true` l'emporte toujours. Les délais ne provoquent jamais de retry automatique.
+Une entrée utilisateur neuve avec le nonce mais une enveloppe différente donne `ambiguous`,
+raison `envelope-altered`, `persisted: unknown`, sans réponse. Ni normalisation des fins de ligne,
+ni réparation des espaces ou d'une troncature ne permettent d'inventer une preuve exacte.
 
 Le constat `Queued` vers une cible fermée doit être formulé précisément : aucun tour n'a été
 traité pendant l'essai, mais une vérification sans modèle sur une copie isolée a trouvé le
@@ -69,32 +73,64 @@ consulter ni modifier cette base privée dans le produit ; elle sert ici uniquem
 événements liés à un tour observés dans le rollout Codex 0.151.0 ; ce n'est pas un schéma public
 garanti par OpenAI. Les historiques factices sont construits dans `open-response.test.ts`.
 
-Avant le dépôt, le futur collecteur capture un préfixe se terminant par une ligne complète et
-son empreinte SHA-256. Il vérifie ensuite que le préfixe n'a pas été tronqué ou remplacé.
-L'empreinte détecte une dérive du fichier, **pas** l'authenticité de son contenu.
+Avant le dépôt, le collecteur expérimental `open-rollout.ts` mémorise l'offset de fin d'une ligne
+complète, l'empreinte SHA-256 de la première ligne et celle des 64 derniers Kio avant l'offset
+(ou du fichier entier s'il est plus court). Il ouvre seulement le fichier explicitement fourni,
+en lecture seule, sans découvrir de conversation. Il lit ensuite la première ligne (1 Mio max),
+la fenêtre témoin et les octets ajoutés **après cet offset**. Le plafond de 50 Mio porte sur
+l'ajout cumulé depuis la référence, pas sur l'historique : un fichier factice de 151 Mio est testé.
+À chaque snapshot, seule cette partie neuve est relue et analysée ; le collecteur n'est pas encore
+un suivi continu qui conserverait les événements en mémoire entre les lectures.
+
+La taille totale, l'identité et le témoin détectent une troncature et certains remplacements.
+Le témoin et la première ligne sont relus après l'ajout pour détecter une dérive pendant la
+lecture. **Une réécriture située hors de ces deux fenêtres peut rester indétectable**, comme
+le démontre un test. Ni l'empreinte partielle ni un snapshot ne garantissent l'intégrité totale,
+l'authenticité du fichier ou un verrou exclusif. Ces limites remplacent la garantie précédente
+sur le préfixe complet ; elles ne doivent pas être masquées par l'intégration future.
 
 Le lecteur exige :
 
-- une identité `session_meta` unique correspondant à la cible ;
+- une première ligne `session_meta` correspondant à la cible, selon le principe Relay A ;
+  une nouvelle identité ajoutée après l'offset est refusée comme incohérente ;
 - une nouvelle `response_item/message` de rôle `user` contenant l'enveloppe exacte ;
 - un seul `event_msg/item_completed`, `item.type: UserMessage`, portant le même texte et les
   `thread_id` et `turn_id` de la cible ;
+- un seul `task_started` de ce tour, dans l'ajout après la référence et **avant** le message
+  utilisateur ; un début absent rend `ambiguous`, `turn-start-not-observed-after-baseline`
+  (le lecteur ne prétend pas savoir si le début est ancien ou manque dans le dialecte) ;
 - un seul utilisateur dans ce tour (des messages fusionnés ou une intervention humaine dans le
   même tour rendent la réponse ambiguë) ;
-- toute autre saisie utilisateur apparue avant la terminaison doit être explicitement liée à
-  un autre tour ; une saisie sans liaison identifiable interdit l'attribution ;
+- toute autre saisie utilisateur apparue après le début du tour et avant sa terminaison doit
+  être explicitement liée à un autre tour ; une saisie sans liaison identifiable interdit l'attribution ;
 - une seule réponse `AgentMessage`, `phase: final_answer`, de ce thread et de ce tour ;
 - un `task_complete` du même tour, après la réponse, avec `last_agent_message` identique, et
   aucun échec ou abandon de ce tour.
 
 Les commentaires intermédiaires et les événements d'un autre tour ne terminent pas l'attente.
 Une dernière ligne partielle est ignorée jusqu'à sa complétion. Une ligne terminée corrompue,
-une identité incohérente ou un historique remplacé interdit tout succès. Un snapshot est plafonné
-à 50 Mio. L'ancien couple `event_msg/user_message` + `agent_message` n'offre pas la liaison
+une identité incohérente ou un témoin remplacé interdit tout succès. L'ancien couple
+`event_msg/user_message` + `agent_message` n'offre pas la liaison
 nécessaire : le prototype ne l'accepte pas comme preuve de réponse.
 
-Ce lecteur ne dépose aucun message, ne sonde aucun verrou, ne lit aucun fichier et ne pilote
-aucun agent. Les statuts internes `awaiting-*`, `failed`, `ambiguous` et `unreadable` **ne sont
+Un message `user` comme `<environment_context>` peut être injecté sans liaison `UserMessage`.
+S'il précède la référence ou le début du tour, il ne participe pas à l'échange analysé. S'il
+apparaît pendant le tour relayé, même avant le message relayé, le lecteur conserve l'ambiguïté
+`unbound-concurrent-user`. Aucun préfixe textuel n'est une preuve de provenance système, et
+aucune liste d'exemptions n'est ajoutée sans critère observé et vérifiable.
+
+Dans la trace réelle sont observés `task_started`, les deux `item_completed` et `task_complete`
+avec `last_agent_message`, sans `thread_id` ni `status` sur cette terminaison. Les noms `error`,
+`turn_aborted`, `task_cancelled`, `task_failed` et `task_complete.status` testés sont **des
+hypothèses défensives factices, pas des formats d'échec vérifiés**. Il faut relever les événements
+réels lors des essais d'annulation et d'erreur. Sans événement attribuable au tour et sans fin
+valide, l'attente future se termine au délai en `persisted-no-reply` si le message est reçu.
+Le lecteur assemble les parties textuelles par `\n` ; si le fournisseur les assemble autrement
+dans `last_agent_message`, il conserve l'ambiguïté plutôt que normaliser la réponse.
+
+La fonction pure `open-response.ts` ne lit aucun fichier. Le collecteur `open-rollout.ts` lit
+seulement les fenêtres du fichier fourni ; aucun des deux ne dépose de message, ne sonde de
+verrou ou ne pilote d'agent. Les statuts internes `awaiting-*`, `failed`, `ambiguous` et `unreadable` **ne sont
 pas de nouveaux statuts CLI**. L'intégration devra garder les raisons de diagnostic et les
 preuves antérieures. Les types et statuts du produit restent inchangés.
 
@@ -108,6 +144,22 @@ Les quatre sondes `open-*.mjs` de Claude restent locales et non commitées. Elle
 appelées par cette commande ni par la CI. Leur lecteur expérimental n'est pas corrigé dans ce
 lot ; il devra utiliser une corrélation validée et échouer réellement si la preuve manque.
 
+## Budget de message Windows à intégrer avec le transport
+
+L'aide vérifiée par Claude pour Codex 0.151.0 n'expose que `--message <TEXT>` pour `queue`,
+sans entrée stdin ni fichier. Windows limite `CreateProcessW` à **32 767 unités UTF-16,
+terminateur nul compris**, pour toute la ligne de commande. Les chemins de l'exécutable et du
+script, les arguments fixes, l'UUID, l'enveloppe complète et l'échappement des guillemets et
+antislashs consomment ce budget.
+[Référence Microsoft](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw).
+
+Proposition pour le lot transport : plafonner l'enveloppe complète à **8 192 unités UTF-16**,
+puis vérifier aussi la taille de la ligne effectivement sérialisée par le lancement Node.
+Ce plafond prudent ne suffit pas à lui seul pour des chemins ou arguments longs. Tout dépassement
+doit être refusé avant dépôt, avec `invalid-request` / raison `message-too-large`, sans tronquer
+le contenu, lancer la CLI ou modifier Relay A. Ce contrôle et sa traduction ne sont pas encore
+implémentés ; les essais doivent couvrir Unicode hors BMP, guillemets, antislashs et chemins longs.
+
 ## Conditions avant intégration B1
 
 - [ ] Relecture indépendante de ce contrat et du lecteur, notamment de la liaison des tours.
@@ -116,7 +168,8 @@ lot ; il devra utiliser une corrélation validée et échouer réellement si la 
 - [ ] Essais jetables : cible déjà en génération, deux messages en file, message long et
       multiligne, saisie humaine concurrente, fermeture entre sonde et dépôt.
 - [ ] Timeout et Ctrl+C après acceptation : pas de succès inventé, de nouvelle reprise ni de
-      renvoi automatique ; présence éventuelle en file correctement signalée.
+      renvoi automatique ; présence éventuelle en file correctement signalée. Relever les formats
+      exacts d'échec et d'annulation au lieu de présenter les événements factices comme vérifiés.
 - [ ] Versions et format exact de sortie de `queue` relevés ; limites sur arguments Windows et
       taille du rollout traitées sans parsing de sortie optimiste.
 - [ ] Vérification spécifique de Codex desktop pour le besoin réel ; résultat positif, négatif
