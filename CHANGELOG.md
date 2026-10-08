@@ -16,6 +16,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Fixed
 
+- Le garde du relais expérimental vers Claude refuse les demandes encore en attente après annulation, déconnexion ou échéance. Les sondes préalables conservent aussi l'annulation ou le délai dépassé lorsque le processus termine normalement ; la délivrance reste inconnue après lancement sans réception prouvée (#96).
 - Chat ne se ferme plus sur une ligne vide : la conversation continue et `/end` exporte tous les échanges (#101).
 - En NDJSON, une erreur d'agent pendant Chat émet désormais un événement `error` (`phase: "chat"`), puis un seul `done` avec le chemin de l'export partiel, ou `null` si cet export échoue. Une annulation pendant l'attente d'un message termine aussi le flux, avec le code 130 (#101).
 - Une consultation Chat annonce le rôle effectif de l'agent consulté, rôle temporaire `--role-a` compris (#101).

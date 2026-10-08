@@ -4,6 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { setImmediate as nextTick } from "node:timers/promises";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -16,6 +17,7 @@ import {
   GUARD_FILES,
   parseGuardState,
   readGuardReport,
+  readRegistryWith,
   serveGuard,
   type GuardDeps,
   type GuardState
@@ -55,9 +57,22 @@ const registry = (entries: unknown[]) => JSON.stringify(entries);
 const entry = (overrides: Record<string, unknown> = {}) => ({ pid: 4242, cwd: "C:\\w", kind: "interactive", startedAt: 1, sessionId: SESSION, name: "cible-factice", status: "idle", ...overrides });
 const state = (overrides: Partial<GuardState> = {}): GuardState => ({
   v: 1, sessionId: SESSION, name: "cible-factice", pid: 4242, envelope: ENVELOPE, envelopeSha256: envelopeDigest(ENVELOPE),
+  expiresAt: Date.now() + 60_000,
   executable: { command: process.execPath, prefixArgs: [] }, ...overrides
 });
 const request = (tool = "SendMessage") => ({ tool_name: tool, input: { to: "autre", message: MESSENGER_PLACEHOLDER, notify_when_idle: true }, tool_use_id: "toolu_1" });
+
+/** Dépendances factices : la validité n'est désactivée que dans les cas qui la testent. */
+const guardDeps = (overrides: Partial<GuardDeps> = {}): GuardDeps => ({
+  now: Date.now, isActive: () => true, registry: async () => parseClaudeRegistry(registry([entry()])), claimAllow: () => true, ...overrides
+});
+
+/** Barrière déterministe pour annuler ou expirer pendant une opération asynchrone. */
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => { resolve = done; });
+  return { promise, resolve };
+}
 
 describe("B2.2 : version, registre et auto-ciblage", () => {
   test("version : forme exacte seulement, seuil 2.1.292", () => {
@@ -168,6 +183,8 @@ describe("B2.2 : messager, consigne neutre et lecture de son flux", () => {
 describe("B2.2 : décision du garde", () => {
   const deps = (entries: unknown[] | undefined, claims: boolean[] = [true]): GuardDeps & { claimed: number } => {
     const result = {
+      now: Date.now,
+      isActive: () => true,
       claimed: 0,
       registry: async () => (entries === undefined ? undefined : parseClaudeRegistry(registry(entries))),
       claimAllow: () => { const value = claims[result.claimed] ?? false; result.claimed += 1; return value; }
@@ -207,22 +224,74 @@ describe("B2.2 : décision du garde", () => {
     assert.equal((await decideGuard(request(), state(), deps([entry()], [false]))).reason, "already-allowed");
   });
   test("erreur interne : refus, jamais d'autorisation", async () => {
-    const decision = await decideGuard(request(), state(), { registry: async () => { throw new Error("boom"); }, claimAllow: () => true });
+    const decision = await decideGuard(request(), state(), guardDeps({ registry: async () => { throw new Error("boom"); } }));
     assert.deepEqual([decision.behavior, decision.reason], ["deny", "guard-error"]);
   });
   test("réservation exclusive : un seul fichier allowed, même en parallèle", async () => {
     const dir = tempDir();
-    const results = await Promise.all(Array.from({ length: 8 }, () => decideGuard(request(), state(), { registry: async () => parseClaudeRegistry(registry([entry()])), claimAllow: () => claimAllowIn(dir) })));
+    const results = await Promise.all(Array.from({ length: 8 }, () => decideGuard(request(), state(), guardDeps({ claimAllow: () => claimAllowIn(dir) }))));
     assert.equal(results.filter((item) => item.behavior === "allow").length, 1);
     assert.equal(results.filter((item) => item.reason === "already-allowed").length, 7);
     assert.equal(claimAllowIn(dir), false);
   });
   test("état : empreinte, champs et formes vérifiés", () => {
     assert.ok(parseGuardState(JSON.stringify(state())));
-    for (const bad of [state({ envelopeSha256: "0".repeat(64) }), state({ sessionId: "x" }), state({ pid: 0 }), state({ name: "" }), { ...state(), v: 2 }, { ...state(), executable: { command: "c", prefixArgs: [1] } }]) {
+    for (const bad of [state({ envelopeSha256: "0".repeat(64) }), state({ sessionId: "x" }), state({ pid: 0 }), state({ name: "" }), { ...state(), expiresAt: undefined }, state({ expiresAt: 0 }), state({ expiresAt: Infinity }), state({ expiresAt: 1.5 }), { ...state(), v: 2 }, { ...state(), executable: { command: "c", prefixArgs: [1] } }]) {
       assert.equal(parseGuardState(JSON.stringify(bad)), undefined);
     }
     assert.equal(parseGuardState("nope"), undefined);
+  });
+  for (const reason of ["cancelled", "expired", "inactive"] as const) {
+    test(`registre retardé puis ${reason} : refus sans réservation, budget borné`, async () => {
+      const started = deferred<void>();
+      const release = deferred<void>();
+      const controller = new AbortController();
+      let now = 1_000;
+      let active = true;
+      let claims = 0;
+      const decision = decideGuard(request(), state({ expiresAt: 1_250 }), guardDeps({
+        now: () => now, isActive: () => active,
+        registry: async (_state, options) => {
+          assert.equal(options.timeoutMs, 250);
+          assert.equal(options.signal, controller.signal);
+          started.resolve(); await release.promise;
+          return parseClaudeRegistry(registry([entry()]));
+        },
+        claimAllow: () => { claims += 1; return true; }
+      }), controller.signal);
+      await started.promise;
+      if (reason === "cancelled") controller.abort();
+      if (reason === "expired") now = 1_250;
+      if (reason === "inactive") active = false;
+      release.resolve();
+      assert.equal((await decision).reason, reason);
+      assert.equal(claims, 0);
+    });
+    test(`tentative déjà ${reason} : aucune relecture de registre`, async () => {
+      const controller = new AbortController();
+      if (reason === "cancelled") controller.abort();
+      let probes = 0;
+      const decision = await decideGuard(request(), state({ expiresAt: 2_000 }), guardDeps({
+        now: () => reason === "expired" ? 2_000 : 1_000, isActive: () => reason !== "inactive",
+        registry: async () => { probes += 1; return []; }
+      }), controller.signal);
+      assert.equal(decision.reason, reason);
+      assert.equal(probes, 0);
+    });
+  }
+  test("échéance atteinte pendant la réservation : consommée, mais jamais allow", async () => {
+    let now = 1_000;
+    const decision = await decideGuard(request(), state({ expiresAt: 2_000 }), guardDeps({
+      now: () => now, claimAllow: () => { now = 2_000; return true; }
+    }));
+    assert.equal(decision.reason, "expired");
+  });
+  test("registre réel factice suspendu : arrêt au budget restant", async () => {
+    const dir = tempDir();
+    const fakeRegistry = path.join(dir, "registre-lent.cjs");
+    writeFileSync(fakeRegistry, "setTimeout(() => {}, 60000);\n");
+    const value = state({ executable: { command: process.execPath, prefixArgs: [fakeRegistry] } });
+    assert.equal(await readRegistryWith(value, { timeoutMs: 100 }), undefined);
   });
 });
 
@@ -232,9 +301,13 @@ describe("B2.2 : serveur MCP du garde", () => {
     const input = new PassThrough();
     const output = new PassThrough();
     let text = "";
-    output.on("data", (chunk) => { text += chunk; });
+    const expected = messages.filter((message) => typeof message === "object" && message !== null && "id" in message).length;
+    const received = deferred<void>();
+    output.on("data", (chunk) => { text += chunk; if (text.split("\n").filter(Boolean).length === expected) received.resolve(); });
     const done = serveGuard(input, output, dir, deps);
     for (const message of messages) input.write(`${typeof message === "string" ? message : JSON.stringify(message)}\n`);
+    // Le client reste connecté jusqu'aux réponses ; EOF invalide les demandes en attente.
+    await received.promise;
     input.end();
     await done;
     return text.split("\n").filter(Boolean).map((line) => JSON.parse(line) as Record<string, any>);
@@ -252,7 +325,7 @@ describe("B2.2 : serveur MCP du garde", () => {
       call(3, request()),
       call(4, request()),
       { jsonrpc: "2.0", id: 5, method: "inconnue" }
-    ], { registry: async () => parseClaudeRegistry(registry([entry()])), claimAllow: () => claimAllowIn(dir) });
+    ], guardDeps({ claimAllow: () => claimAllowIn(dir) }));
     assert.deepEqual(replies.map((reply) => reply.id), [1, 2, 3, 4, 5]);
     assert.equal(replies[0]!.result.protocolVersion, "2025-06-18");
     assert.deepEqual(replies[1]!.result.tools.map((tool: { name: string }) => tool.name), ["decide"]);
@@ -267,21 +340,100 @@ describe("B2.2 : serveur MCP du garde", () => {
   });
   test("dossier sans état : chaque demande est refusée", async () => {
     const dir = tempDir();
-    const replies = await converse(dir, [call(1, request())], { registry: async () => parseClaudeRegistry(registry([entry()])), claimAllow: () => claimAllowIn(dir) });
+    const replies = await converse(dir, [call(1, request())], guardDeps({ claimAllow: () => claimAllowIn(dir) }));
     assert.deepEqual(JSON.parse(replies[0]!.result.content[0].text).behavior, "deny");
     assert.equal(existsSync(path.join(dir, GUARD_FILES.allowed)), false);
+  });
+  for (const interruption of ["cancel", "input-end", "output-close"] as const) {
+    test(`MCP ${interruption} pendant le registre : aucune autorisation tardive`, async () => {
+      const dir = tempDir();
+      writeFileSync(path.join(dir, GUARD_FILES.state), JSON.stringify(state()));
+      const input = new PassThrough();
+      const output = new PassThrough();
+      let text = "";
+      output.on("data", (chunk) => { text += chunk; });
+      const started = deferred<void>();
+      const release = deferred<void>();
+      let signal: AbortSignal | undefined;
+      const done = serveGuard(input, output, dir, guardDeps({
+        registry: async (_state, options) => {
+          signal = options.signal; started.resolve(); await release.promise;
+          return parseClaudeRegistry(registry([entry()]));
+        },
+        claimAllow: () => claimAllowIn(dir)
+      }));
+      input.write(`${JSON.stringify(call(1, request()))}\n`);
+      await started.promise;
+      if (interruption === "cancel") input.write(`${JSON.stringify({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 1 } })}\n`);
+      if (interruption === "input-end") input.end();
+      if (interruption === "output-close") output.destroy();
+      await nextTick();
+      assert.equal(signal?.aborted, true);
+      release.resolve();
+      await nextTick();
+      input.end();
+      await done;
+      assert.equal(existsSync(path.join(dir, GUARD_FILES.allowed)), false);
+      assert.equal(text, "");
+      assert.deepEqual(JSON.parse(readFileSync(path.join(dir, GUARD_FILES.consulted), "utf8")), { decision: "deny", reason: "cancelled" });
+    });
+  }
+  test("annulation d'une demande en file : seule cette demande est invalidée", async () => {
+    const dir = tempDir();
+    writeFileSync(path.join(dir, GUARD_FILES.state), JSON.stringify(state()));
+    const input = new PassThrough();
+    const output = new PassThrough();
+    let text = "";
+    output.on("data", (chunk) => { text += chunk; });
+    const started = deferred<void>();
+    const release = deferred<void>();
+    let probes = 0;
+    const done = serveGuard(input, output, dir, guardDeps({
+      registry: async () => { probes += 1; started.resolve(); await release.promise; return parseClaudeRegistry(registry([entry()])); },
+      claimAllow: () => claimAllowIn(dir)
+    }));
+    input.write(`${JSON.stringify(call(1, request()))}\n${JSON.stringify(call(2, request()))}\n`);
+    await started.promise;
+    input.write(`${JSON.stringify({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 2 } })}\n`);
+    await nextTick(); release.resolve(); await nextTick();
+    input.end(); await done;
+    const replies = text.trim().split("\n").map((line) => JSON.parse(line));
+    assert.deepEqual(replies.map((reply) => reply.id), [1]);
+    assert.equal(JSON.parse(replies[0].result.content[0].text).behavior, "allow");
+    assert.equal(probes, 1);
+    assert.deepEqual(readFileSync(path.join(dir, GUARD_FILES.consulted), "utf8").trim().split("\n").map((line) => JSON.parse(line).reason), ["allowed", "cancelled"]);
+  });
+  test("serveur réel sans marqueur actif : refus avant de relire le registre", async () => {
+    const dir = tempDir();
+    writeFileSync(path.join(dir, GUARD_FILES.state), JSON.stringify(state()));
+    const replies = await converse(dir, [call(1, request())]);
+    assert.equal(JSON.parse(replies[0]!.result.content[0].text).behavior, "deny");
+    assert.equal(JSON.parse(readFileSync(path.join(dir, GUARD_FILES.consulted), "utf8")).reason, "inactive");
+    assert.equal(existsSync(path.join(dir, GUARD_FILES.allowed)), false);
+  });
+  test("réservation devenue tardive : consommée sans diagnostic d'autorisation", async () => {
+    const dir = tempDir();
+    writeFileSync(path.join(dir, GUARD_FILES.state), JSON.stringify(state({ expiresAt: 2_000 })));
+    let now = 1_000;
+    const replies = await converse(dir, [call(1, request())], guardDeps({
+      now: () => now, claimAllow: () => { const reserved = claimAllowIn(dir); now = 2_000; return reserved; }
+    }));
+    assert.equal(JSON.parse(replies[0]!.result.content[0].text).behavior, "deny");
+    assert.equal(existsSync(path.join(dir, GUARD_FILES.reserved)), true);
+    assert.equal(claimAllowIn(dir), false);
+    assert.deepEqual(readGuardReport(dir), { consulted: true, allowed: false });
   });
   test("sous-processus réel : registre relu par l'exécutable de l'état, sans shell", async () => {
     const dir = tempDir();
     const fakeRegistry = path.join(dir, "registre.cjs");
     writeFileSync(fakeRegistry, `process.stdout.write(${JSON.stringify(registry([entry()]))});\n`);
     writeFileSync(path.join(dir, GUARD_FILES.state), JSON.stringify(state({ executable: { command: process.execPath, prefixArgs: [fakeRegistry] } })));
+    writeFileSync(path.join(dir, GUARD_FILES.active), "active\n");
     const server = path.resolve(".tmp", "test-dist", "src", "externalSessions", "claudeGuardServer.js");
     const child = spawn(process.execPath, [server, dir], { stdio: ["pipe", "pipe", "pipe"] });
     let text = "";
-    child.stdout.on("data", (chunk) => { text += chunk; });
+    child.stdout.on("data", (chunk) => { text += chunk; if (text.split("\n").filter(Boolean).length === 2) child.stdin.end(); });
     child.stdin.write(`${JSON.stringify(call(1, request()))}\n${JSON.stringify(call(2, request()))}\n`);
-    child.stdin.end();
     const code = await new Promise<number | null>((resolve) => child.on("close", resolve));
     assert.equal(code, 0);
     const replies = text.split("\n").filter(Boolean).map((line) => JSON.parse(JSON.parse(line).result.content[0].text) as Record<string, unknown>);

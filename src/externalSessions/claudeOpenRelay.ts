@@ -18,12 +18,13 @@
  * toute preuve de réception.
  */
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExternalExecutable } from "./adapter.js";
 import { inspectClaudeOpenReply, type ClaudeOpenObservation, type ClaudeTurnContext } from "./claudeOpenReader.js";
-import { envelopeDigest, GUARD_FILES, readGuardReport, type GuardState } from "./claudeGuard.js";
+import { envelopeDigest, GUARD_FILES, readGuardReport, revokeGuardIn, type GuardState } from "./claudeGuard.js";
 import {
   CLAUDE_OPEN_LIMITS,
   detectSelfTarget,
@@ -58,6 +59,8 @@ export interface ClaudeOpenRelayDeps {
   capture: (file: string) => Promise<OpenBaseline>;
   read: (file: string, baseline: OpenBaseline) => Promise<OpenSnapshot>;
   now: () => number;
+  /** Horloge Unix pour partager l'échéance avec le garde dans un autre processus. */
+  wallNow: () => number;
   sleep: (ms: number, signal: AbortSignal) => Promise<void>;
   /** Dossier privé de la tentative, supprimé à la fin. */
   makeStateDir: () => Promise<string>;
@@ -67,6 +70,7 @@ export interface ClaudeOpenRelayDeps {
   guardScript: string;
 }
 
+/** Cible et enveloppe exactes, budget et annulation de la tentative entière. */
 export interface ClaudeOpenRelayInput {
   executable: ExternalExecutable;
   sessionId: string;
@@ -98,6 +102,7 @@ export interface ClaudeMessengerReport {
   diagnostic?: string;
 }
 
+/** Issue de la tentative ; diagnostics du messager distincts des preuves de réception. */
 export interface ClaudeOpenRelayResult {
   outcome: RelayOutcome;
   delivery: DeliveryVerdict;
@@ -135,6 +140,7 @@ export function defaultClaudeOpenRelayDeps(): ClaudeOpenRelayDeps {
     capture: captureOpenRollout,
     read: readOpenRollout,
     now: () => performance.now(),
+    wallNow: Date.now,
     sleep: abortableSleep,
     makeStateDir: () => mkdtemp(path.join(os.tmpdir(), "palabre-claude-open-")),
     removeStateDir: (dir) => rm(dir, { recursive: true, force: true }).catch(() => undefined),
@@ -177,6 +183,8 @@ export async function runClaudeOpenRelay(input: ClaudeOpenRelayInput, deps: Clau
       maxOutputBytes: CLAUDE_OPEN_LIMITS.probeOutputBytes,
       signal: input.signal
     });
+    const after = interrupted();
+    if (after) return { refusal: after };
     if (!result.started) {
       if (result.stopReason === "cancelled") return { refusal: refuse(outcome("cancelled")) };
       if (result.launchFailure === "command-not-found") return { refusal: refuse(outcome("command-not-found")) };
@@ -251,10 +259,14 @@ export async function runClaudeOpenRelay(input: ClaudeOpenRelayInput, deps: Clau
 
   // 4. Messager, dans un dossier privé qui porte l'état du garde.
   const stateDir = await deps.makeStateDir();
+  let revocationFailed = false;
+  const revoke = () => { if (!revokeGuardIn(stateDir)) revocationFailed = true; };
+  let guardTimer: ReturnType<typeof setTimeout> | undefined;
   try {
     const state: GuardState = {
       v: 1, sessionId: input.sessionId, name: target.name, pid: target.pid,
       envelope: input.envelope, envelopeSha256: envelopeDigest(input.envelope),
+      expiresAt: Math.floor(deps.wallNow() + Math.min(CLAUDE_OPEN_LIMITS.messengerTimeoutMs, remaining())),
       executable: { command: input.executable.command, prefixArgs: [...input.executable.prefixArgs] }
     };
     const files = { settingsPath: path.join(stateDir, "settings.json"), mcpConfigPath: path.join(stateDir, "mcp.json") };
@@ -264,17 +276,28 @@ export async function runClaudeOpenRelay(input: ClaudeOpenRelayInput, deps: Clau
 
     // Lancement seulement avec un budget strictement positif, mesuré juste avant.
     if (input.signal.aborted) return refuse(outcome("cancelled"));
-    const budget = remaining();
+    let budget = remaining();
     if (budget <= 0) return refuse(outcome("timeout"), "budget-exhausted-before-send");
-    const run = await deps.run({
-      command: input.executable.command,
-      args: [...input.executable.prefixArgs, ...messengerArgs(files)],
-      cwd: stateDir,
-      stdin: messengerPrompt(target.name),
-      timeoutMs: Math.min(CLAUDE_OPEN_LIMITS.messengerTimeoutMs, budget),
-      maxOutputBytes: CLAUDE_OPEN_LIMITS.messengerOutputBytes,
-      signal: input.signal
-    });
+    // Marqueur privé : l'annulation le retire avant la terminaison du messager. Le garde le
+    // relit après le registre. Le délai absolu reste un second contrôle indépendant.
+    writeFileSync(path.join(stateDir, GUARD_FILES.active), "active\n", { flag: "wx" });
+    input.signal.addEventListener("abort", revoke, { once: true });
+    if (input.signal.aborted) { revoke(); return refuse(outcome("cancelled")); }
+    budget = remaining();
+    if (budget <= 0) return refuse(outcome("timeout"), "budget-exhausted-before-send");
+    guardTimer = setTimeout(revoke, Math.min(CLAUDE_OPEN_LIMITS.messengerTimeoutMs, budget));
+    let run: ExternalProcessResult;
+    try {
+      run = await deps.run({
+        command: input.executable.command,
+        args: [...input.executable.prefixArgs, ...messengerArgs(files)],
+        cwd: stateDir,
+        stdin: messengerPrompt(target.name),
+        timeoutMs: Math.min(CLAUDE_OPEN_LIMITS.messengerTimeoutMs, budget),
+        maxOutputBytes: CLAUDE_OPEN_LIMITS.messengerOutputBytes,
+        signal: input.signal
+      });
+    } finally { revoke(); }
     if (!run.started) {
       if (run.stopReason === "cancelled") return refuse(outcome("cancelled"));
       if (run.launchFailure === "command-not-found") return refuse(outcome("command-not-found"));
@@ -282,8 +305,13 @@ export async function runClaudeOpenRelay(input: ClaudeOpenRelayInput, deps: Clau
       return refuse(outcome("cli-failure"), "messenger-launch-failed");
     }
     input.onAttempt?.();
-    return await settleAfterLaunch(run, stateDir, located.transcriptPath, baseline);
+    const result = await settleAfterLaunch(run, stateDir, located.transcriptPath, baseline);
+    if (revocationFailed) result.messenger.diagnostic = [result.messenger.diagnostic, "guard-revocation-failed"].filter(Boolean).join(";");
+    return result;
   } finally {
+    input.signal.removeEventListener("abort", revoke);
+    if (guardTimer !== undefined) clearTimeout(guardTimer);
+    revoke();
     await deps.removeStateDir(stateDir);
   }
 

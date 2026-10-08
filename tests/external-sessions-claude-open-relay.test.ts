@@ -4,10 +4,12 @@
  * écrivant ses fichiers ; le garde lui-même est testé à part. Aucun appel de modèle.
  */
 import assert from "node:assert/strict";
+import { getEventListeners } from "node:events";
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 import { GUARD_FILES, type GuardState } from "../src/externalSessions/claudeGuard.js";
 import { runClaudeOpenRelay, type ClaudeOpenRelayDeps, type ClaudeOpenRelayInput } from "../src/externalSessions/claudeOpenRelay.js";
 import { readOpenRollout } from "../src/externalSessions/openRollout.js";
@@ -106,6 +108,7 @@ function harness(options: {
     capture: captureOpenRollout,
     read: options.read ?? readOpenRollout,
     now: () => clock.now,
+    wallNow: () => 1_000_000 + clock.now,
     sleep: async (ms) => { clock.now += ms; },
     makeStateDir: async () => mkdtempSync(path.join(dir, "etat-")),
     removeStateDir: async (stateDir) => { removed.push(stateDir); rmSync(stateDir, { recursive: true, force: true }); },
@@ -165,6 +168,7 @@ describe("B2.2 : envoi nominal", () => {
     assert.equal(state!.envelope, ENVELOPE);
     assert.equal(state!.name, "cible-factice");
     assert.equal(state!.pid, 4242);
+    assert.equal(state!.expiresAt, 1_010_000);
     assert.deepEqual(state!.executable, { command: "claude.exe", prefixArgs: [] });
   });
 });
@@ -224,6 +228,74 @@ describe("B2.2 : refus avant tout envoi (not-delivered)", () => {
     const h = harness();
     h.controller.abort();
     await refused(h, "cancelled");
+  });
+  for (const phase of ["version", "agents", "auth", "recheck"] as const) {
+    for (const status of ["cancelled", "timeout"] as const) {
+      test(`${phase} finit normalement après ${status} : interruption prioritaire, aucun messager`, async () => {
+        const h = harness({ timeoutMs: 1_000 });
+        const run = h.deps.run;
+        let registryCalls = 0;
+        h.deps.run = async (spec) => {
+          const result = await run(spec);
+          const kind = spec.args[0] === "--version" ? "version" : spec.args[0] === "auth" ? "auth"
+            : spec.args[0] === "agents" ? (++registryCalls === 1 ? "agents" : "recheck") : "messenger";
+          if (kind !== phase) return result;
+          if (status === "cancelled") h.controller.abort(); else h.clock.now = 1_000;
+          return ok("{}"); // Exit normal, aucune stopReason ; sortie inutilisable.
+        };
+        const result = await refused(h, status);
+        assert.equal(result.outcome.exitCode, status === "cancelled" ? 130 : 4);
+      });
+    }
+  }
+  test("annulation pendant le messager : marqueur retiré avant son retour", async () => {
+    const h = harness({ messenger: (spec) => {
+      const marker = path.join(spec.cwd, GUARD_FILES.active);
+      assert.equal(readFileSync(marker, "utf8"), "active\n");
+      h.controller.abort();
+      assert.equal(existsSync(marker), false);
+      return ok(stream(), null, { stopReason: "cancelled" });
+    } });
+    const result = await h.run();
+    assert.equal(result.outcome.status, "cancelled");
+    assert.equal(result.delivery.status, "unknown");
+    assert.equal(result.messenger.attempted, true);
+  });
+  test("messager terminé : autorisation retirée avant la lecture de réponse", async () => {
+    let marker = "";
+    const h = harness({
+      messenger: (spec, world) => { marker = path.join(spec.cwd, GUARD_FILES.active); allowIn(spec); world.deliver(ENVELOPE); return ok(stream()); },
+      read: async (file, baseline) => { assert.equal(existsSync(marker), false); return readOpenRollout(file, baseline); }
+    });
+    assert.equal((await h.run()).outcome.status, "replied");
+    assert.equal(getEventListeners(h.controller.signal, "abort").length, 0);
+  });
+  test("échéance du messager : marqueur retiré pendant une exécution encore en attente", async () => {
+    const h = harness({ timeoutMs: 25, messenger: async (spec) => {
+      const marker = path.join(spec.cwd, GUARD_FILES.active);
+      assert.equal(existsSync(marker), true);
+      await delay(60);
+      assert.equal(existsSync(marker), false);
+      h.clock.now = 25;
+      return ok(stream(), null, { stopReason: "timeout" });
+    } });
+    const result = await h.run();
+    assert.equal(result.outcome.status, "timeout");
+    assert.equal(result.delivery.status, "unknown");
+  });
+  test("retrait du marqueur en erreur : diagnostic, sans promotion de délivrance", async () => {
+    const h = harness({ messenger: (spec) => {
+      const marker = path.join(spec.cwd, GUARD_FILES.active);
+      rmSync(marker);
+      mkdirSync(marker); // Simule un refus d'unlink, sans modifier des permissions réelles.
+      h.controller.abort();
+      return ok(stream(), null, { stopReason: "cancelled" });
+    } });
+    const result = await h.run();
+    assert.equal(result.outcome.status, "cancelled");
+    assert.equal(result.delivery.status, "unknown");
+    assert.match(result.messenger.diagnostic ?? "", /guard-revocation-failed/);
+    assert.equal(getEventListeners(h.controller.signal, "abort").length, 0);
   });
 });
 

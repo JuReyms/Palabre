@@ -240,15 +240,34 @@ Code :
 
 Le garde est un serveur MCP stdio, lancé par la CLI avec l'interpréteur Node courant. Il lit
 `guard.json` dans le dossier privé : nom, UUID, `pid`, enveloppe et son empreinte, exécutable
-résolu. Pour chaque demande, dans cet ordre :
+résolu et échéance absolue Unix (`expiresAt`). Le fichier `active` doit encore porter le marqueur
+exact de validité. Pour chaque demande, dans cet ordre :
 1. seul `SendMessage` est autorisé ;
 2. l'état doit être valide ;
-3. le registre est relu avec l'exécutable de la cible et doit désigner la même cible ;
-4. le fichier `allowed` est créé de façon exclusive : un second appel est refusé, même en
+3. la demande ne doit pas être annulée, la tentative doit être active et son échéance non atteinte ;
+4. le registre est relu avec l'exécutable de la cible, au plus pendant le budget restant
+   (plafond 10 s), avec le signal d'annulation MCP ; après l'attente, les contrôles de validité
+   sont répétés avant de vérifier qu'il désigne la même cible ;
+5. le fichier `reserved` est créé de façon exclusive : un second appel est refusé, même en
    parallèle ou depuis un autre processus ;
-5. la réponse est `{ behavior: "allow", updatedInput: { to, message } }` exacts.
+6. un dernier contrôle de validité précède la réponse
+   `{ behavior: "allow", updatedInput: { to, message } }` exacte. Une réservation devenue tardive
+   reste consommée, mais ne produit pas d'autorisation. Le diagnostic `allowed` n'est écrit que
+   pour une décision d'autorisation, afin de ne pas confondre réservation et `sendAllowed`.
 
 Toute erreur donne un refus. Chaque décision est ajoutée à `consulted.jsonl`.
+
+`notifications/cancelled` invalide immédiatement la demande indiquée, y compris si elle attend
+dans la file du serveur. Une déconnexion de l'hôte invalide les demandes encore en attente ;
+aucune réponse n'est écrite pour une demande annulée. Palabre retire le marqueur `active` lors
+de l'annulation, à l'échéance du messager et dès son retour, puis retire son listener et son
+timer en quittant la tentative. Un échec du retrait est signalé par `guard-revocation-failed`.
+Ces contrôles ne révoquent pas un envoi déjà autorisé ou mis en file ; ils ne changent pas la
+règle de délivrance `unknown` après lancement sans preuve de réception. Leur effet sur la vraie
+CLI reste à vérifier en B2.3.
+
+Les sondes préalables (version, registre et authentification) recontrôlent annulation et budget
+après le retour du processus, avant toute interprétation de la sortie, même après un exit 0.
 
 Le format de la demande (`{ tool_name, input, tool_use_id? }`) et de la réponse (texte JSON
 `behavior` / `updatedInput` / `message`) suit la documentation publique. Il **reste à vérifier**
@@ -315,14 +334,17 @@ y échoue, l'envoi est refusé.
 
 ### Tests B2.2a (sans quota)
 
-- `tests/external-sessions-claude-guard.test.ts` (21 cas) :
+- `tests/external-sessions-claude-guard.test.ts` (35 cas) :
   - version, registre, auto-ciblage, dossier, balise, localisation ;
   - arguments, réglages et consigne du messager ;
   - lecture du flux ;
   - décisions du garde : autre outil, état, cible changée, réservation, erreur, 8 demandes
     parallèles pour une seule autorisation ;
-  - serveur MCP en flux mémoire et en vrai sous-processus.
-- `tests/external-sessions-claude-open-relay.test.ts` (26 cas) : déroulé avec horloge simulée et
+  - serveur MCP en flux mémoire et en vrai sous-processus ;
+  - registre retardé puis annulation, échéance ou retrait de validité ;
+  - annulation MCP d'une demande en cours ou en file, déconnexion, validité du marqueur ;
+  - réservation devenue tardive, sans faux diagnostic d'autorisation.
+- `tests/external-sessions-claude-open-relay.test.ts` (38 cas) : déroulé avec horloge simulée et
   transcript temporaire réel :
   - nominal ;
   - refus avant envoi, dont un messager non connecté ;
@@ -337,7 +359,9 @@ y échoue, l'envoi est refusé.
   - lecture tardive ;
   - tour en cours ;
   - lecture en échec après preuve ;
-  - budget épuisé.
+  - budget épuisé ;
+  - annulation et échéance au retour des sondes, même avec sortie inutilisable et exit normal ;
+  - retrait du marqueur pendant le messager, à son échéance et avant les lectures de réponse.
 - `tests/relay-command.test.ts` (Windows) : bout en bout avec une fausse CLI qui lance réellement
   le garde compilé :
   - enveloppe exacte imposée, consigne neutre, environnement nettoyé ;
