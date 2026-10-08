@@ -46,7 +46,7 @@ Palabre transmet seulement le prompt. Si vous indiquez `--model-a` ou `--model-b
 }
 ```
 
-Sur Windows, la configuration générée active `shell` pour certains wrappers npm ou PowerShell. Palabre tente d'abord l'exécutable natif. Pour une CLI installée par npm, il lit le shim `.ps1` et lance directement Node et le script du paquet, sans PowerShell, ce qui préserve les accents et les arguments. Un autre shim PowerShell, par exemple de pnpm, reste lancé par PowerShell ; ne forcez cette option que si votre installation en a besoin. Claude est différent dans beaucoup d'installations Windows : `claude.exe` est généralement appelé directement avec `shell: false`.
+Sur Windows, la configuration générée active `shell` pour certains wrappers npm ou PowerShell. Palabre tente d'abord l'exécutable natif. Pour une CLI installée par npm ou par pnpm, il lit le shim `.ps1` et lance directement Node et le script du paquet, sans PowerShell, ce qui préserve les accents et les arguments ; pour pnpm, le `NODE_PATH` du shim est reproduit. Un shim d'une autre forme (modifié, ou dont le script n'est pas un fichier `.js`) reste lancé par PowerShell ; ne forcez cette option que si votre installation en a besoin. Claude est différent dans beaucoup d'installations Windows : `claude.exe` est généralement appelé directement avec `shell: false`.
 
 ## Utilisation
 
