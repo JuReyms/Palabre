@@ -6,11 +6,13 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Added
 
+- `palabre relay allow-repo proprietaire/depot` (ou `'proprietaire/*'`) autorise la tâche review après confirmation au clavier, sur la configuration locale ou globale ; le refus `task-not-allowed` fournit la commande dans `remedy` et guide l'agent vers le terminal visible du propriétaire (#118).
 - `palabre relay` transmet un message à une conversation Codex ou Claude Code fermée et renvoie sa réponse en un seul appel : reprise en lecture seule renforcée, refus si la conversation est ouverte ou son état invérifiable, statut de délivrance sans renvoi automatique, sortie `--json` v1 et export `.relay.md`.
 - `palabre relay --open` (pilote, Codex sous Windows) dépose un message dans une conversation Codex ouverte, dans le TUI ou dans Codex desktop, par `codex queue`, puis rend sa réponse corrélée au bon tour. La conversation doit être ouverte (`target-not-open` sinon, sans dépôt) ; elle répond avec ses propres outils et permissions, sans garantie de lecture seule. Un seul délai couvre préparation, dépôt et attente ; un message déposé peut être traité plus tard, sans renvoi automatique. L'historique n'est jamais lu en entier. Le relay vers une conversation Claude Code ouverte reste à faire (#96).
 
 ### Changed
 
+- Les consignes d'autorisation sont disponibles dans l'aide, les erreurs et le skill. **Une copie déjà installée du skill n'est pas mise à jour automatiquement** : recopier `skills/palabre` dans son emplacement d'installation après la mise à jour.
 - Le skill `palabre` aide désormais l'agent à choisir entre Chat, Débat, Ask et Relay. Il couvre le pilotage de Chat par le flux NDJSON, distingue checkpoints Palabre et reprise d'une conversation externe, et documente l'installation pour Claude Code et Codex ainsi que la découverte dans les sessions neuves et reprises (#99).
 
 ### Fixed

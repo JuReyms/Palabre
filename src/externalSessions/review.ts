@@ -17,16 +17,20 @@ export interface ReviewReport {
   cancelled?: boolean;
 }
 const repoName = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/;
+/** Exact repository or explicit owner/*; no general glob syntax. */
+export function normalizeReviewRepository(value: string): string | undefined {
+  return (repoName.test(value) || /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\/\*$/.test(value)) ? value.toLowerCase() : undefined;
+}
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 export function validateRelayPolicy(value: unknown): NonNullable<PalabreConfig["relay"]> {
   if (!object(value) || Object.keys(value).some(k => !["allowedTasks", "reviewRepositories"].includes(k))
     || !Array.isArray(value.allowedTasks) || value.allowedTasks.some(x => x !== "review")
     || new Set(value.allowedTasks).size !== value.allowedTasks.length
-    || !Array.isArray(value.reviewRepositories) || value.reviewRepositories.some(x => typeof x !== "string" || !repoName.test(x))
+    || !Array.isArray(value.reviewRepositories) || value.reviewRepositories.some(x => typeof x !== "string" || !normalizeReviewRepository(x))
     || (value.allowedTasks.includes("review") && value.reviewRepositories.length === 0)) {
-    throw new Error("Invalid relay policy: allowedTasks=[review] requires explicit owner/repository entries.");
+    throw new Error("Invalid relay policy: allowedTasks=[review] requires explicit owner/repository or owner/* entries.");
   }
-  return { allowedTasks: value.allowedTasks as "review"[], reviewRepositories: value.reviewRepositories as string[] };
+  return { allowedTasks: value.allowedTasks as "review"[], reviewRepositories: [...new Set((value.reviewRepositories as string[]).map(r => r.toLowerCase()))] };
 }
 export function parsePullRequest(value: string): PullRequestRef | undefined {
   const m = /^https:\/\/github\.com\/([A-Za-z0-9][A-Za-z0-9_.-]{0,99}\/[A-Za-z0-9][A-Za-z0-9_.-]{0,99})\/pull\/([1-9]\d{0,9})$/.exec(value);
@@ -35,7 +39,8 @@ export function parsePullRequest(value: string): PullRequestRef | undefined {
 }
 export function reviewAllowed(policy: PalabreConfig["relay"], pr: PullRequestRef): boolean {
   return policy?.allowedTasks.includes("review") === true
-    && policy.reviewRepositories.some(r => r.toLowerCase() === pr.repository.toLowerCase());
+    && policy.reviewRepositories.some(r => r.toLowerCase() === pr.repository.toLowerCase()
+      || r.toLowerCase() === `${pr.repository.split("/")[0]!.toLowerCase()}/*`);
 }
 export type GitHubRun = (args: string[], input?: string) => Promise<string>;
 /** Native executable, structured arguments, bounded output and time; stdin is always closed. */

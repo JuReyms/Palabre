@@ -14,7 +14,25 @@ The CLI reply is the return channel; immediate Desktop display is not promised. 
 
 ### Human authorization for `review`
 
-The owner explicitly adds this fragment to the local `palabre.config.json`, keeping its existing agents:
+To authorize relay reviews for one repository, the owner opens a terminal and runs:
+
+```powershell
+palabre relay allow-repo owner/repository
+```
+
+To authorize all repositories owned by one account, with one confirmation:
+
+```powershell
+palabre relay allow-repo 'you/*'
+```
+
+The command shows the selected file (`--config`, otherwise local then global configuration), the repository and activation of the sole `review` task. An owner-wide pattern gets an explicit warning. The owner inspects the file, then types **`y`** to confirm; Enter, another answer or closing the terminal declines. Approval covers the whole file, including agent commands. Other settings are preserved; repository entries are case-insensitive and deduplicated, and the resulting configuration hash is trusted. A configuration must already exist (run `palabre init` if needed).
+
+Both input **and** output must be interactive terminals; otherwise nothing is written. Neither `--yes` nor `--trust-config` bypasses confirmation. Only an exact repository or `owner/*` is accepted: no bare `*` or partial pattern such as `owner/pre*`. Confirmation is an operator rule, not proof of human identity or isolation from a program that already controls a terminal and the profile.
+
+**Agent, on `task-not-allowed`:** read JSON `remedy`, open that command in the **human's visible terminal** using host tools, then wait for their decision. Never answer for them, use a hidden pseudo-terminal to confirm, or edit/approve the policy yourself. If the host cannot open a terminal, provide the exact command to the owner. `remedy` includes `--config` to keep the same file even from another directory. The CLI does not open a window itself; presentation belongs to the host.
+
+A review only publishes a COMMENT review; merging remains human. The command records a policy like this (descriptive example; no manual JSON editing needed):
 
 ```json
 {
@@ -25,7 +43,7 @@ The owner explicitly adds this fragment to the local `palabre.config.json`, keep
 }
 ```
 
-From that local configuration directory, its owner can approve the file with `palabre config --trust-config`. Trust binds its path and content hash; edits invalidate existing approval. An agent must not edit or approve this policy to grant itself privileges. `--trust-config` is rejected within a `--task review` invocation.
+`allow-repo` writes and approves either a local or a global configuration while retaining its agents. Trust binds its path and content hash; edits invalidate existing approval. An agent must not edit or approve this policy to grant itself privileges. `--trust-config` is rejected within a `--task review` invocation.
 
 ```text
 palabre relay --from codex:<uuid> --to claude:<uuid> --task review --pr https://github.com/owner/repository/pull/123 --json

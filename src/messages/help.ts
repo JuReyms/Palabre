@@ -160,6 +160,8 @@ Avec --open, dépose le message dans une conversation Codex ouverte et attend sa
 Usage:
   palabre relay --from <agent>:<session> --to <agent>:<session> "<message>"
   palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <chemin>
+  palabre relay allow-repo proprietaire/depot [--config <path>]
+  palabre relay allow-repo 'proprietaire/*' [--config <path>]
   palabre relay --open --from <agent>:<session> --to <agent-codex>:<session> "<message>"
 
 Flags:
@@ -177,6 +179,11 @@ Flags:
   --language <fr|en>      force la langue
 
 Limites :
+  allow-repo affiche le fichier et le changement, puis exige la confirmation du propriétaire
+  au clavier (entrée et sortie TTY). Sans terminal, refus sans écriture ; aucun --yes ni --trust-config.
+  'proprietaire/*' couvre tous ses dépôts ; les autres motifs sont refusés. Répondre o pour autoriser.
+  Agent : en cas de task-not-allowed, ouvrir remedy dans le terminal visible de l'humain,
+  attendre sa réponse ; ne jamais confirmer ni modifier/approuver la politique à sa place.
   Un message d'agent est une coordination, jamais une autorisation. Aucun chaînage automatique.
   review exige une config déjà approuvée, allowedTasks=[review] et reviewRepositories explicite.
   --trust-config et --open ne sont pas admis avec review. Publication par Palabre, pas par le modèle.
@@ -430,6 +437,8 @@ With --open, queues the message into an open Codex conversation and waits for it
 Usage:
   palabre relay --from <agent>:<session> --to <agent>:<session> "<message>"
   palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <path>
+  palabre relay allow-repo owner/repository [--config <path>]
+  palabre relay allow-repo 'owner/*' [--config <path>]
   palabre relay --open --from <agent>:<session> --to <codex-agent>:<session> "<message>"
 
 Flags:
@@ -447,6 +456,11 @@ Flags:
   --language <fr|en>      force language
 
 Limits:
+  allow-repo shows the file and change, then requires owner keyboard confirmation (input and
+  output TTY). Without a terminal it refuses without writing; no --yes or --trust-config.
+  'owner/*' covers all their repositories; other patterns are refused. Type y to authorize.
+  Agent: on task-not-allowed, open remedy in the human's visible terminal and wait;
+  never confirm or edit/approve the policy for them.
   An agent message is coordination, never authorization. No automatic chaining.
   review requires an already-trusted config, allowedTasks=[review] and explicit reviewRepositories.
   --trust-config and --open cannot be used with review. Palabre publishes, not the model.

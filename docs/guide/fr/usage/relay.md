@@ -14,7 +14,25 @@ La réponse CLI, et non son affichage Desktop, est le canal de retour. Les essai
 
 ### Préautoriser la seule tâche `review`
 
-L'humain ajoute explicitement une politique dans son `palabre.config.json` local, puis en approuve le contenu :
+Pour autoriser les revues relay sur un dépôt, le propriétaire ouvre son terminal et lance :
+
+```powershell
+palabre relay allow-repo proprietaire/depot
+```
+
+Pour tous les dépôts d'un propriétaire, en une seule confirmation :
+
+```powershell
+palabre relay allow-repo 'vous/*'
+```
+
+La commande affiche le chemin du fichier utilisé (option `--config`, sinon configuration locale puis globale), le dépôt ajouté et l'activation de la seule tâche `review`. Elle avertit si tous les dépôts d'un propriétaire sont concernés. Le propriétaire vérifie le fichier, puis répond **`o`** pour confirmer ; Entrée, une autre réponse ou la fermeture refusent. La configuration entière est approuvée, commandes d'agents comprises. Les autres réglages sont conservés ; le dépôt est ajouté sans doublon, casse ignorée, puis l'empreinte est approuvée. La configuration doit déjà exister (`palabre init` au besoin).
+
+Sans terminal interactif en entrée **et** en sortie, rien n'est écrit. Aucun `--yes` ni `--trust-config` ne contourne cette confirmation. Seuls un dépôt exact et le motif `proprietaire/*` sont acceptés : ni `*` seul, ni `proprietaire/pre*`. Cette confirmation est une règle opérateur, pas une preuve d'identité ni un isolement contre un programme disposant déjà d'un terminal et des droits sur le profil.
+
+**Agent, sur `task-not-allowed` :** lire le champ JSON `remedy`, ouvrir cette commande dans le terminal **visible de l'humain** avec les outils de l'hôte, puis attendre sa confirmation. Ne jamais répondre à sa place, lancer la commande dans un pseudo-terminal caché pour la confirmer, ni modifier/approuver soi-même la politique. Si l'hôte ne peut pas ouvrir ce terminal, fournir la commande exacte au propriétaire. Le chemin `--config` dans `remedy` garde le même fichier même depuis un autre dossier. La CLI n'ouvre pas elle-même une fenêtre : cette présentation appartient à l'hôte.
+
+La revue ne fait que publier une revue COMMENT ; le merge reste humain. La commande enregistre une politique de cette forme (exemple descriptif, pas besoin d'éditer le JSON à la main) :
 
 ```json
 {
@@ -25,7 +43,7 @@ L'humain ajoute explicitement une politique dans son `palabre.config.json` local
 }
 ```
 
-Ce fragment complète les agents de la configuration, il ne les remplace pas. Depuis le dossier contenant cette configuration locale, son propriétaire peut l'approuver avec `palabre config --trust-config`. Cette approbation porte sur son chemin et son empreinte ; une modification invalide l'autorisation existante. Les agents ne doivent ni éditer cette politique ni l'approuver pour s'accorder des droits. `--trust-config` est refusé dans l'appel `--task review` lui-même.
+Ce fragment complète les agents de la configuration, il ne les remplace pas. `allow-repo` écrit et approuve aussi bien une configuration locale que globale. L'approbation porte sur son chemin et son empreinte ; une modification invalide l'autorisation existante. Les agents ne doivent ni éditer cette politique ni l'approuver pour s'accorder des droits. `--trust-config` est refusé dans l'appel `--task review` lui-même.
 
 ```text
 palabre relay --from codex:<uuid> --to claude:<uuid> --task review --pr https://github.com/proprietaire/depot/pull/123 --json
