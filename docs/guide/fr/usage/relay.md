@@ -6,6 +6,43 @@ seo:
   description: Envoyer un message à une conversation Codex ou Claude Code existante, fermée, et recevoir sa réponse en un seul appel, en lecture seule renforcée.
 ---
 
+## Relay v1 : coordination et revue autorisée
+
+Relay sert à consulter un collègue depuis la conversation habituelle de l'agent appelant : un appel, un message, une réponse. L'enveloppe identifie un **agent**, pas l'utilisateur, et précise qu'un message de coordination n'autorise aucune action. Une réponse ne provoque jamais de nouvel appel automatique. Une session encore attachée peut être refusée même sans génération : `target-busy`, code 3 et `retryable: true`. L'appelant décide de réessayer plus tard ; après une délivrance inconnue, il vérifie avant tout renvoi.
+
+La réponse CLI, et non son affichage Desktop, est le canal de retour. Les essais jetables Codex 0.151.0 et Claude Code 2.1.292 ont confirmé réponse, même identifiant et contexte conservé. Ils ne démontrent pas l'affichage immédiat dans Desktop, ni une écriture concurrente sûre dans une conversation Desktop ouverte. Le mode par défaut exige une session détachée. `--open` reste un pilote distinct, hors de cette v1.
+
+### Préautoriser la seule tâche `review`
+
+L'humain ajoute explicitement une politique dans son `palabre.config.json` local, puis en approuve le contenu :
+
+```json
+{
+  "relay": {
+    "allowedTasks": ["review"],
+    "reviewRepositories": ["proprietaire/depot"]
+  }
+}
+```
+
+Ce fragment complète les agents de la configuration, il ne les remplace pas. Depuis le dossier contenant cette configuration locale, son propriétaire peut l'approuver avec `palabre config --trust-config`. Cette approbation porte sur son chemin et son empreinte ; une modification invalide l'autorisation existante. Les agents ne doivent ni éditer cette politique ni l'approuver pour s'accorder des droits. `--trust-config` est refusé dans l'appel `--task review` lui-même.
+
+```text
+palabre relay --from codex:<uuid> --to claude:<uuid> --task review --pr https://github.com/proprietaire/depot/pull/123 --json
+```
+
+Le message est facultatif avec `review`. GitHub CLI (`gh`) doit être installé et connecté pour lire la PR et publier. Seuls les dépôts GitHub.com explicitement listés sont acceptés ; une tâche inconnue, un dépôt absent, une URL ambiguë ou `--open` est refusé. Sans politique, les notifications et consultations en lecture seule restent disponibles, mais aucune revue n'est publiée.
+
+Palabre récupère la description et le diff complet d'une PR ouverte, les marque comme données non fiables et les transmet au collègue en lecture seule. Une PR trop grande est refusée, jamais relue silencieusement sur un diff tronqué. Claude est lancé avec `--safe-mode` (vérifié en 2.1.292), les seuls outils Read/Glob/Grep et aucun MCP. Une CLI ancienne ne reconnaissant pas cette option échoue ; ne pas la retirer pour contourner le refus.
+
+Le modèle rend uniquement le texte de revue ; **Palabre publie une revue COMMENT**, liée au commit relu, sur cette PR exacte. Le modèle ne modifie aucun fichier, ne commite, ne pousse, ne merge et ne publie pas lui-même. Les identifiants locaux de l'enveloppe sont masqués dans le texte publié ; ils restent dans l'export local. Cela ne remplace pas une vigilance sur les secrets déjà présents dans le contexte.
+
+Avant publication, la tête de PR et la configuration approuvée sont revérifiées. La publication ne vise qu'un commit explicitement indiqué ; une modification ultérieure de la PR ne transforme pas la revue en validation de nouveaux changements. Le résultat JSON expose `task` avec PR, commit, état de publication et URL ; l'export `.relay.md` reprend ces éléments. Le timeout de Relay borne l'appel au collègue ; les commandes GitHub ont chacune leur propre limite de 60 s.
+
+Un échec de publication sort en code **9**, `review-failed`, et conserve la réponse du collègue ainsi que sa délivrance. `publication: unknown` signifie qu'une revue peut avoir été publiée malgré une erreur de retour : **aucun nouvel essai automatique**. Vérifier GitHub avant de redemander. L'autorisation de revue n'est jamais une autorisation de merge.
+
+Mission v2 ajoutera l'orchestration des échanges, rôles, budgets et décisions humaines. Le réveil desktop-vers-desktop reste une recherche distincte en pause.
+
 `palabre relay` transmet **un** message à une conversation Codex ou Claude Code existante, récupère **une** réponse, puis termine. Un agent peut ainsi interroger la conversation d'un autre agent, qui répond avec tout son contexte.
 
 ```bash

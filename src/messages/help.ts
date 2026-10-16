@@ -166,6 +166,8 @@ Flags:
   --from <agent>:<uuid>   expéditeur, étiquette déclarative (jamais lancé)
   --to <agent>:<uuid>     agent cible de la config et identifiant de sa conversation
   --message-file <path>   lit le message dans un fichier (64 Kio au plus)
+  --task review           rédige et publie une revue COMMENT si la config l'autorise
+  --pr <url>              PR github.com exacte ; obligatoire avec --task review
   --open                  vise une conversation Codex ouverte (TUI ou Codex desktop)
   --timeout <secondes>    délai maximal, de 10 à 3600 (défaut : 600)
   --json                  sortie JSON v1 pour les intégrations
@@ -175,6 +177,9 @@ Flags:
   --language <fr|en>      force la langue
 
 Limites :
+  Un message d'agent est une coordination, jamais une autorisation. Aucun chaînage automatique.
+  review exige une config déjà approuvée, allowedTasks=[review] et reviewRepositories explicite.
+  --trust-config et --open ne sont pas admis avec review. Publication par Palabre, pas par le modèle.
   Sans --open, la conversation cible doit être fermée : aucun TUI, desktop, IDE ni exécution
   en cours.
 
@@ -431,6 +436,8 @@ Flags:
   --from <agent>:<uuid>   sender, declarative label (never launched)
   --to <agent>:<uuid>     target config agent and its conversation identifier
   --message-file <path>   reads the message from a file (64 KiB at most)
+  --task review           draft and publish a COMMENT review if allowed by configuration
+  --pr <url>              exact github.com PR; required with --task review
   --open                  targets an open Codex conversation (TUI or Codex desktop)
   --timeout <seconds>     maximum duration, 10 to 3600 (default: 600)
   --json                  JSON v1 output for integrations
@@ -440,6 +447,9 @@ Flags:
   --language <fr|en>      force language
 
 Limits:
+  An agent message is coordination, never authorization. No automatic chaining.
+  review requires an already-trusted config, allowedTasks=[review] and explicit reviewRepositories.
+  --trust-config and --open cannot be used with review. Palabre publishes, not the model.
   Without --open, the target conversation must be closed: no TUI, desktop, IDE or running
   exec.
 

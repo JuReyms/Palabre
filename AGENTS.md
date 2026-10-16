@@ -535,6 +535,16 @@ et la version du client quand elle est fournie.
 
 ## Relay externe
 
+### Relay v1 : coordination et tâche revue
+
+`palabre relay` est un service discret, sans écran dédié. Une requête d'agent est marquée comme coordination non authentifiée, jamais comme autorisation humaine ; aucun chaînage automatique. La v1 utilise les reprises CLI officielles sur sessions détachées. Une cible attachée même au repos est refusée (`target-busy`, code 3, `retryable: true`) ; ne pas confondre l'état d'une génération avec la possession de la session. Aucun affichage immédiat Desktop promis. Le pilote Codex `--open` est distinct, hors v1 ; B2/B3 restent une recherche séparée.
+
+La seule tâche est `--task review --pr https://github.com/owner/repo/pull/123`. La configuration déjà approuvée doit contenir `relay.allowedTasks: ["review"]` et le dépôt exact dans `relay.reviewRepositories`. Une tâche inconnue ou hors liste est refusée avant les appels GitHub/modèle ; `--trust-config` et `--open` sont refusés avec cette tâche. Un agent ne peut pas transformer le message relayé en extension de sa politique.
+
+`src/externalSessions/review.ts` lit la PR et le diff entier avec GitHub CLI, traite ces contenus comme données non fiables, et prépare une revue en lecture seule. Palabre publie ensuite une revue COMMENT sur la PR et le commit précis ; le modèle ne dispose d'aucune capacité générale supplémentaire d'écriture. Configuration/empreinte et tête de PR revérifiées avant publication. Aucun commit, push, merge ou renvoi automatique. Les identifiants de session/nonce ne sont pas publiés. Les champs optionnels JSON/export `task` consignent cible, commit, publication et URL. Une publication non confirmée donne `review-failed`, code 9, avec réponse et délivrance de l'agent conservées ; jamais de nouveau POST automatique.
+
+Claude est repris avec `--safe-mode`, les outils Read/Glob/Grep et aucun MCP : variante vérifiée sur 2.1.292. Une CLI sans ce flag échoue sans repli. Les garanties conditionnelles des transports restent celles documentées plus bas. Les tests unitaires utilisent un GitHub injecté ; aucun réseau ni modèle dans `pnpm test`. Aucun harnais de mutations systématiques pour cette v1. Mission (#115) suit la v1 et reste hors de ce lot.
+
 État : la commande `palabre relay` est disponible (lots A0 à A4, non publiée). Elle vit dans `src/commands/relay.ts`, le socle et les adapters dans `src/externalSessions/`. Le smoke réel avec de vrais agents (A5) reste à faire avant publication.
 
 `palabre relay` transmet **un** message à une conversation Codex ou Claude Code existante, récupère **une** réponse, puis termine. Sans `--open`, il vise les conversations **fermées** : aucun processus (TUI, desktop, IDE, `exec`, `-p`) n'y est attaché.
@@ -745,6 +755,7 @@ Un échec de lancement donne `cli-failure` pour la reprise, et `neutralization-f
 | 6 | `session-not-found` | `not-delivered` |
 | 7 | `command-not-found` : exécutable de la CLI cible introuvable | `not-delivered` |
 | 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory` | `not-delivered` |
+| 9 | `review-failed` : publication de revue non confirmée | délivrance de la réponse du collègue conservée, distincte de `task.publication` |
 | 130 | `cancelled` (Ctrl+C) | `not-delivered` avant lancement, sinon `unknown` |
 
 - `command-not-found` signale une installation à corriger, pas un défaut de Palabre. Le code 127 est écarté, car un shell le rend déjà quand `palabre` lui-même est introuvable.

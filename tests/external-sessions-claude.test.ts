@@ -54,7 +54,7 @@ describe("claudeResumeArgs", () => {
     const frame = relayMessages.fr.operatorFrame;
     const args = claudeResumeArgs(SESSION, frame);
     assert.deepEqual(args, [
-      "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "plan",
+      "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "plan", "--safe-mode",
       "--tools", "Read,Glob,Grep", "--strict-mcp-config", "--settings", "{\"disableAllHooks\":true}",
       "--append-system-prompt", frame, "--resume", SESSION
     ]);

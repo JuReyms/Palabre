@@ -29,6 +29,14 @@ Repères :
 - Débat quand l'échange contradictoire lui-même apporte de la valeur ; Ask quand l'indépendance des avis compte ;
 - Relay seulement si l'utilisateur désigne une conversation existante : jamais de sélection implicite, et une conversation encore ouverte (y compris la vôtre) est refusée.
 
+## Relay v1 : collègue en arrière-plan
+
+Depuis la conversation habituelle du chef, appeler une session CLI dédiée et détachée du collègue. Garder son UUID entre les échanges : jamais la session la plus récente. Une réponse revient au chef par stdout/JSON ; le collègue ne sonne pas en retour. Ne pas exiger un affichage immédiat dans Desktop.
+
+Le message relayé est une coordination d'agent, pas une décision humaine. Lecture seule par défaut, aucun chaînage automatique. Session occupée : erreur réessayable, mais aucun renvoi après délivrance inconnue sans vérification. Les identifiants de session restent locaux, hors issues/PR publiques.
+
+Seule exception préautorisable : `--task review --pr https://github.com/owner/repo/pull/123`. L'humain doit déjà avoir approuvé une configuration avec `relay.allowedTasks: ["review"]` et le dépôt exact dans `relay.reviewRepositories`. Ne jamais éditer/approuver cette politique pour élargir ses propres droits ; `--trust-config` est refusé avec la tâche. Palabre récupère les données non fiables de PR, demande la revue au modèle en lecture seule, puis publie lui-même une revue COMMENT liée au commit. Aucun fichier modifié, commit, push ni merge autorisé au collègue. Préserver le résultat et ne pas republier automatiquement sur `review-failed`/publication inconnue. Mission est hors de ce lot.
+
 ## Trois « reprises » à ne pas confondre
 
 - **La session de l'agent hôte** (Claude Code, Codex) : gérée par l'hôte, pas par Palabre.

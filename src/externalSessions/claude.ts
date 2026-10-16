@@ -5,8 +5,8 @@
  * - `projects/<dossier encodé>/<session>.jsonl` : transcript, dossier de travail, preuve du nonce ;
  * - `sessions/<pid>.json` : registre des processus attachés (`sessionId`, `kind`, `status`).
  *
- * Reprise en lecture seule renforcée, vérifiée sur Claude Code 2.1.85 et 2.1.292 :
- * `-p --output-format stream-json --verbose --permission-mode plan --tools Read,Glob,Grep
+ * Reprise en lecture seule renforcée, avec safe-mode vérifié sur Claude Code 2.1.292 :
+ * `-p --output-format stream-json --verbose --permission-mode plan --safe-mode --tools Read,Glob,Grep
  * --strict-mcp-config --settings {"disableAllHooks":true} --append-system-prompt <cadre opérateur>
  * --resume <session>`, sans `--model` : le modèle reste celui que la CLI retient. Le cadre
  * opérateur (décision D22) est un texte fixe, sans aucun contenu du message relayé. Ces formats ne sont pas documentés comme stables par le
@@ -73,6 +73,7 @@ export function claudeResumeArgs(sessionId: string, operatorFrame: string): stri
     "--output-format", "stream-json",
     "--verbose",
     "--permission-mode", "plan",
+    "--safe-mode",
     "--tools", "Read,Glob,Grep",
     "--strict-mcp-config",
     "--settings", JSON.stringify({ disableAllHooks: true }),

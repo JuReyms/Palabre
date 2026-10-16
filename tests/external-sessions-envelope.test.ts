@@ -68,8 +68,9 @@ describe("nonce et enveloppe", () => {
       const lines = envelope.split("\n");
       assert.equal(lines[0], messages.envelopeHeader("PR-0123456789abcdef"));
       assert.equal(lines[1], messages.envelopeFrom("codex", SESSION));
-      assert.equal(lines[2], messages.envelopeReplyHint);
-      assert.equal(lines[3], "");
+      assert.equal(lines[2], messages.envelopeNotice);
+      assert.equal(lines[3], messages.envelopeReplyHint);
+      assert.equal(lines[4], "");
       assert.ok(envelope.endsWith("\n\nLigne 1\nLigne 2"));
       assert.ok(envelope.includes("PR-0123456789abcdef"));
     }

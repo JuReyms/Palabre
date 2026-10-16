@@ -6,6 +6,43 @@ seo:
   description: Send a message to an existing, closed Codex or Claude Code conversation and receive its reply in a single call, in hardened read-only mode.
 ---
 
+## Relay v1: coordination and authorized reviews
+
+One invocation sends one message and returns one reply to the calling agent. The envelope identifies an **agent**, not the user: coordination never grants authority. Replies never trigger another invocation automatically. An attached session may be refused even while idle: `target-busy`, exit 3, `retryable: true`. Retrying is a caller decision; unknown delivery must be investigated before resending.
+
+The CLI reply is the return channel; immediate Desktop display is not promised. Disposable tests with Codex 0.151.0 and Claude Code 2.1.292 confirmed replies, preserved context and the same session identifier. They do not establish safe concurrent writes into an open Desktop conversation. Default Relay requires a detached session. The separate `--open` pilot is outside v1.
+
+### Human authorization for `review`
+
+The owner explicitly adds this fragment to the local `palabre.config.json`, keeping its existing agents:
+
+```json
+{
+  "relay": {
+    "allowedTasks": ["review"],
+    "reviewRepositories": ["owner/repository"]
+  }
+}
+```
+
+From that local configuration directory, its owner can approve the file with `palabre config --trust-config`. Trust binds its path and content hash; edits invalidate existing approval. An agent must not edit or approve this policy to grant itself privileges. `--trust-config` is rejected within a `--task review` invocation.
+
+```text
+palabre relay --from codex:<uuid> --to claude:<uuid> --task review --pr https://github.com/owner/repository/pull/123 --json
+```
+
+The message is optional with `review`. GitHub CLI (`gh`) must be installed and authenticated. Only explicitly listed GitHub.com repositories are allowed. Unknown tasks, unlisted repositories, ambiguous URLs and `--open` are refused. Without the policy, ordinary read-only notifications remain available, but reviews cannot be published.
+
+Palabre fetches an open PR and its complete diff, labels their contents as untrusted data and asks the read-only colleague for a Markdown review. Oversized PRs are rejected rather than silently truncated. Claude uses `--safe-mode` (verified with 2.1.292), Read/Glob/Grep only and no MCP servers. An older CLI that does not support the option fails; do not remove it to bypass refusal.
+
+**Palabre publishes a COMMENT review**, bound to the reviewed commit and exact PR. The model only returns review text: no file edits, commits, pushes, merges or direct publishing. Envelope-local identifiers are redacted from the published text and retained in the local export; this is not general secret detection.
+
+PR head and trusted configuration are rechecked before publishing. Later commits are not covered by a review of an earlier commit. JSON `task` and `.relay.md` include PR, commit, publication state and review URL. Relay's timeout covers the colleague invocation; each GitHub command has its own 60-second limit.
+
+Publication failure exits **9**, `review-failed`, retaining the colleague reply and its delivery verdict. `publication: unknown` means publishing may have succeeded despite a missing or invalid response: never retry automatically, and inspect GitHub first. Review authorization never permits merging.
+
+Mission v2 will add controlled orchestration, roles, budgets and human decisions. Desktop-to-desktop wake-up remains separate, paused research.
+
 `palabre relay` sends **one** message to an existing Codex or Claude Code conversation, gets **one** reply, then exits. An agent can therefore ask another agent's conversation, which answers with its full context.
 
 ```bash

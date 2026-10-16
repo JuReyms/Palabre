@@ -99,6 +99,8 @@ export type AgentConfig = CliAgentConfig | CliPtyAgentConfig | OllamaAgentConfig
 
 /** Config racine issue de `palabre.config.json`. */
 export interface PalabreConfig {
+  /** Autorisations fixées dans la configuration approuvée, jamais par un message relayé. */
+  relay?: { allowedTasks: "review"[]; reviewRepositories: string[] };
   language?: Language;
   outputDir?: string;
   defaults?: {
