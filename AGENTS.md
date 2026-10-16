@@ -756,9 +756,11 @@ Un échec de lancement donne `cli-failure` pour la reprise, et `neutralization-f
 | 5 | `identity-mismatch` | `persisted-no-reply` ou `unknown`. Le texte d'une autre session n'est jamais rendu comme `reply` |
 | 6 | `session-not-found` | `not-delivered` |
 | 7 | `command-not-found` : exécutable de la CLI cible introuvable | `not-delivered` |
-| 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory` | `not-delivered` |
+| 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory`, `task-not-allowed`, `invalid-pr`, `review-unavailable` | `not-delivered` |
 | 9 | `review-failed` : publication de revue non confirmée | délivrance de la réponse du collègue conservée, distincte de `task.publication` |
-| 130 | `cancelled` (Ctrl+C) | `not-delivered` avant lancement, sinon `unknown` |
+| 130 | `cancelled` (Ctrl+C) ; avec review seulement si aucun POST tenté | `not-delivered` avant lancement, sinon preuve conservée (dont `replied` si le collègue avait répondu avant l'annulation de la publication) |
+
+Avec review, une interruption après début du POST conserve `replied`/0 si publication confirmée, ou `review-failed`/9 si publication inconnue, et ajoute seulement `task.cancelled: true`. Le code de sortie ne masque jamais une revue publiée ou une publication incertaine.
 
 - `command-not-found` signale une installation à corriger, pas un défaut de Palabre. Le code 127 est écarté, car un shell le rend déjà quand `palabre` lui-même est introuvable.
 - `output-too-large` signale une sortie qui dépasse le plafond cumulé stdout + stderr. La sortie partielle n'est jamais traitée comme une réponse.

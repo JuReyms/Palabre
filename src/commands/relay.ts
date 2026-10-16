@@ -307,11 +307,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
         result.error = { kind: "review-failed", message: context.messages.relay.reviewFailure(reason) };
       }
     }
-    if (review && controller.signal.aborted) {
-      context.task!.cancelled = true;
-      result.status = "cancelled"; result.exitCode = RELAY_EXIT_CODES.cancelled;
-      result.error = { kind: "cancelled", message: context.messages.relay.status("cancelled") };
-    }
+    applyReviewCancellation(result, controller.signal.aborted, context.messages);
     result.durationMs = Date.now() - context.startedAt;
     if (flags["no-export"] !== true) {
       result.exportPath = await exportRelay(resolveOutputDir(config.outputDir), result, { nonce, message, startedAt: context.startedAt }, context.messages);
@@ -581,6 +577,16 @@ function writeResult(result: RelayResultV1, json: boolean, messages: Messages): 
   const text = renderRelayText(result, messages);
   process.stdout.write(text.stdout);
   process.stderr.write(text.stderr);
+}
+
+/** Une interruption tardive n'efface jamais l'issue d'un POST déjà parti. */
+export function applyReviewCancellation(result: RelayResultV1, interrupted: boolean, messages: Messages): void {
+  if (!result.task || !interrupted) return;
+  result.task.cancelled = true;
+  if (result.task.publication !== "not-attempted") return;
+  result.status = "cancelled";
+  result.exitCode = RELAY_EXIT_CODES.cancelled;
+  result.error = { kind: "cancelled", message: messages.relay.status("cancelled") };
 }
 
 /** Même réponse en texte qu'en JSON, y compris après une publication refusée ou interrompue. */

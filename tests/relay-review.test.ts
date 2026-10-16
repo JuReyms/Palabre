@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { validateRelayPolicy, parsePullRequest, reviewAllowed, readPullRequest, reviewPrompt, publishReview, MAX_REVIEW_CONTEXT_BYTES, type GitHubRun } from "../src/externalSessions/review.js";
-import { renderRelayText, type RelayResultV1 } from "../src/commands/relay.js";
+import { renderRelayText, applyReviewCancellation, type RelayResultV1 } from "../src/commands/relay.js";
 import { renderRelayMarkdown } from "../src/output.js";
 import { createTranslator } from "../src/i18n.js";
 
@@ -117,4 +117,22 @@ test("annulation avant POST dans le dernier contrôle : aucune publication", asy
     if (body) posts++; controller.abort(); return meta();
   }, async () => { if (controller.signal.aborted) throw Error("review-cancelled"); }), /review-cancelled/);
   assert.equal(posts, 0);
+});
+
+test("Ctrl+C conserve l'issue d'une publication confirmée ou inconnue, annule seulement avant POST", () => {
+  const messages = createTranslator("fr");
+  for (const publication of ["not-attempted", "published", "unknown"] as const) {
+    const result: RelayResultV1 = { v: 1, type: "relay-result", status: publication === "unknown" ? "review-failed" : "replied",
+      exitCode: publication === "unknown" ? 9 : 0, from: null, to: null, reply: "Revue conservée",
+      delivery: { status: "replied", persisted: true, inActiveBranch: true }, identity: "same-as-target", observedModels: [],
+      error: null, exportPath: null, durationMs: 1, task: { name: "review", pr: pr.url, publication } };
+    const before = structuredClone(result);
+    applyReviewCancellation(result, false, messages); assert.deepEqual(result, before);
+    applyReviewCancellation(result, true, messages);
+    assert.equal(result.task!.cancelled, true); assert.equal(result.task!.publication, publication);
+    assert.equal(result.status, publication === "not-attempted" ? "cancelled" : before.status);
+    assert.equal(result.exitCode, publication === "not-attempted" ? 130 : before.exitCode);
+    assert.deepEqual(result.delivery, before.delivery); assert.equal(result.reply, before.reply);
+    assert.equal(renderRelayText(result, messages).stdout, "Revue conservée\n");
+  }
 });
