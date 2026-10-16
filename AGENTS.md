@@ -14,6 +14,17 @@ Toute evolution produit doit appartenir a l'une de ces intentions, sans creer de
 - decider : synthese, suivi, plan ou revue de plan ;
 - agir : operation explicitement confirmee, comme une mutation de config ou l'execution deleguee a une CLI.
 
+## Écrire pour tous
+
+Palabre est open source et utilisé par des personnes de tous niveaux techniques, et par des agents. Tout ce qui est visible (aide, erreurs, sorties, documentation, skill, issues, descriptions de PR) doit être clair, simple et précis.
+
+- Une erreur dit ce qui s'est passé, pourquoi, et la prochaine étape exacte : qui agit, avec quelle commande à copier-coller.
+- Préférer une commande avec confirmation à une modification manuelle de fichier (JSON, registre).
+- L'aide de la CLI et les messages d'erreur doivent suffire, même sans skill installé.
+- Pour les agents : consignes explicites, ce qu'ils doivent faire et ce qu'ils ne doivent jamais faire (par exemple : ne jamais modifier eux-mêmes une politique qui leur accorde des droits).
+- Pour les humains : pas de jargon inutile, et des images simples quand elles aident (par exemple relay = « appeler un collègue absent »). Le détail technique va dans AGENTS.md.
+- Toute évolution de comportement met à jour, dans la même PR : l'aide CLI, le guide fr et en, et le skill `skills/palabre`. Une copie installée du skill n'est pas mise à jour automatiquement : le dire dans les notes de version.
+
 ## Frontiere CLI / integrations
 
 Palabre CLI est la source de verite produit. Toute fonctionnalite qui doit produire le meme resultat hors VS Code appartient au CLI avant d'etre exposee par une integration.
