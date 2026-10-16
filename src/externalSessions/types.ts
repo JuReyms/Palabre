@@ -126,6 +126,7 @@ export type CertainRefusal = "target-busy" | "session-not-found";
  */
 export type RelayStatus =
   | "replied"
+  | "review-failed"
   | "internal-error"
   | "cli-failure"
   | "no-valid-reply"
@@ -144,6 +145,10 @@ export type RelayStatus =
 
 /** Raison détaillée d'une issue `invalid-request`. */
 export type InvalidRequestReason =
+  | "task-not-allowed"
+  | "invalid-pr"
+  | "review-unavailable"
+  | "review-cli-unsupported"
   | "invalid-arguments"
   | "invalid-session-id"
   | "message-too-large"

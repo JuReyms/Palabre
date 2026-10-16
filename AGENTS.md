@@ -535,6 +535,22 @@ et la version du client quand elle est fournie.
 
 ## Relay externe
 
+### Relay v1 : coordination et tâche revue
+
+`palabre relay` est un service discret, sans écran dédié. Une requête d'agent est marquée comme coordination non authentifiée, jamais comme autorisation humaine ; aucun chaînage automatique. La v1 utilise les reprises CLI officielles sur sessions détachées. Une cible attachée même au repos est refusée (`target-busy`, code 3, `retryable: true`) ; ne pas confondre l'état d'une génération avec la possession de la session. Aucun affichage immédiat Desktop promis. Le pilote Codex `--open` est distinct, hors v1 ; B2/B3 restent une recherche séparée.
+
+La seule tâche est `--task review --pr https://github.com/owner/repo/pull/123`. La configuration déjà approuvée doit contenir `relay.allowedTasks: ["review"]` et le dépôt exact dans `relay.reviewRepositories`. Une tâche inconnue ou hors liste est refusée avant les appels GitHub/modèle ; `--trust-config` et `--open` sont refusés avec cette tâche. Un agent ne peut pas transformer le message relayé en extension de sa politique.
+
+`src/externalSessions/review.ts` lit la PR et le diff entier avec GitHub CLI, traite ces contenus comme données non fiables, et prépare une revue en lecture seule. Palabre publie ensuite une revue COMMENT sur la PR et le commit précis ; le modèle ne dispose d'aucune capacité générale supplémentaire d'écriture. Configuration/empreinte et tête de PR revérifiées avant publication. Aucun commit, push, merge ou renvoi automatique. Les identifiants de session/nonce ne sont pas publiés. Les champs optionnels JSON/export `task` consignent cible, commit, publication et URL. Une publication non confirmée donne `review-failed`, code 9, avec réponse et délivrance de l'agent conservées ; jamais de nouveau POST automatique.
+
+Pour la tâche revue seulement, Claude est repris avec `--safe-mode`, les outils Read/Glob/Grep et aucun MCP : version minimale prise en charge 2.1.292. Avant de lire la PR, `--version` et `--help` sondent la CLI résolue ; version trop ancienne, option absente ou sonde non vérifiable donnent `review-cli-unsupported`, sans lecture GitHub ni modèle. Le champ optionnel `cli` (path, version) et l'export indiquent la CLI sondée ; un shim npm désigne le script lancé. Les notifications ordinaires gardent leurs arguments historiques et leur contexte personnalisé. Les garanties conditionnelles des transports restent celles documentées plus bas. Les tests unitaires utilisent un GitHub injecté ; aucun réseau ni modèle dans `pnpm test`. Aucun harnais de mutations systématiques pour cette v1. Mission (#115) suit la v1 et reste hors de ce lot.
+
+Attention à la synchronisation : `applyDetectedCommands` (accueil TUI et `palabre config --sync-agents`) remplace `agents.claude.command` par la commande détectée, même si un chemin absolu y était configuré. La sonde review-cli vérifie cette commande résolue ; elle ne sélectionne pas une autre installation. Pour conserver une CLI récente choisie explicitement, documenter un agent dédié `claude-review` avec le chemin absolu vers `claude.exe` et les mêmes `args` que `claude`. La synchronisation ne modifie pas cette clé personnalisée ; `externalSessionProviderForCommand` reconnaît le fournisseur par le nom normalisé du programme, pas par la clé d'agent. Utilisation : `--to claude-review:<session>`. Le propriétaire réapprouve le fichier modifié ; aucune extension implicite de la politique de revue.
+
+La préservation des commandes absolues par la synchronisation est suivie séparément dans [#117](https://github.com/JuReyms/Palabre/issues/117) ; aucun correctif de ce comportement dans le lot documentaire de #116.
+
+L'approbation de configuration est une frontière opérateur, pas un isolement contre une entité ayant déjà un shell en écriture et accès au registre de confiance. Une telle entité peut utiliser une commande séparée pour réapprouver un fichier : le refus de --trust-config dans la tâche ne prétend pas l'en empêcher. Le message relayé ne peut pas élargir la politique ; l'humain demeure propriétaire de cette politique.
+
 État : la commande `palabre relay` est disponible (lots A0 à A4, non publiée). Elle vit dans `src/commands/relay.ts`, le socle et les adapters dans `src/externalSessions/`. Le smoke réel avec de vrais agents (A5) reste à faire avant publication.
 
 `palabre relay` transmet **un** message à une conversation Codex ou Claude Code existante, récupère **une** réponse, puis termine. Sans `--open`, il vise les conversations **fermées** : aucun processus (TUI, desktop, IDE, `exec`, `-p`) n'y est attaché.
@@ -744,8 +760,11 @@ Un échec de lancement donne `cli-failure` pour la reprise, et `neutralization-f
 | 5 | `identity-mismatch` | `persisted-no-reply` ou `unknown`. Le texte d'une autre session n'est jamais rendu comme `reply` |
 | 6 | `session-not-found` | `not-delivered` |
 | 7 | `command-not-found` : exécutable de la CLI cible introuvable | `not-delivered` |
-| 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory` | `not-delivered` |
-| 130 | `cancelled` (Ctrl+C) | `not-delivered` avant lancement, sinon `unknown` |
+| 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory`, `task-not-allowed`, `invalid-pr`, `review-unavailable`, `review-cli-unsupported` | `not-delivered` |
+| 9 | `review-failed` : publication de revue non confirmée | délivrance de la réponse du collègue conservée, distincte de `task.publication` |
+| 130 | `cancelled` (Ctrl+C) ; avec review seulement si aucun POST tenté | `not-delivered` avant lancement, sinon preuve conservée (dont `replied` si le collègue avait répondu avant l'annulation de la publication) |
+
+Avec review, une interruption après début du POST conserve `replied`/0 si publication confirmée, ou `review-failed`/9 si publication inconnue, et ajoute seulement `task.cancelled: true`. Le code de sortie ne masque jamais une revue publiée ou une publication incertaine.
 
 - `command-not-found` signale une installation à corriger, pas un défaut de Palabre. Le code 127 est écarté, car un shell le rend déjà quand `palabre` lui-même est introuvable.
 - `output-too-large` signale une sortie qui dépasse le plafond cumulé stdout + stderr. La sortie partielle n'est jamais traitée comme une réponse.

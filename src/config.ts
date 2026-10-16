@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { applyDetectedCommands, detectedAgentNames } from "./agentRegistry.js";
 import { refreshTrustedConfig } from "./configTrust.js";
+import { validateRelayPolicy } from "./externalSessions/review.js";
 import { writeTextFileAtomically } from "./atomicFile.js";
 import type { CliAgentConfig, PalabreConfig } from "./types.js";
 import type { ToolDiscovery } from "./discovery.js";
@@ -146,6 +147,7 @@ export async function loadConfig(configPath = DEFAULT_CONFIG_PATH): Promise<Pala
   const resolved = path.resolve(configPath);
   const raw = await readFile(resolved, "utf8");
   const config = JSON.parse(raw) as PalabreConfig;
+  if (config?.relay !== undefined) config.relay = validateRelayPolicy(config.relay);
   migrateKnownAgentDefaults(config);
   return config;
 }

@@ -6,10 +6,86 @@ seo:
   description: Envoyer un message à une conversation Codex ou Claude Code existante, fermée, et recevoir sa réponse en un seul appel, en lecture seule renforcée.
 ---
 
+## Relay v1 : coordination et revue autorisée
+
+Relay sert à consulter un collègue depuis la conversation habituelle de l'agent appelant : un appel, un message, une réponse. L'enveloppe identifie un **agent**, pas l'utilisateur, et précise qu'un message de coordination n'autorise aucune action. Une réponse ne provoque jamais de nouvel appel automatique. Une session encore attachée peut être refusée même sans génération : `target-busy`, code 3 et `retryable: true`. L'appelant décide de réessayer plus tard ; après une délivrance inconnue, il vérifie avant tout renvoi.
+
+La réponse CLI, et non son affichage Desktop, est le canal de retour. Les essais jetables Codex 0.151.0 et Claude Code 2.1.292 ont confirmé réponse, même identifiant et contexte conservé. Ils ne démontrent pas l'affichage immédiat dans Desktop, ni une écriture concurrente sûre dans une conversation Desktop ouverte. Le mode par défaut exige une session détachée. `--open` reste un pilote distinct, hors de cette v1.
+
+### Préautoriser la seule tâche `review`
+
+L'humain ajoute explicitement une politique dans son `palabre.config.json` local, puis en approuve le contenu :
+
+```json
+{
+  "relay": {
+    "allowedTasks": ["review"],
+    "reviewRepositories": ["proprietaire/depot"]
+  }
+}
+```
+
+Ce fragment complète les agents de la configuration, il ne les remplace pas. Depuis le dossier contenant cette configuration locale, son propriétaire peut l'approuver avec `palabre config --trust-config`. Cette approbation porte sur son chemin et son empreinte ; une modification invalide l'autorisation existante. Les agents ne doivent ni éditer cette politique ni l'approuver pour s'accorder des droits. `--trust-config` est refusé dans l'appel `--task review` lui-même.
+
+```text
+palabre relay --from codex:<uuid> --to claude:<uuid> --task review --pr https://github.com/proprietaire/depot/pull/123 --json
+```
+
+Le message est facultatif avec `review`. GitHub CLI (`gh`) doit être installé et connecté pour lire la PR et publier. Seuls les dépôts GitHub.com explicitement listés sont acceptés ; une tâche inconnue, un dépôt absent, une URL ambiguë ou `--open` est refusé. Sans politique, les notifications et consultations en lecture seule restent disponibles, mais aucune revue n'est publiée.
+
+Palabre récupère la description et le diff complet d'une PR ouverte, les marque comme données non fiables et les transmet au collègue en lecture seule. Une PR trop grande est refusée, jamais relue silencieusement sur un diff tronqué. Claude est lancé avec `--safe-mode`, les seuls outils Read/Glob/Grep et aucun MCP.
+
+La tâche `review` avec Claude exige **Claude Code 2.1.292 au minimum** et la présence de `--safe-mode` dans son aide. Avant toute lecture de la PR, Palabre sonde `--version` puis `--help` sur la CLI effectivement résolue (commande configurée, ou premier résultat du PATH), sans appel de modèle. Une CLI incompatible ou non vérifiable produit `invalid-request` avec `error.reason: "review-cli-unsupported"` (code 8), la version trouvée et le minimum ; aucune PR n'est lue ni revue publiée. Si plusieurs versions coexistent, utilise l'agent dédié décrit dans « Plusieurs CLI Claude sur la même machine » ; ne retire pas `--safe-mode`.
+
+Le champ optionnel `cli` du résultat `--json` donne `path` et `version` pour cette vérification (version `null` si non vérifiable). Le même chemin et la même version figurent dans l'export `.relay.md` de la revue ; avec un shim npm reconnu, le chemin désigne le script CLI lancé directement. Les notifications ordinaires gardent leurs arguments historiques, sans cette exigence de version.
+
+Le modèle rend uniquement le texte de revue ; **Palabre publie une revue COMMENT**, liée au commit relu, sur cette PR exacte. Le modèle ne modifie aucun fichier, ne commite, ne pousse, ne merge et ne publie pas lui-même. Les identifiants locaux de l'enveloppe sont masqués dans le texte publié ; ils restent dans l'export local. Cela ne remplace pas une vigilance sur les secrets déjà présents dans le contexte.
+
+Le message de coordination reste limité à 64 Kio UTF-8 ; le contexte GitHub ajouté par Palabre dispose d'une borne séparée de 256 Kio UTF-8, JSON compris. Au-delà, la revue est refusée avant l'appel au modèle ; aucun diff tronqué n'est envoyé.
+
+Safe-mode ne s'applique qu'à `review` : les notifications et consultations ordinaires gardent leurs arguments et personnalisations historiques. L'approbation est une règle opérateur ; elle n'isole pas un agent disposant déjà d'un shell en écriture et du registre de confiance, qui pourrait réapprouver le fichier par une autre commande. Le contenu d'une sonnette ne peut pas, lui, étendre la politique.
+
+Un premier Ctrl+C reste pris en charge jusqu'au résultat et à l'export : avant le POST, il empêche la publication ; si le POST est déjà parti, Palabre attend son issue bornée plutôt que de prétendre l'annuler. La réponse est conservée aussi en sortie texte sans export ; état et URL de publication sont affichés séparément. Un refus certain avant POST (`not-attempted`) est distingué d'un retour de publication inconnu.
+
+Avant publication, la tête de PR et la configuration approuvée sont revérifiées. La publication ne vise qu'un commit explicitement indiqué ; une modification ultérieure de la PR ne transforme pas la revue en validation de nouveaux changements. Le résultat JSON expose `task` avec PR, commit, état de publication et URL ; l'export `.relay.md` reprend ces éléments. Le timeout de Relay borne l'appel au collègue ; les commandes GitHub ont chacune leur propre limite de 60 s.
+
+Un échec de publication sort en code **9**, `review-failed`, et conserve la réponse du collègue ainsi que sa délivrance. `publication: unknown` signifie qu'une revue peut avoir été publiée malgré une erreur de retour : **aucun nouvel essai automatique**. Vérifier GitHub avant de redemander. L'autorisation de revue n'est jamais une autorisation de merge.
+
+Mission v2 ajoutera l'orchestration des échanges, rôles, budgets et décisions humaines. Le réveil desktop-vers-desktop reste une recherche distincte en pause.
+
 `palabre relay` transmet **un** message à une conversation Codex ou Claude Code existante, récupère **une** réponse, puis termine. Un agent peut ainsi interroger la conversation d'un autre agent, qui répond avec tout son contexte.
 
 ```bash
 palabre relay --from codex:<session-expéditeur> --to claude:<session-cible> "Peux-tu relire ce plan ?"
+```
+
+## Plusieurs CLI Claude sur la même machine
+
+Une ancienne CLI Claude peut être détectée avant la CLI récente selon l'ordre du PATH. Modifier seulement `agents.claude.command` pour y mettre un chemin absolu ne suffit pas : à l'accueil TUI et avec `palabre config --sync-agents`, `applyDetectedCommands` remplace cette commande par celle détectée.
+
+Ajoute plutôt un agent dédié `claude-review` dans les `agents` existants de ton `palabre.config.json`, sans remplacer le reste de la configuration ni sa politique `relay` :
+
+```json
+{
+  "agents": {
+    "claude-review": {
+      "type": "cli",
+      "command": "C:/Tools/Claude/claude.exe",
+      "args": ["--print", "--output-format", "text", "--no-session-persistence", "--tools", "Read,Glob,Grep"],
+      "promptMode": "stdin",
+      "shell": false,
+      "role": "reviewer"
+    }
+  }
+}
+```
+
+Remplace le chemin d'exemple par le chemin absolu de ta CLI Claude Code **2.1.292 ou plus récente**. Recopie les mêmes `args` que ton agent `claude` ; ceux de l'exemple sont les valeurs par défaut. Relay construit lui-même ses arguments de reprise. Après modification, le propriétaire doit réapprouver la configuration selon la procédure ci-dessus.
+
+La synchronisation ne touche que les clés d'agents connus, dont `claude`, et laisse `claude-review` intact. Relay reconnaît Claude en normalisant le nom du programme (`claude.exe`), indépendamment du nom donné à l'agent. La sonde `review-cli-unsupported` continue de vérifier la CLI choisie avant toute lecture GitHub.
+
+```text
+palabre relay --from codex:<uuid> --to claude-review:<session> --task review --pr https://github.com/proprietaire/depot/pull/123 --json
 ```
 
 ## Conversation fermée par défaut

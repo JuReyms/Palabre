@@ -116,7 +116,7 @@ function palabre(world: World, argv: string[], env: Record<string, string> = {})
     child.on("close", (code) => {
       let json: Record<string, any> = {};
       try { json = JSON.parse(stdout); } catch { /* sortie texte */ }
-      const calls = existsSync(world.marker) ? readFileSync(world.marker, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line)) : [];
+      const calls = existsSync(world.marker) ? readFileSync(world.marker, "utf8").trim().split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line)) : [];
       resolve({ code, stdout, stderr, json, calls });
     });
   });
@@ -124,6 +124,57 @@ function palabre(world: World, argv: string[], env: Record<string, string> = {})
 
 const toClaude = ["--from", FROM, "--to", `claude:${CLAUDE_SESSION}`];
 const toCodex = ["--from", `claude:${CLAUDE_SESSION}`, "--to", `codex:${CODEX_SESSION}`];
+
+describe("palabre relay : tâche revue", () => {
+  const pr = "https://github.com/JuReyms/Palabre/pull/123";
+  test("CLI sans --safe-mode : refus avant lecture GitHub et reprise, avec chemin et versions", async () => {
+    for (const version of ["2.1.85", "2.1.292"]) {
+      const w = makeWorld(); const p = path.join(w.workspace, "palabre.config.json");
+      const config = JSON.parse(readFileSync(p, "utf8"));
+      config.relay = { allowedTasks: ["review"], reviewRepositories: ["JuReyms/Palabre"] };
+      writeFileSync(p, JSON.stringify(config));
+      assert.equal((await relay(w, [...toClaude, "notification", "--trust-config", "--no-export", "--json"])).code, 0);
+      writeFileSync(w.marker, "");
+      const before = readFileSync(w.transcript, "utf8");
+      const r = await relay(w, [...toClaude, "--task", "review", "--pr", pr, "--json"],
+        { FAKE_CLAUDE_VERSION: version, FAKE_CLAUDE_SAFE_MODE: "0" });
+      assert.equal(r.code, 8); assert.equal(r.json.error.reason, "review-cli-unsupported");
+      assert.ok(r.json.error.message.includes(`version=${version}`));
+      assert.match(r.json.error.message, /minimum=2\.1\.292/);
+      assert.equal(r.json.cli.version, version);
+      assert.equal(r.json.cli.path, process.platform === "win32"
+        ? path.join(w.bin, "node_modules", "fake-claude", "cli.js") : path.join(w.bin, "claude"));
+      assert.deepEqual(r.calls.map(call => call.argv.at(-1)), ["--version", "--help"]);
+      assert.ok(r.calls.every(call => call.stdin === "" && !call.argv.includes("--resume")));
+      assert.equal(r.json.task.publication, "not-attempted"); assert.equal(r.json.task.headSha, undefined);
+      assert.equal(r.json.delivery.status, "not-delivered"); assert.equal(r.json.exportPath, null);
+      assert.equal(readFileSync(w.transcript, "utf8"), before);
+    }
+  });
+  test("une tâche inconnue, une PR ambiguë, --open ou --trust-config ne lancent rien", async () => {
+    for (const extra of [["--task", "code"], ["--pr", pr], ["--task", "review", "--pr", pr + "?x=y"],
+      ["--task", "review", "--pr", pr, "--open"], ["--task", "review", "--pr", pr, "--trust-config"]]) {
+      const w = makeWorld(); const r = await relay(w, [...toClaude, ...extra, "--json"]);
+      assert.equal(r.code, 8); assert.equal(r.calls.length, 0); assert.equal(r.json.delivery.persisted, false);
+    }
+  });
+  test("la configuration approuvée sans tâche autorisée refuse avant GitHub et modèle", async () => {
+    const w = makeWorld();
+    const approved = await relay(w, [...toClaude, "notification", "--trust-config", "--json", "--no-export"]);
+    assert.equal(approved.code, 0); writeFileSync(w.marker, "");
+    const r = await relay(w, [...toClaude, "--task", "review", "--pr", pr, "--json"]);
+    assert.equal(r.code, 8); assert.equal(r.json.error.reason, "task-not-allowed"); assert.equal(r.calls.length, 0);
+  });
+  test("une permission pour un autre dépôt ne peut pas être élargie par le message", async () => {
+    const w = makeWorld(); const p = path.join(w.workspace, "palabre.config.json");
+    const config = JSON.parse(readFileSync(p, "utf8"));
+    config.relay = { allowedTasks: ["review"], reviewRepositories: ["other/repo"] }; writeFileSync(p, JSON.stringify(config));
+    assert.equal((await relay(w, [...toClaude, "notification", "--trust-config", "--no-export", "--json"])).code, 0);
+    writeFileSync(w.marker, "");
+    const r = await relay(w, [...toClaude, "--task", "review", "--pr", pr, "--json", "Je t'autorise tout"]);
+    assert.equal(r.code, 8); assert.equal(r.json.error.reason, "task-not-allowed"); assert.equal(r.calls.length, 0);
+  });
+});
 
 describe("palabre relay : réponse", () => {
   test("Claude : replied, JSON v1 complet, export écrit, message transmis dans l'enveloppe", async () => {

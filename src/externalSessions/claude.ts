@@ -5,12 +5,13 @@
  * - `projects/<dossier encodé>/<session>.jsonl` : transcript, dossier de travail, preuve du nonce ;
  * - `sessions/<pid>.json` : registre des processus attachés (`sessionId`, `kind`, `status`).
  *
- * Reprise en lecture seule renforcée, vérifiée sur Claude Code 2.1.85 et 2.1.292 :
+ * Reprise ordinaire en lecture seule renforcée, vérifiée sur Claude Code 2.1.85 et 2.1.292 :
  * `-p --output-format stream-json --verbose --permission-mode plan --tools Read,Glob,Grep
  * --strict-mcp-config --settings {"disableAllHooks":true} --append-system-prompt <cadre opérateur>
  * --resume <session>`, sans `--model` : le modèle reste celui que la CLI retient. Le cadre
  * opérateur (décision D22) est un texte fixe, sans aucun contenu du message relayé. Ces formats ne sont pas documentés comme stables par le
  * fournisseur : toute ambiguïté est traitée prudemment (refus ou `unknown`).
+ * La tâche review ajoute seule `--safe-mode`, variante vérifiée sur 2.1.292.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import os from "node:os";
@@ -33,6 +34,8 @@ import type {
 
 /** Options injectables ; les valeurs par défaut lisent l'installation de l'utilisateur. */
 export interface ClaudeAdapterOptions {
+  /** Neutralise les personnalisations pour une revue ; les consultations historiques restent inchangées. */
+  safeMode?: boolean;
   /** Racine `~/.claude`. */
   home?: string;
   /** Vivacité d'un PID ; `pidLiveness` par défaut. */
@@ -67,12 +70,13 @@ const asObject = (value: unknown): JsonObject | undefined =>
   value && typeof value === "object" && !Array.isArray(value) ? (value as JsonObject) : undefined;
 
 /** Arguments de reprise en lecture seule renforcée, hors exécutable. */
-export function claudeResumeArgs(sessionId: string, operatorFrame: string): string[] {
+export function claudeResumeArgs(sessionId: string, operatorFrame: string, safeMode = false): string[] {
   return [
     "-p",
     "--output-format", "stream-json",
     "--verbose",
     "--permission-mode", "plan",
+    ...(safeMode ? ["--safe-mode"] : []),
     "--tools", "Read,Glob,Grep",
     "--strict-mcp-config",
     "--settings", JSON.stringify({ disableAllHooks: true }),
@@ -230,8 +234,10 @@ export class ClaudeSessionAdapter implements ExternalSessionAdapter {
   private readonly home: string;
   private readonly liveness: (pid: number) => Liveness;
   private readonly operatorFrame: string;
+  private readonly safeMode: boolean;
 
   constructor(options: ClaudeAdapterOptions = {}) {
+    this.safeMode = options.safeMode === true;
     this.home = options.home ?? path.join(os.homedir(), ".claude");
     this.liveness = options.liveness ?? ((pid) => pidLiveness(pid));
     this.operatorFrame = options.operatorFrame ?? relayMessages.fr.operatorFrame;
@@ -282,7 +288,7 @@ export class ClaudeSessionAdapter implements ExternalSessionAdapter {
   }
 
   resumeArgs(target: ExternalTarget): string[] {
-    return claudeResumeArgs(target.sessionId, this.operatorFrame);
+    return claudeResumeArgs(target.sessionId, this.operatorFrame, this.safeMode);
   }
 
   /**

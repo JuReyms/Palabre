@@ -29,6 +29,7 @@ import type {
 /** Code de sortie de chaque issue. Toute issue autre que `replied` sort en non nul. */
 export const RELAY_EXIT_CODES: Readonly<Record<RelayStatus, number>> = {
   "replied": 0,
+  "review-failed": 9,
   "internal-error": 1,
   "cli-failure": 2,
   "no-valid-reply": 2,

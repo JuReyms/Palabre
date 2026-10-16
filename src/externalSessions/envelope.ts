@@ -69,6 +69,7 @@ export function buildEnvelope(input: { from: SessionRef; nonce: string; message:
   return [
     messages.envelopeHeader(input.nonce),
     messages.envelopeFrom(input.from.agent, input.from.sessionId),
+    messages.envelopeNotice,
     messages.envelopeReplyHint,
     "",
     input.message

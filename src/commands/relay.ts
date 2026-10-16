@@ -14,6 +14,7 @@
  * outils et permissions ; les champs JSON propres à `--open` n'apparaissent qu'avec cette option.
  */
 import { readFile, stat } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import { sanitizeTerminalText } from "../adapters/terminal.js";
@@ -29,6 +30,8 @@ import { defaultOpenRelayDeps, runOpenRelay, type OpenQueueReport, type OpenRela
 import { locateOpenRollout } from "../externalSessions/openRollout.js";
 import { assessTarget, classifyDelivery, RELAY_EXIT_CODES, refusalOutcome, type PreLaunchRefusal } from "../externalSessions/outcome.js";
 import { resolveExternalExecutable } from "../externalSessions/resolve.js";
+import { checkClaudeReviewCli, MIN_CLAUDE_REVIEW_VERSION, type ReviewCliIdentity } from "../externalSessions/reviewCli.js";
+import { parsePullRequest, reviewAllowed, readPullRequest, reviewPrompt, publishReview, type ReviewReport, type ReviewInput } from "../externalSessions/review.js";
 import type {
   DeliveryVerdict,
   ExternalProvider,
@@ -50,7 +53,7 @@ export const MIN_RELAY_TIMEOUT_SECONDS = 10;
 export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 
 /** Options de `palabre relay` qui attendent une valeur. */
-const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "config", "language"]);
+const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "config", "language", "task", "pr"]);
 /** Options de `palabre relay` sans valeur. */
 const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open"]);
 /** Alias acceptés, comme pour les autres commandes. */
@@ -61,13 +64,19 @@ const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
  * NDJSON : un ajout optionnel ne change pas `v`.
  */
 export interface RelayResultV1 {
+  /** CLI inspected before a Claude review, including on compatibility refusal. */
+  cli?: ReviewCliIdentity;
+  /** Tâche autorisée, distincte de la délivrance du message. Présente uniquement avec --task. */
+  task?: ReviewReport;
+  /** Vrai seulement pour une occupation refusée avant tout envoi. */
+  retryable?: boolean;
   v: 1;
   type: "relay-result";
   status: RelayStatus;
   exitCode: number;
   from: { agent: string; session: string } | null;
   to: { agent: string; session: string; provider: ExternalProvider | null } | null;
-  /** Présent seulement pour `replied`. */
+  /** Réponse de l'agent ; conservée aussi si la publication d'une revue échoue ensuite. */
   reply?: string;
   delivery: DeliveryVerdict;
   identity: SessionIdentity | null;
@@ -88,6 +97,8 @@ export interface RelayResultV1 {
 
 /** État partagé avec le gestionnaire d'erreur interne, pour qualifier la délivrance. */
 interface RelayContext {
+  cli?: ReviewCliIdentity;
+  task?: ReviewReport;
   startedAt: number;
   messages: Messages;
   from: SessionRef | null;
@@ -173,7 +184,11 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (!from.ok) throw invalid(from.reason);
   context.from = from.value;
 
-  const message = await readRelayMessage(flags, positionals, messages);
+  if (flags.task !== undefined && flags.task !== "review") throw invalid("task-not-allowed");
+  const pr = typeof flags.pr === "string" ? parsePullRequest(flags.pr) : undefined;
+  if ((flags.task === "review" && (!pr || context.open || flags["trust-config"])) || (flags.pr && !flags.task)) throw invalid("invalid-pr");
+  const defaultReviewMessage = flags.task === "review" && positionals.length === 0 && !flags["message-file"];
+  let message = defaultReviewMessage ? "" : await readRelayMessage(flags, positionals, messages);
   const timeoutSeconds = parseTimeout(flags.timeout, messages);
 
   // Config : même résolution que les autres commandes, approbation exigée sans question interactive.
@@ -190,16 +205,24 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     throw invalid("config-unavailable");
   }
   let config: Awaited<ReturnType<typeof loadConfig>>;
+  let configFingerprint: string | undefined;
   try {
+    configFingerprint = flags.task ? createHash("sha256").update(await readFile(configPath)).digest("hex") : undefined;
     config = await loadConfig(configPath);
   } catch {
     throw invalid("config-unavailable");
+  }
+  if (pr) {
+    if (!reviewAllowed(config.relay, pr) || !(await isConfigTrusted(configPath))
+      || createHash("sha256").update(await readFile(configPath)).digest("hex") !== configFingerprint) throw invalid("task-not-allowed");
+    context.task = { name: "review", pr: pr.url, publication: "not-attempted" };
   }
   try {
     context.messages = createTranslator(resolveLanguage({ explicitLanguage: optionalString(flags.language), configLanguage: config.language }));
   } catch {
     // Langue de config invalide : la langue de démarrage reste utilisée.
   }
+  if (defaultReviewMessage) message = context.messages.relay.defaultReviewMessage;
 
   // Agent cible, fournisseur et exécutable, sans réutiliser les réglages de débat.
   const agent = config.agents[to.value.agent];
@@ -227,7 +250,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
 
   // Claude : cadre opérateur fixe (D22) dans la langue du relay, sans aucun contenu du message.
   const adapter: ExternalSessionAdapter = provider === "claude"
-    ? new ClaudeSessionAdapter({ operatorFrame: context.messages.relay.operatorFrame })
+    ? new ClaudeSessionAdapter({ operatorFrame: context.messages.relay.operatorFrame, safeMode: flags.task === "review" })
     : new CodexSessionAdapter();
   const located = adapter.locate(to.value);
   if (located.status !== "found") {
@@ -238,37 +261,72 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const decision = assessTarget(adapter.probe(located.target));
   if (!decision.allowed) throw new RelayRefusal({ status: decision.status });
 
+  if (pr && provider === "claude") {
+    const checked = await checkClaudeReviewCli(resolution.executable, located.target.cwd);
+    context.cli = checked.cli;
+    if (!checked.supported) throw invalid("review-cli-unsupported",
+      `version=${checked.cli.version ?? "unknown"}; minimum=${MIN_CLAUDE_REVIEW_VERSION}; path=${checked.cli.path}`);
+  }
+
+  let review: ReviewInput | undefined;
+  if (pr) {
+    try {
+      review = await readPullRequest(pr);
+      message = reviewPrompt(review, message);
+      context.task!.headSha = review.headSha;
+    } catch { throw invalid("review-unavailable"); }
+  }
+
   const nonce = createNonce();
   const envelope = buildEnvelope({ from: from.value, nonce, message }, context.messages.relay);
   const controller = new AbortController();
   const onInterrupt = () => controller.abort();
   process.once("SIGINT", onInterrupt);
   context.exchangeStarted = true;
-  let exchanged: ExchangeResult;
   try {
-    exchanged = await exchange(adapter, resolution.executable, located.target, envelope, {
+    const exchanged = await exchange(adapter, resolution.executable, located.target, envelope, {
       timeoutMs: timeoutSeconds * 1000,
       signal: controller.signal
     });
+    const { outcome, launched } = exchangeOutcome(exchanged);
+    const evidence = launched ? adapter.findNonce(located.target, nonce) : undefined;
+    const delivery = classifyDelivery({ outcome, launched, evidence });
+    const reply = outcome.status === "replied" ? exchanged.verdict?.interpretation.reply : undefined;
+    const result = buildResult(context, {
+      outcome,
+      delivery,
+      reply,
+      identity: exchanged.verdict?.interpretation.identity ?? null,
+      observedModels: exchanged.verdict?.interpretation.observedModels ?? []
+    });
+    if (review && reply !== undefined && outcome.status === "replied") {
+      try {
+        const reviewUrl = await publishReview(review, reply, to.value.agent, [from.value.sessionId, to.value.sessionId, nonce], undefined, async () => {
+          if (!(await isConfigTrusted(configPath))
+            || createHash("sha256").update(await readFile(configPath)).digest("hex") !== configFingerprint) throw new Error("review-authorization-changed");
+          if (controller.signal.aborted) throw new Error("review-cancelled");
+          context.task!.publication = "unknown";
+        });
+        context.task!.publication = "published";
+        context.task!.reviewUrl = reviewUrl;
+      } catch (error) {
+        const known = ["pull-request-changed", "review-authorization-changed", "invalid-review-body", "review-cancelled"];
+        const reason = error instanceof Error && known.includes(error.message) ? error.message
+          : context.task!.publication === "unknown" ? "review-publication-unconfirmed" : "review-publication-refused";
+        context.task!.error = reason;
+        result.status = "review-failed"; result.exitCode = RELAY_EXIT_CODES["review-failed"];
+        result.error = { kind: "review-failed", message: context.messages.relay.reviewFailure(reason) };
+      }
+    }
+    applyReviewCancellation(result, controller.signal.aborted, context.messages);
+    result.durationMs = Date.now() - context.startedAt;
+    if (flags["no-export"] !== true) {
+      result.exportPath = await exportRelay(resolveOutputDir(config.outputDir), result, { nonce, message, startedAt: context.startedAt }, context.messages);
+    }
+    return result;
   } finally {
     process.removeListener("SIGINT", onInterrupt);
   }
-
-  const { outcome, launched } = exchangeOutcome(exchanged);
-  const evidence = launched ? adapter.findNonce(located.target, nonce) : undefined;
-  const delivery = classifyDelivery({ outcome, launched, evidence });
-  const reply = outcome.status === "replied" ? exchanged.verdict?.interpretation.reply : undefined;
-  const result = buildResult(context, {
-    outcome,
-    delivery,
-    reply,
-    identity: exchanged.verdict?.interpretation.identity ?? null,
-    observedModels: exchanged.verdict?.interpretation.observedModels ?? []
-  });
-  if (flags["no-export"] !== true) {
-    result.exportPath = await exportRelay(resolveOutputDir(config.outputDir), result, { nonce, message, startedAt: context.startedAt }, context.messages);
-  }
-  return result;
 }
 
 /**
@@ -452,6 +510,9 @@ function buildResult(
   return {
     v: 1,
     type: "relay-result",
+    ...(context.task ? { task: context.task } : {}),
+    ...(context.cli ? { cli: context.cli } : {}),
+    ...(outcome.status === "target-busy" ? { retryable: true } : {}),
     status: outcome.status,
     exitCode: outcome.exitCode,
     from: context.from ? { agent: context.from.agent, session: context.from.sessionId } : null,
@@ -495,6 +556,8 @@ async function exportRelay(
       message: input.message,
       reply: result.reply,
       error: result.error?.message,
+      ...(result.task ? { task: result.task } : {}),
+      ...(result.cli ? { cli: result.cli } : {}),
       ...(result.mode === "open" && result.queue
         ? {
           open: {
@@ -524,18 +587,39 @@ function writeResult(result: RelayResultV1, json: boolean, messages: Messages): 
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }
+  const text = renderRelayText(result, messages);
+  process.stdout.write(text.stdout);
+  process.stderr.write(text.stderr);
+}
+
+/** Une interruption tardive n'efface jamais l'issue d'un POST déjà parti. */
+export function applyReviewCancellation(result: RelayResultV1, interrupted: boolean, messages: Messages): void {
+  if (!result.task || !interrupted) return;
+  result.task.cancelled = true;
+  if (result.task.publication !== "not-attempted") return;
+  result.status = "cancelled";
+  result.exitCode = RELAY_EXIT_CODES.cancelled;
+  result.error = { kind: "cancelled", message: messages.relay.status("cancelled") };
+}
+
+/** Même réponse en texte qu'en JSON, y compris après une publication refusée ou interrompue. */
+export function renderRelayText(result: RelayResultV1, messages: Messages): { stdout: string; stderr: string } {
   const lines: string[] = [];
+  const stdout = result.reply !== undefined ? `${sanitizeTerminalText(result.reply)}\n` : "";
   if (result.status === "replied") {
-    process.stdout.write(`${sanitizeTerminalText(result.reply ?? "")}\n`);
     lines.push(messages.relay.replied(result.to?.agent ?? ""));
   } else {
     lines.push(`${messages.relay.failed(result.status)} ${result.error?.message ?? ""}`.trim());
     lines.push(messages.relay.delivery(result.delivery.status));
+  }
+  if (result.task) {
+    lines.push(`${messages.relay.export.publication}: ${result.task.publication}`);
+    if (result.task.reviewUrl) lines.push(`${messages.relay.export.reviewUrl}: ${result.task.reviewUrl}`);
   }
   if (result.mode === "open") {
     lines.push(messages.relay.open.unverifiedReceiver);
     if (result.targetPermissions && result.targetPermissions !== "unknown") lines.push(messages.relay.open.permissions(permissionsSummary(result.targetPermissions)));
   }
   if (result.exportPath) lines.push(messages.relay.exportWritten(result.exportPath));
-  process.stderr.write(`${lines.map((line) => sanitizeTerminalText(line)).join("\n")}\n`);
+  return { stdout, stderr: `${lines.map((line) => sanitizeTerminalText(line)).join("\n")}\n` };
 }
