@@ -183,8 +183,8 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (flags.task !== undefined && flags.task !== "review") throw invalid("task-not-allowed");
   const pr = typeof flags.pr === "string" ? parsePullRequest(flags.pr) : undefined;
   if ((flags.task === "review" && (!pr || context.open || flags["trust-config"])) || (flags.pr && !flags.task)) throw invalid("invalid-pr");
-  let message = flags.task === "review" && positionals.length === 0 && !flags["message-file"]
-    ? "Review the specified pull request." : await readRelayMessage(flags, positionals, messages);
+  const defaultReviewMessage = flags.task === "review" && positionals.length === 0 && !flags["message-file"];
+  let message = defaultReviewMessage ? "" : await readRelayMessage(flags, positionals, messages);
   const timeoutSeconds = parseTimeout(flags.timeout, messages);
 
   // Config : même résolution que les autres commandes, approbation exigée sans question interactive.
@@ -218,6 +218,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   } catch {
     // Langue de config invalide : la langue de démarrage reste utilisée.
   }
+  if (defaultReviewMessage) message = context.messages.relay.defaultReviewMessage;
 
   // Agent cible, fournisseur et exécutable, sans réutiliser les réglages de débat.
   const agent = config.agents[to.value.agent];
@@ -245,7 +246,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
 
   // Claude : cadre opérateur fixe (D22) dans la langue du relay, sans aucun contenu du message.
   const adapter: ExternalSessionAdapter = provider === "claude"
-    ? new ClaudeSessionAdapter({ operatorFrame: context.messages.relay.operatorFrame })
+    ? new ClaudeSessionAdapter({ operatorFrame: context.messages.relay.operatorFrame, safeMode: flags.task === "review" })
     : new CodexSessionAdapter();
   const located = adapter.locate(to.value);
   if (located.status !== "found") {
@@ -272,46 +273,54 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const onInterrupt = () => controller.abort();
   process.once("SIGINT", onInterrupt);
   context.exchangeStarted = true;
-  let exchanged: ExchangeResult;
   try {
-    exchanged = await exchange(adapter, resolution.executable, located.target, envelope, {
+    const exchanged = await exchange(adapter, resolution.executable, located.target, envelope, {
       timeoutMs: timeoutSeconds * 1000,
       signal: controller.signal
     });
+    const { outcome, launched } = exchangeOutcome(exchanged);
+    const evidence = launched ? adapter.findNonce(located.target, nonce) : undefined;
+    const delivery = classifyDelivery({ outcome, launched, evidence });
+    const reply = outcome.status === "replied" ? exchanged.verdict?.interpretation.reply : undefined;
+    const result = buildResult(context, {
+      outcome,
+      delivery,
+      reply,
+      identity: exchanged.verdict?.interpretation.identity ?? null,
+      observedModels: exchanged.verdict?.interpretation.observedModels ?? []
+    });
+    if (review && reply !== undefined && outcome.status === "replied") {
+      try {
+        const reviewUrl = await publishReview(review, reply, to.value.agent, [from.value.sessionId, to.value.sessionId, nonce], undefined, async () => {
+          if (!(await isConfigTrusted(configPath))
+            || createHash("sha256").update(await readFile(configPath)).digest("hex") !== configFingerprint) throw new Error("review-authorization-changed");
+          if (controller.signal.aborted) throw new Error("review-cancelled");
+          context.task!.publication = "unknown";
+        });
+        context.task!.publication = "published";
+        context.task!.reviewUrl = reviewUrl;
+      } catch (error) {
+        const known = ["pull-request-changed", "review-authorization-changed", "invalid-review-body", "review-cancelled"];
+        const reason = error instanceof Error && known.includes(error.message) ? error.message
+          : context.task!.publication === "unknown" ? "review-publication-unconfirmed" : "review-publication-refused";
+        context.task!.error = reason;
+        result.status = "review-failed"; result.exitCode = RELAY_EXIT_CODES["review-failed"];
+        result.error = { kind: "review-failed", message: context.messages.relay.reviewFailure(reason) };
+      }
+    }
+    if (review && controller.signal.aborted) {
+      context.task!.cancelled = true;
+      result.status = "cancelled"; result.exitCode = RELAY_EXIT_CODES.cancelled;
+      result.error = { kind: "cancelled", message: context.messages.relay.status("cancelled") };
+    }
+    result.durationMs = Date.now() - context.startedAt;
+    if (flags["no-export"] !== true) {
+      result.exportPath = await exportRelay(resolveOutputDir(config.outputDir), result, { nonce, message, startedAt: context.startedAt }, context.messages);
+    }
+    return result;
   } finally {
     process.removeListener("SIGINT", onInterrupt);
   }
-
-  const { outcome, launched } = exchangeOutcome(exchanged);
-  const evidence = launched ? adapter.findNonce(located.target, nonce) : undefined;
-  const delivery = classifyDelivery({ outcome, launched, evidence });
-  const reply = outcome.status === "replied" ? exchanged.verdict?.interpretation.reply : undefined;
-  const result = buildResult(context, {
-    outcome,
-    delivery,
-    reply,
-    identity: exchanged.verdict?.interpretation.identity ?? null,
-    observedModels: exchanged.verdict?.interpretation.observedModels ?? []
-  });
-  if (review && reply !== undefined && outcome.status === "replied") {
-    try {
-      const reviewUrl = await publishReview(review, reply, to.value.agent, [from.value.sessionId, to.value.sessionId, nonce], undefined, async () => {
-        if (!(await isConfigTrusted(configPath))
-          || createHash("sha256").update(await readFile(configPath)).digest("hex") !== configFingerprint) throw new Error("review-authorization-changed");
-        context.task!.publication = "unknown";
-      });
-      context.task!.publication = "published";
-      context.task!.reviewUrl = reviewUrl;
-    } catch {
-      context.task!.error = "review-publication-unconfirmed";
-      result.status = "review-failed"; result.exitCode = RELAY_EXIT_CODES["review-failed"];
-      result.error = { kind: "review-failed", message: context.messages.relay.status("review-failed") };
-    }
-  }
-  if (flags["no-export"] !== true) {
-    result.exportPath = await exportRelay(resolveOutputDir(config.outputDir), result, { nonce, message, startedAt: context.startedAt }, context.messages);
-  }
-  return result;
 }
 
 /**
@@ -570,18 +579,29 @@ function writeResult(result: RelayResultV1, json: boolean, messages: Messages): 
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }
+  const text = renderRelayText(result, messages);
+  process.stdout.write(text.stdout);
+  process.stderr.write(text.stderr);
+}
+
+/** Même réponse en texte qu'en JSON, y compris après une publication refusée ou interrompue. */
+export function renderRelayText(result: RelayResultV1, messages: Messages): { stdout: string; stderr: string } {
   const lines: string[] = [];
+  const stdout = result.reply !== undefined ? `${sanitizeTerminalText(result.reply)}\n` : "";
   if (result.status === "replied") {
-    process.stdout.write(`${sanitizeTerminalText(result.reply ?? "")}\n`);
     lines.push(messages.relay.replied(result.to?.agent ?? ""));
   } else {
     lines.push(`${messages.relay.failed(result.status)} ${result.error?.message ?? ""}`.trim());
     lines.push(messages.relay.delivery(result.delivery.status));
+  }
+  if (result.task) {
+    lines.push(`${messages.relay.export.publication}: ${result.task.publication}`);
+    if (result.task.reviewUrl) lines.push(`${messages.relay.export.reviewUrl}: ${result.task.reviewUrl}`);
   }
   if (result.mode === "open") {
     lines.push(messages.relay.open.unverifiedReceiver);
     if (result.targetPermissions && result.targetPermissions !== "unknown") lines.push(messages.relay.open.permissions(permissionsSummary(result.targetPermissions)));
   }
   if (result.exportPath) lines.push(messages.relay.exportWritten(result.exportPath));
-  process.stderr.write(`${lines.map((line) => sanitizeTerminalText(line)).join("\n")}\n`);
+  return { stdout, stderr: `${lines.map((line) => sanitizeTerminalText(line)).join("\n")}\n` };
 }

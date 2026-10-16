@@ -12,6 +12,7 @@ export interface ReviewReport {
   publication: "not-attempted" | "published" | "unknown";
   reviewUrl?: string;
   error?: string;
+  cancelled?: boolean;
 }
 const repoName = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/;
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);

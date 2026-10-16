@@ -37,6 +37,10 @@ Palabre récupère la description et le diff complet d'une PR ouverte, les marqu
 
 Le modèle rend uniquement le texte de revue ; **Palabre publie une revue COMMENT**, liée au commit relu, sur cette PR exacte. Le modèle ne modifie aucun fichier, ne commite, ne pousse, ne merge et ne publie pas lui-même. Les identifiants locaux de l'enveloppe sont masqués dans le texte publié ; ils restent dans l'export local. Cela ne remplace pas une vigilance sur les secrets déjà présents dans le contexte.
 
+Safe-mode ne s'applique qu'à `review` : les notifications et consultations ordinaires gardent leurs arguments et personnalisations historiques. L'approbation est une règle opérateur ; elle n'isole pas un agent disposant déjà d'un shell en écriture et du registre de confiance, qui pourrait réapprouver le fichier par une autre commande. Le contenu d'une sonnette ne peut pas, lui, étendre la politique.
+
+Un premier Ctrl+C reste pris en charge jusqu'au résultat et à l'export : avant le POST, il empêche la publication ; si le POST est déjà parti, Palabre attend son issue bornée plutôt que de prétendre l'annuler. La réponse est conservée aussi en sortie texte sans export ; état et URL de publication sont affichés séparément. Un refus certain avant POST (`not-attempted`) est distingué d'un retour de publication inconnu.
+
 Avant publication, la tête de PR et la configuration approuvée sont revérifiées. La publication ne vise qu'un commit explicitement indiqué ; une modification ultérieure de la PR ne transforme pas la revue en validation de nouveaux changements. Le résultat JSON expose `task` avec PR, commit, état de publication et URL ; l'export `.relay.md` reprend ces éléments. Le timeout de Relay borne l'appel au collègue ; les commandes GitHub ont chacune leur propre limite de 60 s.
 
 Un échec de publication sort en code **9**, `review-failed`, et conserve la réponse du collègue ainsi que sa délivrance. `publication: unknown` signifie qu'une revue peut avoir été publiée malgré une erreur de retour : **aucun nouvel essai automatique**. Vérifier GitHub avant de redemander. L'autorisation de revue n'est jamais une autorisation de merge.

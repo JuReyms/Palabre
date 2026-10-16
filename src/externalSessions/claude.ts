@@ -33,6 +33,8 @@ import type {
 
 /** Options injectables ; les valeurs par défaut lisent l'installation de l'utilisateur. */
 export interface ClaudeAdapterOptions {
+  /** Neutralise les personnalisations pour une revue ; les consultations historiques restent inchangées. */
+  safeMode?: boolean;
   /** Racine `~/.claude`. */
   home?: string;
   /** Vivacité d'un PID ; `pidLiveness` par défaut. */
@@ -67,13 +69,13 @@ const asObject = (value: unknown): JsonObject | undefined =>
   value && typeof value === "object" && !Array.isArray(value) ? (value as JsonObject) : undefined;
 
 /** Arguments de reprise en lecture seule renforcée, hors exécutable. */
-export function claudeResumeArgs(sessionId: string, operatorFrame: string): string[] {
+export function claudeResumeArgs(sessionId: string, operatorFrame: string, safeMode = false): string[] {
   return [
     "-p",
     "--output-format", "stream-json",
     "--verbose",
     "--permission-mode", "plan",
-    "--safe-mode",
+    ...(safeMode ? ["--safe-mode"] : []),
     "--tools", "Read,Glob,Grep",
     "--strict-mcp-config",
     "--settings", JSON.stringify({ disableAllHooks: true }),
@@ -231,8 +233,10 @@ export class ClaudeSessionAdapter implements ExternalSessionAdapter {
   private readonly home: string;
   private readonly liveness: (pid: number) => Liveness;
   private readonly operatorFrame: string;
+  private readonly safeMode: boolean;
 
   constructor(options: ClaudeAdapterOptions = {}) {
+    this.safeMode = options.safeMode === true;
     this.home = options.home ?? path.join(os.homedir(), ".claude");
     this.liveness = options.liveness ?? ((pid) => pidLiveness(pid));
     this.operatorFrame = options.operatorFrame ?? relayMessages.fr.operatorFrame;
@@ -283,7 +287,7 @@ export class ClaudeSessionAdapter implements ExternalSessionAdapter {
   }
 
   resumeArgs(target: ExternalTarget): string[] {
-    return claudeResumeArgs(target.sessionId, this.operatorFrame);
+    return claudeResumeArgs(target.sessionId, this.operatorFrame, this.safeMode);
   }
 
   /**

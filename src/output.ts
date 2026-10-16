@@ -249,8 +249,8 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     [labels.nonce, report.nonce],
     [labels.startedAt, report.startedAt],
     ...(report.task ? [
-      ["Task", report.task.name], ["PR", report.task.pr], ["Commit", report.task.headSha ?? labels.unknown],
-      ["Publication", report.task.publication], ["Review", report.task.reviewUrl ?? labels.none]
+      [labels.task, report.task.name], [labels.pullRequest, report.task.pr], [labels.commit, report.task.headSha ?? labels.unknown],
+      [labels.publication, report.task.publication], [labels.reviewUrl, report.task.reviewUrl ?? labels.none]
     ] : []),
     ...(report.open
       ? [

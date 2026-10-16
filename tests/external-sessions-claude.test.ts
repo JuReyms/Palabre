@@ -50,15 +50,22 @@ function target(cwd: string): ExternalTarget {
 }
 
 describe("claudeResumeArgs", () => {
+  test("l'adapter réserve safe-mode à l'option de revue", () => {
+    const target: ExternalTarget = { agent: "claude", provider: "claude", sessionId: SESSION, cwd: process.cwd() };
+    assert.equal(new ClaudeSessionAdapter().resumeArgs(target).includes("--safe-mode"), false);
+    assert.equal(new ClaudeSessionAdapter({ safeMode: true }).resumeArgs(target).includes("--safe-mode"), true);
+  });
   test("lecture seule renforcée, hooks coupés, cadre opérateur, reprise par identifiant, sans --model", () => {
     const frame = relayMessages.fr.operatorFrame;
     const args = claudeResumeArgs(SESSION, frame);
     assert.deepEqual(args, [
-      "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "plan", "--safe-mode",
+      "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "plan",
       "--tools", "Read,Glob,Grep", "--strict-mcp-config", "--settings", "{\"disableAllHooks\":true}",
       "--append-system-prompt", frame, "--resume", SESSION
     ]);
     assert.equal(args.includes("--model"), false);
+    assert.equal(args.includes("--safe-mode"), false);
+    assert.equal(claudeResumeArgs(SESSION, frame, true).includes("--safe-mode"), true);
   });
 });
 

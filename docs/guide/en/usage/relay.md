@@ -37,6 +37,10 @@ Palabre fetches an open PR and its complete diff, labels their contents as untru
 
 **Palabre publishes a COMMENT review**, bound to the reviewed commit and exact PR. The model only returns review text: no file edits, commits, pushes, merges or direct publishing. Envelope-local identifiers are redacted from the published text and retained in the local export; this is not general secret detection.
 
+Safe-mode applies only to `review`; ordinary notifications retain their historical arguments and customizations. Configuration approval is an operator boundary, not isolation from an agent that already has a writable shell and access to the trust store: such an agent could reapprove the file through another command. A relay message itself cannot extend the policy.
+
+The first Ctrl+C remains handled through the result and export. Before the POST it prevents publishing; after the POST starts, Palabre waits for its bounded outcome rather than claiming to undo it. The reply is retained even in plain text without export, with publication state and URL displayed separately. A definite pre-POST refusal (`not-attempted`) is distinguished from an unknown publishing outcome.
+
 PR head and trusted configuration are rechecked before publishing. Later commits are not covered by a review of an earlier commit. JSON `task` and `.relay.md` include PR, commit, publication state and review URL. Relay's timeout covers the colleague invocation; each GitHub command has its own 60-second limit.
 
 Publication failure exits **9**, `review-failed`, retaining the colleague reply and its delivery verdict. `publication: unknown` means publishing may have succeeded despite a missing or invalid response: never retry automatically, and inspect GitHub first. Review authorization never permits merging.

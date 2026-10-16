@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { validateRelayPolicy, parsePullRequest, reviewAllowed, readPullRequest, reviewPrompt, publishReview, type GitHubRun } from "../src/externalSessions/review.js";
+import { renderRelayText, type RelayResultV1 } from "../src/commands/relay.js";
+import { renderRelayMarkdown } from "../src/output.js";
+import { createTranslator } from "../src/i18n.js";
 
 const pr = parsePullRequest("https://github.com/JuReyms/Palabre/pull/123")!;
 const head = "a".repeat(40);
@@ -76,4 +79,33 @@ test("corps vide ou trop long : aucune commande GitHub", async () => {
   for (const reply of ["  ", "é".repeat(30001)]) {
     await assert.rejects(publishReview(input, reply, "claude", [], async () => { assert.fail("commande interdite"); }));
   }
+});
+
+test("texte et export gardent la revue sans --json ni export, même si la publication échoue", () => {
+  const result: RelayResultV1 = { v: 1, type: "relay-result", status: "review-failed", exitCode: 9,
+    from: { agent: "codex", session: "local-from" }, to: { agent: "claude", session: "local-to", provider: "claude" },
+    reply: "Revue conservée", delivery: { status: "replied", persisted: true, inActiveBranch: true }, identity: "same-as-target",
+    observedModels: [], error: { kind: "review-failed", message: "échec" }, exportPath: null, durationMs: 1,
+    task: { name: "review", pr: pr.url, headSha: head, publication: "not-attempted" } };
+  for (const language of ["fr", "en"] as const) {
+    const messages = createTranslator(language);
+    const text = renderRelayText(result, messages);
+    assert.equal(text.stdout, "Revue conservée\n"); assert.match(text.stderr, /not-attempted/);
+    const success = { ...result, status: "replied" as const, exitCode: 0, error: null,
+      task: { ...result.task!, publication: "published" as const, reviewUrl: pr.url + "#pullrequestreview-7" } };
+    assert.ok(renderRelayText(success, messages).stderr.includes(success.task.reviewUrl));
+    const markdown = renderRelayMarkdown({ from: result.from!, to: result.to! as { agent: string; session: string; provider: string },
+      status: result.status, delivery: result.delivery, identity: result.identity, observedModels: [], nonce: "local-nonce",
+      startedAt: "2026-10-16T00:00:00Z", message: "review", reply: result.reply, task: result.task }, messages, { palabreVersion: "test" });
+    assert.ok(markdown.includes(messages.relay.export.task)); assert.ok(markdown.includes(head)); assert.match(markdown, /Revue conservée/);
+    assert.notEqual(messages.relay.reviewFailure("pull-request-changed"), messages.relay.reviewFailure("review-publication-unconfirmed"));
+  }
+});
+
+test("annulation avant POST dans le dernier contrôle : aucune publication", async () => {
+  const controller = new AbortController(); let posts = 0;
+  await assert.rejects(publishReview(input, "review", "claude", [], async (_args, body) => {
+    if (body) posts++; controller.abort(); return meta();
+  }, async () => { if (controller.signal.aborted) throw Error("review-cancelled"); }), /review-cancelled/);
+  assert.equal(posts, 0);
 });
