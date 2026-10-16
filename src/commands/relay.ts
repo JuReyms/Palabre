@@ -262,7 +262,6 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     try {
       review = await readPullRequest(pr);
       message = reviewPrompt(review, message);
-      if (!validateRelayMessage(message).ok) throw new Error("review-too-large");
       context.task!.headSha = review.headSha;
     } catch { throw invalid("review-unavailable"); }
   }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { validateRelayPolicy, parsePullRequest, reviewAllowed, readPullRequest, reviewPrompt, publishReview, type GitHubRun } from "../src/externalSessions/review.js";
+import { validateRelayPolicy, parsePullRequest, reviewAllowed, readPullRequest, reviewPrompt, publishReview, MAX_REVIEW_CONTEXT_BYTES, type GitHubRun } from "../src/externalSessions/review.js";
 import { renderRelayText, type RelayResultV1 } from "../src/commands/relay.js";
 import { renderRelayMarkdown } from "../src/output.js";
 import { createTranslator } from "../src/i18n.js";
@@ -40,6 +40,15 @@ test("contexte lu, non tronqué, tête contrôlée de part et d'autre du diff", 
 test("changement de tête pendant lecture interdit la revue", async () => {
   let n = 0;
   await assert.rejects(readPullRequest(pr, async args => args.includes("-H") ? "diff" : meta(++n === 1 ? head : "b".repeat(40))), /changed/);
+});
+test("contexte de PR supérieur à 64 Kio admis, borne propre à 256 Kio en octets", async () => {
+  const read = (diff: string) => readPullRequest(pr, async args => args.includes("-H") ? diff : meta());
+  const sample = await read("a".repeat(70000));
+  assert.ok(Buffer.byteLength(sample.context) > 65536);
+  const overhead = Buffer.byteLength((await read("")).context);
+  assert.equal(Buffer.byteLength((await read("a".repeat(MAX_REVIEW_CONTEXT_BYTES - overhead))).context), MAX_REVIEW_CONTEXT_BYTES);
+  await assert.rejects(read("a".repeat(MAX_REVIEW_CONTEXT_BYTES - overhead + 1)), /review-too-large/);
+  await assert.rejects(read("é".repeat(MAX_REVIEW_CONTEXT_BYTES / 2)), /review-too-large/);
 });
 test("métadonnées d'une autre PR et PR fermée sont refusées", async () => {
   for (const override of [{ number: 124 }, { state: "closed" }, { base: { repo: { full_name: "a/b" } } }, { head: { sha: "bad" } }]) {

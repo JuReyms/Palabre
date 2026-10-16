@@ -37,6 +37,8 @@ Palabre récupère la description et le diff complet d'une PR ouverte, les marqu
 
 Le modèle rend uniquement le texte de revue ; **Palabre publie une revue COMMENT**, liée au commit relu, sur cette PR exacte. Le modèle ne modifie aucun fichier, ne commite, ne pousse, ne merge et ne publie pas lui-même. Les identifiants locaux de l'enveloppe sont masqués dans le texte publié ; ils restent dans l'export local. Cela ne remplace pas une vigilance sur les secrets déjà présents dans le contexte.
 
+Le message de coordination reste limité à 64 Kio UTF-8 ; le contexte GitHub ajouté par Palabre dispose d'une borne séparée de 256 Kio UTF-8, JSON compris. Au-delà, la revue est refusée avant l'appel au modèle ; aucun diff tronqué n'est envoyé.
+
 Safe-mode ne s'applique qu'à `review` : les notifications et consultations ordinaires gardent leurs arguments et personnalisations historiques. L'approbation est une règle opérateur ; elle n'isole pas un agent disposant déjà d'un shell en écriture et du registre de confiance, qui pourrait réapprouver le fichier par une autre commande. Le contenu d'une sonnette ne peut pas, lui, étendre la politique.
 
 Un premier Ctrl+C reste pris en charge jusqu'au résultat et à l'export : avant le POST, il empêche la publication ; si le POST est déjà parti, Palabre attend son issue bornée plutôt que de prétendre l'annuler. La réponse est conservée aussi en sortie texte sans export ; état et URL de publication sont affichés séparément. Un refus certain avant POST (`not-attempted`) est distingué d'un retour de publication inconnu.
