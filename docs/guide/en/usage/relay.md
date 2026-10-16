@@ -35,7 +35,7 @@ The message is optional with `review`. GitHub CLI (`gh`) must be installed and a
 
 Palabre fetches an open PR and its complete diff, labels their contents as untrusted data and asks the read-only colleague for a Markdown review. Oversized PRs are rejected rather than silently truncated. Claude uses `--safe-mode`, Read/Glob/Grep only and no MCP servers.
 
-The Claude `review` task requires **Claude Code 2.1.292 or later** and `--safe-mode` in its help output. Before reading the PR, Palabre probes `--version` and then `--help` on the resolved CLI (configured command, or first PATH match), without a model call. An unsupported or unverifiable CLI produces `invalid-request` with `error.reason: "review-cli-unsupported"` (exit code 8), the detected version and the minimum; no PR is read and no review is published. Configure the newer CLI's explicit path when multiple versions coexist; do not remove `--safe-mode`.
+The Claude `review` task requires **Claude Code 2.1.292 or later** and `--safe-mode` in its help output. Before reading the PR, Palabre probes `--version` and then `--help` on the resolved CLI (configured command, or first PATH match), without a model call. An unsupported or unverifiable CLI produces `invalid-request` with `error.reason: "review-cli-unsupported"` (exit code 8), the detected version and the minimum; no PR is read and no review is published. When multiple versions coexist, use the dedicated agent described under “Multiple Claude CLIs on the same machine”; do not remove `--safe-mode`.
 
 The optional `cli` field in `--json` reports `path` and `version` for this check (`null` version when unverifiable). The review's `.relay.md` export includes the same path and version; for a recognized npm shim, the path identifies the directly launched CLI script. Ordinary notifications keep their existing arguments without this version requirement.
 
@@ -57,6 +57,35 @@ Mission v2 will add controlled orchestration, roles, budgets and human decisions
 
 ```bash
 palabre relay --from codex:<sender-session> --to claude:<target-session> "Can you review this plan?"
+```
+
+## Multiple Claude CLIs on the same machine
+
+PATH ordering can cause an older Claude CLI to be detected before the newer installation. Changing only `agents.claude.command` to an absolute path is insufficient: opening the TUI home or running `palabre config --sync-agents` calls `applyDetectedCommands`, which replaces this command with the detected one.
+
+Instead, add a dedicated `claude-review` agent to the existing `agents` in `palabre.config.json`, preserving the rest of the configuration and its `relay` policy:
+
+```json
+{
+  "agents": {
+    "claude-review": {
+      "type": "cli",
+      "command": "C:/Tools/Claude/claude.exe",
+      "args": ["--print", "--output-format", "text", "--no-session-persistence", "--tools", "Read,Glob,Grep"],
+      "promptMode": "stdin",
+      "shell": false,
+      "role": "reviewer"
+    }
+  }
+}
+```
+
+Replace the example path with the absolute path to your **Claude Code 2.1.292 or later** CLI. Copy the same `args` as your `claude` agent; the example shows the defaults. Relay builds its own resume arguments. After editing, the owner must approve the updated configuration as described above.
+
+Synchronization only updates known agent keys, including `claude`, and leaves `claude-review` untouched. Relay recognizes Claude by normalizing the program name (`claude.exe`), independently of the agent name. The `review-cli-unsupported` check still verifies the selected CLI before any GitHub read.
+
+```text
+palabre relay --from codex:<uuid> --to claude-review:<session> --task review --pr https://github.com/owner/repository/pull/123 --json
 ```
 
 ## Closed conversations by default

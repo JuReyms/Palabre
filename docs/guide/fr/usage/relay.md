@@ -35,7 +35,7 @@ Le message est facultatif avec `review`. GitHub CLI (`gh`) doit être installé 
 
 Palabre récupère la description et le diff complet d'une PR ouverte, les marque comme données non fiables et les transmet au collègue en lecture seule. Une PR trop grande est refusée, jamais relue silencieusement sur un diff tronqué. Claude est lancé avec `--safe-mode`, les seuls outils Read/Glob/Grep et aucun MCP.
 
-La tâche `review` avec Claude exige **Claude Code 2.1.292 au minimum** et la présence de `--safe-mode` dans son aide. Avant toute lecture de la PR, Palabre sonde `--version` puis `--help` sur la CLI effectivement résolue (commande configurée, ou premier résultat du PATH), sans appel de modèle. Une CLI incompatible ou non vérifiable produit `invalid-request` avec `error.reason: "review-cli-unsupported"` (code 8), la version trouvée et le minimum ; aucune PR n'est lue ni revue publiée. Choisis explicitement le chemin de la CLI récente dans la configuration si plusieurs versions coexistent ; ne retire pas `--safe-mode`.
+La tâche `review` avec Claude exige **Claude Code 2.1.292 au minimum** et la présence de `--safe-mode` dans son aide. Avant toute lecture de la PR, Palabre sonde `--version` puis `--help` sur la CLI effectivement résolue (commande configurée, ou premier résultat du PATH), sans appel de modèle. Une CLI incompatible ou non vérifiable produit `invalid-request` avec `error.reason: "review-cli-unsupported"` (code 8), la version trouvée et le minimum ; aucune PR n'est lue ni revue publiée. Si plusieurs versions coexistent, utilise l'agent dédié décrit dans « Plusieurs CLI Claude sur la même machine » ; ne retire pas `--safe-mode`.
 
 Le champ optionnel `cli` du résultat `--json` donne `path` et `version` pour cette vérification (version `null` si non vérifiable). Le même chemin et la même version figurent dans l'export `.relay.md` de la revue ; avec un shim npm reconnu, le chemin désigne le script CLI lancé directement. Les notifications ordinaires gardent leurs arguments historiques, sans cette exigence de version.
 
@@ -57,6 +57,35 @@ Mission v2 ajoutera l'orchestration des échanges, rôles, budgets et décisions
 
 ```bash
 palabre relay --from codex:<session-expéditeur> --to claude:<session-cible> "Peux-tu relire ce plan ?"
+```
+
+## Plusieurs CLI Claude sur la même machine
+
+Une ancienne CLI Claude peut être détectée avant la CLI récente selon l'ordre du PATH. Modifier seulement `agents.claude.command` pour y mettre un chemin absolu ne suffit pas : à l'accueil TUI et avec `palabre config --sync-agents`, `applyDetectedCommands` remplace cette commande par celle détectée.
+
+Ajoute plutôt un agent dédié `claude-review` dans les `agents` existants de ton `palabre.config.json`, sans remplacer le reste de la configuration ni sa politique `relay` :
+
+```json
+{
+  "agents": {
+    "claude-review": {
+      "type": "cli",
+      "command": "C:/Tools/Claude/claude.exe",
+      "args": ["--print", "--output-format", "text", "--no-session-persistence", "--tools", "Read,Glob,Grep"],
+      "promptMode": "stdin",
+      "shell": false,
+      "role": "reviewer"
+    }
+  }
+}
+```
+
+Remplace le chemin d'exemple par le chemin absolu de ta CLI Claude Code **2.1.292 ou plus récente**. Recopie les mêmes `args` que ton agent `claude` ; ceux de l'exemple sont les valeurs par défaut. Relay construit lui-même ses arguments de reprise. Après modification, le propriétaire doit réapprouver la configuration selon la procédure ci-dessus.
+
+La synchronisation ne touche que les clés d'agents connus, dont `claude`, et laisse `claude-review` intact. Relay reconnaît Claude en normalisant le nom du programme (`claude.exe`), indépendamment du nom donné à l'agent. La sonde `review-cli-unsupported` continue de vérifier la CLI choisie avant toute lecture GitHub.
+
+```text
+palabre relay --from codex:<uuid> --to claude-review:<session> --task review --pr https://github.com/proprietaire/depot/pull/123 --json
 ```
 
 ## Conversation fermée par défaut
