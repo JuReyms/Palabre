@@ -196,6 +196,7 @@ function formatAgentsForHeader(options: DebateOptions): string {
 
 /** Données d'un export `.relay.md` (voir AGENTS.md, section "Relay externe"). */
 export interface RelayExport {
+  cli?: { path: string; version: string | null };
   task?: { name: "review"; pr: string; headSha?: string; publication: string; reviewUrl?: string; error?: string };
   from: { agent: string; session: string };
   to: { agent: string; session: string; provider: string };
@@ -248,6 +249,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     [labels.observedModels, report.observedModels.length > 0 ? report.observedModels.join(", ") : labels.none],
     [labels.nonce, report.nonce],
     [labels.startedAt, report.startedAt],
+    ...(report.cli ? [[labels.cliPath, report.cli.path], [labels.cliVersion, report.cli.version ?? labels.unknown]] : []),
     ...(report.task ? [
       [labels.task, report.task.name], [labels.pullRequest, report.task.pr], [labels.commit, report.task.headSha ?? labels.unknown],
       [labels.publication, report.task.publication], [labels.reviewUrl, report.task.reviewUrl ?? labels.none]

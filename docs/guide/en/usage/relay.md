@@ -33,7 +33,11 @@ palabre relay --from codex:<uuid> --to claude:<uuid> --task review --pr https://
 
 The message is optional with `review`. GitHub CLI (`gh`) must be installed and authenticated. Only explicitly listed GitHub.com repositories are allowed. Unknown tasks, unlisted repositories, ambiguous URLs and `--open` are refused. Without the policy, ordinary read-only notifications remain available, but reviews cannot be published.
 
-Palabre fetches an open PR and its complete diff, labels their contents as untrusted data and asks the read-only colleague for a Markdown review. Oversized PRs are rejected rather than silently truncated. Claude uses `--safe-mode` (verified with 2.1.292), Read/Glob/Grep only and no MCP servers. An older CLI that does not support the option fails; do not remove it to bypass refusal.
+Palabre fetches an open PR and its complete diff, labels their contents as untrusted data and asks the read-only colleague for a Markdown review. Oversized PRs are rejected rather than silently truncated. Claude uses `--safe-mode`, Read/Glob/Grep only and no MCP servers.
+
+The Claude `review` task requires **Claude Code 2.1.292 or later** and `--safe-mode` in its help output. Before reading the PR, Palabre probes `--version` and then `--help` on the resolved CLI (configured command, or first PATH match), without a model call. An unsupported or unverifiable CLI produces `invalid-request` with `error.reason: "review-cli-unsupported"` (exit code 8), the detected version and the minimum; no PR is read and no review is published. Configure the newer CLI's explicit path when multiple versions coexist; do not remove `--safe-mode`.
+
+The optional `cli` field in `--json` reports `path` and `version` for this check (`null` version when unverifiable). The review's `.relay.md` export includes the same path and version; for a recognized npm shim, the path identifies the directly launched CLI script. Ordinary notifications keep their existing arguments without this version requirement.
 
 **Palabre publishes a COMMENT review**, bound to the reviewed commit and exact PR. The model only returns review text: no file edits, commits, pushes, merges or direct publishing. Envelope-local identifiers are redacted from the published text and retained in the local export; this is not general secret detection.
 

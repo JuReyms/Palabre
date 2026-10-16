@@ -127,6 +127,30 @@ const toCodex = ["--from", `claude:${CLAUDE_SESSION}`, "--to", `codex:${CODEX_SE
 
 describe("palabre relay : tâche revue", () => {
   const pr = "https://github.com/JuReyms/Palabre/pull/123";
+  test("CLI sans --safe-mode : refus avant lecture GitHub et reprise, avec chemin et versions", async () => {
+    for (const version of ["2.1.85", "2.1.292"]) {
+      const w = makeWorld(); const p = path.join(w.workspace, "palabre.config.json");
+      const config = JSON.parse(readFileSync(p, "utf8"));
+      config.relay = { allowedTasks: ["review"], reviewRepositories: ["JuReyms/Palabre"] };
+      writeFileSync(p, JSON.stringify(config));
+      assert.equal((await relay(w, [...toClaude, "notification", "--trust-config", "--no-export", "--json"])).code, 0);
+      writeFileSync(w.marker, "");
+      const before = readFileSync(w.transcript, "utf8");
+      const r = await relay(w, [...toClaude, "--task", "review", "--pr", pr, "--json"],
+        { FAKE_CLAUDE_VERSION: version, FAKE_CLAUDE_SAFE_MODE: "0" });
+      assert.equal(r.code, 8); assert.equal(r.json.error.reason, "review-cli-unsupported");
+      assert.ok(r.json.error.message.includes(`version=${version}`));
+      assert.match(r.json.error.message, /minimum=2\.1\.292/);
+      assert.equal(r.json.cli.version, version);
+      assert.equal(r.json.cli.path, process.platform === "win32"
+        ? path.join(w.bin, "node_modules", "fake-claude", "cli.js") : path.join(w.bin, "claude"));
+      assert.deepEqual(r.calls.map(call => call.argv.at(-1)), ["--version", "--help"]);
+      assert.ok(r.calls.every(call => call.stdin === "" && !call.argv.includes("--resume")));
+      assert.equal(r.json.task.publication, "not-attempted"); assert.equal(r.json.task.headSha, undefined);
+      assert.equal(r.json.delivery.status, "not-delivered"); assert.equal(r.json.exportPath, null);
+      assert.equal(readFileSync(w.transcript, "utf8"), before);
+    }
+  });
   test("une tâche inconnue, une PR ambiguë, --open ou --trust-config ne lancent rien", async () => {
     for (const extra of [["--task", "code"], ["--pr", pr], ["--task", "review", "--pr", pr + "?x=y"],
       ["--task", "review", "--pr", pr, "--open"], ["--task", "review", "--pr", pr, "--trust-config"]]) {

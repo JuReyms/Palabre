@@ -148,6 +148,7 @@ export type InvalidRequestReason =
   | "task-not-allowed"
   | "invalid-pr"
   | "review-unavailable"
+  | "review-cli-unsupported"
   | "invalid-arguments"
   | "invalid-session-id"
   | "message-too-large"

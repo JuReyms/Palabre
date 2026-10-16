@@ -92,6 +92,8 @@ export interface RelayMessages {
     commit: string;
     publication: string;
     reviewUrl: string;
+    cliPath: string;
+    cliVersion: string;
   };
 }
 
@@ -132,6 +134,7 @@ const enStatus: Record<Exclude<RelayStatus, "replied" | "invalid-request">, stri
 };
 
 const frInvalid: Record<InvalidRequestReason, string> = {
+  "review-cli-unsupported": "CLI Claude incompatible ou non vérifiable : --safe-mode est requis pour la revue. Aucune PR lue ni revue publiée.",
   "task-not-allowed": "Tâche non autorisée pour ce dépôt par la configuration approuvée.",
   "invalid-pr": "Indique une PR exacte avec --task review --pr https://github.com/proprietaire/depot/pull/123, sans --open ni --trust-config.",
   "review-unavailable": "PR inaccessible, modifiée pendant la lecture ou trop volumineuse ; aucune revue publiée.",
@@ -147,6 +150,7 @@ const frInvalid: Record<InvalidRequestReason, string> = {
 };
 
 const enInvalid: Record<InvalidRequestReason, string> = {
+  "review-cli-unsupported": "Claude CLI unsupported or unverifiable: review requires --safe-mode. No PR read or review published.",
   "task-not-allowed": "Task not authorized for this repository by the trusted configuration.",
   "invalid-pr": "Provide an exact PR using --task review --pr https://github.com/owner/repo/pull/123, without --open or --trust-config.",
   "review-unavailable": "PR unavailable, changed while reading or too large; no review published.",
@@ -216,6 +220,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
     },
     export: {
       task: "Tâche", pullRequest: "PR", commit: "Commit", publication: "Publication", reviewUrl: "Revue publiée",
+      cliPath: "Chemin CLI", cliVersion: "Version CLI",
       title: "Relay Palabre",
       field: "Champ",
       value: "Valeur",
@@ -299,6 +304,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
     },
     export: {
       task: "Task", pullRequest: "PR", commit: "Commit", publication: "Publication", reviewUrl: "Published review",
+      cliPath: "CLI path", cliVersion: "CLI version",
       title: "Palabre relay",
       field: "Field",
       value: "Value",

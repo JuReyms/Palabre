@@ -30,6 +30,7 @@ import { defaultOpenRelayDeps, runOpenRelay, type OpenQueueReport, type OpenRela
 import { locateOpenRollout } from "../externalSessions/openRollout.js";
 import { assessTarget, classifyDelivery, RELAY_EXIT_CODES, refusalOutcome, type PreLaunchRefusal } from "../externalSessions/outcome.js";
 import { resolveExternalExecutable } from "../externalSessions/resolve.js";
+import { checkClaudeReviewCli, MIN_CLAUDE_REVIEW_VERSION, type ReviewCliIdentity } from "../externalSessions/reviewCli.js";
 import { parsePullRequest, reviewAllowed, readPullRequest, reviewPrompt, publishReview, type ReviewReport, type ReviewInput } from "../externalSessions/review.js";
 import type {
   DeliveryVerdict,
@@ -63,6 +64,8 @@ const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
  * NDJSON : un ajout optionnel ne change pas `v`.
  */
 export interface RelayResultV1 {
+  /** CLI inspected before a Claude review, including on compatibility refusal. */
+  cli?: ReviewCliIdentity;
   /** Tâche autorisée, distincte de la délivrance du message. Présente uniquement avec --task. */
   task?: ReviewReport;
   /** Vrai seulement pour une occupation refusée avant tout envoi. */
@@ -94,6 +97,7 @@ export interface RelayResultV1 {
 
 /** État partagé avec le gestionnaire d'erreur interne, pour qualifier la délivrance. */
 interface RelayContext {
+  cli?: ReviewCliIdentity;
   task?: ReviewReport;
   startedAt: number;
   messages: Messages;
@@ -256,6 +260,13 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   }
   const decision = assessTarget(adapter.probe(located.target));
   if (!decision.allowed) throw new RelayRefusal({ status: decision.status });
+
+  if (pr && provider === "claude") {
+    const checked = await checkClaudeReviewCli(resolution.executable, located.target.cwd);
+    context.cli = checked.cli;
+    if (!checked.supported) throw invalid("review-cli-unsupported",
+      `version=${checked.cli.version ?? "unknown"}; minimum=${MIN_CLAUDE_REVIEW_VERSION}; path=${checked.cli.path}`);
+  }
 
   let review: ReviewInput | undefined;
   if (pr) {
@@ -500,6 +511,7 @@ function buildResult(
     v: 1,
     type: "relay-result",
     ...(context.task ? { task: context.task } : {}),
+    ...(context.cli ? { cli: context.cli } : {}),
     ...(outcome.status === "target-busy" ? { retryable: true } : {}),
     status: outcome.status,
     exitCode: outcome.exitCode,
@@ -545,6 +557,7 @@ async function exportRelay(
       reply: result.reply,
       error: result.error?.message,
       ...(result.task ? { task: result.task } : {}),
+      ...(result.cli ? { cli: result.cli } : {}),
       ...(result.mode === "open" && result.queue
         ? {
           open: {

@@ -43,6 +43,15 @@ process.stdin.on("end", () => {
   if (process.env.FAKE_CLAUDE_MARKER) {
     fs.appendFileSync(process.env.FAKE_CLAUDE_MARKER, JSON.stringify({ argv, cwd: process.cwd(), stdin, envKeys: Object.keys(process.env) }) + "\n");
   }
+  if (argv.includes("--version")) {
+    process.stdout.write(`${process.env.FAKE_CLAUDE_VERSION || "2.1.292"} (Claude Code)\n`);
+    return;
+  }
+  if (argv.includes("--help")) {
+    process.stdout.write("Usage: claude [options]\n  --print  Print response\n"
+      + (process.env.FAKE_CLAUDE_SAFE_MODE === "0" ? "" : "  --safe-mode  Disable customizations\n"));
+    return;
+  }
   switch (mode) {
     case "ok":
       answer(target, stdin);

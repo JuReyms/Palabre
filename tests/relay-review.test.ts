@@ -4,6 +4,44 @@ import { validateRelayPolicy, parsePullRequest, reviewAllowed, readPullRequest, 
 import { renderRelayText, applyReviewCancellation, type RelayResultV1 } from "../src/commands/relay.js";
 import { renderRelayMarkdown } from "../src/output.js";
 import { createTranslator } from "../src/i18n.js";
+import { checkClaudeReviewCli } from "../src/externalSessions/reviewCli.js";
+import type { ExternalProcessResult, ExternalProcessSpec } from "../src/externalSessions/process.js";
+
+const probeResult = (stdout: string, fields: Partial<ExternalProcessResult> = {}): ExternalProcessResult => ({
+  started: true, exitCode: 0, signal: null, forcedReturn: false, stdout, stderr: "", outputBytes: Buffer.byteLength(stdout), durationMs: 1, ...fields
+});
+
+test("sondes de revue sur le même exécutable résolu, sans entrée et avec bornes", async () => {
+  const calls: ExternalProcessSpec[] = [];
+  const result = await checkClaudeReviewCli({ command: "/node", prefixArgs: ["/cli.js"] }, "/target", async spec => {
+    calls.push(spec); return probeResult(spec.args.at(-1) === "--version" ? "2.1.292 (Claude Code)\n" : "Options:\n  --safe-mode  Read only\n");
+  });
+  assert.deepEqual(result, { supported: true, cli: { path: "/cli.js", version: "2.1.292" } });
+  assert.deepEqual(calls.map(call => call.args), [["/cli.js", "--version"], ["/cli.js", "--help"]]);
+  assert.ok(calls.every(call => call.command === "/node" && call.cwd === "/target" && call.stdin === ""
+    && call.timeoutMs === 15000 && call.maxOutputBytes === 256 * 1024));
+});
+
+test("aide sans option ou simple mention, version ancienne, capture incomplète : refus", async () => {
+  for (const sample of [
+    { help: "Options:\n  --print  Print\n" }, { help: "unknown option --safe-mode" },
+    { version: "2.1.85" }, { fields: { exitCode: 1 } }, { fields: { forcedReturn: true } },
+    { fields: { stopReason: "timeout" as const } }, { fields: { signal: "SIGTERM" as const } }
+  ]) {
+    const result = await checkClaudeReviewCli({ command: "/claude", prefixArgs: [] }, "/target", async spec =>
+      spec.args[0] === "--version" ? probeResult(`${sample.version ?? "2.1.292"} (Claude Code)\n`)
+        : probeResult(sample.help ?? "  --safe-mode  Safe\n", sample.fields));
+    assert.equal(result.supported, false);
+  }
+});
+
+test("version illisible ou sonde de version échouée : refus, sans sonde suivante", async () => {
+  for (const first of [probeResult("unexpected"), probeResult("2.1.292 (Claude Code)", { exitCode: 1 })]) {
+    let calls = 0;
+    const result = await checkClaudeReviewCli({ command: "/claude", prefixArgs: [] }, "/target", async () => { calls++; return first; });
+    assert.equal(result.supported, false); assert.equal(result.cli.version, null); assert.equal(calls, 1);
+  }
+});
 
 const pr = parsePullRequest("https://github.com/JuReyms/Palabre/pull/123")!;
 const head = "a".repeat(40);
@@ -95,7 +133,8 @@ test("texte et export gardent la revue sans --json ni export, même si la public
     from: { agent: "codex", session: "local-from" }, to: { agent: "claude", session: "local-to", provider: "claude" },
     reply: "Revue conservée", delivery: { status: "replied", persisted: true, inActiveBranch: true }, identity: "same-as-target",
     observedModels: [], error: { kind: "review-failed", message: "échec" }, exportPath: null, durationMs: 1,
-    task: { name: "review", pr: pr.url, headSha: head, publication: "not-attempted" } };
+    task: { name: "review", pr: pr.url, headSha: head, publication: "not-attempted" },
+    cli: { path: "C:\\CLI\\claude.exe", version: "2.1.292" } };
   for (const language of ["fr", "en"] as const) {
     const messages = createTranslator(language);
     const text = renderRelayText(result, messages);
@@ -105,8 +144,10 @@ test("texte et export gardent la revue sans --json ni export, même si la public
     assert.ok(renderRelayText(success, messages).stderr.includes(success.task.reviewUrl));
     const markdown = renderRelayMarkdown({ from: result.from!, to: result.to! as { agent: string; session: string; provider: string },
       status: result.status, delivery: result.delivery, identity: result.identity, observedModels: [], nonce: "local-nonce",
-      startedAt: "2026-10-16T00:00:00Z", message: "review", reply: result.reply, task: result.task }, messages, { palabreVersion: "test" });
+      startedAt: "2026-10-16T00:00:00Z", message: "review", reply: result.reply, task: result.task, cli: result.cli }, messages, { palabreVersion: "test" });
     assert.ok(markdown.includes(messages.relay.export.task)); assert.ok(markdown.includes(head)); assert.match(markdown, /Revue conservée/);
+    assert.ok(markdown.includes(messages.relay.export.cliPath)); assert.ok(markdown.includes(result.cli!.path));
+    assert.ok(markdown.includes(messages.relay.export.cliVersion)); assert.ok(markdown.includes("2.1.292"));
     assert.notEqual(messages.relay.reviewFailure("pull-request-changed"), messages.relay.reviewFailure("review-publication-unconfirmed"));
   }
 });
