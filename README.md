@@ -14,7 +14,9 @@
 
 ## English
 
-PALABRE lets the AI agents already installed on your machine work with you and with each other: Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe and Ollama. It helps you **make better decisions before acting**.
+PALABRE lets the AI agents already installed on your machine work with you and with each other. It helps you **make better decisions before acting**, and orchestrates the exchanges between your agents.
+
+**Compatible agents:** Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe and Ollama (local).
 
 It does not replace your tools: it drives them. You keep your subscriptions, default models, terminal habits and local files. With Ollama, everything can run on your machine.
 
@@ -103,7 +105,7 @@ Combinations that work well:
 
 For one session: `--role-a`, `--role-b`, or `/roles` in the TUI. To change an agent's default role: `palabre agent-role <agent> <role>`.
 
-### Supported agents
+### Compatible agents
 
 | Agent | How Palabre runs it |
 | --- | --- |
@@ -153,7 +155,9 @@ MIT. See [LICENSE](./LICENSE).
 
 ## Français
 
-PALABRE fait travailler avec vous, et entre eux, les agents IA déjà installés sur votre machine : Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe et Ollama. Il vous aide à **mieux décider avant d'agir**.
+PALABRE fait travailler avec vous, et entre eux, les agents IA déjà installés sur votre machine. Il vous aide à **mieux décider avant d'agir**, et orchestre les échanges entre vos agents.
+
+**Agents compatibles :** Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe et Ollama (en local).
 
 Il ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos modèles par défaut, vos habitudes de terminal et vos fichiers en local. Avec Ollama, tout peut fonctionner sur votre machine.
 
@@ -242,7 +246,7 @@ Des combinaisons qui marchent bien :
 
 Pour une session : `--role-a`, `--role-b`, ou `/roles` dans la TUI. Pour changer le rôle par défaut d'un agent : `palabre agent-role <agent> <rôle>`.
 
-### Agents supportés
+### Agents compatibles
 
 | Agent | Comment Palabre le lance |
 | --- | --- |
