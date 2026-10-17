@@ -1,5 +1,8 @@
 /** @file Cas factices B1, en mémoire ou fichiers temporaires : aucun appel d'agent réel. */
 import assert from "node:assert/strict";
+import { buildOpenEnvelope } from "../src/externalSessions/envelope.js";
+import { relayMessages } from "../src/messages/relay.js";
+import { checkQueueCommand, codexQueueArgs, MAX_OPEN_ENVELOPE_UTF16 } from "../src/externalSessions/codexQueue.js";
 import { describe, test } from "node:test";
 import { mkdtemp, open, appendFile, writeFile, rm, truncate } from "node:fs/promises";
 import os from "node:os";
@@ -21,7 +24,18 @@ function inspectOpenReply(snapshot: string, input: OpenRequest) {
 const THREAD = "11111111-1111-4111-8111-111111111111";
 const FOREIGN = "22222222-2222-4222-8222-222222222222";
 const NONCE = "PR-0123456789abcdef";
-const ENVELOPE = `[Message relayé par palabre relay · réf. ${NONCE}]\nDe : agent factice\n\nSujet « cité », été & deuxième ligne.\nRéponds simplement.`;
+const ENVELOPE = buildOpenEnvelope({ from: { agent: "claude", sessionId: THREAD }, to: { agent: "codex", sessionId: THREAD }, nonce: NONCE, message: "Question « été » ?", subject: "Revue" }, relayMessages.fr);
+
+test("limite de l'enveloppe open complète, sujet et emoji inclus", () => {
+  const make = (message: string) => buildOpenEnvelope({ from: { agent: "claude", sessionId: THREAD },
+    to: { agent: "codex", sessionId: THREAD }, nonce: NONCE, message, subject: "📧 Revue" }, relayMessages.fr);
+  const empty = make("");
+  const envelope = make("x".repeat(MAX_OPEN_ENVELOPE_UTF16 - empty.length));
+  assert.equal(envelope.length, MAX_OPEN_ENVELOPE_UTF16);
+  assert.deepEqual(checkQueueCommand("codex", codexQueueArgs(THREAD, envelope), envelope), { ok: true });
+  const over = make("x".repeat(MAX_OPEN_ENVELOPE_UTF16 - empty.length + 1));
+  assert.deepEqual(checkQueueCommand("codex", codexQueueArgs(THREAD, over), over), { ok: false, detail: "envelope-too-long" });
+});
 type Row = Record<string, unknown>;
 const meta: Row = { type: "session_meta", payload: { id: THREAD } };
 const lines = (rows: Row[]) => rows.map((row) => JSON.stringify(row)).join("\n") + "\n";
@@ -142,7 +156,7 @@ describe("B1 : le tour doit commencer après la référence", () => {
     assert.equal(result.reply, undefined);
     assert.equal(settleOpenDelivery(result, true).status, "unknown");
   });
-  for (const changed of [ENVELOPE.replaceAll("\n", "\r\n"), ENVELOPE.replace("De :", "De  :"), ENVELOPE.slice(0, -10)]) {
+  for (const changed of [ENVELOPE.replaceAll("\n", "\r\n"), ENVELOPE.replace("PALABRE Relay", "PALABRE autre"), ENVELOPE.slice(0, -10)]) {
     test("enveloppe modifiée avec nonce : diagnostic explicite, sans preuve ni réponse", () => {
       const result = observe([user(changed), bound("turn-a", changed), final(), complete()]);
       assert.equal(result.reason, "envelope-altered");

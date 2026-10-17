@@ -6,6 +6,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Added
 
+- Relay ajoute un en-tête compact `📧 PALABRE Relay` avec expéditeur, destinataire et avertissement avant le contenu ; la provenance détaillée et le nonce passent en bas. `--subject` fournit un objet facultatif (une ligne, 200 caractères), repris dans le JSON v1 et l'export. Mission utilise le même format avec son id et son étape. En-tête et pied suivent la langue ; les 64 Kio couvrent l'enveloppe de coordination entière, sans réduire la borne séparée du contexte PR (#126). Aide, guides FR/EN et skill alignés ; les copies installées du skill doivent être mises à jour manuellement.
+
 - `palabre mission` v2.0 : un chef de mission fixe avec l'humain un cadre en lecture seule, puis appelle son équipier une seule fois par étape explicite. Création, `step`, `status`, `stop`, budgets de tentatives/durée, délai configurable, état local reprenable, export `.mission.md` et `--json` ; consultation et tâche `review` Relay existante. Aucun code délégué, changement de chef de mission, renvoi automatique ou release ; une délivrance incertaine bloque la suite (#115). Les copies installées du skill doivent être mises à jour manuellement.
 
 - `palabre relay allow-repo proprietaire/depot` (ou `'proprietaire/*'`) autorise la tâche review après confirmation au clavier, sur la configuration locale ou globale ; le refus `task-not-allowed` fournit la commande dans `remedy` et guide l'agent vers le terminal visible du propriétaire (#118).

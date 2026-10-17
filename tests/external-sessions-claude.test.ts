@@ -359,7 +359,7 @@ describe("échange avec une CLI Claude simulée", () => {
     if (located.status !== "found") throw new Error("cible introuvable");
     assert.deepEqual(assessTarget(home.adapter.probe(located.target)), { allowed: true });
     const nonce = createNonce();
-    const envelope = buildEnvelope({ from, nonce, message: "Peux-tu relire ce plan ?" }, relayMessages.fr);
+    const envelope = buildEnvelope({ from, to: { agent: "claude", sessionId: SESSION }, nonce, message: "Peux-tu relire ce plan ?" }, relayMessages.fr);
     const env = { ...process.env, FAKE_CLAUDE_MODE: mode, FAKE_CLAUDE_TRANSCRIPT: home.transcript, FAKE_CLAUDE_MARKER: marker };
     const result = await exchange(home.adapter, executable, located.target, envelope, { timeoutMs: options.timeoutMs ?? 10_000, env });
     // Claude n'a pas d'étape préalable : l'échange lance toujours la reprise.

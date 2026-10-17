@@ -37,6 +37,8 @@ Les délais bornent l'appel Relay ; les sondes et GitHub gardent leurs propres b
 État/export locaux dans .palabre/missions/<id>/ ; identifiants privés, réponses non vérifiées.
 Pas de code, commit, push, merge, release, --open, --trust-config ou changement de chef de mission.
 La tâche review publie seulement une revue COMMENT sous la politique Relay existante.
+Chaque étape reçoit l'en-tête PALABRE Mission : numéro, chef de mission, équipier et avertissement
+avant le contenu. Le cadre et l'en-tête comptent dans les 64 Kio UTF-8 de coordination.
 Le rôle et le cadre ne donnent aucun droit supplémentaire. Aucun plafond de coût monétaire.
 `,
   init: `
@@ -202,6 +204,7 @@ Flags:
   --from <agent>:<uuid>   expéditeur, étiquette déclarative (jamais lancé)
   --to <agent>:<uuid>     agent cible de la config et identifiant de sa conversation
   --message-file <path>   lit le message dans un fichier (64 Kio au plus)
+  --subject <objet>       objet facultatif : une ligne non vide, 200 caractères au plus, sans contrôle
   --task review           rédige et publie une revue COMMENT si la config l'autorise
   --pr <url>              PR github.com exacte ; obligatoire avec --task review
   --open                  vise une conversation Codex ouverte (TUI ou Codex desktop)
@@ -213,6 +216,9 @@ Flags:
   --language <fr|en>      force la langue
 
 Limites :
+  PALABRE ajoute l'en-tête expéditeur → destinataire et l'avertissement avant le contenu,
+  puis la provenance détaillée en bas. L'agent ne doit pas ajouter son propre en-tête PALABRE.
+  L'enveloppe complète de coordination compte dans les 64 Kio UTF-8 (contexte PR séparé).
   allow-repo exige une config déjà approuvée, affiche son chemin et le changement,
   puis exige sa confirmation au clavier (entrée et sortie TTY). Refus : code 8.
   Sans terminal, refus sans écriture ; aucun --yes ni --trust-config.
@@ -362,6 +368,8 @@ Timeouts bound the Relay call; probes and GitHub keep their own time bounds.
 Local state/export in .palabre/missions/<id>/; private identifiers, unverified replies.
 No code, commit, push, merge, release, --open, --trust-config or mission lead switching.
 The review task only publishes a COMMENT review under the existing Relay policy.
+Each step receives a PALABRE Mission header: number, mission lead, teammate and warning before
+the content. Scope and header count toward the 64 KiB UTF-8 coordination limit.
 Roles and scope grant no additional rights. No monetary cost cap.
 `,
   init: `
@@ -515,6 +523,7 @@ Flags:
   --from <agent>:<uuid>   sender, declarative label (never launched)
   --to <agent>:<uuid>     target config agent and its conversation identifier
   --message-file <path>   reads the message from a file (64 KiB at most)
+  --subject <subject>     optional subject: one nonblank line, at most 200 characters, no controls
   --task review           draft and publish a COMMENT review if allowed by configuration
   --pr <url>              exact github.com PR; required with --task review
   --open                  targets an open Codex conversation (TUI or Codex desktop)
@@ -526,6 +535,9 @@ Flags:
   --language <fr|en>      force language
 
 Limits:
+  PALABRE adds the sender → recipient header and warning before the content, with detailed
+  provenance at the bottom. Agents must not add their own PALABRE header.
+  The full coordination envelope counts toward 64 KiB UTF-8 (separate PR context limit).
   allow-repo requires a trusted config, shows its path and planned change, then requires
   owner keyboard confirmation (input and output TTY). Declining exits 8.
   Without a terminal it refuses without writing; no --yes or --trust-config.

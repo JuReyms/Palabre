@@ -3,7 +3,8 @@ import { randomUUID } from "node:crypto";
 import { mkdir, open, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { executeRelay, type RelayResultV1 } from "./commands/relay.js";
-import { parseSessionRef, validateRelayMessage } from "./externalSessions/envelope.js";
+import { buildEnvelope, parseSessionRef, validateRelayMessage } from "./externalSessions/envelope.js";
+import { relayMessages } from "./messages/relay.js";
 import { parsePullRequest } from "./externalSessions/review.js";
 import type { Language } from "./types.js";
 import { missionMessages } from "./messages/mission.js";
@@ -164,7 +165,7 @@ export async function startMission(input: StartMission, deps: Pick<MissionDeps, 
     language: input.language, objective: input.objective, criteria: input.criteria,
     from: `${from.value.agent}:${from.value.sessionId}`, to: `${to.value.agent}:${to.value.sessionId}`,
     tasks: input.tasks, maxSteps: input.maxSteps, timeoutSeconds: input.timeoutSeconds, status: "ready", stopReason: null, steps: [] };
-  if (!validMission(mission) || !validateRelayMessage(missionMessage(mission, "")).ok) throw new MissionError("invalid-arguments");
+  if (!validMission(mission) || !missionEnvelopeFits(mission, "", mission.maxSteps)) throw new MissionError("invalid-arguments");
   await mkdir(missionPaths(mission.workspace, mission.id).directory, { recursive: true, mode: 0o700 });
   await save(mission);
   return mission;
@@ -172,7 +173,15 @@ export async function startMission(input: StartMission, deps: Pick<MissionDeps, 
 
 /** Le cadre est une donnée de coordination, jamais une autorisation d'outils ou d'écriture. */
 function missionMessage(mission: Mission, message: string): string {
-  return `${missionMessages[mission.language].frame}\n${JSON.stringify({ mission: mission.id, objective: mission.objective, criteria: mission.criteria })}\n\n${message}`;
+  return `${missionMessages[mission.language].frame}\n${JSON.stringify({ objective: mission.objective, criteria: mission.criteria })}\n\n${message}`;
+}
+
+/** Même budget d'enveloppe que Relay, sans dépendre du transport ni générer de nonce d'envoi. */
+function missionEnvelopeFits(mission: Mission, message: string, step: number): boolean {
+  const from = parseSessionRef(mission.from), to = parseSessionRef(mission.to);
+  return from.ok && to.ok && validateRelayMessage(buildEnvelope({ from: from.value, to: to.value,
+    nonce: "PR-0000000000000000", message: missionMessage(mission, message), header: { kind: "mission", id: mission.id, step }
+  }, relayMessages[mission.language])).ok;
 }
 
 /** Une étape explicite, aucun renvoi automatique, même après erreur ou interruption. */
@@ -198,7 +207,7 @@ export async function stepMission(workspace: string, id: string, input: { messag
     if ((input.task === "review" ? !input.pr || !parsePullRequest(input.pr) : input.pr !== undefined)
       || !text(input.message)) throw new MissionError("invalid-arguments");
     const message = missionMessage(mission, input.message);
-    if (!validateRelayMessage(message).ok) throw new MissionError("invalid-arguments");
+    if (!missionEnvelopeFits(mission, input.message, mission.steps.length + 1)) throw new MissionError("invalid-arguments");
     const remaining = Math.floor((mission.deadline - deps.now()) / 1000);
     if (mission.steps.length >= mission.maxSteps || remaining < MISSION_LIMITS.minSeconds) throw new MissionError("budget");
     if (input.timeoutSeconds !== undefined && !integer(input.timeoutSeconds, MISSION_LIMITS.minSeconds, MISSION_LIMITS.maxTimeout)) throw new MissionError("invalid-arguments");
@@ -219,7 +228,7 @@ export async function stepMission(workspace: string, id: string, input: { messag
         const args = ["relay", "--from", mission.from, "--to", mission.to, "--config", mission.config,
           "--language", mission.language, "--timeout", String(timeout), "--no-export", message];
         if (input.task === "review") args.push("--task", "review", "--pr", input.pr!);
-        step.result = await deps.relay(args, { signal: controller.signal });
+        step.result = await deps.relay(args, { signal: controller.signal, header: { kind: "mission", id: mission.id, step: step.number } });
       }
     } catch {
       // Un transport injecté peut lever après envoi. Ne jamais déduire une absence de délivrance.

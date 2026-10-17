@@ -3,6 +3,8 @@
  * verrou scriptée, rollout factice sur disque et dépôt simulé. Aucun Codex réel, aucun quota.
  */
 import assert from "node:assert/strict";
+import { buildOpenEnvelope } from "../src/externalSessions/envelope.js";
+import { relayMessages } from "../src/messages/relay.js";
 import { appendFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { open } from "node:fs/promises";
 import os from "node:os";
@@ -18,7 +20,7 @@ after(() => rmSync(root, { recursive: true, force: true }));
 const THREAD = "0199aaaa-bbbb-7ccc-8ddd-eeeeeeeeeeee";
 const OTHER = "99999999-9999-4999-8999-999999999999";
 const NONCE = "PR-0123456789abcdef";
-const ENVELOPE = `[Message relayé par palabre relay --open · réf. ${NONCE}]\nDe : claude (session x)\n\nQuestion « été » ?`;
+const ENVELOPE = buildOpenEnvelope({ from: { agent: "claude", sessionId: THREAD }, to: { agent: "codex", sessionId: THREAD }, nonce: NONCE, message: "Question « été » ?", subject: "Revue" }, relayMessages.fr);
 const TURN = "turn-relayed";
 let counter = 0;
 
