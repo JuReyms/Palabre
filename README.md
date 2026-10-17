@@ -31,13 +31,13 @@ PALABRE does not replace your tools: it drives them. You keep your subscriptions
 | Mode | The question it answers | Example |
 | --- | --- | --- |
 | **Debate** | "I want two positions to confront each other." Two agents answer in turn, then a summary sets out agreements and disagreements. | `palabre codex-claude "Review this plan" -t 4` |
-| **Relay** *(after 0.16.0)* | "I want my agents to hand off to each other autonomously, without any copy-paste from me." One agent directly notifies another agent (Claude Code or Codex): "I commented on issue #42, your turn", "Review this PR". | `palabre relay --from codex:<session> --to claude:<session> "I commented on issue #42, your turn"` |
+| **Relay** *(new)* | "I want my agents to cooperate and hand off to each other, without any copy-paste from me." One agent sends a message directly to another agent (Claude Code or Codex), which replies. You are no longer the go-between, but the decision-maker. | `palabre relay --from codex:<session> --to claude:<session> "I commented on issue #42, your turn"` |
 | **Ask** | "I want several independent opinions." 1 to 4 agents answer without seeing each other's answers, then a summary compares them. | `palabre ask "Compare these two approaches" --agents codex claude` |
 | **Chat** | "I'm chatting with an agent, and sometimes need a second opinion to double-check an answer." Ask another agent with `/consult`, without leaving the conversation. | `palabre chat --agent-a codex` |
 
-*Relay: the conversation receiving the message must be closed (no terminal, app or IDE open on it), and each message gets a single reply.*
+*Relay: by default, the conversation receiving the message must be closed. With `--open`, the message arrives in an open Codex conversation (Codex desktop or terminal), where you can watch it come in. Each message gets a single reply, with no automatic resend.*
 
-For a sequence of read-only requests, **Mission v2.0** keeps the agreed scope, budget and results: `palabre mission --help`. The mission lead calls one explicit step at a time; you make decisions. No code writing or automatic loop. [Guide](https://palab.re/en/usage/relay).
+To chain several read-only steps within a fixed scope and budget, Relay offers the **Mission** option: `palabre mission --help`.
 
 In doubt: **Debate** for a decision with stakes, **Relay** to hand off to another agent, **Ask** for several opinions, **Chat** to talk with one agent.
 
@@ -182,13 +182,13 @@ PALABRE ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements,
 | Mode | La question à laquelle il répond | Exemple |
 | --- | --- | --- |
 | **Débat** | « Je veux confronter deux positions. » Deux agents répondent à tour de rôle, puis une synthèse dégage les accords et les désaccords. | `palabre codex-claude "Critique ce plan" -t 4` |
-| **Relay** *(après la 0.16.0)* | « Je veux que mes agents se passent le relais de façon autonome, sans copier-coller de ma part. » Un agent prévient directement un autre agent (Claude Code ou Codex) : « J'ai commenté l'issue #42, à toi », « Relis cette PR ». | `palabre relay --from codex:<session> --to claude:<session> "J'ai commenté l'issue #42, à toi"` |
+| **Relay** *(nouveau)* | « Je veux que mes agents coopèrent et se passent le relais, sans copier-coller de ma part. » Un agent envoie directement un message à un autre agent (Claude Code ou Codex), qui lui répond. Vous n'êtes plus l'intermédiaire, mais le décideur. | `palabre relay --from codex:<session> --to claude:<session> "J'ai commenté l'issue #42, à toi"` |
 | **Ask** | « Je veux plusieurs avis indépendants. » De 1 à 4 agents répondent sans voir les réponses des autres, puis une synthèse les compare. | `palabre ask "Compare ces deux approches" --agents codex claude` |
 | **Chat** | « Je discute avec un agent, et j'ai parfois besoin d'un second avis pour vérifier une réponse. » Consultez un autre agent avec `/consult`, sans quitter la conversation. | `palabre chat --agent-a codex` |
 
-*Relay : la conversation qui reçoit le message doit être fermée (ni terminal, ni application, ni IDE ouvert dessus), et chaque message reçoit une seule réponse.*
+*Relay : par défaut, la conversation qui reçoit le message doit être fermée. Avec `--open`, le message arrive dans une conversation Codex ouverte (Codex desktop ou terminal), où vous le voyez passer. Chaque message reçoit une seule réponse, sans renvoi automatique.*
 
-Pour une suite de demandes en lecture seule, **Mission v2.0** conserve le cadre convenu, le budget et les résultats : `palabre mission --help`. Le chef de mission appelle une étape explicite à la fois ; vous prenez les décisions. Aucune écriture de code ni boucle automatique. [Guide](https://palab.re/fr/usage/relay).
+Pour enchaîner plusieurs étapes en lecture seule dans un cadre et un budget fixés, Relay propose l'option **Mission** : `palabre mission --help`.
 
 En cas de doute : **Débat** pour une décision qui compte, **Relay** pour passer la main à un autre agent, **Ask** pour plusieurs avis, **Chat** pour discuter avec un agent.
 
