@@ -2,8 +2,8 @@
 title: Ask mode
 description: Compare up to four independent answers before a faithful summary.
 seo:
-  title: "Ask mode: compare four independent AI answers"
-  description: Send one question to up to four AI agents at once, compare their independent answers, then get a faithful summary.
+  title: "Ask mode: compare up to four independent AI answers"
+  description: Send one question to one to four AI agents, compare their independent answers, then get a faithful summary.
 ---
 
 Ask sends the same subject and context to several agents. Each answers without seeing the others, then a summary agent summarizes and compares them.

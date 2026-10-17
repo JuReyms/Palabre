@@ -2,8 +2,8 @@
 title: Mode Ask
 description: Comparer jusqu'à quatre réponses indépendantes avant une synthèse fidèle.
 seo:
-  title: "Mode Ask : comparer quatre réponses IA"
-  description: Poser une question à quatre agents IA indépendamment, comparer leurs réponses indépendantes puis obtenir une synthèse fidèle.
+  title: "Mode Ask : comparer jusqu’à quatre réponses IA"
+  description: Poser une question à un maximum de quatre agents IA, comparer leurs réponses indépendantes puis obtenir une synthèse fidèle.
 ---
 
 Ask envoie le même sujet et le même contexte à plusieurs agents. Chacun répond sans voir les autres réponses, puis un agent de synthèse les résume et les compare.

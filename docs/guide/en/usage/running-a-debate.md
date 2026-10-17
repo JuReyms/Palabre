@@ -6,7 +6,7 @@ seo:
   description: "Pick the right Palabre mode: two agents arguing, one agent to talk to, or several independent answers to compare."
 ---
 
-Palabre provides four modes. **Debate remains the primary mode**: the home screen shows it first and it makes full use of contradictory orchestration.
+Palabre offers four modes: Debate, Relay, Ask and Chat.
 
 | Mode | Agents | Exchanges | Summary | Export |
 |------|--------|-----------|---------|--------|

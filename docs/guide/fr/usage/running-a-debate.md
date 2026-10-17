@@ -6,7 +6,7 @@ seo:
   description: "Choisir le bon mode Palabre : deux agents qui s'opposent, un agent avec qui avancer, ou plusieurs réponses indépendantes."
 ---
 
-Palabre propose quatre modes. **Débat reste le mode principal** : l'accueil le présente en premier et il exploite pleinement l'orchestration contradictoire.
+Palabre propose quatre modes : Débat, Relay, Ask et Chat.
 
 | Mode | Agents | Échanges | Synthèse | Export |
 |------|--------|----------|----------|--------|

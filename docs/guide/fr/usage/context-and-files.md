@@ -15,7 +15,7 @@ Palabre peut envoyer du contexte projet aux agents. C'est indispensable pour dem
 | `--files` | Vous choisissez explicitement les fichiers. Un chemin invalide arrête la commande. |
 | `--context` | Palabre scanne des fichiers ou dossiers texte avec des limites et des exclusions. |
 
-`--files` est strict : 64 Kio maximum par fichier et 192 Kio au total ; un fichier binaire, un dossier ou un chemin invalide arrête la session. `--context` est tolérant : il parcourt les dossiers avec les mêmes plafonds (64 Kio par fichier, 192 Kio au total), ignore les fichiers non retenus et affiche des avertissements sans annuler la session.
+`--files` est strict : un fichier binaire, un dossier ou un chemin invalide arrête la session. `--context` est tolérant : il parcourt les dossiers, ignore les fichiers non retenus et affiche des avertissements sans annuler la session. Les deux options partagent les plafonds décrits dans « Portée et exclusions ».
 
 ## Fichiers explicites
 
