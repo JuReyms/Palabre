@@ -248,13 +248,9 @@ Une réponse reçue ne prouve pas que l'agent a pu lire le dépôt. Si le flux J
 
 Le champ optionnel `readAccess` dans le JSON et l'export indique `status: "blocked"`, `reason: "windows-process-access-denied"` et `failedCommands` (nombre de commandes concernées). L'export Mission conserve l'erreur et la réponse. Si l'échange échoue aussi (délai, annulation, identité différente…), cette issue garde son code et le diagnostic de lecture s'ajoute au message. Une commande réussie à côté ne lève pas l'alerte ; l'absence de ce champ ne prouve ni une lecture ni un accès complet. La détection porte sur cette erreur structurée de démarrage, vérifiée avec Codex 0.163.0, pas sur une phrase du modèle ; elle ne reconnaît pas tous les échecs de lecture possibles. Elle concerne la reprise sans `--open`.
 
-**Prochaine étape — le propriétaire**, dans son terminal :
+**Prochaine étape — le propriétaire :** consulter le [guide de dépannage, section Codex sous Windows](/fr/troubleshooting) puis le suivi [#128](https://github.com/JuReyms/Palabre/issues/128). Cause probable à vérifier : le raccourci PowerShell du Microsoft Store `WindowsApps\pwsh.exe`. Sur la machine testée, la même lecture sous `:read-only` réussit avec PowerShell natif et échoue avec cet alias. Ce n'est pas une preuve de panne générale de `unelevated`.
 
-```powershell
-codex sandbox --help
-```
-
-Vérifiez ensuite quel PowerShell Codex lance avant d'envisager de changer la sandbox. Sur une machine testée, le profil `:read-only` a permis la lecture avec `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`, tandis que l'alias `WindowsApps\pwsh.exe` échouait avec l'erreur 5 dans les mêmes conditions. Cela ne prouve pas une panne générale du mode `unelevated`. PALABRE ne modifie aucun réglage et ne bascule jamais vers `workspace-write` ou un accès sans restriction pour contourner cet échec. Ne renvoyez pas automatiquement le message : il a déjà pu recevoir une réponse.
+Aucune solution connue et validée à ce jour pour imposer le shell natif dans ce parcours Codex 0.163.0. `[windows] shell_path`, déjà présent lors de l'échec, n'est pas reconnu dans le schéma de cette version ; ne l'ajoutez pas comme correctif. PALABRE ne change aucun réglage ni permission. Ne renvoyez pas automatiquement le message : il a déjà pu recevoir une réponse.
 
 ## Sortie JSON
 

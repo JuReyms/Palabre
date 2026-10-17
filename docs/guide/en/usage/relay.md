@@ -248,13 +248,9 @@ A reply does not prove the agent could read the repository. If the Codex JSON st
 
 The optional `readAccess` field in JSON and the export contains `status: "blocked"`, `reason: "windows-process-access-denied"` and `failedCommands` (number of affected commands). The Mission export preserves the error and reply. If the exchange also fails (timeout, cancellation, identity mismatch…), that outcome keeps its exit code and the read diagnostic is added to its message. Another successful command does not clear the warning; an absent field proves neither a read nor full access. Detection covers this structured startup error, checked against Codex 0.163.0, rather than model prose; it does not recognize every possible read failure. It applies to resumption without `--open`.
 
-**Next step — the owner**, in their terminal:
+**Next step — the owner:** read the [troubleshooting guide, Codex on Windows section](/en/troubleshooting), then follow [#128](https://github.com/JuReyms/Palabre/issues/128). Probable cause to check: the Microsoft Store PowerShell shortcut `WindowsApps\pwsh.exe`. On the tested machine, the same read under `:read-only` succeeds with native PowerShell and fails with this alias. This does not prove a general `unelevated` failure.
 
-```powershell
-codex sandbox --help
-```
-
-Then check which PowerShell Codex launches before considering a sandbox change. On one tested machine, the `:read-only` profile allowed a read using `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`, while the `WindowsApps\pwsh.exe` alias failed with error 5 under the same conditions. This does not establish a general `unelevated` mode failure. PALABRE changes no settings and never switches to `workspace-write` or unrestricted access to bypass the failure. Do not resend automatically: the message may already have received a reply.
+No known, validated solution yet to force the native shell in this Codex 0.163.0 workflow. `[windows] shell_path`, already present when the failure occurred, is not recognized in this version's schema; do not add it as a fix. PALABRE changes no settings or permissions. Do not resend automatically: the message may already have received a reply.
 
 ## JSON output
 

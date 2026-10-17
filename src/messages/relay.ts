@@ -110,11 +110,12 @@ export interface RelayMessages {
     reviewUrl: string;
     cliPath: string;
     cliVersion: string;
+    readAccess: string;
   };
 }
 
 const frStatus: Record<Exclude<RelayStatus, "replied" | "invalid-request">, string> = {
-  "read-unavailable": "Codex n'a pas pu démarrer une commande de lecture sous Windows (CreateProcessAsUserW, erreur 5). La réponse est conservée ; les lectures nécessaires ne sont pas établies. Le propriétaire doit vérifier le shell et la sandbox avec `codex sandbox --help` dans son terminal. Ne modifie pas les permissions et ne relance pas automatiquement.",
+  "read-unavailable": "Codex n'a pas pu démarrer une commande de lecture sous Windows (CreateProcessAsUserW, erreur 5). Cause probable à vérifier : le raccourci PowerShell du Microsoft Store (WindowsApps\\pwsh.exe). Réponse conservée ; lectures nécessaires non établies. Le propriétaire doit consulter https://palab.re/fr/troubleshooting (Codex sous Windows) et le suivi https://github.com/JuReyms/Palabre/issues/128 : pas de solution validée à ce jour pour ce parcours. Ne modifie pas les permissions et ne relance pas automatiquement.",
   "review-failed": "La réponse de l'agent est conservée, mais la publication de la revue n'est pas confirmée. Ne relance pas automatiquement.",
   "internal-error": "Erreur interne de Palabre pendant le relay.",
   "cli-failure": "La CLI cible a échoué sans réponse valide.",
@@ -133,7 +134,7 @@ const frStatus: Record<Exclude<RelayStatus, "replied" | "invalid-request">, stri
 };
 
 const enStatus: Record<Exclude<RelayStatus, "replied" | "invalid-request">, string> = {
-  "read-unavailable": "Codex could not start a read command on Windows (CreateProcessAsUserW, error 5). The reply is preserved; the required reads are not established. The owner must check the shell and sandbox using `codex sandbox --help` in their terminal. Do not change permissions or retry automatically.",
+  "read-unavailable": "Codex could not start a read command on Windows (CreateProcessAsUserW, error 5). Probable cause to check: the Microsoft Store PowerShell shortcut (WindowsApps\\pwsh.exe). Reply preserved; required reads not established. The owner must consult https://palab.re/en/troubleshooting (Codex on Windows) and https://github.com/JuReyms/Palabre/issues/128: no validated solution yet for this workflow. Do not change permissions or retry automatically.",
   "review-failed": "The agent reply is preserved, but review publication is not confirmed. Do not retry automatically.",
   "internal-error": "Palabre internal error during the relay.",
   "cli-failure": "The target CLI failed without a valid reply.",
@@ -255,7 +256,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
     },
     export: {
       task: "Tâche", pullRequest: "PR", commit: "Commit", publication: "Publication", reviewUrl: "Revue publiée",
-      cliPath: "Chemin CLI", cliVersion: "Version CLI",
+      cliPath: "Chemin CLI", cliVersion: "Version CLI", readAccess: "Accès en lecture",
       title: "Relay Palabre",
       field: "Champ",
       value: "Valeur",
@@ -356,7 +357,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
     },
     export: {
       task: "Task", pullRequest: "PR", commit: "Commit", publication: "Publication", reviewUrl: "Published review",
-      cliPath: "CLI path", cliVersion: "CLI version",
+      cliPath: "CLI path", cliVersion: "CLI version", readAccess: "Read access",
       title: "Palabre relay",
       field: "Field",
       value: "Value",

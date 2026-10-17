@@ -133,12 +133,17 @@ test("Codex répond mais les lectures échouent : JSON, texte et export signalen
   assert.equal(r.json.reply, "Constat partiel : lectures bloquées.");
   assert.equal(r.json.delivery.status, "replied"); assert.equal(r.json.identity, "same-as-target");
   assert.deepEqual(r.json.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 1 });
-  assert.match(r.json.error.message, /propriétaire.*codex sandbox --help/);
+  assert.match(r.json.error.message, /WindowsApps\\pwsh\.exe/);
+  assert.match(r.json.error.message, /propriétaire.*https:\/\/palab\.re\/fr\/troubleshooting/);
+  assert.match(r.json.error.message, /issues\/128/);
   assert.equal(r.calls.filter(c => c.argv[0] === "exec").length, 1);
   const md = readFileSync(r.json.exportPath, "utf8");
-  assert.match(md, /readAccess.*blocked/); assert.ok(md.includes(r.json.reply)); assert.ok(md.includes(r.json.error.message));
+  assert.match(md, /Accès en lecture.*blocked/); assert.ok(!md.includes("| readAccess |"));
+  assert.ok(md.includes(r.json.reply)); assert.ok(md.includes(r.json.error.message));
   const text = await relay(makeWorld(), [...toCodex, "Lis le dépôt", "--trust-config", "--language", "en", "--no-export"], { FAKE_CODEX_MODE: "read-blocked" });
-  assert.equal(text.code, 2); assert.match(text.stdout, /Constat partiel/); assert.match(text.stderr, /owner.*codex sandbox --help/);
+  assert.equal(text.code, 2); assert.match(text.stdout, /Constat partiel/);
+  assert.match(text.stderr, /WindowsApps\\pwsh\.exe/);
+  assert.match(text.stderr, /owner.*https:\/\/palab\.re\/en\/troubleshooting/);
 });
 
 test("mission CLI : création, une étape Relay factice, status après reprise et stop", async () => {

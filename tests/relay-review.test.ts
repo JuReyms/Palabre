@@ -69,6 +69,20 @@ test("lectures bloquées : aucune commande GitHub, réponse et délivrance conse
     assert.equal(result.reply, before.reply); assert.deepEqual(result.delivery, before.delivery);
     assert.ok(result.error!.message.includes(messages.relay.status("read-unavailable")));
     assert.match(renderRelayText(result, messages).stderr, /not-attempted/);
+    const guide = `https://palab.re/${language}/troubleshooting`;
+    assert.ok(result.error!.message.includes("WindowsApps\\pwsh.exe"));
+    assert.ok(result.error!.message.includes(guide));
+    for (const command of ["relay", "mission"]) {
+      const help = messages.help.renderCommand(command)!;
+      assert.ok(help.includes("WindowsApps\\pwsh.exe")); assert.ok(help.includes(guide));
+    }
+    const md = renderRelayMarkdown({ from: { agent: "claude", session: "local-from" },
+      to: { agent: "codex", session: "local-to", provider: "codex" }, status: result.status,
+      delivery: result.delivery, identity: result.identity, observedModels: [], nonce: "local-nonce",
+      startedAt: "2026-10-17T00:00:00Z", message: "Review", reply: result.reply, error: result.error!.message,
+      readAccess: diagnostic }, messages, { palabreVersion: "test" });
+    assert.ok(md.includes(`| ${language === "fr" ? "Accès en lecture" : "Read access"} | blocked;`));
+    assert.ok(!md.includes("| readAccess |")); assert.ok(md.includes(guide));
     const timedOut = { ...before, status: "timeout" as const, exitCode: 4, reply: undefined,
       error: { kind: "timeout" as const, message: messages.relay.status("timeout") } };
     applyReadAccessDiagnostic(timedOut, diagnostic, messages);

@@ -251,7 +251,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     [labels.observedModels, report.observedModels.length > 0 ? report.observedModels.join(", ") : labels.none],
     [labels.nonce, report.nonce],
     [labels.startedAt, report.startedAt],
-    ...(report.readAccess ? [["readAccess", `${report.readAccess.status}; ${report.readAccess.reason}; failedCommands=${report.readAccess.failedCommands}`]] : []),
+    ...(report.readAccess ? [[labels.readAccess, `${report.readAccess.status}; ${report.readAccess.reason}; failedCommands=${report.readAccess.failedCommands}`]] : []),
     ...(report.cli ? [[labels.cliPath, report.cli.path], [labels.cliVersion, report.cli.version ?? labels.unknown]] : []),
     ...(report.task ? [
       [labels.task, report.task.name], [labels.pullRequest, report.task.pr], [labels.commit, report.task.headSha ?? labels.unknown],
