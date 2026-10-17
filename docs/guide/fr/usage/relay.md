@@ -1,5 +1,5 @@
 ---
-title: Relay vers une conversation
+title: Mode Relay
 description: Envoyer un message à une conversation Codex ou Claude Code existante et recevoir sa réponse ; enchaîner des étapes en lecture seule avec l’option Mission.
 seo:
   title: palabre relay, interroger une conversation Codex ou Claude Code

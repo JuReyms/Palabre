@@ -1,5 +1,5 @@
 ---
-title: Relay to a conversation
+title: Relay mode
 description: Send a message to a closed Codex or Claude Code conversation, or to an open Codex conversation with --open, and get its reply with palabre relay.
 seo:
   title: palabre relay, ask a Codex or Claude Code conversation

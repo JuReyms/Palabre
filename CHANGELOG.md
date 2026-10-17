@@ -4,6 +4,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Changed
+
+- Documentation : le menu « Utilisation » du site suit les quatre modes (Débat, Relay, Ask, Chat), et la page Relay s'intitule « Mode Relay », comme les autres modes. Les guides de cette section passent à des préfixes à deux chiffres, et la synchronisation supprime aussi les anciens fichiers à deux chiffres.
+
 ## [0.17.0] - 2026-10-17
 
 <!-- social: New Relay mode: your agents cooperate and hand off to each other. You are no longer the go-between, but the decision-maker. -->

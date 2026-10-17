@@ -41,8 +41,8 @@ jobs:
 
       - name: Copy files
         run: |
-          rm -f palabre-web/content/fr/1.get-started/[0-9].*.md palabre-web/content/fr/2.agents/[0-9].*.md palabre-web/content/fr/3.usage/[0-9].*.md palabre-web/content/fr/4.configuration/[0-9].*.md palabre-web/content/fr/5.integrations/[0-9].*.md palabre-web/content/fr/5.reference/[0-9].*.md palabre-web/content/fr/6.reference/[0-9].*.md
-          rm -f palabre-web/content/en/1.get-started/[0-9].*.md palabre-web/content/en/2.agents/[0-9].*.md palabre-web/content/en/3.usage/[0-9].*.md palabre-web/content/en/4.configuration/[0-9].*.md palabre-web/content/en/5.integrations/[0-9].*.md palabre-web/content/en/5.reference/[0-9].*.md palabre-web/content/en/6.reference/[0-9].*.md
+          rm -f palabre-web/content/fr/1.get-started/[0-9]*.*.md palabre-web/content/fr/2.agents/[0-9]*.*.md palabre-web/content/fr/3.usage/[0-9]*.*.md palabre-web/content/fr/4.configuration/[0-9]*.*.md palabre-web/content/fr/5.integrations/[0-9]*.*.md palabre-web/content/fr/5.reference/[0-9]*.*.md palabre-web/content/fr/6.reference/[0-9]*.*.md
+          rm -f palabre-web/content/en/1.get-started/[0-9]*.*.md palabre-web/content/en/2.agents/[0-9]*.*.md palabre-web/content/en/3.usage/[0-9]*.*.md palabre-web/content/en/4.configuration/[0-9]*.*.md palabre-web/content/en/5.integrations/[0-9]*.*.md palabre-web/content/en/5.reference/[0-9]*.*.md palabre-web/content/en/6.reference/[0-9]*.*.md
           rm -f palabre-web/content/fr/6.troubleshooting.md palabre-web/content/fr/7.troubleshooting.md palabre-web/content/fr/7.roadmap.md palabre-web/content/fr/8.roadmap.md palabre-web/content/fr/8.changelog.md palabre-web/content/fr/9.changelog.md
           rm -f palabre-web/content/en/6.troubleshooting.md palabre-web/content/en/7.troubleshooting.md palabre-web/content/en/7.roadmap.md palabre-web/content/en/8.roadmap.md palabre-web/content/en/8.changelog.md palabre-web/content/en/9.changelog.md
           cp -R dist/content/. palabre-web/content/
