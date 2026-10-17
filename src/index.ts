@@ -630,7 +630,13 @@ async function ensureImplicitProjectConfigTrusted(parsed: ParsedArgs, messages: 
   }
 
   const configPath = optionalString(parsed.flags.config) ?? await resolveDefaultConfigPath();
-  if (!(await configExists(configPath)) || !isImplicitProjectConfig(
+  if (!(await configExists(configPath))) return;
+  // Explicit owner approval also applies to global and --config files.
+  if (parsed.command === "config" && parsed.flags["trust-config"]) {
+    await trustConfig(configPath);
+    return;
+  }
+  if (!isImplicitProjectConfig(
     configPath,
     process.cwd(),
     [DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH]

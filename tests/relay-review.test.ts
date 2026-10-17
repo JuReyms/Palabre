@@ -62,6 +62,17 @@ test("politique invalide ou élargie refusée", () => {
     assert.throws(() => validateRelayPolicy(value));
   }
 });
+
+test("owner/* couvre uniquement ce propriétaire, sans motifs partiels", () => {
+  const policy = validateRelayPolicy({ allowedTasks: ["review"], reviewRepositories: ["JuReyms/*", "JUREYMS/*"] });
+  assert.deepEqual(policy.reviewRepositories, ["jureyms/*"]);
+  assert.equal(reviewAllowed(policy, pr), true);
+  assert.equal(reviewAllowed(policy, { ...pr, repository: "JuReyms/Other" }), true);
+  assert.equal(reviewAllowed(policy, { ...pr, repository: "JuReymsOther/Palabre" }), false);
+  for (const pattern of ["*", "*/repo", "owner/pre*", "own*/repo", "owner/*/extra", "owner/", "owner/**"]) {
+    assert.throws(() => validateRelayPolicy({ allowedTasks: ["review"], reviewRepositories: [pattern] }));
+  }
+});
 test("PR exacte sur github.com seulement, sans query, fragment, option ou URL ambiguë", () => {
   assert.equal(pr.number, 123);
   for (const value of ["123", "--help", "https://evil.test/a/b/pull/1", "https://github.com/a/b/pull/0",

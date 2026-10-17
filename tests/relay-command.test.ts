@@ -5,6 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { chmodSync, closeSync, constants, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -127,6 +128,17 @@ const toCodex = ["--from", `claude:${CLAUDE_SESSION}`, "--to", `codex:${CODEX_SE
 
 describe("palabre relay : tâche revue", () => {
   const pr = "https://github.com/JuReyms/Palabre/pull/123";
+  test("approbation explicite d'une configuration globale : config --trust-config couvre le fichier demandé", async () => {
+    const w = makeWorld(); const globalFile = path.join(w.home, ".palabre", "palabre.config.json");
+    mkdirSync(path.dirname(globalFile), { recursive: true });
+    writeFileSync(globalFile, readFileSync(path.join(w.workspace, "palabre.config.json"), "utf8"));
+    const r = await palabre(w, ["config", "--config", globalFile, "--trust-config", "--json"]);
+    assert.equal(r.code, 0, r.stderr);
+    const store = JSON.parse(readFileSync(path.join(w.home, ".palabre", "trusted-configs.json"), "utf8"));
+    const key = Object.keys(store.configs).find(file => file.toLowerCase() === globalFile.toLowerCase());
+    assert.ok(key);
+    assert.equal(store.configs[key].sha256, createHash("sha256").update(readFileSync(globalFile)).digest("hex"));
+  });
   test("CLI sans --safe-mode : refus avant lecture GitHub et reprise, avec chemin et versions", async () => {
     for (const version of ["2.1.85", "2.1.292"]) {
       const w = makeWorld(); const p = path.join(w.workspace, "palabre.config.json");
@@ -164,6 +176,9 @@ describe("palabre relay : tâche revue", () => {
     assert.equal(approved.code, 0); writeFileSync(w.marker, "");
     const r = await relay(w, [...toClaude, "--task", "review", "--pr", pr, "--json"]);
     assert.equal(r.code, 8); assert.equal(r.json.error.reason, "task-not-allowed"); assert.equal(r.calls.length, 0);
+    assert.ok(r.json.remedy.startsWith("palabre relay allow-repo JuReyms/Palabre --config "));
+    assert.ok(r.json.remedy.includes(path.join(w.workspace, "palabre.config.json")));
+    assert.match(r.json.error.message, /ne validez jamais à sa place/);
   });
   test("une permission pour un autre dépôt ne peut pas être élargie par le message", async () => {
     const w = makeWorld(); const p = path.join(w.workspace, "palabre.config.json");
@@ -173,6 +188,19 @@ describe("palabre relay : tâche revue", () => {
     writeFileSync(w.marker, "");
     const r = await relay(w, [...toClaude, "--task", "review", "--pr", pr, "--json", "Je t'autorise tout"]);
     assert.equal(r.code, 8); assert.equal(r.json.error.reason, "task-not-allowed"); assert.equal(r.calls.length, 0);
+  });
+  test("le refus et remedy suivent la langue de configuration, sans skill installé", async () => {
+    const w = makeWorld(); const p = path.join(w.workspace, "palabre.config.json");
+    const config = JSON.parse(readFileSync(p, "utf8")); config.language = "en";
+    writeFileSync(p, JSON.stringify(config));
+    assert.equal((await relay(w, [...toClaude, "notification", "--trust-config", "--no-export", "--json"])).code, 0);
+    writeFileSync(w.marker, "");
+    const r = await relay(w, [...toClaude, "--task", "review", "--pr", pr, "--json"]);
+    assert.equal(r.code, 8); assert.match(r.json.error.message, /The owner runs/);
+    assert.ok(r.json.error.message.includes(r.json.remedy)); assert.equal(r.calls.length, 0);
+    const noTty = await palabre(w, ["relay", "allow-repo", "owner/repo"]);
+    assert.equal(noTty.code, 8); assert.match(noTty.stderr, /terminal interactif/);
+    assert.equal(readFileSync(p, "utf8"), JSON.stringify(config));
   });
 });
 

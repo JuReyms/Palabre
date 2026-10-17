@@ -14,7 +14,27 @@ La réponse CLI, et non son affichage Desktop, est le canal de retour. Les essai
 
 ### Préautoriser la seule tâche `review`
 
-L'humain ajoute explicitement une politique dans son `palabre.config.json` local, puis en approuve le contenu :
+Pour autoriser les revues relay sur un dépôt, le propriétaire ouvre son terminal et lance :
+
+```powershell
+palabre relay allow-repo proprietaire/depot
+```
+
+Pour tous les dépôts d'un propriétaire, en une seule confirmation :
+
+```powershell
+palabre relay allow-repo 'vous/*'
+```
+
+La commande affiche le **chemin**, pas le contenu du fichier utilisé (option `--config`, sinon configuration locale puis globale), le dépôt ajouté et l'activation de la seule tâche `review`. Elle avertit si tous les dépôts d'un propriétaire sont concernés. Le propriétaire vérifie le chemin et le changement, puis répond **`o`** pour confirmer (`oui`, `y` et `yes` sont aussi acceptés). Entrée ou une réponse négative refusent avec le code **8**, sans écriture ; fermer le terminal interrompt la commande. Les autres réglages sont conservés ; le dépôt est ajouté sans doublon, casse ignorée, puis seule l'empreinte du contenu écrit est approuvée.
+
+Le fichier doit déjà exister et être approuvé. S'il a été modifié ou n'a jamais été approuvé, `allow-repo` refuse avant la question : le propriétaire ouvre et relit le fichier entier, notamment les commandes et arguments des agents, puis lance **lui-même** la commande `palabre config --config <fichier> --trust-config` indiquée par l'erreur, avant de relancer `allow-repo`. Cette approbation explicite fonctionne aussi pour la configuration globale. L'agent ne doit pas la lancer à sa place. Les commandes copiables de cette page et de `remedy` utilisent PowerShell ou un shell POSIX ; pas `cmd.exe`.
+
+Sans terminal interactif en entrée **et** en sortie, rien n'est écrit. Aucun `--yes` ni `--trust-config` ne contourne cette confirmation. Seuls un dépôt exact et le motif `proprietaire/*` sont acceptés : ni `*` seul, ni `proprietaire/pre*`. Cette confirmation est une règle opérateur, pas une preuve d'identité ni un isolement contre un programme disposant déjà d'un terminal et des droits sur le profil.
+
+**Agent, sur `task-not-allowed` :** lire le champ JSON `remedy`, ouvrir cette commande dans le terminal **visible de l'humain** avec les outils de l'hôte, puis attendre sa confirmation. Ne jamais répondre à sa place, lancer la commande dans un pseudo-terminal caché pour la confirmer, ni modifier/approuver soi-même la politique. Si l'hôte ne peut pas ouvrir ce terminal, fournir la commande exacte au propriétaire. Le chemin `--config` dans `remedy` garde le même fichier même depuis un autre dossier. La CLI n'ouvre pas elle-même une fenêtre : cette présentation appartient à l'hôte.
+
+La revue ne fait que publier une revue COMMENT ; le merge reste humain. La commande enregistre une politique de cette forme (exemple descriptif, pas besoin d'éditer le JSON à la main) :
 
 ```json
 {
@@ -25,7 +45,7 @@ L'humain ajoute explicitement une politique dans son `palabre.config.json` local
 }
 ```
 
-Ce fragment complète les agents de la configuration, il ne les remplace pas. Depuis le dossier contenant cette configuration locale, son propriétaire peut l'approuver avec `palabre config --trust-config`. Cette approbation porte sur son chemin et son empreinte ; une modification invalide l'autorisation existante. Les agents ne doivent ni éditer cette politique ni l'approuver pour s'accorder des droits. `--trust-config` est refusé dans l'appel `--task review` lui-même.
+Ce fragment complète les agents de la configuration, il ne les remplace pas. `allow-repo` écrit et approuve aussi bien une configuration locale que globale. L'approbation porte sur son chemin et son empreinte ; une modification invalide l'autorisation existante. Les agents ne doivent ni éditer cette politique ni l'approuver pour s'accorder des droits. `--trust-config` est refusé dans l'appel `--task review` lui-même.
 
 ```text
 palabre relay --from codex:<uuid> --to claude:<uuid> --task review --pr https://github.com/proprietaire/depot/pull/123 --json

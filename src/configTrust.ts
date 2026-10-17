@@ -40,13 +40,15 @@ export async function isConfigTrusted(
 /** Enregistre explicitement l'empreinte actuelle d'une configuration. */
 export async function trustConfig(
   configPath: string,
-  trustPath = CONFIG_TRUST_PATH
+  trustPath = CONFIG_TRUST_PATH,
+  expectedSha256?: string
 ): Promise<void> {
   await withTrustStoreLock(trustPath, async () => {
     const [store, identity] = await Promise.all([
       readTrustStore(trustPath),
       getConfigIdentity(configPath)
     ]);
+    if (expectedSha256 !== undefined && identity.sha256 !== expectedSha256) throw new Error("Configuration changed before approval");
     store.configs[identity.path] = {
       sha256: identity.sha256,
       trustedAt: new Date().toISOString()
