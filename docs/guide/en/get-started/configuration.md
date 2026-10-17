@@ -134,6 +134,6 @@ palabre config --clear-defaults
 
 `--clear-defaults` removes defaults; it does not uninstall agents. See `palabre config --help`.
 
-`palabre init --local` creates `./palabre.config.json`, which takes precedence over global configuration in that folder. A configuration can run commands with your rights: PALABRE requires approval of its content. `init` approves the file it creates; manual edits invalidate that approval. Read the file, then confirm in a terminal or run `palabre config --config <file> --trust-config`. An agent must never approve a policy to grant itself rights.
+`palabre init --local` creates `./palabre.config.json`, which takes precedence over global configuration in that folder. A configuration can run commands with your rights: PALABRE requires approval for implicit project configuration and configurations used by Relay, local or global. `init` approves the file it creates; manual edits invalidate that approval. Read the file, then confirm in a terminal or run `palabre config --config <file> --trust-config`. An agent must never approve a policy to grant itself rights.
 
 To authorize the sole Relay review task on a repository, run `palabre relay allow-repo owner/repository` yourself in your visible terminal: keyboard confirmation is required. See [Relay](/en/usage/relay).

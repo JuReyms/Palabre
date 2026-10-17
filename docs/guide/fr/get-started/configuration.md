@@ -134,6 +134,6 @@ palabre config --clear-defaults
 
 `--clear-defaults` retire les paramètres par défaut ; il ne désinstalle pas les agents. Voir `palabre config --help`.
 
-`palabre init --local` crée `./palabre.config.json`, prioritaire sur la configuration globale dans ce dossier. Une configuration peut lancer des commandes avec vos droits : PALABRE exige une approbation de son contenu. `init` approuve le fichier qu'il crée ; une modification manuelle invalide cette approbation. Vous relisez le fichier, puis confirmez dans un terminal ou lancez `palabre config --config <fichier> --trust-config`. Un agent ne doit jamais approuver une politique pour s'accorder des droits.
+`palabre init --local` crée `./palabre.config.json`, prioritaire sur la configuration globale dans ce dossier. Une configuration peut lancer des commandes avec vos droits : PALABRE exige une approbation pour une configuration projet implicite et pour les configurations utilisées par Relay, locales ou globales. `init` approuve le fichier qu'il crée ; une modification manuelle invalide cette approbation. Vous relisez le fichier, puis confirmez dans un terminal ou lancez `palabre config --config <fichier> --trust-config`. Un agent ne doit jamais approuver une politique pour s'accorder des droits.
 
 Pour autoriser la seule tâche de revue Relay sur un dépôt, lancez vous-même `palabre relay allow-repo proprietaire/depot` dans votre terminal visible : une confirmation au clavier est requise. Voir [Relay](/fr/usage/relay).

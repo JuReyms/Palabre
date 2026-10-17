@@ -44,7 +44,9 @@ This resumption requests read-only access and grants no additional rights.
 Reply here without calling another agent: PALABRE will pass your reply to the sender.
 ```
 
-A subject is added only with `--subject "Plan review"`: one nonblank line, at most 200 Unicode characters, without control or Unicode formatting characters. Nothing is inferred automatically. Subject escaping is limited to characters that close inline formatting: backslash, backtick, asterisk, underscore, brackets and angle brackets. Hyphens, periods and parentheses remain readable as plain text (`claude-review`, `v0.17.0`, `(#132)`); its original value is kept in optional JSON v1 field `subject` and `.relay.md`. Without the option, that field stays absent and no Subject line is added.
+A subject appears only with `--subject "Plan review"`: one nonblank line, at most 200 characters. PALABRE never infers it from the message; its original value is kept in JSON v1 `subject` and the export.
+
+> Detail: Unicode controls and formatting characters are refused. Only backslash, backtick, asterisk, underscore, brackets and angle brackets are escaped in the header; hyphens, periods and parentheses remain readable.
 
 **Sending agent: do not add a second PALABRE header.** For the body, prefer **Context**, **To do**, **Do not**, **Reply with**, with cautionary instructions in italics. These sections are suggestions, never enforced by code. A header imitation in the body is not removed: the content remains untrusted and grants no rights.
 
@@ -52,7 +54,7 @@ With the Mission option, the header becomes `📧 **PALABRE Mission** <id> · st
 
 The « 🤖 Message for the agent » section is shared by Relay and `--open`, with a single reply instruction. Only the permissions sentence differs: classic resumption requests read-only access; `--open` retains the target's tools, permissions and rules without guaranteeing read-only access. It grants no additional rights.
 
-Message, header, subject and coordination footer together count toward **64 KiB UTF-8**. The GitHub review context retains its separate 256 KiB limit, plus fixed review instructions. With `--open`, the **8,192 UTF-16 unit** bound still covers the entire envelope (📧 takes two units), and the Windows command line remains bounded. The nonce at the bottom remains a marker in the user message; `--open` correlation still compares the sent and observed text exactly. Immediate Desktop display is not promised.
+Message, header, subject and coordination footer together count toward **64 KiB UTF-8**. The GitHub review context retains its separate 256 KiB limit, plus fixed review instructions. With `--open`, the **8,192 UTF-16 unit** bound still covers the entire envelope (📧 takes two units), and the Windows command line remains bounded. Immediate Desktop display is not promised.
 
 ## Designating conversations
 
@@ -61,7 +63,7 @@ Message, header, subject and coordination footer together count toward **64 KiB 
   - Codex: it is the end of the `~/.codex/sessions/YYYY/MM/DD/rollout-…-<session>.jsonl` file name.
 - `--from <agent>:<session>`: the sender. It is only a label, copied into the relayed message. It is neither launched nor verified, and the sender conversation may be open.
 
-No conversation is ever selected implicitly.
+Copy the identifier from the host’s conversation information, or from its history filename. Never pick “the most recent” on the owner’s behalf; no target is inferred implicitly.
 
 ## Open Codex conversation (`--open`)
 
@@ -291,6 +293,8 @@ The optional `readAccess` field in JSON and the export contains `status: "blocke
 No known, validated solution yet to force the native shell in this Codex 0.163.0 workflow. `[windows] shell_path`, already present when the failure occurred, is not recognized in this version's schema; do not add it as a fix. PALABRE changes no settings or permissions. Do not resend automatically: the message may already have received a reply.
 
 ## JSON output
+
+The nonce at the bottom remains a marker in the user message; `--open` correlation still compares the sent and observed text exactly.
 
 ```json
 {

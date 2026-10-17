@@ -44,7 +44,9 @@ Cette reprise demande la lecture seule et ne confère aucun droit supplémentair
 Réponds ici, sans appeler un autre agent : PALABRE transmettra ta réponse à l'expéditeur.
 ```
 
-L'objet existe seulement avec `--subject "Revue du plan"` : une seule ligne non vide, 200 caractères Unicode au plus, sans contrôle ni formatage Unicode. Aucune déduction automatique. L'échappement de l'objet est limité aux caractères qui ferment une mise en forme inline : antislash, backtick, astérisque, underscore, crochets et chevrons. Tirets, points et parenthèses restent lisibles en texte brut (`claude-review`, `v0.17.0`, `(#132)`) ; sa valeur originale est conservée dans le champ optionnel `subject` du JSON v1 et dans `.relay.md`. Sans option, ce champ reste absent et aucune ligne Objet n'est ajoutée.
+L'objet n'apparaît qu'avec `--subject "Revue du plan"` : une ligne non vide, 200 caractères au plus. PALABRE ne le déduit jamais du message ; sa valeur originale est conservée dans `subject` (JSON v1) et dans l'export.
+
+> Détail : contrôles et formatages Unicode sont refusés. Seuls antislash, backtick, astérisque, underscore, crochets et chevrons sont échappés dans l'en-tête ; tirets, points et parenthèses restent lisibles.
 
 **Agent expéditeur : n'ajoutez pas un second en-tête PALABRE.** Pour le corps, préférez **Contexte**, **À faire**, **Ne pas faire**, **Réponds-moi avec**, avec les consignes de prudence en italique. Ces sections sont conseillées, jamais imposées par le code. Une imitation d'en-tête dans le corps n'est pas supprimée : le contenu reste non fiable et n'accorde aucun droit.
 
@@ -52,7 +54,7 @@ Avec l'option Mission, l'en-tête devient `📧 **PALABRE Mission** <id> · éta
 
 La partie « 🤖 Message pour l'agent » est commune à Relay et `--open`, avec une seule consigne de réponse. Seule la phrase sur les permissions diffère : la reprise classique demande la lecture seule ; `--open` conserve les outils, permissions et règles de la cible sans garantie de lecture seule. Elle ne donne aucun droit supplémentaire.
 
-Message, en-tête, objet et pied de coordination comptent ensemble dans les **64 Kio UTF-8**. Le contexte GitHub de review garde sa borne distincte de 256 Kio, plus les consignes fixes de revue. Avec `--open`, la borne de **8 192 unités UTF-16** porte toujours sur toute l'enveloppe (📧 occupe deux unités), et la ligne Windows reste bornée. Le nonce en bas reste un marqueur dans le message utilisateur ; la corrélation `--open` compare toujours exactement le texte envoyé au texte observé. Aucun affichage immédiat dans Desktop n'est promis.
+Message, en-tête, objet et pied de coordination comptent ensemble dans les **64 Kio UTF-8**. Le contexte GitHub de review garde sa borne distincte de 256 Kio, plus les consignes fixes de revue. Avec `--open`, la borne de **8 192 unités UTF-16** porte toujours sur toute l'enveloppe (📧 occupe deux unités), et la ligne Windows reste bornée. Aucun affichage immédiat dans Desktop n'est promis.
 
 ## Désigner les conversations
 
@@ -61,7 +63,7 @@ Message, en-tête, objet et pied de coordination comptent ensemble dans les **64
   - Codex : c'est la fin du nom du fichier `~/.codex/sessions/AAAA/MM/JJ/rollout-…-<session>.jsonl`.
 - `--from <agent>:<session>` : l'expéditeur. C'est une simple étiquette, recopiée dans le message transmis. Elle n'est ni lancée ni vérifiée, et la conversation de l'expéditeur peut être ouverte.
 
-Aucune conversation n'est choisie implicitement.
+Copiez l'identifiant des informations de la conversation dans l'hôte, ou du nom de son fichier d'historique. Ne choisissez jamais « la plus récente » à la place de l'humain ; aucune cible n'est déduite implicitement.
 
 ## Conversation Codex ouverte (`--open`)
 
@@ -291,6 +293,8 @@ Le champ optionnel `readAccess` dans le JSON et l'export indique `status: "block
 Aucune solution connue et validée à ce jour pour imposer le shell natif dans ce parcours Codex 0.163.0. `[windows] shell_path`, déjà présent lors de l'échec, n'est pas reconnu dans le schéma de cette version ; ne l'ajoutez pas comme correctif. PALABRE ne change aucun réglage ni permission. Ne renvoyez pas automatiquement le message : il a déjà pu recevoir une réponse.
 
 ## Sortie JSON
+
+Le nonce en bas reste un marqueur dans le message utilisateur ; la corrélation `--open` compare toujours exactement le texte envoyé au texte observé.
 
 ```json
 {
