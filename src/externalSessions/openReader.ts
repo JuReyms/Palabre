@@ -4,6 +4,8 @@
  * Fonctions pures : aucun accès disque, envoi, attente, reprise ni appel de modèle. Le dialecte
  * expérimental utilise les item_completed liés à un thread et à un tour, observés avec Codex 0.151.0
  * (TUI) et 0.160.1 (app-server de Codex desktop) sous Windows ; ce n'est pas un schéma public.
+ * Les contrôles de référence et d'ajout (`checkOpenFraming`, `openAddedLines`) et
+ * `settleOpenDelivery` sont partagés avec le lecteur Claude de B2 (`claudeOpenReader.ts`).
  */
 import { createHash } from "node:crypto";
 
@@ -99,8 +101,8 @@ function isTurnEnvironmentContext(payload: JsonObject, turnId: string): boolean 
   return text !== undefined && /^<environment_context>(?:(?!<\/?environment_context>)[\s\S])*<\/environment_context>$/.test(text);
 }
 
-/** Valeur courte et sans caractère de contrôle, recopiable dans un diagnostic. */
-const CONTEXT_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/;
+/** Valeur courte et sans caractère de contrôle, recopiable dans un diagnostic (B1 et B2). */
+export const CONTEXT_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/;
 
 /**
  * Relève le `turn_context` du tour corrélé. Il doit être unique dans l'ajout et porter le même
@@ -143,6 +145,35 @@ export function captureOpenBaseline(reference: OpenReference): OpenBaseline {
 }
 
 /**
+ * Contrôles communs aux lecteurs B1 et B2, avant l'identité propre au fournisseur : format de la
+ * référence, historique raccourci, première ligne plafonnée. Rend la raison d'un refus.
+ */
+export function checkOpenFraming(snapshot: OpenSnapshot, baseline: OpenBaseline): string | undefined {
+  if (!Number.isSafeInteger(baseline.bytes) || baseline.bytes <= 0 || !/^[a-f0-9]{64}$/.test(baseline.sha256)
+    || !/^[a-f0-9]{64}$/.test(baseline.firstLineSha256)) return "invalid-baseline";
+  if (!Number.isSafeInteger(snapshot.bytes) || snapshot.bytes < baseline.bytes) return "history-replaced";
+  if (Buffer.byteLength(snapshot.firstLine) > OPEN_READ_LIMITS.firstLineBytes) return "identity-too-large";
+  return undefined;
+}
+
+/**
+ * Contrôles communs après l'identité : première ligne et témoin inchangés, ajout plafonné et
+ * complet. Rend les lignes **terminées** de l'ajout (la dernière ligne partielle est laissée au
+ * prochain snapshot), ou la raison d'un refus.
+ */
+export function openAddedLines(snapshot: OpenSnapshot, baseline: OpenBaseline): string[] | string {
+  if (digest(Buffer.from(snapshot.firstLine)) !== baseline.firstLineSha256
+    || snapshot.witness.byteLength !== Math.min(baseline.bytes, OPEN_READ_LIMITS.witnessBytes)
+    || digest(snapshot.witness) !== baseline.sha256) return "history-replaced";
+  if (snapshot.added.byteLength > OPEN_READ_LIMITS.addedBytes || snapshot.bytes - baseline.bytes > OPEN_READ_LIMITS.addedBytes) return "added-too-large";
+  if (snapshot.added.byteLength !== snapshot.bytes - baseline.bytes) return "incomplete-snapshot";
+  // Décoder seulement les lignes terminées, même si un caractère UTF-8 chevauche la fin lue.
+  const added = Buffer.from(snapshot.added.buffer, snapshot.added.byteOffset, snapshot.added.byteLength);
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(added.subarray(0, added.lastIndexOf(10) + 1)).split("\n").slice(0, -1); }
+  catch { return "invalid-utf8"; }
+}
+
+/**
  * Observe uniquement l'ajout depuis l'offset. Une dernière ligne incomplète est ignorée jusqu'au
  * prochain snapshot ; une ligne terminée invalide ou un témoin changé interdit tout succès.
  *
@@ -157,25 +188,15 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
   const unreadable = (reason: string): OpenObservation => ({ status: "unreadable", persisted: "unknown", reason });
   if (!request.threadId || !request.nonce || !request.envelope.includes(request.nonce)) return unreadable("invalid-request");
   const baseline = request.baseline;
-  if (!Number.isSafeInteger(baseline.bytes) || baseline.bytes <= 0 || !/^[a-f0-9]{64}$/.test(baseline.sha256)
-    || !/^[a-f0-9]{64}$/.test(baseline.firstLineSha256)) return unreadable("invalid-baseline");
-  if (!Number.isSafeInteger(snapshot.bytes) || snapshot.bytes < baseline.bytes) return unreadable("history-replaced");
-  if (Buffer.byteLength(snapshot.firstLine) > OPEN_READ_LIMITS.firstLineBytes) return unreadable("identity-too-large");
+  const framing = checkOpenFraming(snapshot, baseline);
+  if (framing) return unreadable(framing);
   let identity: JsonObject | undefined;
   try { identity = object(JSON.parse(snapshot.firstLine)); } catch { return unreadable("identity-mismatch"); }
   if (!snapshot.firstLine.endsWith("\n") || identity?.type !== "session_meta" || object(identity.payload)?.id !== request.threadId) return unreadable("identity-mismatch");
-  if (digest(Buffer.from(snapshot.firstLine)) !== baseline.firstLineSha256
-    || snapshot.witness.byteLength !== Math.min(baseline.bytes, OPEN_READ_LIMITS.witnessBytes)
-    || digest(snapshot.witness) !== baseline.sha256) return unreadable("history-replaced");
-  if (snapshot.added.byteLength > OPEN_READ_LIMITS.addedBytes || snapshot.bytes - baseline.bytes > OPEN_READ_LIMITS.addedBytes) return unreadable("added-too-large");
-  if (snapshot.added.byteLength !== snapshot.bytes - baseline.bytes) return unreadable("incomplete-snapshot");
-  // Décoder seulement les lignes terminées, même si un caractère UTF-8 chevauche la fin lue.
-  const added = Buffer.from(snapshot.added.buffer, snapshot.added.byteOffset, snapshot.added.byteLength);
-  let text: string;
-  try { text = new TextDecoder("utf-8", { fatal: true }).decode(added.subarray(0, added.lastIndexOf(10) + 1)); }
-  catch { return unreadable("invalid-utf8"); }
+  const lines = openAddedLines(snapshot, baseline);
+  if (typeof lines === "string") return unreadable(lines);
   const fresh: JsonObject[] = [];
-  for (const line of text.split("\n").slice(0, -1)) {
+  for (const line of lines) {
     if (!line.trim()) continue;
     let row: JsonObject | undefined;
     try { row = object(JSON.parse(line)); } catch { return unreadable("invalid-json-line"); }
@@ -278,7 +299,7 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
  * l'emporte sur attempted, même si une lecture ultérieure échoue.
  * Ce prototype ne recommande jamais un retry ; il ne contrôle pas la file du fournisseur.
  */
-export function settleOpenDelivery(observation: OpenObservation, attempted: boolean, previouslyPersisted = false): OpenDelivery {
+export function settleOpenDelivery(observation: Pick<OpenObservation, "status" | "persisted" | "reply">, attempted: boolean, previouslyPersisted = false): OpenDelivery {
   if (observation.status === "replied" && observation.reply !== undefined) return { status: "replied", persisted: true, reply: observation.reply };
   if (observation.persisted === true || previouslyPersisted) return { status: "persisted-no-reply", persisted: true };
   if (!attempted) return { status: "not-delivered", persisted: observation.persisted };
