@@ -126,6 +126,45 @@ function palabre(world: World, argv: string[], env: Record<string, string> = {})
 const toClaude = ["--from", FROM, "--to", `claude:${CLAUDE_SESSION}`];
 const toCodex = ["--from", `claude:${CLAUDE_SESSION}`, "--to", `codex:${CODEX_SESSION}`];
 
+test("mission CLI : création, une étape Relay factice, status après reprise et stop", async () => {
+  const w = makeWorld();
+  const approved = await palabre(w, ["config", "--trust-config", "--json"]);
+  assert.equal(approved.code, 0, approved.stderr);
+  const start = await palabre(w, ["mission", "start", "--from", FROM, "--to", `claude:${CLAUDE_SESSION}`,
+    "--criteria", "Réponse claire", "--max-steps", "2", "Analyse en lecture seule", "--json"]);
+  assert.equal(start.code, 0, start.stderr); assert.equal(start.calls.length, 0);
+  const id = start.json.mission.id;
+  const step = await palabre(w, ["mission", "step", id, "Donne un constat", "--json"]);
+  assert.equal(step.code, 0, step.stdout + step.stderr);
+  assert.equal(step.json.type, "mission-result"); assert.equal(step.json.mission.steps.length, 1);
+  assert.equal(step.json.mission.steps[0].result.reply, "FAKE-OK");
+  assert.equal(step.calls.length, 1); assert.ok(step.calls[0]!.argv.includes("--permission-mode"));
+  assert.ok(step.calls[0]!.argv.includes("Read,Glob,Grep")); assert.ok(!step.calls[0]!.argv.includes("--dangerously-skip-permissions"));
+  assert.ok(existsSync(step.json.exportPath));
+  const status = await palabre(w, ["mission", "status", id, "--json"]);
+  assert.equal(status.json.mission.steps[0].result.reply, "FAKE-OK"); assert.equal(status.calls.length, 1);
+  const stopped = await palabre(w, ["mission", "stop", id, "--reason", "analyse suffisante", "--json"]);
+  assert.equal(stopped.code, 0); assert.equal(stopped.json.mission.status, "stopped");
+  const refused = await palabre(w, ["mission", "step", id, "pas de suite", "--json"]);
+  assert.equal(refused.code, 8); assert.equal(refused.json.error.kind, "stopped"); assert.equal(refused.calls.length, 1);
+});
+
+test("mission CLI : review conserve le refus de politique, arguments d'écriture refusés", async () => {
+  const w = makeWorld();
+  assert.equal((await palabre(w, ["config", "--trust-config", "--json"])).code, 0);
+  const start = await palabre(w, ["mission", "start", "--from", FROM, "--to", `claude:${CLAUDE_SESSION}`,
+    "--criteria", "Revue", "--tasks", "review", "Relire une PR", "--json"]);
+  const review = await palabre(w, ["mission", "step", start.json.mission.id, "Revue", "--task", "review",
+    "--pr", "https://github.com/example/project/pull/1", "--json"]);
+  assert.equal(review.code, 8); assert.equal(review.json.mission.steps[0].result.error.reason, "task-not-allowed");
+  assert.ok(review.json.mission.steps[0].result.remedy.includes("palabre relay allow-repo"));
+  assert.equal(review.calls.length, 0);
+  const invalid = await palabre(w, ["mission", "start", "--tasks", "code", "--json"]);
+  assert.equal(invalid.code, 8); assert.equal(invalid.json.error.kind, "invalid-arguments");
+  const trust = await palabre(w, ["mission", "step", start.json.mission.id, "test", "--trust-config", "--json"]);
+  assert.equal(trust.code, 8); assert.equal(trust.calls.length, 0);
+});
+
 describe("palabre relay : tâche revue", () => {
   const pr = "https://github.com/JuReyms/Palabre/pull/123";
   test("approbation explicite d'une configuration globale : config --trust-config couvre le fichier demandé", async () => {

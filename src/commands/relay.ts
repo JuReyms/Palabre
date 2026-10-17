@@ -100,6 +100,8 @@ export interface RelayResultV1 {
 
 /** État partagé avec le gestionnaire d'erreur interne, pour qualifier la délivrance. */
 interface RelayContext {
+  /** Annulation du chef de mission ; ne confère aucun droit supplémentaire. */
+  signal?: AbortSignal;
   remedy?: string;
   cli?: ReviewCliIdentity;
   task?: ReviewReport;
@@ -138,7 +140,33 @@ function startupMessages(rawArgs: readonly string[]): Messages {
 
 /** Point d'entrée de `palabre relay`. `rawArgs` commence par `relay`. */
 export async function runRelayCommand(rawArgs: string[]): Promise<void> {
+  const messages = startupMessages(rawArgs);
+  if (rawArgs.includes("--help") || rawArgs.includes("-h")) {
+    console.log(messages.help.renderCommand("relay"));
+    return;
+  }
+  if (rawArgs[1] === "allow-repo") {
+    try { await runRelayAllowRepo(rawArgs.slice(2)); }
+    catch (error) {
+      console.error(sanitizeTerminalText(error instanceof Error ? error.message : messages.relay.invalidRequest("invalid-arguments")));
+      process.exitCode = 8;
+    }
+    return;
+  }
+  const { result, messages: resolvedMessages } = await executeRelayWithMessages(rawArgs);
+  writeResult(result, rawArgs.includes("--json"), resolvedMessages);
+  process.exitCode = result.exitCode;
+}
+
+/** Même échange que la commande, sans sortie console ni exitCode global ; utilisé par Mission. */
+export async function executeRelay(rawArgs: string[], options: { signal?: AbortSignal } = {}): Promise<RelayResultV1> {
+  return (await executeRelayWithMessages(rawArgs, options)).result;
+}
+
+/** Préserve la langue résolue dans la config pour le rendu de la commande historique. */
+async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal } = {}): Promise<{ result: RelayResultV1; messages: Messages }> {
   const context: RelayContext = {
+    signal: options.signal,
     startedAt: Date.now(),
     messages: startupMessages(rawArgs),
     from: null,
@@ -147,19 +175,6 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
     exchangeStarted: false,
     open: rawArgs.includes("--open")
   };
-  if (rawArgs.includes("--help") || rawArgs.includes("-h")) {
-    console.log(context.messages.help.renderCommand("relay"));
-    return;
-  }
-  if (rawArgs[1] === "allow-repo") {
-    try { await runRelayAllowRepo(rawArgs.slice(2)); }
-    catch (error) {
-      console.error(sanitizeTerminalText(error instanceof Error ? error.message : context.messages.relay.invalidRequest("invalid-arguments")));
-      process.exitCode = 8;
-    }
-    return;
-  }
-  const json = rawArgs.includes("--json");
   let result: RelayResultV1;
   try {
     result = await relay(rawArgs, context);
@@ -172,11 +187,11 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
         detail: error instanceof Error ? error.message : String(error)
       });
   }
-  writeResult(result, json, context.messages);
-  process.exitCode = result.exitCode;
+  return { result, messages: context.messages };
 }
 
 async function relay(rawArgs: string[], context: RelayContext): Promise<RelayResultV1> {
+  if (context.signal?.aborted) throw new RelayRefusal({ status: "cancelled" });
   const { messages } = context;
   const { flags, positionals } = parseRelayTokens(rawArgs.slice(1), messages);
   try {
@@ -284,6 +299,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   }
 
   let review: ReviewInput | undefined;
+  if (context.signal?.aborted) throw new RelayRefusal({ status: "cancelled" });
   if (pr) {
     try {
       review = await readPullRequest(pr);
@@ -296,6 +312,8 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const envelope = buildEnvelope({ from: from.value, nonce, message }, context.messages.relay);
   const controller = new AbortController();
   const onInterrupt = () => controller.abort();
+  context.signal?.addEventListener("abort", onInterrupt, { once: true });
+  if (context.signal?.aborted) controller.abort();
   process.once("SIGINT", onInterrupt);
   context.exchangeStarted = true;
   try {
@@ -340,6 +358,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     }
     return result;
   } finally {
+    context.signal?.removeEventListener("abort", onInterrupt);
     process.removeListener("SIGINT", onInterrupt);
   }
 }

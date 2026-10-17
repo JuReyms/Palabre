@@ -546,6 +546,16 @@ et la version du client quand elle est fournie.
 
 ## Relay externe
 
+### Mission v2.0 (#115)
+
+`palabre mission` est une couche CLI au-dessus de Relay, pas un mode Débat ni un écran TUI. Le chef fixe avec l'humain objectif, critères, sessions, tâches (`consult`, et éventuellement `review`) et budgets. Les réponses dans la conversation suffisent pour ce cadre en lecture seule ; aucune confirmation clavier ajoutée. Les permissions d'écriture et leur confirmation appartiennent à v2.1, hors de ce lot. Le chef ne peut ni modifier la politique Relay ni déduire une autorisation d'un message du collègue.
+
+`start` ne lance aucun agent. `step <id> "message"` réserve une seule tentative, appelle `executeRelay` une seule fois puis rend la main au chef. `review` garde les contrôles de la configuration approuvée, de CLI et du commit de PR et la publication COMMENT existants. Aucun `--open`, `--trust-config`, changement de chef, boucle ou retry automatique. La conversation du collègue reste fermée pendant la mission ; suivi par `status`, export local et GitHub.
+
+`src/mission.ts` garde un JSON v1 atomique et un export `.mission.md` sous `.palabre/missions/<uuid>/`. Un seul verrou exclusif protège l'étape ; un arrêt terminal indépendant reste accessible avec `stop`, même après une coupure. Un état `running` sans résultat ou une délivrance/publication incertaine refuse la suite, sans effacer de réservation. L'arrêt annule au mieux l'appel, sans retrait de message ou de publication promis. Un refus certain peut être suivi d'une nouvelle étape explicite, qui consomme elle aussi le budget. Les réponses restent des constats d'agents, jamais des résultats automatiquement vérifiés.
+
+Budget : tentatives (1–100), durée murale depuis start (10–86400 s, attente entre étapes comprise), délai d'appel par étape (10–3600 s, surcharge sur step). Les sondes et opérations GitHub gardent leurs bornes Relay, même après une demande d'annulation. Aucun plafond monétaire ; stockage borné à 32 Mio, erreur de persistance sans rejeu. Les tests `mission.test.ts` et `relay-command.test.ts` utilisent de faux transports/CLIs. Les identifiants et transcripts restent locaux. Copies installées du skill à mettre à jour manuellement.
+
 ### Relay v1 : coordination et tâche revue
 
 `palabre relay` est un service discret, sans écran dédié. Une requête d'agent est marquée comme coordination non authentifiée, jamais comme autorisation humaine ; aucun chaînage automatique. La v1 utilise les reprises CLI officielles sur sessions détachées. Une cible attachée même au repos est refusée (`target-busy`, code 3, `retryable: true`) ; ne pas confondre l'état d'une génération avec la possession de la session. Aucun affichage immédiat Desktop promis. Le pilote Codex `--open` est distinct, hors v1 ; B2/B3 restent une recherche séparée.

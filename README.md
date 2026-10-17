@@ -37,6 +37,8 @@ PALABRE does not replace your tools: it drives them. You keep your subscriptions
 
 *Relay: the conversation receiving the message must be closed (no terminal, app or IDE open on it), and each message gets a single reply.*
 
+For a sequence of read-only requests, **Mission v2.0** keeps the agreed scope, budget and results: `palabre mission --help`. The lead calls one explicit step at a time; you make decisions. No code writing or automatic loop. [Guide](https://palab.re/en/usage/relay).
+
 In doubt: **Debate** for a decision with stakes, **Relay** to hand off to another agent, **Ask** for several opinions, **Chat** to talk with one agent.
 
 ### Installation
@@ -185,6 +187,8 @@ PALABRE ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements,
 | **Chat** | « Je discute avec un agent, et j'ai parfois besoin d'un second avis pour vérifier une réponse. » Consultez un autre agent avec `/consult`, sans quitter la conversation. | `palabre chat --agent-a codex` |
 
 *Relay : la conversation qui reçoit le message doit être fermée (ni terminal, ni application, ni IDE ouvert dessus), et chaque message reçoit une seule réponse.*
+
+Pour une suite de demandes en lecture seule, **Mission v2.0** conserve le cadre convenu, le budget et les résultats : `palabre mission --help`. Le chef appelle une étape explicite à la fois ; vous prenez les décisions. Aucune écriture de code ni boucle automatique. [Guide](https://palab.re/fr/usage/relay).
 
 En cas de doute : **Débat** pour une décision qui compte, **Relay** pour passer la main à un autre agent, **Ask** pour plusieurs avis, **Chat** pour discuter avec un agent.
 
