@@ -39,7 +39,7 @@ PALABRE does not replace your tools: it drives them. You keep your subscriptions
 
 To chain several read-only steps within a fixed scope and budget, Relay offers the **Mission** option: `palabre mission --help`.
 
-In doubt: **Debate** for a decision with stakes, **Relay** to hand off to another agent, **Ask** for several opinions, **Chat** to talk with one agent.
+In doubt: **Debate** for a decision with stakes, **Relay** to orchestrate work across several agents, **Ask** for several opinions, **Chat** to talk with one agent.
 
 ### Installation
 
@@ -199,7 +199,7 @@ PALABRE ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements,
 
 Pour enchaîner plusieurs étapes en lecture seule dans un cadre et un budget fixés, Relay propose l'option **Mission** : `palabre mission --help`.
 
-En cas de doute : **Débat** pour une décision qui compte, **Relay** pour passer la main à un autre agent, **Ask** pour plusieurs avis, **Chat** pour discuter avec un agent.
+En cas de doute : **Débat** pour une décision qui compte, **Relay** pour orchestrer le travail avec plusieurs agents, **Ask** pour plusieurs avis, **Chat** pour discuter avec un agent.
 
 ### Installation
 
