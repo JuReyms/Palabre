@@ -47,6 +47,8 @@ palabre --help
 This section is for people who want to test Palabre from the Git repository. It requires `pnpm`.
 
 ```bash
+git clone https://github.com/JuReyms/Palabre.git
+cd Palabre
 pnpm install
 pnpm build
 pnpm link --global
@@ -59,9 +61,7 @@ Throughout the rest of this documentation, examples always use the final user co
 
 Palabre drives external tools. Install and authenticate the agents you want to use before launching Palabre.
 
-**OpenCode**, **Mistral Vibe**, and **Ollama** can be used with models or limits specific to their providers, while **Claude Code** and **Codex** generally require a subscription.
-
-**Ollama** is free for local use. If you use a cloud or remote offering, quotas and limits come from that offering, not from Palabre.
+Access conditions, models and limits for Claude Code, Codex, Antigravity, OpenCode and Mistral Vibe depend on their provider and your configuration. With Ollama and a locally installed model, requests run on your machine; a remote server receives the data you send it.
 
 Useful pages:
 
@@ -77,3 +77,9 @@ Useful pages:
 Now run `palabre` in an interactive terminal. On first launch, Palabre creates the global configuration if needed, detects installed agents, and opens the TUI home screen.
 
 For explicit setup, scripts, or a project-local configuration, see [the configuration guide](/en/get-started/configuration). If you use VS Code, you can also install the [Palabre extension](/en/get-started/vscode-extension). To drive Palabre from an AI agent, install the [Palabre skill](/en/get-started/skill).
+
+## Update
+
+`palabre update` detects the installation, shows the plan and asks for confirmation in an interactive terminal. `palabre update --check` checks without modifying the installation. After updating, copy the skill again if you installed it.
+
+Relay and its Mission option use existing Codex or Claude Code conversations. Each provider sets its own access conditions and limits; PALABRE does not replace them.

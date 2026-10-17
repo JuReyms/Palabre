@@ -47,8 +47,9 @@ Palabre affiche le chemin de l'export `.debate.md`. Utilisez ensuite `/history` 
 | Mode | Agents | Usage |
 |------|--------|-------|
 | Débat | 2 | Confronter deux positions — mode principal. |
-| Chat | 1 actif, consultation facultative | Avancer avec un agent et demander un second avis. |
+| Relay | 1 conversation cible | Passer la main à une conversation existante, sans écran TUI. |
 | Ask | 1 à 4 | Comparer des réponses indépendantes. |
+| Chat | 1 actif, consultation facultative | Avancer avec un agent et demander un second avis. |
 
 Passez à Chat avec `/chat`, ou à Ask avec `/ask`.
 
@@ -62,6 +63,12 @@ palabre chat --agent-a codex
 palabre ask "Compare ces approches" --agents codex claude opencode
 ```
 
-Dans un vrai terminal, elles utilisent encore la TUI par défaut. Ajoutez `--terminal` pour des logs humains ou `--renderer ndjson` pour une intégration.
+Dans un terminal interactif, Débat, Ask et Chat utilisent la TUI par défaut. Ajoutez `--terminal` pour un rendu brut ou `--renderer ndjson` pour une intégration. Relay et son option Mission écrivent dans le terminal, ou en JSON avec `--json`.
 
 Continuez avec [Choisir un mode](/fr/usage/running-a-debate), [Utiliser la TUI](/fr/usage/tui) et [Exports](/fr/usage/exports).
+
+Pour interroger une conversation existante, voir [Relay](/fr/usage/relay) :
+
+```text
+palabre relay --from codex:<session> --to claude:<session> "Relis ce plan et liste les risques"
+```

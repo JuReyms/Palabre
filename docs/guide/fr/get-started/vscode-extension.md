@@ -21,7 +21,7 @@ Après installation, ouvrez le panneau Palabre depuis la barre latérale.
 ## Prérequis
 
 - Palabre CLI installé sur la même machine ;
-- Palabre CLI `0.12.0` ou plus récent recommandé ;
+- Palabre CLI `0.17.0` recommandé pour les correctifs Chat ; l’extension actuelle exige au moins `0.13.0` ;
 - au moins un agent disponible pour Chat ou Ask, deux pour Débat.
 
 ```bash
@@ -42,3 +42,5 @@ palabre presets --json
 Pour Chat, choisissez **Chat** dans l'extension. La CLI conserve l'état de la conversation et expose le même comportement via son contrat NDJSON public.
 
 Si l'extension ne trouve pas Palabre, vérifiez `palabre --version` puis redémarrez VS Code. Si aucun agent n'apparaît, lancez `palabre doctor` et `palabre config`.
+
+Relay et son option Mission ne sont pas exposés dans le panneau : utilisez la CLI ou le skill.

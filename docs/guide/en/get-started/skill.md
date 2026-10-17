@@ -1,19 +1,19 @@
 ---
 title: Palabre skill
-description: Install the Palabre skill so a skills-compatible AI agent knows when to use Chat, Debate, Ask, or Relay.
+description: Install the Palabre skill so a skills-compatible AI agent knows when to use Debate, Relay, Ask, or Chat.
 seo:
   title: Use Palabre from a skills-compatible agent
-  description: Install the Palabre skill so Claude Code, Codex, or another skills-compatible agent can choose between Chat, Debate, Ask, and Relay.
+  description: Install the Palabre skill so Claude Code, Codex, or another skills-compatible agent can choose between Debate, Relay, Ask, and Chat.
 ---
 
 Palabre ships a ready-to-use skill. It teaches an AI agent that Palabre is available, when to use it, and how to choose the right path:
 
 | Path | When the agent picks it |
 |------|-------------------------|
-| [Chat](/en/usage/chat) | Move forward with one agent, ask for a one-off second opinion, continue after a summary. |
 | [Debate](/en/usage/debate) | Confront two positions and work through the disagreements. |
+| [Relay](/en/usage/relay) | Query an existing conversation that holds the context: closed by default, or open Codex with `--open` (Windows pilot). |
 | [Ask](/en/usage/ask) | Collect up to four independent opinions before comparing them. |
-| [Relay](/en/usage/relay) | Query a closed Claude Code or Codex conversation that already holds the context. |
+| [Chat](/en/usage/chat) | Move forward with one agent, ask for a one-off second opinion, continue after a summary. |
 
 The skill follows the open [agentskills.io](https://agentskills.io) standard, so it is portable across Claude Code, Codex, Hermes Agent, and any skills-compatible agent.
 
@@ -50,7 +50,7 @@ Keep a single active copy of the skill. If an older version is also installed, f
 
 ## Requirements
 
-- Palabre CLI installed on the same machine (`npm install -g palabre`);
+- Palabre CLI installed on the same machine (`npm install --global palabre`);
 - at least one compatible agent configured or detected by Palabre; two or more are recommended for comparisons;
 - a host agent compatible with the agentskills.io standard.
 
@@ -64,10 +64,14 @@ palabre agents
 
 ## What the skill adds
 
-- **Path selection**: Chat, Debate, Ask, or Relay depending on the need, without running Palabre for a simple task or forcing a Debate for every second-opinion request.
+- **Path selection**: Debate, Relay, Ask, or Chat depending on the need, without running Palabre for a simple task or forcing a Debate for every second-opinion request.
 - **Chat driven properly**: the agent uses the [NDJSON stream](/en/integrations/ndjson) and JSON commands on stdin (`chat-send`, `chat-consult`, `chat-use`, `chat-agents`, `chat-end`), never an imitation of the TUI. It knows Chat's bounded memory: six recent messages, no resume after the process ends.
 - **Three kinds of resume kept apart**: the host agent's session, Palabre [checkpoints](/en/reference/cli#resume-a-session) for Debate and Ask, and resuming an external conversation through Relay.
-- **Careful Relay**: target chosen by you, closed conversation, unauthenticated sender, target history modified, no automatic resend depending on the delivery status.
+- **Careful Relay**: target chosen by you; PALABRE header, ℹ️ warning and « 🤖 Message for the agent »; optional `--subject`, unauthenticated sender, history modified, no automatic resend; `usage-limit` or `read-unavailable` diagnostic preserved.
 - **Controlled context**: `--files` or `--context`, with a warning before sending sensitive content; Ollama to stay local.
 - **You stay in control**: installation, authentication, configuration, config approval, and updates remain your decisions. The `implementer` role is a proposal instruction, not a permission to write.
-- **Restitution**: the agent reads the export (`.chat.md`, `.debate.md`, `.ask.md`, or `.relay.md`) and gives you decisions, disagreements, limits, and next steps.
+- **Restitution**: the agent reads the export (`.chat.md`, `.debate.md`, `.ask.md`, or `.relay.md`, plus `.mission.md` for the Mission option) and gives you decisions, disagreements, limits, and next steps.
+
+Relay's Mission option keeps the scope and budget of a sequence of read-only steps. The mission lead never replays an uncertain step and waits for your decision on usage limits or blocked reads.
+
+The agent never edits or approves a policy granting itself rights: it shows you the `relay allow-repo` or approval command and waits for your action. To locate the installed package skill, run `npm root -g` (or `pnpm root -g`), then use the `palabre/skills/palabre` subfolder.
