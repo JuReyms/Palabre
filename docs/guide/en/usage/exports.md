@@ -1,16 +1,19 @@
 ---
 title: Exports
-description: Learn where Palabre writes Markdown exports and what they contain after a Debate, Chat, or Ask session.
+description: Learn where Palabre writes Markdown exports and what they contain for Debate, Relay, Ask, Chat and the Mission option.
 seo:
   title: Markdown exports of every session
-  description: Palabre writes every session to a .debate.md, .chat.md, or .ask.md file. Learn where they go and what they contain.
+  description: Find Debate, Relay, Ask, Chat and Mission-option exports, their diagnostics and their limits.
 ---
 
-Each session generates a Markdown export in the folder defined by `outputDir`:
+Exports use `outputDir` (`.palabre/` by default):
 
-- `.debate.md` for a debate;
-- `.chat.md` for a conversation;
-- `.ask.md` for an Ask request.
+- `.debate.md` for Debate;
+- `.relay.md` for Relay, except with `--no-export` or a refusal before launch;
+- `.ask.md` for Ask;
+- `.chat.md` for Chat after `/end` or on failure, when writing is possible.
+
+Relay's Mission option writes state and `.mission.md` to `.palabre/missions/<id>/`, independently of `outputDir`.
 
 By default, exports are grouped in a `.palabre/` folder under the directory from which you run `palabre`. At the end of a TUI session, Palabre displays the exported file and its folder with clickable links in compatible terminals. The `/history` command lets you find recent exports again from the TUI home screen.
 
@@ -67,3 +70,11 @@ From the TUI:
 ```
 
 The history view displays recent `.debate.md`, `.chat.md`, and `.ask.md` exports, their mode, agents, turn or response count, file, and output folder. Outside the TUI, use `palabre history` or `palabre history --json`.
+
+## Details and privacy
+
+Debate and Ask preserve an interruption section on failure; their exports and Chat's include the PALABRE version and declared client provenance. A `.relay.md` includes the PALABRE version, sender, target and UUIDs, optional subject, message, reply or error, delivery, diagnostics and any review publication. A `retryAfter` indication appears only when the path supplies it. Remove identifiers and sensitive data before public sharing.
+
+Relay example: `palabre-relay-codex-2026-05-06T08-52-43-000Z.relay.md`; its name comes from the target agent, not the subject. Relative `outputDir` paths resolve from the launch directory. Edit local or global configuration and reapprove its content after manual changes.
+
+`/history` and `palabre history` list only Debate, Ask and Chat. Find Relay in `outputDir` and Mission with `palabre mission status <id>`.

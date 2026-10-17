@@ -1,16 +1,19 @@
 ---
 title: Exports
-description: Savoir où Palabre écrit les exports Markdown et ce qu'ils contiennent après une session Débat, Chat ou Ask.
+description: Savoir où Palabre écrit les exports Markdown et ce qu'ils contiennent pour Débat, Relay, Ask, Chat et l’option Mission.
 seo:
   title: Exports Markdown de chaque session
-  description: Palabre écrit chaque session dans un fichier .debate.md, .chat.md ou .ask.md. Où ils arrivent et ce qu'ils contiennent.
+  description: Retrouver les exports Débat, Relay, Ask, Chat et de l’option Mission, leurs diagnostics et leurs limites.
 ---
 
-Chaque session génère un export Markdown dans le dossier défini par `outputDir` :
+Les exports utilisent `outputDir` (`.palabre/` par défaut) :
 
-- `.debate.md` pour un débat ;
-- `.chat.md` pour une conversation ;
-- `.ask.md` pour une demande Ask.
+- `.debate.md` pour Débat ;
+- `.relay.md` pour Relay, sauf `--no-export` et refus avant lancement ;
+- `.ask.md` pour Ask ;
+- `.chat.md` pour Chat après `/end` ou en cas d'erreur, lorsque l'écriture est possible.
+
+L'option Mission de Relay écrit état et export `.mission.md` dans `.palabre/missions/<id>/`, indépendamment de `outputDir`.
 
 Par défaut, les exports sont regroupés dans un dossier `.palabre/` sous le dossier depuis lequel vous lancez `palabre`. À la fin d'une session TUI, Palabre affiche le fichier exporté et son dossier avec des liens cliquables dans les terminaux compatibles. La commande `/history` permet de retrouver les derniers exports depuis l'accueil TUI.
 
@@ -67,3 +70,11 @@ Depuis la TUI :
 ```
 
 La vue historique affiche les derniers exports `.debate.md`, `.chat.md` et `.ask.md`, leur mode, les agents, le nombre de tours ou réponses, le fichier et le dossier de sortie. Hors TUI, utilisez `palabre history` ou `palabre history --json`.
+
+## Particularités et confidentialité
+
+Débat et Ask conservent une section « Interruption » en cas d'échec ; leurs exports et celui de Chat indiquent version de PALABRE et provenance du client déclaré. Un `.relay.md` indique version de PALABRE, expéditeur, cible et UUID, objet éventuel, message, réponse ou erreur, délivrance, diagnostics et éventuelle publication de revue. Une indication de reprise `retryAfter` n'est présente que si ce parcours la fournit. Retirez les identifiants et données sensibles avant tout partage public.
+
+Exemple Relay : `palabre-relay-codex-2026-05-06T08-52-43-000Z.relay.md` ; son nom dépend de l'agent cible, pas du sujet. Les chemins relatifs `outputDir` sont résolus depuis le dossier de lancement. Modifiez la configuration locale ou globale puis réapprouvez son contenu si l'édition est manuelle.
+
+`/history` et `palabre history` ne listent que Débat, Ask et Chat. Retrouvez Relay dans `outputDir` et Mission avec `palabre mission status <id>`.

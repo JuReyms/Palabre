@@ -6,9 +6,7 @@ seo:
   description: Use Ollama with Palabre to run debates on local models, cut API costs, and mix a local agent with a cloud one.
 ---
 
-This is useful for adding a local, lower-cost perspective, or for assigning a small model a targeted role: critic, exploration, or lightweight summary.
-
-Ollama may have a slower response time than other agents, especially if the model is not already loaded. It is recommended to check that the model is loaded before starting a debate with Ollama. Or to be patient.
+Ollama runs models on your machine. With a local server and model, requests stay local; a remote server receives the data. The first response may take time while loading: `ollama ps` lists loaded models.
 
 ## Install before Palabre
 
@@ -74,6 +72,8 @@ These commands update the Palabre configuration. For a one-off debate override, 
 
 ## Typical configuration
 
+Excerpt from the `agents` block:
+
 ```json
 "ollama-local": {
   "type": "ollama",
@@ -118,14 +118,6 @@ From the TUI, open `/config`, then use:
 This command persistently updates `baseUrl` for every configured Ollama agent.
 The flag and environment variable do not modify the configuration file.
 
-## Check if a model is loaded in Ollama
-
-Ollama must load a model to respond quickly.
-
-```bash
-ollama ps
-```
-
 ## Automatically download a missing model
 
 By default, Palabre does not install a model automatically. To allow it at startup:
@@ -149,3 +141,11 @@ or:
 ```bash
 palabre codex-ollama "Critique the architecture" --context src docs
 ```
+
+## Defaults and diagnostics
+
+At initialization, PALABRE prefers `nemotron-3-nano:4b` if installed, otherwise the first installed model; without an installed model, that same name is the fallback. `gemma4:e4b` in the example is an explicit choice, not a mandatory default.
+
+`--set-ollama-model` modifies only `ollama-local` and requires an installed model. For another agent, edit its `model` field and reapprove the file after reading it. `palabre doctor` checks server and model availability; `model-unavailable` signals a missing model, while network failure may have an HTTP diagnostic.
+
+Advanced options: `keepAlive`, `pullTimeoutMs` (30 minutes by default) and `maxOutputBytes`. See [Configuration](/en/reference/config-file).

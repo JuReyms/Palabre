@@ -37,3 +37,15 @@ palabre chat --agent-a codex
 In the TUI, with the direct command, and in an NDJSON integration, a blank line does not end the conversation. `/end` saves it; `/exit`, `/home`, or the end of input finish it without an export. If an agent fails, Palabre saves the partial transcript. `--dry-run` is not available in Chat: the command is refused without running anything.
 
 Integrations drive Chat through the [NDJSON stream](/en/integrations/ndjson).
+
+## Other commands and integrations
+
+In TUI Chat, `/home`, `/back`, `/quit` and `/exit` return home without an export; they do not save Chat. `/use <agent>` makes that agent active. `/end` saves the conversation.
+
+```powershell
+palabre chat "Let’s discuss this module" --agent-a codex --files src/auth.ts
+```
+
+For agents and integrations: `--renderer ndjson`, then one JSON action per stdin line (`chat-send`, `chat-consult`, `chat-use`, `chat-agents`, `chat-end`), never simulated slash commands. A usage limit is reported as `usage-limit`, with a retry indication when supplied by the CLI; no automatic resend.
+
+Chat retains no reusable provider session: each reply is a new call with at most six recent messages. To write to an existing conversation with its context, use [Relay](/en/usage/relay).

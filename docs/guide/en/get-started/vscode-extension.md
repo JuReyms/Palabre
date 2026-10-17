@@ -21,7 +21,7 @@ After installation, open the Palabre panel from the sidebar.
 ## Requirements
 
 - Palabre CLI installed on the same machine;
-- Palabre CLI `0.12.0` or newer recommended;
+- Palabre CLI `0.17.0` recommended for the Chat fixes; the current extension requires at least `0.13.0`;
 - at least one available agent for Chat or Ask, two for Debate.
 
 ```bash
@@ -42,3 +42,5 @@ palabre presets --json
 For Chat, choose **Chat** in the extension. The CLI keeps the conversation state and exposes the same behavior through its public NDJSON contract.
 
 If the extension cannot find Palabre, check `palabre --version` and restart VS Code. If no agent appears, run `palabre doctor` and `palabre config`.
+
+Relay and its Mission option are not exposed in the panel: use the CLI or the skill.

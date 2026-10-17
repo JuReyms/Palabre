@@ -47,6 +47,8 @@ palabre --help
 Cette section concerne les personnes qui veulent tester Palabre depuis le dépôt Git. Elle nécessite `pnpm`.
 
 ```bash
+git clone https://github.com/JuReyms/Palabre.git
+cd Palabre
 pnpm install
 pnpm build
 pnpm link --global
@@ -59,9 +61,7 @@ Dans le reste de cette documentation, les exemples utilisent toujours la command
 
 Palabre pilote des outils externes. Installez et authentifiez les agents que vous souhaitez utiliser avant de lancer Palabre.
 
-**OpenCode**, **Mistral Vibe** et **Ollama** peuvent être utilisés avec des modèles ou limites propres à leurs providers, tandis que **Claude Code** et **Codex** nécessitent généralement un abonnement.
-
-**Ollama** est gratuit en utilisation locale. Si vous utilisez une offre cloud ou distante, les quotas et limites viennent de cette offre, pas de Palabre.
+Les conditions d’accès, les modèles et les limites de Claude Code, Codex, Antigravity, OpenCode et Mistral Vibe dépendent de leur fournisseur et de votre configuration. Avec Ollama et un modèle installé localement, les requêtes sont exécutées sur votre machine ; un serveur distant reçoit les données que vous lui envoyez.
 
 Pages utiles :
 
@@ -77,3 +77,9 @@ Pages utiles :
 Lancez maintenant `palabre` dans un terminal interactif. Au premier lancement, Palabre crée la configuration globale si nécessaire, détecte les agents installés et ouvre l'accueil TUI.
 
 Pour un setup explicite, des scripts ou une configuration locale au projet, consultez [la configuration](/fr/get-started/configuration). Si vous utilisez VS Code, vous pouvez aussi installer [l'extension Palabre](/fr/get-started/vscode-extension). Pour piloter Palabre depuis un agent IA, installez [le skill Palabre](/fr/get-started/skill).
+
+## Mettre à jour
+
+`palabre update` détecte l'installation, affiche le plan et demande confirmation en terminal interactif. `palabre update --check` vérifie sans modifier l'installation. Après une mise à jour, recopiez le skill si vous l'avez installé.
+
+Relay et son option Mission utilisent des conversations Codex ou Claude Code existantes. Chaque fournisseur fixe ses conditions d'accès et ses limites ; PALABRE ne les remplace pas.

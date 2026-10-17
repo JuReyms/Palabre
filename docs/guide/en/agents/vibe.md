@@ -24,16 +24,15 @@ palabre config --sync-agents
 
 ## Windows
 
-On Windows, generated configuration may enable `shell` for a wrapper such as `vibe`.
-Palabre does not pass the prompt through `cmd.exe`: it prefers the native executable, then the
-npm or pnpm `.ps1` shim launched directly without PowerShell, then another PowerShell shim (modified or of an unknown form). Only force this option when your installation
-needs it; if neither safe path is available, startup is rejected with an actionable error.
+See [Launching agents on Windows](/en/agents/overview#windows).
 
 ## Default model
 
 Palabre does not choose the Mistral Vibe model for you. Vibe uses its own default configuration. If you pass a model with `--model-a`, `--model-b`, or `--summary-model`, Palabre passes the value through the configured model option.
 
 ## Typical configuration
+
+Excerpt from the `agents` block:
 
 ```json
 "vibe": {
@@ -55,3 +54,5 @@ Palabre does not choose the Mistral Vibe model for you. Vibe uses its own defaul
 palabre codex-vibe "Review this plan" -t 4
 palabre vibe-claude "Compare these options" -t 3
 ```
+
+Mistral Vibe participates in Debate, Ask and Chat, not as a Relay target. The prompt is an argument; if no safe launch is available, PALABRE refuses the shell wrapper. A recognized limit gives `usage-limit`, without automatic retry.

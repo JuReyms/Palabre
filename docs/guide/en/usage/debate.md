@@ -35,3 +35,17 @@ palabre run --subject "Review this plan" --agent-a codex --agent-b claude --turn
 ```
 
 Add `--no-early-stop`, `--no-summary`, or `--summary-agent <agent>` as needed. `--dry-run` previews the session without calling an agent. The export uses `.debate.md`.
+
+## Roles, context and failures
+
+`/roles architect critic` assigns temporary roles in agent order: a structured proposal, then a search for flaws. Roles: `implementer`, `reviewer`, `architect`, `scout`, `critic`, `summarizer`. `--role-a` and `--role-b` do not modify configuration; `palabre agent-role <agent> <role>` sets a persistent role.
+
+The default limit is 4 responses, configurable with `palabre config -t <n>`; early stopping may produce fewer. To request the whole limit, use `--no-early-stop`. A positional subject must have several words; for one word, use `-s "word"`.
+
+```powershell
+palabre codex-claude "Review this plan" --context src docs -t 4
+```
+
+See [Context and files](/en/usage/context-and-files). On agent failure (quota, timeout, empty reply), PALABRE attempts to preserve a partial export with an interruption section. With `--checkpoint`, `palabre resume <session-id>` resumes the next missing response or summary, without replaying an accepted answer. No automatic retry.
+
+After Debate, [Chat](/en/usage/chat) can continue from the subject and summary. To consult a conversation that already knows the project, use [Relay](/en/usage/relay).

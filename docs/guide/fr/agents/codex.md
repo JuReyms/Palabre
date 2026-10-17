@@ -32,9 +32,11 @@ palabre config --sync-agents
 
 Codex garde sa propre configuration : fournisseur, modèle par défaut, sandbox, approbations et limites d'usage.
 
-Palabre transmet seulement le prompt. Si vous indiquez `--model-a` ou `--model-b`, la valeur est transmise à la CLI via son argument modèle configuré.
+PALABRE transmet le prompt avec les arguments configurés, en lecture seule par défaut (`--sandbox read-only`). Si vous indiquez `--model-a` ou `--model-b`, la valeur est transmise à la CLI via son argument modèle configuré.
 
 ## Configuration typique
+
+Extrait du bloc `agents` :
 
 ```json
 "codex": {
@@ -42,11 +44,13 @@ Palabre transmet seulement le prompt. Si vous indiquez `--model-a` ou `--model-b
   "command": "codex",
   "args": ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only"],
   "promptMode": "stdin",
+  "shell": true,
+  "tier": "primary",
   "role": "implementer"
 }
 ```
 
-Sur Windows, la configuration générée active `shell` pour certains wrappers npm ou PowerShell. Palabre tente d'abord l'exécutable natif. Pour une CLI installée par npm ou par pnpm, il lit le shim `.ps1` et lance directement Node et le script du paquet, sans PowerShell, ce qui préserve les accents et les arguments ; pour pnpm, le `NODE_PATH` du shim est reproduit. Un shim d'une autre forme (modifié, ou dont le script n'est pas un fichier `.js`) reste lancé par PowerShell ; ne forcez cette option que si votre installation en a besoin. Claude est différent dans beaucoup d'installations Windows : `claude.exe` est généralement appelé directement avec `shell: false`.
+Voir [Windows : lancement des agents](/fr/agents/overview#windows).
 
 ## Utilisation
 
@@ -54,3 +58,11 @@ Sur Windows, la configuration générée active `shell` pour certains wrappers n
 palabre codex-claude "Critique cette architecture" -t 4
 palabre codex-opencode "Compare ces deux approches" -t 3
 ```
+
+## Codex et Relay
+
+Conversation fermée : reprise en lecture seule, sans plugins, connecteurs ni MCP, avec le modèle enregistré dans la conversation. Conversation ouverte : `--open` (pilote Windows), avec les outils et permissions propres à la cible ; l'affichage immédiat n'est pas garanti. Voir [Relay](/fr/usage/relay).
+
+Avec `--open`, une limite structurée donne `usage-limit` et `retryAfter` si l'heure est fournie. Sans `--open`, `CreateProcessAsUserW failed: 5` dans une lecture produit `read-unavailable` ; la réponse est conservée et aucune revue n'est publiée. Voir [Dépannage](/fr/troubleshooting).
+
+L'exemple de configuration est celui de Windows (`shell: true`) ; ailleurs, la configuration générée utilise `false`.

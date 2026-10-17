@@ -1,19 +1,19 @@
 ---
 title: Skill Palabre
-description: Installer le skill Palabre pour qu'un agent IA compatible skills sache quand utiliser Chat, Débat, Ask ou Relay.
+description: Installer le skill Palabre pour qu'un agent IA compatible skills sache quand utiliser Débat, Relay, Ask ou Chat.
 seo:
   title: Utiliser Palabre depuis un agent à skills
-  description: Installer le skill Palabre pour que Claude Code, Codex ou un autre agent compatible skills choisisse entre Chat, Débat, Ask et Relay.
+  description: Installer le skill Palabre pour que Claude Code, Codex ou un autre agent compatible skills choisisse entre Débat, Relay, Ask et Chat.
 ---
 
 Palabre fournit un skill prêt à l'emploi. Il apprend à un agent IA que Palabre est disponible, quand l'utiliser et comment choisir le bon parcours :
 
 | Parcours | Quand l'agent le choisit |
 |----------|--------------------------|
-| [Chat](/fr/usage/chat) | Avancer avec un agent, demander un second avis ponctuel, poursuivre après une synthèse. |
 | [Débat](/fr/usage/debate) | Confronter deux positions et travailler les désaccords. |
+| [Relay](/fr/usage/relay) | Interroger une conversation existante qui possède le contexte : fermée par défaut, ou Codex ouverte avec `--open` (pilote Windows). |
 | [Ask](/fr/usage/ask) | Recueillir jusqu'à quatre avis indépendants avant de les comparer. |
-| [Relay](/fr/usage/relay) | Interroger une conversation Claude Code ou Codex fermée qui possède déjà le contexte. |
+| [Chat](/fr/usage/chat) | Avancer avec un agent, demander un second avis ponctuel, poursuivre après une synthèse. |
 
 Le skill suit le standard ouvert [agentskills.io](https://agentskills.io) : il est donc portable entre Claude Code, Codex, Hermes Agent et tout agent compatible skills.
 
@@ -50,7 +50,7 @@ Une seule copie du skill doit rester active. Si une ancienne version est aussi i
 
 ## Prérequis
 
-- Palabre CLI installé sur la même machine (`npm install -g palabre`) ;
+- Palabre CLI installé sur la même machine (`npm install --global palabre`) ;
 - au moins un agent compatible configuré ou détecté par Palabre ; deux ou plus sont recommandés pour les comparaisons ;
 - un agent hôte compatible avec le standard agentskills.io.
 
@@ -64,10 +64,14 @@ palabre agents
 
 ## Ce que le skill apporte
 
-- **Choix du parcours** : Chat, Débat, Ask ou Relay selon le besoin, sans lancer Palabre pour une tâche simple ni imposer un Débat à chaque demande de second avis.
+- **Choix du parcours** : Débat, Relay, Ask ou Chat selon le besoin, sans lancer Palabre pour une tâche simple ni imposer un Débat à chaque demande de second avis.
 - **Chat piloté proprement** : l'agent utilise le [flux NDJSON](/fr/integrations/ndjson) et les commandes JSON sur stdin (`chat-send`, `chat-consult`, `chat-use`, `chat-agents`, `chat-end`), jamais une imitation de la TUI. Il connaît la mémoire bornée de Chat : six messages récents, aucune reprise après arrêt.
 - **Trois reprises distinguées** : la session de l'agent hôte, les [checkpoints Palabre](/fr/reference/cli#reprendre-une-session) de Débat et Ask, et la reprise d'une conversation externe par Relay.
-- **Relay prudent** : cible désignée par vous, conversation fermée, expéditeur non authentifié, historique de la cible modifié, aucun renvoi automatique selon le statut de délivrance.
+- **Relay prudent** : cible désignée par vous ; en-tête PALABRE, avertissement ℹ️ et « 🤖 Message pour l'agent » ; objet facultatif `--subject`, expéditeur non authentifié, historique modifié, aucun renvoi automatique ; diagnostic `usage-limit` ou `read-unavailable` conservé.
 - **Contexte maîtrisé** : `--files` ou `--context`, avec un avertissement avant d'envoyer du contenu sensible ; Ollama pour rester en local.
 - **Vous gardez la main** : installation, authentification, configuration, approbation de config et mises à jour restent vos décisions. Le rôle `implementer` est une consigne de proposition, pas une autorisation d'écrire.
-- **Restitution** : l'agent lit l'export (`.chat.md`, `.debate.md`, `.ask.md` ou `.relay.md`) et vous rend décisions, désaccords, limites et prochaines étapes.
+- **Restitution** : l'agent lit l'export (`.chat.md`, `.debate.md`, `.ask.md` ou `.relay.md`, ainsi que `.mission.md` pour l’option Mission) et vous rend décisions, désaccords, limites et prochaines étapes.
+
+L'option Mission de Relay garde le cadre et le budget d'une suite d'étapes en lecture seule. Le chef de mission ne rejoue pas une étape incertaine et attend votre décision sur les limites d'usage ou les lectures bloquées.
+
+L'agent ne modifie ni n'approuve lui-même une politique qui lui accorde des droits : il vous montre la commande `relay allow-repo` ou d'approbation et attend votre action. Pour retrouver le skill du paquet installé : `npm root -g` (ou `pnpm root -g`), puis le sous-dossier `palabre/skills/palabre`.

@@ -42,6 +42,8 @@ Claude often works better with `claude.exe` and `shell: false`, since this binar
 
 ## Typical configuration
 
+Excerpt from the `agents` block:
+
 ```json
 "claude": {
   "type": "cli",
@@ -64,3 +66,9 @@ Claude often works well as `reviewer` or `summarizer`.
 palabre codex-claude "Critique this plan" -t 4
 palabre run -s "Summarize these options" --summary-agent claude
 ```
+
+## Claude Code and Relay
+
+A closed Claude Code conversation can receive a [relay](/en/usage/relay), resumed in plan mode with `Read,Glob,Grep`, without MCP or hooks, under the documented conditional guarantees. An open Claude Code conversation is not an available target (#96). For `review`, PALABRE requires at least 2.1.292 and checks `--safe-mode` in help before reading the PR.
+
+With several CLIs installed, an absolute `command` path is preserved by `--sync-agents`. On macOS/Linux, the generated command is `claude`. A recognized limit gives `usage-limit` without automatic retry; a time is shown only when supplied by the CLI diagnostic.

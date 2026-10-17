@@ -37,3 +37,15 @@ palabre chat --agent-a codex
 Dans la TUI, en commande directe comme pour une intégration NDJSON, une ligne vide ne termine pas la conversation. `/end` l'enregistre ; `/exit`, `/home` ou la fin de l'entrée la terminent sans export. Si un agent échoue, Palabre enregistre la transcription partielle. `--dry-run` n'est pas disponible en Chat : la commande est refusée sans rien lancer.
 
 Les intégrations pilotent Chat avec le [flux NDJSON](/fr/integrations/ndjson).
+
+## Autres commandes et intégrations
+
+Dans le Chat TUI, `/home`, `/back`, `/quit` et `/exit` reviennent à l'accueil sans export ; ils ne sauvegardent pas le Chat. `/use <agent>` fait de cet agent l'agent actif. `/end` enregistre la conversation.
+
+```powershell
+palabre chat "Parlons de ce module" --agent-a codex --files src/auth.ts
+```
+
+Pour les agents et intégrations : `--renderer ndjson`, puis une ligne JSON par action sur stdin (`chat-send`, `chat-consult`, `chat-use`, `chat-agents`, `chat-end`), jamais des commandes slash simulées. Une limite d'usage est signalée comme `usage-limit`, avec une indication de reprise lorsque la CLI la fournit ; aucun renvoi automatique.
+
+Chat ne garde pas de session fournisseur réutilisable : chaque réponse est un nouvel appel avec au plus six messages récents. Pour écrire dans une conversation existante avec son contexte, utilisez [Relay](/fr/usage/relay).
