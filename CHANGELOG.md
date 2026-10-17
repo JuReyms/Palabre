@@ -4,6 +4,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-10-17
+
+<!-- social: New Relay mode: your agents cooperate and hand off to each other. You are no longer the go-between, but the decision-maker. -->
+
 ### Added
 
 - Relay ajoute un en-tête compact `📧 PALABRE Relay` avec expéditeur, destinataire et avertissement avant le contenu ; la provenance détaillée et le nonce passent en bas. `--subject` fournit un objet facultatif (une ligne, 200 caractères), repris dans le JSON v1 et l'export. Mission utilise le même format avec son id et son étape. En-tête et pied suivent la langue ; les 64 Kio couvrent l'enveloppe de coordination entière, sans réduire la borne séparée du contexte PR (#126). Aide, guides FR/EN et skill alignés ; les copies installées du skill doivent être mises à jour manuellement.
