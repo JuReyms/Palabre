@@ -7,17 +7,17 @@ export interface HelpMessages {
 
 const frCommandHelp: Record<string, string> = {
   mission: `
-Un chef appelle son collègue en arrière-plan ; vous prenez les décisions.
+Un chef de mission appelle son équipier en arrière-plan ; vous prenez les décisions.
 Lot v2.0 : lecture seule, un appel explicite par étape, aucune boucle automatique.
 
 Usage (depuis le même dossier) :
-  palabre mission start --from <chef>:<uuid> --to <collegue>:<uuid> --criteria "<réussite attendue>" "<objectif>"
+  palabre mission start --from <chef-de-mission>:<uuid> --to <equipier>:<uuid> --criteria "<réussite attendue>" "<objectif>"
   palabre mission step <id> "<demande>" [--timeout <secondes>]
   palabre mission step <id> "<consigne de revue>" --task review --pr https://github.com/owner/repo/pull/123
   palabre mission status <id> [--json]
   palabre mission stop <id> [--reason "<motif>"]
 
-Cadre de start (fixé par vos réponses au chef) :
+Cadre de start (fixé par vos réponses au chef de mission) :
   --tasks <consult,review>  consult par défaut ; review exige la politique Relay déjà approuvée
   --max-steps <1..100>      10 tentatives par défaut, refus compris
   --max-duration <10..86400> 3600 secondes depuis start, temps entre étapes compris
@@ -26,16 +26,16 @@ Cadre de start (fixé par vos réponses au chef) :
   --language <fr|en>       langue du cadre et des sorties
   --json                  un objet JSON v1 pour chaque commande, erreurs comprises
 
-La conversation du collègue doit rester fermée (terminal, Desktop, IDE).
-Le chef suit status, l'export .mission.md et GitHub ; aucun affichage Desktop immédiat promis.
+La conversation de l'équipier doit rester fermée (terminal, Desktop, IDE).
+Le chef de mission suit status, l'export .mission.md et GitHub ; aucun affichage Desktop immédiat promis.
 Une étape n'est jamais rejouée automatiquement. Après coupure, état running ou uncertain :
-le chef vérifie l'export et la conversation avec vous, sans supprimer le verrou pour réessayer.
+le chef de mission vérifie l'export et la conversation avec vous, sans supprimer le verrou pour réessayer.
 Session occupée : fermer la conversation avant une nouvelle step explicite (budget consommé).
 stop annule au mieux l'appel ; un message ou une revue déjà partis ne sont pas retirés.
 Un budget épuisé ou un arrêt exige une nouvelle mission après décision du propriétaire.
 Les délais bornent l'appel Relay ; les sondes et GitHub gardent leurs propres bornes.
 État/export locaux dans .palabre/missions/<id>/ ; identifiants privés, réponses non vérifiées.
-Pas de code, commit, push, merge, release, --open, --trust-config ou changement de chef.
+Pas de code, commit, push, merge, release, --open, --trust-config ou changement de chef de mission.
 La tâche review publie seulement une revue COMMENT sous la politique Relay existante.
 Le rôle et le cadre ne donnent aucun droit supplémentaire. Aucun plafond de coût monétaire.
 `,
@@ -332,17 +332,17 @@ Flags:
 
 const enCommandHelp: Record<string, string> = {
   mission: `
-A lead calls a colleague in the background; you make the decisions.
+A mission lead calls a teammate in the background; you make the decisions.
 v2.0: read-only, one explicit call per step, no automatic loop.
 
 Usage (from the same directory):
-  palabre mission start --from <lead>:<uuid> --to <colleague>:<uuid> --criteria "<success criteria>" "<objective>"
+  palabre mission start --from <mission-lead>:<uuid> --to <teammate>:<uuid> --criteria "<success criteria>" "<objective>"
   palabre mission step <id> "<request>" [--timeout <seconds>]
   palabre mission step <id> "<review instructions>" --task review --pr https://github.com/owner/repo/pull/123
   palabre mission status <id> [--json]
   palabre mission stop <id> [--reason "<reason>"]
 
-start scope (set by your answers to the lead):
+start scope (set by your answers to the mission lead):
   --tasks <consult,review>  consult by default; review requires existing trusted Relay policy
   --max-steps <1..100>      10 attempts by default, including refusals
   --max-duration <10..86400> 3600 seconds from start, including time between steps
@@ -351,16 +351,16 @@ start scope (set by your answers to the lead):
   --language <fr|en>       scope and output language
   --json                  one JSON v1 object for each command, including errors
 
-Keep the colleague's conversation closed (terminal, Desktop, IDE).
-The lead follows status, the .mission.md export and GitHub; no immediate Desktop display promised.
+Keep the teammate's conversation closed (terminal, Desktop, IDE).
+The mission lead follows status, the .mission.md export and GitHub; no immediate Desktop display promised.
 A step is never replayed automatically. After a crash, running or uncertain state:
-the lead checks the export and conversation with you, without deleting the lock to retry.
+the mission lead checks the export and conversation with you, without deleting the lock to retry.
 Busy session: close it before another explicit step (attempt still counted).
 stop cancels on a best-effort basis; an existing message or review cannot be withdrawn.
 An exhausted budget or stopped mission requires a new mission after the owner's decision.
 Timeouts bound the Relay call; probes and GitHub keep their own time bounds.
 Local state/export in .palabre/missions/<id>/; private identifiers, unverified replies.
-No code, commit, push, merge, release, --open, --trust-config or lead switching.
+No code, commit, push, merge, release, --open, --trust-config or mission lead switching.
 The review task only publishes a COMMENT review under the existing Relay policy.
 Roles and scope grant no additional rights. No monetary cost cap.
 `,
@@ -675,7 +675,7 @@ Commandes:
   resume     Reprendre une session interrompue
   sessions   Lister ou supprimer les checkpoints
   relay      Interroger une conversation Codex ou Claude Code fermee
-  mission    Faire travailler un collegue en lecture seule, une etape a la fois
+  mission    Faire travailler un equipier en lecture seule, une etape a la fois
   context    Scanner le contexte projet
   config     Modifier les parametres par defaut
   doctor     Verifier la config et les outils locaux
@@ -737,7 +737,7 @@ Commands:
   resume     Resume an interrupted session
   sessions   List or delete checkpoints
   relay      Ask a closed Codex or Claude Code conversation
-  mission    Work with a read-only colleague, one explicit step at a time
+  mission    Work with a read-only teammate, one explicit step at a time
   context    Scan project context
   config     Edit default settings
   doctor     Check config and local tools

@@ -12,8 +12,8 @@ Cette page liste les commandes principales de Palabre.
 
 | Commande | Description |
 | --- | --- |
-| `palabre mission start --from <chef>:<uuid> --to <collegue>:<uuid> --criteria "…" "Objectif"` | Conserve le cadre fixé avec l'humain, sans appeler d'agent. |
-| `palabre mission step <id> "Demande" [--timeout <secondes>]` | Au plus un appel au collègue fermé, en lecture seule ; tâche `consult` par défaut. |
+| `palabre mission start --from <chef-de-mission>:<uuid> --to <equipier>:<uuid> --criteria "…" "Objectif"` | Conserve le cadre fixé avec l'humain, sans appeler d'agent. |
+| `palabre mission step <id> "Demande" [--timeout <secondes>]` | Au plus un appel à l'équipier fermé, en lecture seule ; tâche `consult` par défaut. |
 | `palabre mission step <id> "Revue" --task review --pr https://github.com/owner/repo/pull/123` | Réutilise la tâche de revue et sa politique Relay déjà approuvée. |
 | `palabre mission status <id> --json` | Relit le cadre et les résultats, sans appel d'agent. |
 | `palabre mission stop <id> --reason "…"` | Arrête définitivement la suite et demande au mieux l'annulation de l'appel. |

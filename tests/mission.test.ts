@@ -8,13 +8,14 @@ import { startMission, readMission, stepMission, stopMission, missionPaths, type
 import { parseMissionTokens, renderMissionText } from "../src/commands/mission.js";
 import { executeRelay, type RelayResultV1 } from "../src/commands/relay.js";
 import { createTranslator } from "../src/i18n.js";
+import { missionMessages } from "../src/messages/mission.js";
 
 const FROM = "codex:11111111-1111-4111-8111-111111111111";
 const TO = "claude:22222222-2222-4222-8222-222222222222";
 const pr = "https://github.com/example/project/pull/1";
 function replied(): RelayResultV1 {
   return { v: 1, type: "relay-result", status: "replied", exitCode: 0, from: null, to: null,
-    reply: "Constat du collègue", identity: "same-as-target", delivery: { status: "replied", persisted: true, inActiveBranch: true },
+    reply: "Constat de l'équipier", identity: "same-as-target", delivery: { status: "replied", persisted: true, inActiveBranch: true },
     observedModels: [], error: null, exportPath: null, durationMs: 1 };
 }
 async function world(t: { after(fn: () => Promise<void>): void }, patch: Partial<StartMission> = {}) {
@@ -31,7 +32,7 @@ test("cadre durable, aucune CLI, export avec provenance et lecture séparée", a
   const w = await world(t);
   assert.deepEqual(await readMission(w.workspace, w.mission.id), w.mission);
   const md = await readFile(missionPaths(w.workspace, w.mission.id).export, "utf8");
-  for (const text of [FROM, TO, w.mission.criteria, "données non fiables", "Aucun résultat vérifié"]) assert.ok(md.includes(text));
+  for (const text of [FROM, TO, w.mission.criteria, "données non fiables", "Aucun résultat vérifié", "Chef de mission", "Équipier"]) assert.ok(md.includes(text));
   assert.match(renderMissionText(w.mission, "fr"), /Rien à faire pour vous/);
   assert.match(renderMissionText(w.mission, "en"), /Nothing for you/);
 });
@@ -49,9 +50,9 @@ test("une étape réserve son état avant un seul Relay ; réponse et identité 
   } };
   const mission = await stepMission(w.workspace, w.mission.id, { task: "consult", message: "Inspecte les limites" }, deps);
   assert.equal(calls, 1); assert.equal(mission.status, "ready");
-  assert.equal(mission.steps[0]!.result?.reply, "Constat du collègue");
+  assert.equal(mission.steps[0]!.result?.reply, "Constat de l'équipier");
   assert.deepEqual(await readMission(w.workspace, mission.id), mission);
-  assert.match(await readFile(missionPaths(w.workspace, mission.id).export, "utf8"), /Constat du collègue/);
+  assert.match(await readFile(missionPaths(w.workspace, mission.id).export, "utf8"), /Constat de l'équipier/);
 });
 
 test("tâche review conserve PR et publication sans contourner la politique Relay", async t => {
@@ -88,7 +89,7 @@ test("durée depuis start, nombre d'essais et surcharge du délai par étape", a
   assert.equal(calls, 1);
 });
 
-test("deux commandes concurrentes ne peuvent pas appeler le collègue deux fois", async t => {
+test("deux commandes concurrentes ne peuvent pas appeler l'équipier deux fois", async t => {
   const w = await world(t); let release!: () => void; let entered!: () => void;
   const pending = new Promise<void>(r => { release = r; }); const called = new Promise<void>(r => { entered = r; }); let calls = 0;
   const deps: MissionDeps = { now: Date.now, relay: async () => { calls++; entered(); await pending; return replied(); } };
@@ -196,7 +197,7 @@ test("cadres invalides : pas de mission ni d'autorisation implicite", async t =>
 });
 
 test("parseur strict et aide FR/EN autonome", () => {
-  for (const tokens of [["start", "--open"], ["start", "--trust-config"], ["chef", "codex"], ["step", "--timeout"],
+  for (const tokens of [["start", "--open"], ["start", "--trust-config"], ["mission-lead", "codex"], ["step", "--timeout"],
     ["status", "--json", "--json"], ["start", "--from=x"], ["step", "-q"]]) assert.throws(() => parseMissionTokens(tokens), fails("invalid-arguments"));
   assert.equal(parseMissionTokens(["step", "id", "Bonjour", "--timeout", "1200", "--json"]).flags.timeout, "1200");
   for (const lang of ["fr", "en"] as const) {
@@ -209,4 +210,20 @@ test("Relay programmatique annulé avant lancement ne lit ni config ni session",
   const controller = new AbortController(); controller.abort();
   const result = await executeRelay(["relay", "--from", FROM, "--to", TO, "hello"], { signal: controller.signal });
   assert.equal(result.status, "cancelled"); assert.equal(result.delivery.status, "not-delivered");
+});
+
+test("busy et uncertain donnent la prochaine commande après vérification humaine, en FR/EN", async t => {
+  const w = await world(t);
+  for (const language of ["fr", "en"] as const) {
+    const m = missionMessages[language];
+    for (const reason of ["busy", "uncertain"] as const) {
+      assert.ok(m.errors[reason].includes("palabre mission stop <id>"));
+      assert.ok(m.errors[reason].includes(language === "fr" ? "nouvelle mission" : "new mission"));
+      assert.ok(m.errors[reason].includes(language === "fr" ? "propriétaire" : "owner"));
+    }
+    assert.ok(renderMissionText({ ...w.mission, status: "uncertain" }, language).includes("palabre mission stop <id>"));
+    const help = createTranslator(language).help.renderCommand("mission")!;
+    assert.ok(help.includes(language === "fr" ? "chef de mission" : "mission lead"));
+    assert.ok(help.includes(language === "fr" ? "équipier" : "teammate"));
+  }
 });

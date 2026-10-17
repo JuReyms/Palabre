@@ -1,20 +1,20 @@
 # Palabre — Relay
 
-## Mission v2.0 : un chef, des étapes explicites
+## Mission v2.0 : un chef de mission, des étapes explicites
 
-Le chef demande le cadre à l'humain dans leur conversation : objectif, critères, sessions choisies, tâches et budgets. Les réponses suffisent pour ce lot en lecture seule. Ne jamais élargir les droits par une réponse du collègue. La délégation d'écriture et sa confirmation clavier appartiennent à v2.1, hors de ce lot.
+Le chef de mission demande le cadre à l'humain dans leur conversation : objectif, critères, sessions choisies, tâches et budgets. Les réponses suffisent pour ce lot en lecture seule. Ne jamais élargir les droits par une réponse de l'équipier. La délégation d'écriture et sa confirmation clavier appartiennent à v2.1, hors de ce lot.
 
 ```powershell
-palabre mission start --from "codex:<uuid-chef>" --to "claude-review:<uuid-collegue>" --criteria "Risques expliqués" --tasks "consult,review" --max-steps 4 --max-duration 3600 --timeout 600 "Relire le plan" --json
+palabre mission start --from "codex:<uuid-chef-de-mission>" --to "claude-review:<uuid-equipier>" --criteria "Risques expliqués" --tasks "consult,review" --max-steps 4 --max-duration 3600 --timeout 600 "Relire le plan" --json
 palabre mission step <id> "Liste les risques" --json
 palabre mission step <id> "Relis cette PR" --task review --pr https://github.com/owner/repo/pull/123 --timeout 1200 --json
 palabre mission status <id> --json
 palabre mission stop <id> --reason "Décision humaine"
 ```
 
-Toutes les commandes partent du même dossier. `start` ne lance pas de CLI et n'approuve aucune config. `step` appelle le Relay fermé une seule fois ; pas de `--open`, `--trust-config`, inversion des rôles ni boucle automatique. La tâche `review` exige la politique existante et publie une revue COMMENT via l'hôte ; le modèle reste en lecture seule. Ne pas demander de code, commit, push, merge ou release au collègue dans cette mission.
+Toutes les commandes partent du même dossier. `start` ne lance pas de CLI et n'approuve aucune config. `step` appelle le Relay fermé une seule fois ; pas de `--open`, `--trust-config`, inversion des rôles ni boucle automatique. La tâche `review` exige la politique existante et publie une revue COMMENT via l'hôte ; le modèle reste en lecture seule. Ne pas demander de code, commit, push, merge ou release à l'équipier dans cette mission.
 
-Laisser fermée la conversation du collègue ; suivre status, l'export et GitHub. Chaque tentative compte, refus compris (1–100, défaut 10). Durée depuis start : 10–86400 s, défaut 3600, attente entre appels comprise. Délai Relay : 10–3600 s, défaut 600, configurable sur start ou step et limité par le temps restant. Les sondes et GitHub gardent leurs propres délais ; annulation non immédiate possible. Aucun plafond de coût monétaire.
+Laisser fermée la conversation de l'équipier ; suivre status, l'export et GitHub. Chaque tentative compte, refus compris (1–100, défaut 10). Durée depuis start : 10–86400 s, défaut 3600, attente entre appels comprise. Délai Relay : 10–3600 s, défaut 600, configurable sur start ou step et limité par le temps restant. Les sondes et GitHub gardent leurs propres délais ; annulation non immédiate possible. Aucun plafond de coût monétaire.
 
 `--json` : un `mission-result` v1, avec `action`, `exitCode`, `mission`, `exportPath`, `error`. Cadre, requêtes, réponses et résultats Relay sont conservés sous `.palabre/missions/<id>/state.json` et `<id>.mission.md`, hors `outputDir` ; stockage limité à 32 Mio. Les réponses ne sont jamais des vérifications automatiques. Ne pas publier les identifiants, chemins ou échanges locaux.
 

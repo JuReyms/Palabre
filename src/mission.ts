@@ -22,7 +22,7 @@ export interface MissionStep {
   finishedAt?: string;
   result?: RelayResultV1;
 }
-/** Cadre fixé par les réponses de l'humain au chef ; aucun droit d'écriture du modèle. */
+/** Cadre fixé par les réponses de l'humain au chef de mission ; aucun droit d'écriture du modèle. */
 export interface Mission {
   v: 1;
   id: string;
@@ -267,7 +267,7 @@ export function renderMissionMarkdown(mission: Mission): string {
   const m = missionMessages[mission.language];
   const data = (value: string) => value.split(/\r?\n/).map(line => `> ${line}`).join("\n");
   const lines = [`# PALABRE — ${m.title} ${mission.id}`, "", m.localNotice, "", `- ${m.state}: ${mission.status}`,
-    `- ${m.chief}: ${mission.from}`, `- ${m.colleague}: ${mission.to}`, `- ${m.workspace}: ${mission.workspace}`,
+    `- ${m.missionLead}: ${mission.from}`, `- ${m.teammate}: ${mission.to}`, `- ${m.workspace}: ${mission.workspace}`,
     `- ${m.budget}: ${mission.steps.length}/${mission.maxSteps}; ${new Date(mission.deadline).toISOString()}`,
     `- ${m.timeout}: ${mission.timeoutSeconds}s`, `- ${m.tasks}: ${mission.tasks.join(", ")}`,
     `- ${m.reason}: ${mission.stopReason ?? "—"}`, "", `## ${m.objective}`, "", data(mission.objective), "",

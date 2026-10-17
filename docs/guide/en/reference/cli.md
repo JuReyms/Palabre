@@ -12,8 +12,8 @@ This page lists the main Palabre commands.
 
 | Command | Description |
 | --- | --- |
-| `palabre mission start --from <lead>:<uuid> --to <colleague>:<uuid> --criteria "…" "Objective"` | Saves the scope agreed with the owner, without an agent call. |
-| `palabre mission step <id> "Request" [--timeout <seconds>]` | At most one read-only call to the closed colleague; task defaults to `consult`. |
+| `palabre mission start --from <mission-lead>:<uuid> --to <teammate>:<uuid> --criteria "…" "Objective"` | Saves the scope agreed with the owner, without an agent call. |
+| `palabre mission step <id> "Request" [--timeout <seconds>]` | At most one read-only call to the closed teammate; task defaults to `consult`. |
 | `palabre mission step <id> "Review" --task review --pr https://github.com/owner/repo/pull/123` | Reuses the review task and its already trusted Relay policy. |
 | `palabre mission status <id> --json` | Reloads scope and results without an agent call. |
 | `palabre mission stop <id> --reason "…"` | Permanently stops further steps and requests best-effort cancellation of the call. |
