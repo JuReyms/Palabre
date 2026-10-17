@@ -20,8 +20,8 @@ This command is equivalent to choosing `codex` as agent A and `claude` as agent 
 
 | Preset | Typical use |
 |--------|-------------|
-| `codex-claude` | Codex proposes, Claude reviews. |
-| `claude-codex` | Claude proposes, Codex reviews. |
+| `codex-claude` | Codex speaks first, Claude responds; configured roles remain. |
+| `claude-codex` | Claude speaks first, Codex responds; configured roles remain. |
 | `codex-antigravity` | Codex vs. Antigravity comparison. |
 | `claude-antigravity` | Claude vs. Antigravity comparison. |
 | `codex-opencode` | Codex vs. OpenCode. |
@@ -54,3 +54,7 @@ Use a preset when you want a short and explicit command.
 Use default agents when you frequently run the same pair.
 
 Use `--agent-a` and `--agent-b` when writing a script or precise documentation.
+
+This table is a selection. `palabre presets` lists 30 presets: every pair among the five known CLIs, plus each with Ollama, in both directions. `--json` exposes `available`, `missingAgents` and `unavailableReasons`: missing agent, undetected CLI, unreachable Ollama API or missing model. Integrations use this availability.
+
+Presets choose only the pair and speaking order, not roles or models. They apply to Debate and Ask, are refused in Chat, and never choose Relay targets.

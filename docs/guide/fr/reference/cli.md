@@ -8,18 +8,6 @@ seo:
 
 Cette page liste les commandes principales de Palabre.
 
-## Mission en lecture seule
-
-| Commande | Description |
-| --- | --- |
-| `palabre mission start --from <chef-de-mission>:<uuid> --to <equipier>:<uuid> --criteria "…" "Objectif"` | Conserve le cadre fixé avec l'humain, sans appeler d'agent. |
-| `palabre mission step <id> "Demande" [--timeout <secondes>]` | Au plus un appel à l'équipier fermé, en lecture seule ; tâche `consult` par défaut. |
-| `palabre mission step <id> "Revue" --task review --pr https://github.com/owner/repo/pull/123` | Réutilise la tâche de revue et sa politique Relay déjà approuvée. |
-| `palabre mission status <id> --json` | Relit le cadre et les résultats, sans appel d'agent. |
-| `palabre mission stop <id> --reason "…"` | Arrête définitivement la suite et demande au mieux l'annulation de l'appel. |
-
-Options de start : `--tasks "consult,review"` (`consult` par défaut), `--max-steps` (1–100, défaut 10), `--max-duration` (10–86400 secondes, défaut 3600), `--timeout` (10–3600 secondes, défaut 600), `--config`, `--language fr|en`. `step` peut surcharger le délai ; `--json` est disponible partout. Cadre et export `.mission.md` sous `.palabre/missions/<id>/` ; aucun renvoi automatique après coupure ou délivrance inconnue. Voir [Mission et Relay](/fr/usage/relay).
-
 ## Commandes de démarrage
 
 | Commande | Description |
@@ -84,13 +72,30 @@ La reprise conserve les réponses complètes et relance uniquement le prochain t
 
 `palabre sessions` affiche les 20 checkpoints les plus récents par défaut, avec leur état, mode, nombre de réponses et prochaine phase. `--limit <1-100>` borne la liste. Un JSON corrompu est signalé comme invalide sans empêcher l'affichage des autres. La suppression montre le fichier exact et demande confirmation ; en mode non interactif, `--yes` est obligatoire. Elle ne supprime jamais les exports Markdown ni les autres checkpoints.
 
-## Interroger une conversation fermée
+## Relay
 
-```bash
-palabre relay --from codex:<session> --to claude:<session> "Peux-tu relire ce plan ?"
-```
+| Commande | Description |
+| --- | --- |
+| `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> "Message"` | Conversation fermée Codex ou Claude Code, reprise en lecture seule. |
+| `palabre relay --open --from <agent>:<uuid> --to <codex>:<uuid> "Message"` | Conversation Codex ouverte, pilote Windows ; outils et permissions propres à la cible. |
+| `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> --task review --pr https://github.com/proprietaire/depot/pull/123` | Rédige et publie une revue COMMENT si autorisée. |
+| `palabre relay allow-repo proprietaire/depot` | Autorise la tâche review après confirmation au clavier par le propriétaire. |
 
-`palabre relay` transmet un message à une conversation Codex ou Claude Code **fermée** et renvoie sa réponse, en lecture seule renforcée. L'historique de la conversation cible est modifié, et aucun renvoi automatique n'a lieu. Voir [Relay vers une conversation](/fr/usage/relay).
+Options : `--message-file <chemin>`, `--subject "<objet>"` (une ligne, 200 caractères), `--timeout <secondes>` (10–3600, défaut 600), `--json`, `--no-export`, `--config`, `--trust-config` (refusé avec review), `--language`. L’historique peut être modifié ; aucun renvoi automatique. Délivrance, diagnostics et limites : [Relay](/fr/usage/relay).
+
+L’option Mission de Relay garde plusieurs étapes en lecture seule dans un cadre et un budget fixés ; ce n’est pas un mode supplémentaire.
+
+### Option Mission (`palabre mission`)
+
+| Commande | Description |
+| --- | --- |
+| `palabre mission start --from <chef-de-mission>:<uuid> --to <equipier>:<uuid> --criteria "…" "Objectif"` | Conserve le cadre fixé avec l'humain, sans appeler d'agent. |
+| `palabre mission step <id> "Demande" [--timeout <secondes>]` | Au plus un appel à l'équipier fermé, en lecture seule ; tâche `consult` par défaut. |
+| `palabre mission step <id> "Revue" --task review --pr https://github.com/owner/repo/pull/123` | Réutilise la tâche de revue et sa politique Relay déjà approuvée. |
+| `palabre mission status <id> --json` | Relit le cadre et les résultats, sans appel d'agent. |
+| `palabre mission stop <id> --reason "…"` | Arrête définitivement la suite et demande au mieux l'annulation de l'appel. |
+
+Options de start : `--tasks "consult,review"` (`consult` par défaut), `--max-steps` (1–100, défaut 10), `--max-duration` (10–86400 secondes, défaut 3600), `--timeout` (10–3600 secondes, défaut 600), `--config`, `--language fr|en`. `step` peut surcharger le délai ; `--json` est disponible partout. Cadre et export `.mission.md` sous `.palabre/missions/<id>/` ; aucun renvoi automatique après coupure ou délivrance inconnue. Voir [Mission et Relay](/fr/usage/relay).
 
 ## Conversation avec un agent
 
@@ -100,7 +105,7 @@ Contrairement à Ask, qui recueille une ou plusieurs réponses indépendantes à
 
 Utilisez `/agents` pour afficher les agents disponibles. `/end` enregistre la conversation dans `.palabre/`, affiche le fichier et le dossier puis revient à l'accueil ; `/home` revient sans enregistrer. `/consult <agent>` demande explicitement un second avis sur les six derniers messages retenus ; cet avis est ajouté à la conversation. `/use <agent>` bascule ensuite l'agent actif, ou vous pouvez continuer avec l'agent initial. `--role-a`, `--model-a`, `--language`, `--files` et `--context` restent disponibles. Si aucun `--agent-a` n'est donné, Palabre utilise l'agent A configuré par défaut.
 
-Cette première version reste stateless et n'exécute aucune action. Le contexte envoyé à chaque appel est borné aux six messages les plus récents ; Palabre signale lorsque des messages plus anciens ne sont plus transmis. La consultation reste explicite : l'agent peut la proposer, mais l'utilisateur garde l'initiative.
+Chat ne garde pas de session fournisseur persistante. Le contexte envoyé à chaque appel est borné aux six messages les plus récents ; Palabre signale lorsque des messages plus anciens ne sont plus transmis. La consultation reste explicite : l'agent peut la proposer, mais l'utilisateur garde l'initiative.
 
 Après un débat ou un Ask terminé dans la TUI, `/chat` ouvre directement une conversation dont le contexte indique sa provenance et reprend le sujet avec la synthèse finale, ou les six échanges récents si aucune synthèse n'est disponible.
 
@@ -126,8 +131,11 @@ Ces commandes sont disponibles dans l'accueil TUI ou dans `/config` selon le con
 | `/ollama-sync` | Remplace le modèle Ollama configuré par un modèle installé quand le modèle courant est absent. |
 | `/language fr`, `/language en` | Change la langue depuis `/config`. Alias : `/lang`, `/langue`. |
 | `/interface tui`, `/interface terminal` | Change l'interface par défaut depuis `/config`. |
-| `/home` | Revient à l'accueil TUI. Alias : `/back`. |
+| `/home` | Revient à l’accueil TUI. |
 | `/quit` | Quitte la TUI. |
+| `/back` | Revient à l’écran précédent. |
+| `/retry` | Relance la dernière session, explicitement. |
+| `/consult <agent>`, `/use <agent>`, `/end` | Commandes Chat ; voir le guide Chat. |
 
 ## Intégrations
 
@@ -153,7 +161,7 @@ supporter de futures intégrations. Sans déclaration, la source indiquée est
 | `palabre sessions --json` | Liste jusqu'à 20 checkpoints au format JSON v1, valides ou invalides. |
 | `palabre sessions --json --limit 30` | Liste jusqu'à 30 checkpoints (maximum : 100). |
 | `palabre sessions delete <session-id> --yes --json` | Supprime exactement un checkpoint et confirme son identifiant au format JSON v1. |
-| `palabre relay --from <agent>:<session> --to <agent>:<session> "…" --json` | Relaie un message vers une conversation fermée et renvoie un objet JSON v1 `relay-result`, quelle que soit l'issue. |
+| `palabre relay --from <agent>:<session> --to <agent>:<session> "…" --json` | Relaie un message vers une conversation fermée ou Codex ouverte avec `--open` et renvoie un objet JSON v1 `relay-result`, quelle que soit l'issue. |
 | `palabre config --ollama-models --json` | Renvoie l'état Ollama local au format JSON v1 pour les intégrations. |
 | `palabre context scan [paths...] --json` | Renvoie les dossiers, fichiers et avertissements du scan `--context` au format JSON v1. |
 
@@ -164,7 +172,7 @@ supporter de futures intégrations. Sans déclaration, la source indiquée est
 | `-h`, `--help` | Affiche l'aide. |
 | `-v`, `--version` | Affiche la version. |
 | `--config <path>` | Utilise un fichier de configuration explicite. |
-| `--trust-config` | Approuve l'empreinte de la configuration locale après vérification de son contenu. |
+| `--trust-config` | Enregistre l’approbation de la configuration résolue, locale ou globale, après relecture humaine ; jamais pour accorder des droits à un agent. |
 | `--language <fr\|en>`, `--lang <fr\|en>` | Force la langue de Palabre et des prompts agents pour la commande. |
 | `--tui` | Force l'interface TUI, même si la configuration demande le rendu terminal. |
 | `--terminal`, `--no-tui` | Utilise un rendu terminal brut. Aussi utile avec `palabre doctor` pour les logs. |
@@ -184,7 +192,7 @@ supporter de futures intégrations. Sans déclaration, la source indiquée est
 | `--role-a <role>` | Rôle temporaire du premier agent, sans modifier la config. |
 | `--role-b <role>` | Rôle temporaire du second agent, sans modifier la config. |
 | `--ask-role <role>` | Rôle commun temporaire appliqué à tous les agents Ask. |
-| `--mode <debate\|ask>` | Choisit le mode d'orchestration. |
+| `--mode <debate\|ask\|chat>` | Choisit le mode d'orchestration. |
 | `--agents <names...>` | Agents du mode ask, 4 maximum. |
 | `-t`, `--turns <number>` | Nombre total de réponses, entre 1 et 20. |
 | `--no-early-stop` | Désactive l'arrêt anticipé. |
@@ -211,3 +219,5 @@ supporter de futures intégrations. Sans déclaration, la source indiquée est
 | `palabre update --dry-run` | Affiche les étapes exactes sans les lancer. |
 | `palabre update --yes` | Applique un plan sûr sans confirmation interactive. |
 | `palabre update --apply` | Alias compatible de `--yes`. |
+
+`palabre mission status <id> --json` rend un objet `mission-result` v1 sans appel d’agent. Les exports Relay indiquent la version de PALABRE, mais ne portent pas les champs de provenance `PALABRE_CLIENT` des exports Débat, Ask et Chat.

@@ -12,7 +12,7 @@ Commencez par lancer le diagnostic :
 palabre doctor
 ```
 
-`doctor` ne lance aucun agent IA. Il affiche un diagnostic par sections : configuration, outils locaux, agents et points à vérifier. Il contrôle les agents déclarés, les paramètres par défaut, le nombre de tours, `outputDir`, les CLIs disponibles, Ollama et les modèles configurés.
+`doctor` ne lance aucun agent IA. Il affiche un diagnostic par sections : configuration, outils locaux, agents et points à vérifier. Il contrôle les agents déclarés, les paramètres par défaut, le nombre de réponses, `outputDir`, les CLIs disponibles, Ollama et les modèles configurés.
 
 Pour obtenir une sortie brute adaptée aux logs ou aux scripts :
 
@@ -21,6 +21,13 @@ palabre doctor --terminal
 ```
 
 ## Codex sous Windows : erreur 5 malgré la lecture seule
+
+**Ce qui se passe :** sans `--open`, Codex ne peut pas lancer ses commandes de lecture. PALABRE conserve sa réponse mais rend `read-unavailable` (2) ; avec review, rien n’est publié.
+
+**Cause probable :** l’alias Microsoft Store `WindowsApps\pwsh.exe`. **Prochaine étape :** suivre [#128](https://github.com/JuReyms/Palabre/issues/128) ; aucune solution validée pour l’instant. Ne renvoyez pas le message et n’élargissez pas les permissions.
+
+### Détails techniques
+
 
 `CreateProcessAsUserW failed: 5` signifie ici que Codex n'a pas pu démarrer une commande, même pour lire. Sur la machine testée avec Codex 0.163.0, la même lecture sous `:read-only` réussit avec PowerShell natif Windows et échoue avec l'alias `WindowsApps\pwsh.exe`. Il faut donc vérifier le shell choisi, sans conclure que toute la sandbox `unelevated` est inutilisable.
 
@@ -110,7 +117,7 @@ palabre config --sync-agents
 
 Cette commande ajoute les agents connus manquants et rafraîchit les noms de commandes connus sans écraser vos réglages existants.
 
-## Le nombre de tours par défaut est invalide
+## Le nombre de réponses par défaut est invalide
 
 Message typique :
 
@@ -150,7 +157,7 @@ Actions :
 - relancez `palabre doctor` ;
 - corrigez `command` dans la configuration si la commande porte un autre nom.
 
-Sur Windows, les wrappers npm ou PowerShell comme `codex`, `opencode` et `vibe` peuvent nécessiter `shell: true` dans la configuration.
+Sous Windows, gardez les réglages générés : `shell: true` active la résolution prudente des wrappers, qui lance directement les shims npm/pnpm reconnus sans shell. Ne forcez pas une autre valeur pour contourner une erreur. Voir [Agents sous Windows](/fr/agents/overview#windows). Un chemin absolu dans `command` est conservé par la synchronisation.
 
 Claude fonctionne souvent mieux avec `claude.exe` et `shell: false`.
 
@@ -265,7 +272,7 @@ palabre update --check
 Avec les versions récentes de pnpm, `palabre@latest` peut parfois rester temporairement sur une ancienne version à cause des garde-fous de chaîne d'approvisionnement. Palabre utilise donc la version npm exacte quand elle est disponible :
 
 ```bash
-pnpm add --global palabre@0.8.1
+pnpm add --global palabre@<version>
 ```
 
 Adaptez le numéro à la version affichée par `palabre update` ou par :
@@ -281,3 +288,11 @@ pnpm add --global palabre@latest
 ```
 
 `--apply` reste un alias compatible de `--yes`.
+
+## Approbation et refus Relay
+
+Une édition manuelle invalide l'empreinte approuvée. Pour une configuration projet implicite ou un appel Relay, vous relisez le fichier puis lancez `palabre config --config <fichier> --trust-config`. Les agents attendent votre action ; ils ne s'accordent pas de droits.
+
+Refus avant envoi (`not-delivered`) : `config-untrusted` (8), `task-not-allowed` (8, propriétaire : lancer la commande `remedy` dans son terminal), `review-cli-unsupported` (8, Claude ≥ 2.1.292 et `--safe-mode` requis), `target-busy` (3, fermer la cible ou choisir `--open` pour Codex sous Windows), `target-not-open` (3, ouvrir la cible Codex). Voir [Relay](/fr/usage/relay).
+
+Une limite reconnue donne `usage-limit`. Une indication de reprise n'est affichée que si fournie : `retryAfter` dans les erreurs NDJSON, ou Relay avec `--open`. Sans `--open`, Relay classe la limite mais n'expose pas ce champ. Aucun renvoi automatique, même après l'heure indiquée ; une heure seule n'a pas de date ni fuseau déduits. Avec Relay, vérifiez la délivrance avant toute nouvelle demande. Mission garde le résultat et se met en pause sur un échec connu ; une délivrance inconnue exige une vérification humaine. Avec `--checkpoint`, `resume` conserve les réponses déjà acceptées.

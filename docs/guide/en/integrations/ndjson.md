@@ -52,17 +52,24 @@ After `start`, Chat therefore always emits exactly one `done`. Chat's `error` ev
 
 ```json
 {"v":1,"type":"error","phase":"chat","action":"consult","agent":"vibe","role":"critic","kind":"non-zero-exit","message":"..."}
-{"v":1,"type":"done","outputPath":"C:\\project\\.palabre\\session.chat.md"}
+{"v":1,"type":"done","outputPath":".palabre/palabre-subject-2026-01-01T00-00-00-000Z.chat.md"}
 ```
 
 `--dry-run` does not exist for Chat: the command is refused before any event, with no agent call and no export.
 
 
+Minimal Debate excerpt, after `start`:
+
 ```json
+{"v":1,"type":"turn-start","turn":1,"totalTurns":4,"agent":"codex","role":"implementer"}
 {"v":1,"type":"thinking-start","agent":"codex","role":"implementer"}
 {"v":1,"type":"thinking-end"}
 {"v":1,"type":"message","turn":1,"agent":"codex","role":"implementer","content":"..."}
-{"v":1,"type":"done","outputPath":"C:\\project\\.palabre\\session.debate.md"}
+{"v":1,"type":"done","outputPath":".palabre/palabre-subject-2026-01-01T00-00-00-000Z.debate.md"}
 ```
 
 stdout belongs to NDJSON. stderr may contain diagnostics and Ollama progress. Preserve order, ignore unknown types, wait for the exit code, and render agent content as untrusted text, never executable HTML.
+
+## Scope and errors
+
+Relay and its Mission option use `--json`, not NDJSON. Session `error` events carry `phase` (`debate`, `ask`, `summary`, `chat`), `kind`, `message`, then where relevant `agent`, `role`, `turn` or `action`, `retryAfter`, `details`. After an error in a started session, PALABRE attempts a partial export then emits `done`; validation failure before startup may produce no stream.

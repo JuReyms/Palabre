@@ -22,32 +22,18 @@ Acting is optional and remains under the user's control. Palabre is not intended
 
 ## Available today
 
-Palabre already lets you run debates between two agents installed on your machine, or Ask requests where several agents answer independently before a comparative summary: Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe, or Ollama.
+PALABRE offers four modes: **Debate**, **Relay**, **Ask** and **Chat**, with your installed agents.
 
-The main features are available:
-
-- global or local configuration;
-- detection of installed agents;
-- automatic global configuration on first TUI launch, with conservative refresh of detected known agents;
-- TUI-first interface with `palabre`, `/agents`, `/roles`, `/config`, `/history`, and `/home`;
-- interactive assistant `palabre new`;
-- `ask` mode with 1 to 4 agents and `.ask.md` export;
-- stateless `chat` mode with one active agent, explicit consultation, bounded context, and `.chat.md` export;
-- presets such as `codex-claude`, `claude-antigravity`, `codex-antigravity`, or `opencode-ollama`;
-- French or English interface and prompts through `--language`, `--lang`, `PALABRE_LANGUAGE`, or configuration;
-- adding context with `--files` or `--context`;
-- previewing the context scan with `palabre context scan --json` for integrations;
-- final summary with consensus, disagreements, proposed actions, and conclusion;
-- Markdown export `.debate.md`, `.chat.md`, or `.ask.md` with a name based on the subject;
-- local export history with `palabre history`, `palabre history --json`, and `/history` in the TUI;
-- opt-in checkpoints for Debate and Ask, with `palabre sessions` and `palabre resume <session-id>` without replaying already accepted answers;
-- partial export preserved if an agent fails during the debate or final summary;
-- diagnostics with `palabre doctor`;
-- machine-readable output with `palabre agents --json`, `palabre presets --json`, `palabre context scan --json`, and the NDJSON renderer;
-- structured errors for integrations, with an NDJSON versioning policy;
-- a more robust CLI parser for boolean flags such as `--terminal`, `--json`, or `--no-summary`;
-- stricter runtime contracts: non-zero CLI exits are rejected, Ollama pull progress stays off NDJSON stdout, and missing `--context` paths are reported as warnings;
-- automated tests for the CLI adapter, parser, NDJSON renderer, presets, context scan, prompts, and output configuration without calling real AI services.
+- Contradictory Debate, independent Ask (1–4 agents) and Chat with an explicit second opinion; after Debate/Ask, Chat continues from subject and summary.
+- Relay to closed Codex or Claude Code; `--open` to open Codex on Windows (pilot), with its own tools and permissions, without guaranteed immediate display.
+- GitHub COMMENT review on a repository authorized through `palabre relay allow-repo`; PALABRE header, optional subject, JSON and `.relay.md` export.
+- Relay's Mission option: read-only steps within a scope and budget agreed with you.
+- Local/global configuration, conservative agent discovery/synchronization, presets and CLI-selected models.
+- [TUI](/en/usage/tui), agent skill and VS Code extension.
+- `--files` / `--context`, previews, Debate/Ask summaries and Markdown exports; Debate/Ask/Chat history.
+- Opt-in Debate/Ask checkpoints and resume without replaying accepted answers; partial export where possible after failure.
+- `usage-limit` and `read-unavailable` diagnostics, retry information when supplied, no automatic resend.
+- `palabre doctor`, JSON/NDJSON contracts and `palabre update` with confirmation.
 
 ## Upcoming improvements
 

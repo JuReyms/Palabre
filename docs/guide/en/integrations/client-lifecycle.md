@@ -12,6 +12,8 @@ seo:
 | `1` | Validation, configuration, or runtime error. |
 | `130` | Cancellation. |
 
+This table covers Debate, Ask and Chat sessions and catalogs. Relay and its Mission option use their own table, including exits 2 through 9: see [Relay](/en/usage/relay). Handle Relay using both `status` **and** `delivery.status`, not only the exit code.
+
 Always wait for process termination. `error` describes the business failure; the code confirms final state.
 
 An `error` event may include phase, agent, role, turn, a stable `kind`, message, and details. Kinds include `command-not-found`, `spawn-failed`, `timeout`, `idle-timeout`, `output-too-large`, `empty-output`, `non-zero-exit`, `usage-limit`, `unsupported-model`, `model-unavailable`, `model-pull-failed`, `http-error`, and `cancelled`. For a `usage-limit`, `retryAfter` may be present: duration in seconds, ISO timestamp, or local `HH:mm` time. It is best-effort; branch on `kind`, not message text.
@@ -26,3 +28,5 @@ PALABRE_CLIENT_VERSION=2.3.0
 ```
 
 The name is open-ended. Palabre sanitizes these values and records them with its own version in exports. Without a declaration, the source is `direct-cli`. These fields are diagnostic, not a security boundary.
+
+Relay has its own outcomes: `usage-limit` and `read-unavailable` (2), `target-not-open` (3), `review-failed` (9), `invalid-request` with `error.reason` (8). `retryAfter` implies no missing date or time zone: show the indication and await a human decision, without scheduled resend. Client provenance fields described here apply to Debate/Ask/Chat exports; Relay reports its PALABRE version.
