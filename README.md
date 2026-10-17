@@ -73,13 +73,22 @@ On first launch, the TUI creates the global configuration if needed and detects 
 
 `--terminal` forces the raw renderer for logs and scripts. `palabre init` remains available for an explicit setup, especially with `--local`.
 
+**Relay** runs from the command line:
+
+```bash
+palabre relay --from claude:<sender-session> --to codex:<target-session> "Can you review my plan?"
+```
+
+`<session>` is the ID of an existing conversation. By default, the target conversation must be closed: it receives your message with its full context and replies once. To find the ID: [Relay guide](https://palab.re/en/usage/relay).
+
 ### How it works
 
 - **PALABRE drives your CLIs.** Each agent runs with its own tool, account and default model. PALABRE does not list models: `--model-a`, `--model-b` and `--summary-model` pass the raw value to the agent.
 - **Context.** `--files` injects specific files (64 KiB per file, 192 KiB in total). `--context` scans folders with limits and exclusions. `--show-prompt` shows exactly what will be sent; `palabre context scan` previews the context.
 - **Final summary.** At the end of a Debate, a summary agent writes four sections: **Consensus**, **Disagreements / uncertainties**, **Proposed actions**, **Conclusion**. At the end of an Ask, it summarizes each answer then compares them: **Faithful summary by agent**, **Comparison**, **Watchpoints / uncertainties**, **Proposed actions**, **Conclusion**. Choose the summary agent with `--summary-agent`, or turn the summary off with `--no-summary`.
 - **Early stop.** A Debate (1 to 20 responses in total) can stop after a full round when an explicit agreement is detected. Turn it off with `--no-early-stop`.
-- **Exports.** Each session is saved as Markdown (`.debate.md`, `.ask.md`, `.chat.md`). If an agent fails, a partial export is kept whenever possible.
+- **Relay.** PALABRE resumes the target conversation with the agent's official CLI (`claude -p --resume`, `codex exec resume`), in hardened read-only mode. The message carries a header naming the sender. It authorizes no action: the agent receives it as information, not as an order. A single reply, with no automatic resend.
+- **Exports.** Each session is saved as Markdown (`.debate.md`, `.ask.md`, `.chat.md`, `.relay.md`). If an agent fails, a partial export is kept whenever possible.
 - **Sessions.** `--checkpoint` makes a Debate or an Ask resumable with `palabre resume <session-id>`; `palabre sessions` lists or deletes checkpoints.
 
 More examples:
@@ -224,13 +233,22 @@ Au premier lancement, la TUI crée la configuration globale si nécessaire et d�
 
 `--terminal` force le rendu brut pour les logs et les scripts. `palabre init` reste disponible pour un setup explicite, notamment avec `--local`.
 
+**Relay** se lance en ligne de commande :
+
+```bash
+palabre relay --from claude:<session-expéditeur> --to codex:<session-cible> "Peux-tu relire mon plan ?"
+```
+
+`<session>` est l'identifiant d'une conversation existante. Par défaut, la conversation cible doit être fermée : elle reçoit votre message avec tout son contexte et répond une fois. Pour trouver l'identifiant : [guide Relay](https://palab.re/fr/usage/relay).
+
 ### Comment ça fonctionne
 
 - **PALABRE pilote vos CLI.** Chaque agent tourne avec son outil, son compte et son modèle par défaut. PALABRE ne liste pas les modèles : `--model-a`, `--model-b` et `--summary-model` transmettent la valeur brute à l'agent.
 - **Contexte.** `--files` injecte des fichiers précis (64 Kio par fichier, 192 Kio au total). `--context` parcourt des dossiers avec des limites et des exclusions. `--show-prompt` montre exactement ce qui sera envoyé ; `palabre context scan` prévisualise le contexte.
 - **Synthèse finale.** À la fin d'un Débat, un agent de synthèse rédige quatre sections : **Consensus**, **Désaccords / incertitudes**, **Actions proposées**, **Conclusion**. À la fin d'un Ask, il résume chaque réponse puis les compare : **Résumé fidèle par agent**, **Comparaison**, **Points de vigilance / incertitudes**, **Actions proposées**, **Conclusion**. Choisissez l'agent de synthèse avec `--summary-agent`, ou désactivez la synthèse avec `--no-summary`.
 - **Arrêt anticipé.** Un Débat (1 à 20 réponses au total) peut s'arrêter après un tour complet quand un accord explicite est détecté. Désactivez-le avec `--no-early-stop`.
-- **Exports.** Chaque session est enregistrée en Markdown (`.debate.md`, `.ask.md`, `.chat.md`). Si un agent échoue, un export partiel est conservé quand c'est possible.
+- **Relay.** PALABRE reprend la conversation cible avec la CLI officielle de l'agent (`claude -p --resume`, `codex exec resume`), en lecture seule renforcée. Le message porte un en-tête qui indique l'expéditeur. Il n'autorise aucune action : l'agent le reçoit comme une information, pas comme un ordre. Une seule réponse, sans relance automatique.
+- **Exports.** Chaque session est enregistrée en Markdown (`.debate.md`, `.ask.md`, `.chat.md`, `.relay.md`). Si un agent échoue, un export partiel est conservé quand c'est possible.
 - **Sessions.** `--checkpoint` rend un Débat ou un Ask reprenable avec `palabre resume <session-id>` ; `palabre sessions` liste ou supprime les points de reprise.
 
 Plus d'exemples :
