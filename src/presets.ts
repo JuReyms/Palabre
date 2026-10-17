@@ -257,7 +257,7 @@ function checkAgentAvailability(agentName: string, config: PalabreConfig, discov
 
   const detection = detectionForCommand(agent.command, discovery);
   if (!detection) {
-    // Les CLIs custom déclarées par l'utilisateur restent considérées utilisables :
+    // Les CLIs custom sans chemin absolu déclarées par l'utilisateur restent considérées utilisables :
     // Palabre ne peut pas connaître leur sémantique sans les lancer.
     return available(agentName);
   }

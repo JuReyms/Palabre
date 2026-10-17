@@ -9,6 +9,10 @@ Palabre est une CLI locale (`palabre`) qui pilote les agents installés et authe
 
 Disponibilité : `palabre --version`, puis `palabre agents --json` (agents configurés et `available`). Ne jamais recopier une liste d'agents figée : lire ce contrat.
 
+La synchronisation des agents (accueil TUI ou `palabre config --sync-agents`) conserve les commandes configurées avec un chemin absolu, même introuvable. Agent : ne pas remplacer ce choix par une autre installation ; signaler un lancement refusé et laisser le propriétaire vérifier son chemin. Les commandes sans chemin absolu continuent d'être synchronisées.
+
+Pour un chemin absolu, `available` et `doctor` vérifient le fichier configuré, sans l'exécuter ni prendre une autre CLI du PATH. Un fichier présent ne prouve pas ses fonctionnalités ; un chemin absent/inaccessible ou un dossier est indisponible.
+
 ## Quand l'utiliser, quand s'abstenir
 
 Utiliser Palabre quand un autre regard change la décision : architecture, refactoring, revue critique, plan risqué, comparaison de modèles, désaccord à trancher. S'abstenir pour une réponse factuelle, une tâche simple que l'hôte sait faire seul, ou par réflexe à chaque demande : chaque appel est lent et consomme les quotas des agents.

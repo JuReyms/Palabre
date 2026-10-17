@@ -118,6 +118,8 @@ palabre config --sync-agents
 
 Cette commande ajoute les agents connus détectés manquants et rafraîchit les noms de commandes connus sans écraser vos agents custom ni vos defaults existants. L'accueil TUI effectue la même synchronisation prudente automatiquement au démarrage.
 
+Les commandes déjà configurées avec un chemin absolu sont conservées, même si ce chemin est introuvable ; aucun repli silencieux vers une autre installation.
+
 ## Étape suivante
 
 Vous pouvez maintenant [lancer une première session](/fr/get-started/first-debate).

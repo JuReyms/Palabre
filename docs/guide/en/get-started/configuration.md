@@ -118,6 +118,8 @@ palabre config --sync-agents
 
 This command adds missing detected known agents and refreshes known command names without overwriting your custom agents or existing defaults. The TUI home screen performs the same conservative synchronization automatically when it starts.
 
+Commands already configured with an absolute path are preserved, even if that path is missing; there is no silent fallback to another installation.
+
 ## Next step
 
 You can now [start your first session](/en/get-started/first-debate).

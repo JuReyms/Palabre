@@ -1,8 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   activeConfiguredAgentEntries,
   activeConfiguredAgentNames,
+  applyDetectedCommands,
   detectedAgentNames,
   detectionForCommand,
   isAgentDetected,
@@ -10,7 +14,52 @@ import {
   normalizeCommandName
 } from "../src/agentRegistry.js";
 import type { ToolDiscovery } from "../src/discovery.js";
-import type { AgentConfig } from "../src/types.js";
+import type { AgentConfig, PalabreConfig } from "../src/types.js";
+import { listAgentsWithAvailability } from "../src/presets.js";
+
+test("disponibilité : vérifie le fichier absolu configuré, jamais une autre CLI du PATH", t => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "palabre-agent-path-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const selected = path.join(dir, "claude.exe");
+  const tools = discoveryWith({ claude: true }); tools.claude.path = "/other/claude.exe";
+  const config: PalabreConfig = { agents: { claude: { type: "cli", command: selected, role: "reviewer" } } };
+  assert.equal(detectionForCommand(selected, tools)?.available, false);
+  assert.equal(isAgentDetected("claude", config.agents.claude, tools), false);
+  assert.equal(listAgentsWithAvailability(config, tools).find(agent => agent.name === "claude")?.available, false);
+  writeFileSync(selected, "not executed"); tools.claude.available = false;
+  assert.equal(detectionForCommand(selected, tools)?.path, selected);
+  assert.equal(isAgentDetected("claude", config.agents.claude, tools), true);
+  assert.equal(listAgentsWithAvailability(config, tools).find(agent => agent.name === "claude")?.available, true);
+  assert.equal(detectionForCommand(dir, tools)?.available, false, "un dossier n'est pas un fichier CLI");
+});
+
+test("la synchronisation conserve les chemins absolus POSIX, Windows et UNC, même absents", () => {
+  for (const command of ["/missing/claude", "C:\\Tools\\Claude\\claude.exe", "C:/Tools/Claude/claude.exe", "\\\\server\\share\\claude.exe"]) {
+    for (const type of ["cli", "cli-pty"] as const) {
+      const config: PalabreConfig = { agents: { claude: { type, command, args: ["custom"], role: "reviewer" } } };
+      const before = structuredClone(config);
+      applyDetectedCommands(config, discoveryWith({ claude: true }));
+      assert.deepEqual(config, before);
+    }
+  }
+});
+
+test("les commandes non épinglées continuent d'être synchronisées, les agents personnalisés restent intacts", () => {
+  for (const command of ["claude", "claude.exe", "./claude", ".\\claude.exe"]) {
+    const config: PalabreConfig = { agents: {
+      claude: { type: "cli", command, args: ["custom"], role: "reviewer" },
+      "claude-review": { type: "cli", command: "/explicit/claude", role: "reviewer" }
+    } };
+    const originalCustom = structuredClone(config.agents["claude-review"]);
+    const discovery = discoveryWith({ claude: true }); discovery.claude.command = "/detected/claude";
+    applyDetectedCommands(config, discovery);
+    const cli = config.agents.claude;
+    assert.equal(cli.type, "cli");
+    if (cli.type !== "cli") throw Error("CLI required");
+    assert.equal(cli.command, "/detected/claude");
+    assert.deepEqual(cli.args, ["custom"]); assert.deepEqual(config.agents["claude-review"], originalCustom);
+  }
+});
 
 test("normalizeCommandName strips path and Windows executable extensions", () => {
   assert.equal(normalizeCommandName("C:\\bin\\claude.EXE"), "claude");
