@@ -20,7 +20,9 @@ PALABRE lets the AI agents already installed on your machine work with you and w
 
 **Privacy:** PALABRE CLI has no server. Your data only goes to the agents you choose. And with Ollama and a local model, nothing leaves your machine.
 
-PALABRE does not replace your tools: it drives them. You keep your subscriptions, default models, terminal habits and local files.
+PALABRE does not replace your tools: it drives them. You keep your subscriptions, default models, habits and local files.
+
+**Where to use it:** in the terminal (TUI or commands), in VS Code with the extension, or directly from your AI agent with the PALABRE skill, from the command line as well as in desktop apps.
 
 **Several modes, depending on your need:** Debate, Relay, Ask and Chat, detailed below.
 
@@ -165,7 +167,9 @@ PALABRE fait travailler avec vous, et entre eux, les agents IA déjà installés
 
 **Confidentialité :** PALABRE CLI n'a aucun serveur. Vos données ne vont qu'aux agents que vous choisissez. Et avec Ollama et un modèle local, rien ne quitte votre machine.
 
-PALABRE ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos modèles par défaut, vos habitudes de terminal et vos fichiers en local.
+PALABRE ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos modèles par défaut, vos habitudes et vos fichiers en local.
+
+**Où l'utiliser :** dans le terminal (interface TUI ou commandes), dans VS Code avec l'extension, ou directement depuis votre agent IA grâce au skill PALABRE, en ligne de commande comme dans les applications desktop.
 
 **Plusieurs modes, selon votre besoin :** Débat, Relay, Ask et Chat, détaillés ci-dessous.
 
