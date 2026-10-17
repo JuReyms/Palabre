@@ -59,6 +59,8 @@ A persistent role is configured in `palabre.config.json`, in the agent entry, or
 
 Example:
 
+Excerpt from the `agents` block:
+
 ```json
 "codex": {
   "type": "cli",
@@ -85,3 +87,15 @@ To use two different behaviors with the same CLI, create two distinct agents in 
 ## Models passed as arguments
 
 When you use `--model-a`, `--model-b`, or `--summary-model`, Palabre does not verify the list of models available at the provider. The value is passed to the relevant CLI via its configured model option. If the model does not exist or is not authorized by your account, the CLI will return the error.
+
+## Agents and Relay
+
+[Relay](/en/usage/relay) targets Codex or Claude Code conversations: closed by default; `--open` targets only Codex on Windows (pilot). Mission, a Relay option, uses closed conversations. Antigravity, OpenCode, Mistral Vibe and Ollama participate in Debate, Ask and Chat, not as Relay targets.
+
+CLI agents run from the current directory. Defaults request read-only tools where available: Claude `Read,Glob,Grep`, Codex `--sandbox read-only`, Vibe `read,grep`. OpenCode `--pure` disables plugins **without guaranteeing a read-only tool allowlist**. Custom arguments remain under your control; migrations replace only exact old defaults. A recognized limit gives `usage-limit`, without automatic resend.
+
+## Windows
+
+Adapters prefer a native executable, then a recognized npm or pnpm shim launched directly (Node + JavaScript script, or the native npm variant). For pnpm, the shim's `NODE_PATH` is passed through. Other shims may use PowerShell; remaining shell wrappers are refused for an argument prompt. `shell: true` in generated configuration enables this conservative resolution; do not remove it to force a wrapper launch. Relay accepts only direct executables and the npm Node + script form.
+
+`tier` (`primary` or `local`) classifies the configured agent; it does not change its role instruction.

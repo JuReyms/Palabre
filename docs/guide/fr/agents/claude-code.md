@@ -42,6 +42,8 @@ Claude fonctionne souvent mieux avec `claude.exe` et `shell: false`, car ce bina
 
 ## Configuration typique
 
+Extrait du bloc `agents` :
+
 ```json
 "claude": {
   "type": "cli",
@@ -65,3 +67,9 @@ Claude fonctionne souvent bien comme `reviewer` ou `summarizer`.
 palabre codex-claude "Critique ce plan" -t 4
 palabre run -s "Synthétise ces options" --summary-agent claude
 ```
+
+## Claude Code et Relay
+
+Une conversation Claude Code fermée peut recevoir un [relay](/fr/usage/relay), repris en mode plan avec `Read,Glob,Grep`, sans MCP ni hooks, sous les garanties conditionnelles documentées. Une conversation Claude Code ouverte n'est pas une cible disponible (#96). Pour `review`, PALABRE exige au moins 2.1.292 et vérifie `--safe-mode` dans l'aide avant de lire la PR.
+
+Avec plusieurs CLI, un chemin absolu dans `command` est conservé par `--sync-agents`. Sur macOS/Linux, la commande générée est `claude`. Une limite reconnue donne `usage-limit` sans retry automatique ; une heure n'est annoncée que si le diagnostic CLI la fournit.

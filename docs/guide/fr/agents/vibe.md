@@ -24,17 +24,15 @@ palabre config --sync-agents
 
 ## Windows
 
-Sur Windows, la configuration générée peut activer `shell` pour un wrapper comme `vibe`.
-Palabre évite toutefois de transmettre le prompt via `cmd.exe` : il préfère l'exécutable natif,
-puis le shim npm ou pnpm `.ps1` lancé directement sans PowerShell, puis un autre shim PowerShell (modifié ou de forme inconnue). Ne forcez cette option que si votre
-installation en a besoin ; si aucun chemin sûr n'est disponible, le lancement est refusé avec
-une erreur actionnable.
+Voir [Lancement des agents sous Windows](/fr/agents/overview#windows).
 
 ## Modèle par défaut
 
 Palabre ne choisit pas le modèle Mistral Vibe à votre place. Vibe utilise sa propre configuration par défaut. Si vous passez un modèle avec `--model-a`, `--model-b` ou `--summary-model`, Palabre transmet la valeur via l'option modèle configurée.
 
 ## Configuration typique
+
+Extrait du bloc `agents` :
 
 ```json
 "vibe": {
@@ -57,3 +55,5 @@ outils.
 palabre codex-vibe "Relis ce plan" -t 4
 palabre vibe-claude "Compare ces options" -t 3
 ```
+
+Mistral Vibe participe à Débat, Ask et Chat, pas aux cibles Relay. Le prompt passe en argument ; si aucun lancement sûr n’est disponible, PALABRE refuse le wrapper shell. Une limite reconnue donne `usage-limit`, sans retry automatique.
