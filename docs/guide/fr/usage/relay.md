@@ -16,7 +16,7 @@ La réponse CLI, et non son affichage Desktop, est le canal de retour. Les essai
 
 ## Un en-tête lisible, ajouté par PALABRE
 
-PALABRE ajoute lui-même une ligne compacte avant le message, dans la langue du relay (`--language`, puis les règles habituelles de langue). L'avertissement ℹ️ est sur sa propre ligne, séparée par des lignes vides, toujours avant l'objet et le contenu. Les identifiants de session et la référence restent dans la partie « 🤖 Pour l'agent » en bas.
+PALABRE ajoute lui-même une ligne compacte avant le message, dans la langue du relay (`--language`, puis les règles habituelles de langue). L'avertissement ℹ️ est sur sa propre ligne, séparée par des lignes vides, toujours avant l'objet et le contenu. Les identifiants de session et la référence restent dans la partie « 🤖 Message pour l'agent » en bas.
 
 ```text
 📧 **PALABRE Relay** · claude → codex
@@ -29,7 +29,7 @@ PALABRE ajoute lui-même une ligne compacte avant le message, dans la langue du 
 
 ---
 
-**🤖 Pour l'agent**
+**🤖 Message pour l'agent**
 
 Provenance : expéditeur déclaré, non authentifié.
 Session : <uuid> · réf. <référence>.
@@ -46,7 +46,7 @@ L'objet existe seulement avec `--subject "Revue du plan"` : une seule ligne non 
 
 Mission utilise la même présentation : `📧 **PALABRE Mission** <id> · étape n · chef de mission claude → équipier codex`, suivi du même avertissement. Le contrôleur fournit id et numéro d'étape par l'API interne ; aucun flag Relay ne permet de demander cet en-tête. Le cadre conserve objectif et critères sur deux lignes lisibles (`Objectif : …`, `Critères de réussite : …`), avec un retour Markdown explicite, sans bloc JSON ni répétition de l'id. La consigne de coordination non authentifiée reste présente. L'état Mission garde son schéma v1.
 
-La partie « 🤖 Pour l'agent » est commune à Relay et `--open`, avec une seule consigne de réponse. Seule la phrase sur les permissions diffère : la reprise classique demande la lecture seule ; `--open` conserve les outils, permissions et règles de la cible sans garantie de lecture seule. Elle ne donne aucun droit supplémentaire.
+La partie « 🤖 Message pour l'agent » est commune à Relay et `--open`, avec une seule consigne de réponse. Seule la phrase sur les permissions diffère : la reprise classique demande la lecture seule ; `--open` conserve les outils, permissions et règles de la cible sans garantie de lecture seule. Elle ne donne aucun droit supplémentaire.
 
 Message, en-tête, objet et pied de coordination comptent ensemble dans les **64 Kio UTF-8**. Le contexte GitHub de review garde sa borne distincte de 256 Kio, plus les consignes fixes de revue. Avec `--open`, la borne de **8 192 unités UTF-16** porte toujours sur toute l'enveloppe (📧 occupe deux unités), et la ligne Windows reste bornée. Le nonce en bas reste un marqueur dans le message utilisateur ; la corrélation `--open` compare toujours exactement le texte envoyé au texte observé. Aucun affichage immédiat dans Desktop n'est promis.
 
