@@ -11,7 +11,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Changed
 
-- Le README est réorganisé pour tous les niveaux : un tableau « Quel mode pour quoi ? » (Chat, Ask, Débat, Relay), l'installation, le fonctionnement (contexte, synthèse en quatre sections, arrêt anticipé, exports, sessions) et les six rôles expliqués avec des combinaisons conseillées (#121).
+- Le README est réorganisé pour tous les niveaux : un tableau « Quel mode pour quoi ? » par ordre d'utilité (Débat, Relay, Ask, Chat), l'installation, le fonctionnement (contexte, synthèse en quatre sections, arrêt anticipé, exports, sessions) et les six rôles expliqués avec des combinaisons conseillées (#121).
 - Le skill `palabre` aide désormais l'agent à choisir entre Chat, Débat, Ask et Relay. Il couvre le pilotage de Chat par le flux NDJSON, distingue checkpoints Palabre et reprise d'une conversation externe, et documente l'installation pour Claude Code et Codex ainsi que la découverte dans les sessions neuves et reprises (#99).
 
 ### Fixed
