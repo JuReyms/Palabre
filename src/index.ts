@@ -40,6 +40,7 @@ import { runSessionsCommand } from "./commands/sessions.js";
 import { runInitCommand } from "./commands/init.js";
 import { runPresetsCommand } from "./commands/presets.js";
 import { runRelayCommand } from "./commands/relay.js";
+import { runMissionCommand } from "./commands/mission.js";
 import { runUpdateCommand } from "./commands/update.js";
 import { optionalString } from "./commands/shared.js";
 import { runTuiAgentsWizard, runTuiConfigLoop, runTuiRolesWizard, syncInteractiveDetectedAgents } from "./tuiController.js";
@@ -63,6 +64,10 @@ async function main(): Promise<void> {
   const commandIndex = findFirstPositionalIndex(rawArgs);
   if (commandIndex >= 0 && rawArgs[commandIndex] === "relay") {
     await runRelayCommand(["relay", ...rawArgs.slice(0, commandIndex), ...rawArgs.slice(commandIndex + 1)]);
+    return;
+  }
+  if (commandIndex >= 0 && rawArgs[commandIndex] === "mission") {
+    await runMissionCommand(["mission", ...rawArgs.slice(commandIndex + 1), ...rawArgs.slice(0, commandIndex)]);
     return;
   }
   const startupLanguage = resolveLanguage({ explicitLanguage: findRawLanguageFlag(rawArgs) });

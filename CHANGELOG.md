@@ -6,6 +6,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Added
 
+- `palabre mission` v2.0 : un chef de mission fixe avec l'humain un cadre en lecture seule, puis appelle son équipier une seule fois par étape explicite. Création, `step`, `status`, `stop`, budgets de tentatives/durée, délai configurable, état local reprenable, export `.mission.md` et `--json` ; consultation et tâche `review` Relay existante. Aucun code délégué, changement de chef de mission, renvoi automatique ou release ; une délivrance incertaine bloque la suite (#115). Les copies installées du skill doivent être mises à jour manuellement.
+
 - `palabre relay allow-repo proprietaire/depot` (ou `'proprietaire/*'`) autorise la tâche review après confirmation au clavier, sur la configuration locale ou globale ; le refus `task-not-allowed` fournit la commande dans `remedy` et guide l'agent vers le terminal visible du propriétaire (#118).
 - `allow-repo` exige une configuration déjà approuvée et refuse sans écriture en code 8 si le propriétaire répond non. `palabre config --config <fichier> --trust-config` permet désormais au propriétaire d'approuver aussi une configuration globale, après l'avoir relue ; allow-repo n'approuve que le contenu exact qu'il a écrit (#118).
 - `palabre relay` transmet un message à une conversation Codex ou Claude Code fermée et renvoie sa réponse en un seul appel : reprise en lecture seule renforcée, refus si la conversation est ouverte ou son état invérifiable, statut de délivrance sans renvoi automatique, sortie `--json` v1 et export `.relay.md`.

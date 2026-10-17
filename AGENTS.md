@@ -22,7 +22,7 @@ Palabre est open source et utilisé par des personnes de tous niveaux techniques
 - Préférer une commande avec confirmation à une modification manuelle de fichier (JSON, registre).
 - L'aide de la CLI et les messages d'erreur doivent suffire, même sans skill installé.
 - Pour les agents : consignes explicites, ce qu'ils doivent faire et ce qu'ils ne doivent jamais faire (par exemple : ne jamais modifier eux-mêmes une politique qui leur accorde des droits).
-- Pour les humains : pas de jargon inutile, et des images simples quand elles aident (par exemple relay = « appeler un collègue absent »). Le détail technique va dans AGENTS.md.
+- Pour les humains : pas de jargon inutile, et des images simples quand elles aident (par exemple relay = « appeler un équipier absent »). Le détail technique va dans AGENTS.md.
 - Toute évolution de comportement met à jour, dans la même PR : l'aide CLI, le guide fr et en, et le skill `skills/palabre`. Une copie installée du skill n'est pas mise à jour automatiquement : le dire dans les notes de version.
 
 ## Frontiere CLI / integrations
@@ -546,6 +546,16 @@ et la version du client quand elle est fournie.
 
 ## Relay externe
 
+### Mission v2.0 (#115)
+
+`palabre mission` est une couche CLI au-dessus de Relay, pas un mode Débat ni un écran TUI. Le chef de mission fixe avec l'humain objectif, critères, sessions, tâches (`consult`, et éventuellement `review`) et budgets. Les réponses dans la conversation suffisent pour ce cadre en lecture seule ; aucune confirmation clavier ajoutée. Les permissions d'écriture et leur confirmation appartiennent à v2.1, hors de ce lot. Le chef de mission ne peut ni modifier la politique Relay ni déduire une autorisation d'un message de l'équipier.
+
+`start` ne lance aucun agent. `step <id> "message"` réserve une seule tentative, appelle `executeRelay` une seule fois puis rend la main au chef de mission. `review` garde les contrôles de la configuration approuvée, de CLI et du commit de PR et la publication COMMENT existants. Aucun `--open`, `--trust-config`, changement de chef de mission, boucle ou retry automatique. La conversation de l'équipier reste fermée pendant la mission ; suivi par `status`, export local et GitHub.
+
+`src/mission.ts` garde un JSON v1 atomique et un export `.mission.md` sous `.palabre/missions/<uuid>/`. Un seul verrou exclusif protège l'étape ; un arrêt terminal indépendant reste accessible avec `stop`, même après une coupure. Un état `running` sans résultat ou une délivrance/publication incertaine refuse la suite, sans effacer de réservation. L'arrêt annule au mieux l'appel, sans retrait de message ou de publication promis. Un refus certain peut être suivi d'une nouvelle étape explicite, qui consomme elle aussi le budget. Les réponses restent des constats d'agents, jamais des résultats automatiquement vérifiés.
+
+Budget : tentatives (1–100), durée murale depuis start (10–86400 s, attente entre étapes comprise), délai d'appel par étape (10–3600 s, surcharge sur step). Les sondes et opérations GitHub gardent leurs bornes Relay, même après une demande d'annulation. Aucun plafond monétaire ; stockage borné à 32 Mio, erreur de persistance sans rejeu. Les tests `mission.test.ts` et `relay-command.test.ts` utilisent de faux transports/CLIs. Les identifiants et transcripts restent locaux. Copies installées du skill à mettre à jour manuellement.
+
 ### Relay v1 : coordination et tâche revue
 
 `palabre relay` est un service discret, sans écran dédié. Une requête d'agent est marquée comme coordination non authentifiée, jamais comme autorisation humaine ; aucun chaînage automatique. La v1 utilise les reprises CLI officielles sur sessions détachées. Une cible attachée même au repos est refusée (`target-busy`, code 3, `retryable: true`) ; ne pas confondre l'état d'une génération avec la possession de la session. Aucun affichage immédiat Desktop promis. Le pilote Codex `--open` est distinct, hors v1 ; B2/B3 restent une recherche séparée.
@@ -778,8 +788,8 @@ Un échec de lancement donne `cli-failure` pour la reprise, et `neutralization-f
 | 6 | `session-not-found` | `not-delivered` |
 | 7 | `command-not-found` : exécutable de la CLI cible introuvable | `not-delivered` |
 | 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory`, `task-not-allowed`, `invalid-pr`, `review-unavailable`, `review-cli-unsupported` | `not-delivered` |
-| 9 | `review-failed` : publication de revue non confirmée | délivrance de la réponse du collègue conservée, distincte de `task.publication` |
-| 130 | `cancelled` (Ctrl+C) ; avec review seulement si aucun POST tenté | `not-delivered` avant lancement, sinon preuve conservée (dont `replied` si le collègue avait répondu avant l'annulation de la publication) |
+| 9 | `review-failed` : publication de revue non confirmée | délivrance de la réponse de l'équipier conservée, distincte de `task.publication` |
+| 130 | `cancelled` (Ctrl+C) ; avec review seulement si aucun POST tenté | `not-delivered` avant lancement, sinon preuve conservée (dont `replied` si l'équipier avait répondu avant l'annulation de la publication) |
 
 Avec review, une interruption après début du POST conserve `replied`/0 si publication confirmée, ou `review-failed`/9 si publication inconnue, et ajoute seulement `task.cancelled: true`. Le code de sortie ne masque jamais une revue publiée ou une publication incertaine.
 

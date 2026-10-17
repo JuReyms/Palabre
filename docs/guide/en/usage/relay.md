@@ -8,9 +8,48 @@ seo:
 
 ## Relay v1: coordination and authorized reviews
 
+To keep scope and results across several calls, also use [Mission v2.0](#mission-v20-the-mission-lead-calls-the-teammate-one-step-at-a-time), below.
+
 One invocation sends one message and returns one reply to the calling agent. The envelope identifies an **agent**, not the user: coordination never grants authority. Replies never trigger another invocation automatically. An attached session may be refused even while idle: `target-busy`, exit 3, `retryable: true`. Retrying is a caller decision; unknown delivery must be investigated before resending.
 
 The CLI reply is the return channel; immediate Desktop display is not promised. Disposable tests with Codex 0.151.0 and Claude Code 2.1.292 confirmed replies, preserved context and the same session identifier. They do not establish safe concurrent writes into an open Desktop conversation. Default Relay requires a detached session. The separate `--open` pilot is outside v1.
+
+## Mission v2.0: the mission lead calls the teammate, one step at a time
+
+Relay is the doorbell; Mission keeps the work log. You talk to your usual mission lead in its app or terminal. It asks simple questions, agrees the objective, success criteria, tasks and budget with you, then calls a teammate **whose conversation stays closed** (terminal, Desktop and IDE). You make decisions; the mission lead reads the replies without asking you to copy and paste them.
+
+This first lot supports read-only analysis and planning (`consult`), plus the existing `review` task. Publishing a review still requires the already trusted Relay policy for the repository. The scope grants **no** permission to edit code, commit, push, merge or release. Code writing belongs to a separate v2.1 lot, which is not available yet. CLI protections and limitations are those of Relay; Mission is not a new sandbox.
+
+The mission lead uses explicitly chosen full UUIDs and the same working directory for every command. PowerShell example (replace UUIDs; do not publish them on GitHub):
+
+```powershell
+$mission = palabre mission start --from "codex:<mission-lead-uuid>" --to "claude-review:<teammate-uuid>" --criteria "Risks and next decisions explained" --tasks "consult,review" --max-steps 4 --max-duration 3600 --timeout 600 "Analyse the migration plan" --json | ConvertFrom-Json
+palabre mission step $mission.mission.id "Read the plan and list the risks" --json
+palabre mission status $mission.mission.id --json
+palabre mission step $mission.mission.id "Review the PR" --task review --pr https://github.com/owner/repository/pull/123 --timeout 1200 --json
+palabre mission stop $mission.mission.id --reason "Analysis complete"
+```
+
+`start` saves the scope without a model call or config approval. For this read-only mission, your answers to the mission lead are enough: no extra keyboard confirmation. The mission lead must never expand its own tasks or review policy.
+
+Each `step` makes **at most one Relay call**, then exits. The mission lead checks the result before forming its next request: no automatic loop and no call back from the teammate. Mission lead switching is not included in this first lot. A busy refusal never triggers a resend: close the teammate's conversation, then decide on another explicit step.
+
+### Budget, monitoring and resuming
+
+| `start` option | Default | Limits |
+| --- | --- | --- |
+| `--tasks` | `consult` | `consult`, `review` or `consult,review` |
+| `--max-steps` | 10 | 1–100 attempts, including refusals |
+| `--max-duration` | 3600 s | 10–86400 s from `start`, including time between steps |
+| `--timeout` | 600 s | 10–3600 s; each `step` can override it, capped by the remaining duration |
+
+These timeouts bound the Relay call; probes and GitHub operations retain their own time bounds. Cancellation does not guarantee they stop immediately. **No monetary cost cap**: calls consume your provider's quota or budget.
+
+`status` and `stop` never call an agent. JSON v1 state and the `.mission.md` export live in `.palabre/missions/<id>/`, independently of `outputDir`. All commands accept `--json` (one `mission-result` v1 object: `action`, `exitCode`, `mission`, `exportPath`, `error`). Each step keeps the message, Relay result, reply, delivery and any GitHub publication. Replies are **not automatically verified**; identifiers, paths and exchanges stay private in these local files. Storage is limited to 32 MiB.
+
+After the mission lead exits normally, resume with `status`, then a new `step` using the same identifier: earlier replies are never replayed. After a crash during a call, `running` without a result or `uncertain` needs verification with the owner; **do not delete the lock to retry**. A certain refusal leaves `paused` and permits another explicit request after reading the diagnostic. Step failures keep Relay's exit code, including 3 for a busy session; Mission refusals use 8 (3 for an already reserved step), and a step without a result uses 9.
+
+`stop` remains available during a step and with an orphaned lock. It forbids further steps and requests best-effort cancellation: an existing message or review cannot be withdrawn. A stopped or exhausted mission needs a new scope decided by the owner and a new mission; no automatic reopening.
 
 ### Human authorization for `review`
 
@@ -53,7 +92,7 @@ palabre relay --from codex:<uuid> --to claude:<uuid> --task review --pr https://
 
 The message is optional with `review`. GitHub CLI (`gh`) must be installed and authenticated. Only explicitly listed GitHub.com repositories are allowed. Unknown tasks, unlisted repositories, ambiguous URLs and `--open` are refused. Without the policy, ordinary read-only notifications remain available, but reviews cannot be published.
 
-Palabre fetches an open PR and its complete diff, labels their contents as untrusted data and asks the read-only colleague for a Markdown review. Oversized PRs are rejected rather than silently truncated. Claude uses `--safe-mode`, Read/Glob/Grep only and no MCP servers.
+Palabre fetches an open PR and its complete diff, labels their contents as untrusted data and asks the read-only teammate for a Markdown review. Oversized PRs are rejected rather than silently truncated. Claude uses `--safe-mode`, Read/Glob/Grep only and no MCP servers.
 
 The Claude `review` task requires **Claude Code 2.1.292 or later** and `--safe-mode` in its help output. Before reading the PR, Palabre probes `--version` and then `--help` on the resolved CLI (configured command, or first PATH match), without a model call. An unsupported or unverifiable CLI produces `invalid-request` with `error.reason: "review-cli-unsupported"` (exit code 8), the detected version and the minimum; no PR is read and no review is published. When multiple versions coexist, use the dedicated agent described under “Multiple Claude CLIs on the same machine”; do not remove `--safe-mode`.
 
@@ -67,9 +106,9 @@ Safe-mode applies only to `review`; ordinary notifications retain their historic
 
 The first Ctrl+C remains handled through the result and export. Before the POST it prevents publishing; after the POST starts, Palabre waits for its bounded outcome rather than claiming to undo it. The reply is retained even in plain text without export, with publication state and URL displayed separately. A definite pre-POST refusal (`not-attempted`) is distinguished from an unknown publishing outcome.
 
-PR head and trusted configuration are rechecked before publishing. Later commits are not covered by a review of an earlier commit. JSON `task` and `.relay.md` include PR, commit, publication state and review URL. Relay's timeout covers the colleague invocation; each GitHub command has its own 60-second limit.
+PR head and trusted configuration are rechecked before publishing. Later commits are not covered by a review of an earlier commit. JSON `task` and `.relay.md` include PR, commit, publication state and review URL. Relay's timeout covers the teammate invocation; each GitHub command has its own 60-second limit.
 
-Publication failure exits **9**, `review-failed`, retaining the colleague reply and its delivery verdict. `publication: unknown` means publishing may have succeeded despite a missing or invalid response: never retry automatically, and inspect GitHub first. Review authorization never permits merging.
+Publication failure exits **9**, `review-failed`, retaining the teammate reply and its delivery verdict. `publication: unknown` means publishing may have succeeded despite a missing or invalid response: never retry automatically, and inspect GitHub first. Review authorization never permits merging.
 
 Mission v2 will add controlled orchestration, roles, budgets and human decisions. Desktop-to-desktop wake-up remains separate, paused research.
 

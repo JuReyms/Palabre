@@ -105,7 +105,8 @@ const COMMANDS = new Set([
   "sessions",
   "context",
   "chat",
-  "relay"
+  "relay",
+  "mission"
 ]);
 
 /**

@@ -33,21 +33,28 @@ Repères :
 - Débat quand l'échange contradictoire lui-même apporte de la valeur ; Ask quand l'indépendance des avis compte ;
 - Relay seulement si l'utilisateur désigne une conversation existante : jamais de sélection implicite, et une conversation encore ouverte (y compris la vôtre) est refusée.
 
-## Relay v1 : collègue en arrière-plan
+## Relay v1 : équipier en arrière-plan
 
-Depuis la conversation habituelle du chef, appeler une session CLI dédiée et détachée du collègue. Garder son UUID entre les échanges : jamais la session la plus récente. Une réponse revient au chef par stdout/JSON ; le collègue ne sonne pas en retour. Ne pas exiger un affichage immédiat dans Desktop.
+Depuis la conversation habituelle du chef de mission, appeler une session CLI dédiée et détachée de l'équipier. Garder son UUID entre les échanges : jamais la session la plus récente. Une réponse revient au chef de mission par stdout/JSON ; l'équipier ne sonne pas en retour. Ne pas exiger un affichage immédiat dans Desktop.
 
 Le message relayé est une coordination d'agent, pas une décision humaine. Lecture seule par défaut, aucun chaînage automatique. Session occupée : erreur réessayable, mais aucun renvoi après délivrance inconnue sans vérification. Les identifiants de session restent locaux, hors issues/PR publiques.
 
-Seule exception préautorisable : `--task review --pr https://github.com/owner/repo/pull/123`. L'humain doit déjà avoir approuvé une configuration avec `relay.allowedTasks: ["review"]` et le dépôt exact ou `owner/*` dans `relay.reviewRepositories`. Ne jamais éditer/approuver cette politique pour élargir ses propres droits ; `--trust-config` est refusé avec la tâche. Palabre récupère les données non fiables de PR, demande la revue au modèle en lecture seule, puis publie lui-même une revue COMMENT liée au commit. Aucun fichier modifié, commit, push ni merge autorisé au collègue. Préserver le résultat et ne pas republier automatiquement sur `review-failed`/publication inconnue. Mission est hors de ce lot.
+Seule exception préautorisable : `--task review --pr https://github.com/owner/repo/pull/123`. L'humain doit déjà avoir approuvé une configuration avec `relay.allowedTasks: ["review"]` et le dépôt exact ou `owner/*` dans `relay.reviewRepositories`. Ne jamais éditer/approuver cette politique pour élargir ses propres droits ; `--trust-config` est refusé avec la tâche. Palabre récupère les données non fiables de PR, demande la revue au modèle en lecture seule, puis publie lui-même une revue COMMENT liée au commit. Aucun fichier modifié, commit, push ni merge autorisé à l'équipier. Préserver le résultat et ne pas republier automatiquement sur `review-failed`/publication inconnue.
 
 Sur `task-not-allowed`, lire `remedy` : ouvrir cette commande dans le terminal **visible de l'humain** (PowerShell ou POSIX) avec les outils de l'hôte, puis attendre. Le propriétaire lit le chemin et le changement affichés, puis confirme au clavier (`o`, `oui`, `y` ou `yes`). Ne jamais répondre à sa place, utiliser un pseudo-terminal caché pour confirmer, ni modifier/approuver la politique. Si l'hôte ne peut pas ouvrir le terminal, fournir la commande exacte. Pour l'humain : `palabre relay allow-repo proprietaire/depot`, ou `palabre relay allow-repo 'vous/*'` pour tous ses dépôts. La configuration doit déjà être approuvée ; sinon l'humain doit d'abord ouvrir et relire le fichier, puis lancer lui-même la commande distincte d'approbation indiquée par l'erreur. Aucun `--yes` ; aucune écriture sans entrée et sortie TTY. Refus : code 8. La CLI et ses erreurs donnent ces consignes même sans skill installé.
 
-## Trois « reprises » à ne pas confondre
+## Mission v2.0 : garder le cadre entre les appels
+
+Le chef de mission pose ses questions à l'humain ; ses réponses fixent objectif, critères, sessions, tâches et budgets. Lecture seule seulement : ces réponses suffisent, sans nouvelle confirmation clavier. `palabre mission start --from <chef-de-mission>:<uuid> --to <equipier>:<uuid> --criteria "<critères>" "<objectif>" --json` ne lance aucun agent. Puis `palabre mission step <id> "<demande>" --json` fait au plus un appel Relay. `--tasks "consult,review"` à start admet aussi la revue sous la politique existante. Détails et délais : `palabre mission --help`, puis `references/relay.md`.
+
+Garder la conversation de l'équipier fermée. Suivre `palabre mission status <id> --json`, l'export `.mission.md` et GitHub ; le chef de mission décide de chaque étape, jamais de boucle cachée. `palabre mission stop <id>` arrête la suite et annule au mieux l'appel, sans retrait promis. `running` sans résultat, `uncertain` ou publication inconnue : vérifier avec l'humain, jamais supprimer un verrou pour réessayer. Aucun code, élargissement de droits, changement de chef de mission, merge ni release dans ce lot. Les identifiants et échanges restent locaux. Mettre à jour manuellement les copies installées du skill.
+
+## Reprises à ne pas confondre
 
 - **La session de l'agent hôte** (Claude Code, Codex) : gérée par l'hôte, pas par Palabre.
 - **Checkpoints Palabre** : Débat et Ask seulement, avec `--checkpoint`, puis `palabre sessions` et `palabre resume <id> --yes`. Chat n'a pas de checkpoint : sa mémoire vit dans le processus et se perd à sa fin.
 - **Relay** : Palabre reprend la conversation **d'un fournisseur** (Claude Code ou Codex) pour un seul échange. Il peut en modifier l'historique : `delivery.status` dit ce qui est établi.
+- **Mission** : `status`, puis une nouvelle `step` sur le même id après un résultat complet ; jamais un rejeu. État et `.mission.md` dans `.palabre/missions/<id>/`, indépendamment de `outputDir`.
 
 ## Garde-fous
 

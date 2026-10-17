@@ -8,6 +8,18 @@ seo:
 
 Cette page liste les commandes principales de Palabre.
 
+## Mission en lecture seule
+
+| Commande | Description |
+| --- | --- |
+| `palabre mission start --from <chef-de-mission>:<uuid> --to <equipier>:<uuid> --criteria "…" "Objectif"` | Conserve le cadre fixé avec l'humain, sans appeler d'agent. |
+| `palabre mission step <id> "Demande" [--timeout <secondes>]` | Au plus un appel à l'équipier fermé, en lecture seule ; tâche `consult` par défaut. |
+| `palabre mission step <id> "Revue" --task review --pr https://github.com/owner/repo/pull/123` | Réutilise la tâche de revue et sa politique Relay déjà approuvée. |
+| `palabre mission status <id> --json` | Relit le cadre et les résultats, sans appel d'agent. |
+| `palabre mission stop <id> --reason "…"` | Arrête définitivement la suite et demande au mieux l'annulation de l'appel. |
+
+Options de start : `--tasks "consult,review"` (`consult` par défaut), `--max-steps` (1–100, défaut 10), `--max-duration` (10–86400 secondes, défaut 3600), `--timeout` (10–3600 secondes, défaut 600), `--config`, `--language fr|en`. `step` peut surcharger le délai ; `--json` est disponible partout. Cadre et export `.mission.md` sous `.palabre/missions/<id>/` ; aucun renvoi automatique après coupure ou délivrance inconnue. Voir [Mission et Relay](/fr/usage/relay).
+
 ## Commandes de démarrage
 
 | Commande | Description |

@@ -8,9 +8,48 @@ seo:
 
 ## Relay v1 : coordination et revue autorisée
 
-Relay sert à consulter un collègue depuis la conversation habituelle de l'agent appelant : un appel, un message, une réponse. L'enveloppe identifie un **agent**, pas l'utilisateur, et précise qu'un message de coordination n'autorise aucune action. Une réponse ne provoque jamais de nouvel appel automatique. Une session encore attachée peut être refusée même sans génération : `target-busy`, code 3 et `retryable: true`. L'appelant décide de réessayer plus tard ; après une délivrance inconnue, il vérifie avant tout renvoi.
+Pour organiser plusieurs appels sans perdre le cadre ni les résultats, utilisez aussi [Mission v2.0](#mission-v20--le-chef-de-mission-appelle-léquipier-une-étape-à-la-fois), ci-dessous.
+
+Relay sert à consulter un équipier depuis la conversation habituelle de l'agent appelant : un appel, un message, une réponse. L'enveloppe identifie un **agent**, pas l'utilisateur, et précise qu'un message de coordination n'autorise aucune action. Une réponse ne provoque jamais de nouvel appel automatique. Une session encore attachée peut être refusée même sans génération : `target-busy`, code 3 et `retryable: true`. L'appelant décide de réessayer plus tard ; après une délivrance inconnue, il vérifie avant tout renvoi.
 
 La réponse CLI, et non son affichage Desktop, est le canal de retour. Les essais jetables Codex 0.151.0 et Claude Code 2.1.292 ont confirmé réponse, même identifiant et contexte conservé. Ils ne démontrent pas l'affichage immédiat dans Desktop, ni une écriture concurrente sûre dans une conversation Desktop ouverte. Le mode par défaut exige une session détachée. `--open` reste un pilote distinct, hors de cette v1.
+
+## Mission v2.0 : le chef de mission appelle l'équipier, une étape à la fois
+
+Relay est la sonnette ; Mission garde le carnet de travail. Vous discutez avec votre chef de mission habituel, dans son application ou son terminal. Il vous pose ses questions en langage simple, fixe avec vous l'objectif, les critères de réussite, les tâches et le budget, puis appelle un équipier **dont la conversation reste fermée** (terminal, Desktop et IDE). Vous prenez les décisions ; le chef de mission lit les réponses sans vous demander de les copier-coller.
+
+Ce premier lot permet des analyses et des plans (`consult`) en lecture seule, ainsi que la tâche `review` existante. Une revue publiée exige toujours la politique Relay déjà approuvée pour le dépôt. Le cadre n'autorise **aucun** changement de code, commit, push, merge ou publication de version. L'écriture de code appartient à un lot v2.1 distinct, pas encore disponible. Les protections et limites des CLI restent celles de Relay ; Mission n'est pas un nouveau bac à sable.
+
+Le chef de mission utilise des UUID complets, explicitement désignés, et garde le même dossier courant pour toutes les commandes. Exemple PowerShell (remplacez les UUID, sans les publier sur GitHub) :
+
+```powershell
+$mission = palabre mission start --from "codex:<uuid-chef-de-mission>" --to "claude-review:<uuid-equipier>" --criteria "Risques et prochaines décisions expliqués" --tasks "consult,review" --max-steps 4 --max-duration 3600 --timeout 600 "Analyser le plan de migration" --json | ConvertFrom-Json
+palabre mission step $mission.mission.id "Relis le plan et liste les risques" --json
+palabre mission status $mission.mission.id --json
+palabre mission step $mission.mission.id "Relis la PR" --task review --pr https://github.com/proprietaire/depot/pull/123 --timeout 1200 --json
+palabre mission stop $mission.mission.id --reason "Analyse terminée"
+```
+
+`start` conserve le cadre sans appel de modèle ni approbation de configuration. Pour cette mission en lecture seule, vos réponses au chef de mission suffisent : pas de confirmation clavier supplémentaire. Il ne peut jamais élargir lui-même les tâches ou la politique de revue.
+
+Chaque `step` fait **au plus un appel Relay**, puis termine. Le chef de mission vérifie le résultat avant de formuler la prochaine demande : aucune boucle automatique et aucun appel en retour de l'équipier. L'inversion des rôles n'est pas incluse dans ce premier lot. Un refus d'occupation ne déclenche pas de nouvel envoi : fermer la conversation de l'équipier, puis décider d'une nouvelle étape explicite.
+
+### Budget, suivi et reprise
+
+| Option de `start` | Défaut | Limites |
+| --- | --- | --- |
+| `--tasks` | `consult` | `consult`, `review` ou `consult,review` |
+| `--max-steps` | 10 | 1 à 100 tentatives, refus compris |
+| `--max-duration` | 3600 s | 10 à 86400 s depuis `start`, temps entre étapes compris |
+| `--timeout` | 600 s | 10 à 3600 s ; surcharge possible sur chaque `step`, limitée par la durée restante |
+
+Ces délais bornent l'appel Relay ; les sondes et opérations GitHub gardent leurs propres bornes. Une annulation ne garantit pas leur interruption immédiate. **Aucun plafond monétaire** : les appels consomment le quota ou le budget de votre fournisseur.
+
+`status` et `stop` n'appellent aucun agent. L'état JSON v1 et l'export `.mission.md` vivent dans `.palabre/missions/<id>/`, indépendamment de `outputDir`. Toutes les commandes acceptent `--json` (un objet `mission-result` v1 : `action`, `exitCode`, `mission`, `exportPath`, `error`). Chaque étape garde le message, le résultat Relay, la réponse, la délivrance et l'éventuelle publication GitHub. Ces réponses ne sont **pas automatiquement vérifiées** ; identifiants, chemins et échanges restent privés dans ces fichiers locaux. Le stockage est limité à 32 Mio.
+
+Après une fermeture normale du chef de mission, reprendre avec `status`, puis une nouvelle `step` sur le même identifiant : les réponses précédentes ne sont pas rejouées. Après une coupure pendant l'appel, `running` sans résultat ou `uncertain` demande une vérification avec le propriétaire ; **ne pas supprimer le verrou pour relancer**. Un refus certain laisse `paused` et permet une nouvelle demande explicite après lecture du diagnostic. Les erreurs d'étape gardent le code Relay, dont 3 pour une session occupée ; les refus de Mission donnent 8 (3 pour une étape déjà réservée), et une étape sans résultat donne 9.
+
+`stop` reste accessible pendant une étape et après un verrou orphelin. Il interdit toute nouvelle étape et demande au mieux l'annulation de l'appel en cours : un message ou une revue déjà partis ne sont pas retirés. Une mission arrêtée ou au budget épuisé nécessite un nouveau cadre décidé par le propriétaire et une nouvelle mission ; pas de réouverture automatique.
 
 ### Préautoriser la seule tâche `review`
 
@@ -53,7 +92,7 @@ palabre relay --from codex:<uuid> --to claude:<uuid> --task review --pr https://
 
 Le message est facultatif avec `review`. GitHub CLI (`gh`) doit être installé et connecté pour lire la PR et publier. Seuls les dépôts GitHub.com explicitement listés sont acceptés ; une tâche inconnue, un dépôt absent, une URL ambiguë ou `--open` est refusé. Sans politique, les notifications et consultations en lecture seule restent disponibles, mais aucune revue n'est publiée.
 
-Palabre récupère la description et le diff complet d'une PR ouverte, les marque comme données non fiables et les transmet au collègue en lecture seule. Une PR trop grande est refusée, jamais relue silencieusement sur un diff tronqué. Claude est lancé avec `--safe-mode`, les seuls outils Read/Glob/Grep et aucun MCP.
+Palabre récupère la description et le diff complet d'une PR ouverte, les marque comme données non fiables et les transmet à l'équipier en lecture seule. Une PR trop grande est refusée, jamais relue silencieusement sur un diff tronqué. Claude est lancé avec `--safe-mode`, les seuls outils Read/Glob/Grep et aucun MCP.
 
 La tâche `review` avec Claude exige **Claude Code 2.1.292 au minimum** et la présence de `--safe-mode` dans son aide. Avant toute lecture de la PR, Palabre sonde `--version` puis `--help` sur la CLI effectivement résolue (commande configurée, ou premier résultat du PATH), sans appel de modèle. Une CLI incompatible ou non vérifiable produit `invalid-request` avec `error.reason: "review-cli-unsupported"` (code 8), la version trouvée et le minimum ; aucune PR n'est lue ni revue publiée. Si plusieurs versions coexistent, utilise l'agent dédié décrit dans « Plusieurs CLI Claude sur la même machine » ; ne retire pas `--safe-mode`.
 
@@ -67,9 +106,9 @@ Safe-mode ne s'applique qu'à `review` : les notifications et consultations ordi
 
 Un premier Ctrl+C reste pris en charge jusqu'au résultat et à l'export : avant le POST, il empêche la publication ; si le POST est déjà parti, Palabre attend son issue bornée plutôt que de prétendre l'annuler. La réponse est conservée aussi en sortie texte sans export ; état et URL de publication sont affichés séparément. Un refus certain avant POST (`not-attempted`) est distingué d'un retour de publication inconnu.
 
-Avant publication, la tête de PR et la configuration approuvée sont revérifiées. La publication ne vise qu'un commit explicitement indiqué ; une modification ultérieure de la PR ne transforme pas la revue en validation de nouveaux changements. Le résultat JSON expose `task` avec PR, commit, état de publication et URL ; l'export `.relay.md` reprend ces éléments. Le timeout de Relay borne l'appel au collègue ; les commandes GitHub ont chacune leur propre limite de 60 s.
+Avant publication, la tête de PR et la configuration approuvée sont revérifiées. La publication ne vise qu'un commit explicitement indiqué ; une modification ultérieure de la PR ne transforme pas la revue en validation de nouveaux changements. Le résultat JSON expose `task` avec PR, commit, état de publication et URL ; l'export `.relay.md` reprend ces éléments. Le timeout de Relay borne l'appel à l'équipier ; les commandes GitHub ont chacune leur propre limite de 60 s.
 
-Un échec de publication sort en code **9**, `review-failed`, et conserve la réponse du collègue ainsi que sa délivrance. `publication: unknown` signifie qu'une revue peut avoir été publiée malgré une erreur de retour : **aucun nouvel essai automatique**. Vérifier GitHub avant de redemander. L'autorisation de revue n'est jamais une autorisation de merge.
+Un échec de publication sort en code **9**, `review-failed`, et conserve la réponse de l'équipier ainsi que sa délivrance. `publication: unknown` signifie qu'une revue peut avoir été publiée malgré une erreur de retour : **aucun nouvel essai automatique**. Vérifier GitHub avant de redemander. L'autorisation de revue n'est jamais une autorisation de merge.
 
 Mission v2 ajoutera l'orchestration des échanges, rôles, budgets et décisions humaines. Le réveil desktop-vers-desktop reste une recherche distincte en pause.
 
