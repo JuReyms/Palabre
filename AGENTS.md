@@ -14,6 +14,17 @@ Toute evolution produit doit appartenir a l'une de ces intentions, sans creer de
 - decider : synthese, suivi, plan ou revue de plan ;
 - agir : operation explicitement confirmee, comme une mutation de config ou l'execution deleguee a une CLI.
 
+## Écrire pour tous
+
+Palabre est open source et utilisé par des personnes de tous niveaux techniques, et par des agents. Tout ce qui est visible (aide, erreurs, sorties, documentation, skill, issues, descriptions de PR) doit être clair, simple et précis.
+
+- Une erreur dit ce qui s'est passé, pourquoi, et la prochaine étape exacte : qui agit, avec quelle commande à copier-coller.
+- Préférer une commande avec confirmation à une modification manuelle de fichier (JSON, registre).
+- L'aide de la CLI et les messages d'erreur doivent suffire, même sans skill installé.
+- Pour les agents : consignes explicites, ce qu'ils doivent faire et ce qu'ils ne doivent jamais faire (par exemple : ne jamais modifier eux-mêmes une politique qui leur accorde des droits).
+- Pour les humains : pas de jargon inutile, et des images simples quand elles aident (par exemple relay = « appeler un collègue absent »). Le détail technique va dans AGENTS.md.
+- Toute évolution de comportement met à jour, dans la même PR : l'aide CLI, le guide fr et en, et le skill `skills/palabre`. Une copie installée du skill n'est pas mise à jour automatiquement : le dire dans les notes de version.
+
 ## Frontiere CLI / integrations
 
 Palabre CLI est la source de verite produit. Toute fonctionnalite qui doit produire le meme resultat hors VS Code appartient au CLI avant d'etre exposee par une integration.
@@ -539,7 +550,13 @@ et la version du client quand elle est fournie.
 
 `palabre relay` est un service discret, sans écran dédié. Une requête d'agent est marquée comme coordination non authentifiée, jamais comme autorisation humaine ; aucun chaînage automatique. La v1 utilise les reprises CLI officielles sur sessions détachées. Une cible attachée même au repos est refusée (`target-busy`, code 3, `retryable: true`) ; ne pas confondre l'état d'une génération avec la possession de la session. Aucun affichage immédiat Desktop promis. Le pilote Codex `--open` est distinct, hors v1 ; B2/B3 restent une recherche séparée.
 
-La seule tâche est `--task review --pr https://github.com/owner/repo/pull/123`. La configuration déjà approuvée doit contenir `relay.allowedTasks: ["review"]` et le dépôt exact dans `relay.reviewRepositories`. Une tâche inconnue ou hors liste est refusée avant les appels GitHub/modèle ; `--trust-config` et `--open` sont refusés avec cette tâche. Un agent ne peut pas transformer le message relayé en extension de sa politique.
+La seule tâche est `--task review --pr https://github.com/owner/repo/pull/123`. La configuration déjà approuvée doit contenir `relay.allowedTasks: ["review"]` et le dépôt exact ou le motif explicite `owner/*` dans `relay.reviewRepositories`. Une tâche inconnue ou hors liste est refusée avant les appels GitHub/modèle ; `--trust-config` et `--open` sont refusés avec cette tâche. Un agent ne peut pas transformer le message relayé en extension de sa politique.
+
+`palabre relay allow-repo owner/repository` (ou `'owner/*'`) résout le même fichier de configuration, affiche le chemin et le changement, exige entrée et sortie TTY, puis une confirmation clavier. Aucun --yes ni --trust-config accepté. L'objet JSON d'origine est utilisé sans migration des autres champs ; seules les valeurs de la politique relay changent (la mise en forme JSON peut changer). Les entrées sont normalisées sans doublon, puis l'écriture atomique et trustConfig sont réutilisés. L'approbation concerne le fichier entier, ce que le terminal précise. Une dérive pendant la question refuse sans écraser le nouvel état. TTY est une règle UX opérateur, pas une authentification humaine contre un agent disposant déjà d'un terminal et des droits sur le profil.
+
+Le refus task-not-allowed (code 8 inchangé) ajoute `remedy`, une commande copiable liée au même chemin --config, et les consignes dans l'erreur. L'agent ouvre cette commande dans le terminal visible du propriétaire avec les outils de son hôte, puis attend : il ne confirme jamais, n'édite ni n'approuve cette politique. Sans outil de présentation du terminal, il fournit la commande exacte. L'ouverture de fenêtre appartient à l'hôte ; aucun lanceur GUI spécifique ajouté au CLI. Les copies installées du skill nécessitent une mise à jour manuelle, signalée dans le changelog.
+
+allow-repo exige une configuration déjà approuvée ; sinon refus avant la question, avec une commande distincte `palabre config --config <fichier> --trust-config` que seul le propriétaire lance après avoir ouvert et relu le fichier. Cette approbation explicite couvre désormais aussi le fichier global. trustConfig accepte une empreinte attendue optionnelle, utilisée par allow-repo pour ne jamais approuver une écriture étrangère survenue entre écriture et approbation. Le refus de confirmation sort en code 8. Le terminal montre le chemin, pas le contenu du fichier ; les commandes copiables ciblent PowerShell ou les shells POSIX.
 
 `src/externalSessions/review.ts` lit la PR et le diff entier avec GitHub CLI, traite ces contenus comme données non fiables, et prépare une revue en lecture seule. Palabre publie ensuite une revue COMMENT sur la PR et le commit précis ; le modèle ne dispose d'aucune capacité générale supplémentaire d'écriture. Configuration/empreinte et tête de PR revérifiées avant publication. Aucun commit, push, merge ou renvoi automatique. Les identifiants de session/nonce ne sont pas publiés. Les champs optionnels JSON/export `task` consignent cible, commit, publication et URL. Une publication non confirmée donne `review-failed`, code 9, avec réponse et délivrance de l'agent conservées ; jamais de nouveau POST automatique.
 
