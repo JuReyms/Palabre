@@ -5,6 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { chmodSync, closeSync, constants, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -127,6 +128,17 @@ const toCodex = ["--from", `claude:${CLAUDE_SESSION}`, "--to", `codex:${CODEX_SE
 
 describe("palabre relay : tâche revue", () => {
   const pr = "https://github.com/JuReyms/Palabre/pull/123";
+  test("approbation explicite d'une configuration globale : config --trust-config couvre le fichier demandé", async () => {
+    const w = makeWorld(); const globalFile = path.join(w.home, ".palabre", "palabre.config.json");
+    mkdirSync(path.dirname(globalFile), { recursive: true });
+    writeFileSync(globalFile, readFileSync(path.join(w.workspace, "palabre.config.json"), "utf8"));
+    const r = await palabre(w, ["config", "--config", globalFile, "--trust-config", "--json"]);
+    assert.equal(r.code, 0, r.stderr);
+    const store = JSON.parse(readFileSync(path.join(w.home, ".palabre", "trusted-configs.json"), "utf8"));
+    const key = Object.keys(store.configs).find(file => file.toLowerCase() === globalFile.toLowerCase());
+    assert.ok(key);
+    assert.equal(store.configs[key].sha256, createHash("sha256").update(readFileSync(globalFile)).digest("hex"));
+  });
   test("CLI sans --safe-mode : refus avant lecture GitHub et reprise, avec chemin et versions", async () => {
     for (const version of ["2.1.85", "2.1.292"]) {
       const w = makeWorld(); const p = path.join(w.workspace, "palabre.config.json");

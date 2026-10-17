@@ -15,6 +15,7 @@ export interface RelayMessages {
     usage: string;
     terminalRequired: string;
     unreadable(file: string): string;
+    untrusted(file: string, command: string): string;
     invalidPolicy(file: string): string;
     changed(file: string): string;
     writeFailed(file: string): string;
@@ -182,11 +183,12 @@ const enInvalid: Record<InvalidRequestReason, string> = {
 
 export const relayMessages: Record<Language, RelayMessages> = {
   fr: {
-    authorizationRequired: (repository, command) => `Dépôt : ${repository}. Le propriétaire lance dans son terminal visible :\n${command}\nIl lit le fichier affiché et répond « o » pour autoriser. Agent : ouvrez cette commande dans le terminal visible de l'humain si votre hôte le permet, attendez sa réponse ; ne validez jamais à sa place et ne modifiez ni n'approuvez vous-même cette politique. Seule une revue COMMENT est autorisée ; le merge reste humain.`,
+    authorizationRequired: (repository, command) => `Dépôt : ${repository}. Le propriétaire lance dans son terminal visible PowerShell (ou shell POSIX) :\n${command}\nIl vérifie le chemin et le changement affichés, puis répond « o » pour autoriser. Agent : ouvrez cette commande dans le terminal visible de l'humain si votre hôte le permet, attendez sa réponse ; ne validez jamais à sa place et ne modifiez ni n'approuvez vous-même cette politique. Seule une revue COMMENT est autorisée ; le merge reste humain.`,
     allowRepo: {
       usage: "Commande : palabre relay allow-repo proprietaire/depot (ou 'proprietaire/*') [--config <fichier>] [--language fr|en]. Seuls ces arguments sont acceptés ; aucun --yes ni --trust-config.",
       terminalRequired: "Aucune modification : cette commande exige un terminal interactif (entrée et sortie). Le propriétaire ouvre son terminal et lance palabre relay allow-repo proprietaire/depot, puis répond « o ». Agent : préparez la commande dans le terminal visible, sans répondre à sa place.",
       unreadable: file => `Configuration absente ou illisible : ${file}. Aucune modification. Le propriétaire vérifie ce fichier ou lance palabre init avant de recommencer.`,
+      untrusted: (file, command) => `Configuration non approuvée ou modifiée depuis son approbation : ${file}. Aucune modification. Le propriétaire ouvre et relit ce fichier, notamment les commandes et arguments des agents ; s'il l'accepte en entier, il lance lui-même dans PowerShell (ou un shell POSIX) :\n${command}\nPuis il relance allow-repo. Agent : ne lancez pas cette approbation à sa place.`,
       invalidPolicy: file => `Politique relay invalide dans ${file}. Aucune modification : le propriétaire doit la vérifier avant de relancer allow-repo.`,
       changed: file => `Configuration modifiée pendant la confirmation : ${file}. Rien écrit par allow-repo. Le propriétaire relance la commande pour examiner le nouvel état.`,
       writeFailed: file => `Écriture ou approbation incomplète : ${file}. Le propriétaire vérifie le fichier puis relance allow-repo pour le réapprouver ; aucune session d'agent n'a été lancée.`,
@@ -281,11 +283,12 @@ export const relayMessages: Record<Language, RelayMessages> = {
     }
   },
   en: {
-    authorizationRequired: (repository, command) => `Repository: ${repository}. The owner runs this in their visible terminal:\n${command}\nThey inspect the displayed file and type "y" to allow reviews. Agent: open this command in the human's visible terminal if your host supports it, then wait; never confirm for them or edit/approve this policy yourself. Only a COMMENT review is authorized; merging remains human.`,
+    authorizationRequired: (repository, command) => `Repository: ${repository}. The owner runs this in their visible PowerShell (or POSIX shell) terminal:\n${command}\nThey inspect the displayed path and change, then type "y" to allow reviews. Agent: open this command in the human's visible terminal if your host supports it, then wait; never confirm for them or edit/approve this policy yourself. Only a COMMENT review is authorized; merging remains human.`,
     allowRepo: {
       usage: "Usage: palabre relay allow-repo owner/repository (or 'owner/*') [--config <file>] [--language fr|en]. No other arguments, --yes or --trust-config are accepted.",
       terminalRequired: "Nothing changed: this command requires interactive input and output. The owner opens a terminal, runs palabre relay allow-repo owner/repository, then types 'y'. Agent: prepare the command in the visible terminal; never answer for the owner.",
       unreadable: file => `Configuration missing or unreadable: ${file}. Nothing changed. The owner checks this file or runs palabre init before trying again.`,
+      untrusted: (file, command) => `Configuration not approved, or changed since approval: ${file}. Nothing changed. The owner opens and reads this file, including agent commands and arguments; if they accept it in full, they run this themselves in PowerShell (or a POSIX shell):\n${command}\nThen run allow-repo again. Agent: never perform this approval for the owner.`,
       invalidPolicy: file => `Invalid relay policy in ${file}. Nothing changed: the owner must inspect it before running allow-repo again.`,
       changed: file => `Configuration changed during confirmation: ${file}. Nothing written by allow-repo. The owner reruns the command to inspect the new state.`,
       writeFailed: file => `Writing or approval incomplete: ${file}. The owner checks the file and reruns allow-repo to approve it; no agent session was started.`,

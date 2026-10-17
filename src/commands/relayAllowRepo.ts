@@ -1,11 +1,12 @@
 /** Human-facing authorization command; reuses the config trust store and atomic writer. */
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { sanitizeTerminalText } from "../adapters/terminal.js";
 import { resolveDefaultConfigPath } from "../config.js";
-import { trustConfig } from "../configTrust.js";
+import { isConfigTrusted, trustConfig } from "../configTrust.js";
 import { normalizeReviewRepository, validateRelayPolicy } from "../externalSessions/review.js";
 import { createTranslator, resolveLanguage } from "../i18n.js";
 import { writeTextFileAtomically } from "../atomicFile.js";
@@ -15,7 +16,8 @@ export interface AllowRepoIo {
   interactive: boolean;
   print(text: string): void;
   confirm(prompt: string): Promise<boolean>;
-  trust(file: string): Promise<void>;
+  isTrusted(file: string): Promise<boolean>;
+  trust(file: string, sha256: string): Promise<void>;
 }
 
 const terminal: AllowRepoIo = {
@@ -26,14 +28,18 @@ const terminal: AllowRepoIo = {
     try { return ["o", "oui", "y", "yes"].includes((await prompt.question(sanitizeTerminalText(text))).trim().toLowerCase()); }
     finally { prompt.close(); }
   },
-  trust: trustConfig
+  isTrusted: isConfigTrusted,
+  trust: (file, sha256) => trustConfig(file, undefined, sha256)
 };
 
 /** Copyable command targeting the same configuration, including when the human changes directory. */
-export function reviewAuthorizationCommand(repository: string, configPath: string): string {
+function configArgument(configPath: string): string {
   const file = path.resolve(configPath);
   const quoted = process.platform === "win32" ? `'${file.replaceAll("'", "''")}'` : `'${file.replaceAll("'", "'\\''")}'`;
-  return `palabre relay allow-repo ${repository} --config ${quoted}`;
+  return `--config ${quoted}`;
+}
+export function reviewAuthorizationCommand(repository: string, configPath: string): string {
+  return `palabre relay allow-repo ${repository} ${configArgument(configPath)}`;
 }
 
 export async function runRelayAllowRepo(tokens: readonly string[], io: AllowRepoIo = terminal): Promise<void> {
@@ -61,18 +67,20 @@ export async function runRelayAllowRepo(tokens: readonly string[], io: AllowRepo
   } catch { throw new Error(messages.relay.allowRepo.unreadable(file)); }
   messages = createTranslator(resolveLanguage({ explicitLanguage: flags["--language"], configLanguage: config.language as string | undefined }));
   const text = messages.relay.allowRepo;
+  if (!(await io.isTrusted(file))) throw new Error(text.untrusted(file, `palabre config ${configArgument(file)} --trust-config`));
   let policy;
   try { policy = config.relay === undefined ? { allowedTasks: [] as "review"[], reviewRepositories: [] as string[] } : validateRelayPolicy(config.relay); }
   catch { throw new Error(text.invalidPolicy(file)); }
   io.print(text.plan(repository, file));
   if (repository.endsWith("/*")) io.print(text.ownerWarning(repository.slice(0, -2)));
   io.print(text.trustNotice);
-  if (!(await io.confirm(text.confirm))) { io.print(text.declined); return; }
+  if (!(await io.confirm(text.confirm))) throw new Error(text.declined);
   if (await readFile(file, "utf8") !== original) throw new Error(text.changed(file));
   config.relay = { allowedTasks: ["review"], reviewRepositories: [...new Set([...policy.reviewRepositories, repository])] };
+  const updated = `${JSON.stringify(config, null, 2)}\n`;
   try {
-    await writeTextFileAtomically(file, `${JSON.stringify(config, null, 2)}\n`);
-    await io.trust(file);
+    await writeTextFileAtomically(file, updated);
+    await io.trust(file, createHash("sha256").update(updated).digest("hex"));
   } catch { throw new Error(text.writeFailed(file)); }
   io.print(text.allowed(repository));
 }

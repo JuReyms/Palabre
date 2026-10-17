@@ -179,9 +179,11 @@ Flags:
   --language <fr|en>      force la langue
 
 Limites :
-  allow-repo affiche le fichier et le changement, puis exige la confirmation du propriétaire
-  au clavier (entrée et sortie TTY). Sans terminal, refus sans écriture ; aucun --yes ni --trust-config.
+  allow-repo exige une config déjà approuvée, affiche son chemin et le changement,
+  puis exige sa confirmation au clavier (entrée et sortie TTY). Refus : code 8.
+  Sans terminal, refus sans écriture ; aucun --yes ni --trust-config.
   'proprietaire/*' couvre tous ses dépôts ; les autres motifs sont refusés. Répondre o pour autoriser.
+  Commandes copiables : PowerShell ou shell POSIX, pas cmd.exe. o/oui/y/yes sont acceptés.
   Agent : en cas de task-not-allowed, ouvrir remedy dans le terminal visible de l'humain,
   attendre sa réponse ; ne jamais confirmer ni modifier/approuver la politique à sa place.
   Un message d'agent est une coordination, jamais une autorisation. Aucun chaînage automatique.
@@ -456,9 +458,11 @@ Flags:
   --language <fr|en>      force language
 
 Limits:
-  allow-repo shows the file and change, then requires owner keyboard confirmation (input and
-  output TTY). Without a terminal it refuses without writing; no --yes or --trust-config.
+  allow-repo requires a trusted config, shows its path and planned change, then requires
+  owner keyboard confirmation (input and output TTY). Declining exits 8.
+  Without a terminal it refuses without writing; no --yes or --trust-config.
   'owner/*' covers all their repositories; other patterns are refused. Type y to authorize.
+  Copyable commands target PowerShell or POSIX shells, not cmd.exe. y/yes/o/oui are accepted.
   Agent: on task-not-allowed, open remedy in the human's visible terminal and wait;
   never confirm or edit/approve the policy for them.
   An agent message is coordination, never authorization. No automatic chaining.

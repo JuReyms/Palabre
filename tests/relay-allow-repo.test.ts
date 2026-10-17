@@ -16,10 +16,12 @@ async function world(policy?: unknown) {
     defaults: { turns: 3 }, custom: { preserve: [1, "two"] }, ...(policy === undefined ? {} : { relay: policy }) };
   const before = JSON.stringify(config);
   await writeFile(file, before);
+  await trustConfig(file, trust);
   const lines: string[] = [];
   let confirmations = 0;
   const io: AllowRepoIo = { interactive: true, print: line => lines.push(line),
-    confirm: async () => { confirmations++; return true; }, trust: file => trustConfig(file, trust) };
+    confirm: async () => { confirmations++; return true; }, isTrusted: file => isConfigTrusted(file, trust),
+    trust: (file, sha256) => trustConfig(file, trust, sha256) };
   return { file, trust, before, config, lines, io, confirmations: () => confirmations };
 }
 
@@ -36,8 +38,10 @@ test("refus ou confirmation interrompue : aucun octet ni confiance modifié", as
   for (const interrupt of [false, true]) {
     const w = await world(); w.io.confirm = async () => { if (interrupt) throw Error("closed"); return false; };
     const run = () => runRelayAllowRepo(["owner/repo", "--config", w.file], w.io);
-    if (interrupt) await assert.rejects(run(), /closed/); else await run();
-    assert.equal(await readFile(w.file, "utf8"), w.before); assert.equal(await isConfigTrusted(w.file, w.trust), false);
+    const trustBefore = await readFile(w.trust, "utf8");
+    await assert.rejects(run(), interrupt ? /closed/ : /refusée/);
+    assert.equal(await readFile(w.file, "utf8"), w.before); assert.equal(await isConfigTrusted(w.file, w.trust), true);
+    assert.equal(await readFile(w.trust, "utf8"), trustBefore);
   }
 });
 
@@ -74,6 +78,24 @@ test("configuration changée pendant la question : rien écrasé ni approuvé", 
   assert.equal(await readFile(w.file, "utf8"), foreign); assert.equal(await isConfigTrusted(w.file, w.trust), false);
 });
 
+test("configuration altérée avant la commande : aucune question, instruction séparée d'approbation", async () => {
+  const w = await world(); const altered = JSON.stringify({ ...w.config, agents: { arbitrary: { command: "changed" } } });
+  await writeFile(w.file, altered); const store = await readFile(w.trust, "utf8");
+  await assert.rejects(runRelayAllowRepo(["owner/repo", "--config", w.file], w.io), error => {
+    assert.match(String(error), /Configuration non approuvée/); assert.match(String(error), /palabre config .*--trust-config/);
+    return true;
+  });
+  assert.equal(w.confirmations(), 0); assert.equal(await readFile(w.file, "utf8"), altered);
+  assert.equal(await readFile(w.trust, "utf8"), store); assert.equal(await isConfigTrusted(w.file, w.trust), false);
+});
+
+test("écriture étrangère juste avant l'approbation : jamais approuvée", async () => {
+  const w = await world();
+  w.io.trust = async (file, sha256) => { await writeFile(file, JSON.stringify({ ...w.config, foreign: true })); await trustConfig(file, w.trust, sha256); };
+  await assert.rejects(runRelayAllowRepo(["owner/repo", "--config", w.file], w.io), /incomplète/);
+  assert.equal(await isConfigTrusted(w.file, w.trust), false);
+});
+
 test("JSON ou politique invalide : refus sans question ni remplacement silencieux", async () => {
   for (const body of ["{", "null", "[]", JSON.stringify({ agents: {}, relay: { allowedTasks: ["code"], reviewRepositories: ["owner/repo"] } })]) {
     const w = await world(); await writeFile(w.file, body);
@@ -84,6 +106,7 @@ test("JSON ou politique invalide : refus sans question ni remplacement silencieu
 
 test("langue de configuration et échec d'approbation explicitent l'état", async () => {
   const w = await world(); await writeFile(w.file, JSON.stringify({ ...w.config, language: "en" }));
+  await trustConfig(w.file, w.trust);
   w.io.trust = async () => { throw Error("EACCES"); };
   await assert.rejects(runRelayAllowRepo(["owner/repo", "--config", w.file], w.io), /Writing or approval incomplete/);
   assert.ok(w.lines.some(line => line.includes("Planned change")));
