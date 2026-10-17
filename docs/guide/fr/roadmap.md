@@ -37,37 +37,11 @@ PALABRE propose quatre modes : **Débat**, **Relay**, **Ask** et **Chat**, avec 
 
 ## Prochaines améliorations
 
-### Diagnostic plus utile
-
-`palabre doctor` est le premier réflexe quand quelque chose ne fonctionne pas. Il affiche un diagnostic lisible par sections et garde `--terminal` pour les logs. Les prochaines améliorations continueront à rendre ses messages plus actionnables pour les problèmes courants : agent introuvable, configuration incomplète, modèle Ollama manquant, PATH incorrect ou quota atteint côté provider.
-
-### Intégrations plus robustes
-
-Palabre expose déjà des contrats JSON pour les presets, le scan de contexte et le rendu NDJSON des débats. Les prochaines améliorations viseront à garder ces contrats stables, mieux documentés et plus faciles à consommer par l'extension VS Code ou d'autres intégrations.
-
-### Configuration plus simple
-
-La commande `palabre config`, la vue TUI `/config`, la configuration de premier lancement et la synchronisation des agents connus couvrent déjà les réglages courants : agents par défaut, rôles, nombre de tours, agent de synthèse, mode par défaut, interface par défaut et rafraîchissement des agents détectés. Les prochaines améliorations viseront surtout des messages plus clairs, de meilleures validations et des wizards plus complets pour les choix qui méritent de la découverte.
-
-
-### Conversation après le débat
-
-Après la synthèse finale d'un débat ou d'un Ask, `/chat` permet maintenant de poursuivre avec un agent actif. Le contexte transmis indique sa provenance et reprend le sujet avec la synthèse finale, ou les six échanges récents lorsqu'aucune synthèse n'existe. La conversation reste stateless et bornée ; les sessions Chat persistantes et le streaming restent des évolutions distinctes.
-
-### Tests et stabilité
-
-Les tests reproductibles couvrent déjà l'adapter CLI, le renderer NDJSON, la disponibilité des presets et la résolution du dossier d'export. La suite consiste à élargir progressivement cette couverture aux autres comportements sensibles, sans appeler de vrais services IA pendant les tests automatisés.
-
-## Ensuite
-
-Ces sujets sont envisagés après stabilisation du CLI :
-
-- reprise d'un débat depuis un export Markdown existant, distincte de `palabre resume` qui reprend un checkpoint Palabre ;
-- provider compatible OpenAI local pour LM Studio, LocalAI, vLLM ou équivalent ;
-- maintenance continue de la documentation française et anglaise ;
-- interface CLI multilingue français/anglais à continuer d'affiner, avec un futur choix interactif de langue dans les flows de premier lancement ou de configuration ;
-- TUI plus avancée avec scrolling, panneaux persistants, pause et reprise ;
-- affichage fiable des modèles quand Palabre pourra les connaître sans bruit inutile.
+1. **Relay vers OpenCode, en CLI et en Desktop** : un autre point de vue avec des modèles gratuits ou locaux ([#136](https://github.com/JuReyms/Palabre/issues/136)).
+2. **Quotas** : afficher le quota restant de chaque agent et proposer des choix à l'humain ([#41](https://github.com/JuReyms/Palabre/issues/41)).
+3. **Relay vers une conversation Claude Code ouverte** ([#96](https://github.com/JuReyms/Palabre/issues/96)).
+4. **Lecture de Codex sous Windows** : apporter une solution au blocage `read-unavailable` ([#128](https://github.com/JuReyms/Palabre/issues/128)).
+5. **Agents locaux compatibles OpenAI** (llama.cpp, LM Studio…) pour Débat, Ask et Chat ([#120](https://github.com/JuReyms/Palabre/issues/120)).
 
 ## Philosophie
 

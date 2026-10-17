@@ -17,7 +17,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Changed
 
-- Guide 0.17.0, lot C : configuration, référence CLI, contrats JSON/NDJSON, dépannage et fonctionnalités disponibles FR/EN corrigés contre le code ; la liste des prochaines améliorations reste en attente de validation du propriétaire (Refs #131).
+- Guide 0.17.0, lot C : configuration, référence CLI, contrats JSON/NDJSON, dépannage et fonctionnalités disponibles FR/EN corrigés contre le code ; la feuille de route reprend les cinq priorités validées par le propriétaire (Refs #131).
 
 - README (fr et en) préparé pour la 0.17.0 : Relay est présenté comme nouveau, sans la mention « après la 0.16.0 », avec la coopération entre agents et le rôle de décideur de l'humain ; la note précise que `--open` vise une conversation Codex ouverte, sous Windows pour l'instant ; Mission apparaît en une phrase comme option de Relay, et non comme un mode (#121).
 
