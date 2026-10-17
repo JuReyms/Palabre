@@ -35,6 +35,8 @@ PALABRE does not replace your tools: it drives them. You keep your subscriptions
 | **Ask** | "I want several independent opinions." 1 to 4 agents answer without seeing each other's answers, then a summary compares them. | `palabre ask "Compare these two approaches" --agents codex claude` |
 | **Chat** | "I'm chatting with an agent, and sometimes need a second opinion to double-check an answer." Ask another agent with `/consult`, without leaving the conversation. | `palabre chat --agent-a codex` |
 
+*Relay: the conversation receiving the message must be closed (no terminal, app or IDE open on it), and each message gets a single reply.*
+
 In doubt: **Debate** for a decision with stakes, **Relay** to hand off to another agent, **Ask** for several opinions, **Chat** to talk with one agent.
 
 ### Installation
@@ -73,7 +75,7 @@ On first launch, the TUI creates the global configuration if needed and detects 
 
 - **PALABRE drives your CLIs.** Each agent runs with its own tool, account and default model. PALABRE does not list models: `--model-a`, `--model-b` and `--summary-model` pass the raw value to the agent.
 - **Context.** `--files` injects specific files (64 KiB per file, 192 KiB in total). `--context` scans folders with limits and exclusions. `--show-prompt` shows exactly what will be sent; `palabre context scan` previews the context.
-- **Final summary.** At the end of an Ask or a Debate, a summary agent writes four sections: **Consensus**, **Disagreements / uncertainties**, **Proposed actions**, **Conclusion**. Choose it with `--summary-agent`, or turn it off with `--no-summary`.
+- **Final summary.** At the end of a Debate, a summary agent writes four sections: **Consensus**, **Disagreements / uncertainties**, **Proposed actions**, **Conclusion**. At the end of an Ask, it summarizes each answer then compares them: **Faithful summary by agent**, **Comparison**, **Watchpoints / uncertainties**, **Proposed actions**, **Conclusion**. Choose the summary agent with `--summary-agent`, or turn the summary off with `--no-summary`.
 - **Early stop.** A Debate (1 to 20 responses in total) can stop after a full round when an explicit agreement is detected. Turn it off with `--no-early-stop`.
 - **Exports.** Each session is saved as Markdown (`.debate.md`, `.ask.md`, `.chat.md`). If an agent fails, a partial export is kept whenever possible.
 - **Sessions.** `--checkpoint` makes a Debate or an Ask resumable with `palabre resume <session-id>`; `palabre sessions` lists or deletes checkpoints.
@@ -140,7 +142,7 @@ PALABRE runs locally and does not send data to a PALABRE-owned server. Data sent
 
 ```bash
 git clone https://github.com/JuReyms/Palabre.git
-cd PALABRE
+cd Palabre
 pnpm install
 pnpm build
 pnpm link --global
@@ -182,6 +184,8 @@ PALABRE ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements,
 | **Ask** | « Je veux plusieurs avis indépendants. » De 1 à 4 agents répondent sans voir les réponses des autres, puis une synthèse les compare. | `palabre ask "Compare ces deux approches" --agents codex claude` |
 | **Chat** | « Je discute avec un agent, et j'ai parfois besoin d'un second avis pour vérifier une réponse. » Consultez un autre agent avec `/consult`, sans quitter la conversation. | `palabre chat --agent-a codex` |
 
+*Relay : la conversation qui reçoit le message doit être fermée (ni terminal, ni application, ni IDE ouvert dessus), et chaque message reçoit une seule réponse.*
+
 En cas de doute : **Débat** pour une décision qui compte, **Relay** pour passer la main à un autre agent, **Ask** pour plusieurs avis, **Chat** pour discuter avec un agent.
 
 ### Installation
@@ -220,7 +224,7 @@ Au premier lancement, la TUI crée la configuration globale si nécessaire et d�
 
 - **PALABRE pilote vos CLI.** Chaque agent tourne avec son outil, son compte et son modèle par défaut. PALABRE ne liste pas les modèles : `--model-a`, `--model-b` et `--summary-model` transmettent la valeur brute à l'agent.
 - **Contexte.** `--files` injecte des fichiers précis (64 Kio par fichier, 192 Kio au total). `--context` parcourt des dossiers avec des limites et des exclusions. `--show-prompt` montre exactement ce qui sera envoyé ; `palabre context scan` prévisualise le contexte.
-- **Synthèse finale.** À la fin d'un Ask ou d'un Débat, un agent de synthèse rédige quatre sections : **Consensus**, **Désaccords / incertitudes**, **Actions proposées**, **Conclusion**. Choisissez-le avec `--summary-agent`, ou désactivez la synthèse avec `--no-summary`.
+- **Synthèse finale.** À la fin d'un Débat, un agent de synthèse rédige quatre sections : **Consensus**, **Désaccords / incertitudes**, **Actions proposées**, **Conclusion**. À la fin d'un Ask, il résume chaque réponse puis les compare : **Résumé fidèle par agent**, **Comparaison**, **Points de vigilance / incertitudes**, **Actions proposées**, **Conclusion**. Choisissez l'agent de synthèse avec `--summary-agent`, ou désactivez la synthèse avec `--no-summary`.
 - **Arrêt anticipé.** Un Débat (1 à 20 réponses au total) peut s'arrêter après un tour complet quand un accord explicite est détecté. Désactivez-le avec `--no-early-stop`.
 - **Exports.** Chaque session est enregistrée en Markdown (`.debate.md`, `.ask.md`, `.chat.md`). Si un agent échoue, un export partiel est conservé quand c'est possible.
 - **Sessions.** `--checkpoint` rend un Débat ou un Ask reprenable avec `palabre resume <session-id>` ; `palabre sessions` liste ou supprime les points de reprise.
@@ -287,7 +291,7 @@ PALABRE tourne localement et n'envoie aucune donnée à un serveur appartenant �
 
 ```bash
 git clone https://github.com/JuReyms/Palabre.git
-cd PALABRE
+cd Palabre
 pnpm install
 pnpm build
 pnpm link --global
