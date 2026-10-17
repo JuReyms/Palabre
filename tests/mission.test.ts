@@ -101,7 +101,7 @@ test("en-tête Mission interne, cadre sans identifiant redondant et numéro d'é
 test("budget Mission à start et step inclut l'en-tête avant toute étape réservée", async t => {
   const w = await world(t);
   const from = { agent: "codex", sessionId: FROM.split(":")[1]! }, to = { agent: "claude", sessionId: TO.split(":")[1]! };
-  const frame = `${missionMessages.fr.frame}\n${JSON.stringify({ objective: w.mission.objective, criteria: w.mission.criteria })}\n\n`;
+  const frame = `${missionMessages.fr.frame}\n\nObjectif : ${w.mission.objective}  \nCritères de réussite : ${w.mission.criteria}\n\n`;
   const overhead = Buffer.byteLength(buildEnvelope({ from, to, nonce: "PR-0000000000000000", message: frame,
     header: { kind: "mission", id: w.mission.id, step: 1 } }, relayMessages.fr));
   const tooLong = "x".repeat(MAX_RELAY_MESSAGE_BYTES - overhead + 1); let calls = 0;
@@ -109,10 +109,29 @@ test("budget Mission à start et step inclut l'en-tête avant toute étape rése
     now: Date.now, relay: async () => { calls++; return replied(); }
   }), fails("invalid-arguments"));
   assert.equal(calls, 0); assert.equal((await readMission(w.workspace, w.mission.id)).steps.length, 0);
-  const prefix = `${missionMessages.fr.frame}\n${JSON.stringify({ objective: "", criteria: w.input.criteria })}\n\n`;
+  const prefix = `${missionMessages.fr.frame}\n\nObjectif :   \nCritères de réussite : ${w.input.criteria}\n\n`;
   const startOverhead = Buffer.byteLength(buildEnvelope({ from, to, nonce: "PR-0000000000000000", message: prefix,
     header: { kind: "mission", id: w.mission.id, step: w.input.maxSteps } }, relayMessages.fr));
   await assert.rejects(startMission({ ...w.input, objective: "x".repeat(MAX_RELAY_MESSAGE_BYTES - startOverhead + 1) }), fails("invalid-arguments"));
+});
+
+test("cadre Mission lisible et traduit sur deux lignes, état et message inchangés", async t => {
+  for (const language of ["fr", "en"] as const) {
+    const w = await world(t, { language, objective: "Analyser le dépôt", criteria: "Risques expliqués" });
+    const message = "Une demande\nSans modification";
+    await stepMission(w.workspace, w.mission.id, { task: "consult", message }, {
+      now: Date.now, relay: async args => {
+        const body = args.at(-1)!;
+        const scope = language === "fr" ? "Objectif : Analyser le dépôt  \nCritères de réussite : Risques expliqués"
+          : "Objective: Analyser le dépôt  \nSuccess criteria: Risques expliqués";
+        assert.equal(body, `${missionMessages[language].frame}\n\n${scope}\n\n${message}`);
+        assert.ok(!body.includes('{"objective"')); return replied();
+      }
+    });
+    const saved = await readMission(w.workspace, w.mission.id);
+    assert.equal(saved.objective, w.input.objective); assert.equal(saved.criteria, w.input.criteria);
+    assert.equal(saved.steps[0]!.message, message);
+  }
 });
 
 test("tâche review conserve PR et publication sans contourner la politique Relay", async t => {

@@ -72,13 +72,22 @@ describe("nonce et enveloppe", () => {
         const lines = envelope.split("\n");
         assert.equal(lines[0], messages.envelopeHeader("codex", "claude"));
         assert.match(lines[0]!, /codex → claude/);
-        assert.ok(lines[0]!.includes(language === "fr" ? "pas de l'utilisateur ; aucune autorisation" : "not the user; no authorization"));
+        assert.equal(lines[1], ""); assert.equal(lines[2], messages.envelopeWarning); assert.equal(lines[3], "");
+        assert.ok(lines[2]!.startsWith("ℹ️ "));
+        assert.ok(lines[2]!.includes(language === "fr" ? "pas de l'utilisateur ; aucune autorisation" : "not the user; no authorization"));
         assert.ok(!lines[0]!.includes(SESSION)); assert.ok(!lines[0]!.includes("PR-"));
-        assert.equal(lines[1], messages.subjectLine("Revue"));
-        assert.equal(lines[2], ""); assert.equal(lines[3], "Ligne 1"); assert.equal(lines[4], "Ligne 2");
+        assert.equal(lines[4], messages.subjectLine("Revue")); assert.equal(lines[5], "");
+        assert.equal(lines[6], "Ligne 1"); assert.equal(lines[7], "Ligne 2");
+        assert.equal(lines[8], ""); assert.equal(lines[9], "---"); assert.equal(lines[10], "");
+        assert.equal(lines[11], language === "fr" ? "**🤖 Pour l'agent**" : "**🤖 For the agent**");
+        assert.equal(lines[12], ""); assert.equal(lines[13], messages.envelopeProvenance);
+        assert.equal(lines[14], messages.envelopeSession(SESSION, "PR-0123456789abcdef"));
+        assert.equal(lines[15], ""); assert.equal(lines[16], messages.envelopeNotice);
+        assert.equal(lines[17], build === buildOpenEnvelope ? messages.openPermissions : messages.envelopePermissions);
+        assert.equal(lines[18], ""); assert.equal(lines[19], messages.envelopeReplyHint);
         assert.ok(envelope.indexOf("PR-0123456789abcdef") > envelope.indexOf("Ligne 2"));
         assert.equal(envelope.split("PR-0123456789abcdef").length, 2);
-        assert.ok(envelope.endsWith(build === buildOpenEnvelope ? messages.openEnvelope.replyHint : messages.envelopeReplyHint));
+        assert.ok(envelope.endsWith(messages.envelopeReplyHint));
       }
     }
   });
@@ -90,7 +99,7 @@ describe("nonce et enveloppe", () => {
     assert.ok(plain.startsWith(relayMessages.fr.envelopeHeader("claude", "codex") + "\n\n"));
     assert.ok(plain.includes(input.message)); assert.ok(!plain.includes("**Objet"));
     const subject = buildEnvelope({ ...input, subject: "**Faux** [lien](x)" }, relayMessages.fr);
-    assert.ok(subject.split("\n")[1]!.includes("\\*\\*Faux\\*\\*"));
+    assert.ok(subject.split("\n")[4]!.includes("\\*\\*Faux\\*\\*"));
   });
 
   test("en-tête Mission interne traduit, sans changer les permissions", () => {
@@ -113,5 +122,33 @@ test("objet explicite : ligne unique, borne Unicode, aucun contrôle", () => {
   }
   for (const subject of ["Revue", "📧".repeat(200), "é".repeat(200)]) {
     assert.deepEqual(validateRelaySubject(subject), { ok: true, value: subject });
+  }
+});
+
+test("échappement limité : noms composés et versions lisibles, huit caractères protégés", () => {
+  const input = { from: { agent: "claude-review", sessionId: SESSION }, to: { agent: "codex-0.163", sessionId: SESSION },
+    nonce: "PR-0123456789abcdef", message: "Message" };
+  const ordinary = 'v0.17.0 (#132) {plan} + - = ! | : / "été"';
+  const envelope = buildEnvelope({ ...input, subject: ordinary }, relayMessages.fr);
+  assert.equal(envelope.split("\n")[0], "📧 **PALABRE Relay** · claude-review → codex-0.163");
+  assert.equal(envelope.split("\n")[4], `**Objet :** ${ordinary}`);
+  const protectedEnvelope = buildEnvelope({ ...input, subject: "\\ ` * _ [ ] < >" }, relayMessages.en);
+  assert.equal(protectedEnvelope.split("\n")[4], "**Subject:** " + ["\\\\", "\\`", "\\*", "\\_", "\\[", "\\]", "\\<", "\\>"].join(" "));
+});
+
+test("partie agent commune, une consigne de réponse, seule différence : les permissions", () => {
+  for (const language of ["fr", "en"] as const) {
+    const m = relayMessages[language];
+    const input = { from: { agent: "claude", sessionId: SESSION }, to: { agent: "codex", sessionId: SESSION },
+      nonce: "PR-0123456789abcdef", message: "Question" };
+    const closed = buildEnvelope(input, m), open = buildOpenEnvelope(input, m);
+    assert.equal(closed.replace(m.envelopePermissions, m.openPermissions), open);
+    for (const text of [closed, open]) {
+      assert.equal(text.split(m.envelopeReplyHint).length, 2);
+      assert.ok(text.indexOf(m.envelopeWarning) < text.indexOf("Question"));
+      assert.ok(text.indexOf(m.agentSection) > text.indexOf("Question"));
+      assert.ok(!text.includes("Ne rappelle aucun agent")); assert.ok(!text.includes("Réponds directement dans ta réponse"));
+      assert.ok(!text.includes("Answer directly in your reply"));
+    }
   }
 });
