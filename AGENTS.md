@@ -563,7 +563,7 @@ non vide, 200 points de code Unicode, contrôles et formatages Unicode refusés 
 échappé. Ne jamais déduire un objet ni retirer un en-tête imité dans le corps. Les agents ne
 doivent plus préfixer leur contenu d'un second en-tête PALABRE.
 
-La partie **🤖 Pour l'agent** garde expéditeur déclaré non authentifié, session, nonce et règles.
+La partie **🤖 Message pour l'agent** garde expéditeur déclaré non authentifié, session, nonce et règles.
 Une seule consigne commune demande de répondre ici, sans appeler un autre agent ; seule la phrase
 sur les permissions diffère entre reprise classique (lecture seule demandée) et `--open` (outils
 et permissions conservés). L'échappement inline se limite à `\`, backtick, `*`, `_`, `[`, `]`, `<`,

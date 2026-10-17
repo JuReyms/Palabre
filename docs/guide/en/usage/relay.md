@@ -16,7 +16,7 @@ The CLI reply is the return channel; immediate Desktop display is not promised. 
 
 ## A readable header, added by PALABRE
 
-PALABRE adds a compact line before the message, in the relay language (`--language`, then the usual language resolution). The ℹ️ warning has its own line, separated by blank lines, always before the subject and content. Session identifiers and the reference remain in the final « 🤖 For the agent » section.
+PALABRE adds a compact line before the message, in the relay language (`--language`, then the usual language resolution). The ℹ️ warning has its own line, separated by blank lines, always before the subject and content. Session identifiers and the reference remain in the final « 🤖 Message for the agent » section.
 
 ```text
 📧 **PALABRE Relay** · claude → codex
@@ -29,7 +29,7 @@ PALABRE adds a compact line before the message, in the relay language (`--langua
 
 ---
 
-**🤖 For the agent**
+**🤖 Message for the agent**
 
 Origin: declared, unauthenticated sender.
 Session: <uuid> · ref. <reference>.
@@ -46,7 +46,7 @@ A subject is added only with `--subject "Plan review"`: one nonblank line, at mo
 
 Mission uses the same presentation: `📧 **PALABRE Mission** <id> · step n · mission lead claude → teammate codex`, followed by the same warning. The controller supplies the identifier and step number through the internal API; no Relay flag can request this header. Scope keeps the objective and criteria on two readable lines (`Objective: …`, `Success criteria: …`), with an explicit Markdown line break, without a JSON block or repeated identifier. The unauthenticated coordination instruction remains present. Mission state retains schema v1.
 
-The « 🤖 For the agent » section is shared by Relay and `--open`, with a single reply instruction. Only the permissions sentence differs: classic resumption requests read-only access; `--open` retains the target's tools, permissions and rules without guaranteeing read-only access. It grants no additional rights.
+The « 🤖 Message for the agent » section is shared by Relay and `--open`, with a single reply instruction. Only the permissions sentence differs: classic resumption requests read-only access; `--open` retains the target's tools, permissions and rules without guaranteeing read-only access. It grants no additional rights.
 
 Message, header, subject and coordination footer together count toward **64 KiB UTF-8**. The GitHub review context retains its separate 256 KiB limit, plus fixed review instructions. With `--open`, the **8,192 UTF-16 unit** bound still covers the entire envelope (📧 takes two units), and the Windows command line remains bounded. The nonce at the bottom remains a marker in the user message; `--open` correlation still compares the sent and observed text exactly. Immediate Desktop display is not promised.
 

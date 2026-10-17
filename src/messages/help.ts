@@ -43,7 +43,7 @@ Le propriétaire consulte https://palab.re/fr/troubleshooting (Codex sous Window
 pas de solution validée à ce jour pour ce parcours, aucun changement de permission ni renvoi automatique.
 Chaque étape reçoit l'en-tête PALABRE Mission, puis l'avertissement ℹ️ sur une ligne séparée
 avant le contenu. Objectif et critères sont lisibles sur deux lignes, sans JSON ; la partie
-« 🤖 Pour l'agent » termine le message. Le tout compte dans les 64 Kio UTF-8 de coordination.
+« 🤖 Message pour l'agent » termine le message. Le tout compte dans les 64 Kio UTF-8 de coordination.
 Le rôle et le cadre ne donnent aucun droit supplémentaire. Aucun plafond de coût monétaire.
 `,
   init: `
@@ -222,7 +222,7 @@ Flags:
 
 Limites :
   PALABRE ajoute l'en-tête expéditeur → destinataire, puis l'avertissement ℹ️ sur sa propre ligne
-  avant le contenu. La partie « 🤖 Pour l'agent » regroupe provenance et consigne de réponse en bas.
+  avant le contenu. La partie « 🤖 Message pour l'agent » regroupe provenance et consigne de réponse en bas.
   Une seule réponse ici, sans appeler un autre agent. Ne pas ajouter un second en-tête PALABRE.
   L'enveloppe complète de coordination compte dans les 64 Kio UTF-8 (contexte PR séparé).
   allow-repo exige une config déjà approuvée, affiche son chemin et le changement,
@@ -385,7 +385,7 @@ The owner reads https://palab.re/en/troubleshooting (Codex on Windows) and #128;
 no validated solution yet for this workflow, no permission changes or automatic retries.
 Each step receives a PALABRE Mission header, then the ℹ️ warning on a separate line before
 the content. Objective and criteria appear on two readable lines, without JSON; the final
-« 🤖 For the agent » section closes the message. All count toward 64 KiB UTF-8 of coordination.
+« 🤖 Message for the agent » section closes the message. All count toward 64 KiB UTF-8 of coordination.
 Roles and scope grant no additional rights. No monetary cost cap.
 `,
   init: `
@@ -552,7 +552,7 @@ Flags:
 
 Limits:
   PALABRE adds the sender → recipient header, then the ℹ️ warning on its own line before the content.
-  The final « 🤖 For the agent » section groups provenance and reply instructions.
+  The final « 🤖 Message for the agent » section groups provenance and reply instructions.
   Reply here once, without calling another agent. Do not add a second PALABRE header.
   The full coordination envelope counts toward 64 KiB UTF-8 (separate PR context limit).
   allow-repo requires a trusted config, shows its path and planned change, then requires

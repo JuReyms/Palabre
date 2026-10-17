@@ -17,7 +17,9 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Changed
 
-- Relay et Mission séparent l'avertissement ℹ️ de l'en-tête, avant le contenu, et regroupent provenance, nonce et consigne unique de réponse dans « 🤖 Pour l'agent ». Échappement Markdown limité pour garder tirets, points et parenthèses lisibles ; cadre Mission traduit sur deux lignes sans JSON. Permissions, limites de taille et corrélation inchangées (#132). Aide, guides FR/EN et skill mis à jour ; les copies installées du skill doivent être rafraîchies manuellement.
+- Le pied des messages Relay et Mission est renommé « 🤖 Message pour l’agent » / « 🤖 Message for the agent », dans les messages, l’aide, les guides et le skill. Les copies installées du skill restent à rafraîchir manuellement.
+
+- Relay et Mission séparent l'avertissement ℹ️ de l'en-tête, avant le contenu, et regroupent provenance, nonce et consigne unique de réponse dans « 🤖 Message pour l'agent ». Échappement Markdown limité pour garder tirets, points et parenthèses lisibles ; cadre Mission traduit sur deux lignes sans JSON. Permissions, limites de taille et corrélation inchangées (#132). Aide, guides FR/EN et skill mis à jour ; les copies installées du skill doivent être rafraîchies manuellement.
 
 - Les consignes d'autorisation sont disponibles dans l'aide, les erreurs et le skill. **Une copie déjà installée du skill n'est pas mise à jour automatiquement** : recopier `skills/palabre` dans son emplacement d'installation après la mise à jour.
 - Le README est réorganisé pour tous les niveaux : un tableau « Quel mode pour quoi ? » par ordre d'utilité (Débat, Relay, Ask, Chat), l'installation, le fonctionnement (contexte, synthèses finales du Débat et de l'Ask, arrêt anticipé, exports, sessions) et les six rôles expliqués avec des combinaisons conseillées (#121).

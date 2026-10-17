@@ -79,7 +79,7 @@ describe("nonce et enveloppe", () => {
         assert.equal(lines[4], messages.subjectLine("Revue")); assert.equal(lines[5], "");
         assert.equal(lines[6], "Ligne 1"); assert.equal(lines[7], "Ligne 2");
         assert.equal(lines[8], ""); assert.equal(lines[9], "---"); assert.equal(lines[10], "");
-        assert.equal(lines[11], language === "fr" ? "**🤖 Pour l'agent**" : "**🤖 For the agent**");
+        assert.equal(lines[11], language === "fr" ? "**🤖 Message pour l'agent**" : "**🤖 Message for the agent**");
         assert.equal(lines[12], ""); assert.equal(lines[13], messages.envelopeProvenance);
         assert.equal(lines[14], messages.envelopeSession(SESSION, "PR-0123456789abcdef"));
         assert.equal(lines[15], ""); assert.equal(lines[16], messages.envelopeNotice);
