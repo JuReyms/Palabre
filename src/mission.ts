@@ -173,7 +173,10 @@ export async function startMission(input: StartMission, deps: Pick<MissionDeps, 
 
 /** Le cadre est une donnée de coordination, jamais une autorisation d'outils ou d'écriture. */
 function missionMessage(mission: Mission, message: string): string {
-  return `${missionMessages[mission.language].frame}\n${JSON.stringify({ objective: mission.objective, criteria: mission.criteria })}\n\n${message}`;
+  const m = missionMessages[mission.language];
+  const colon = mission.language === "fr" ? " : " : ": ";
+  // Deux champs lisibles ; les deux espaces avant le saut de ligne créent un retour Markdown.
+  return `${m.frame}\n\n${m.objective}${colon}${mission.objective}  \n${m.criteria}${colon}${mission.criteria}\n\n${message}`;
 }
 
 /** Même budget d'enveloppe que Relay, sans dépendre du transport ni générer de nonce d'envoi. */

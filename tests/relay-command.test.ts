@@ -137,7 +137,7 @@ test("Codex répond mais les lectures échouent : JSON, texte et export signalen
   assert.equal(r.json.subject, "Revue du dépôt");
   const sent = r.calls.find(call => call.argv[0] === "exec")!.stdin as string;
   assert.equal(sent.split("\n")[0], relayMessages.fr.envelopeHeader("claude", "codex"));
-  assert.equal(sent.split("\n")[1], relayMessages.fr.subjectLine("Revue du dépôt"));
+  assert.equal(sent.split("\n")[4], relayMessages.fr.subjectLine("Revue du dépôt"));
   assert.match(r.json.error.message, /WindowsApps\\pwsh\.exe/);
   assert.match(r.json.error.message, /propriétaire.*https:\/\/palab\.re\/fr\/troubleshooting/);
   assert.match(r.json.error.message, /issues\/128/);
@@ -159,7 +159,7 @@ test("objet explicite, en-tête traduit et métadonnées JSON/export ; absence s
     assert.equal(r.code, 0, r.stderr); assert.equal(r.json.subject, subject);
     const sent = r.calls.find(call => call.argv.includes("--resume"))!.stdin as string;
     assert.equal(sent.split("\n")[0], relayMessages[language].envelopeHeader("codex", "claude"));
-    assert.equal(sent.split("\n")[1], relayMessages[language].subjectLine(subject));
+    assert.equal(sent.split("\n")[4], relayMessages[language].subjectLine(subject));
     assert.ok(sent.indexOf("PR-") > sent.indexOf("Question"));
     const md = readFileSync(r.json.exportPath, "utf8");
     assert.ok(md.includes(`| ${relayMessages[language].export.subject} | ${subject} |`));
@@ -354,7 +354,8 @@ describe("palabre relay : réponse", () => {
     assert.match(exported, /FAKE-OK/);
     assert.equal(result.calls.length, 1);
     assert.match(result.calls[0]!.stdin, /\n\nPeux-tu relire ce plan \?\n\n---\n/);
-    assert.match(result.calls[0]!.stdin, /^📧 \*\*PALABRE Relay\*\* · codex → claude ·/);
+    assert.equal(result.calls[0]!.stdin.split("\n")[0], relayMessages.fr.envelopeHeader("codex", "claude"));
+    assert.equal(result.calls[0]!.stdin.split("\n")[2], relayMessages.fr.envelopeWarning);
     assert.ok(existsSync(path.join(world.home, ".palabre", "trusted-configs.json")), "approbation enregistrée dans le dossier personnel jetable");
   });
 
@@ -679,8 +680,10 @@ describe("palabre relay --open", () => {
       const [call] = result.calls;
       assert.deepEqual(call!.argv.slice(0, 4), ["queue", "--thread", CODEX_SESSION, "--message"]);
       const envelope = call!.argv[4]!;
-      assert.match(envelope, /^📧 \*\*PALABRE Relay\*\* · claude → codex ·/);
+      assert.equal(envelope.split("\n")[0], relayMessages.fr.envelopeHeader("claude", "codex"));
       assert.match(envelope, /expéditeur déclaré, non authentifié/);
+      assert.equal(envelope.split("\n")[2], relayMessages.fr.envelopeWarning);
+      assert.ok(envelope.includes(relayMessages.fr.agentSection));
       assert.match(envelope, /n'autorise aucune action/);
       assert.ok(envelope.includes("\n\nRelis ce plan\n\n---\n"));
       assert.equal(call!.stdin, "");

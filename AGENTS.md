@@ -557,17 +557,22 @@ une réexécution automatique ou un élargissement du sandbox. La prose du modè
 L'absence du diagnostic et une autre commande réussie ne prouvent pas les lectures nécessaires.
 
 Enveloppe standard (#126) : `envelope.ts` construit un en-tête PALABRE Relay traduit avec
-expéditeur, destinataire et avertissement « message d'un agent, pas de l'utilisateur ; aucune
-autorisation » AVANT l'objet et le corps. Objet explicite via `--subject` seulement : une ligne
+expéditeur et destinataire, puis l'avertissement ℹ️ sur une ligne séparée et entourée de lignes
+vides, toujours AVANT l'objet et le corps. Objet explicite via `--subject` seulement : une ligne
 non vide, 200 points de code Unicode, contrôles et formatages Unicode refusés ; Markdown inline
 échappé. Ne jamais déduire un objet ni retirer un en-tête imité dans le corps. Les agents ne
 doivent plus préfixer leur contenu d'un second en-tête PALABRE.
 
-Le pied garde expéditeur déclaré non authentifié, session, nonce, règles et consigne de réponse.
+La partie **🤖 Pour l'agent** garde expéditeur déclaré non authentifié, session, nonce et règles.
+Une seule consigne commune demande de répondre ici, sans appeler un autre agent ; seule la phrase
+sur les permissions diffère entre reprise classique (lecture seule demandée) et `--open` (outils
+et permissions conservés). L'échappement inline se limite à `\`, backtick, `*`, `_`, `[`, `]`, `<`,
+`>` ; tirets, points et parenthèses restent littéraux.
 `--open` garde les outils/permissions de la cible et la comparaison exacte de l'enveloppe ; le
 nonce ne dépend pas de sa position. L'API interne `executeRelay(..., { header })` permet à Mission
-de fournir id/numéro d'étape, sans flag CLI ni autorité supplémentaire. Le cadre JSON garde objectif
-et critères, sans répéter l'id de mission. `subject?` est optionnel en JSON/export v1 et absent sans
+de fournir id/numéro d'étape, sans flag CLI ni autorité supplémentaire. Le cadre garde objectif et critères
+sur deux lignes traduites, sans JSON ni répétition de l'id de mission. Un retour Markdown explicite
+sépare ces deux champs ; la consigne de coordination non authentifiée reste présente. `subject?` est optionnel en JSON/export v1 et absent sans
 option. Les 64 Kio portent sur toute l'enveloppe de coordination ; le contexte PR reste borné
 séparément à 256 Kio. `--open` conserve ses 8 192 unités UTF-16 et la borne de ligne Windows.
 

@@ -91,7 +91,7 @@ export function createNonce(): string {
 }
 
 /** Texte inline Markdown : ni l'objet ni les noms d'agents ne peuvent fermer leur mise en forme. */
-function inline(text: string): string { return text.replace(/[\\`*_{}\[\]()<>#+.!|~-]/g, "\\$&"); }
+function inline(text: string): string { return text.replace(/[\\`*_\[\]<>]/g, "\\$&"); }
 
 /** En-tête compact avant le corps inchangé ; provenance technique et nonce en fin. */
 function buildRelayEnvelope(input: RelayEnvelopeInput, messages: RelayMessages, open: boolean): string {
@@ -99,10 +99,11 @@ function buildRelayEnvelope(input: RelayEnvelopeInput, messages: RelayMessages, 
   const title = input.header
     ? messages.missionHeader(input.header.id, input.header.step, from, to)
     : messages.envelopeHeader(from, to);
-  return [title, ...(input.subject !== undefined ? [messages.subjectLine(inline(input.subject))] : []), "",
-    input.message, "", "---", messages.envelopeProvenance(input.from.sessionId, input.nonce),
-    open ? messages.openEnvelope.notice : messages.envelopeNotice,
-    open ? messages.openEnvelope.replyHint : messages.envelopeReplyHint].join("\n");
+  return [title, "", messages.envelopeWarning, "",
+    ...(input.subject !== undefined ? [messages.subjectLine(inline(input.subject)), ""] : []),
+    input.message, "", "---", "", messages.agentSection, "", messages.envelopeProvenance,
+    messages.envelopeSession(input.from.sessionId, input.nonce), "", messages.envelopeNotice,
+    open ? messages.openPermissions : messages.envelopePermissions, "", messages.envelopeReplyHint].join("\n");
 }
 
 /** Variante de reprise en lecture seule ; le nonce reste présent dans le message utilisateur. */
