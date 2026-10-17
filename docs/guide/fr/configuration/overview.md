@@ -54,6 +54,8 @@ Au démarrage de l'accueil TUI, Palabre synchronise prudemment les agents connus
 
 Une commande configurée avec un **chemin absolu** reste inchangée, dans l'accueil TUI comme avec `palabre config --sync-agents`, même si une autre installation est détectée. Un chemin devenu introuvable est conservé : il n'y a pas de remplacement silencieux. Le propriétaire vérifie l'installation ciblée et peut lancer `palabre doctor --terminal` ; pour revenir à la découverte automatique, il remplace explicitement le chemin par un nom simple tel que `claude.exe`, puis réapprouve sa configuration. Les noms simples et chemins relatifs gardent le comportement de synchronisation existant.
 
+Pour ces chemins absolus, `doctor` et `available` vérifient le **fichier configuré**, pas une autre installation du PATH. Un chemin absent, inaccessible ou désignant un dossier est indisponible. Un fichier présent n'est pas exécuté par cette vérification : elle ne prouve ni sa version ni ses fonctionnalités.
+
 ## Modifier les paramètres courants
 
 ```bash

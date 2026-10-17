@@ -3,7 +3,7 @@ import path from "node:path";
 import { stat } from "node:fs/promises";
 import { configExists, DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir } from "./config.js";
 import { isConfigTrusted, isImplicitProjectConfig } from "./configTrust.js";
-import { detectedAgentNames, detectionForCommand } from "./agentRegistry.js";
+import { detectedAgentNames, detectionForCommand, isAbsoluteCommand } from "./agentRegistry.js";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { createTranslator, resolveLanguage } from "./i18n.js";
 import { DEFAULT_TURNS, MAX_TURNS } from "./limits.js";
@@ -21,6 +21,8 @@ export interface DoctorResult {
 
 export interface DoctorOptions {
   checkVersion?: boolean;
+  /** Injected tool inventory for tests; the CLI always performs its own discovery. */
+  discovery?: ToolDiscovery;
 }
 
 interface DiagnosticLine {
@@ -84,7 +86,7 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
     Object.entries(configuredOllamaTargets(config))
       .map(([name, value]) => [name, value && isValidOllamaBaseUrl(value) ? value : undefined])
   );
-  const discovery = await discoverLocalTools({
+  const discovery = options.discovery ?? await discoverLocalTools({
     ollamaTargets
   });
   lines.push(info(t.doctor.localTools, "tools"));
@@ -329,6 +331,11 @@ function inspectCliAgent(
 ): void {
   const known = detectionForCommand(agent.command, discovery);
   const prefix = `${name} [cli:${agent.role}] command=${agent.command}`;
+
+  if (isAbsoluteCommand(agent.command)) {
+    lines.push(known?.available ? ok(t.doctor.cliPinnedFound(prefix)) : warn(t.doctor.cliPinnedMissing(prefix)));
+    return;
+  }
 
   if (!known) {
     lines.push(info(t.doctor.customCommand(prefix)));

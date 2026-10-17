@@ -104,6 +104,7 @@ Usage:
 Flags:
   --clear-defaults     supprime les parametres par defaut
   --sync-agents        ajoute les agents detectes ; conserve les commandes avec chemin absolu
+                       Chemin absent : indisponible ; doctor vérifie le fichier sans le lancer.
   --config <path>      chemin de config explicite
 `,
   new: `
@@ -374,6 +375,7 @@ Usage:
 Flags:
   --clear-defaults     clears default settings
   --sync-agents        adds missing detected agents; preserves absolute command paths
+                       Missing path: unavailable; doctor checks the file without executing it.
   --config <path>      explicit config path
 `,
   new: `

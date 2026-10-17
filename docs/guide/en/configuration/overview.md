@@ -54,6 +54,8 @@ When the TUI home screen starts, Palabre conservatively synchronizes known detec
 
 A command configured with an **absolute path** stays unchanged, both at TUI startup and with `palabre config --sync-agents`, even when another installation is detected. A missing path is retained rather than silently replaced. The owner checks the selected installation and can run `palabre doctor --terminal`; to return to automatic discovery, they explicitly replace the path with a simple name such as `claude.exe`, then approve the edited configuration. Simple names and relative paths keep their existing synchronization behavior.
 
+For absolute paths, `doctor` and `available` check the **configured file**, not another installation from PATH. A missing or inaccessible path, or a directory, is unavailable. This check does not execute an existing file and proves neither its version nor its capabilities.
+
 ## Modify common settings
 
 ```bash

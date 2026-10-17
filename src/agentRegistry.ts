@@ -1,6 +1,7 @@
 /** @file Source de vérité unique reliant les agents CLI connus à leur détection locale (voir AGENTS.md, section "Registre d'agents connus"). */
 import type { CommandDetection, ToolDiscovery } from "./discovery.js";
 import path from "node:path";
+import { statSync } from "node:fs";
 import type { AgentConfig, PalabreConfig } from "./types.js";
 
 /**
@@ -83,12 +84,19 @@ export function externalSessionProviderForCommand(command: string): "codex" | "c
 }
 
 /**
- * Résout l'entrée de découverte d'une commande d'agent CLI connue.
- * Retourne `undefined` pour une commande custom non reconnue : Palabre ne peut
- * pas connaître sa sémantique sans la lancer, donc l'appelant la considère
- * généralement comme disponible.
+ * Reconnaît les formes absolues POSIX, Windows et UNC, indépendamment de la plateforme hôte.
  */
+export function isAbsoluteCommand(command: string): boolean {
+  return path.isAbsolute(command) || path.win32.isAbsolute(command);
+}
+
+/** Un chemin absolu vérifie son fichier ; sinon, découverte connue ou undefined pour une CLI custom. */
 export function detectionForCommand(command: string, discovery: ToolDiscovery): CommandDetection | undefined {
+  if (isAbsoluteCommand(command)) {
+    let available = false;
+    try { available = path.isAbsolute(command) && statSync(command).isFile(); } catch { /* Missing or unreadable configured file. */ }
+    return { available, command, path: command };
+  }
   const normalized = normalizeCommandName(command);
   const known = KNOWN_CLI_AGENTS.find((agent) => agent.commandAliases.includes(normalized));
 
@@ -124,7 +132,7 @@ export function applyDetectedCommands(config: PalabreConfig, discovery: ToolDisc
     const cfg = config.agents[agent.configKey];
 
     if (detection.available && cfg && (cfg.type === "cli" || cfg.type === "cli-pty")) {
-      if (typeof cfg.command === "string" && (path.isAbsolute(cfg.command) || path.win32.isAbsolute(cfg.command))) continue;
+      if (typeof cfg.command === "string" && isAbsoluteCommand(cfg.command)) continue;
       cfg.command = detection.command;
     }
   }
@@ -133,7 +141,8 @@ export function applyDetectedCommands(config: PalabreConfig, discovery: ToolDisc
 /**
  * Indique si un agent de config est détecté localement.
  * Pour Ollama, reflète l'accessibilité du serveur ; pour les CLIs connues, l'état
- * de découverte ; pour une CLI custom inconnue, retourne `true` (faute de pouvoir vérifier).
+ * de découverte, ou le fichier configuré pour un chemin absolu ; pour une CLI custom sans chemin
+ * absolu, retourne `true` (faute de connaître sa sémantique).
  */
 export function isAgentDetected(name: string, config: AgentConfig, discovery: ToolDiscovery): boolean {
   if (config.type === "ollama") {
