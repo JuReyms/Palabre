@@ -270,7 +270,7 @@ describe("échange avec une CLI Codex simulée", () => {
     if (located.status !== "found") throw new Error("cible introuvable");
     assert.deepEqual(assessTarget(home.adapter.probe(located.target)), { allowed: true });
     const nonce = createNonce();
-    const envelope = buildEnvelope({ from, nonce, message: "Peux-tu relire ce plan ?" }, relayMessages.fr);
+    const envelope = buildEnvelope({ from, to: { agent: "codex", sessionId: SESSION }, nonce, message: "Peux-tu relire ce plan ?" }, relayMessages.fr);
     const env = { ...process.env, FAKE_CODEX_MODE: mode, FAKE_CODEX_ROLLOUT: home.rollout, FAKE_CODEX_MARKER: marker, ...options.env };
     const result = await exchange(home.adapter, executable, located.target, envelope, { timeoutMs: options.timeoutMs ?? 10_000, env });
     const { outcome, launched } = exchangeOutcome(result);

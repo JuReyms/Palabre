@@ -24,7 +24,7 @@ import { isConfigTrusted, trustConfig } from "../configTrust.js";
 import { exchange, exchangeOutcome, type ExchangeResult, type ExternalExecutable, type ExternalSessionAdapter } from "../externalSessions/adapter.js";
 import { ClaudeSessionAdapter } from "../externalSessions/claude.js";
 import { CodexSessionAdapter } from "../externalSessions/codex.js";
-import { buildEnvelope, buildOpenEnvelope, createNonce, MAX_RELAY_MESSAGE_BYTES, parseSessionRef, validateRelayMessage } from "../externalSessions/envelope.js";
+import { buildEnvelope, buildOpenEnvelope, createNonce, MAX_RELAY_MESSAGE_BYTES, parseSessionRef, validMissionHeader, validateRelayMessage, validateRelaySubject, type MissionEnvelopeHeader } from "../externalSessions/envelope.js";
 import type { OpenTurnContext } from "../externalSessions/openReader.js";
 import { defaultOpenRelayDeps, runOpenRelay, type OpenQueueReport, type OpenRelayResult } from "../externalSessions/openRelay.js";
 import { locateOpenRollout } from "../externalSessions/openRollout.js";
@@ -55,7 +55,7 @@ export const MIN_RELAY_TIMEOUT_SECONDS = 10;
 export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 
 /** Options de `palabre relay` qui attendent une valeur. */
-const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "config", "language", "task", "pr"]);
+const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "config", "language", "task", "pr", "subject"]);
 /** Options de `palabre relay` sans valeur. */
 const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open"]);
 /** Alias acceptés, comme pour les autres commandes. */
@@ -68,6 +68,8 @@ const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
 export interface RelayResultV1 {
   /** Échec d'accès observé, sans déduction depuis la prose du modèle. */
   readAccess?: ReadAccessDiagnostic;
+  /** Objet explicite inchangé ; absent si --subject n'est pas fourni. */
+  subject?: string;
   /** Human confirmation command; the agent may open it, but must never answer for the owner. */
   remedy?: string;
   /** CLI inspected before a Claude review, including on compatibility refusal. */
@@ -103,6 +105,8 @@ export interface RelayResultV1 {
 
 /** État partagé avec le gestionnaire d'erreur interne, pour qualifier la délivrance. */
 interface RelayContext {
+  subject?: string;
+  header?: MissionEnvelopeHeader;
   /** Annulation du chef de mission ; ne confère aucun droit supplémentaire. */
   signal?: AbortSignal;
   remedy?: string;
@@ -162,12 +166,12 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
 }
 
 /** Même échange que la commande, sans sortie console ni exitCode global ; utilisé par Mission. */
-export async function executeRelay(rawArgs: string[], options: { signal?: AbortSignal } = {}): Promise<RelayResultV1> {
+export async function executeRelay(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader } = {}): Promise<RelayResultV1> {
   return (await executeRelayWithMessages(rawArgs, options)).result;
 }
 
 /** Préserve la langue résolue dans la config pour le rendu de la commande historique. */
-async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal } = {}): Promise<{ result: RelayResultV1; messages: Messages }> {
+async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader } = {}): Promise<{ result: RelayResultV1; messages: Messages }> {
   const context: RelayContext = {
     signal: options.signal,
     startedAt: Date.now(),
@@ -180,6 +184,10 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
   };
   let result: RelayResultV1;
   try {
+    if (options.header !== undefined) {
+      if (!validMissionHeader(options.header)) throw invalid("invalid-arguments");
+      context.header = { ...options.header };
+    }
     result = await relay(rawArgs, context);
   } catch (error) {
     result = error instanceof RelayRefusal
@@ -197,6 +205,11 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (context.signal?.aborted) throw new RelayRefusal({ status: "cancelled" });
   const { messages } = context;
   const { flags, positionals } = parseRelayTokens(rawArgs.slice(1), messages);
+  if (flags.subject !== undefined) {
+    const subject = validateRelaySubject(String(flags.subject));
+    if (!subject.ok) throw invalid(subject.reason, messages.relay.arguments.subjectInvalid);
+    context.subject = subject.value;
+  }
   try {
     resolveLanguage({ explicitLanguage: optionalString(flags.language) });
   } catch (error) {
@@ -256,6 +269,11 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     context.task = { name: "review", pr: pr.url, publication: "not-attempted" };
   }
   if (defaultReviewMessage) message = context.messages.relay.defaultReviewMessage;
+  const nonce = createNonce();
+  const envelopeInput = { from: from.value, to: to.value, nonce, message, subject: context.subject, header: context.header };
+  const coordination = context.open ? buildOpenEnvelope(envelopeInput, context.messages.relay) : buildEnvelope(envelopeInput, context.messages.relay);
+  const envelopeCheck = validateRelayMessage(coordination);
+  if (!envelopeCheck.ok) throw invalid(envelopeCheck.reason);
 
   // Agent cible, fournisseur et exécutable, sans réutiliser les réglages de débat.
   const agent = config.agents[to.value.agent];
@@ -274,6 +292,8 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
       to: to.value,
       from: from.value,
       message,
+      envelope: coordination,
+      nonce,
       timeoutMs: timeoutSeconds * 1000,
       executable: resolution.executable,
       outputDir: resolveOutputDir(config.outputDir),
@@ -311,8 +331,8 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     } catch { throw invalid("review-unavailable"); }
   }
 
-  const nonce = createNonce();
-  const envelope = buildEnvelope({ from: from.value, nonce, message }, context.messages.relay);
+  // Le contexte PR (256 Kio) garde sa borne distincte des 64 Kio de coordination vérifiés plus haut.
+  const envelope = review ? buildEnvelope({ ...envelopeInput, message }, context.messages.relay) : coordination;
   const controller = new AbortController();
   const onInterrupt = () => controller.abort();
   context.signal?.addEventListener("abort", onInterrupt, { once: true });
@@ -374,7 +394,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
  */
 async function relayOpen(
   context: RelayContext,
-  input: { to: SessionRef; from: SessionRef; message: string; timeoutMs: number; executable: ExternalExecutable; outputDir: string; exportResult: boolean }
+  input: { to: SessionRef; from: SessionRef; message: string; envelope: string; nonce: string; timeoutMs: number; executable: ExternalExecutable; outputDir: string; exportResult: boolean }
 ): Promise<RelayResultV1> {
   const home = path.join(os.homedir(), ".codex");
   const located = await locateOpenRollout(home, input.to.sessionId);
@@ -383,8 +403,7 @@ async function relayOpen(
   }
   const adapter = new CodexSessionAdapter({ home });
   const target: ExternalTarget = { agent: input.to.agent, provider: "codex", sessionId: input.to.sessionId, cwd: located.cwd };
-  const nonce = createNonce();
-  const envelope = buildOpenEnvelope({ from: input.from, nonce, message: input.message }, context.messages.relay);
+  const { nonce, envelope } = input;
   const controller = new AbortController();
   const onInterrupt = () => controller.abort();
   process.once("SIGINT", onInterrupt);
@@ -548,6 +567,7 @@ function buildResult(
   return {
     v: 1,
     type: "relay-result",
+    ...(context.subject !== undefined ? { subject: context.subject } : {}),
     ...(context.task ? { task: context.task } : {}),
     ...(context.cli ? { cli: context.cli } : {}),
     ...(context.remedy ? { remedy: context.remedy } : {}),
@@ -592,6 +612,7 @@ async function exportRelay(
       observedModels: result.observedModels,
       nonce: input.nonce,
       startedAt: new Date(input.startedAt).toISOString(),
+      ...(result.subject !== undefined ? { subject: result.subject } : {}),
       message: input.message,
       reply: result.reply,
       error: result.error?.message,

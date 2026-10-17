@@ -9,6 +9,8 @@ import { parseMissionTokens, renderMissionText } from "../src/commands/mission.j
 import { executeRelay, applyReadAccessDiagnostic, type RelayResultV1 } from "../src/commands/relay.js";
 import { createTranslator } from "../src/i18n.js";
 import { missionMessages } from "../src/messages/mission.js";
+import { buildEnvelope, MAX_RELAY_MESSAGE_BYTES } from "../src/externalSessions/envelope.js";
+import { relayMessages } from "../src/messages/relay.js";
 
 const FROM = "codex:11111111-1111-4111-8111-111111111111";
 const TO = "claude:22222222-2222-4222-8222-222222222222";
@@ -73,6 +75,44 @@ test("une étape réserve son état avant un seul Relay ; réponse et identité 
   assert.equal(mission.steps[0]!.result?.reply, "Constat de l'équipier");
   assert.deepEqual(await readMission(w.workspace, mission.id), mission);
   assert.match(await readFile(missionPaths(w.workspace, mission.id).export, "utf8"), /Constat de l'équipier/);
+});
+
+test("en-tête Mission interne, cadre sans identifiant redondant et numéro d'étape", async t => {
+  const w = await world(t); let number = 0;
+  const deps: MissionDeps = { now: Date.now, relay: async (args, options) => {
+    number++;
+    assert.deepEqual(options?.header, { kind: "mission", id: w.mission.id, step: number });
+    const body = args.at(-1)!;
+    assert.ok(!body.includes(w.mission.id)); assert.ok(body.includes(w.mission.objective));
+    const envelope = buildEnvelope({ from: { agent: "codex", sessionId: FROM.split(":")[1]! },
+      to: { agent: "claude", sessionId: TO.split(":")[1]! }, nonce: "PR-0000000000000000", message: body, header: options!.header }, relayMessages.fr);
+    assert.equal(envelope.split("\n")[0], relayMessages.fr.missionHeader(w.mission.id, number, "codex", "claude"));
+    return replied();
+  } };
+  await stepMission(w.workspace, w.mission.id, { task: "consult", message: "Étape 1" }, deps);
+  await stepMission(w.workspace, w.mission.id, { task: "consult", message: "Étape 2" }, deps);
+  assert.equal(number, 2);
+  const refused = await executeRelay(["relay", "--from", FROM, "--to", TO, "Bonjour"], {
+    header: { kind: "mission", id: "étranger", step: 0 }
+  });
+  assert.equal(refused.status, "invalid-request"); assert.equal(refused.delivery.status, "not-delivered");
+});
+
+test("budget Mission à start et step inclut l'en-tête avant toute étape réservée", async t => {
+  const w = await world(t);
+  const from = { agent: "codex", sessionId: FROM.split(":")[1]! }, to = { agent: "claude", sessionId: TO.split(":")[1]! };
+  const frame = `${missionMessages.fr.frame}\n${JSON.stringify({ objective: w.mission.objective, criteria: w.mission.criteria })}\n\n`;
+  const overhead = Buffer.byteLength(buildEnvelope({ from, to, nonce: "PR-0000000000000000", message: frame,
+    header: { kind: "mission", id: w.mission.id, step: 1 } }, relayMessages.fr));
+  const tooLong = "x".repeat(MAX_RELAY_MESSAGE_BYTES - overhead + 1); let calls = 0;
+  await assert.rejects(stepMission(w.workspace, w.mission.id, { task: "consult", message: tooLong }, {
+    now: Date.now, relay: async () => { calls++; return replied(); }
+  }), fails("invalid-arguments"));
+  assert.equal(calls, 0); assert.equal((await readMission(w.workspace, w.mission.id)).steps.length, 0);
+  const prefix = `${missionMessages.fr.frame}\n${JSON.stringify({ objective: "", criteria: w.input.criteria })}\n\n`;
+  const startOverhead = Buffer.byteLength(buildEnvelope({ from, to, nonce: "PR-0000000000000000", message: prefix,
+    header: { kind: "mission", id: w.mission.id, step: w.input.maxSteps } }, relayMessages.fr));
+  await assert.rejects(startMission({ ...w.input, objective: "x".repeat(MAX_RELAY_MESSAGE_BYTES - startOverhead + 1) }), fails("invalid-arguments"));
 });
 
 test("tâche review conserve PR et publication sans contourner la politique Relay", async t => {

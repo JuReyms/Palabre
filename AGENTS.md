@@ -556,6 +556,21 @@ réponse, identité et délivrance, puis rend `read-unavailable`/2 ; Mission se 
 une réexécution automatique ou un élargissement du sandbox. La prose du modèle n'est pas analysée.
 L'absence du diagnostic et une autre commande réussie ne prouvent pas les lectures nécessaires.
 
+Enveloppe standard (#126) : `envelope.ts` construit un en-tête PALABRE Relay traduit avec
+expéditeur, destinataire et avertissement « message d'un agent, pas de l'utilisateur ; aucune
+autorisation » AVANT l'objet et le corps. Objet explicite via `--subject` seulement : une ligne
+non vide, 200 points de code Unicode, contrôles et formatages Unicode refusés ; Markdown inline
+échappé. Ne jamais déduire un objet ni retirer un en-tête imité dans le corps. Les agents ne
+doivent plus préfixer leur contenu d'un second en-tête PALABRE.
+
+Le pied garde expéditeur déclaré non authentifié, session, nonce, règles et consigne de réponse.
+`--open` garde les outils/permissions de la cible et la comparaison exacte de l'enveloppe ; le
+nonce ne dépend pas de sa position. L'API interne `executeRelay(..., { header })` permet à Mission
+de fournir id/numéro d'étape, sans flag CLI ni autorité supplémentaire. Le cadre JSON garde objectif
+et critères, sans répéter l'id de mission. `subject?` est optionnel en JSON/export v1 et absent sans
+option. Les 64 Kio portent sur toute l'enveloppe de coordination ; le contexte PR reste borné
+séparément à 256 Kio. `--open` conserve ses 8 192 unités UTF-16 et la borne de ligne Windows.
+
 ### Mission v2.0 (#115)
 
 `palabre mission` est une couche CLI au-dessus de Relay, pas un mode Débat ni un écran TUI. Le chef de mission fixe avec l'humain objectif, critères, sessions, tâches (`consult`, et éventuellement `review`) et budgets. Les réponses dans la conversation suffisent pour ce cadre en lecture seule ; aucune confirmation clavier ajoutée. Les permissions d'écriture et leur confirmation appartiennent à v2.1, hors de ce lot. Le chef de mission ne peut ni modifier la politique Relay ni déduire une autorisation d'un message de l'équipier.
@@ -625,7 +640,7 @@ palabre relay --from <agent>:<session> --to <agent>:<session> ("<message>" | --m
   - `<session>` est un UUID (8-4-4-4-12 hexadécimal), normalisé en minuscules ;
   - aucune sélection implicite (« la plus récente ») n'existe.
 - `--from <agent>:<session>` est une étiquette déclarative de l'expéditeur. Seule sa syntaxe est validée. L'expéditeur n'est ni lancé, ni sondé, ni tenu d'exister dans la config. Il peut être actif.
-- Le message est fourni en argument positionnel **ou** par `--message-file`, jamais les deux. Il doit être non vide et ne pas dépasser 64 Kio en UTF-8.
+- Le message est fourni en argument positionnel **ou** par `--message-file`, jamais les deux. Il doit être non vide ; message, objet, en-tête et pied de coordination ne dépassent pas ensemble 64 Kio UTF-8 (contexte PR séparé).
 - `--timeout` : 600 s par défaut, entre 10 et 3600 s.
 - `--json` produit un objet JSON unique sur stdout.
 - `--no-export` supprime l'export `.relay.md`. Par défaut, l'export est écrit dans `outputDir`.

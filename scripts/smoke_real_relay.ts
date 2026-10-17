@@ -200,7 +200,7 @@ async function main(): Promise<void> {
     const withFrame = claudeResumeArgs(controlSession, relayMessages.fr.operatorFrame);
     const withoutFrame = withFrame.filter((arg: string, index: number) => arg !== "--append-system-prompt" && withFrame[index - 1] !== "--append-system-prompt");
     const controlRun = await launch(claudeExe, withoutFrame, wsClaude,
-      buildEnvelope({ from: { agent: "codex", sessionId: codexSession }, nonce: createNonce(), message: "Comment s'appelle le projet de test mentionné au début de cette conversation ? Réponds uniquement par son nom." }, relayMessages.fr),
+      buildEnvelope({ from: { agent: "codex", sessionId: codexSession }, to: { agent: "claude", sessionId: claudeSession }, nonce: createNonce(), message: "Comment s'appelle le projet de test mentionné au début de cette conversation ? Réponds uniquement par son nom." }, relayMessages.fr),
       300_000);
     const controlReply = interpretClaudeOutput(controlRun.stdout, controlRun.exitCode, controlSession).reply ?? "";
     const answers = controlReply.trim() === controlCode;
@@ -220,7 +220,7 @@ async function main(): Promise<void> {
   // 3. Neutralisation MCP.
   // Claude : outils et serveurs annoncés par `system/init` pendant un échange du relay.
   const claudeExchange = await exchange(claudeAdapter, claudeExe.executable, claudeLocated.target,
-    buildEnvelope({ from: { agent: "codex", sessionId: codexSession }, nonce: createNonce(), message: "Réponds uniquement : OK." }, relayMessages.fr),
+    buildEnvelope({ from: { agent: "codex", sessionId: codexSession }, to: { agent: "claude", sessionId: claudeSession }, nonce: createNonce(), message: "Réponds uniquement : OK." }, relayMessages.fr),
     { timeoutMs: 300_000 });
   const init = String(claudeExchange.process?.stdout ?? "").split(/\r?\n/).map((line: string) => { try { return JSON.parse(line); } catch { return undefined; } })
     .find((event: any) => event?.type === "system" && event.subtype === "init");
@@ -250,7 +250,7 @@ async function main(): Promise<void> {
   // la comparaison n'a pas d'objet et le contrôle échoue explicitement.
   const controlValid = control.exitCode === 0 && controlEvents.some((event: any) => event?.type === "turn.completed") && controlMentions.length > 0;
   const relayed = await exchange(codexAdapter, codexExe.executable, codexLocated.target,
-    buildEnvelope({ from: { agent: "claude", sessionId: claudeSession }, nonce: createNonce(), message: "Réponds uniquement : OK." }, relayMessages.fr),
+    buildEnvelope({ from: { agent: "claude", sessionId: claudeSession }, to: { agent: "codex", sessionId: codexSession }, nonce: createNonce(), message: "Réponds uniquement : OK." }, relayMessages.fr),
     { timeoutMs: 300_000, env: logEnv });
   const relayedOutcome = exchangeOutcome(relayed).outcome;
   const relayMentions = mentioned(String(relayed.process?.stderr ?? ""), watched);
