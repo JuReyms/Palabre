@@ -18,7 +18,9 @@ PALABRE lets the AI agents already installed on your machine work with you and w
 
 **Compatible agents:** Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe and Ollama (local).
 
-It does not replace your tools: it drives them. You keep your subscriptions, default models, terminal habits and local files. With Ollama, everything can run on your machine.
+**Privacy:** Palabre has no server. Your data only goes to the agents you choose, and with Ollama, nothing leaves your machine.
+
+It does not replace your tools: it drives them. You keep your subscriptions, default models, terminal habits and local files.
 
 ### Which mode for what?
 
@@ -159,7 +161,9 @@ PALABRE fait travailler avec vous, et entre eux, les agents IA déjà installés
 
 **Agents compatibles :** Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe et Ollama (en local).
 
-Il ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos modèles par défaut, vos habitudes de terminal et vos fichiers en local. Avec Ollama, tout peut fonctionner sur votre machine.
+**Confidentialité :** Palabre n'a aucun serveur. Vos données ne vont qu'aux agents que vous choisissez, et avec Ollama, rien ne quitte votre machine.
+
+Il ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos modèles par défaut, vos habitudes de terminal et vos fichiers en local.
 
 ### Quel mode pour quoi ?
 
