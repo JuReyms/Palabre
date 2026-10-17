@@ -279,6 +279,14 @@ Palabre never resends a message automatically. The delivery status tells you wha
 | 9 | `review-failed`: review publication refused or unconfirmed, reply preserved |
 | 130 | `cancelled` |
 
+## Usage limit reached
+
+With `--open`, when the correlated turn ends with the structured Codex error `task_complete.error.codex_error_info: "usage_limit_exceeded"`, PALABRE returns **`usage-limit` (exit 2)**. It does not infer a limit from model prose, remaining quota or an error from another turn. This format was observed with Codex 0.163.0; other formats are not assumed equivalent.
+
+When that CLI error message contains a recognized retry indication, JSON v1 adds the optional `retryAfter` field and the `.relay.md` export includes it. For example, `try again at 3:16 PM` gives `"retryAfter": "15:16"` and “retry around 15:16”. A time without a date or time zone remains a time without a date or time zone; no exact deadline is invented. A recognized duration is expressed in seconds (number), an ISO timestamp is normalized to UTC (text). Without a usable indication, the field is absent and the diagnostic says so.
+
+Delivery remains separate: the message may already be persisted without a reply (`persisted-no-reply`). **No automatic resend**, even after the indicated time. The mission lead reports the diagnostic to the owner and waits for their decision; it does not replay the step. Mission preserves the result and retry indication in its state and export, and pauses on a known limit. Unknown delivery or publication remains `uncertain`. This change does not add `--open` to Mission.
+
 ## Codex on Windows: reply received, reads blocked
 
 A reply does not prove the agent could read the repository. If the Codex JSON stream reports a command that could not start with `CreateProcessAsUserW failed: 5`, PALABRE preserves the reply, identity and delivery, but returns `read-unavailable` (exit 2). With `--task review`, it returns `review-failed` (exit 9), `task.error: "read-unavailable"` and `task.publication: "not-attempted"`: **no review is published on GitHub**. Mission uses the same diagnostic and pauses.

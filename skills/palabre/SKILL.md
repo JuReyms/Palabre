@@ -51,6 +51,8 @@ Le chef de mission pose ses questions à l'humain ; ses réponses fixent objecti
 
 Garder la conversation de l'équipier fermée. Suivre `palabre mission status <id> --json`, l'export `.mission.md` et GitHub ; le chef de mission décide de chaque étape, jamais de boucle cachée. `palabre mission stop <id>` arrête la suite et annule au mieux l'appel, sans retrait promis. `running` sans résultat, `uncertain` ou publication inconnue : vérifier avec l'humain, jamais supprimer un verrou pour réessayer. Aucun code, élargissement de droits, changement de chef de mission, merge ni release dans ce lot. Les identifiants et échanges restent locaux. Mettre à jour manuellement les copies installées du skill.
 
+Une limite d’usage structurée avec `--open` donne `usage-limit` (code 2), avec `retryAfter` si la CLI indique une reprise exploitable. Présenter l’heure et ses limites (date/fuseau inconnus si absents) ; ne jamais la déduire de la prose du modèle ni renvoyer automatiquement après cette heure. Mission garde le diagnostic et se met en pause ; si la délivrance ou la publication reste inconnue, elle reste `uncertain`. Attendre la décision du propriétaire.
+
 ## Reprises à ne pas confondre
 
 - **La session de l'agent hôte** (Claude Code, Codex) : gérée par l'hôte, pas par Palabre.

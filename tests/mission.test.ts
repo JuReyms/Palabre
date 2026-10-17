@@ -306,3 +306,33 @@ test("busy et uncertain donnent la prochaine commande après vérification humai
     assert.ok(help.includes(language === "fr" ? "équipier" : "teammate"));
   }
 });
+
+test("limite d'usage : Mission en pause, reprise conservée dans état, texte et export, sans renvoi", async t => {
+  for (const language of ["fr", "en"] as const) {
+    const w = await world(t, { language }); let calls = 0;
+    const result: RelayResultV1 = { ...replied(), status: "usage-limit", exitCode: 2, retryAfter: "15:16",
+      reply: undefined, delivery: { status: "persisted-no-reply", persisted: true, inActiveBranch: "unknown" },
+      error: { kind: "usage-limit", message: relayMessages[language].usageLimit("15:16") } };
+    const done = await stepMission(w.workspace, w.mission.id, { task: "consult", message: "Analyse" }, {
+      now: Date.now, relay: async () => { calls++; return result; }
+    });
+    assert.equal(done.status, "paused"); assert.equal(done.stopReason, "usage-limit");
+    assert.equal(done.steps[0]!.result?.retryAfter, "15:16");
+    const saved = await readMission(w.workspace, done.id);
+    assert.equal(calls, 1); assert.deepEqual(saved, done);
+    assert.ok(renderMissionText(saved, language).includes(result.error!.message));
+    const md = await readFile(missionPaths(w.workspace, done.id).export, "utf8");
+    assert.ok(md.includes(result.error!.message));
+  }
+});
+
+test("limite avec délivrance ou publication inconnue : Mission reste incertaine", async t => {
+  for (const unknown of ["delivery", "publication"] as const) {
+    const w = await world(t);
+    const result: RelayResultV1 = { ...replied(), status: "usage-limit", exitCode: 2,
+      delivery: { status: unknown === "delivery" ? "unknown" : "persisted-no-reply", persisted: true, inActiveBranch: "unknown" },
+      ...(unknown === "publication" ? { task: { name: "review", pr, publication: "unknown" } as const } : {}) };
+    const done = await stepMission(w.workspace, w.mission.id, { task: "consult", message: "Analyse" }, { now: Date.now, relay: async () => result });
+    assert.equal(done.status, "uncertain");
+  }
+});

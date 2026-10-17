@@ -197,6 +197,8 @@ function formatAgentsForHeader(options: DebateOptions): string {
 
 /** Données d'un export `.relay.md` (voir AGENTS.md, section "Relay externe"). */
 export interface RelayExport {
+  /** Indication de reprise CLI, sans date/fuseau implicites ni relance automatique. */
+  retryAfter?: number | string;
   readAccess?: ReadAccessDiagnostic;
   subject?: string;
   cli?: { path: string; version: string | null };
@@ -253,6 +255,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     [labels.nonce, report.nonce],
     [labels.startedAt, report.startedAt],
     ...(report.readAccess ? [[labels.readAccess, `${report.readAccess.status}; ${report.readAccess.reason}; failedCommands=${report.readAccess.failedCommands}`]] : []),
+    ...(report.retryAfter !== undefined ? [[labels.retryAfter, String(report.retryAfter)]] : []),
     ...(report.subject !== undefined ? [[labels.subject, report.subject]] : []),
     ...(report.cli ? [[labels.cliPath, report.cli.path], [labels.cliVersion, report.cli.version ?? labels.unknown]] : []),
     ...(report.task ? [

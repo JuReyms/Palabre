@@ -546,3 +546,62 @@ describe("B1 : lectures positionnelles sur fichiers factices", () => {
     });
   });
 });
+
+// Codex 0.163.0, relevé local du 17/10 : task_complete.error, code machine distinct du message.
+describe("B1 : limite d'usage structurée du seul tour corrélé", () => {
+  const limited = (message: unknown = "You've hit your usage limit. Try again at 3:16 PM.", turnId: string | undefined = "turn-a", code: unknown = "usage_limit_exceeded"): Row =>
+    ({ type: "event_msg", payload: { type: "task_complete", ...(turnId ? { turn_id: turnId } : {}),
+      last_agent_message: null, error: { message, codex_error_info: code } } });
+  test("code reconnu, heure 12 h normalisée, réception conservée sans réponse", () => {
+    const r = observe([user(), bound(), limited()]);
+    assert.deepEqual(r, { status: "failed", persisted: true, reason: "usage-limit", turnId: "turn-a", retryAfter: "15:16" });
+    assert.deepEqual(settleOpenDelivery(r, true), { status: "persisted-no-reply", persisted: true });
+  });
+  for (const [message, retryAfter] of [
+    ["Retry at 00:10", "00:10"], ["Try again at 12:00 AM", "00:00"],
+    ["Try again at 12:00 PM", "12:00"], ["Try again in 45 seconds", 45],
+    ["Try again at 2026-10-18T10:00:00Z", "2026-10-18T10:00:00.000Z"],
+    ["Usage limit", undefined], ["Try again at 25:16", undefined], [null, undefined],
+    ["Try again at 3:70 PM", undefined]
+  ] as const) {
+    test(`indication de reprise ${String(message)}`, () => {
+      const r = observe([user(), bound(), limited(message)]);
+      assert.equal(r.reason, "usage-limit"); assert.equal(r.retryAfter, retryAfter);
+      if (retryAfter === undefined) assert.equal("retryAfter" in r, false);
+    });
+  }
+  test("code reconnu sans message : limite conservée, aucune heure inventée", () => {
+    const row = limited(); delete (row.payload as Row).error;
+    (row.payload as Row).error = { codex_error_info: "usage_limit_exceeded" };
+    assert.equal(observe([user(), bound(), row]).reason, "usage-limit");
+    assert.equal(observe([user(), bound(), row]).retryAfter, undefined);
+  });
+  test("prose du modèle, erreur sans code et token_count ne classent pas une limite", () => {
+    const text = "You've hit your usage limit. Try again at 3:16 PM.";
+    assert.equal(observe([user(), bound(), final("turn-a", text), complete("turn-a", text)]).status, "replied");
+    for (const code of ["other", null, { usage_limit_exceeded: true }]) {
+      const r = observe([user(), bound(), limited(text, "turn-a", code)]);
+      assert.equal(r.reason, "completion-error"); assert.equal(r.retryAfter, undefined);
+    }
+    const row = limited(); delete ((row.payload as Row).error as Row).codex_error_info;
+    assert.equal(observe([user(), bound(), row]).reason, "completion-error");
+    const token: Row = { type: "event_msg", payload: { type: "token_count", turn_id: "turn-a", rate_limits: { used_percent: 100 } } };
+    assert.equal(observe([user(), bound(), token, final(), complete()]).status, "replied");
+  });
+  test("erreur étrangère, sans liaison ou avant la référence : ignorée", () => {
+    for (const row of [limited(undefined, "other"), limited(undefined, ""), { type: "task_complete", error: { codex_error_info: "usage_limit_exceeded" } }]) {
+      const r = observe([...success(), row]);
+      assert.equal(r.status, "replied"); assert.equal(r.retryAfter, undefined);
+    }
+    const before = prefix + lines([limited()]);
+    const r = inspectOpenReply(before + lines([started(), ...success()]), { ...request, baseline: captureOpenBaseline(before) });
+    assert.equal(r.status, "replied"); assert.equal(r.retryAfter, undefined);
+  });
+  test("enveloppe altérée, terminaison double ou mal ordonnée : aucune limite attribuée", () => {
+    const altered = observe([user(ENVELOPE + " altérée"), bound(), limited()]);
+    assert.equal(altered.status, "ambiguous"); assert.equal(altered.retryAfter, undefined);
+    for (const rows of [[user(), bound(), limited(), complete()], [user(), limited(), bound()]]) {
+      const r = observe(rows); assert.notEqual(r.reason, "usage-limit"); assert.equal(r.retryAfter, undefined);
+    }
+  });
+});

@@ -27,6 +27,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Fixed
 
+- Relay `--open` reconnaît la limite structurée Codex du tour corrélé (`usage-limit`, code 2), au lieu de `cli-failure`. Reprise CLI dans le message, le champ optionnel `retryAfter` du JSON v1 et l’export ; aucune date ni aucun fuseau déduits d’une heure seule. Mission conserve le diagnostic et se met en pause sur une limite connue, sans renvoi automatique (#41, point 3 seulement). Aide, guides FR/EN et skill mis à jour ; rafraîchir manuellement les copies installées du skill.
+
 - Relay et Mission signalent l'erreur Windows/Codex `CreateProcessAsUserW failed: 5` au démarrage des commandes de lecture (`read-unavailable`/2), sans perdre réponse, identité ou délivrance. Mission se met en pause ; la tâche review refuse toute publication GitHub (`review-failed`/9, `not-attempted`). Les messages nomment l'alias Microsoft Store comme cause probable à vérifier et renvoient au dépannage ; l'export traduit « Accès en lecture ». Aucun réglage validé pour imposer PowerShell natif à ce parcours Codex 0.163.0, aucun changement de sandbox ni renvoi automatique (#128). Aide, guides FR/EN et skill mis à jour ; les copies déjà installées du skill doivent être rafraîchies manuellement.
 
 - La synchronisation des agents à l'accueil TUI et avec `palabre config --sync-agents` conserve les commandes configurées avec un chemin absolu (POSIX, Windows ou UNC), même si une autre installation est détectée ou si le chemin est introuvable. Les noms simples et chemins relatifs continuent d'être synchronisés (#117). Les copies déjà installées du skill nécessitent une mise à jour manuelle.

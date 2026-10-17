@@ -74,6 +74,8 @@ export interface OpenQueueReport {
 /** Résultat d'un relay B1, avant mise en forme par la commande. */
 export interface OpenRelayResult {
   outcome: RelayOutcome;
+  /** Reprise fournie par l'erreur structurée du seul tour corrélé, sans planifier de renvoi. */
+  retryAfter?: number | string;
   delivery: DeliveryVerdict;
   reply?: string;
   identity: SessionIdentity;
@@ -218,12 +220,13 @@ export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): 
     // Une observation `replied` ne vaut réponse que si l'issue l'est aussi (jamais après un échec du déposant).
     const settled = settleOpenDelivery(final.status === "replied" ? current : { ...current, status: current.status === "replied" ? "awaiting-reply" : current.status }, true, persisted);
     // Relevé du tour seulement quand l'issue repose sur ce tour : jamais après annulation ou échéance.
-    const context = (final.status === "replied" && current.status === "replied") || (final.status === "cli-failure" && current.status === "failed")
+    const context = (final.status === "replied" && current.status === "replied") || (["cli-failure", "usage-limit"].includes(final.status) && current.status === "failed")
       ? current.context
       : undefined;
     const { model, ...permissions } = context ?? {};
     return {
       outcome: final,
+      ...(final.status === "usage-limit" && current.retryAfter !== undefined ? { retryAfter: current.retryAfter } : {}),
       delivery: { status: settled.status, persisted: settled.persisted, inActiveBranch: "unknown" },
       ...(final.status === "replied" && settled.reply !== undefined ? { reply: settled.reply } : {}),
       identity: final.status === "replied" ? "same-as-target" : "unavailable",
@@ -280,5 +283,6 @@ export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): 
   }
   const terminal = observation!;
   if (terminal.status === "replied") return finish(outcome("replied"));
+  if (terminal.status === "failed" && terminal.reason === "usage-limit") return finish(outcome("usage-limit"));
   return finish(outcome(terminal.status === "failed" ? "cli-failure" : "no-valid-reply"));
 }
