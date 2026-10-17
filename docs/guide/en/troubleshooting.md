@@ -20,6 +20,18 @@ To get raw output suitable for logs or scripts:
 palabre doctor --terminal
 ```
 
+## Codex on Windows: error 5 despite read-only access
+
+`CreateProcessAsUserW failed: 5` here means Codex could not start a command, even to read. On the machine tested with Codex 0.163.0, the same read under `:read-only` succeeds with native Windows PowerShell and fails with the `WindowsApps\pwsh.exe` alias. Check the selected shell rather than concluding that the entire `unelevated` sandbox is unusable.
+
+**No known, validated solution yet to force native PowerShell in this Relay workflow with Codex 0.163.0; tracked in [#128](https://github.com/JuReyms/Palabre/issues/128).** The owner can follow that issue; no configuration change is requested for now.
+
+`[windows] shell_path` already pointed to native PowerShell in the tested machine's configuration, yet Codex launched the Microsoft Store alias. This setting is absent from the [official Codex 0.163.0 schema](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/core/config.schema.json): do not present it as supported configuration. This version's [shell selection code](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/shell-command/src/shell_detect.rs) looks for `pwsh` before `powershell`. A successful read with an explicitly selected executable does not establish how to enforce that choice for all commands in a resumed session.
+
+PALABRE changes neither shell selection nor machine security. Do not enable writes or unrestricted access to bypass the failure. Switching to `elevated` remains a separate owner decision, not a solution demonstrated by these tests.
+
+Relay preserves the reply but reports `read-unavailable`/2 if this error is observed in Codex command events. Mission pauses; the review task does not publish the review (`review-failed`/9, `not-attempted`). Do not resend automatically. See evidence, limits and JSON fields in the [Relay guide](/en/usage/relay).
+
 ## Palabre cannot find my configuration
 
 Typical message:

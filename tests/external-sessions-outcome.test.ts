@@ -40,6 +40,7 @@ describe("codes de sortie", () => {
   test("table conforme au contrat (AGENTS.md, section Relay externe)", () => {
     assert.deepEqual({ ...RELAY_EXIT_CODES }, {
       "replied": 0,
+      "read-unavailable": 2,
       "review-failed": 9,
       "internal-error": 1,
       "cli-failure": 2,

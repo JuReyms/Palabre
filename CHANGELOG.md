@@ -23,6 +23,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Fixed
 
+- Relay et Mission signalent l'erreur Windows/Codex `CreateProcessAsUserW failed: 5` au démarrage des commandes de lecture (`read-unavailable`/2), sans perdre réponse, identité ou délivrance. Mission se met en pause ; la tâche review refuse toute publication GitHub (`review-failed`/9, `not-attempted`). Les messages nomment l'alias Microsoft Store comme cause probable à vérifier et renvoient au dépannage ; l'export traduit « Accès en lecture ». Aucun réglage validé pour imposer PowerShell natif à ce parcours Codex 0.163.0, aucun changement de sandbox ni renvoi automatique (#128). Aide, guides FR/EN et skill mis à jour ; les copies déjà installées du skill doivent être rafraîchies manuellement.
+
 - La synchronisation des agents à l'accueil TUI et avec `palabre config --sync-agents` conserve les commandes configurées avec un chemin absolu (POSIX, Windows ou UNC), même si une autre installation est détectée ou si le chemin est introuvable. Les noms simples et chemins relatifs continuent d'être synchronisés (#117). Les copies déjà installées du skill nécessitent une mise à jour manuelle.
 - `doctor` et la disponibilité des agents/presets vérifient le fichier du chemin absolu configuré, sans lancer la CLI et sans présenter une autre installation du PATH comme valide (#117).
 - Chat ne se ferme plus sur une ligne vide : la conversation continue et `/end` exporte tous les échanges (#101).

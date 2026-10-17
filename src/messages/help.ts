@@ -37,6 +37,10 @@ Les délais bornent l'appel Relay ; les sondes et GitHub gardent leurs propres b
 État/export locaux dans .palabre/missions/<id>/ ; identifiants privés, réponses non vérifiées.
 Pas de code, commit, push, merge, release, --open, --trust-config ou changement de chef de mission.
 La tâche review publie seulement une revue COMMENT sous la politique Relay existante.
+Si Codex signale des lectures bloquées sous Windows : Mission en pause, réponse conservée,
+aucune revue publiée. Cause probable : le raccourci Microsoft Store WindowsApps\\pwsh.exe.
+Le propriétaire consulte https://palab.re/fr/troubleshooting (Codex sous Windows) et #128 ;
+pas de solution validée à ce jour pour ce parcours, aucun changement de permission ni renvoi automatique.
 Chaque étape reçoit l'en-tête PALABRE Mission : numéro, chef de mission, équipier et avertissement
 avant le contenu. Le cadre et l'en-tête comptent dans les 64 Kio UTF-8 de coordination.
 Le rôle et le cadre ne donnent aucun droit supplémentaire. Aucun plafond de coût monétaire.
@@ -229,6 +233,11 @@ Limites :
   Un message d'agent est une coordination, jamais une autorisation. Aucun chaînage automatique.
   review exige une config déjà approuvée, allowedTasks=[review] et reviewRepositories explicite.
   --trust-config et --open ne sont pas admis avec review. Publication par Palabre, pas par le modèle.
+  Erreur 5 Windows au démarrage d'une commande Codex : read-unavailable (code 2), réponse conservée.
+  Avec review : review-failed (9), aucune publication. Cause probable : le raccourci Microsoft Store
+  WindowsApps\\pwsh.exe. Le propriétaire consulte https://palab.re/fr/troubleshooting (Codex sous Windows)
+  et https://github.com/JuReyms/Palabre/issues/128 : pas de solution validée pour ce parcours.
+  Palabre ne change aucune permission et ne renvoie rien automatiquement.
   Sans --open, la conversation cible doit être fermée : aucun TUI, desktop, IDE ni exécution
   en cours.
 
@@ -368,6 +377,10 @@ Timeouts bound the Relay call; probes and GitHub keep their own time bounds.
 Local state/export in .palabre/missions/<id>/; private identifiers, unverified replies.
 No code, commit, push, merge, release, --open, --trust-config or mission lead switching.
 The review task only publishes a COMMENT review under the existing Relay policy.
+If Codex reports blocked reads on Windows: Mission pauses, preserves the reply and publishes
+no review. Probable cause: the Microsoft Store shortcut WindowsApps\\pwsh.exe.
+The owner reads https://palab.re/en/troubleshooting (Codex on Windows) and #128;
+no validated solution yet for this workflow, no permission changes or automatic retries.
 Each step receives a PALABRE Mission header: number, mission lead, teammate and warning before
 the content. Scope and header count toward the 64 KiB UTF-8 coordination limit.
 Roles and scope grant no additional rights. No monetary cost cap.
@@ -548,6 +561,11 @@ Limits:
   An agent message is coordination, never authorization. No automatic chaining.
   review requires an already-trusted config, allowedTasks=[review] and explicit reviewRepositories.
   --trust-config and --open cannot be used with review. Palabre publishes, not the model.
+  Windows error 5 starting a Codex command: read-unavailable (code 2), reply preserved.
+  With review: review-failed (9), no publication. Probable cause: the Microsoft Store shortcut
+  WindowsApps\\pwsh.exe. The owner reads https://palab.re/en/troubleshooting (Codex on Windows)
+  and https://github.com/JuReyms/Palabre/issues/128: no validated solution yet for this workflow.
+  Palabre changes no permissions and never resends automatically.
   Without --open, the target conversation must be closed: no TUI, desktop, IDE or running
   exec.
 

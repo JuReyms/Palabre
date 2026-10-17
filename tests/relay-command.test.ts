@@ -127,6 +127,31 @@ function palabre(world: World, argv: string[], env: Record<string, string> = {})
 const toClaude = ["--from", FROM, "--to", `claude:${CLAUDE_SESSION}`];
 const toCodex = ["--from", `claude:${CLAUDE_SESSION}`, "--to", `codex:${CODEX_SESSION}`];
 
+test("Codex répond mais les lectures échouent : JSON, texte et export signalent l'échec sans renvoi", async () => {
+  const w = makeWorld();
+  const r = await relay(w, [...toCodex, "Lis le dépôt", "--subject", "Revue du dépôt", "--trust-config", "--json"], { FAKE_CODEX_MODE: "read-blocked" });
+  assert.equal(r.code, 2); assert.equal(r.json.status, "read-unavailable");
+  assert.equal(r.json.reply, "Constat partiel : lectures bloquées.");
+  assert.equal(r.json.delivery.status, "replied"); assert.equal(r.json.identity, "same-as-target");
+  assert.deepEqual(r.json.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 1 });
+  assert.equal(r.json.subject, "Revue du dépôt");
+  const sent = r.calls.find(call => call.argv[0] === "exec")!.stdin as string;
+  assert.equal(sent.split("\n")[0], relayMessages.fr.envelopeHeader("claude", "codex"));
+  assert.equal(sent.split("\n")[1], relayMessages.fr.subjectLine("Revue du dépôt"));
+  assert.match(r.json.error.message, /WindowsApps\\pwsh\.exe/);
+  assert.match(r.json.error.message, /propriétaire.*https:\/\/palab\.re\/fr\/troubleshooting/);
+  assert.match(r.json.error.message, /issues\/128/);
+  assert.equal(r.calls.filter(c => c.argv[0] === "exec").length, 1);
+  const md = readFileSync(r.json.exportPath, "utf8");
+  assert.match(md, /Accès en lecture.*blocked/); assert.ok(!md.includes("| readAccess |"));
+  assert.ok(md.includes("| Objet | Revue du dépôt |"));
+  assert.ok(md.includes(r.json.reply)); assert.ok(md.includes(r.json.error.message));
+  const text = await relay(makeWorld(), [...toCodex, "Lis le dépôt", "--trust-config", "--language", "en", "--no-export"], { FAKE_CODEX_MODE: "read-blocked" });
+  assert.equal(text.code, 2); assert.match(text.stdout, /Constat partiel/);
+  assert.match(text.stderr, /WindowsApps\\pwsh\.exe/);
+  assert.match(text.stderr, /owner.*https:\/\/palab\.re\/en\/troubleshooting/);
+});
+
 test("objet explicite, en-tête traduit et métadonnées JSON/export ; absence sans objet", async () => {
   for (const language of ["fr", "en"] as const) {
     const w = makeWorld(); const subject = "Revue à faire";
@@ -190,6 +215,25 @@ test("mission CLI : création, une étape Relay factice, status après reprise e
   assert.equal(stopped.code, 0); assert.equal(stopped.json.mission.status, "stopped");
   const refused = await palabre(w, ["mission", "step", id, "pas de suite", "--json"]);
   assert.equal(refused.code, 8); assert.equal(refused.json.error.kind, "stopped"); assert.equal(refused.calls.length, 1);
+});
+
+test("mission CLI : en-tête compact conservé avec lecture bloquée, réponse et diagnostic en pause", async () => {
+  const w = makeWorld();
+  assert.equal((await palabre(w, ["config", "--trust-config", "--json"])).code, 0);
+  const start = await palabre(w, ["mission", "start", ...toCodex,
+    "--criteria", "Lectures vérifiables", "Lire le dépôt", "--json"]);
+  assert.equal(start.code, 0, start.stderr);
+  const id = start.json.mission.id;
+  const step = await palabre(w, ["mission", "step", id, "Lis le dépôt", "--json"], { FAKE_CODEX_MODE: "read-blocked" });
+  assert.equal(step.code, 2); assert.equal(step.json.mission.status, "paused");
+  const result = step.json.mission.steps[0].result;
+  assert.equal(result.status, "read-unavailable"); assert.equal(result.delivery.status, "replied");
+  assert.equal(result.reply, "Constat partiel : lectures bloquées."); assert.equal(result.readAccess.status, "blocked");
+  const calls = step.calls.filter(c => c.argv[0] === "exec");
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]!.stdin.split("\n")[0], relayMessages.fr.missionHeader(id, 1, "claude", "codex"));
+  const exported = readFileSync(step.json.exportPath, "utf8");
+  assert.ok(exported.includes(result.reply)); assert.ok(exported.includes(result.error.message));
 });
 
 test("mission CLI : review conserve le refus de politique, arguments d'écriture refusés", async () => {

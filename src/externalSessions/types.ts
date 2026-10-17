@@ -75,8 +75,17 @@ export type TargetDecision =
  */
 export type SessionIdentity = "same-as-target" | "mismatch" | "unavailable";
 
+/** Échec observé du lancement de commandes de lecture ; l'absence du champ ne prouve aucun accès. */
+export interface ReadAccessDiagnostic {
+  status: "blocked";
+  reason: "windows-process-access-denied";
+  failedCommands: number;
+}
+
 /** Interprétation de la sortie d'une CLI fournisseur, produite par son adapter. */
 export interface ExchangeInterpretation {
+  /** Diagnostic d'outils, indépendant de la réponse et de sa délivrance. */
+  readAccess?: ReadAccessDiagnostic;
   /** `true` si la CLI signale un échec (exit non nul, erreur déclarée, sortie incomplète). */
   isError: boolean;
   /** Réponse finale ; jamais renseignée quand `isError`. */
@@ -126,6 +135,7 @@ export type CertainRefusal = "target-busy" | "session-not-found";
  */
 export type RelayStatus =
   | "replied"
+  | "read-unavailable"
   | "review-failed"
   | "internal-error"
   | "cli-failure"

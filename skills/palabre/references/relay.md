@@ -57,7 +57,9 @@ palabre relay --from claude:<uuid> --to codex:<uuid> --message-file message.md -
 
 ## Lire le résultat
 
-`--json` écrit un seul objet `relay-result` v1 sur stdout, quelle que soit l'issue : `status`, `exitCode`, `reply` (seulement si `replied`), `delivery`, `identity`, `observedModels`, `error` (`kind`, `message`, `reason`), `exportPath`.
+`--json` écrit un seul objet `relay-result` v1 sur stdout, quelle que soit l'issue : `status`, `exitCode`, `reply` (conservée aussi après un échec de lecture ou de publication), `delivery`, `identity`, `observedModels`, `error` (`kind`, `message`, `reason`), `exportPath`.
+
+**Codex/Windows, sans `--open`** : l'erreur structurée de démarrage `CreateProcessAsUserW failed: 5` donne `read-unavailable`/2 et `readAccess: { status: "blocked", reason: "windows-process-access-denied", failedCommands: <nombre> }`. Réponse, identité et délivrance restent conservées. Avec review : `review-failed`/9, `task.error: "read-unavailable"`, `task.publication: "not-attempted"`, **aucune publication GitHub**. Mission se met en pause. Ne publiez pas vous-même une revue ainsi bloquée, ne modifiez pas la configuration de sécurité et ne renvoyez rien automatiquement. Cause probable à vérifier : le raccourci Microsoft Store `WindowsApps\pwsh.exe`. Le propriétaire consulte https://palab.re/fr/troubleshooting (Codex sous Windows) puis #128 ; aucune solution validée à ce jour pour ce parcours. `windows.shell_path` est absent du schéma 0.163.0 : ne pas le proposer comme correctif. L'absence de diagnostic ne prouve aucun accès ; une autre commande réussie n'annule pas le blocage. Ce détecteur ne couvre pas tous les échecs possibles et n'analyse pas la prose du modèle.
 
 | `delivery.status` | Que faire |
 | --- | --- |

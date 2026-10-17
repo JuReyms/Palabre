@@ -4,7 +4,7 @@
  *
  * Variables :
  *   FAKE_CODEX_MODE      comportement de `exec resume` : ok, mismatch, active-writer, not-found,
- *                        turn-failed, no-message, blank, two-completed, usage-limit, hang ;
+ *                        turn-failed, no-message, blank, two-completed, usage-limit, read-blocked, hang ;
  *   FAKE_CODEX_MCP       sortie brute de `codex mcp list --json` (défaut `[]`, peut être invalide) ;
  *   FAKE_CODEX_MCP_EXIT  code de sortie non nul simulé pour `codex mcp list` ;
  *   FAKE_CODEX_ROLLOUT   rollout de la cible, où le message reçu est ajouté (modes qui jouent un tour) ;
@@ -86,6 +86,14 @@ process.stdin.on("end", () => {
       { type: "event_msg", payload: { type: "task_complete", turn_id: turnId, last_agent_message: "FAKE-OPEN « été »" } }
     ];
     fs.appendFileSync(process.env.FAKE_CODEX_ROLLOUT, rows.map((row) => JSON.stringify(row)).join("\n") + "\n");
+    return;
+  }
+  if (mode === "read-blocked") {
+    turn(argv.at(-2), stdin, ["Constat partiel : lectures bloquées."]);
+    emit({ type: "item.completed", item: { id: "read-1", type: "command_execution", status: "failed", exit_code: -1,
+      command: "powershell -Command Get-Content package.json",
+      aggregated_output: "Failed to create unified exec process: CreateProcessAsUserW failed: 5 (Access denied.)" } });
+    emit({ type: "turn.completed", usage: {} });
     return;
   }
   const target = argv[argv.length - 2];

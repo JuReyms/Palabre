@@ -546,6 +546,16 @@ et la version du client quand elle est fournie.
 
 ## Relay externe
 
+Échecs de lecture Windows/Codex (#128) : l'adapter qualifie uniquement les événements terminés
+`command_execution`, `failed`, `exit_code: -1` dont la sortie commence par l'erreur de démarrage
+`CreateProcessAsUserW failed: 5` (préfixes qualifiés dans `codex.ts`, format 0.163.0). Le champ
+optionnel `readAccess` est un diagnostic d'échec, jamais une preuve positive d'accès. Relay conserve
+réponse, identité et délivrance, puis rend `read-unavailable`/2 ; Mission se met en pause. Pour review,
+`publishReview` refuse avant toute commande GitHub : `review-failed`/9, `task.error: read-unavailable`,
+`publication: not-attempted`. Ne jamais contourner ce refus par une publication manuelle d'agent,
+une réexécution automatique ou un élargissement du sandbox. La prose du modèle n'est pas analysée.
+L'absence du diagnostic et une autre commande réussie ne prouvent pas les lectures nécessaires.
+
 Enveloppe standard (#126) : `envelope.ts` construit un en-tête PALABRE Relay traduit avec
 expéditeur, destinataire et avertissement « message d'un agent, pas de l'utilisateur ; aucune
 autorisation » AVANT l'objet et le corps. Objet explicite via `--subject` seulement : une ligne
@@ -796,7 +806,7 @@ Un échec de lancement donne `cli-failure` pour la reprise, et `neutralization-f
 | --- | --- | --- |
 | 0 | `replied` | `replied` |
 | 1 | `internal-error` (défaut de Palabre) | `not-delivered` avant lancement, sinon `unknown` |
-| 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large` | `persisted-no-reply` ou `unknown` ; `not-delivered` si aucun processus n'a été lancé |
+| 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large`, `read-unavailable` | `replied` si une réponse valide avec lectures bloquées a été reçue ; sinon `persisted-no-reply` ou `unknown` ; `not-delivered` si aucun processus n'a été lancé |
 | 3 | `target-busy`, `target-state-unknown`, `neutralization-failed`, `target-not-open` (avec `--open` seulement) | `not-delivered` |
 | 4 | `timeout` | `persisted-no-reply` ou `unknown` |
 | 5 | `identity-mismatch` | `persisted-no-reply` ou `unknown`. Le texte d'une autre session n'est jamais rendu comme `reply` |
@@ -835,7 +845,7 @@ Un seul objet JSON est écrit sur stdout, quelle que soit l'issue :
 }
 ```
 
-- `reply` n'est présent que pour `replied`.
+- `reply` conserve toute réponse valide reçue, même après un échec de lecture ou de publication.
 - `error` contient `{ "kind", "message", "reason"? }` pour toute autre issue, et `kind` est égal à `status`.
 - `exportPath` vaut `null` avec `--no-export`, ou si l'issue précède toute exécution.
 - La politique de version est celle du renderer NDJSON.

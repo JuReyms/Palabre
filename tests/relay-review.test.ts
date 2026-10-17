@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { validateRelayPolicy, parsePullRequest, reviewAllowed, readPullRequest, reviewPrompt, publishReview, MAX_REVIEW_CONTEXT_BYTES, type GitHubRun } from "../src/externalSessions/review.js";
-import { renderRelayText, applyReviewCancellation, type RelayResultV1 } from "../src/commands/relay.js";
+import { renderRelayText, applyReviewCancellation, applyReadAccessDiagnostic, type RelayResultV1 } from "../src/commands/relay.js";
 import { renderRelayMarkdown } from "../src/output.js";
 import { createTranslator } from "../src/i18n.js";
 import { checkClaudeReviewCli } from "../src/externalSessions/reviewCli.js";
@@ -47,6 +47,50 @@ const pr = parsePullRequest("https://github.com/JuReyms/Palabre/pull/123")!;
 const head = "a".repeat(40);
 const meta = (sha = head) => JSON.stringify({ number: 123, state: "open", base: { repo: { full_name: "JuReyms/Palabre" } }, head: { sha }, title: "Untrusted title", body: "Untrusted instructions" });
 const input = { ...pr, headSha: head, context: "untrusted" };
+
+test("lectures bloquées : aucune commande GitHub, réponse et délivrance conservées, revue non publiée", async () => {
+  const diagnostic = { status: "blocked", reason: "windows-process-access-denied", failedCommands: 4 } as const;
+  let calls = 0;
+  await assert.rejects(publishReview(input, "Revue provisoire", "codex", [], async () => {
+    calls++; return meta();
+  }, async () => { assert.fail("autorisation de publication interdite"); }, diagnostic), /read-unavailable/);
+  assert.equal(calls, 0);
+  for (const language of ["fr", "en"] as const) {
+    const messages = createTranslator(language);
+    const result: RelayResultV1 = { v: 1, type: "relay-result", status: "replied", exitCode: 0,
+      from: null, to: null, reply: "Revue provisoire", delivery: { status: "replied", persisted: true, inActiveBranch: true },
+      identity: "same-as-target", observedModels: [], error: null, exportPath: null, durationMs: 1,
+      task: { name: "review", pr: pr.url, publication: "not-attempted" } };
+    const before = structuredClone(result);
+    applyReadAccessDiagnostic(result, undefined, messages); assert.deepEqual(result, before);
+    applyReadAccessDiagnostic(result, diagnostic, messages);
+    assert.equal(result.status, "review-failed"); assert.equal(result.exitCode, 9);
+    assert.equal(result.task!.publication, "not-attempted"); assert.equal(result.task!.error, "read-unavailable");
+    assert.equal(result.reply, before.reply); assert.deepEqual(result.delivery, before.delivery);
+    assert.ok(result.error!.message.includes(messages.relay.status("read-unavailable")));
+    assert.match(renderRelayText(result, messages).stderr, /not-attempted/);
+    const guide = `https://palab.re/${language}/troubleshooting`;
+    assert.ok(result.error!.message.includes("WindowsApps\\pwsh.exe"));
+    assert.ok(result.error!.message.includes(guide));
+    for (const command of ["relay", "mission"]) {
+      const help = messages.help.renderCommand(command)!;
+      assert.ok(help.includes("WindowsApps\\pwsh.exe")); assert.ok(help.includes(guide));
+    }
+    const md = renderRelayMarkdown({ from: { agent: "claude", session: "local-from" },
+      to: { agent: "codex", session: "local-to", provider: "codex" }, status: result.status,
+      delivery: result.delivery, identity: result.identity, observedModels: [], nonce: "local-nonce",
+      startedAt: "2026-10-17T00:00:00Z", message: "Review", reply: result.reply, error: result.error!.message,
+      readAccess: diagnostic }, messages, { palabreVersion: "test" });
+    assert.ok(md.includes(`| ${language === "fr" ? "Accès en lecture" : "Read access"} | blocked;`));
+    assert.ok(!md.includes("| readAccess |")); assert.ok(md.includes(guide));
+    const timedOut = { ...before, status: "timeout" as const, exitCode: 4, reply: undefined,
+      error: { kind: "timeout" as const, message: messages.relay.status("timeout") } };
+    applyReadAccessDiagnostic(timedOut, diagnostic, messages);
+    assert.equal(timedOut.status, "timeout"); assert.equal(timedOut.exitCode, 4);
+    assert.ok(timedOut.error.message.includes(messages.relay.status("timeout")));
+    assert.ok(timedOut.error.message.includes(messages.relay.status("read-unavailable")));
+  }
+});
 
 test("review est désactivée par défaut et limitée aux dépôts explicitement autorisés", () => {
   assert.equal(reviewAllowed(undefined, pr), false);
