@@ -9,8 +9,37 @@ import { randomBytes } from "node:crypto";
 import type { RelayMessages } from "../messages/relay.js";
 import type { InvalidRequestReason, SessionRef } from "./types.js";
 
-/** Taille maximale du message relayé, en octets UTF-8. */
+/** Taille maximale de l'enveloppe de coordination, en octets UTF-8 (hors contexte PR). */
 export const MAX_RELAY_MESSAGE_BYTES = 64 * 1024;
+/** Objet explicite : une ligne, 200 points de code au plus. */
+export const MAX_RELAY_SUBJECT_CHARACTERS = 200;
+
+/** En-tête transmis par Mission via l'API interne, jamais par une option CLI. */
+export interface MissionEnvelopeHeader { kind: "mission"; id: string; step: number }
+
+/** Entrées déjà validées par la commande Relay ou le contrôleur Mission. */
+export interface RelayEnvelopeInput {
+  from: SessionRef;
+  to: SessionRef;
+  nonce: string;
+  message: string;
+  subject?: string;
+  header?: MissionEnvelopeHeader;
+}
+
+/** Refuse les objets multilignes, vides, trop longs et les contrôles de rendu. */
+export function validateRelaySubject(subject: string): ValidationResult<string> {
+  if (!subject.trim() || [...subject].length > MAX_RELAY_SUBJECT_CHARACTERS || /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(subject)) {
+    return { ok: false, reason: "invalid-arguments" };
+  }
+  return { ok: true, value: subject };
+}
+
+/** Validation de la métadonnée interne avant toute lecture ou exécution Relay. */
+export function validMissionHeader(header: MissionEnvelopeHeader): boolean {
+  return header?.kind === "mission" && typeof header.id === "string" && isSessionId(header.id)
+    && Number.isSafeInteger(header.step) && header.step >= 1 && header.step <= 100;
+}
 
 /** Forme 8-4-4-4-12 hexadécimale, seule forme d'identifiant observée chez Codex et Claude Code. */
 const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -61,34 +90,31 @@ export function createNonce(): string {
   return `PR-${randomBytes(8).toString("hex")}`;
 }
 
-/**
- * Construit le texte transmis à la cible : en-tête avec le nonce, expéditeur, consigne de réponse,
- * puis le message inchangé.
- */
-export function buildEnvelope(input: { from: SessionRef; nonce: string; message: string }, messages: RelayMessages): string {
-  return [
-    messages.envelopeHeader(input.nonce),
-    messages.envelopeFrom(input.from.agent, input.from.sessionId),
-    messages.envelopeNotice,
-    messages.envelopeReplyHint,
-    "",
-    input.message
-  ].join("\n");
+/** Texte inline Markdown : ni l'objet ni les noms d'agents ne peuvent fermer leur mise en forme. */
+function inline(text: string): string { return text.replace(/[\\`*_{}\[\]()<>#+.!|~-]/g, "\\$&"); }
+
+/** En-tête compact avant le corps inchangé ; provenance technique et nonce en fin. */
+function buildRelayEnvelope(input: RelayEnvelopeInput, messages: RelayMessages, open: boolean): string {
+  const from = inline(input.from.agent), to = inline(input.to.agent);
+  const title = input.header
+    ? messages.missionHeader(input.header.id, input.header.step, from, to)
+    : messages.envelopeHeader(from, to);
+  return [title, ...(input.subject !== undefined ? [messages.subjectLine(inline(input.subject))] : []), "",
+    input.message, "", "---", messages.envelopeProvenance(input.from.sessionId, input.nonce),
+    open ? messages.openEnvelope.notice : messages.envelopeNotice,
+    open ? messages.openEnvelope.replyHint : messages.envelopeReplyHint].join("\n");
+}
+
+/** Variante de reprise en lecture seule ; le nonce reste présent dans le message utilisateur. */
+export function buildEnvelope(input: RelayEnvelopeInput, messages: RelayMessages): string {
+  return buildRelayEnvelope(input, messages, false);
 }
 
 /**
  * Enveloppe de `--open` (B1) : la cible garde ses outils et permissions. Le texte annonce un
  * expéditeur déclaré non authentifié et une demande d'un autre agent, jamais une autorisation
- * humaine. Le nonce figure dans l'en-tête : le lecteur exige l'enveloppe exacte.
+ * humaine. Le nonce figure en pied de message : le lecteur exige toujours l'enveloppe exacte.
  */
-export function buildOpenEnvelope(input: { from: SessionRef; nonce: string; message: string }, messages: RelayMessages): string {
-  const open = messages.openEnvelope;
-  return [
-    open.header(input.nonce),
-    open.from(input.from.agent, input.from.sessionId),
-    open.notice,
-    open.replyHint,
-    "",
-    input.message
-  ].join("\n");
+export function buildOpenEnvelope(input: RelayEnvelopeInput, messages: RelayMessages): string {
+  return buildRelayEnvelope(input, messages, true);
 }

@@ -11,6 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
 import { relayMessages } from "../src/messages/relay.js";
+import { buildEnvelope, MAX_RELAY_MESSAGE_BYTES } from "../src/externalSessions/envelope.js";
 import { npmPowerShellShim } from "./fixtures/external-sessions/npm-shim.js";
 
 const entry = path.resolve(".tmp", "test-dist", "src", "index.js");
@@ -126,6 +127,47 @@ function palabre(world: World, argv: string[], env: Record<string, string> = {})
 const toClaude = ["--from", FROM, "--to", `claude:${CLAUDE_SESSION}`];
 const toCodex = ["--from", `claude:${CLAUDE_SESSION}`, "--to", `codex:${CODEX_SESSION}`];
 
+test("objet explicite, en-tête traduit et métadonnées JSON/export ; absence sans objet", async () => {
+  for (const language of ["fr", "en"] as const) {
+    const w = makeWorld(); const subject = "Revue à faire";
+    const r = await relay(w, [...toClaude, "Question", "--subject", subject, "--language", language, "--trust-config", "--json"]);
+    assert.equal(r.code, 0, r.stderr); assert.equal(r.json.subject, subject);
+    const sent = r.calls.find(call => call.argv.includes("--resume"))!.stdin as string;
+    assert.equal(sent.split("\n")[0], relayMessages[language].envelopeHeader("codex", "claude"));
+    assert.equal(sent.split("\n")[1], relayMessages[language].subjectLine(subject));
+    assert.ok(sent.indexOf("PR-") > sent.indexOf("Question"));
+    const md = readFileSync(r.json.exportPath, "utf8");
+    assert.ok(md.includes(`| ${relayMessages[language].export.subject} | ${subject} |`));
+    const plain = await relay(makeWorld(), [...toClaude, "Question", "--trust-config", "--no-export", "--json"]);
+    assert.equal(plain.code, 0); assert.equal(Object.hasOwn(plain.json, "subject"), false);
+  }
+});
+
+test("objet invalide ou options d'en-tête Mission en CLI : refus sans commande d'agent", async () => {
+  for (const extra of [["--subject", "a", "--subject", "b"], ["--subject=x"], ["--subject", "x\ny"],
+    ["--subject", "x".repeat(201)], ["--subject", "\u202ex"], ["--subject", " "],
+    ["--header", "mission"], ["--mission", CLAUDE_SESSION]]) {
+    const w = makeWorld();
+    const r = await relay(w, [...toClaude, "Question", "--json", ...extra]);
+    assert.equal(r.code, 8); assert.equal(r.json.delivery.status, "not-delivered"); assert.equal(r.calls.length, 0);
+  }
+});
+
+test("borne de 64 Kio sur l'enveloppe entière, objet et caractères UTF-8 compris", async () => {
+  const subject = "é".repeat(200);
+  const base = buildEnvelope({ from: { agent: "codex", sessionId: FROM.split(":")[1]! },
+    to: { agent: "claude", sessionId: CLAUDE_SESSION }, nonce: "PR-0000000000000000", message: "", subject }, relayMessages.fr);
+  const body = "x".repeat(MAX_RELAY_MESSAGE_BYTES - Buffer.byteLength(base));
+  const acceptedWorld = makeWorld(), file = path.join(acceptedWorld.base, "body.txt");
+  writeFileSync(file, body);
+  const accepted = await relay(acceptedWorld, [...toClaude, "--message-file", file, "--subject", subject, "--trust-config", "--no-export", "--json"]);
+  assert.equal(accepted.code, 0, accepted.stderr);
+  assert.equal(Buffer.byteLength(accepted.calls.find(c => c.argv.includes("--resume"))!.stdin), MAX_RELAY_MESSAGE_BYTES);
+  writeFileSync(file, body + "x");
+  const refused = await relay(makeWorld(), [...toClaude, "--message-file", file, "--subject", subject, "--trust-config", "--json"]);
+  assert.equal(refused.code, 8); assert.equal(refused.json.error.reason, "message-too-large"); assert.equal(refused.calls.length, 0);
+});
+
 test("mission CLI : création, une étape Relay factice, status après reprise et stop", async () => {
   const w = makeWorld();
   const approved = await palabre(w, ["config", "--trust-config", "--json"]);
@@ -139,6 +181,7 @@ test("mission CLI : création, une étape Relay factice, status après reprise e
   assert.equal(step.json.type, "mission-result"); assert.equal(step.json.mission.steps.length, 1);
   assert.equal(step.json.mission.steps[0].result.reply, "FAKE-OK");
   assert.equal(step.calls.length, 1); assert.ok(step.calls[0]!.argv.includes("--permission-mode"));
+  assert.equal(step.calls[0]!.stdin.split("\n")[0], relayMessages.fr.missionHeader(id, 1, "codex", "claude"));
   assert.ok(step.calls[0]!.argv.includes("Read,Glob,Grep")); assert.ok(!step.calls[0]!.argv.includes("--dangerously-skip-permissions"));
   assert.ok(existsSync(step.json.exportPath));
   const status = await palabre(w, ["mission", "status", id, "--json"]);
@@ -266,8 +309,8 @@ describe("palabre relay : réponse", () => {
     assert.match(exported, /Peux-tu relire ce plan \?/);
     assert.match(exported, /FAKE-OK/);
     assert.equal(result.calls.length, 1);
-    assert.match(result.calls[0]!.stdin, /Peux-tu relire ce plan \?$/);
-    assert.match(result.calls[0]!.stdin, /^\[Message relayé par palabre relay · réf\. PR-[0-9a-f]{16}\]/);
+    assert.match(result.calls[0]!.stdin, /\n\nPeux-tu relire ce plan \?\n\n---\n/);
+    assert.match(result.calls[0]!.stdin, /^📧 \*\*PALABRE Relay\*\* · codex → claude ·/);
     assert.ok(existsSync(path.join(world.home, ".palabre", "trusted-configs.json")), "approbation enregistrée dans le dossier personnel jetable");
   });
 
@@ -307,7 +350,7 @@ describe("palabre relay : réponse", () => {
     const result = await relay(world, [...toClaude, "--message-file", file, "--trust-config", "--json", "--no-export"]);
     assert.equal(result.code, 0, result.stderr);
     const stdin = result.calls[0]!.stdin;
-    assert.ok(stdin.endsWith("Sujet accentué : éèàçœ\nDeuxième ligne"), JSON.stringify(stdin.slice(-60)));
+    assert.ok(stdin.includes("\n\nSujet accentué : éèàçœ\nDeuxième ligne\n\n---\n"), JSON.stringify(stdin));
     assert.equal(stdin.includes("\r\n"), false);
   });
 
@@ -592,10 +635,10 @@ describe("palabre relay --open", () => {
       const [call] = result.calls;
       assert.deepEqual(call!.argv.slice(0, 4), ["queue", "--thread", CODEX_SESSION, "--message"]);
       const envelope = call!.argv[4]!;
-      assert.match(envelope, /^\[Message relayé par palabre relay --open · réf\. PR-[0-9a-f]{16}\]/);
+      assert.match(envelope, /^📧 \*\*PALABRE Relay\*\* · claude → codex ·/);
       assert.match(envelope, /expéditeur déclaré, non authentifié/);
       assert.match(envelope, /n'autorise aucune action/);
-      assert.ok(envelope.endsWith("Relis ce plan"));
+      assert.ok(envelope.includes("\n\nRelis ce plan\n\n---\n"));
       assert.equal(call!.stdin, "");
       assert.equal(path.resolve(call!.cwd).toLowerCase(), path.resolve(world.workspace).toLowerCase());
       const exported = readFileSync(json.exportPath, "utf8");
