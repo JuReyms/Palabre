@@ -142,11 +142,16 @@ jobs:
               --base main \
               --head dev \
               --title "docs: deploy ${RELEASE_TAG} to production" \
-              --body "Proposition automatique après la publication de Palabre CLI ${RELEASE_TAG}. La fusion de dev vers main déclenchera le build Netlify de production. Workflow source : ${WORKFLOW_URL}" 2>/dev/null)"; then
+              --body "Proposition automatique après la publication de Palabre CLI ${RELEASE_TAG}. La fusion de dev vers main déclenchera le build Netlify de production. Workflow source : ${WORKFLOW_URL}" 2>pr-create.err)"; then
               echo "Created production deployment PR: $PR_URL"
             else
               PR_URL="$COMPARE_URL"
-              echo "::warning title=palabre-web PR not created::Create the production deployment PR manually: $PR_URL"
+              # Garde l'erreur de gh visible : un droit manquant sur DOCS_REPO_TOKEN
+              # (Pull requests en écriture sur palabre-web) ne doit plus passer inaperçu.
+              PR_ERROR="$(tail -n 1 pr-create.err 2>/dev/null || true)"
+              echo "gh pr create failed:"
+              cat pr-create.err 2>/dev/null || true
+              echo "::warning title=palabre-web PR not created::Create the production deployment PR manually: $PR_URL (gh: ${PR_ERROR:-no error output}). For a permission error, grant DOCS_REPO_TOKEN Pull requests read and write on JuReyms/palabre-web."
             fi
           elif gh pr comment "$PR_URL" \
             --body "Palabre CLI ${RELEASE_TAG} a été publiée. Cette PR dev vers main contient maintenant la version et le changelog correspondants. Workflow source : ${WORKFLOW_URL}"; then
