@@ -1,9 +1,9 @@
 ---
 title: Introduction
-description: Comprendre ce que fait Palabre, comment il orchestre vos agents IA et quelles garanties de confidentialité il apporte.
+description: Comprendre ce que fait PALABRE, comment il orchestre vos agents IA et quelles garanties de confidentialité il apporte.
 seo:
   title: Débats entre agents IA depuis le terminal
-  description: Palabre orchestre Claude Code, Codex et Ollama en débats structurés depuis votre terminal. Comprendre son fonctionnement et ce qui reste en local.
+  description: PALABRE orchestre Claude Code, Codex et Ollama en débats structurés depuis votre terminal. Comprendre son fonctionnement et ce qui reste en local.
 ---
 
 PALABRE fait coopérer les agents IA déjà installés sur votre machine pour **mieux décider avant d'agir**. Vous gardez vos outils, vos abonnements et vos modèles ; PALABRE organise les échanges et garde une trace Markdown.

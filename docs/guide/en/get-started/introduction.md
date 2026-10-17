@@ -1,9 +1,9 @@
 ---
 title: Introduction
-description: Understand what Palabre does, how it orchestrates your AI agents, and what privacy guarantees it provides.
+description: Understand what PALABRE does, how it orchestrates your AI agents, and what privacy guarantees it provides.
 seo:
   title: Multi-agent AI debates from your terminal
-  description: Palabre orchestrates Claude Code, Codex, and Ollama into structured debates from your terminal. See how it works and what stays on your machine.
+  description: PALABRE orchestrates Claude Code, Codex, and Ollama into structured debates from your terminal. See how it works and what stays on your machine.
 ---
 
 PALABRE lets the AI agents already installed on your machine cooperate to **make better decisions before acting**. You keep your tools, subscriptions and models; PALABRE organizes the exchanges and keeps a Markdown record.
