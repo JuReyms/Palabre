@@ -95,6 +95,20 @@ test("syncDetectedAgents refreshes commands for already configured known agents"
   assert.equal(config.agents.antigravity?.type, "cli-pty");
 });
 
+test("sync-agents et accueil TUI préservent le chemin choisi, sans annoncer de faux rafraîchissement", () => {
+  const discovery = noDetectedTools();
+  discovery.claude = { available: true, command: "claude.exe", path: "C:/Old/claude.exe" };
+  const config = structuredClone(exampleConfig);
+  const cli = config.agents.claude;
+  if (cli.type !== "cli") throw Error("CLI required");
+  cli.command = "C:/Chosen/claude.exe";
+  const beforeArgs = structuredClone(cli.args);
+  const result = syncDetectedAgentsDetailed(config, discovery);
+  assert.equal(cli.command, "C:/Chosen/claude.exe");
+  assert.deepEqual(cli.args, beforeArgs);
+  assert.equal(result.changed, false);
+});
+
 test("syncDetectedAgentsDetailed reports command refreshes without new agents", () => {
   const discovery = noDetectedTools();
   discovery.claude = { available: true, command: "claude", path: "C:/bin/claude.cmd" };

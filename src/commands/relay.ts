@@ -46,6 +46,7 @@ import { createTranslator, resolveLanguage } from "../i18n.js";
 import type { Messages } from "../messages/index.js";
 import { writeRelayMarkdown } from "../output.js";
 import { optionalString } from "./shared.js";
+import { runRelayAllowRepo, reviewAuthorizationCommand } from "./relayAllowRepo.js";
 
 /** Timeout par défaut et bornes de `--timeout`, en secondes. */
 export const DEFAULT_RELAY_TIMEOUT_SECONDS = 600;
@@ -64,6 +65,8 @@ const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
  * NDJSON : un ajout optionnel ne change pas `v`.
  */
 export interface RelayResultV1 {
+  /** Human confirmation command; the agent may open it, but must never answer for the owner. */
+  remedy?: string;
   /** CLI inspected before a Claude review, including on compatibility refusal. */
   cli?: ReviewCliIdentity;
   /** Tâche autorisée, distincte de la délivrance du message. Présente uniquement avec --task. */
@@ -97,6 +100,7 @@ export interface RelayResultV1 {
 
 /** État partagé avec le gestionnaire d'erreur interne, pour qualifier la délivrance. */
 interface RelayContext {
+  remedy?: string;
   cli?: ReviewCliIdentity;
   task?: ReviewReport;
   startedAt: number;
@@ -145,6 +149,14 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
   };
   if (rawArgs.includes("--help") || rawArgs.includes("-h")) {
     console.log(context.messages.help.renderCommand("relay"));
+    return;
+  }
+  if (rawArgs[1] === "allow-repo") {
+    try { await runRelayAllowRepo(rawArgs.slice(2)); }
+    catch (error) {
+      console.error(sanitizeTerminalText(error instanceof Error ? error.message : context.messages.relay.invalidRequest("invalid-arguments")));
+      process.exitCode = 8;
+    }
     return;
   }
   const json = rawArgs.includes("--json");
@@ -212,15 +224,18 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   } catch {
     throw invalid("config-unavailable");
   }
-  if (pr) {
-    if (!reviewAllowed(config.relay, pr) || !(await isConfigTrusted(configPath))
-      || createHash("sha256").update(await readFile(configPath)).digest("hex") !== configFingerprint) throw invalid("task-not-allowed");
-    context.task = { name: "review", pr: pr.url, publication: "not-attempted" };
-  }
   try {
     context.messages = createTranslator(resolveLanguage({ explicitLanguage: optionalString(flags.language), configLanguage: config.language }));
   } catch {
     // Langue de config invalide : la langue de démarrage reste utilisée.
+  }
+  if (pr) {
+    if (!reviewAllowed(config.relay, pr) || !(await isConfigTrusted(configPath))
+      || createHash("sha256").update(await readFile(configPath)).digest("hex") !== configFingerprint) {
+      context.remedy = reviewAuthorizationCommand(pr.repository, configPath);
+      throw invalid("task-not-allowed", context.messages.relay.authorizationRequired(pr.repository, context.remedy));
+    }
+    context.task = { name: "review", pr: pr.url, publication: "not-attempted" };
   }
   if (defaultReviewMessage) message = context.messages.relay.defaultReviewMessage;
 
@@ -512,6 +527,7 @@ function buildResult(
     type: "relay-result",
     ...(context.task ? { task: context.task } : {}),
     ...(context.cli ? { cli: context.cli } : {}),
+    ...(context.remedy ? { remedy: context.remedy } : {}),
     ...(outcome.status === "target-busy" ? { retryable: true } : {}),
     status: outcome.status,
     exitCode: outcome.exitCode,

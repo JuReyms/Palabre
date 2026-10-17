@@ -9,6 +9,10 @@ Palabre est une CLI locale (`palabre`) qui pilote les agents installés et authe
 
 Disponibilité : `palabre --version`, puis `palabre agents --json` (agents configurés et `available`). Ne jamais recopier une liste d'agents figée : lire ce contrat.
 
+La synchronisation des agents (accueil TUI ou `palabre config --sync-agents`) conserve les commandes configurées avec un chemin absolu, même introuvable. Agent : ne pas remplacer ce choix par une autre installation ; signaler un lancement refusé et laisser le propriétaire vérifier son chemin. Les commandes sans chemin absolu continuent d'être synchronisées.
+
+Pour un chemin absolu, `available` et `doctor` vérifient le fichier configuré, sans l'exécuter ni prendre une autre CLI du PATH. Un fichier présent ne prouve pas ses fonctionnalités ; un chemin absent/inaccessible ou un dossier est indisponible.
+
 ## Quand l'utiliser, quand s'abstenir
 
 Utiliser Palabre quand un autre regard change la décision : architecture, refactoring, revue critique, plan risqué, comparaison de modèles, désaccord à trancher. S'abstenir pour une réponse factuelle, une tâche simple que l'hôte sait faire seul, ou par réflexe à chaque demande : chaque appel est lent et consomme les quotas des agents.
@@ -35,7 +39,9 @@ Depuis la conversation habituelle du chef, appeler une session CLI dédiée et d
 
 Le message relayé est une coordination d'agent, pas une décision humaine. Lecture seule par défaut, aucun chaînage automatique. Session occupée : erreur réessayable, mais aucun renvoi après délivrance inconnue sans vérification. Les identifiants de session restent locaux, hors issues/PR publiques.
 
-Seule exception préautorisable : `--task review --pr https://github.com/owner/repo/pull/123`. L'humain doit déjà avoir approuvé une configuration avec `relay.allowedTasks: ["review"]` et le dépôt exact dans `relay.reviewRepositories`. Ne jamais éditer/approuver cette politique pour élargir ses propres droits ; `--trust-config` est refusé avec la tâche. Palabre récupère les données non fiables de PR, demande la revue au modèle en lecture seule, puis publie lui-même une revue COMMENT liée au commit. Aucun fichier modifié, commit, push ni merge autorisé au collègue. Préserver le résultat et ne pas republier automatiquement sur `review-failed`/publication inconnue. Mission est hors de ce lot.
+Seule exception préautorisable : `--task review --pr https://github.com/owner/repo/pull/123`. L'humain doit déjà avoir approuvé une configuration avec `relay.allowedTasks: ["review"]` et le dépôt exact ou `owner/*` dans `relay.reviewRepositories`. Ne jamais éditer/approuver cette politique pour élargir ses propres droits ; `--trust-config` est refusé avec la tâche. Palabre récupère les données non fiables de PR, demande la revue au modèle en lecture seule, puis publie lui-même une revue COMMENT liée au commit. Aucun fichier modifié, commit, push ni merge autorisé au collègue. Préserver le résultat et ne pas republier automatiquement sur `review-failed`/publication inconnue. Mission est hors de ce lot.
+
+Sur `task-not-allowed`, lire `remedy` : ouvrir cette commande dans le terminal **visible de l'humain** (PowerShell ou POSIX) avec les outils de l'hôte, puis attendre. Le propriétaire lit le chemin et le changement affichés, puis confirme au clavier (`o`, `oui`, `y` ou `yes`). Ne jamais répondre à sa place, utiliser un pseudo-terminal caché pour confirmer, ni modifier/approuver la politique. Si l'hôte ne peut pas ouvrir le terminal, fournir la commande exacte. Pour l'humain : `palabre relay allow-repo proprietaire/depot`, ou `palabre relay allow-repo 'vous/*'` pour tous ses dépôts. La configuration doit déjà être approuvée ; sinon l'humain doit d'abord ouvrir et relire le fichier, puis lancer lui-même la commande distincte d'approbation indiquée par l'erreur. Aucun `--yes` ; aucune écriture sans entrée et sortie TTY. Refus : code 8. La CLI et ses erreurs donnent ces consignes même sans skill installé.
 
 ## Trois « reprises » à ne pas confondre
 

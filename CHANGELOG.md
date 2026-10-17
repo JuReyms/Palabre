@@ -6,16 +6,21 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Added
 
+- `palabre relay allow-repo proprietaire/depot` (ou `'proprietaire/*'`) autorise la tâche review après confirmation au clavier, sur la configuration locale ou globale ; le refus `task-not-allowed` fournit la commande dans `remedy` et guide l'agent vers le terminal visible du propriétaire (#118).
+- `allow-repo` exige une configuration déjà approuvée et refuse sans écriture en code 8 si le propriétaire répond non. `palabre config --config <fichier> --trust-config` permet désormais au propriétaire d'approuver aussi une configuration globale, après l'avoir relue ; allow-repo n'approuve que le contenu exact qu'il a écrit (#118).
 - `palabre relay` transmet un message à une conversation Codex ou Claude Code fermée et renvoie sa réponse en un seul appel : reprise en lecture seule renforcée, refus si la conversation est ouverte ou son état invérifiable, statut de délivrance sans renvoi automatique, sortie `--json` v1 et export `.relay.md`.
 - `palabre relay --open` (pilote, Codex sous Windows) dépose un message dans une conversation Codex ouverte, dans le TUI ou dans Codex desktop, par `codex queue`, puis rend sa réponse corrélée au bon tour. La conversation doit être ouverte (`target-not-open` sinon, sans dépôt) ; elle répond avec ses propres outils et permissions, sans garantie de lecture seule. Un seul délai couvre préparation, dépôt et attente ; un message déposé peut être traité plus tard, sans renvoi automatique. L'historique n'est jamais lu en entier. Le relay vers une conversation Claude Code ouverte reste à faire (#96).
 
 ### Changed
 
+- Les consignes d'autorisation sont disponibles dans l'aide, les erreurs et le skill. **Une copie déjà installée du skill n'est pas mise à jour automatiquement** : recopier `skills/palabre` dans son emplacement d'installation après la mise à jour.
 - Le README est réorganisé pour tous les niveaux : un tableau « Quel mode pour quoi ? » par ordre d'utilité (Débat, Relay, Ask, Chat), l'installation, le fonctionnement (contexte, synthèse en quatre sections, arrêt anticipé, exports, sessions) et les six rôles expliqués avec des combinaisons conseillées (#121).
 - Le skill `palabre` aide désormais l'agent à choisir entre Chat, Débat, Ask et Relay. Il couvre le pilotage de Chat par le flux NDJSON, distingue checkpoints Palabre et reprise d'une conversation externe, et documente l'installation pour Claude Code et Codex ainsi que la découverte dans les sessions neuves et reprises (#99).
 
 ### Fixed
 
+- La synchronisation des agents à l'accueil TUI et avec `palabre config --sync-agents` conserve les commandes configurées avec un chemin absolu (POSIX, Windows ou UNC), même si une autre installation est détectée ou si le chemin est introuvable. Les noms simples et chemins relatifs continuent d'être synchronisés (#117). Les copies déjà installées du skill nécessitent une mise à jour manuelle.
+- `doctor` et la disponibilité des agents/presets vérifient le fichier du chemin absolu configuré, sans lancer la CLI et sans présenter une autre installation du PATH comme valide (#117).
 - Chat ne se ferme plus sur une ligne vide : la conversation continue et `/end` exporte tous les échanges (#101).
 - En NDJSON, une erreur d'agent pendant Chat émet désormais un événement `error` (`phase: "chat"`), puis un seul `done` avec le chemin de l'export partiel, ou `null` si cet export échoue. Une annulation pendant l'attente d'un message termine aussi le flux, avec le code 130 (#101).
 - Une consultation Chat annonce le rôle effectif de l'agent consulté, rôle temporaire `--role-a` compris (#101).

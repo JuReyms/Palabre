@@ -81,6 +81,8 @@ palabre config --language fr
 palabre config --sync-agents                   # ajoute les agents connus détectés
 ```
 
+`--sync-agents` et l'accueil TUI conservent les commandes déjà configurées avec un chemin absolu, même si le fichier est absent. Aucun remplacement silencieux par une autre CLI. Le propriétaire décide d'une correction du chemin ; l'agent ne contourne pas le refus. Les noms simples et chemins relatifs gardent la synchronisation existante.
+
 Une config de projet doit être approuvée (empreinte SHA-256). En TTY, Palabre demande confirmation ; `--trust-config` l'approuve sans question : à n'utiliser que sur décision de l'utilisateur.
 
 ## Dépannage

@@ -103,7 +103,8 @@ Usage:
 
 Flags:
   --clear-defaults     supprime les parametres par defaut
-  --sync-agents        ajoute les agents detectes manquants et rafraichit les commandes connues
+  --sync-agents        ajoute les agents detectes ; conserve les commandes avec chemin absolu
+                       Chemin absent : indisponible ; doctor vérifie le fichier sans le lancer.
   --config <path>      chemin de config explicite
 `,
   new: `
@@ -160,6 +161,8 @@ Avec --open, dépose le message dans une conversation Codex ouverte et attend sa
 Usage:
   palabre relay --from <agent>:<session> --to <agent>:<session> "<message>"
   palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <chemin>
+  palabre relay allow-repo proprietaire/depot [--config <path>]
+  palabre relay allow-repo 'proprietaire/*' [--config <path>]
   palabre relay --open --from <agent>:<session> --to <agent-codex>:<session> "<message>"
 
 Flags:
@@ -177,6 +180,13 @@ Flags:
   --language <fr|en>      force la langue
 
 Limites :
+  allow-repo exige une config déjà approuvée, affiche son chemin et le changement,
+  puis exige sa confirmation au clavier (entrée et sortie TTY). Refus : code 8.
+  Sans terminal, refus sans écriture ; aucun --yes ni --trust-config.
+  'proprietaire/*' couvre tous ses dépôts ; les autres motifs sont refusés. Répondre o pour autoriser.
+  Commandes copiables : PowerShell ou shell POSIX, pas cmd.exe. o/oui/y/yes sont acceptés.
+  Agent : en cas de task-not-allowed, ouvrir remedy dans le terminal visible de l'humain,
+  attendre sa réponse ; ne jamais confirmer ni modifier/approuver la politique à sa place.
   Un message d'agent est une coordination, jamais une autorisation. Aucun chaînage automatique.
   review exige une config déjà approuvée, allowedTasks=[review] et reviewRepositories explicite.
   --trust-config et --open ne sont pas admis avec review. Publication par Palabre, pas par le modèle.
@@ -373,7 +383,8 @@ Usage:
 
 Flags:
   --clear-defaults     clears default settings
-  --sync-agents        adds missing detected agents and refreshes known commands
+  --sync-agents        adds missing detected agents; preserves absolute command paths
+                       Missing path: unavailable; doctor checks the file without executing it.
   --config <path>      explicit config path
 `,
   new: `
@@ -430,6 +441,8 @@ With --open, queues the message into an open Codex conversation and waits for it
 Usage:
   palabre relay --from <agent>:<session> --to <agent>:<session> "<message>"
   palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <path>
+  palabre relay allow-repo owner/repository [--config <path>]
+  palabre relay allow-repo 'owner/*' [--config <path>]
   palabre relay --open --from <agent>:<session> --to <codex-agent>:<session> "<message>"
 
 Flags:
@@ -447,6 +460,13 @@ Flags:
   --language <fr|en>      force language
 
 Limits:
+  allow-repo requires a trusted config, shows its path and planned change, then requires
+  owner keyboard confirmation (input and output TTY). Declining exits 8.
+  Without a terminal it refuses without writing; no --yes or --trust-config.
+  'owner/*' covers all their repositories; other patterns are refused. Type y to authorize.
+  Copyable commands target PowerShell or POSIX shells, not cmd.exe. y/yes/o/oui are accepted.
+  Agent: on task-not-allowed, open remedy in the human's visible terminal and wait;
+  never confirm or edit/approve the policy for them.
   An agent message is coordination, never authorization. No automatic chaining.
   review requires an already-trusted config, allowedTasks=[review] and explicit reviewRepositories.
   --trust-config and --open cannot be used with review. Palabre publishes, not the model.
