@@ -8,7 +8,7 @@
   <a href="https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode"><img src="https://img.shields.io/badge/VS%20Code-Marketplace-7C3AED?style=flat&colorA=18181B&logo=visualstudiocode&logoColor=white" alt="VS Code Marketplace"></a>
 </p>
 
-![Palabre CLI orchestrating a debate between AI agents](docs/assets/palabre-cli-orchestre-debates-between-AI-agents.png)
+![PALABRE CLI orchestrating a debate between AI agents](docs/assets/palabre-cli-orchestre-debates-between-AI-agents.png)
 
 [English](#english) | [Français](#français)
 
@@ -18,9 +18,11 @@ PALABRE lets the AI agents already installed on your machine work with you and w
 
 **Compatible agents:** Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe and Ollama (local).
 
-**Privacy:** Palabre CLI has no server. Your data only goes to the agents you choose. And with Ollama and a local model, nothing leaves your machine.
+**Privacy:** PALABRE CLI has no server. Your data only goes to the agents you choose. And with Ollama and a local model, nothing leaves your machine.
 
-Palabre does not replace your tools: it drives them. You keep your subscriptions, default models, terminal habits and local files.
+PALABRE does not replace your tools: it drives them. You keep your subscriptions, default models, terminal habits and local files.
+
+**Several modes, depending on your need:** Debate, Relay, Ask and Chat, detailed below.
 
 ### Which mode for what?
 
@@ -67,7 +69,7 @@ On first launch, the TUI creates the global configuration if needed and detects 
 
 ### How it works
 
-- **Palabre drives your CLIs.** Each agent runs with its own tool, account and default model. Palabre does not list models: `--model-a`, `--model-b` and `--summary-model` pass the raw value to the agent.
+- **PALABRE drives your CLIs.** Each agent runs with its own tool, account and default model. PALABRE does not list models: `--model-a`, `--model-b` and `--summary-model` pass the raw value to the agent.
 - **Context.** `--files` injects specific files (64 KiB per file, 192 KiB in total). `--context` scans folders with limits and exclusions. `--show-prompt` shows exactly what will be sent; `palabre context scan` previews the context.
 - **Final summary.** At the end of an Ask or a Debate, a summary agent writes four sections: **Consensus**, **Disagreements / uncertainties**, **Proposed actions**, **Conclusion**. Choose it with `--summary-agent`, or turn it off with `--no-summary`.
 - **Early stop.** A Debate (1 to 20 responses in total) can stop after a full round when an explicit agreement is detected. Turn it off with `--no-early-stop`.
@@ -109,7 +111,7 @@ For one session: `--role-a`, `--role-b`, or `/roles` in the TUI. To change an ag
 
 ### Compatible agents
 
-| Agent | How Palabre runs it |
+| Agent | How PALABRE runs it |
 | --- | --- |
 | Claude Code | `claude --print` |
 | Codex CLI | `codex exec` |
@@ -120,9 +122,9 @@ For one session: `--role-a`, `--role-b`, or `/roles` in the TUI. To change an ag
 
 ### Going further
 
-- **VS Code extension.** [Palabre for VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode) adds a sidebar to run Debate, Chat or Ask, attach workspace context, follow each session live and open its export. In Chat, you can switch the active agent or ask another agent for a one-off opinion. It stays a thin client: it launches the local `palabre` CLI and uses the public JSON/NDJSON contracts.
+- **VS Code extension.** [PALABRE for VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode) adds a sidebar to run Debate, Chat or Ask, attach workspace context, follow each session live and open its export. In Chat, you can switch the active agent or ask another agent for a one-off opinion. It stays a thin client: it launches the local `palabre` CLI and uses the public JSON/NDJSON contracts.
 - **Integrations.** Versioned JSON outputs: `palabre agents --json`, `palabre presets --json`, `palabre context scan --json`, and `--renderer ndjson` or `--json` to follow a debate event by event. The NDJSON v1 stream is a public integration API: compatible additions do not break v1, breaking changes change the `v` field.
-- **Skill for AI agents.** A ready-to-use skill teaches an AI agent when to use Palabre and which mode to choose. It follows the open [agentskills.io](https://agentskills.io) standard. Copy the `skills/palabre` folder to `~/.claude/skills/` (Claude Code) or `~/.agents/skills/` (Codex), or run `hermes skills install JuReyms/Palabre/skills/palabre` (Hermes Agent). After a Palabre update, copy the folder again. Details: [Palabre skill](https://palab.re/en/get-started/skill).
+- **Skill for AI agents.** A ready-to-use skill teaches an AI agent when to use PALABRE and which mode to choose. It follows the open [agentskills.io](https://agentskills.io) standard. Copy the `skills/palabre` folder to `~/.claude/skills/` (Claude Code) or `~/.agents/skills/` (Codex), or run `hermes skills install JuReyms/Palabre/skills/palabre` (Hermes Agent). After a PALABRE update, copy the folder again. Details: [PALABRE skill](https://palab.re/en/get-started/skill).
 
 ### Documentation
 
@@ -136,7 +138,7 @@ PALABRE runs locally and does not send data to a PALABRE-owned server. Data sent
 
 ```bash
 git clone https://github.com/JuReyms/Palabre.git
-cd Palabre
+cd PALABRE
 pnpm install
 pnpm build
 pnpm link --global
@@ -161,9 +163,11 @@ PALABRE fait travailler avec vous, et entre eux, les agents IA déjà installés
 
 **Agents compatibles :** Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe et Ollama (en local).
 
-**Confidentialité :** Palabre CLI n'a aucun serveur. Vos données ne vont qu'aux agents que vous choisissez. Et avec Ollama et un modèle local, rien ne quitte votre machine.
+**Confidentialité :** PALABRE CLI n'a aucun serveur. Vos données ne vont qu'aux agents que vous choisissez. Et avec Ollama et un modèle local, rien ne quitte votre machine.
 
-Palabre ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos modèles par défaut, vos habitudes de terminal et vos fichiers en local.
+PALABRE ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos modèles par défaut, vos habitudes de terminal et vos fichiers en local.
+
+**Plusieurs modes, selon votre besoin :** Débat, Relay, Ask et Chat, détaillés ci-dessous.
 
 ### Quel mode pour quoi ?
 
@@ -210,7 +214,7 @@ Au premier lancement, la TUI crée la configuration globale si nécessaire et d�
 
 ### Comment ça fonctionne
 
-- **Palabre pilote vos CLI.** Chaque agent tourne avec son outil, son compte et son modèle par défaut. Palabre ne liste pas les modèles : `--model-a`, `--model-b` et `--summary-model` transmettent la valeur brute à l'agent.
+- **PALABRE pilote vos CLI.** Chaque agent tourne avec son outil, son compte et son modèle par défaut. PALABRE ne liste pas les modèles : `--model-a`, `--model-b` et `--summary-model` transmettent la valeur brute à l'agent.
 - **Contexte.** `--files` injecte des fichiers précis (64 Kio par fichier, 192 Kio au total). `--context` parcourt des dossiers avec des limites et des exclusions. `--show-prompt` montre exactement ce qui sera envoyé ; `palabre context scan` prévisualise le contexte.
 - **Synthèse finale.** À la fin d'un Ask ou d'un Débat, un agent de synthèse rédige quatre sections : **Consensus**, **Désaccords / incertitudes**, **Actions proposées**, **Conclusion**. Choisissez-le avec `--summary-agent`, ou désactivez la synthèse avec `--no-summary`.
 - **Arrêt anticipé.** Un Débat (1 à 20 réponses au total) peut s'arrêter après un tour complet quand un accord explicite est détecté. Désactivez-le avec `--no-early-stop`.
@@ -252,7 +256,7 @@ Pour une session : `--role-a`, `--role-b`, ou `/roles` dans la TUI. Pour changer
 
 ### Agents compatibles
 
-| Agent | Comment Palabre le lance |
+| Agent | Comment PALABRE le lance |
 | --- | --- |
 | Claude Code | `claude --print` |
 | Codex CLI | `codex exec` |
@@ -263,9 +267,9 @@ Pour une session : `--role-a`, `--role-b`, ou `/roles` dans la TUI. Pour changer
 
 ### Pour aller plus loin
 
-- **Extension VS Code.** [Palabre pour VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode) ajoute une barre latérale pour lancer Débat, Chat ou Ask, ajouter du contexte de workspace, suivre chaque session en direct et ouvrir son export. En Chat, vous pouvez changer l'agent actif ou demander ponctuellement l'avis d'un autre agent. Elle reste un client mince : elle lance le CLI local `palabre` et utilise les contrats JSON/NDJSON publics.
+- **Extension VS Code.** [PALABRE pour VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode) ajoute une barre latérale pour lancer Débat, Chat ou Ask, ajouter du contexte de workspace, suivre chaque session en direct et ouvrir son export. En Chat, vous pouvez changer l'agent actif ou demander ponctuellement l'avis d'un autre agent. Elle reste un client mince : elle lance le CLI local `palabre` et utilise les contrats JSON/NDJSON publics.
 - **Intégrations.** Sorties JSON versionnées : `palabre agents --json`, `palabre presets --json`, `palabre context scan --json`, et `--renderer ndjson` ou `--json` pour suivre un débat événement par événement. Le flux NDJSON v1 est une API publique d'intégration : les ajouts compatibles ne cassent pas v1, les changements cassants changent le champ `v`.
-- **Skill pour agents IA.** Un skill prêt à l'emploi apprend à un agent IA quand utiliser Palabre et quel mode choisir. Il suit le standard ouvert [agentskills.io](https://agentskills.io). Copiez le dossier `skills/palabre` dans `~/.claude/skills/` (Claude Code) ou `~/.agents/skills/` (Codex), ou lancez `hermes skills install JuReyms/Palabre/skills/palabre` (Hermes Agent). Après une mise à jour de Palabre, recopiez le dossier. Détails : [Skill Palabre](https://palab.re/fr/get-started/skill).
+- **Skill pour agents IA.** Un skill prêt à l'emploi apprend à un agent IA quand utiliser PALABRE et quel mode choisir. Il suit le standard ouvert [agentskills.io](https://agentskills.io). Copiez le dossier `skills/palabre` dans `~/.claude/skills/` (Claude Code) ou `~/.agents/skills/` (Codex), ou lancez `hermes skills install JuReyms/Palabre/skills/palabre` (Hermes Agent). Après une mise à jour de PALABRE, recopiez le dossier. Détails : [Skill PALABRE](https://palab.re/fr/get-started/skill).
 
 ### Documentation
 
@@ -279,7 +283,7 @@ PALABRE tourne localement et n'envoie aucune donnée à un serveur appartenant �
 
 ```bash
 git clone https://github.com/JuReyms/Palabre.git
-cd Palabre
+cd PALABRE
 pnpm install
 pnpm build
 pnpm link --global
