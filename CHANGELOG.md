@@ -17,11 +17,9 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Changed
 
-<<<<<<< HEAD
 - Guide 0.17.0, lot B : Débat, Ask, Chat, TUI, contexte, exports et agents FR/EN alignés sur les formats de synthèse, les limites de fichiers, les défauts et les capacités réelles des adapters (Refs #131).
-=======
+
 - Guide 0.17.0, lot A : prise en main et Relay FR/EN alignés sur les quatre modes, Mission en option, confiance des configurations, périmètre Windows de `--open`, revue autorisée et diagnostics réellement exposés (Refs #131).
->>>>>>> origin/main
 
 - README (fr et en) préparé pour la 0.17.0 : Relay est présenté comme nouveau, sans la mention « après la 0.16.0 », avec la coopération entre agents et le rôle de décideur de l'humain ; la note précise que `--open` vise une conversation Codex ouverte, sous Windows pour l'instant ; Mission apparaît en une phrase comme option de Relay, et non comme un mode (#121).
 
