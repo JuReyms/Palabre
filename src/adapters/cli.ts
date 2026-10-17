@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
 import { resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePowerShellShim } from "../exec.js";
+import { directNpmShimLaunch, withShimNodePath } from "../npmShim.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
@@ -69,7 +70,7 @@ export class CliAdapter implements AgentAdapter {
       const spawnCommand = shellCommandForSpawn(spawnSafety.command, args, spawnSafety.shell);
       const child = spawn(spawnCommand.command, spawnCommand.args, {
         stdio: ["pipe", "pipe", "pipe"],
-        env: utf8ChildProcessEnv(),
+        env: spawnSafety.nodePath === undefined ? utf8ChildProcessEnv() : withShimNodePath(utf8ChildProcessEnv(), spawnSafety.nodePath),
         shell: spawnSafety.shell
       });
 
@@ -216,8 +217,10 @@ function decodeCliBytes(chunks: readonly Buffer[]): string {
 
 /**
  * Évite que des valeurs runtime non fiables (prompt, transcript, modèle) soient reparsées par
- * `cmd.exe`. Un exécutable Windows natif peut toujours être lancé directement ; les wrappers
- * shell ne sont sûrs qu'avec le prompt sur stdin et un identifiant de modèle sans métacaractère.
+ * `cmd.exe`. Ordre sous Windows : exécutable natif ; shim npm ou pnpm reconnu, lancé via Node et le
+ * script du paquet (avec le `NODE_PATH` du shim pnpm) ; autre shim PowerShell (modifié, forme
+ * inconnue), lancé par PowerShell ; sinon wrapper shell, sûr seulement avec le prompt sur stdin et
+ * un identifiant de modèle sans métacaractère.
  */
 function resolveWindowsSpawnSafety(
   command: string,
@@ -226,18 +229,26 @@ function resolveWindowsSpawnSafety(
   model: string | undefined,
   adapterName: string,
   messages: AdapterErrorMessages
-): { command: string; shell: boolean; argsPrefix: string[] } {
+): { command: string; shell: boolean; argsPrefix: string[]; nodePath?: string } {
   if (process.platform !== "win32" || !shell) {
     return { command, shell, argsPrefix: [] };
   }
 
   const nativeCommand = resolveNativeWindowsExecutable(command);
-  const powerShellShim = resolvePowerShellShim(command);
-  const powerShellExecutable = powerShellShim ? resolvePowerShellExecutable() : undefined;
-
   if (nativeCommand && !isWindowsAppsExecutionAlias(nativeCommand)) {
     return { command: nativeCommand, shell: false, argsPrefix: [] };
   }
+
+  // Shim npm ou pnpm reconnu : Node et le script du paquet, sans PowerShell, qui altérerait stdin
+  // UTF-8, les guillemets des arguments et l'argument `-` (#98, #109).
+  const npmShim = directNpmShimLaunch(command);
+  if (npmShim) {
+    return { command: npmShim.command, shell: false, argsPrefix: npmShim.prefixArgs, ...(npmShim.nodePath !== undefined && { nodePath: npmShim.nodePath }) };
+  }
+
+  // Repli pour un shim d'une autre forme (shim modifié, forme inconnue) : PowerShell, avec ses limites.
+  const powerShellShim = resolvePowerShellShim(command);
+  const powerShellExecutable = powerShellShim ? resolvePowerShellExecutable() : undefined;
   if (powerShellShim && powerShellExecutable) {
     return {
       command: powerShellExecutable,

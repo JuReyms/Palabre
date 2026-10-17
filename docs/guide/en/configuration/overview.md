@@ -52,6 +52,8 @@ From the TUI home screen, `/config` shows current settings and `/agents` lists a
 
 When the TUI home screen starts, Palabre conservatively synchronizes known detected agents: it can add missing known agents and refresh known command names, but it does not overwrite custom agents, roles, models, or user defaults.
 
+An absolute command path is preserved during synchronization even if the file has disappeared; `palabre doctor` checks that exact file. For details and returning to automatic detection, see [Advanced JSON](/en/configuration/advanced-json).
+
 ## Modify common settings
 
 ```bash
@@ -83,3 +85,9 @@ In the TUI, the same common settings are available from `/config` with commands 
 - [Default settings](/en/configuration/defaults)
 - [Local vs global configuration](/en/configuration/local-vs-global)
 - [Advanced JSON](/en/configuration/advanced-json)
+
+## Approval and Relay
+
+Approval binds the file path and fingerprint in `~/.palabre/trusted-configs.json`. `init` approves its creation; `config` and `relay allow-repo` maintain an existing approval, without inventing one. Manual edits require new approval where the path checks it: implicit project configuration and all Relay calls. Read the file, then use `palabre config --config <file> --trust-config`; never let an agent use it to expand its own rights. See [Approval scope](/en/configuration/local-vs-global#approval).
+
+`relay.allowedTasks` / `relay.reviewRepositories` are changed with `palabre relay allow-repo owner/repository`, after human confirmation. `outputDir` also receives `.relay.md`; the Mission option uses `.palabre/missions/<id>/` independently of that setting.

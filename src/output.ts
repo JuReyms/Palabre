@@ -1,8 +1,9 @@
-/** @file Export Markdown `.debate.md`/`.ask.md` : transcript, table de métadonnées et synthèse finale. */
+/** @file Exports Markdown : `.debate.md`/`.ask.md` (transcript, métadonnées, synthèse finale) et `.relay.md` (relay vers une session externe). */
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createTranslator } from "./i18n.js";
 import type { Messages } from "./messages/index.js";
+import type { ReadAccessDiagnostic } from "./externalSessions/types.js";
 import type { DebateFailure, DebateMessage, DebateOptions, DebateSummary } from "./types.js";
 import { getPackageVersion } from "./version.js";
 
@@ -192,4 +193,100 @@ function formatAgentsForHeader(options: DebateOptions): string {
   }
 
   return `${options.agentA} <-> ${options.agentB}`;
+}
+
+/** Données d'un export `.relay.md` (voir AGENTS.md, section "Relay externe"). */
+export interface RelayExport {
+  /** Indication de reprise CLI, sans date/fuseau implicites ni relance automatique. */
+  retryAfter?: number | string;
+  readAccess?: ReadAccessDiagnostic;
+  subject?: string;
+  cli?: { path: string; version: string | null };
+  task?: { name: "review"; pr: string; headSha?: string; publication: string; reviewUrl?: string; error?: string };
+  from: { agent: string; session: string };
+  to: { agent: string; session: string; provider: string };
+  status: string;
+  delivery: { status: string; persisted: boolean | "unknown"; inActiveBranch: boolean | "unknown" };
+  identity: string | null;
+  observedModels: string[];
+  nonce: string;
+  startedAt: string;
+  /** Message transmis, avant enveloppe. */
+  message: string;
+  reply?: string;
+  error?: string;
+  /** Diagnostic de `--open` (B1) ; absent sans `--open`, ce qui laisse l'export Relay A inchangé. */
+  open?: {
+    queue: string;
+    correlation: string | null;
+    receiver: string;
+    targetPermissions: string | null;
+  };
+}
+
+/**
+ * Écrit l'export `.relay.md` dans `outputDir`, créé au besoin. Le fichier contient les
+ * identifiants de session de l'expéditeur et de la cible. Retourne le chemin absolu.
+ */
+export async function writeRelayMarkdown(outputDir: string, report: RelayExport, messages: Messages): Promise<string> {
+  const safeDate = new Date().toISOString().replace(/[:.]/g, "-");
+  const fileName = `palabre-relay-${slugifyTopic(report.to.agent, "relay")}-${safeDate}.relay.md`;
+  const filePath = path.resolve(outputDir, fileName);
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await writeFile(filePath, renderRelayMarkdown(report, messages, { palabreVersion: await getPackageVersion() }), "utf8");
+  return filePath;
+}
+
+/** Représentation Markdown d'un relay. Fonction pure. */
+export function renderRelayMarkdown(report: RelayExport, messages: Messages, metadata: ReportMetadata): string {
+  const labels = messages.relay.export;
+  const formatBoolean = (value: boolean | "unknown") => (value === "unknown" ? "unknown" : value ? messages.output.yes : messages.output.no);
+  const rows = [
+    [labels.palabreVersion, metadata.palabreVersion],
+    [labels.from, `${report.from.agent}:${report.from.session}`],
+    [labels.to, `${report.to.agent}:${report.to.session}`],
+    [labels.provider, report.to.provider],
+    [labels.status, report.status],
+    [labels.delivery, report.delivery.status],
+    [labels.persisted, formatBoolean(report.delivery.persisted)],
+    [labels.inActiveBranch, formatBoolean(report.delivery.inActiveBranch)],
+    [labels.identity, report.identity ?? labels.none],
+    [labels.observedModels, report.observedModels.length > 0 ? report.observedModels.join(", ") : labels.none],
+    [labels.nonce, report.nonce],
+    [labels.startedAt, report.startedAt],
+    ...(report.readAccess ? [[labels.readAccess, `${report.readAccess.status}; ${report.readAccess.reason}; failedCommands=${report.readAccess.failedCommands}`]] : []),
+    ...(report.retryAfter !== undefined ? [[labels.retryAfter, String(report.retryAfter)]] : []),
+    ...(report.subject !== undefined ? [[labels.subject, report.subject]] : []),
+    ...(report.cli ? [[labels.cliPath, report.cli.path], [labels.cliVersion, report.cli.version ?? labels.unknown]] : []),
+    ...(report.task ? [
+      [labels.task, report.task.name], [labels.pullRequest, report.task.pr], [labels.commit, report.task.headSha ?? labels.unknown],
+      [labels.publication, report.task.publication], [labels.reviewUrl, report.task.reviewUrl ?? labels.none]
+    ] : []),
+    ...(report.open
+      ? [
+        [labels.mode, "open"],
+        [labels.queue, report.open.queue],
+        [labels.correlation, report.open.correlation ?? labels.none],
+        [labels.receiver, report.open.receiver],
+        [labels.targetPermissions, report.open.targetPermissions ?? labels.unknown]
+      ]
+      : [])
+  ];
+  const content = [
+    `# ${labels.title}`,
+    "",
+    `| ${labels.field} | ${labels.value} |`,
+    "| --- | --- |",
+    ...rows.map(([label, value]) => `| ${escapeTableCell(label!)} | ${escapeTableCell(value!)} |`),
+    "",
+    `> ${report.open ? labels.openNotice : labels.readOnlyNotice}`,
+    "",
+    `## ${labels.message}`,
+    "",
+    report.message,
+    "",
+    ...(report.reply !== undefined ? [`## ${labels.reply}`, "", report.reply, ""] : []),
+    ...(report.error !== undefined ? [`## ${labels.error}`, "", report.error, ""] : [])
+  ];
+  return normalizeMarkdownForWindowsPreview(content.join("\n"));
 }

@@ -1,12 +1,12 @@
 ---
 title: Paramètres par défaut
-description: Définir ou supprimer les agents, le nombre de tours et la synthèse utilisés par défaut.
+description: Définir ou supprimer les agents, le nombre de réponses et la synthèse utilisés par défaut.
 seo:
-  title: Définir agents, tours et synthèse par défaut
-  description: Définir la paire d'agents, le nombre de tours et le comportement de synthèse utilisés quand aucune option n'est passée.
+  title: Définir agents, réponses et synthèse par défaut
+  description: Définir la paire d'agents, le nombre de réponses et le comportement de synthèse utilisés quand aucune option n'est passée.
 ---
 
-Les paramètres par défaut sont utilisés quand vous lancez une session sans préciser tous les agents ou toutes les options. Ils peuvent être partiels : vous pouvez définir seulement le nombre de tours, seulement la synthèse, ou une paire d'agents complète.
+Les paramètres par défaut sont utilisés quand vous lancez une session sans préciser tous les agents ou toutes les options. Ils peuvent être partiels : vous pouvez définir seulement le nombre de réponses, seulement la synthèse, ou une paire d'agents complète.
 
 ## Définir les agents par défaut
 
@@ -58,13 +58,15 @@ palabre config --mode chat
 
 Les valeurs acceptées sont `debate`, `chat` et `ask`. Débat reste le mode principal. Chat utilise `defaults.agentA` comme agent actif initial ; Ask utilise `defaults.askAgents`. Dans la TUI, changez de mode avec `/debat`, `/chat` ou `/ask`.
 
-## Définir le nombre de tours
+Le mode par défaut s'applique aussi aux lancements directs : `palabre run`, `palabre -s "Sujet"` et `palabre "Un sujet en plusieurs mots"`. Avec le mode Chat, le sujet devient le contexte initial de la conversation. `--mode debate`, `--mode ask` ou `--mode chat` l'emporte toujours sur ce réglage, sans le modifier. Un preset choisit une paire d'agents pour Débat ou Ask : en mode Chat, il est refusé avec un message explicite. Utilisez alors `--agent-a <agent>`, ou ajoutez `--mode debate`. Le lancement `palabre` sans sujet ouvre toujours l'accueil.
+
+## Définir le nombre de réponses
 
 ```bash
 palabre config -t 4
 ```
 
-`turns` est le nombre total de tours du débat. Palabre accepte une valeur entre 1 et 20.
+`turns` est la limite totale de réponses d’un Débat : 4 par défaut, de 1 à 20, hors synthèse. Avec 4, chaque agent répond au plus deux fois ; un accord peut arrêter le Débat avant cette limite. Ce réglage ne détermine pas le nombre de réponses Ask ou Chat.
 
 ## Définir la langue
 
@@ -107,3 +109,7 @@ Après cela, utilisez un preset ou des agents explicites :
 palabre codex-claude "Sujet" -t 4
 palabre run --subject "Sujet" --agent-a codex --agent-b claude
 ```
+
+Relay ne se configure pas comme mode par défaut : ses cibles sont explicites, sans preset ni paire par défaut. En mode Chat par défaut, un preset de paire est refusé ; utilisez `palabre chat --agent-a codex`, ou ajoutez `--mode debate`.
+
+Sans `defaults.askAgents`, Ask utilise `defaults.agentA` et `defaults.agentB`. Après `--clear-defaults`, fournissez un preset ou des agents explicites : PALABRE ne choisit pas une paire codée en dur. `--summary-agent none` retire ce défaut, sans désactiver la synthèse.

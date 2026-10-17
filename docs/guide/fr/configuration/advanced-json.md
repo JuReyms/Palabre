@@ -23,14 +23,14 @@ La plupart des réglages courants peuvent se faire avec `palabre config`. Cette 
     "codex": {
       "type": "cli",
       "command": "codex",
-      "args": ["exec", "-"],
+      "args": ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only"],
       "promptMode": "stdin",
       "role": "implementer"
     },
     "claude": {
       "type": "cli",
       "command": "claude",
-      "args": ["--print"],
+      "args": ["--print", "--output-format", "text", "--no-session-persistence", "--tools", "Read,Glob,Grep"],
       "promptMode": "stdin",
       "role": "reviewer"
     }
@@ -104,3 +104,13 @@ Options utiles :
 | `keepAlive` | Durée de maintien du modèle chargé. |
 | `temperature` | Variation des réponses. |
 | `maxOutputBytes` | Taille maximale de chaque réponse HTTP bufferisée, 50 Mio par défaut. |
+
+## Portée des réglages
+
+Préférez `palabre config` quand une commande existe. Après une édition, relisez et réapprouvez le fichier pour les parcours qui l'exigent (voir [Approbation](/fr/configuration/local-vs-global#approbation)). Modifier `args` peut retirer les restrictions par défaut ; PALABRE ne remplace que d'anciens tableaux de défauts exactement reconnus, jamais vos arguments personnalisés.
+
+Autres champs : `language`, `defaults.mode` (`debate`, `ask`, `chat`), `defaults.askAgents`, `defaults.askSummaryAgent`, `defaults.interface`, `relay` (politique de revue). Un agent porte aussi `tier` (`primary` ou `local`). Les agents CLI ont `type: cli` ou `cli-pty` et l’option `allowEmptyOutput`, désactivée par défaut.
+
+Relay utilise `type` et `command` de la cible pour déterminer sa CLI, puis construit ses propres arguments. Il n'utilise pas `args`, `promptMode`, `model`, `shell` ou `timeoutMs` de l’agent de Débat. La configuration Relay reste nécessaire pour les revues autorisées.
+
+Une commande en chemin absolu reste inchangée lors de la synchronisation, même si elle disparaît ; `doctor` et la disponibilité vérifient ce fichier précis, sans tester sa version ni se rabattre sur le PATH. Pour revenir à la détection, vous remplacez ce chemin par un nom simple puis réapprouvez le fichier si nécessaire.

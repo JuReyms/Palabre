@@ -1,5 +1,7 @@
 /** @file Source de vérité unique reliant les agents CLI connus à leur détection locale (voir AGENTS.md, section "Registre d'agents connus"). */
 import type { CommandDetection, ToolDiscovery } from "./discovery.js";
+import path from "node:path";
+import { statSync } from "node:fs";
 import type { AgentConfig, PalabreConfig } from "./types.js";
 
 /**
@@ -17,6 +19,11 @@ interface KnownCliAgent {
   commandAliases: readonly string[];
   /** Clé correspondante dans `ToolDiscovery`. */
   discoveryKey: "codex" | "claude" | "antigravity" | "opencode" | "vibe";
+  /**
+   * Fournisseur de session externe pris en charge par `palabre relay` (voir AGENTS.md, section
+   * "Relay externe"). Absent pour les CLIs dont la reprise de session n'est pas vérifiée.
+   */
+  externalSession?: "codex" | "claude";
 }
 
 /**
@@ -25,8 +32,8 @@ interface KnownCliAgent {
  * géré séparément via `discovery.ollama`.
  */
 const KNOWN_CLI_AGENTS: readonly KnownCliAgent[] = [
-  { configKey: "codex", commandAliases: ["codex"], discoveryKey: "codex" },
-  { configKey: "claude", commandAliases: ["claude"], discoveryKey: "claude" },
+  { configKey: "codex", commandAliases: ["codex"], discoveryKey: "codex", externalSession: "codex" },
+  { configKey: "claude", commandAliases: ["claude"], discoveryKey: "claude", externalSession: "claude" },
   { configKey: "antigravity", commandAliases: ["agy", "antigravity"], discoveryKey: "antigravity" },
   { configKey: "opencode", commandAliases: ["opencode"], discoveryKey: "opencode" },
   { configKey: "vibe", commandAliases: ["vibe"], discoveryKey: "vibe" }
@@ -67,12 +74,29 @@ export function normalizeCommandName(command: string): string {
 }
 
 /**
- * Résout l'entrée de découverte d'une commande d'agent CLI connue.
- * Retourne `undefined` pour une commande custom non reconnue : Palabre ne peut
- * pas connaître sa sémantique sans la lancer, donc l'appelant la considère
- * généralement comme disponible.
+ * Fournisseur de session externe d'une commande d'agent CLI connue, pour `palabre relay`.
+ * Retourne `undefined` pour une CLI connue sans reprise vérifiée ou pour une commande custom :
+ * Palabre ne connaît pas sa sémantique de reprise.
  */
+export function externalSessionProviderForCommand(command: string): "codex" | "claude" | undefined {
+  const normalized = normalizeCommandName(command);
+  return KNOWN_CLI_AGENTS.find((agent) => agent.commandAliases.includes(normalized))?.externalSession;
+}
+
+/**
+ * Reconnaît les formes absolues POSIX, Windows et UNC, indépendamment de la plateforme hôte.
+ */
+export function isAbsoluteCommand(command: string): boolean {
+  return path.isAbsolute(command) || path.win32.isAbsolute(command);
+}
+
+/** Un chemin absolu vérifie son fichier ; sinon, découverte connue ou undefined pour une CLI custom. */
 export function detectionForCommand(command: string, discovery: ToolDiscovery): CommandDetection | undefined {
+  if (isAbsoluteCommand(command)) {
+    let available = false;
+    try { available = path.isAbsolute(command) && statSync(command).isFile(); } catch { /* Missing or unreadable configured file. */ }
+    return { available, command, path: command };
+  }
   const normalized = normalizeCommandName(command);
   const known = KNOWN_CLI_AGENTS.find((agent) => agent.commandAliases.includes(normalized));
 
@@ -99,7 +123,8 @@ export function detectedAgentNames(discovery: ToolDiscovery): string[] {
 /**
  * Applique les chemins de commande résolus localement aux agents CLI connus
  * d'une config. Mute `config` : l'appelant est responsable de la cloner au besoin.
- * Sans détection disponible, l'agent garde la commande déjà déclarée.
+ * Sans détection disponible ou avec un chemin absolu déjà déclaré, conserve la commande.
+ * Un chemin absent n'est pas remplacé silencieusement ; le diagnostic reste celui de la CLI.
  */
 export function applyDetectedCommands(config: PalabreConfig, discovery: ToolDiscovery): void {
   for (const agent of KNOWN_CLI_AGENTS) {
@@ -107,6 +132,7 @@ export function applyDetectedCommands(config: PalabreConfig, discovery: ToolDisc
     const cfg = config.agents[agent.configKey];
 
     if (detection.available && cfg && (cfg.type === "cli" || cfg.type === "cli-pty")) {
+      if (typeof cfg.command === "string" && isAbsoluteCommand(cfg.command)) continue;
       cfg.command = detection.command;
     }
   }
@@ -115,7 +141,8 @@ export function applyDetectedCommands(config: PalabreConfig, discovery: ToolDisc
 /**
  * Indique si un agent de config est détecté localement.
  * Pour Ollama, reflète l'accessibilité du serveur ; pour les CLIs connues, l'état
- * de découverte ; pour une CLI custom inconnue, retourne `true` (faute de pouvoir vérifier).
+ * de découverte, ou le fichier configuré pour un chemin absolu ; pour une CLI custom sans chemin
+ * absolu, retourne `true` (faute de connaître sa sémantique).
  */
 export function isAgentDetected(name: string, config: AgentConfig, discovery: ToolDiscovery): boolean {
   if (config.type === "ollama") {

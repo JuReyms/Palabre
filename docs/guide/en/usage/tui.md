@@ -33,7 +33,7 @@ Customization covers the response count, model identifiers passed to agents, sum
 | Command | Effect |
 |---------|--------|
 | `/` | Displays commands that are useful in the current view. |
-| `/new` | Composes a Chat, Debate, or Ask session step by step. |
+| `/new` | Composes a Debate, Ask, or Chat session step by step. |
 | `/debate` | Switches to the primary Debate mode. Alias: `/debat`. |
 | `/chat` | Opens a conversation. |
 | `/ask` | Switches to independent answers. |
@@ -45,6 +45,12 @@ Customization covers the response count, model identifiers passed to agents, sum
 | `/help` | Displays all commands. |
 | `/home` | Returns home. |
 | `/quit` | Quits Palabre. |
+| `/retry` | Runs the last session again; an explicit action. |
+| `/back` | Returns to the previous screen. |
+
+In Chat: `/consult <agent>`, `/use <agent>`, `/end`. In `/config`: `/mode`, `/default`, `/interface`, `/language`, `/turns`, `/summary`, `/model`, `/ollama`, `/ollama-model`, `/ollama-url`, `/ollama-sync`.
+
+Relay and its Mission option have no TUI screen: use direct commands. See [Relay](/en/usage/relay).
 
 ## Add context
 
@@ -60,3 +66,5 @@ Paths containing spaces must be provided with a direct command.
 `/end` ends and saves; `/home` returns without saving; an error produces a partial transcript when possible. The export records the termination reason.
 
 Use `--terminal` for raw human output. For an integration, use `--renderer ndjson` and the [NDJSON documentation](/en/integrations/ndjson).
+
+For a path containing spaces, use a direct command: `palabre codex-claude "Subject" --files "docs/my plan.md"`.

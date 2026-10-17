@@ -1,9 +1,8 @@
 /** @file Boucle d'orchestration des modes `debate` et `ask` : tours, arrêt anticipé et synthèse finale. */
 import { createAgent } from "./adapters/index.js";
-import { AdapterError } from "./errors.js";
 import { createTranslator } from "./i18n.js";
 import { MAX_ASK_AGENTS } from "./limits.js";
-import { formatOllamaUrlError, OllamaUrlError } from "./ollamaUrl.js";
+import { classifyRuntimeError } from "./runtimeFailure.js";
 import type { Messages } from "./messages/index.js";
 import { withRuntimeOverrides } from "./agentRuntime.js";
 import type { AgentAdapter, AgentConfig, AgentPrompt, AgentRole, PalabreConfig, DebateFailure, DebateMessage, DebateOptions, DebateRenderer, DebateSummary } from "./types.js";
@@ -469,41 +468,14 @@ function toDebateFailure(
   context: Pick<DebateFailure, "phase"> & Partial<Pick<DebateFailure, "agent" | "role" | "turn">>,
   messages: Messages
 ): DebateFailure {
-  if (error instanceof AdapterError) {
-    return {
-      phase: context.phase,
-      agent: context.agent ?? error.adapterName,
-      role: context.role,
-      turn: context.turn,
-      kind: error.kind,
-      message: error.message,
-      retryAfter: retryAfterFromDetails(error.details),
-      details: error.details
-    };
-  }
-
-  if (error instanceof OllamaUrlError) {
-    return {
-      ...context,
-      kind: "unknown",
-      message: formatOllamaUrlError(error, messages)
-    };
-  }
-
+  const { adapterName, ...classified } = classifyRuntimeError(error, messages);
   return {
     phase: context.phase,
-    agent: context.agent,
+    agent: context.agent ?? adapterName,
     role: context.role,
     turn: context.turn,
-    kind: "unknown",
-    message: error instanceof Error ? error.message : String(error)
+    ...classified
   };
-}
-
-/** Lit le délai de reprise structuré d'un adapter sans faire échouer un ancien adapter. */
-function retryAfterFromDetails(details: Record<string, unknown> | undefined): number | string | undefined {
-  const value = details?.retryAfter;
-  return typeof value === "string" || (typeof value === "number" && Number.isFinite(value)) ? value : undefined;
 }
 
 /** Résout le model override pour un agent donné. Retourne `undefined` si l'agent n'est ni A ni B. */

@@ -24,7 +24,7 @@ Saisissez un sujet directement pour lancer le mode courant. Tapez `/` pour ouvri
 
 ## Composer une nouvelle session
 
-`/new` ouvre un parcours guidé commun à Chat, Débat et Ask. Choisissez le mode, les agents puis le sujet. Palabre affiche un récapitulatif compact et propose ensuite de lancer la session, de la personnaliser ou de l'annuler.
+`/new` ouvre un parcours guidé commun à Débat, Ask et Chat. Choisissez le mode, les agents puis le sujet. Palabre affiche un récapitulatif compact et propose ensuite de lancer la session, de la personnaliser ou de l'annuler.
 
 La personnalisation donne accès au nombre de réponses, aux modèles transmis aux agents, à la synthèse, au contexte et aux options de rendu. Les identifiants de modèle restent ceux de la CLI concernée ; Palabre ne maintient pas de catalogue de modèles distants.
 
@@ -33,7 +33,7 @@ La personnalisation donne accès au nombre de réponses, aux modèles transmis a
 | Commande | Effet |
 |----------|-------|
 | `/` | Affiche les commandes utiles dans la vue courante. |
-| `/new` | Compose une session Chat, Débat ou Ask pas à pas. |
+| `/new` | Compose une session Débat, Ask ou Chat pas à pas. |
 | `/debat` | Passe au mode principal Débat. |
 | `/chat` | Ouvre une conversation. |
 | `/ask` | Passe aux réponses indépendantes. |
@@ -45,6 +45,12 @@ La personnalisation donne accès au nombre de réponses, aux modèles transmis a
 | `/help` | Affiche toutes les commandes. |
 | `/home` | Revient à l'accueil. |
 | `/quit` | Quitte Palabre. |
+| `/retry` | Relance la dernière session ; action explicite. |
+| `/back` | Revient à l'écran précédent. |
+
+En Chat : `/consult <agent>`, `/use <agent>`, `/end`. Dans `/config` : `/mode`, `/default`, `/interface`, `/language`, `/turns`, `/summary`, `/model`, `/ollama`, `/ollama-model`, `/ollama-url`, `/ollama-sync`.
+
+Relay et son option Mission n'ont pas d'écran TUI : utilisez les commandes directes. Voir [Relay](/fr/usage/relay).
 
 ## Ajouter du contexte
 
@@ -60,3 +66,5 @@ Les chemins contenant des espaces doivent être fournis avec une commande direct
 `/end` termine et enregistre ; `/home` revient sans enregistrer ; une erreur produit une transcription partielle quand cela est possible. L'export indique la raison de fin.
 
 Utilisez `--terminal` pour un rendu humain brut. Pour une intégration, utilisez `--renderer ndjson` et la [documentation NDJSON](/fr/integrations/ndjson).
+
+Pour un chemin avec espaces, utilisez une commande directe : `palabre codex-claude "Sujet" --files "docs/mon plan.md"`.

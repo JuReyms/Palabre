@@ -15,7 +15,7 @@ Palabre peut envoyer du contexte projet aux agents. C'est indispensable pour dem
 | `--files` | Vous choisissez explicitement les fichiers. Un chemin invalide arrête la commande. |
 | `--context` | Palabre scanne des fichiers ou dossiers texte avec des limites et des exclusions. |
 
-`--files` est strict : 64 Kio maximum par fichier et 192 Kio au total ; un fichier binaire, un dossier ou un chemin invalide arrête la session. `--context` est tolérant : il parcourt les dossiers, ignore les fichiers non retenus et affiche des avertissements sans annuler la session.
+`--files` est strict : un fichier binaire, un dossier ou un chemin invalide arrête la session. `--context` est tolérant : il parcourt les dossiers, ignore les fichiers non retenus et affiche des avertissements sans annuler la session. Les deux options partagent les plafonds décrits dans « Portée et exclusions ».
 
 ## Fichiers explicites
 
@@ -68,3 +68,11 @@ palabre codex-claude "Sujet" --context src --show-prompt
 ```
 
 Cette commande ne lance aucun agent. Elle permet de vérifier ce que Palabre enverra au premier tour.
+
+## Portée et exclusions
+
+`--files` et `--context` partagent un budget de 64 Kio par fichier et 192 Kio au total ; les fichiers explicites sont chargés en premier. `--context` ignore avec avertissement les fichiers trop gros, binaires ou au-delà du budget. Le scan exclut aussi `.tmp` et `.pnpm-store` et lit les règles simples du `.gitignore` racine ; les négations `!` ne sont pas prises en charge.
+
+Les agents CLI sont lancés depuis le dossier courant et peuvent lire le projet avec leurs propres outils, selon leur configuration. Les fichiers injectés sont marqués comme données non fiables ; ces limites ne sont pas un confinement. Ollama ne lit pas les fichiers lui-même ; PALABRE avertit s'il participe sans contexte. En Ask, `--show-prompt` montre le prompt du premier agent.
+
+Relay n'accepte ni `--files` ni `--context` : la cible garde son contexte. Utilisez `--message-file` pour un long message.

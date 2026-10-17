@@ -4,6 +4,56 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-10-17
+
+<!-- social: New Relay mode: your agents cooperate and hand off to each other. You are no longer the go-between, but the decision-maker. -->
+
+### Added
+
+- Relay ajoute un en-tête compact `📧 PALABRE Relay` avec expéditeur, destinataire et avertissement avant le contenu ; la provenance détaillée et le nonce passent en bas. `--subject` fournit un objet facultatif (une ligne, 200 caractères), repris dans le JSON v1 et l'export. Mission utilise le même format avec son id et son étape. En-tête et pied suivent la langue ; les 64 Kio couvrent l'enveloppe de coordination entière, sans réduire la borne séparée du contexte PR (#126). Aide, guides FR/EN et skill alignés ; les copies installées du skill doivent être mises à jour manuellement.
+
+- `palabre mission` v2.0 : un chef de mission fixe avec l'humain un cadre en lecture seule, puis appelle son équipier une seule fois par étape explicite. Création, `step`, `status`, `stop`, budgets de tentatives/durée, délai configurable, état local reprenable, export `.mission.md` et `--json` ; consultation et tâche `review` Relay existante. Aucun code délégué, changement de chef de mission, renvoi automatique ou release ; une délivrance incertaine bloque la suite (#115). Les copies installées du skill doivent être mises à jour manuellement.
+
+- `palabre relay allow-repo proprietaire/depot` (ou `'proprietaire/*'`) autorise la tâche review après confirmation au clavier, sur la configuration locale ou globale ; le refus `task-not-allowed` fournit la commande dans `remedy` et guide l'agent vers le terminal visible du propriétaire (#118).
+- `allow-repo` exige une configuration déjà approuvée et refuse sans écriture en code 8 si le propriétaire répond non. `palabre config --config <fichier> --trust-config` permet désormais au propriétaire d'approuver aussi une configuration globale, après l'avoir relue ; allow-repo n'approuve que le contenu exact qu'il a écrit (#118).
+- `palabre relay` transmet un message à une conversation Codex ou Claude Code fermée et renvoie sa réponse en un seul appel : reprise en lecture seule renforcée, refus si la conversation est ouverte ou son état invérifiable, statut de délivrance sans renvoi automatique, sortie `--json` v1 et export `.relay.md`.
+- `palabre relay --open` (pilote, Codex sous Windows) dépose un message dans une conversation Codex ouverte, dans le TUI ou dans Codex desktop, par `codex queue`, puis rend sa réponse corrélée au bon tour. La conversation doit être ouverte (`target-not-open` sinon, sans dépôt) ; elle répond avec ses propres outils et permissions, sans garantie de lecture seule. Un seul délai couvre préparation, dépôt et attente ; un message déposé peut être traité plus tard, sans renvoi automatique. L'historique n'est jamais lu en entier. Le relay vers une conversation Claude Code ouverte reste à faire (#96).
+
+### Changed
+
+- Guide 0.17.0, lot C : configuration, référence CLI, contrats JSON/NDJSON, dépannage et fonctionnalités disponibles FR/EN corrigés contre le code ; la feuille de route reprend les cinq priorités validées par le propriétaire (Refs #131).
+
+- Guide 0.17.0, lot B : Débat, Ask, Chat, TUI, contexte, exports et agents FR/EN alignés sur les formats de synthèse, les limites de fichiers, les défauts et les capacités réelles des adapters (Refs #131).
+
+- Guide 0.17.0, lot A : prise en main et Relay FR/EN alignés sur les quatre modes, Mission en option, confiance des configurations, périmètre Windows de `--open`, revue autorisée et diagnostics réellement exposés (Refs #131).
+
+- README (fr et en) préparé pour la 0.17.0 : Relay est présenté comme nouveau, sans la mention « après la 0.16.0 », avec la coopération entre agents et le rôle de décideur de l'humain ; la note précise que `--open` vise une conversation Codex ouverte, sous Windows pour l'instant ; Mission apparaît en une phrase comme option de Relay, et non comme un mode (#121).
+
+- Le pied des messages Relay et Mission est renommé « 🤖 Message pour l’agent » / « 🤖 Message for the agent », dans les messages, l’aide, les guides et le skill. Les copies installées du skill restent à rafraîchir manuellement.
+
+- Relay et Mission séparent l'avertissement ℹ️ de l'en-tête, avant le contenu, et regroupent provenance, nonce et consigne unique de réponse dans « 🤖 Message pour l'agent ». Échappement Markdown limité pour garder tirets, points et parenthèses lisibles ; cadre Mission traduit sur deux lignes sans JSON. Permissions, limites de taille et corrélation inchangées (#132). Aide, guides FR/EN et skill mis à jour ; les copies installées du skill doivent être rafraîchies manuellement.
+
+- Les consignes d'autorisation sont disponibles dans l'aide, les erreurs et le skill. **Une copie déjà installée du skill n'est pas mise à jour automatiquement** : recopier `skills/palabre` dans son emplacement d'installation après la mise à jour.
+- Le README est réorganisé pour tous les niveaux : un tableau « Quel mode pour quoi ? » par ordre d'utilité (Débat, Relay, Ask, Chat), l'installation, le fonctionnement (contexte, synthèses finales du Débat et de l'Ask, arrêt anticipé, exports, sessions) et les six rôles expliqués avec des combinaisons conseillées (#121).
+- Le skill `palabre` aide désormais l'agent à choisir entre Chat, Débat, Ask et Relay. Il couvre le pilotage de Chat par le flux NDJSON, distingue checkpoints Palabre et reprise d'une conversation externe, et documente l'installation pour Claude Code et Codex ainsi que la découverte dans les sessions neuves et reprises (#99).
+
+### Fixed
+
+- Relay `--open` reconnaît la limite structurée Codex du tour corrélé (`usage-limit`, code 2), au lieu de `cli-failure`. Reprise CLI dans le message, le champ optionnel `retryAfter` du JSON v1 et l’export ; aucune date ni aucun fuseau déduits d’une heure seule. Mission conserve le diagnostic et se met en pause sur une limite connue, sans renvoi automatique (#41, point 3 seulement). Aide, guides FR/EN et skill mis à jour ; rafraîchir manuellement les copies installées du skill.
+
+- Relay et Mission signalent l'erreur Windows/Codex `CreateProcessAsUserW failed: 5` au démarrage des commandes de lecture (`read-unavailable`/2), sans perdre réponse, identité ou délivrance. Mission se met en pause ; la tâche review refuse toute publication GitHub (`review-failed`/9, `not-attempted`). Les messages nomment l'alias Microsoft Store comme cause probable à vérifier et renvoient au dépannage ; l'export traduit « Accès en lecture ». Aucun réglage validé pour imposer PowerShell natif à ce parcours Codex 0.163.0, aucun changement de sandbox ni renvoi automatique (#128). Aide, guides FR/EN et skill mis à jour ; les copies déjà installées du skill doivent être rafraîchies manuellement.
+
+- La synchronisation des agents à l'accueil TUI et avec `palabre config --sync-agents` conserve les commandes configurées avec un chemin absolu (POSIX, Windows ou UNC), même si une autre installation est détectée ou si le chemin est introuvable. Les noms simples et chemins relatifs continuent d'être synchronisés (#117). Les copies déjà installées du skill nécessitent une mise à jour manuelle.
+- `doctor` et la disponibilité des agents/presets vérifient le fichier du chemin absolu configuré, sans lancer la CLI et sans présenter une autre installation du PATH comme valide (#117).
+- Chat ne se ferme plus sur une ligne vide : la conversation continue et `/end` exporte tous les échanges (#101).
+- En NDJSON, une erreur d'agent pendant Chat émet désormais un événement `error` (`phase: "chat"`), puis un seul `done` avec le chemin de l'export partiel, ou `null` si cet export échoue. Une annulation pendant l'attente d'un message termine aussi le flux, avec le code 130 (#101).
+- Une consultation Chat annonce le rôle effectif de l'agent consulté, rôle temporaire `--role-a` compris (#101).
+- `--dry-run` est refusé explicitement en Chat, avant tout appel d'agent ou export, au lieu d'être ignoré (#101).
+- Avec le mode Chat, par défaut ou via `--mode chat`, le raccourci `palabre -s "Sujet"` et le sujet positionnel ouvrent Chat comme `palabre run`, au lieu d'échouer sur « mode inconnu ». Un preset en mode Chat est refusé avec un message explicite au lieu d'être ignoré (#104).
+- Dans la TUI, une saisie vide ou composée d'espaces ne quitte plus la conversation Chat sans export : elle est ignorée. L'indicateur d'une consultation affiche le rôle effectif de l'agent, rôle temporaire `--role-a` compris (#103).
+- Sous Windows, les CLIs installées par npm (Codex, OpenCode…) sont lancées directement, via Node et le script du paquet ou via l'exécutable du paquet, au lieu de leur shim PowerShell : les accents de stdin, les guillemets des arguments JSON et l'argument `-` sont préservés. Les shims d'une autre forme (shim modifié) restent lancés par PowerShell (#98).
+- Sous Windows, les CLIs installées par pnpm, en paquet global ou par `pnpm link --global`, sont aussi lancées directement via Node et le script du paquet, avec le même `NODE_PATH` que leur shim, dans le même ordre : accents, guillemets et argument `-` sont préservés. Un shim pnpm modifié, ou dont le script n'est pas un fichier `.js`, `.cjs` ou `.mjs`, reste lancé par PowerShell. Relay reste limité à la forme npm (#109).
+
 ## [0.16.0] - 2026-08-31
 
 <!-- social: A calmer, more consistent TUI, clearer recovery guidance, and hardened adapters and local config handling. -->

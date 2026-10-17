@@ -52,6 +52,8 @@ Depuis l'accueil TUI, `/config` affiche les réglages courants et `/agents` list
 
 Au démarrage de l'accueil TUI, Palabre synchronise prudemment les agents connus détectés : il peut ajouter les agents connus manquants et rafraîchir les noms de commandes connus, mais il n'écrase pas les agents custom, les rôles, les modèles ni les defaults utilisateur.
 
+Une commande configurée avec un chemin absolu reste inchangée lors de la synchronisation, même si le fichier a disparu ; `palabre doctor` vérifie alors ce fichier précis. Pour les détails et le retour à la détection automatique, voir [JSON avancé](/fr/configuration/advanced-json).
+
 ## Modifier les paramètres courants
 
 ```bash
@@ -83,3 +85,9 @@ Dans la TUI, les mêmes réglages courants sont accessibles depuis `/config` ave
 - [Paramètres par défaut](/fr/configuration/defaults)
 - [Configuration locale ou globale](/fr/configuration/local-vs-global)
 - [JSON avancé](/fr/configuration/advanced-json)
+
+## Approbation et Relay
+
+L'approbation lie le chemin et l'empreinte du fichier à `~/.palabre/trusted-configs.json`. `init` approuve sa création ; `config` et `relay allow-repo` maintiennent une approbation existante, sans en inventer une. Une édition manuelle demande une nouvelle approbation lorsque le parcours la vérifie : configuration projet implicite et tous les appels Relay. Vous relisez le fichier, puis utilisez `palabre config --config <fichier> --trust-config` ; jamais un agent pour élargir ses droits. Voir [Portée de l’approbation](/fr/configuration/local-vs-global#approbation).
+
+La politique `relay.allowedTasks` / `relay.reviewRepositories` se modifie avec `palabre relay allow-repo proprietaire/depot`, après confirmation humaine. `outputDir` reçoit aussi les `.relay.md` ; l’option Mission utilise `.palabre/missions/<id>/` indépendamment de ce réglage.

@@ -10,14 +10,11 @@ At the end of a debate or Ask request, Palabre can ask an agent to produce a fin
 
 ## Summary format
 
-The final summary requests four sections:
+**Debate** requests four sections: `Consensus`, `Disagreements / uncertainties`, `Proposed actions`, `Conclusion`.
 
-1. `Consensus`
-2. `Disagreements / uncertainties`
-3. `Proposed actions`
-4. `Conclusion`
+**Ask** requests five sections: `Faithful summary by agent`, `Comparison`, `Watchpoints / uncertainties`, `Proposed actions`, `Conclusion`.
 
-The first three sections are structured as lists. `Conclusion` is a short prose paragraph for quickly understanding what to take away.
+These are the actual English prompt labels. The first sections are lists; `Conclusion` is a short prose paragraph. Chat and Relay add no final summary; Chat can continue from an existing summary.
 
 ## Summary agent
 
@@ -54,3 +51,9 @@ palabre codex-claude "Critique this plan" --no-summary
 In the terminal, the standard rendering formats the summary headings to make them easier to scan.
 
 In the `.debate.md` or `.ask.md` export, the final summary is separated from the transcript or responses by a horizontal rule and begins with a table indicating the agent, role, and production date.
+
+## Persistent settings and failure
+
+`palabre config --summary-agent <agent>` selects the default summary agent; `palabre config --summary-agent none` removes that choice and restores fallback, **without disabling summaries**. `--no-summary` disables the summary for this run. `--summary-model` passes a raw value to the CLI, which validates the model; Ollama can check installation.
+
+If the summary fails, PALABRE attempts to preserve the transcript in a partial export. With `--checkpoint`, `palabre resume <session-id>` resumes only the missing summary, without replaying answers.

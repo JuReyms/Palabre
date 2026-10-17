@@ -14,6 +14,17 @@ Toute evolution produit doit appartenir a l'une de ces intentions, sans creer de
 - decider : synthese, suivi, plan ou revue de plan ;
 - agir : operation explicitement confirmee, comme une mutation de config ou l'execution deleguee a une CLI.
 
+## Écrire pour tous
+
+Palabre est open source et utilisé par des personnes de tous niveaux techniques, et par des agents. Tout ce qui est visible (aide, erreurs, sorties, documentation, skill, issues, descriptions de PR) doit être clair, simple et précis.
+
+- Une erreur dit ce qui s'est passé, pourquoi, et la prochaine étape exacte : qui agit, avec quelle commande à copier-coller.
+- Préférer une commande avec confirmation à une modification manuelle de fichier (JSON, registre).
+- L'aide de la CLI et les messages d'erreur doivent suffire, même sans skill installé.
+- Pour les agents : consignes explicites, ce qu'ils doivent faire et ce qu'ils ne doivent jamais faire (par exemple : ne jamais modifier eux-mêmes une politique qui leur accorde des droits).
+- Pour les humains : pas de jargon inutile, et des images simples quand elles aident (par exemple relay = « appeler un équipier absent »). Le détail technique va dans AGENTS.md.
+- Toute évolution de comportement met à jour, dans la même PR : l'aide CLI, le guide fr et en, et le skill `skills/palabre`. Une copie installée du skill n'est pas mise à jour automatiquement : le dire dans les notes de version.
+
 ## Frontiere CLI / integrations
 
 Palabre CLI est la source de verite produit. Toute fonctionnalite qui doit produire le meme resultat hors VS Code appartient au CLI avant d'etre exposee par une integration.
@@ -60,20 +71,23 @@ pnpm start -- -v
 
 ```text
 src/index.ts              CLI entrypoint et dispatch principal
-src/commands/             Commandes leaf et utilitaires partages (agents, context, history, init, presets, sessions, shared, update)
+src/commands/             Commandes leaf et utilitaires partages (agents, context, history, init, presets, relay, sessions, shared, update)
 src/runOptions.ts         Resolution centralisee des options completes d'une session
 src/sessionCheckpoint.ts  Contrat JSON v1 et stockage atomique des checkpoints
 src/sessionInventory.ts   Liste bornée et suppression ciblée des checkpoints
 src/sessionCheckpointRuntime.ts Writer runtime neuf ou repris
 src/sessionResume.ts      Validation et reconstruction stricte de `palabre resume`
+src/externalSessions/     Relay vers une session externe : socle (types, lancement, enveloppe, issues), contrat d'adapter, adapters Claude Code et Codex ; relay --open (B1) : openReader (corrélation pure), openRollout (lectures bornées), codexQueue (dépôt), openRelay (déroulé)
 src/tuiController.ts      Controleur des flows de configuration TUI
 src/args.ts               Parseur d'arguments CLI (table d'arite des flags)
+src/launchDispatch.ts     Decision de lancement d'une commande run : accueil TUI ou Chat direct selon le mode effectif
 src/new.ts                Assistant interactif `palabre new`
 src/config.ts             Chargement, generation et validation de config
 src/discovery.ts          Detection locale des CLIs et d'Ollama pendant init
 src/doctor.ts             Diagnostics de configuration et de disponibilite locale
 src/agentRegistry.ts      Source de verite des agents CLI connus (mapping commande -> decouverte)
 src/exec.ts               Resolution d'extensions executables partagee
+src/npmShim.ts            Reconnaissance stricte des shims PowerShell npm et pnpm, lancement direct sans PowerShell (adapters ; Relay : forme npm Node + script seulement)
 src/types.ts              Contrats partages
 src/prompt.ts             Rendu des prompts agent
 src/context.ts            Chargement des fichiers et dossiers de contexte
@@ -145,7 +159,7 @@ L'orchestrateur doit s'appuyer sur ce contrat plutot que sur des exceptions impl
 
 Pour ajouter un agent CLI connu (nouvelle CLI premiere classe), ajouter une seule entree dans `KNOWN_CLI_AGENTS`, ajouter le bloc agent correspondant dans `exampleConfig` (`src/config.ts`), et completer `ToolDiscovery` / `discoverLocalTools` si une nouvelle commande doit etre detectee. Les helpers `normalizeCommandName`, `detectionForCommand`, `detectedAgentNames`, `isAgentDetected` et `applyDetectedCommands` se mettent a jour automatiquement pour tous les consommateurs.
 
-Les CLIs custom declarees par l'utilisateur (non listees dans le registre) restent considerees disponibles : Palabre ne peut pas connaitre leur semantique sans les lancer.
+Les CLIs custom declarees par l'utilisateur (non listees dans le registre), sans chemin absolu, restent considerees disponibles : Palabre ne peut pas connaitre leur semantique sans les lancer. Un chemin absolu, connu ou custom, verifie seulement la presence d'un fichier accessible ; son execution n'est pas sondee et aucune autre installation du PATH n'est substituee.
 
 ### Preset
 
@@ -311,9 +325,32 @@ prompt en argument ou un model override contenant des metacaracteres quand un wr
 necessaire. Pour Claude Code, preferer `claude.exe` avec `"shell": false`, car `stdin` est
 capture correctement dans ce mode.
 
-Pour les CLIs qui exigent un prompt en argument, Palabre tente ensuite le shim PowerShell `.ps1`
-frere genere par npm/pnpm et le lance sans `cmd.exe`. CLI et PTY partagent la resolution PATH mise
-en cache dans `src/exec.ts`; sans executable natif ni shim PowerShell, le lancement est refuse.
+Sous Windows, l'ordre de lancement (CLI et PTY) est : executable natif ; shim PowerShell `.ps1` frere
+genere par npm ou par pnpm, reconnu ligne a ligne et lance directement, sans PowerShell (Node et le
+script du paquet, ou l'executable natif du paquet pour la variante native npm) ; autre shim
+PowerShell (shim modifie, forme inconnue), lance par PowerShell sans `cmd.exe` ; sinon wrapper
+shell, refuse pour un prompt en argument. Avec Windows PowerShell 5.1, le shim refuse l'argument
+`-`, retire les guillemets internes et remplace les caracteres non ASCII de stdin par `?` ; le repli
+PowerShell garde ces limites. CLI et PTY partagent la resolution PATH mise en cache dans
+`src/exec.ts`.
+
+Shims pnpm (#109), dans `src/npmShim.ts` :
+- modele `PNPM_SHIM_TEMPLATE` releve sur pnpm 10 (paquets globaux et `pnpm link --global`), copie
+  conforme exigee ; seuls varient la valeur Windows de `NODE_PATH`, sa valeur POSIX et le script ;
+- valeurs litterales seulement (ni `$`, ni accent grave, ni guillemet droit ou typographique double,
+  ni caractere de controle) ; `NODE_PATH` Windows forme de dossiers absolus avec lettre de lecteur ;
+  script relatif en `/`, avec des `..` seulement en tete, termine par `.js`, `.cjs` ou `.mjs` ;
+- `NODE_PATH` reproduit comme le shim par `withShimNodePath`, sur une copie de l'environnement du
+  processus lance : valeur du shim si la valeur heritee est absente ou vide, sinon
+  `<valeur du shim>;<valeur heritee>` ;
+- lien global (script hors du dossier du shim) accepte seulement si le chemin est litteral et si la
+  cible resolue existe et est un fichier JavaScript : Palabre lance exactement ce que le shim
+  lancerait ;
+- non pris en charge, donc repli PowerShell : script sans extension JavaScript (par exemple `tsc`
+  ou `vsce`), cible native, `pnpx`, shim modifie.
+
+Relay (D21) reste limite a la forme npm Node + script : un shim pnpm y donne
+`unsupported-executable`.
 
 Les defaults Palabre appliquent une politique d'outils en lecture seule quand la CLI l'expose :
 Claude est limite a `Read,Glob,Grep`, Vibe a `read,grep`, et OpenCode utilise `--pure` pour
@@ -507,6 +544,389 @@ Sans declaration, Palabre utilise `direct-cli`. Les exports `.debate.md`,
 `.ask.md` et `.chat.md` inscrivent la version du CLI, la source d'execution
 et la version du client quand elle est fournie.
 
+## Relay externe
+
+Échecs de lecture Windows/Codex (#128) : l'adapter qualifie uniquement les événements terminés
+`command_execution`, `failed`, `exit_code: -1` dont la sortie commence par l'erreur de démarrage
+`CreateProcessAsUserW failed: 5` (préfixes qualifiés dans `codex.ts`, format 0.163.0). Le champ
+optionnel `readAccess` est un diagnostic d'échec, jamais une preuve positive d'accès. Relay conserve
+réponse, identité et délivrance, puis rend `read-unavailable`/2 ; Mission se met en pause. Pour review,
+`publishReview` refuse avant toute commande GitHub : `review-failed`/9, `task.error: read-unavailable`,
+`publication: not-attempted`. Ne jamais contourner ce refus par une publication manuelle d'agent,
+une réexécution automatique ou un élargissement du sandbox. La prose du modèle n'est pas analysée.
+L'absence du diagnostic et une autre commande réussie ne prouvent pas les lectures nécessaires.
+
+Enveloppe standard (#126) : `envelope.ts` construit un en-tête PALABRE Relay traduit avec
+expéditeur et destinataire, puis l'avertissement ℹ️ sur une ligne séparée et entourée de lignes
+vides, toujours AVANT l'objet et le corps. Objet explicite via `--subject` seulement : une ligne
+non vide, 200 points de code Unicode, contrôles et formatages Unicode refusés ; Markdown inline
+échappé. Ne jamais déduire un objet ni retirer un en-tête imité dans le corps. Les agents ne
+doivent plus préfixer leur contenu d'un second en-tête PALABRE.
+
+La partie **🤖 Message pour l'agent** garde expéditeur déclaré non authentifié, session, nonce et règles.
+Une seule consigne commune demande de répondre ici, sans appeler un autre agent ; seule la phrase
+sur les permissions diffère entre reprise classique (lecture seule demandée) et `--open` (outils
+et permissions conservés). L'échappement inline se limite à `\`, backtick, `*`, `_`, `[`, `]`, `<`,
+`>` ; tirets, points et parenthèses restent littéraux.
+`--open` garde les outils/permissions de la cible et la comparaison exacte de l'enveloppe ; le
+nonce ne dépend pas de sa position. L'API interne `executeRelay(..., { header })` permet à Mission
+de fournir id/numéro d'étape, sans flag CLI ni autorité supplémentaire. Le cadre garde objectif et critères
+sur deux lignes traduites, sans JSON ni répétition de l'id de mission. Un retour Markdown explicite
+sépare ces deux champs ; la consigne de coordination non authentifiée reste présente. `subject?` est optionnel en JSON/export v1 et absent sans
+option. Les 64 Kio portent sur toute l'enveloppe de coordination ; le contexte PR reste borné
+séparément à 256 Kio. `--open` conserve ses 8 192 unités UTF-16 et la borne de ligne Windows.
+
+### Mission v2.0 (#115)
+
+`palabre mission` est une couche CLI au-dessus de Relay, pas un mode Débat ni un écran TUI. Le chef de mission fixe avec l'humain objectif, critères, sessions, tâches (`consult`, et éventuellement `review`) et budgets. Les réponses dans la conversation suffisent pour ce cadre en lecture seule ; aucune confirmation clavier ajoutée. Les permissions d'écriture et leur confirmation appartiennent à v2.1, hors de ce lot. Le chef de mission ne peut ni modifier la politique Relay ni déduire une autorisation d'un message de l'équipier.
+
+`start` ne lance aucun agent. `step <id> "message"` réserve une seule tentative, appelle `executeRelay` une seule fois puis rend la main au chef de mission. `review` garde les contrôles de la configuration approuvée, de CLI et du commit de PR et la publication COMMENT existants. Aucun `--open`, `--trust-config`, changement de chef de mission, boucle ou retry automatique. La conversation de l'équipier reste fermée pendant la mission ; suivi par `status`, export local et GitHub.
+
+`src/mission.ts` garde un JSON v1 atomique et un export `.mission.md` sous `.palabre/missions/<uuid>/`. Un seul verrou exclusif protège l'étape ; un arrêt terminal indépendant reste accessible avec `stop`, même après une coupure. Un état `running` sans résultat ou une délivrance/publication incertaine refuse la suite, sans effacer de réservation. L'arrêt annule au mieux l'appel, sans retrait de message ou de publication promis. Un refus certain peut être suivi d'une nouvelle étape explicite, qui consomme elle aussi le budget. Les réponses restent des constats d'agents, jamais des résultats automatiquement vérifiés.
+
+Budget : tentatives (1–100), durée murale depuis start (10–86400 s, attente entre étapes comprise), délai d'appel par étape (10–3600 s, surcharge sur step). Les sondes et opérations GitHub gardent leurs bornes Relay, même après une demande d'annulation. Aucun plafond monétaire ; stockage borné à 32 Mio, erreur de persistance sans rejeu. Les tests `mission.test.ts` et `relay-command.test.ts` utilisent de faux transports/CLIs. Les identifiants et transcripts restent locaux. Copies installées du skill à mettre à jour manuellement.
+
+### Relay v1 : coordination et tâche revue
+
+`palabre relay` est un service discret, sans écran dédié. Une requête d'agent est marquée comme coordination non authentifiée, jamais comme autorisation humaine ; aucun chaînage automatique. La v1 utilise les reprises CLI officielles sur sessions détachées. Une cible attachée même au repos est refusée (`target-busy`, code 3, `retryable: true`) ; ne pas confondre l'état d'une génération avec la possession de la session. Aucun affichage immédiat Desktop promis. Le pilote Codex `--open` est distinct, hors v1 ; B2/B3 restent une recherche séparée.
+
+La seule tâche est `--task review --pr https://github.com/owner/repo/pull/123`. La configuration déjà approuvée doit contenir `relay.allowedTasks: ["review"]` et le dépôt exact ou le motif explicite `owner/*` dans `relay.reviewRepositories`. Une tâche inconnue ou hors liste est refusée avant les appels GitHub/modèle ; `--trust-config` et `--open` sont refusés avec cette tâche. Un agent ne peut pas transformer le message relayé en extension de sa politique.
+
+`palabre relay allow-repo owner/repository` (ou `'owner/*'`) résout le même fichier de configuration, affiche le chemin et le changement, exige entrée et sortie TTY, puis une confirmation clavier. Aucun --yes ni --trust-config accepté. L'objet JSON d'origine est utilisé sans migration des autres champs ; seules les valeurs de la politique relay changent (la mise en forme JSON peut changer). Les entrées sont normalisées sans doublon, puis l'écriture atomique et trustConfig sont réutilisés. L'approbation concerne le fichier entier, ce que le terminal précise. Une dérive pendant la question refuse sans écraser le nouvel état. TTY est une règle UX opérateur, pas une authentification humaine contre un agent disposant déjà d'un terminal et des droits sur le profil.
+
+Le refus task-not-allowed (code 8 inchangé) ajoute `remedy`, une commande copiable liée au même chemin --config, et les consignes dans l'erreur. L'agent ouvre cette commande dans le terminal visible du propriétaire avec les outils de son hôte, puis attend : il ne confirme jamais, n'édite ni n'approuve cette politique. Sans outil de présentation du terminal, il fournit la commande exacte. L'ouverture de fenêtre appartient à l'hôte ; aucun lanceur GUI spécifique ajouté au CLI. Les copies installées du skill nécessitent une mise à jour manuelle, signalée dans le changelog.
+
+allow-repo exige une configuration déjà approuvée ; sinon refus avant la question, avec une commande distincte `palabre config --config <fichier> --trust-config` que seul le propriétaire lance après avoir ouvert et relu le fichier. Cette approbation explicite couvre désormais aussi le fichier global. trustConfig accepte une empreinte attendue optionnelle, utilisée par allow-repo pour ne jamais approuver une écriture étrangère survenue entre écriture et approbation. Le refus de confirmation sort en code 8. Le terminal montre le chemin, pas le contenu du fichier ; les commandes copiables ciblent PowerShell ou les shells POSIX.
+
+`src/externalSessions/review.ts` lit la PR et le diff entier avec GitHub CLI, traite ces contenus comme données non fiables, et prépare une revue en lecture seule. Palabre publie ensuite une revue COMMENT sur la PR et le commit précis ; le modèle ne dispose d'aucune capacité générale supplémentaire d'écriture. Configuration/empreinte et tête de PR revérifiées avant publication. Aucun commit, push, merge ou renvoi automatique. Les identifiants de session/nonce ne sont pas publiés. Les champs optionnels JSON/export `task` consignent cible, commit, publication et URL. Une publication non confirmée donne `review-failed`, code 9, avec réponse et délivrance de l'agent conservées ; jamais de nouveau POST automatique.
+
+Pour la tâche revue seulement, Claude est repris avec `--safe-mode`, les outils Read/Glob/Grep et aucun MCP : version minimale prise en charge 2.1.292. Avant de lire la PR, `--version` et `--help` sondent la CLI résolue ; version trop ancienne, option absente ou sonde non vérifiable donnent `review-cli-unsupported`, sans lecture GitHub ni modèle. Le champ optionnel `cli` (path, version) et l'export indiquent la CLI sondée ; un shim npm désigne le script lancé. Les notifications ordinaires gardent leurs arguments historiques et leur contexte personnalisé. Les garanties conditionnelles des transports restent celles documentées plus bas. Les tests unitaires utilisent un GitHub injecté ; aucun réseau ni modèle dans `pnpm test`. Aucun harnais de mutations systématiques pour cette v1. Mission (#115) suit la v1 et reste hors de ce lot.
+
+Synchronisation : `applyDetectedCommands` (accueil TUI et `palabre config --sync-agents`) conserve les commandes déjà configurées avec un chemin absolu POSIX ou Windows/UNC, même introuvable. Les noms simples et chemins relatifs restent synchronisés ; les agents personnalisés restent intacts. `detectionForCommand` vérifie les métadonnées du fichier configuré pour un chemin absolu (fichier présent, sinon indisponible), sans l'exécuter ni revenir au PATH. Doctor et isAgentDetected partagent ce diagnostic, donc les inventaires/presets aussi. Le lancement effectue toujours ses contrôles et la sonde review-cli ne choisit pas une autre installation. Un agent dédié `claude-review` reste utile pour séparer rôle et CLI de revue ; `externalSessionProviderForCommand` reconnaît le fournisseur par le nom normalisé du programme, pas par la clé. Le propriétaire réapprouve le fichier modifié ; aucune extension implicite de la politique de revue.
+
+Le correctif [#117](https://github.com/JuReyms/Palabre/issues/117) appartient au registre CLI partagé ; le workaround documenté dans #116 reste compatible.
+
+L'approbation de configuration est une frontière opérateur, pas un isolement contre une entité ayant déjà un shell en écriture et accès au registre de confiance. Une telle entité peut utiliser une commande séparée pour réapprouver un fichier : le refus de --trust-config dans la tâche ne prétend pas l'en empêcher. Le message relayé ne peut pas élargir la politique ; l'humain demeure propriétaire de cette politique.
+
+État : la commande `palabre relay` est disponible (lots A0 à A4, non publiée). Elle vit dans `src/commands/relay.ts`, le socle et les adapters dans `src/externalSessions/`. Le smoke réel avec de vrais agents (A5) reste à faire avant publication.
+
+`palabre relay` transmet **un** message à une conversation Codex ou Claude Code existante, récupère **une** réponse, puis termine. Sans `--open`, il vise les conversations **fermées** : aucun processus (TUI, desktop, IDE, `exec`, `-p`) n'y est attaché.
+
+Avec `--open` (lot B1, pilote Codex sous Windows, non publié), il dépose le message dans une conversation Codex **ouverte** (TUI ou Codex desktop) par `codex queue`, puis attend la réponse corrélée dans le rollout. La cible garde ses outils et permissions. Voir la section « Relay vers une conversation ouverte » plus bas. Claude Code (B2) et Codex desktop comme expéditeur restent hors de ce lot : l'objectif de l'issue #96 n'est pas entièrement résolu.
+
+Le relay est distinct de deux mécanismes existants :
+
+- `palabre resume`, qui reprend un checkpoint Palabre ;
+- les adapters de débat (`generate(prompt)`).
+
+Il passe par un adapter « session externe » dédié (`src/externalSessions/`), sans cas spécial dans l'orchestrateur.
+
+Contrat d'adapter (`ExternalSessionAdapter`, `src/externalSessions/adapter.ts`) :
+
+- `locate` : historique et dossier de travail ;
+- `probe` : attachement de la cible ;
+- `prepare` (facultatif) : étape préalable, par exemple la liste MCP de Codex. Elle reçoit un lanceur déjà lié à l'exécutable, au dossier de la cible et à l'environnement nettoyé. Elle rend les arguments à insérer dans la reprise, ou un refus avant lancement ;
+- `resumeArgs` : arguments complets de reprise, avec ceux rendus par `prepare` ;
+- `interpret` : réponse, identité, refus certain et limite d'usage ;
+- `findNonce` : preuve de persistance.
+
+Un adapter ne lance aucun processus. `exchange` exécute l'étape préalable, puis lance la reprise avec `runExternalProcess`, et délègue l'interprétation à l'adapter. Un refus de l'étape préalable empêche toute reprise. `exchangeOutcome` en déduit l'issue et l'indicateur de lancement pour `classifyDelivery`. Issues et délivrance restent calculées par `outcome.ts`, identiques pour tous les fournisseurs.
+
+### Syntaxe
+
+```text
+palabre relay --from <agent>:<session> --to <agent>:<session> ("<message>" | --message-file <chemin>)
+              [--timeout <secondes>] [--json] [--no-export] [--config <chemin>] [--trust-config]
+              [--language <fr|en>]
+```
+
+- `--to <agent>:<session>` :
+  - `<agent>` est le nom d'un agent de la config résolue ;
+  - `<session>` est un UUID (8-4-4-4-12 hexadécimal), normalisé en minuscules ;
+  - aucune sélection implicite (« la plus récente ») n'existe.
+- `--from <agent>:<session>` est une étiquette déclarative de l'expéditeur. Seule sa syntaxe est validée. L'expéditeur n'est ni lancé, ni sondé, ni tenu d'exister dans la config. Il peut être actif.
+- Le message est fourni en argument positionnel **ou** par `--message-file`, jamais les deux. Il doit être non vide ; message, objet, en-tête et pied de coordination ne dépassent pas ensemble 64 Kio UTF-8 (contexte PR séparé).
+- `--timeout` : 600 s par défaut, entre 10 et 3600 s.
+- `--json` produit un objet JSON unique sur stdout.
+- `--no-export` supprime l'export `.relay.md`. Par défaut, l'export est écrit dans `outputDir`.
+- `--trust-config` approuve explicitement la config résolue (`trustConfig`) avant de l'utiliser.
+
+La commande est elle-même l'action explicite. Elle ne pose **aucune question interactive**, en TTY comme hors TTY.
+
+Les arguments sont analysés par un parseur strict propre à relay (`parseRelayTokens`), et non par le parseur général. Tout jeton qui commence par `-` doit être une option longue de relay. Sont refusées et nommées, avec `invalid-request` (`invalid-arguments`) et sans aucun lancement :
+- les options courtes (`-q`, `-a`, `-s`…), sauf `-h` ;
+- les options d'autres commandes ;
+- la forme `--option=valeur` ;
+- une option répétée ;
+- une option sans valeur.
+
+L'aiguillage a lieu au tout début de `main()`, avant la résolution de la langue, le parseur général et les handlers globaux (`--version`, `--help`). `findFirstPositionalIndex` (`src/args.ts`) repère la commande avec la table d'arité du parseur général, sans rien valider, pour qu'une valeur d'option égale à `relay` (`--config relay`, `-s relay`) ne soit jamais prise pour la commande. `palabre --json --language de relay`, `palabre --json relay --config` et `palabre --json relay --version` donnent donc un objet `relay-result` (code 8), comme quand `relay` vient en premier.
+
+### Résolution de la commande
+
+1. **Config.** La résolution est la même que pour les autres commandes : `--config`, puis la config de projet, puis la config globale.
+   - Elle doit être approuvée (`isConfigTrusted`), quelle que soit sa provenance, comme pour `palabre resume`.
+   - Une config non approuvée est refusée, **y compris en TTY**, sans question interactive : `invalid-request`, raison `config-untrusted`. Seul `--trust-config` l'approuve.
+   - Une config absente ou illisible donne `invalid-request`, raison `config-unavailable`.
+   - `src/index.ts` aiguille `relay` avant le parseur général et avant `ensureImplicitProjectConfigTrusted`. Le relay ne passe donc pas par la confirmation interactive appliquée aux configs de projet implicites, et ses erreurs d'arguments restent structurées en `--json`.
+2. **Agent.** `config.agents[<agent>]` doit exister et ne pas être retiré. Il n'y a aucun fallback codé en dur. L'agent doit être de type `cli`. Sinon, l'issue est `invalid-request`, avec la raison `unknown-agent` ou `unsupported-agent`.
+3. **Fournisseur.** On applique `normalizeCommandName(command)`, puis on cherche le résultat dans `KNOWN_CLI_AGENTS`, via un champ `externalSession: "codex" | "claude"`.
+   - Un alias (par exemple `claude-opus` avec `claude.exe`) est accepté.
+   - Une commande custom non reconnue donne `unsupported-agent`.
+4. **Exécutable** (`resolveExternalExecutable`, `src/externalSessions/resolve.ts`, décision D21). Il est lancé **sans shell, ni PowerShell, ni `cmd.exe`**. Avec le shim npm `codex.ps1` lancé par Windows PowerShell 5.1, il a été constaté que :
+   - l'argument `-` est refusé ;
+   - les guillemets internes sont retirés (`sandbox_mode="read-only"` devient `sandbox_mode=read-only`, et `{"disableAllHooks":true}` devient `{disableAllHooks:true}`) ;
+   - les caractères non ASCII de stdin deviennent `?`, et les fins de ligne deviennent CRLF.
+
+   Sous Windows, la commande (chemin explicite, ou nom cherché dans le PATH avec `src/exec.ts`) est résolue dans cet ordre :
+   1. exécutable natif `.exe` ou `.com`, y compris un alias d'exécution `WindowsApps` ;
+   2. shim PowerShell npm (`.ps1`, voisin d'un `.cmd` ou d'un script sans extension). Il est **lu comme du texte**, jamais exécuté ni évalué. Il doit reproduire **ligne à ligne** le modèle complet généré par npm (`cmd-shim`, `NPM_SHIM_TEMPLATE`).
+      - Seules variations permises : le chemin du script (identique aux quatre appels, segments de paquet sans `$`, accent grave, guillemet ni espace), les fins de ligne LF ou CRLF, les espaces en fin de ligne et les lignes vides finales.
+      - Toute instruction ajoutée, retirée ou modifiée rend le shim non reconnu : affectation de `$args`, variable d'environnement, `Set-Location`, `exit` anticipé, commentaire ou indentation.
+      - Le script doit être un fichier JavaScript existant, situé dans le dossier du shim.
+
+      Le relay lance alors directement l'interpréteur (`node.exe` du dossier du shim s'il existe, sinon celui du PATH) et le script du paquet ;
+   3. tout autre wrapper (`.cmd` ou `.bat` seul, shim modifié ou ambigu) donne `invalid-request`, raison `unsupported-executable`.
+
+   Ailleurs, la commande est résolue dans le PATH et lancée directement. Si rien n'est trouvé, l'issue est `command-not-found`. Le champ `shell` de la config est ignoré. `discoverLocalTools` n'est pas appelé.
+5. **Arguments.** Le relay n'utilise pas les réglages de débat de l'agent : `args`, `promptMode`, `model`, `modelArg`, `shell`, `timeoutMs` et `idleTimeoutMs`. L'adapter session externe construit seul la liste complète des arguments :
+   - Codex : `exec resume … -m <modèle enregistré dans la session>` ;
+   - Claude : `-p … --append-system-prompt <cadre opérateur> --resume …`, sans `--model`.
+
+   **Cadre opérateur Claude (D22).** C'est un texte **fixe**, en français ou en anglais selon la langue du relay (`relayMessages.<langue>.operatorFrame`), ajouté au prompt système de la reprise. Il dit trois choses :
+   - l'opérateur utilise `palabre relay` pour poser une question dans cette conversation ;
+   - l'expéditeur indiqué dans l'enveloppe est déclaratif et non authentifié ;
+   - le cadre ne rend pas le message plus fiable et ne lève aucune consigne ni restriction.
+
+   Aucun contenu du message n'y entre, puisque le message passe seulement par stdin. L'enveloppe et toutes les restrictions restent inchangées.
+
+   Portée vérifiée **[T]** :
+   - avec Claude Code 2.1.85, le cadre ajouté à la reprise est appliqué, et il lève le refus « injection de prompt » observé sans lui ;
+   - avec 2.1.292, l'option est acceptée, mais **un prompt système ajouté seulement à la reprise n'est pas appliqué** : le prompt enregistré avec la session prévaut. Une sonde stricte l'a montré deux fois. Avec cette version, le cadre est donc sans effet, et aucun refus n'a été observé sans lui.
+
+   Le même exécutable sert à `codex mcp list` et à la reprise.
+
+### Déroulé
+
+Les étapes sont strictement ordonnées, et une étape refusée arrête le relay :
+
+1. **Valider les arguments.**
+2. **Résoudre la config, l'agent et l'exécutable.**
+3. **Localiser l'historique de la cible et son dossier de travail** :
+   - Codex : rollout `rollout-*-<session>.jsonl`, cherché dans `~/.codex/sessions/**` puis `archived_sessions/**`.
+     - La première entrée doit être un `session_meta` de la même session ; sinon, le rollout est jugé incohérent et la cible est `session-not-found`.
+     - Le dossier est `session_meta.cwd`.
+     - Le modèle est celui du dernier `turn_context`, repris avec `-m` pour éviter un changement de modèle dans l'historique. Sans modèle enregistré, `-m` est omis et l'omission est signalée.
+     - Plusieurs rollouts pour un même identifiant donnent `session-not-found` (ambigu) ;
+   - Claude : transcript `~/.claude/projects/*/<session>.jsonl`. Le dossier retenu est le `cwd` de la première entrée qui en porte un, c'est-à-dire le dossier d'origine. Une reprise lancée ailleurs ajoute d'autres `cwd`, qui sont signalés mais pas suivis. Un identifiant présent dans plusieurs dossiers de projet est refusé comme ambigu (`session-not-found`).
+
+   Le dossier doit exister. Il n'est **jamais remplacé par le dossier courant** de Palabre. Sinon, l'issue est `invalid-request`, raison `invalid-working-directory`.
+4. **Sonder l'attachement.** Seul `detached` est relayable :
+   - `attached` donne `target-busy` ;
+   - un attachement invérifiable donne `target-state-unknown`. C'est le cas quand le registre Claude est absent ou illisible, ou quand il contient une entrée sans `sessionId` valide (`{}`, `{ pid }`, `sessionId: null`…). Une entrée n'est écartée comme « autre session » que si son identifiant est valide et différent.
+   - Codex : verrou `~/.codex/thread-writer-locks/<session>.lock`.
+     - Absent, ou présent mais libre (verrou laissé après un kill) : `detached`.
+     - Tenu (ouverture exclusive refusée sous Windows) : `attached`.
+     - Hors Windows, le verrou est consultatif et ne peut pas être éprouvé : un verrou présent donne `unknown`, donc un refus.
+5. **Envelopper le message** avec l'expéditeur et un nonce à usage unique.
+6. **Codex : neutraliser les MCP** (`prepare`).
+   - La commande `codex mcp list --json --disable plugins --disable apps` est lancée par le même exécutable, dans le dossier de la cible, en 60 s et 1 Mio au plus.
+   - La sortie doit être un tableau d'objets dont chaque `name` est une clé TOML nue.
+   - Si la liste n'est pas conforme, ou si son lancement échoue, la reprise n'est pas lancée. L'issue est `neutralization-failed`, `command-not-found`, `invalid-request` (`invalid-working-directory`) ou `cancelled`.
+   - La reprise reçoit `--disable plugins --disable apps` et `-c mcp_servers.<nom>.enabled=false` pour chaque serveur. Une reprise sans ces options est impossible : c'est une erreur de programmation.
+   - La reprise coupe aussi les mémoires, les hooks et `notify`.
+7. **Lancer la CLI** (`runExternalProcess`) :
+   - sans shell ;
+   - avec l'environnement de l'hôte nettoyé (`CLAUDECODE`, `CLAUDE_CODE_*`, `CODEX_THREAD_ID`…), y compris quand un environnement est fourni explicitement ;
+   - avec le message sur stdin, dans le dossier de la cible ;
+   - avec un timeout dur et un plafond cumulé stdout + stderr (50 Mio par défaut). Le dépassement de l'un ou de l'autre provoque le kill de l'arbre de processus.
+
+   Tous les timers sont annulés à la terminaison, et aucun kill n'est émis après `exit`.
+8. **Interpréter la sortie.** On vérifie l'identité, la réponse et les refus certains de la CLI.
+
+   Pour Claude, un succès exige un seul événement `result` de forme vérifiée : `subtype: "success"`, `is_error` strictement `false` et une réponse non blanche après `trim()`. La réponse rendue est le texte original. Toute autre forme est un échec, sans réponse rendue.
+
+   Pour Codex, un succès exige :
+   - un exit 0 ;
+   - exactement un `turn.completed`, sans `turn.failed` ni `error` ;
+   - un dernier `agent_message` textuel non blanc, rendu tel quel ;
+   - un `thread.started` égal à la cible.
+
+   Les refus `already has an active writer` (`target-busy`) et `no rollout found` (`session-not-found`) ne sont certains que si aucun `turn.started` n'a été émis.
+9. **Chercher le nonce** dans l'historique de la cible.
+10. **Rendre le résultat** : texte ou JSON, export, code de sortie.
+
+**Diagnostic d'un lancement impossible** (`diagnoseLaunchFailure`). `ENOENT` ne prouve pas l'absence de l'exécutable, car Node le renvoie aussi quand le dossier de travail est absent. Le diagnostic suit donc cet ordre, à `codex mcp list` comme au lancement :
+
+1. dossier absent : `invalid-working-directory` ;
+2. code autre que `ENOENT` : échec de lancement ;
+3. exécutable absent : `command-not-found` ;
+4. sinon : échec de lancement.
+
+Un échec de lancement donne `cli-failure` pour la reprise, et `neutralization-failed` pour `codex mcp list`. Dans les deux cas, la délivrance est `not-delivered`.
+
+### Engagements et limites
+
+- **Cible fermée seulement.** Le relay est refusé si un processus est attaché à la cible, ou si l'attachement ne peut pas être vérifié. `target-busy` veut dire « cible attachée », pas seulement « génération en cours ».
+- **Réponse renvoyée à l'appelant, sans relay inverse.** La réponse sort seulement par le même appel : stdout ou `reply`, plus l'export. Palabre n'écrit rien dans la conversation de l'expéditeur. Un aller-retour est une suite d'appels explicites.
+- **Perte d'outils pendant la reprise.** Ces options ne valent que pour le tour relayé, et aucune config n'est modifiée. La réponse peut donc différer de celle de la conversation habituelle.
+  - Codex est relancé avec `--disable plugins --disable apps` et `mcp_servers.<nom>.enabled=false` : il perd ses plugins, ses connecteurs et ses serveurs MCP.
+  - Claude est relancé avec `--strict-mcp-config` et `--tools Read,Glob,Grep` : il n'a ni MCP ni outil autre que la lecture.
+- **Garanties conditionnelles**, y compris pour l'absence d'outils d'écriture. Formulation à reprendre telle quelle dans l'aide et la documentation :
+
+  > « Avec les options imposées par Palabre et sur les versions de CLI vérifiées, la cible ne dispose d'aucun outil d'écriture, et les hooks et la commande `notify` non gérés sont neutralisés. Les serveurs MCP sont neutralisés sous réserve que la configuration ne change pas entre l'inspection et la reprise. Ces garanties ne couvrent ni les politiques administrées, ni les versions de CLI non vérifiées. »
+
+  Les versions vérifiées sont listées dans la documentation et revérifiées par le smoke réel avant chaque release. Une version inconnue n'est pas bloquée, mais la garantie ne lui est pas étendue.
+- **Historique du fournisseur modifié, même en lecture seule.**
+  - Le relay ajoute à la conversation cible le message enveloppé, la réponse et les éventuels appels d'outils de lecture. Claude peut aussi ajouter un tour synthétique après une interruption.
+  - Les CLIs écrivent leur propre état : registre, verrous, base d'état.
+  - Ces écritures restent visibles après un échec, et Palabre ne peut pas les annuler. « Lecture seule » ne veut jamais dire « sans effet ».
+- **Aucun retry automatique.** Un nonce n'est jamais réutilisé. Le statut de délivrance indique à l'appelant ce qu'il peut faire :
+  - `not-delivered` : renvoyer est sans risque de doublon ;
+  - `persisted-no-reply` : un renvoi dupliquerait le message ;
+  - `unknown` : ne pas renvoyer sans vérification.
+- **Limites observées en conditions réelles** (smoke A5, Claude Code 2.1.85 et Codex 0.151.0) :
+  - Claude peut traiter le message relayé comme une injection de prompt et refuser de restituer son contexte. Le relay rend alors `replied` avec ce refus.
+    - Le cadre opérateur (D22) lève ce refus avec 2.1.85.
+    - Avec les versions qui ignorent un prompt système ajouté à la reprise (2.1.292), le cadre est sans effet. Un refus éventuel ne serait alors pas levé ;
+  - le relay reprend le modèle enregistré dans la session Codex. Si ce modèle est refusé par le compte, l'issue est `cli-failure` avec `persisted-no-reply` ;
+  - Claude Code ne garde pas forcément le modèle de création à la reprise : le modèle effectif est rapporté dans `observedModels`.
+
+### Statuts de délivrance
+
+| Statut | Condition |
+| --- | --- |
+| `replied` | Réponse capturée et identité `same-as-target` |
+| `not-delivered` | Aucun processus lancé, ou issue qui exclut toute écriture : `invalid-request`, `command-not-found`, `session-not-found`, `target-busy`, `target-state-unknown`, `neutralization-failed`. Après lancement, seuls les refus documentés de la CLI donnent ces issues (`active writer`, `no rollout found`, `No conversation found`) |
+| `persisted-no-reply` | Pas de réponse valide, mais le nonce figure dans une entrée utilisateur de l'historique |
+| `unknown` | Tous les autres cas. L'absence du nonce ne prouve pas la non-délivrance |
+
+**Une preuve de persistance l'emporte toujours.** Si le nonce est trouvé dans l'historique, la délivrance n'est jamais `not-delivered`, même si l'issue annonce un refus (par exemple `target-busy` après lancement). Elle devient `persisted-no-reply` (ou `replied`), et la preuve est conservée. La délivrance indiquée pour chaque issue dans le tableau des codes de sortie s'entend sous cette réserve.
+
+`persisted` et `inActiveBranch` (`true`, `false` ou `unknown`) sont rapportés séparément, tels que lus, sans réécriture. Sans preuve, ils valent `false` si aucun processus n'a été lancé, `unknown` sinon. `inActiveBranch` est un diagnostic (heuristique non documentée pour Claude) et n'influence jamais le statut.
+
+### Issues et codes de sortie
+
+| Code | Issue (`status`) | Délivrance |
+| --- | --- | --- |
+| 0 | `replied` | `replied` |
+| 1 | `internal-error` (défaut de Palabre) | `not-delivered` avant lancement, sinon `unknown` |
+| 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large`, `read-unavailable` | `replied` si une réponse valide avec lectures bloquées a été reçue ; sinon `persisted-no-reply` ou `unknown` ; `not-delivered` si aucun processus n'a été lancé |
+| 3 | `target-busy`, `target-state-unknown`, `neutralization-failed`, `target-not-open` (avec `--open` seulement) | `not-delivered` |
+| 4 | `timeout` | `persisted-no-reply` ou `unknown` |
+| 5 | `identity-mismatch` | `persisted-no-reply` ou `unknown`. Le texte d'une autre session n'est jamais rendu comme `reply` |
+| 6 | `session-not-found` | `not-delivered` |
+| 7 | `command-not-found` : exécutable de la CLI cible introuvable | `not-delivered` |
+| 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory`, `task-not-allowed`, `invalid-pr`, `review-unavailable`, `review-cli-unsupported` | `not-delivered` |
+| 9 | `review-failed` : publication de revue non confirmée | délivrance de la réponse de l'équipier conservée, distincte de `task.publication` |
+| 130 | `cancelled` (Ctrl+C) ; avec review seulement si aucun POST tenté | `not-delivered` avant lancement, sinon preuve conservée (dont `replied` si l'équipier avait répondu avant l'annulation de la publication) |
+
+Avec review, une interruption après début du POST conserve `replied`/0 si publication confirmée, ou `review-failed`/9 si publication inconnue, et ajoute seulement `task.cancelled: true`. Le code de sortie ne masque jamais une revue publiée ou une publication incertaine.
+
+- `command-not-found` signale une installation à corriger, pas un défaut de Palabre. Le code 127 est écarté, car un shell le rend déjà quand `palabre` lui-même est introuvable.
+- `output-too-large` signale une sortie qui dépasse le plafond cumulé stdout + stderr. La sortie partielle n'est jamais traitée comme une réponse.
+
+La table est la source de `RELAY_EXIT_CODES` (`src/externalSessions/outcome.ts`). Toute modification passe par les deux.
+
+### Sortie `--json` (v1)
+
+Un seul objet JSON est écrit sur stdout, quelle que soit l'issue :
+
+```json
+{
+  "v": 1,
+  "type": "relay-result",
+  "status": "replied",
+  "exitCode": 0,
+  "from": { "agent": "codex", "session": "<uuid>" },
+  "to": { "agent": "claude", "session": "<uuid>", "provider": "claude" },
+  "reply": "…",
+  "delivery": { "status": "replied", "persisted": true, "inActiveBranch": true },
+  "identity": "same-as-target",
+  "observedModels": ["…"],
+  "error": null,
+  "exportPath": ".palabre/…relay.md",
+  "durationMs": 12345
+}
+```
+
+- `reply` conserve toute réponse valide reçue, même après un échec de lecture ou de publication.
+- `error` contient `{ "kind", "message", "reason"? }` pour toute autre issue, et `kind` est égal à `status`.
+- `exportPath` vaut `null` avec `--no-export`, ou si l'issue précède toute exécution.
+- La politique de version est celle du renderer NDJSON.
+- En sortie texte, la réponse va sur stdout. L'issue et les erreurs vont sur stderr, assainies par `sanitizeTerminalText`.
+- L'export `.relay.md` contient l'expéditeur, la cible (avec les identifiants de session), le message, la réponse ou l'issue, et la délivrance.
+- Avec `--open` seulement, l'objet ajoute des champs optionnels (décrits plus bas) et `status` peut valoir `target-not-open`. Cette valeur d'énumération et ces champs ne concernent que l'opt-in `--open` : la sortie sans `--open` est identique, champ pour champ, et ses consommateurs ne rencontrent pas le nouveau statut.
+
+### Relay vers une conversation ouverte (`--open`, B1)
+
+Contrat de référence : `scripts/prototypes/relay/CONTRAT-B1.md`, relu dans la PR #110. Pilote **Codex seulement, sous Windows** ; une cible Claude donne `invalid-request` / `unsupported-agent`. Hors Windows, le verrou ne peut pas être éprouvé : l'issue est `target-state-unknown`, sans dépôt.
+
+```text
+palabre relay --open --from <agent>:<session> --to <agent-codex>:<session> ("<message>" | --message-file <chemin>)
+              [--timeout <secondes>] [--json] [--no-export] [--config <chemin>] [--trust-config] [--language <fr|en>]
+```
+
+La validation des arguments, la config approuvée, l'agent et l'exécutable (D21) sont ceux de Relay A. Ensuite (`src/externalSessions/openRelay.ts`), sous **une seule échéance** `--timeout` couvrant référence, dépôt et attente :
+
+1. **Localisation bornée** (`locateOpenRollout`) : rollout par UUID, doublons refusés, première ligne seulement (1 Mio au plus), `session_meta.id` et dossier de travail validés. L'historique n'est jamais chargé en entier, quelle que soit sa taille. Aucun modèle n'est recherché : B1 ne lance aucune reprise.
+2. **Verrou tenu** obligatoire : absent ou libre, `target-not-open` ; invérifiable, `target-state-unknown`. Aucun dépôt dans les deux cas.
+3. **Contrôle du dépôt** (`codexQueue.ts`) : enveloppe complète d'au plus 8 192 unités UTF-16 ; aucun NUL ; ligne de commande Windows réellement sérialisée (exécutable, arguments préfixés D21, arguments et échappement libuv, NUL final) d'au plus 32 767 unités. Sinon `invalid-request` / `message-too-large`, sans dépôt.
+4. **Référence** du rollout (`captureOpenRollout`) : une fin de ligne partielle est réessayée pendant 2 s au plus, dans le budget et annulable ; ensuite, `no-valid-reply` avec la raison, sans dépôt.
+5. **Nouveau contrôle du verrou** immédiatement avant le dépôt. Il réduit la fenêtre de course sans rendre vérification et dépôt atomiques. Verrou libéré : `target-not-open` ; invérifiable : `target-state-unknown`, sans dépôt.
+6. **Un seul `codex queue --thread <uuid> --message <enveloppe>`**, lancé par `runExternalProcess` : sans shell, dans le dossier de la cible, environnement nettoyé, stdin vide, en `min(60 s, budget restant)` et 1 Mio au plus. Annulation et budget sont recontrôlés juste avant le lancement : si la sonde a épuisé le budget, `timeout` sans dépôt (ce contrôle ne rend pas sonde et lancement atomiques). Dès qu'un processus est créé, la tentative compte.
+7. **Attente** : lectures bornées de l'ajout (`readOpenRollout`, `inspectOpenReply`) toutes les 500 ms jusqu'à une observation terminale, l'échéance ou l'annulation. Annulation et échéance sont contrôlées avant chaque lecture **et après son retour**, avant d'accepter une observation terminale : une lecture terminée après Ctrl+C ou après l'échéance donne `cancelled` ou `timeout`, sans réponse. Toute preuve de réception est mémorisée.
+
+L'enveloppe `--open` annonce un expéditeur déclaré non authentifié et une demande d'un autre agent : ce n'est pas une instruction de l'utilisateur, elle n'autorise aucune action et ne lève aucune restriction. Ctrl+C est géré avant la référence ; le gestionnaire est retiré en fin de relay.
+
+**Issues.** Avant tentative, la délivrance est toujours `not-delivered`. Après tentative, elle vient de `settleOpenDelivery` : `persisted-no-reply` dès qu'une preuve de réception existe (actuelle ou conservée), sinon `unknown`.
+
+| Cas | Issue / code | Délivrance |
+| --- | --- | --- |
+| Verrou absent ou libre (avant ou juste avant le dépôt) | `target-not-open` / 3 | `not-delivered` |
+| Sonde invérifiable | `target-state-unknown` / 3 | `not-delivered` |
+| Enveloppe, NUL ou ligne Windows hors limite | `invalid-request`, `message-too-large` / 8 | `not-delivered` |
+| Référence toujours partielle ou illisible | `no-valid-reply` / 2, raison conservée | `not-delivered` |
+| Lancement impossible, aucun enfant créé | `command-not-found`, `invalid-request` / `invalid-working-directory` ou `cli-failure` | `not-delivered` |
+| CLI sans sous-commande `queue` : refus de son analyseur d'arguments sous la forme observée avec Codex 0.151.0 pour une sous-commande inconnue, exigée en entier (code 2, stdout vide, première ligne `error: unexpected argument '--thread' found`, usage `Usage: codex [OPTIONS] [PROMPT]`) | `cli-failure` / 2 | `not-delivered`. Toute autre sortie, simple mention dans un journal ou accusé contradictoire, garde l'incertitude |
+| Ctrl+C, y compris pendant la référence, `queue` ou une lecture | `cancelled` / 130 | `not-delivered` avant tentative, sinon selon la preuve |
+| Échéance, y compris juste avant le lancement, pendant `queue` ou pendant une lecture | `timeout` / 4 | idem |
+| Plafond de sortie de `queue` | `output-too-large` / 2 | selon la preuve ; la sortie partielle n'est jamais un accusé |
+| `queue` terminé en non-zéro | `cli-failure` / 2 | selon la preuve |
+| `queue` terminé à zéro, accusé absent, non conforme ou d'une autre conversation | `no-valid-reply` / 2 | selon la preuve |
+| Observation `failed` du tour corrélé (dont `task_complete.error`) | `cli-failure` / 2 | `persisted-no-reply` |
+| Observation `ambiguous` ou `unreadable` | `no-valid-reply` / 2 | selon la preuve |
+| Observation `awaiting-*` à l'échéance | `timeout` / 4 | selon la preuve |
+| Observation `replied` | `replied` / 0 | `replied` |
+
+Après un échec du déposant (code non nul, accusé absent ou étranger, plafond), une dernière lecture bornée peut relever une réception, si le budget le permet et sans annulation. Elle ne remplace jamais l'issue primaire, ne rend jamais de réponse et n'efface aucune preuve. Aucun renvoi, aucune reprise `exec resume`.
+
+**Champs JSON v1 optionnels, avec `--open` seulement :**
+
+- `mode: "open"` ;
+- `queue` : `{ attempted, accepted?, itemId?, diagnostic? }`. `accepted` vaut `true` pour un accusé reconnu et lié à la cible, `false` seulement pour le refus certain d'une CLI sans `queue`, `"unknown"` sinon : une absence d'accusé n'est pas un refus. `itemId` n'est présent que pour un accusé reconnu, et ne prouve pas la réception du texte exact ;
+- `correlation` : `{ status, reason }`, statut et raison exacts du lecteur. Absent tant que rien n'a été inspecté ;
+- `receiver: "unverified"` : le verrou tenu ne prouve ni la surface, ni la version, ni l'affichage, ni la consommation du message. La version de la CLI qui dépose n'est pas celle du récepteur, et aucun binaire desktop n'est recherché ni exécuté. Une version inconnue n'est pas bloquée dans ce pilote explicite ;
+- `targetPermissions` : `{ approvalPolicy?, sandbox?, network? }` relevés dans le `turn_context` **du seul tour corrélé** (réponse ou échec lié), ou `"unknown"`. Jamais repris d'un autre tour ni du dernier profil historique ; ni chemins, ni `turn_context` complet.
+
+`identity` vaut `same-as-target` seulement pour `replied` (liaison au fil et au tour prouvée), `unavailable` sinon. `observedModels` vient du seul tour corrélé. `inActiveBranch` vaut `unknown` après tentative. Sans enveloppe observée après une tentative, le message d'erreur dit « réception non observée » : un format inconnu ou une lecture manquée ne prouvent pas l'absence de consommation, et le message peut être traité plus tard.
+
+**Engagements et limites propres à `--open` :**
+
+- Aucune lecture seule : la conversation ouverte répond avec ses outils, MCP, hooks et permissions, et Codex desktop applique ses permissions courantes au tour relayé. Palabre ne neutralise ni ne modifie ces réglages. Les garanties conditionnelles de Relay A ne s'appliquent pas.
+- Un message déposé peut être traité après le délai, même sans être affiché : Codex desktop garde un fil chargé après qu'on l'a quitté. Ni l'échéance, ni Ctrl+C, ni la fermeture de Palabre ne retirent un message de la file.
+- Le format du rollout est expérimental (Codex 0.151.0 en TUI, app-server 0.160.1 de Codex desktop 26.930.7945.0), pas un schéma public.
+- L'export `.relay.md` ajoute le mode, le dépôt, la corrélation, le récepteur et les permissions relevées, avec un avertissement propre à `--open`. Un refus avant tentative n'écrit pas d'export.
+
+### Hors périmètre de cette version
+
+- Le fork d'une conversation.
+- La détection automatique de l'expéditeur.
+- Avec `--open` : Claude Code (lot B2), Codex desktop comme expéditeur (bloqué par son bac à sable), l'app-server `--remote`, les IDE, macOS et Linux.
+- Sans `--open` : les desktops, IDE et conversations ouvertes.
+- Les chaînes de relay et le retry.
+- Palabre-vscode, qui consommera `--json` sans recalculer l'état.
+
 ## Contexte projet
 
 Le MVP fournit deux entrees de contexte :
@@ -603,6 +1023,8 @@ palabre -s "quel jour sommes nous ?" -t 2
 
 `--subject` est le nom long recommande pour le sujet. `-s` est l'alias court, et `--topic` reste accepte pour compatibilite. Si le premier argument positionnel est un preset connu, il devient `--preset`. Le positionnel suivant devient le sujet. Un sujet positionnel doit contenir plusieurs mots ; pour un seul mot, utiliser `-s "mot"` afin d'eviter toute ambiguite avec une commande ou un preset. Une faute qui ressemble fortement a une commande connue (`nex` pour `new`, par exemple) produit une erreur de commande inconnue.
 
+Ces formes courtes suivent le mode effectif, `--mode` puis `defaults.mode`, exactement comme `palabre run` (#104). La décision vit dans `src/launchDispatch.ts` : `isDirectChatLaunch` envoie vers Chat toute commande `run` qui n'ouvre pas l'accueil TUI (`shouldOpenTuiHome`) quand ce mode est `chat`. Le lancement nu garde l'accueil et son mode par défaut. Un preset en mode Chat est refusé avec un diagnostic ciblé (`chat.presetUnsupported`), plutôt qu'ignoré ou signalé comme « mode inconnu ». Les chemins Chat gardent le refus de `--dry-run`.
+
 ## Aide CLI
 
 L'aide principale (`palabre -h`, `palabre help`) doit rester minimaliste, inspiree de l'aide Ollama : description courte, usage, demarrage rapide, commandes principales, flags essentiels, lien vers la documentation publique localisee (`https://palab.re/fr` ou `/en`) et mention `palabre [command] --help`.
@@ -680,8 +1102,8 @@ Types d'evenements emis aujourd'hui :
 | `chat-consultation-start` | debut d'une consultation explicite | `agent`, `role` |
 | `chat-consultation` | avis ajoute au transcript | `agent`, `role`, `content`, `createdAt` |
 | `chat-agent-changed` | changement d'agent actif via `/use` | `agent`, `role` |
-| `error` | erreur runtime structurée pendant le debat, ask ou la synthese | `phase` (`debate`, `ask` ou `summary`), `kind`, `message`, optionnels `agent`, `role`, `turn`, `details` |
-| `done` | fin de session ; export ecrit quand demande | `outputPath` (`null` si Chat se termine sans `/end`) |
+| `error` | erreur runtime structurée pendant le debat, ask, la synthese ou Chat | `phase` (`debate`, `ask`, `summary` ou `chat`), `kind`, `message`, optionnels `agent`, `role`, `turn` (hors Chat), `action` (Chat : `send`, `consult` ou `end`), `retryAfter`, `details` |
+| `done` | fin de session ; export ecrit quand demande | `outputPath` (`null` si Chat se termine sans `/end`, ou si l'export partiel échoue après une erreur) |
 
 En mode Chat avec `--renderer ndjson`, les integrations pilotent stdin avec
 une ligne JSON par action. Le contrat d'entree v1 accepte :
@@ -699,6 +1121,15 @@ integration doit utiliser les entrees structurees afin de conserver les sauts
 de ligne et de ne pas confondre le contenu utilisateur avec une commande slash.
 `chat-user-message` est emis dès acceptation du message, avant
 `thinking-start`, afin que les clients puissent l'afficher immediatement.
+
+Cycle de vie de Chat (#101) :
+
+- une ligne vide ou d'espaces est ignorée (`parseChatInputLine` rend `blank`), en NDJSON comme en terminal : un séparateur accidentel ne ferme jamais Chat. La TUI (`src/tuiChat.ts`) ignore aussi une saisie vide depuis #103 ;
+- `chat-end` / `/end` exporte puis émet `done` avec le chemin ; `/exit`, `/quit`, `/home` et la fin de stdin terminent sans export (`done` avec `null`). Aucun export automatique sur EOF ;
+- après `start`, une erreur runtime émet `error` (`ChatFailure` : `phase: "chat"`, `action` `send` | `consult` | `end`, `agent`, `role`, `kind`, `message`, `retryAfter`, `details`), puis écrit l'export partiel et émet exactement un `done` avec son chemin, ou `null` sans transcript ou si l'export échoue. `error` précède l'export, qui peut être lent. Code de sortie 1, ou 130 si annulée. L'erreur n'est pas relancée : rien n'est écrit hors du flux. `ChatFailure` est distinct de `DebateFailure` ; les deux partagent la classification `classifyRuntimeError` (`src/runtimeFailure.ts`) ;
+- l'annulation interrompt aussi l'attente d'une ligne : l'abort ferme la lecture de stdin (listener retiré en fin de session), puis la même terminaison s'applique avec `kind: "cancelled"`. Au repos, l'erreur ne porte ni `action` ni `agent` : elle n'est jamais attribuée à la dernière action terminée. Ce comportement vaut pour le NDJSON ; le parcours terminal n'est pas modifié ;
+- le rôle annoncé pour une consultation (`chat-consultation-start`, `thinking-start`, `error`) vient de `ChatSession.agentConfig`, qui applique les overrides runtime (`--role-a`), et non du rôle brut de la config. L'indicateur d'attente de la TUI utilise la même source depuis #103 ;
+- `--dry-run` est refusé en Chat (`chat`, `run --mode chat`, TUI) avant toute lecture de stdin, tout événement, appel agent ou export. Aucune prévisualisation Chat n'existe pour l'instant.
 
 Exemple de session minimale :
 
@@ -735,6 +1166,13 @@ Ces points sont a evaluer au cas par cas si un consommateur reel les demande. Ev
 
 ## Tests et verification
 
+Relay vers une conversation ouverte (#96, B1, `palabre relay --open`) : le contrat vit dans
+`scripts/prototypes/relay/CONTRAT-B1.md` ; le code dans `src/externalSessions/` (`openReader`,
+`openRollout`, `codexQueue`, `openRelay`). Les tests `tests/external-sessions-open*.test.ts` et
+`tests/relay-command.test.ts` utilisent des historiques factices, une horloge simulée, un faux
+`codex queue` et, sous Windows, un verrou tenu par le test : aucun agent réel, aucun quota. Les
+sondes locales `open-*.mjs` ne sont pas versionnées ni lancées par `pnpm test`.
+
 Avant de livrer une modification :
 
 ```bash
@@ -759,7 +1197,33 @@ Options utiles :
 - `--no-summary` : economise du quota quand la synthese n'est pas dans le perimetre du smoke.
 - `--turns <n>` et `--topic <texte>` : ajustent la duree et le sujet du debat de smoke.
 
+Le relay a son propre smoke réel, lui aussi hors `pnpm test`, à lancer après `pnpm build` avant une publication qui touche `palabre relay` :
+
+```bash
+pnpm smoke:real-relay
+```
+
+`scripts/smoke_real_relay.ts` crée deux sessions **jetables**, une Claude Code et une Codex, dans un dossier temporaire, puis vérifie :
+- la réponse d'une cible fermée, avec contexte conservé, délivrance, identité et export ;
+- le refus d'une cible attachée, avec un TUI ouvert dans un pseudo-terminal et l'historique inchangé ;
+- la neutralisation MCP de Codex (journaux d'une reprise témoin comparés à ceux du relay) ;
+- l'outillage de Claude annoncé par `system/init` ;
+- les versions des CLIs.
+
+Modèles de création :
+- `PALABRE_SMOKE_CLAUDE_MODEL` (haiku par défaut) ;
+- `PALABRE_SMOKE_CODEX_MODEL` (modèle de la config Codex par défaut). À fixer si ce modèle est refusé par le compte.
+
+Effets de bord, tous sur des données jetables :
+- les sessions créées restent dans l'historique des CLIs ;
+- l'approbation de la config temporaire est ajoutée à `~/.palabre/trusted-configs.json` ;
+- la reprise témoin démarre les serveurs MCP de l'utilisateur.
+
+La trace, avec les identifiants de session, est écrite dans `.tmp/relay-smoke/`.
+
 Quand un changement touche l'adapter CLI, lancer `pnpm test`. Ces tests compilent `src/` et `tests/` via `tsconfig.test.json` dans `.tmp/test-dist`, puis utilisent `node:test` avec des CLIs mockees. Garder les tests automatises sous `tests/` et completer par un smoke test manuel avec une vraie CLI seulement quand le comportement depend d'un outil externe.
+
+Quota Relay ouvert (#41, point 3) : `inspectOpenReply` reconnaît `task_complete.error.codex_error_info === "usage_limit_exceeded"` seulement dans le tour lié à l'enveloppe exacte, après la référence. Forme observée avec Codex 0.163.0. `error.message` sert uniquement à `extractRetryAfter` (limité aux 4 096 premières unités UTF-16) après le code machine, jamais à classer la limite. Prose du modèle, événements `token_count`, erreurs étrangères et formats inconnus ne donnent pas ce diagnostic. La cause primaire du dépôt, l'annulation et l'échéance gardent leur priorité. `retryAfter` est un champ optionnel du JSON v1 / export : secondes (nombre), ISO UTC ou HH:mm (texte sans date/fuseau implicites). Aucun renvoi ni minuteur automatique. Mission garde résultat et délivrance, et classe `paused` une limite connue même avec `persisted-no-reply` ; délivrance ou publication inconnue reste `uncertain`. Ce lot ne change pas le transport Mission et n'y ajoute pas `--open`.
 
 Les erreurs CLI doivent rester actionnables. En particulier, les limites d'usage et quotas Codex/Claude/Antigravity doivent etre classees comme `usage-limit` et ne pas recopier tout le prompt ou les logs bruts dans le message utilisateur.
 

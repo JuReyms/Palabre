@@ -3,6 +3,7 @@ import type {
   AgentConfig,
   AgentRole,
   ChatAvailableAgent,
+  ChatFailure,
   ChatOptions,
   DebateOptions,
   DebateRenderer,
@@ -97,6 +98,11 @@ export class NdjsonRenderer implements DebateRenderer {
   /** Émet l'avis ajouté au transcript par une consultation. */
   chatConsultation(message: { agent: string; role: AgentRole; content: string; createdAt: string }): void {
     this.emit({ type: "chat-consultation", ...message });
+  }
+
+  /** Émet l'erreur structurée qui interrompt Chat ; `done` suit toujours, une seule fois. */
+  chatError(failure: ChatFailure): void {
+    this.emit({ type: "error", ...failure });
   }
 
   /** Signale le changement d'agent actif sans lancer de génération. */

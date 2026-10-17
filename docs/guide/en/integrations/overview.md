@@ -31,3 +31,9 @@ palabre chat --agent-a codex --renderer ndjson
 Chat receives messages through stdin. An integration reads stdout line by line, keeps stderr separate, and waits for process termination.
 
 See [JSON catalogs](/en/integrations/json-contracts), [NDJSON v1](/en/integrations/ndjson), and [Lifecycle](/en/integrations/client-lifecycle).
+
+## Relay and its Mission option
+
+`palabre relay … --json` returns one `relay-result` v1 object; `palabre mission … --json` returns one `mission-result` v1 object. Unlike the NDJSON stream of Debate, Ask and Chat, these are not event streams. A Relay send never asks a question; owner-only `relay allow-repo` does require interactive confirmation.
+
+On `config-untrusted` or `task-not-allowed`, show the approval command to the owner and wait. An integration or agent never changes or approves a policy to expand its rights. A session command's `--mode` overrides `defaults.mode`.

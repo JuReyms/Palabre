@@ -30,7 +30,7 @@ palabre config --sync-agents
 
 ## Windows
 
-On Windows, generated configuration may enable `shell` for an npm or PowerShell wrapper. Palabre first tries the native executable, then the PowerShell `.ps1` shim; only force this option when your installation needs it.
+See [Launching agents on Windows](/en/agents/overview#windows).
 
 ## Plans and limits
 
@@ -38,9 +38,11 @@ OpenCode can use free, paid, or local providers depending on your configuration.
 
 ## Default model
 
-Palabre does not choose the OpenCode model for you. OpenCode uses its own default model, unless you configure a model argument in the Palabre agent. If you pass a model with `--model-a`, `--model-b`, or `--summary-model`, Palabre passes the value to OpenCode via the configured model option; OpenCode remains responsible for validating that model.
+OpenCode retains its own default model. Generated configuration includes `modelArg: "--model"`: `--model-a`, `--model-b` or `--summary-model` pass the value to OpenCode, which validates it.
 
 ## Typical configuration
+
+Excerpt from the `agents` block:
 
 ```json
 "opencode": {
@@ -48,6 +50,9 @@ Palabre does not choose the OpenCode model for you. OpenCode uses its own defaul
   "command": "opencode",
   "args": ["run", "--pure"],
   "promptMode": "stdin",
+  "modelArg": "--model",
+  "shell": true,
+  "tier": "primary",
   "role": "reviewer"
 }
 ```
@@ -61,3 +66,5 @@ a tool allowlist equivalent to Claude's or Vibe's.
 palabre codex-opencode "Review this MVP" -t 4
 palabre opencode-claude "Compare these options" -t 3
 ```
+
+In the Windows example, `shell` is `true`; elsewhere it is `false`. `--pure` prevents external plugins but does not prohibit all writing tools: OpenCode permissions remain defined in its own configuration. OpenCode is not a Relay target.

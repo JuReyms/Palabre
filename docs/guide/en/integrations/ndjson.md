@@ -40,12 +40,36 @@ For an integration, every Chat command must be a single-line v1 JSON object:
 
 Legacy text commands remain available for human use. Integrations should use JSON objects so message content can never be mistaken for a command.
 
+How a Chat session ends:
+
+- a blank or whitespace-only line is ignored and does not close Chat;
+- `chat-end` (or `/end`) writes the export, then emits `done` with its path;
+- `/exit`, `/quit`, `/home`, and the end of stdin finish without an export: `done` carries `outputPath: null`;
+- an agent error emits `error`, then Palabre writes the partial export and emits `done` with its path, or `null` if that export fails. The exit code is 1. Later commands are not processed;
+- a cancellation (Ctrl+C) ends Chat the same way, including while it waits for a message: `error` with `kind: "cancelled"`, then `done`, and exit code 130. When idle, the error carries no `action` or `agent`. If no message was exchanged, no export is written and `done` carries `null`.
+
+After `start`, Chat therefore always emits exactly one `done`. Chat's `error` event carries `phase: "chat"`, `action` (`send`, `consult`, or `end`), `agent` and `role` when known, plus `kind`, `message`, and the optional `retryAfter` and `details` fields, as for Debate and Ask.
 
 ```json
+{"v":1,"type":"error","phase":"chat","action":"consult","agent":"vibe","role":"critic","kind":"non-zero-exit","message":"..."}
+{"v":1,"type":"done","outputPath":".palabre/palabre-subject-2026-01-01T00-00-00-000Z.chat.md"}
+```
+
+`--dry-run` does not exist for Chat: the command is refused before any event, with no agent call and no export.
+
+
+Minimal Debate excerpt, after `start`:
+
+```json
+{"v":1,"type":"turn-start","turn":1,"totalTurns":4,"agent":"codex","role":"implementer"}
 {"v":1,"type":"thinking-start","agent":"codex","role":"implementer"}
 {"v":1,"type":"thinking-end"}
 {"v":1,"type":"message","turn":1,"agent":"codex","role":"implementer","content":"..."}
-{"v":1,"type":"done","outputPath":"C:\\project\\.palabre\\session.debate.md"}
+{"v":1,"type":"done","outputPath":".palabre/palabre-subject-2026-01-01T00-00-00-000Z.debate.md"}
 ```
 
 stdout belongs to NDJSON. stderr may contain diagnostics and Ollama progress. Preserve order, ignore unknown types, wait for the exit code, and render agent content as untrusted text, never executable HTML.
+
+## Scope and errors
+
+Relay and its Mission option use `--json`, not NDJSON. Session `error` events carry `phase` (`debate`, `ask`, `summary`, `chat`), `kind`, `message`, then where relevant `agent`, `role`, `turn` or `action`, `retryAfter`, `details`. After an error in a started session, PALABRE attempts a partial export then emits `done`; validation failure before startup may produce no stream.

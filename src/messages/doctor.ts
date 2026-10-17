@@ -54,6 +54,8 @@ export interface DoctorMessages {
   customCommand(prefix: string): string;
   cliDetected(prefix: string, path: string): string;
   cliMissing(prefix: string): string;
+  cliPinnedFound(prefix: string): string;
+  cliPinnedMissing(prefix: string): string;
   ollamaNotVerifiable(prefix: string): string;
   ollamaValidateFalse(prefix: string): string;
   ollamaInstalled(prefix: string): string;
@@ -121,6 +123,8 @@ export const doctorMessages: Record<Language, DoctorMessages> = {
     customCommand: (prefix) => `${prefix} (commande custom non vérifiée par doctor)`,
     cliDetected: (prefix, path) => `${prefix} détectée (${path})`,
     cliMissing: (prefix) => `${prefix} non détectée dans PATH. Action: installe/authentifie la CLI ou corrige command dans la config.`,
+    cliPinnedFound: prefix => `${prefix} : fichier configuré présent ; exécution non sondée, aucune autre CLI du PATH utilisée pour ce diagnostic.`,
+    cliPinnedMissing: prefix => `${prefix} : chemin de CLI configuré introuvable ou inaccessible. Le propriétaire vérifie cette installation et le champ command ; aucun repli vers le PATH.`,
     ollamaNotVerifiable: (prefix) => `${prefix} non vérifiable: API Ollama non joignable. Action: démarre Ollama ou corrige baseUrl.`,
     ollamaValidateFalse: (prefix) => `${prefix} non validé car validateModel=false.`,
     ollamaInstalled: (prefix) => `${prefix} installé.`,
@@ -188,6 +192,8 @@ export const doctorMessages: Record<Language, DoctorMessages> = {
     customCommand: (prefix) => `${prefix} (custom command not checked by doctor)`,
     cliDetected: (prefix, path) => `${prefix} detected (${path})`,
     cliMissing: (prefix) => `${prefix} not detected in PATH. Action: install/authenticate the CLI or fix command in the config.`,
+    cliPinnedFound: prefix => `${prefix}: configured file exists; execution not probed, no other PATH CLI used for this check.`,
+    cliPinnedMissing: prefix => `${prefix}: configured CLI path missing or inaccessible. The owner checks this installation and command field; no PATH fallback.`,
     ollamaNotVerifiable: (prefix) => `${prefix} cannot be verified: Ollama API is unreachable. Action: start Ollama or fix baseUrl.`,
     ollamaValidateFalse: (prefix) => `${prefix} not validated because validateModel=false.`,
     ollamaInstalled: (prefix) => `${prefix} installed.`,

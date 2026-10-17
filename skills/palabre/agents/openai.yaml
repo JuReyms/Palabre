@@ -1,4 +1,4 @@
 interface:
   display_name: "Palabre"
-  short_description: "Orchestrer un débat entre agents IA"
-  default_prompt: "Use $palabre to compare two technical approaches."
+  short_description: "Consulter d'autres agents : Chat, Débat, Ask ou Relay"
+  default_prompt: "Use $palabre to pick the right Palabre route and get a second opinion."

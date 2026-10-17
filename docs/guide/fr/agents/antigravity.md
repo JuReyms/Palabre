@@ -30,11 +30,13 @@ Google a annoncé la transition de Gemini CLI vers Antigravity CLI pour les util
 
 Référence officielle : [Transitioning Gemini CLI to Antigravity CLI](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/)
 
-Palabre ne génère plus Gemini CLI dans les nouvelles configurations et ne le propose plus dans les presets. Les anciennes notes Gemini sont conservées dans `docs/archive/gemini-fr.md` pour contexte.
+Palabre ne génère plus Gemini CLI dans les nouvelles configurations et ne le propose plus dans les presets. Les anciennes notes Gemini sont conservées dans [notes Gemini](https://github.com/JuReyms/Palabre/blob/main/docs/archive/gemini-fr.md) pour contexte.
 
 ## Configuration JSON
 
 La configuration générée par Palabre ressemble à ceci :
+
+Extrait du bloc `agents` :
 
 ```json
 "antigravity": {
@@ -54,3 +56,9 @@ La configuration générée par Palabre ressemble à ceci :
 palabre codex-antigravity "Compare cette approche d'architecture" -t 4
 palabre antigravity-ollama "Critique ce plan de migration" -t 3
 ```
+
+## Limites et quota
+
+Documentation officielle : [Antigravity CLI — mode non interactif](https://antigravity.google/docs/cli/headless/).
+
+Un message de quota autonome comme « Individual quota reached », dans une sortie courte, est classé `usage-limit` même avec un code 0. Il n'est pas pris pour une réponse normale. Le prompt passe en argument et peut dépasser la taille d'une ligne de commande, surtout sous Windows. Le défaut PALABRE borne l'appel à 5 minutes (`timeoutMs` et `--print-timeout`) ; ajustez les deux ensemble. Le pseudo-terminal fusionne stdout et stderr. Antigravity n'est pas une cible Relay.

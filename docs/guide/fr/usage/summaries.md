@@ -10,14 +10,11 @@ seo:
 
 ## Format de synthèse
 
-La synthèse finale demande quatre sections :
+**Débat** demande quatre sections : `Consensus`, `Desaccords / incertitudes`, `Actions proposees`, `Conclusion`.
 
-1. `Consensus`
-2. `Desaccords / incertitudes`
-3. `Actions proposees`
-4. `Conclusion`
+**Ask** demande cinq sections : `Resume fidele par agent`, `Comparaison`, `Points de vigilance / incertitudes`, `Actions proposees`, `Conclusion`.
 
-Les trois premières sections sont structurées en listes. `Conclusion` est un court paragraphe en prose pour comprendre rapidement ce qu'il faut retenir.
+Ces libellés sont ceux du prompt français, sans accents. Les premières sections sont des listes ; `Conclusion` est un court paragraphe en prose. Chat et Relay n'ajoutent pas de synthèse finale ; Chat peut poursuivre à partir d'une synthèse existante.
 
 ## Agent de synthèse
 
@@ -54,3 +51,9 @@ palabre codex-claude "Critique ce plan" --no-summary
 Dans le terminal, le rendu standard met en forme les titres de synthèse pour les rendre plus faciles à scanner.
 
 Dans l'export `.debate.md` ou `.ask.md`, la synthèse finale est séparée du transcript ou des réponses par une ligne horizontale et commence par une table indiquant l'agent, le rôle et la date de production.
+
+## Réglages durables et échec
+
+`palabre config --summary-agent <agent>` choisit le défaut de synthèse ; `palabre config --summary-agent none` supprime ce choix et rétablit le repli, **sans désactiver les synthèses**. `--no-summary` désactive la synthèse du lancement courant. `--summary-model` transmet une valeur brute à la CLI, qui valide le modèle ; Ollama peut vérifier sa présence.
+
+Si la synthèse échoue, PALABRE tente de conserver le transcript dans l'export partiel. Avec `--checkpoint`, `palabre resume <session-id>` reprend uniquement la synthèse manquante, sans rejouer les réponses.

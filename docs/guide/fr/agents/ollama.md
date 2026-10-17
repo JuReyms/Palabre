@@ -6,9 +6,7 @@ seo:
   description: Utiliser Ollama avec Palabre pour lancer des débats sur des modèles locaux, réduire les coûts et mixer local et cloud.
 ---
 
-C'est utile pour ajouter un regard local, moins coûteux, ou pour confier à un petit modèle un rôle ciblé : critique, exploration ou synthèse légère.
-
-Ollama peut avoir un temps de réponse plus lent que les autres agents, surtout si le modèle n'est pas déjà chargé. Il est recommandé de vérifier que le modèle est chargé avant de lancer un débat avec Ollama. Ou de patienter.
+Ollama exécute des modèles sur votre machine. Avec un serveur et un modèle locaux, les requêtes restent locales ; un serveur distant reçoit les données. La première réponse peut prendre du temps pendant le chargement : `ollama ps` montre les modèles chargés.
 
 ## À installer avant Palabre
 
@@ -74,6 +72,8 @@ Ces commandes modifient la configuration Palabre. Pour un changement ponctuel su
 
 ## Configuration typique
 
+Extrait du bloc `agents` :
+
 ```json
 "ollama-local": {
   "type": "ollama",
@@ -118,14 +118,6 @@ Depuis la TUI, ouvrez `/config`, puis utilisez :
 Cette commande met à jour durablement `baseUrl` pour tous les agents Ollama configurés.
 Le flag et la variable d'environnement ne modifient pas le fichier de configuration.
 
-## Vérifier si un modèle est chargé dans Ollama
-
-Ollama doit charger un modèle pour répondre rapidement.
-
-```bash
-ollama ps
-```
-
 ## Télécharger automatiquement un modèle manquant
 
 Par défaut, Palabre n'installe pas de modèle automatiquement. Pour l'autoriser au lancement :
@@ -149,3 +141,11 @@ ou :
 ```bash
 palabre codex-ollama "Critique l'architecture" --context src docs
 ```
+
+## Défauts et diagnostics
+
+À l'initialisation, PALABRE préfère `nemotron-3-nano:4b` s'il est installé, sinon le premier modèle installé ; sans modèle installé, ce même nom sert de repli. `gemma4:e4b` dans l'exemple est un choix explicite, pas le défaut imposé.
+
+`--set-ollama-model` ne modifie que `ollama-local` et exige un modèle installé. Pour un autre agent, modifiez son champ `model`, puis réapprouvez le fichier après relecture. `palabre doctor` vérifie la disponibilité du serveur et du modèle ; `model-unavailable` signale un modèle absent, tandis qu'une panne réseau peut avoir un diagnostic HTTP.
+
+Options avancées : `keepAlive`, `pullTimeoutMs` (30 minutes par défaut) et `maxOutputBytes`. Voir [Configuration](/fr/reference/config-file).
