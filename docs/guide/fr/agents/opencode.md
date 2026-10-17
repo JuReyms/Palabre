@@ -30,7 +30,7 @@ palabre config --sync-agents
 
 ## Windows
 
-Sur Windows, la configuration générée peut activer `shell` pour un wrapper npm ou PowerShell. Palabre tente d'abord l'exécutable natif. Pour une installation npm, il lit le shim `.ps1` et lance directement l'exécutable du paquet, sans PowerShell, ce qui préserve les accents et les arguments. Une installation pnpm dont le shim désigne un script `.js` est aussi lancée directement, avec le `NODE_PATH` du shim. Un shim d'une autre forme (modifié, ou dont le script n'est pas un fichier `.js`) reste lancé par PowerShell ; ne forcez cette option que si votre installation en a besoin.
+Voir [Lancement des agents sous Windows](/fr/agents/overview#windows).
 
 ## Offres et limites
 
@@ -38,9 +38,11 @@ OpenCode peut utiliser des providers gratuits, payants ou locaux selon votre con
 
 ## Modèle par défaut
 
-Palabre ne choisit pas le modèle OpenCode à votre place. OpenCode utilise son propre modèle par défaut, sauf si vous configurez un argument modèle dans l'agent Palabre. Si vous passez un modèle avec `--model-a`, `--model-b` ou `--summary-model`, Palabre transmet la valeur à OpenCode via l'option modèle configurée ; OpenCode reste responsable de valider ce modèle.
+OpenCode garde son propre modèle par défaut. La configuration générée contient `modelArg: "--model"` : `--model-a`, `--model-b` ou `--summary-model` transmettent la valeur à OpenCode, qui la valide.
 
 ## Configuration typique
+
+Extrait du bloc `agents` :
 
 ```json
 "opencode": {
@@ -48,6 +50,9 @@ Palabre ne choisit pas le modèle OpenCode à votre place. OpenCode utilise son 
   "command": "opencode",
   "args": ["run", "--pure"],
   "promptMode": "stdin",
+  "modelArg": "--model",
+  "shell": true,
+  "tier": "primary",
   "role": "reviewer"
 }
 ```
@@ -61,3 +66,5 @@ commande, une allowlist d'outils équivalente à celles de Claude ou Vibe.
 palabre codex-opencode "Relis ce MVP" -t 4
 palabre opencode-claude "Compare ces options" -t 3
 ```
+
+Dans l'exemple Windows, `shell` vaut `true` ; il vaut `false` ailleurs. `--pure` empêche les plugins externes mais n'interdit pas tous les outils d'écriture : les permissions OpenCode restent à vérifier dans sa propre configuration. OpenCode n'est pas une cible Relay.

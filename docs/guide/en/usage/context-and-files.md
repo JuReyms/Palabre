@@ -15,7 +15,7 @@ Palabre can send project context to agents. This is essential for requesting a c
 | `--files` | You explicitly choose the files. An invalid path stops the command. |
 | `--context` | Palabre scans text files or folders with limits and exclusions. |
 
-`--files` is strict: 64 KiB maximum per file and 192 KiB in total; a binary file, folder, or invalid path stops the session. `--context` is tolerant: it walks folders, ignores files it cannot retain, and reports warnings without cancelling the session.
+`--files` is strict: 64 KiB maximum per file and 192 KiB in total; a binary file, folder, or invalid path stops the session. `--context` is tolerant: it walks folders with the same limits (64 KiB per file, 192 KiB in total), ignores files it cannot retain, and reports warnings without cancelling the session.
 
 ## Explicit files
 
@@ -68,3 +68,11 @@ palabre codex-claude "Subject" --context src --show-prompt
 ```
 
 This command does not launch any agent. It lets you verify what Palabre will send on the first turn.
+
+## Scope and exclusions
+
+`--files` and `--context` share a 64 KiB per-file and 192 KiB total budget; explicit files load first. `--context` skips oversized, binary or over-budget files with a warning. Scanning also excludes `.tmp` and `.pnpm-store` and reads simple root `.gitignore` rules; `!` negations are unsupported.
+
+CLI agents run from the current directory and may read the project with their own tools, according to their configuration. Injected files are marked as untrusted data; these limits are not confinement. Ollama does not read files itself; PALABRE warns if it participates without context. In Ask, `--show-prompt` shows the first agent’s prompt.
+
+Relay accepts neither `--files` nor `--context`: the target retains its context. Use `--message-file` for a long message.

@@ -50,13 +50,7 @@ Position controls speaking order. Roles still come from your configuration unles
 A pair is more useful when the agents do not receive exactly the same mission. For example:
 
 ```bash
-palabre run \
-  --subject "Should this service be split in two?" \
-  --agent-a codex \
-  --agent-b claude \
-  --role-a architect \
-  --role-b critic \
-  --turns 4
+palabre run --subject "Should this service be split in two?" --agent-a codex --agent-b claude --role-a architect --role-b critic --turns 4
 ```
 
 Codex then structures an architecture proposal while Claude Code looks for fragile assumptions and unaddressed consequences.
@@ -66,17 +60,13 @@ Codex then structures an architecture proposal while Claude Code looks for fragi
 Use `--files` for a strict and reproducible selection:
 
 ```bash
-palabre codex-claude "Review this caching strategy" \
-  --files src/cache.ts src/config.ts \
-  -t 4
+palabre codex-claude "Review this caching strategy" --files src/cache.ts src/config.ts -t 4
 ```
 
 Use `--context` to scan a folder tolerantly:
 
 ```bash
-palabre codex-claude "Propose an incremental migration" \
-  --context src docs/architecture \
-  -t 4
+palabre codex-claude "Propose an incremental migration" --context src docs/architecture -t 4
 ```
 
 Palabre marks files as untrusted data inside prompts. Size limits and exclusions are documented in [Context and files](/en/usage/context-and-files).
@@ -97,3 +87,9 @@ The session is exported under `.palabre/` as a `.debate.md` file. This export pr
 Use Debate when agents should answer each other's objections. Use [Ask](/en/usage/ask) when you first want two independent answers without mutual influence.
 
 For a broader workflow overview, see [Use multiple AI agents from the terminal](/en/usage/multi-agent-cli) and [Debate mode](/en/usage/debate).
+
+## Availability and Relay
+
+In `palabre presets --json`, look for `"name": "codex-claude"` with `"available": true`. `missingAgents` and `unavailableReasons` explain unavailability; `palabre presets` also provides human-readable output.
+
+Use [Relay](/en/usage/relay) to ask an existing Codex or Claude Code conversation that already knows the project, without starting a new Debate.

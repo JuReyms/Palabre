@@ -59,6 +59,8 @@ Un rôle durable se configure dans `palabre.config.json`, dans l'entrée de l'ag
 
 Exemple :
 
+Extrait du bloc `agents` :
+
 ```json
 "codex": {
   "type": "cli",
@@ -85,3 +87,15 @@ Pour utiliser deux comportements différents avec la même CLI, créez deux agen
 ## Modèles passés en commande
 
 Quand vous utilisez `--model-a`, `--model-b` ou `--summary-model`, Palabre ne vérifie pas la liste des modèles disponibles chez le provider. La valeur est transmise à la CLI concernée via son option modèle configurée. Si le modèle n'existe pas ou n'est pas autorisé par votre compte, c'est la CLI qui renvoie l'erreur.
+
+## Agents et Relay
+
+[Relay](/fr/usage/relay) vise des conversations Codex ou Claude Code : fermées par défaut ; `--open` vise seulement Codex sous Windows (pilote). Mission, option de Relay, utilise les conversations fermées. Antigravity, OpenCode, Mistral Vibe et Ollama participent à Débat, Ask et Chat, pas aux cibles Relay.
+
+Les agents CLI sont lancés depuis le dossier courant. Les défauts demandent la lecture seule quand elle est disponible : Claude `Read,Glob,Grep`, Codex `--sandbox read-only`, Vibe `read,grep`. OpenCode `--pure` désactive les plugins, **sans garantir une liste d'outils en lecture seule**. Des arguments personnalisés restent sous votre contrôle ; les migrations ne remplacent que d'anciens défauts exacts. Une limite connue donne `usage-limit`, sans renvoi automatique.
+
+## Windows
+
+Les adapters préfèrent un exécutable natif, puis un shim npm ou pnpm reconnu, lancé directement (Node + script JavaScript, ou variante native npm). Pour pnpm, le `NODE_PATH` du shim est transmis. Un autre shim peut passer par PowerShell ; les wrappers shell restants sont refusés pour un prompt en argument. `shell: true` dans la configuration générée active cette résolution prudente ; ne le retirez pas pour forcer le lancement d'un wrapper. Relay n'accepte que les exécutables directs et la forme npm Node + script.
+
+`tier` (`primary` ou `local`) classe l'agent dans la configuration ; il ne change pas sa consigne de rôle.

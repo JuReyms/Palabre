@@ -50,13 +50,7 @@ La position détermine l'ordre de parole. Les rôles restent ceux de votre confi
 Une paire fonctionne mieux lorsque les agents ne reçoivent pas exactement la même mission. Par exemple :
 
 ```bash
-palabre run \
-  --subject "Faut-il séparer ce service en deux ?" \
-  --agent-a codex \
-  --agent-b claude \
-  --role-a architect \
-  --role-b critic \
-  --turns 4
+palabre run --subject "Faut-il séparer ce service en deux ?" --agent-a codex --agent-b claude --role-a architect --role-b critic --turns 4
 ```
 
 Codex structure alors une proposition d'architecture, tandis que Claude Code cherche les hypothèses fragiles et les conséquences non traitées.
@@ -66,17 +60,13 @@ Codex structure alors une proposition d'architecture, tandis que Claude Code che
 Utilisez `--files` pour une sélection stricte et reproductible :
 
 ```bash
-palabre codex-claude "Évalue cette stratégie de cache" \
-  --files src/cache.ts src/config.ts \
-  -t 4
+palabre codex-claude "Évalue cette stratégie de cache" --files src/cache.ts src/config.ts -t 4
 ```
 
 Utilisez `--context` pour scanner un dossier de manière tolérante :
 
 ```bash
-palabre codex-claude "Propose une migration progressive" \
-  --context src docs/architecture \
-  -t 4
+palabre codex-claude "Propose une migration progressive" --context src docs/architecture -t 4
 ```
 
 Palabre marque les fichiers comme des données non fiables dans les prompts. Les limites de taille et les exclusions sont détaillées dans [Contexte et fichiers](/fr/usage/context-and-files).
@@ -97,3 +87,9 @@ La session est exportée dans `.palabre/` sous la forme d'un fichier `.debate.md
 Utilisez Débat lorsque les agents doivent répondre aux objections de l'autre. Utilisez [Ask](/fr/usage/ask) si vous voulez d'abord obtenir deux réponses indépendantes sans influence mutuelle.
 
 Pour une vue plus large des workflows disponibles, consultez [Utiliser plusieurs agents IA dans le terminal](/fr/usage/multi-agent-cli) et le [mode Débat](/fr/usage/debate).
+
+## Disponibilité et Relay
+
+Dans `palabre presets --json`, cherchez `"name": "codex-claude"` avec `"available": true`. `missingAgents` et `unavailableReasons` expliquent une indisponibilité ; `palabre presets` donne aussi un affichage humain.
+
+Utilisez [Relay](/fr/usage/relay) pour demander un avis à une conversation Codex ou Claude Code qui connaît déjà le projet, sans démarrer un Débat neuf.

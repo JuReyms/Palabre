@@ -1,18 +1,19 @@
 ---
 title: Choose a mode
-description: Choose between Debate, Chat, and Ask based on the number of agents and the kind of answer you need.
+description: Choose between Debate, Relay, Ask, and Chat based on the number of agents and the kind of answer you need.
 seo:
-  title: "Debate, Chat, or Ask: which mode to use"
+  title: "Debate, Relay, Ask, or Chat: which mode to use"
   description: "Pick the right Palabre mode: two agents arguing, one agent to talk to, or several independent answers to compare."
 ---
 
-Palabre provides three modes. **Debate remains the primary mode**: the home screen shows it first and it makes full use of contradictory orchestration.
+Palabre provides four modes. **Debate remains the primary mode**: the home screen shows it first and it makes full use of contradictory orchestration.
 
 | Mode | Agents | Exchanges | Summary | Export |
 |------|--------|-----------|---------|--------|
 | Debate | 2 | Agents answer each other. | Yes, by default | `.debate.md` |
+| Relay | 1 target conversation | One message to an existing conversation | No | `.relay.md` |
+| Ask | 1 to 4 | Agents answer independently. | Yes: per-agent summary then comparison | `.ask.md` |
 | Chat | 1 active, optional consultation | The user talks with the active agent. | No | `.chat.md` |
-| Ask | 1 to 4 | Agents answer independently. | Yes, by default | `.ask.md` |
 
 ## Debate first
 
@@ -26,9 +27,9 @@ Review this architecture and recommend a decision
 
 See the [Debate mode guide](/en/usage/debate).
 
-## Chat to continue
+## Relay to hand off
 
-Choose Chat when one agent is enough, with a second opinion through `/consult`. After Debate or Ask, it can carry over the subject and summary. See the [Chat guide](/en/usage/chat).
+An agent sends a message to an existing Codex or Claude Code conversation and receives its reply. This direct command has no TUI screen; its Mission option keeps the scope and budget for several read-only steps. See [Relay](/en/usage/relay).
 
 ## Ask to compare without influence
 
@@ -36,6 +37,12 @@ Choose Ask to collect up to four independent answers before comparing them. See 
 
 For human use, start with `palabre` and use the [TUI](/en/usage/tui). Extensions should consume the [integration contracts](/en/integrations/overview), not parse TUI output.
 
+## Chat to continue
+
+Choose Chat when one agent is enough, with a second opinion through `/consult`. After Debate or Ask, it can carry over the subject and summary. See the [Chat guide](/en/usage/chat).
+
 ## Resume without replaying answers
 
 Add `--checkpoint` to a Debate or Ask request when a session should survive an interruption. Palabre records state under `.palabre/sessions/`; `palabre sessions` lists it and `palabre resume <session-id>` starts only the next step. Resume validates configuration and context before calling an agent; see the [CLI reference](/en/reference/cli#resume-a-session) for confirmations and targeted deletion.
+
+See [Summaries](/en/usage/summaries) for the Debate and Ask formats.
