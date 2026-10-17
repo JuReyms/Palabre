@@ -85,6 +85,11 @@ process.stdin.on("end", () => {
       { type: "event_msg", payload: { type: "item_completed", thread_id: thread, turn_id: turnId, item: { type: "AgentMessage", phase: "final_answer", content: [{ type: "Text", text: "FAKE-OPEN « été »" }] } } },
       { type: "event_msg", payload: { type: "task_complete", turn_id: turnId, last_agent_message: "FAKE-OPEN « été »" } }
     ];
+    if (queueMode === "usage-limit" || queueMode === "usage-limit-no-time") {
+      rows.splice(-2, 2, { type: "event_msg", payload: { type: "task_complete", turn_id: turnId,
+        last_agent_message: null, error: { codex_error_info: "usage_limit_exceeded",
+          message: queueMode === "usage-limit" ? "You've hit your usage limit. Try again at 3:16 PM." : "Usage limit reached." } } });
+    }
     fs.appendFileSync(process.env.FAKE_CODEX_ROLLOUT, rows.map((row) => JSON.stringify(row)).join("\n") + "\n");
     return;
   }

@@ -240,7 +240,8 @@ export async function stepMission(workspace: string, id: string, input: { messag
     const stopped = await stopReason(files.stop);
     const result = step.result;
     mission.status = stopped ? "stopped"
-      : !result || result.delivery.status === "unknown" || result.delivery.status === "persisted-no-reply"
+      : !result || result.delivery.status === "unknown"
+        || result.delivery.status === "persisted-no-reply" && result.status !== "usage-limit"
         || result.task?.publication === "unknown" ? "uncertain"
         : result.status === "replied" ? "ready" : "paused";
     mission.stopReason = stopped ?? (mission.status === "ready" ? null : result?.status ?? "interrupted");

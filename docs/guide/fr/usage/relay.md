@@ -279,6 +279,14 @@ Palabre ne renvoie jamais un message automatiquement. Le statut de délivrance i
 | 9 | `review-failed` : publication de revue refusée ou non confirmée, réponse conservée |
 | 130 | `cancelled` |
 
+## Limite d’usage atteinte
+
+Avec `--open`, si le tour corrélé se termine par l’erreur structurée Codex `task_complete.error.codex_error_info: "usage_limit_exceeded"`, PALABRE rend **`usage-limit` (code 2)**. Il ne classe pas une limite depuis une phrase du modèle, un quota restant ou une erreur d’un autre tour. Cette forme a été observée avec Codex 0.163.0 ; les autres formes ne sont pas supposées équivalentes.
+
+Si le message de cette erreur CLI contient une reprise reconnue, le JSON v1 ajoute le champ optionnel `retryAfter` et l’export `.relay.md` le reprend. Par exemple, `try again at 3:16 PM` donne `"retryAfter": "15:16"` et « reprise vers 15 h 16 ». Une heure sans date ni fuseau reste une heure sans date ni fuseau ; aucune échéance exacte n’est inventée. Une durée reconnue est exprimée en secondes (nombre), un horodatage ISO est normalisé en UTC (texte). Sans indication exploitable, le champ est absent et le diagnostic le dit.
+
+La délivrance reste distincte : le message peut déjà être enregistré, sans réponse (`persisted-no-reply`). **Aucun renvoi automatique**, même après l’heure indiquée. Le chef de mission présente le diagnostic au propriétaire et attend sa décision ; il ne rejoue pas l’étape. Mission conserve le résultat et l’indication dans son état et son export, et se met en pause sur une limite connue. Une délivrance ou une publication inconnue reste `uncertain`. Ce lot n’ajoute pas `--open` à Mission.
+
 ## Codex sous Windows : réponse reçue, lectures bloquées
 
 Une réponse reçue ne prouve pas que l'agent a pu lire le dépôt. Si le flux JSON de Codex signale une commande non démarrée avec `CreateProcessAsUserW failed: 5`, PALABRE conserve la réponse, l'identité et la délivrance, mais rend `read-unavailable` (code 2). Avec `--task review`, il rend `review-failed` (code 9), `task.error: "read-unavailable"` et `task.publication: "not-attempted"` : **aucune revue n'est publiée sur GitHub**. Mission utilise le même diagnostic et se met en pause.

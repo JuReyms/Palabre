@@ -6,6 +6,7 @@
  * (TUI) et 0.160.1 (app-server de Codex desktop) sous Windows ; ce n'est pas un schéma public.
  */
 import { createHash } from "node:crypto";
+import { extractRetryAfter } from "../adapters/cli-shared.js";
 
 /** Offset avant dépôt et empreintes bornées ; ne garantit pas l'intégrité de tout l'historique. */
 export interface OpenBaseline {
@@ -41,6 +42,8 @@ export interface OpenObservation {
   reason: string;
   turnId?: string;
   reply?: string;
+  /** Indication CLI : secondes, ISO ou heure HH:mm sans date/fuseau. Jamais issue d'un texte de modèle. */
+  retryAfter?: number | string;
   /** Relevé du `turn_context` du seul tour corrélé ; présent pour `replied` et `failed` quand il est attribuable. */
   context?: OpenTurnContext;
 }
@@ -226,6 +229,17 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
   // Hypothèses défensives testées sur fixtures : ces formats d'échec du rollout restent à
   // observer réellement. Une erreur non attribuable au tour ne prouve pas sa terminaison.
   if (turn.some((event) => ["error", "turn_aborted", "task_cancelled", "task_failed"].includes(String(event.type)))) return observation("failed", "turn-failed-or-cancelled", turnId);
+  // Forme observée dans Codex 0.163.0 : seul le code structuré de la terminaison
+  // liée classe la limite. Le message d'erreur sert uniquement à extraire sa reprise.
+  const completed = turn.filter((event) => event.type === "task_complete");
+  const completionError = completed.length === 1 ? object(completed[0]!.error) : undefined;
+  if (completionError?.codex_error_info === "usage_limit_exceeded"
+    && position(anchor) >= userPosition && position(completed[0]!) >= position(anchor)) {
+    const retryAfter = typeof completionError.message === "string"
+      ? extractRetryAfter(completionError.message.slice(0, 4096)) : undefined;
+    return { ...observation("failed", "usage-limit", turnId),
+      ...(retryAfter !== undefined && (typeof retryAfter === "string" || Number.isFinite(retryAfter) && retryAfter >= 0) ? { retryAfter } : {}) };
+  }
   // Format observé (Codex 0.151.0, modèle refusé) : task_complete porte `error` et
   // last_agent_message: null. Échec même sans réponse finale, et même si un texte final existe.
   if (turn.some((event) => event.type === "task_complete" && event.error !== undefined && event.error !== null)) return observation("failed", "completion-error", turnId);

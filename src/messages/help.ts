@@ -44,6 +44,8 @@ pas de solution validée à ce jour pour ce parcours, aucun changement de permis
 Chaque étape reçoit l'en-tête PALABRE Mission, puis l'avertissement ℹ️ sur une ligne séparée
 avant le contenu. Objectif et critères sont lisibles sur deux lignes, sans JSON ; la partie
 « 🤖 Pour l'agent » termine le message. Le tout compte dans les 64 Kio UTF-8 de coordination.
+Une limite d'usage connue met l'étape en pause ; reprise CLI conservée si fournie.
+Aucun renvoi automatique, même après cette heure ; le chef de mission attend la décision humaine.
 Le rôle et le cadre ne donnent aucun droit supplémentaire. Aucun plafond de coût monétaire.
 `,
   init: `
@@ -224,6 +226,9 @@ Limites :
   PALABRE ajoute l'en-tête expéditeur → destinataire, puis l'avertissement ℹ️ sur sa propre ligne
   avant le contenu. La partie « 🤖 Pour l'agent » regroupe provenance et consigne de réponse en bas.
   Une seule réponse ici, sans appeler un autre agent. Ne pas ajouter un second en-tête PALABRE.
+  Avec --open, usage_limit_exceeded du tour corrélé donne usage-limit (code 2), pas cli-failure.
+  La reprise CLI reconnue figure dans le message, retryAfter (JSON) et l'export ;
+  une heure sans date/fuseau reste telle quelle. Aucune reprise automatique : décision humaine.
   L'enveloppe complète de coordination compte dans les 64 Kio UTF-8 (contexte PR séparé).
   allow-repo exige une config déjà approuvée, affiche son chemin et le changement,
   puis exige sa confirmation au clavier (entrée et sortie TTY). Refus : code 8.
@@ -386,6 +391,8 @@ no validated solution yet for this workflow, no permission changes or automatic 
 Each step receives a PALABRE Mission header, then the ℹ️ warning on a separate line before
 the content. Objective and criteria appear on two readable lines, without JSON; the final
 « 🤖 For the agent » section closes the message. All count toward 64 KiB UTF-8 of coordination.
+A known usage limit pauses the step; the CLI retry indication is preserved when supplied.
+No automatic resend, even after that time; the mission lead waits for the owner’s decision.
 Roles and scope grant no additional rights. No monetary cost cap.
 `,
   init: `
@@ -554,6 +561,9 @@ Limits:
   PALABRE adds the sender → recipient header, then the ℹ️ warning on its own line before the content.
   The final « 🤖 For the agent » section groups provenance and reply instructions.
   Reply here once, without calling another agent. Do not add a second PALABRE header.
+  With --open, usage_limit_exceeded in the correlated turn gives usage-limit (exit 2), not cli-failure.
+  A recognized CLI retry indication appears in the message, retryAfter (JSON) and export;
+  a time without date/time zone stays that way. No automatic resend: the owner decides.
   The full coordination envelope counts toward 64 KiB UTF-8 (separate PR context limit).
   allow-repo requires a trusted config, shows its path and planned change, then requires
   owner keyboard confirmation (input and output TTY). Declining exits 8.

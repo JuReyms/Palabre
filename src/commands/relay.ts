@@ -66,6 +66,8 @@ const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
  * NDJSON : un ajout optionnel ne change pas `v`.
  */
 export interface RelayResultV1 {
+  /** Reprise CLI facultative : secondes, ISO ou HH:mm sans date/fuseau. Aucun renvoi programmé. */
+  retryAfter?: number | string;
   /** Échec d'accès observé, sans déduction depuis la prose du modèle. */
   readAccess?: ReadAccessDiagnostic;
   /** Objet explicite inchangé ; absent si --subject n'est pas fourni. */
@@ -444,7 +446,9 @@ function openErrorMessage(open: OpenRelayResult, messages: Messages): string | u
   if (open.outcome.status === "replied") return undefined;
   const relayMessages = messages.relay;
   const tooLarge = open.outcome.status === "invalid-request" && open.outcome.reason === "message-too-large";
-  const parts = [tooLarge ? relayMessages.open.messageTooLarge(open.diagnostic ?? "") : errorMessage(open.outcome, messages)];
+  const parts = [open.outcome.status === "usage-limit"
+    ? relayMessages.usageLimit(open.retryAfter)
+    : tooLarge ? relayMessages.open.messageTooLarge(open.diagnostic ?? "") : errorMessage(open.outcome, messages)];
   if (open.diagnostic && !tooLarge) parts.push(relayMessages.open.diagnostic(open.diagnostic));
   if (open.queue.attempted && !open.receptionObserved) parts.push(relayMessages.open.receptionNotObserved);
   return parts.join(" ");
@@ -558,6 +562,7 @@ function buildResult(
   const openFields: Partial<RelayResultV1> = context.open
     ? {
       mode: "open",
+      ...(input.open?.retryAfter !== undefined ? { retryAfter: input.open.retryAfter } : {}),
       queue: input.open?.queue ?? { attempted: false },
       ...(input.open?.correlation ? { correlation: input.open.correlation } : {}),
       receiver: "unverified",
@@ -616,6 +621,7 @@ async function exportRelay(
       message: input.message,
       reply: result.reply,
       error: result.error?.message,
+      ...(result.retryAfter !== undefined ? { retryAfter: result.retryAfter } : {}),
       ...(result.readAccess ? { readAccess: result.readAccess } : {}),
       ...(result.task ? { task: result.task } : {}),
       ...(result.cli ? { cli: result.cli } : {}),

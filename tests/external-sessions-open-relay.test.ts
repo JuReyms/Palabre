@@ -541,3 +541,44 @@ describe("B1 : parcours complet sur grand historique", () => {
     assert.equal((await locateOpenRollout(home, THREAD)).status, "session-not-found", "doublon : cible ambiguë");
   });
 });
+
+test("limite structurée : usage-limit/2, un seul dépôt, heure et permissions conservées", async () => {
+  const file = rollout();
+  const h = harness(file, { onRun: () => {
+    appendRows(file, [started(), context(), user(), item("UserMessage", ENVELOPE), complete(null,
+      { codex_error_info: "usage_limit_exceeded", message: "You've hit your usage limit. Try again at 3:16 PM." })]);
+    return queued();
+  } });
+  const r = await runOpenRelay(input(file), h.deps);
+  assert.deepEqual(r.outcome, { status: "usage-limit", exitCode: 2 });
+  assert.equal(r.retryAfter, "15:16"); assert.equal(r.delivery.status, "persisted-no-reply");
+  assert.equal(r.reply, undefined); assert.equal(r.receptionObserved, true);
+  assert.deepEqual(r.correlation, { status: "failed", reason: "usage-limit" });
+  assert.deepEqual(r.observedModels, ["gpt-fake"]); assert.equal(h.calls.run.length, 1);
+});
+
+test("limite observée après échéance ou annulation : la cause primaire reste prioritaire", async () => {
+  for (const stop of ["timeout", "cancelled"] as const) {
+    const file = rollout(), controller = new AbortController();
+    const h = harness(file, { onRun: () => { appendRows(file, [started(), user(), item("UserMessage", ENVELOPE),
+      complete(null, { codex_error_info: "usage_limit_exceeded", message: "Try again at 3:16 PM." })]); return queued(); },
+      onRead: () => { if (stop === "timeout") h.clock.now = 20000; else controller.abort(); }
+    });
+    const r = await runOpenRelay(input(file, { signal: controller.signal }), h.deps);
+    assert.equal(r.outcome.status, stop); assert.equal(r.retryAfter, undefined);
+    assert.equal(r.delivery.status, "persisted-no-reply"); assert.equal(h.calls.run.length, 1);
+  }
+});
+
+test("limite lue après un échec du déposant : cause primaire conservée, aucune heure de reprise", async () => {
+  const file = rollout();
+  const h = harness(file, { onRun: () => {
+    appendRows(file, [started(), user(), item("UserMessage", ENVELOPE), complete(null,
+      { codex_error_info: "usage_limit_exceeded", message: "Try again at 3:16 PM." })]);
+    return queued({ exitCode: 1 });
+  } });
+  const r = await runOpenRelay(input(file), h.deps);
+  assert.equal(r.outcome.status, "cli-failure"); assert.equal(r.retryAfter, undefined);
+  assert.equal(r.delivery.status, "persisted-no-reply"); assert.equal(r.diagnostic, "queue-exit-1");
+  assert.equal(h.calls.run.length, 1);
+});

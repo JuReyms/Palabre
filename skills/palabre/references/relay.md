@@ -81,3 +81,9 @@ Issues fréquentes : `target-busy` (cible ouverte, code 3), `target-state-unknow
 ## Export
 
 Par défaut, `.relay.md` dans `outputDir` : expéditeur, cible, identifiants de session, message, réponse ou erreur, délivrance. `exportPath` vaut `null` avec `--no-export`. Ne pas recopier les identifiants de session dans un contenu public sans l'accord de l'utilisateur.
+
+### Limite d’usage : décision humaine, jamais un renvoi programmé
+
+Avec `--open`, seul le code structuré `usage_limit_exceeded` de `task_complete.error` du tour corrélé classe la limite (`usage-limit`, code 2). Une phrase du modèle, un `token_count` ou une erreur étrangère ne suffisent pas. La forme est observée sur Codex 0.163.0.
+
+`retryAfter`, optionnel dans le JSON v1 et l’export, vient du message de cette erreur CLI : secondes (nombre), horodatage ISO UTC ou heure `HH:mm` (texte). `3:16 PM` devient `15:16` sans date ni fuseau inventés. Une indication absente ou illisible reste absente. Présenter le diagnostic, conserver l’état et attendre la décision du propriétaire ; ne pas relancer à l’heure indiquée. Mission conserve le résultat et se met en pause sur une limite connue ; délivrance ou publication inconnue = `uncertain`. Aucun support `--open` ajouté à Mission.

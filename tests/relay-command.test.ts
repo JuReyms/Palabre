@@ -755,6 +755,39 @@ describe("palabre relay --open", () => {
   });
 });
 
+test("--open : limite structurée, message FR/EN, JSON et export, aucun renvoi", { skip: process.platform !== "win32" }, async () => {
+  for (const language of ["fr", "en"] as const) {
+    for (const mode of ["usage-limit", "usage-limit-no-time"] as const) {
+      const world = makeWorld(), release = holdCodexLock(world);
+      try {
+        const r = await relay(world, ["--open", ...toCodex, "Bonjour", "--trust-config", "--language", language, "--json"], { FAKE_CODEX_QUEUE: mode });
+        assert.equal(r.code, 2, r.stderr); assert.equal(r.json.status, "usage-limit");
+        assert.equal(r.json.error.kind, "usage-limit"); assert.equal(r.json.reply, undefined);
+        assert.equal(r.json.delivery.status, "persisted-no-reply");
+        assert.equal(r.json.retryAfter, mode === "usage-limit" ? "15:16" : undefined);
+        const expected = relayMessages[language].usageLimit(mode === "usage-limit" ? "15:16" : undefined);
+        assert.ok(r.json.error.message.includes(expected));
+        assert.equal(r.calls.length, 1); assert.equal(r.calls[0]!.argv[0], "queue");
+        const md = readFileSync(r.json.exportPath, "utf8");
+        assert.ok(md.includes(expected));
+        if (mode === "usage-limit") {
+          assert.ok(md.includes(`| ${relayMessages[language].export.retryAfter} | 15:16 |`));
+          assert.match(r.json.error.message, language === "fr" ? /Reprise vers 15 h 16/ : /Retry around 15:16/);
+        } else {
+          assert.ok(!md.includes(relayMessages[language].export.retryAfter));
+          assert.match(r.json.error.message, language === "fr" ? /n'indique pas de reprise exploitable/ : /no usable retry indication/);
+        }
+      } finally { release(); }
+    }
+    const world = makeWorld(), release = holdCodexLock(world);
+    try {
+      const r = await relay(world, ["--open", ...toCodex, "Bonjour", "--trust-config", "--language", language, "--no-export"], { FAKE_CODEX_QUEUE: "usage-limit" });
+      assert.equal(r.code, 2); assert.equal(r.stdout, "");
+      assert.ok(r.stderr.includes(relayMessages[language].usageLimit("15:16"))); assert.equal(r.calls.length, 1);
+    } finally { release(); }
+  }
+});
+
 describe("palabre relay --help", () => {
   test("aide de la commande, sans exécution", async () => {
     const world = makeWorld();

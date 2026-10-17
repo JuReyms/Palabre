@@ -16,6 +16,8 @@ export interface RelayMessages {
   envelopeReplyHint: string;
   envelopeNotice: string;
   defaultReviewMessage: string;
+  /** Limite structurée Codex ; heure locale affichée sans inventer date ou fuseau. */
+  usageLimit(retryAfter?: number | string): string;
   reviewFailure(reason: string): string;
   authorizationRequired(repository: string, command: string): string;
   allowRepo: {
@@ -110,6 +112,7 @@ export interface RelayMessages {
     cliVersion: string;
     readAccess: string;
     subject: string;
+    retryAfter: string;
   };
 }
 
@@ -185,6 +188,11 @@ const enInvalid: Record<InvalidRequestReason, string> = {
 
 export const relayMessages: Record<Language, RelayMessages> = {
   fr: {
+    usageLimit: retry => "Codex a atteint sa limite d'usage. " + (retry === undefined
+      ? "La CLI n'indique pas de reprise exploitable."
+      : typeof retry === "number" ? `Reprise indiquée par la CLI : dans ${retry} s.`
+      : /^\d{2}:\d{2}$/.test(retry) ? `Reprise vers ${retry.replace(":", " h ")} (date et fuseau non fournis par la CLI).`
+      : `Reprise indiquée par la CLI : ${retry}.`) + " Aucun renvoi automatique ; le chef de mission décide de la suite.",
     authorizationRequired: (repository, command) => `Dépôt : ${repository}. Le propriétaire lance dans son terminal visible PowerShell (ou shell POSIX) :\n${command}\nIl vérifie le chemin et le changement affichés, puis répond « o » pour autoriser. Agent : ouvrez cette commande dans le terminal visible de l'humain si votre hôte le permet, attendez sa réponse ; ne validez jamais à sa place et ne modifiez ni n'approuvez vous-même cette politique. Seule une revue COMMENT est autorisée ; le merge reste humain.`,
     allowRepo: {
       usage: "Commande : palabre relay allow-repo proprietaire/depot (ou 'proprietaire/*') [--config <fichier>] [--language fr|en]. Seuls ces arguments sont acceptés ; aucun --yes ni --trust-config.",
@@ -256,6 +264,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
       subjectInvalid: "Objet invalide : --subject attend une seule ligne non vide de 200 caractères au plus, sans caractère de contrôle ni de formatage Unicode. Corrigez l'objet puis relancez la commande ; aucun message envoyé."
     },
     export: {
+      retryAfter: "Reprise indiquée par la CLI (secondes, ISO ou heure locale)",
       task: "Tâche", pullRequest: "PR", commit: "Commit", publication: "Publication", reviewUrl: "Revue publiée",
       cliPath: "Chemin CLI", cliVersion: "Version CLI", readAccess: "Accès en lecture",
       subject: "Objet",
@@ -289,6 +298,11 @@ export const relayMessages: Record<Language, RelayMessages> = {
     }
   },
   en: {
+    usageLimit: retry => "Codex has reached its usage limit. " + (retry === undefined
+      ? "The CLI provides no usable retry indication."
+      : typeof retry === "number" ? `CLI retry indication: in ${retry} s.`
+      : /^\d{2}:\d{2}$/.test(retry) ? `Retry around ${retry} (date and time zone not supplied by the CLI).`
+      : `CLI retry indication: ${retry}.`) + " No automatic resend; the mission lead decides what happens next.",
     authorizationRequired: (repository, command) => `Repository: ${repository}. The owner runs this in their visible PowerShell (or POSIX shell) terminal:\n${command}\nThey inspect the displayed path and change, then type "y" to allow reviews. Agent: open this command in the human's visible terminal if your host supports it, then wait; never confirm for them or edit/approve this policy yourself. Only a COMMENT review is authorized; merging remains human.`,
     allowRepo: {
       usage: "Usage: palabre relay allow-repo owner/repository (or 'owner/*') [--config <file>] [--language fr|en]. No other arguments, --yes or --trust-config are accepted.",
@@ -360,6 +374,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
       subjectInvalid: "Invalid subject: --subject requires one nonblank line of at most 200 characters, without control or Unicode formatting characters. Correct the subject and rerun the command; no message sent."
     },
     export: {
+      retryAfter: "CLI retry indication (seconds, ISO or local time)",
       task: "Task", pullRequest: "PR", commit: "Commit", publication: "Publication", reviewUrl: "Published review",
       cliPath: "CLI path", cliVersion: "CLI version", readAccess: "Read access",
       subject: "Subject",
