@@ -106,11 +106,11 @@ Ici :
 - `codex` répond en premier ;
 - `claude` répond en second ;
 - `claude` produit la synthèse finale ;
-- `-t 4` demande quatre réponses au total.
+- `-t 4` demande jusqu'à quatre réponses au total (deux par agent si toutes sont jouées, hors synthèse).
 
 ## Ajouter des agents détectés plus tard
 
-Si vous installez Antigravity, OpenCode, Mistral Vibe ou Ollama après avoir créé la configuration :
+Si vous installez Claude Code, Codex, Antigravity, OpenCode, Mistral Vibe ou Ollama après avoir créé la configuration :
 
 ```bash
 palabre config --sync-agents
@@ -123,3 +123,17 @@ Les commandes déjà configurées avec un chemin absolu sont conservées, même 
 ## Étape suivante
 
 Vous pouvez maintenant [lancer une première session](/fr/get-started/first-debate).
+
+## Autres réglages et approbation
+
+```powershell
+palabre config --mode ask --ask-agents codex claude opencode
+palabre config --interface terminal
+palabre config --clear-defaults
+```
+
+`--clear-defaults` retire les paramètres par défaut ; il ne désinstalle pas les agents. Voir `palabre config --help`.
+
+`palabre init --local` crée `./palabre.config.json`, prioritaire sur la configuration globale dans ce dossier. Une configuration peut lancer des commandes avec vos droits : PALABRE exige une approbation de son contenu. `init` approuve le fichier qu'il crée ; une modification manuelle invalide cette approbation. Vous relisez le fichier, puis confirmez dans un terminal ou lancez `palabre config --config <fichier> --trust-config`. Un agent ne doit jamais approuver une politique pour s'accorder des droits.
+
+Pour autoriser la seule tâche de revue Relay sur un dépôt, lancez vous-même `palabre relay allow-repo proprietaire/depot` dans votre terminal visible : une confirmation au clavier est requise. Voir [Relay](/fr/usage/relay).

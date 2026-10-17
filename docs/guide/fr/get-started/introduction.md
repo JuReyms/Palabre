@@ -6,54 +6,40 @@ seo:
   description: Palabre orchestre Claude Code, Codex et Ollama en débats structurés depuis votre terminal. Comprendre son fonctionnement et ce qui reste en local.
 ---
 
-Palabre est un orchestrateur CLI/TUI pour agents IA déjà installés sur votre machine.
+PALABRE fait coopérer les agents IA déjà installés sur votre machine pour **mieux décider avant d'agir**. Vous gardez vos outils, vos abonnements et vos modèles ; PALABRE organise les échanges et garde une trace Markdown.
 
-L'objectif est simple : vous donnez un sujet, Palabre orchestre les agents, affiche leurs réponses dans le terminal, puis exporte une trace Markdown complète. Les modes Débat et Ask peuvent aussi produire une synthèse finale.
+## Quatre modes, selon votre besoin
 
-Trois modes sont disponibles :
+- **Débat** : deux agents se répondent sur un sujet, puis une synthèse dégage les accords et désaccords.
+- **Relay** : un agent transmet un message à une conversation Codex ou Claude Code existante et récupère sa réponse, sans copier-coller de votre part.
+- **Ask** : jusqu'à quatre agents répondent indépendamment, puis une synthèse résume chaque réponse et les compare.
+- **Chat** : vous échangez avec un agent actif et pouvez demander un second avis avec `/consult`.
 
-- `debate` : deux agents dialoguent tour à tour sur un sujet ;
-- `chat` : vous échangez avec un agent actif et pouvez demander ponctuellement un second avis avec `/consult` ;
-- `ask` : plusieurs agents répondent indépendamment à la même demande, puis un agent de synthèse résume fidèlement chaque réponse et les compare.
+Pour plusieurs étapes en lecture seule dans un cadre et un budget convenus, Relay propose l'option [Mission](/fr/usage/relay#option-mission). Vous prenez les décisions ; le chef de mission appelle son équipier une étape explicite à la fois.
 
-Palabre ne remplace pas Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe ou Ollama. Il les pilote. Vous gardez donc vos outils, vos abonnements, vos modèles par défaut et vos habitudes de terminal.
+## À quoi sert PALABRE ?
 
-Palabre s'exécute localement sur votre machine. Il n'envoie aucune donnée à un serveur appartenant à Palabre. Les prompts, fichiers et transcripts sont transmis uniquement aux agents que vous choisissez d'utiliser.
+Comparer des approches, faire critiquer un plan, confronter des avis, ou passer la main à une conversation qui connaît déjà votre projet. Débat et Ask peuvent produire une synthèse finale, désactivable avec `--no-summary` ; Chat et Relay n'en ajoutent pas.
 
-La confidentialité dépend donc des agents sélectionnés. Avant d'envoyer du code, des documents ou des données sensibles à Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe, Ollama ou tout autre agent configuré, vérifiez leurs propres politiques de confidentialité et les paramètres de votre compte.
+## Ce que PALABRE fait
 
-## À quoi sert Palabre ?
+- détecte les agents installés et ouvre une interface TUI avec `palabre` dans un terminal interactif ;
+- joint le sujet, le contexte et l'historique utile aux appels Débat, Ask et Chat ;
+- peut transmettre des fichiers choisis avec `--files` ou `--context` ;
+- rend un Débat ou un Ask reprenable avec `--checkpoint` et `palabre resume` ;
+- relaie un message à une conversation existante avec `palabre relay` ;
+- exporte les échanges en `.debate.md`, `.relay.md`, `.ask.md` ou `.chat.md`, et l'option Mission en `.mission.md`.
 
-Palabre est utile pour :
+## Ce qui reste sous votre contrôle
 
-- mener une conversation suivie avec un agent et demander un second avis sans perdre le fil ;
-- comparer deux agents sur une même question ;
-- comparer plusieurs réponses indépendantes avec le mode Ask ;
-- obtenir une relecture critique d'une idée ;
-- confronter un modèle local Ollama à une CLI plus puissante ;
-- produire un transcript Markdown partageable ;
-- transformer une discussion IA en consensus, désaccords, actions proposées et conclusion.
+PALABRE n'ouvre pas de compte et ne fournit pas d'accès aux modèles. Chaque agent doit être installé et, si nécessaire, authentifié séparément. Un rôle ou un message d'un autre agent n'autorise pas une action à votre place.
 
-## Ce que Palabre fait
+Débat, Ask et Chat lancent un nouvel appel d'agent pour chaque réponse. PALABRE fournit tout le transcript du Débat, ou au plus les six messages récents du Chat. Relay reprend au contraire une conversation existante et peut en modifier l'historique : fermée par défaut, ou ouverte avec `--open` pour Codex sous Windows (pilote). Il ne renvoie jamais un message automatiquement.
 
-Palabre :
+## Confidentialité
 
-- détecte les CLIs disponibles sur votre machine ;
-- ouvre une interface TUI par défaut avec `palabre` dans un terminal interactif ;
-- lance les agents en mode batch ;
-- injecte le sujet, le contexte de session et l'historique utile dans chaque appel ;
-- entretient un Chat stateless avec un agent actif et un historique borné ;
-- peut lancer des demandes Ask sans conversation entre agents ;
-- peut ajouter des fichiers ou dossiers de projet au contexte ;
-- génère une synthèse finale ;
-- exporte la session dans un fichier `.debate.md`, `.chat.md` ou `.ask.md`.
-
-## Ce que Palabre ne fait pas
-
-Palabre ne fournit pas d'accès payant aux modèles. Il ne crée pas de compte Claude, OpenAI, Google ou Ollama. Chaque agent doit être installé et authentifié séparément.
-
-Palabre ne garde pas non plus une session interactive ouverte avec les CLIs. Chaque réponse est produite par un appel batch. La continuité vient du transcript que Palabre réinjecte : tout le débat pour le mode Débat, et au maximum les six messages récents pour Chat.
+PALABRE s'exécute localement et n'a pas de serveur. Les prompts, fichiers et échanges vont aux agents choisis, selon leurs politiques et vos réglages. Avec Ollama **et un modèle local sur votre machine**, les requêtes restent locales ; un serveur Ollama distant reçoit les données qui lui sont envoyées.
 
 ## Suite
 
-Commencez par [installer Palabre](/fr/get-started/installation), puis [lancez une première session](/fr/get-started/first-debate). La page [configuration](/fr/get-started/configuration) explique les détails quand vous voulez plus de contrôle.
+Commencez par [installer PALABRE](/fr/get-started/installation), puis [lancez une première session](/fr/get-started/first-debate). Pour passer la main, consultez [Relay](/fr/usage/relay) ; pour les réglages, [la configuration](/fr/get-started/configuration).

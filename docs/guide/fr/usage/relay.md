@@ -1,18 +1,22 @@
 ---
 title: Relay vers une conversation
-description: Transmettre un message à une conversation Codex ou Claude Code fermée, ou à une conversation Codex ouverte avec --open, et récupérer sa réponse avec palabre relay.
+description: Envoyer un message à une conversation Codex ou Claude Code existante et recevoir sa réponse ; enchaîner des étapes en lecture seule avec l’option Mission.
 seo:
   title: palabre relay, interroger une conversation Codex ou Claude Code
   description: Envoyer un message à une conversation Codex ou Claude Code existante, fermée, et recevoir sa réponse en un seul appel, en lecture seule renforcée.
 ---
 
-## Relay v1 : coordination et revue autorisée
+## À quoi sert Relay
 
-Pour organiser plusieurs appels sans perdre le cadre ni les résultats, utilisez aussi [Mission v2.0](#mission-v20--le-chef-de-mission-appelle-léquipier-une-étape-à-la-fois), ci-dessous.
+`palabre relay` transmet un message à une conversation Codex ou Claude Code existante, puis rend sa réponse à l'appelant. Un agent peut ainsi passer la main sans vous faire copier-coller les échanges ; vous restez le décideur.
 
-Relay sert à consulter un équipier depuis la conversation habituelle de l'agent appelant : un appel, un message, une réponse. L'enveloppe identifie un **agent**, pas l'utilisateur, et précise qu'un message de coordination n'autorise aucune action. Une réponse ne provoque jamais de nouvel appel automatique. Une session encore attachée peut être refusée même sans génération : `target-busy`, code 3 et `retryable: true`. L'appelant décide de réessayer plus tard ; après une délivrance inconnue, il vérifie avant tout renvoi.
+```text
+palabre relay --open --from claude:<session-expéditeur> --to codex:<session-cible> --subject "Revue du plan" "Relis le plan dans docs/plan.md et liste les risques."
+```
 
-La réponse CLI, et non son affichage Desktop, est le canal de retour. Les essais jetables Codex 0.151.0 et Claude Code 2.1.292 ont confirmé réponse, même identifiant et contexte conservé. Ils ne démontrent pas l'affichage immédiat dans Desktop, ni une écriture concurrente sûre dans une conversation Desktop ouverte. Le mode par défaut exige une session détachée. `--open` reste un pilote distinct, hors de cette v1.
+Cet exemple vise une conversation Codex ouverte, sous Windows (pilote), avec ses propres outils et permissions. Le message peut être traité dans une conversation chargée mais non affichée ; aucun affichage immédiat n'est garanti. Sans `--open`, Codex ou Claude Code doit être fermé et la reprise demande une lecture seule renforcée. Aucun renvoi automatique.
+
+Pour plusieurs étapes en lecture seule dans un cadre et un budget convenus, Relay propose l'[option Mission](#option-mission).
 
 ## Un en-tête lisible, ajouté par PALABRE
 
@@ -44,50 +48,56 @@ L'objet existe seulement avec `--subject "Revue du plan"` : une seule ligne non 
 
 **Agent expéditeur : n'ajoutez pas un second en-tête PALABRE.** Pour le corps, préférez **Contexte**, **À faire**, **Ne pas faire**, **Réponds-moi avec**, avec les consignes de prudence en italique. Ces sections sont conseillées, jamais imposées par le code. Une imitation d'en-tête dans le corps n'est pas supprimée : le contenu reste non fiable et n'accorde aucun droit.
 
-Mission utilise la même présentation : `📧 **PALABRE Mission** <id> · étape n · chef de mission claude → équipier codex`, suivi du même avertissement. Le contrôleur fournit id et numéro d'étape par l'API interne ; aucun flag Relay ne permet de demander cet en-tête. Le cadre conserve objectif et critères sur deux lignes lisibles (`Objectif : …`, `Critères de réussite : …`), avec un retour Markdown explicite, sans bloc JSON ni répétition de l'id. La consigne de coordination non authentifiée reste présente. L'état Mission garde son schéma v1.
+Avec l'option Mission, l'en-tête devient `📧 **PALABRE Mission** <id> · étape n · chef de mission claude → équipier codex`, suivi du même avertissement, puis de l'objectif et des critères sur deux lignes. Aucun flag Relay ne permet de demander cet en-tête.
 
 La partie « 🤖 Message pour l'agent » est commune à Relay et `--open`, avec une seule consigne de réponse. Seule la phrase sur les permissions diffère : la reprise classique demande la lecture seule ; `--open` conserve les outils, permissions et règles de la cible sans garantie de lecture seule. Elle ne donne aucun droit supplémentaire.
 
 Message, en-tête, objet et pied de coordination comptent ensemble dans les **64 Kio UTF-8**. Le contexte GitHub de review garde sa borne distincte de 256 Kio, plus les consignes fixes de revue. Avec `--open`, la borne de **8 192 unités UTF-16** porte toujours sur toute l'enveloppe (📧 occupe deux unités), et la ligne Windows reste bornée. Le nonce en bas reste un marqueur dans le message utilisateur ; la corrélation `--open` compare toujours exactement le texte envoyé au texte observé. Aucun affichage immédiat dans Desktop n'est promis.
 
-## Mission v2.0 : le chef de mission appelle l'équipier, une étape à la fois
+## Désigner les conversations
 
-Relay est la sonnette ; Mission garde le carnet de travail. Vous discutez avec votre chef de mission habituel, dans son application ou son terminal. Il vous pose ses questions en langage simple, fixe avec vous l'objectif, les critères de réussite, les tâches et le budget, puis appelle un équipier **dont la conversation reste fermée** (terminal, Desktop et IDE). Vous prenez les décisions ; le chef de mission lit les réponses sans vous demander de les copier-coller.
+- `--to <agent>:<session>` : `<agent>` est le nom d'un agent CLI Codex ou Claude Code de votre configuration (`codex`, `claude`, `claude-opus`…). `<session>` est l'identifiant de la conversation (un UUID).
+  - Claude Code : c'est le nom du fichier `~/.claude/projects/<dossier>/<session>.jsonl`.
+  - Codex : c'est la fin du nom du fichier `~/.codex/sessions/AAAA/MM/JJ/rollout-…-<session>.jsonl`.
+- `--from <agent>:<session>` : l'expéditeur. C'est une simple étiquette, recopiée dans le message transmis. Elle n'est ni lancée ni vérifiée, et la conversation de l'expéditeur peut être ouverte.
 
-Ce premier lot permet des analyses et des plans (`consult`) en lecture seule, ainsi que la tâche `review` existante. Une revue publiée exige toujours la politique Relay déjà approuvée pour le dépôt. Le cadre n'autorise **aucun** changement de code, commit, push, merge ou publication de version. L'écriture de code appartient à un lot v2.1 distinct, pas encore disponible. Les protections et limites des CLI restent celles de Relay ; Mission n'est pas un nouveau bac à sable.
+Aucune conversation n'est choisie implicitement.
 
-Le chef de mission utilise des UUID complets, explicitement désignés, et garde le même dossier courant pour toutes les commandes. Exemple PowerShell (remplacez les UUID, sans les publier sur GitHub) :
+## Conversation Codex ouverte (`--open`)
 
-```powershell
-$mission = palabre mission start --from "codex:<uuid-chef-de-mission>" --to "claude-review:<uuid-equipier>" --criteria "Risques et prochaines décisions expliqués" --tasks "consult,review" --max-steps 4 --max-duration 3600 --timeout 600 "Analyser le plan de migration" --json | ConvertFrom-Json
-palabre mission step $mission.mission.id "Relis le plan et liste les risques" --json
-palabre mission status $mission.mission.id --json
-palabre mission step $mission.mission.id "Relis la PR" --task review --pr https://github.com/proprietaire/depot/pull/123 --timeout 1200 --json
-palabre mission stop $mission.mission.id --reason "Analyse terminée"
+```bash
+palabre relay --open --from claude:<session-expéditeur> --to codex:<session-cible> "Peux-tu relire ce plan ?"
 ```
 
-`start` conserve le cadre sans appel de modèle ni approbation de configuration. Pour cette mission en lecture seule, vos réponses au chef de mission suffisent : pas de confirmation clavier supplémentaire. Il ne peut jamais élargir lui-même les tâches ou la politique de revue.
+Avec `--open`, Palabre dépose le message dans une conversation Codex **ouverte**, dans le TUI ou dans Codex desktop, avec la commande `codex queue`. Il attend ensuite la réponse de cette conversation dans son historique, puis vous la rend. C'est un **pilote**, réservé à Codex sous Windows.
 
-Chaque `step` fait **au plus un appel Relay**, puis termine. Le chef de mission vérifie le résultat avant de formuler la prochaine demande : aucune boucle automatique et aucun appel en retour de l'équipier. L'inversion des rôles n'est pas incluse dans ce premier lot. Un refus d'occupation ne déclenche pas de nouvel envoi : fermer la conversation de l'équipier, puis décider d'une nouvelle étape explicite.
+- **La conversation doit être ouverte.** Son verrou d'écriture doit être tenu, sinon rien n'est déposé (`target-not-open`). Le verrou est contrôlé de nouveau juste avant le dépôt.
+- **Pas de lecture seule.** La conversation ouverte répond avec ses propres outils, serveurs MCP et permissions, et Codex desktop applique ses permissions courantes au tour relayé. Les garanties de lecture seule du relay sans `--open` ne s'appliquent donc pas. Le message relayé indique qu'il vient d'un autre agent, non authentifié, et qu'il n'autorise aucune action.
+- **Récepteur non vérifié.** Le verrou tenu ne prouve ni que la conversation est affichée, ni qu'elle traite le message. Codex desktop garde une conversation chargée après qu'on l'a quittée, et la traite sans l'afficher.
+- **Traitement différé possible.** Un message déposé peut être traité après le délai, même si Palabre s'est arrêté. Ctrl+C n'annule pas un dépôt, et il n'y a aucun renvoi automatique.
+- **Taille.** Le message passe en argument de commande : l'enveloppe complète est limitée à 8 192 unités UTF-16. Au-delà, le relay est refusé (`message-too-large`).
+- **Un seul délai.** `--timeout` couvre la préparation, le dépôt et l'attente.
+- **Historiques volumineux.** Palabre ne lit que la première ligne de l'historique et ce qui s'y ajoute après le dépôt, quelle que soit sa taille.
 
-### Budget, suivi et reprise
+Versions vérifiées : Codex CLI 0.151.0 (TUI) et Codex desktop 26.930.7945.0 (app-server 0.160.1). Le format de l'historique de Codex n'est pas un schéma public : une autre version n'est pas bloquée, mais la corrélation de la réponse n'y est pas garantie.
 
-| Option de `start` | Défaut | Limites |
-| --- | --- | --- |
-| `--tasks` | `consult` | `consult`, `review` ou `consult,review` |
-| `--max-steps` | 10 | 1 à 100 tentatives, refus compris |
-| `--max-duration` | 3600 s | 10 à 86400 s depuis `start`, temps entre étapes compris |
-| `--timeout` | 600 s | 10 à 3600 s ; surcharge possible sur chaque `step`, limitée par la durée restante |
+## Conversation fermée par défaut
 
-Ces délais bornent l'appel Relay ; les sondes et opérations GitHub gardent leurs propres bornes. Une annulation ne garantit pas leur interruption immédiate. **Aucun plafond monétaire** : les appels consomment le quota ou le budget de votre fournisseur.
+Sans `--open`, la conversation cible doit être **fermée** : aucun TUI, desktop, IDE ni exécution en cours ne doit y être attaché. Sinon, le relay est refusé avant tout envoi (`target-busy`). Il est aussi refusé quand Palabre ne peut pas vérifier l'état de la conversation (`target-state-unknown`).
 
-`status` et `stop` n'appellent aucun agent. L'état JSON v1 et l'export `.mission.md` vivent dans `.palabre/missions/<id>/`, indépendamment de `outputDir`. Toutes les commandes acceptent `--json` (un objet `mission-result` v1 : `action`, `exitCode`, `mission`, `exportPath`, `error`). Chaque étape garde le message, le résultat Relay, la réponse, la délivrance et l'éventuelle publication GitHub. Ces réponses ne sont **pas automatiquement vérifiées** ; identifiants, chemins et échanges restent privés dans ces fichiers locaux. Le stockage est limité à 32 Mio.
+Pour une conversation Codex **ouverte**, utilisez `--open` (voir plus haut). Le relay vers une conversation Claude Code ouverte n'est pas encore disponible ; il est suivi dans l'issue [#96](https://github.com/JuReyms/Palabre/issues/96).
 
-Après une fermeture normale du chef de mission, reprendre avec `status`, puis une nouvelle `step` sur le même identifiant : les réponses précédentes ne sont pas rejouées. Après une coupure pendant l'appel, `running` sans résultat ou `uncertain` demande une vérification avec le propriétaire ; **ne pas supprimer le verrou pour relancer**. Un refus certain laisse `paused` et permet une nouvelle demande explicite après lecture du diagnostic. Les erreurs d'étape gardent le code Relay, dont 3 pour une session occupée ; les refus de Mission donnent 8 (3 pour une étape déjà réservée), et une étape sans résultat donne 9.
+## Ce que fait la reprise
 
-`stop` reste accessible pendant une étape et après un verrou orphelin. Il interdit toute nouvelle étape et demande au mieux l'annulation de l'appel en cours : un message ou une revue déjà partis ne sont pas retirés. Une mission arrêtée ou au budget épuisé nécessite un nouveau cadre décidé par le propriétaire et une nouvelle mission ; pas de réouverture automatique.
+- **Lecture seule renforcée.** Claude Code est relancé en mode plan, avec les seuls outils de lecture, sans serveur MCP et sans hooks. Codex est relancé en bac à sable en lecture seule, sans approbation possible, sans hooks, sans `notify` et sans mémoires.
+- **Perte d'outils pendant le tour relayé.** Codex perd ses plugins, ses connecteurs et ses serveurs MCP. Claude n'a que la lecture. Votre configuration n'est pas modifiée.
+- **Garanties conditionnelles.** Avec les options imposées par Palabre et sur les versions de CLI vérifiées, la cible ne dispose d'aucun outil d'écriture, et les hooks et la commande `notify` non gérés sont neutralisés. Les serveurs MCP sont neutralisés sous réserve que la configuration ne change pas entre l'inspection et la reprise. Ces garanties ne couvrent ni les politiques administrées, ni les versions de CLI non vérifiées.
+- **L'historique de la cible est modifié.** Le message et la réponse sont ajoutés à la conversation, même en lecture seule et même après un échec. Vous les retrouverez à sa prochaine ouverture.
+- **Exécutables.** Palabre lance la CLI directement, sans shell. Sous Windows, une CLI installée par npm est lancée avec Node et le script du paquet, jamais par son shim PowerShell, qui altère les accents et les arguments. Le shim n'est accepté que s'il est identique au modèle généré par npm ; un shim modifié est refusé (`unsupported-executable`).
 
-### Préautoriser la seule tâche `review`
+## Tâche `review`
+
+### Autoriser un dépôt (`allow-repo`)
 
 Pour autoriser les revues relay sur un dépôt, le propriétaire ouvre son terminal et lance :
 
@@ -130,7 +140,7 @@ Le message est facultatif avec `review`. GitHub CLI (`gh`) doit être installé 
 
 Palabre récupère la description et le diff complet d'une PR ouverte, les marque comme données non fiables et les transmet à l'équipier en lecture seule. Une PR trop grande est refusée, jamais relue silencieusement sur un diff tronqué. Claude est lancé avec `--safe-mode`, les seuls outils Read/Glob/Grep et aucun MCP.
 
-La tâche `review` avec Claude exige **Claude Code 2.1.292 au minimum** et la présence de `--safe-mode` dans son aide. Avant toute lecture de la PR, Palabre sonde `--version` puis `--help` sur la CLI effectivement résolue (commande configurée, ou premier résultat du PATH), sans appel de modèle. Une CLI incompatible ou non vérifiable produit `invalid-request` avec `error.reason: "review-cli-unsupported"` (code 8), la version trouvée et le minimum ; aucune PR n'est lue ni revue publiée. Si plusieurs versions coexistent, utilise l'agent dédié décrit dans « Plusieurs CLI Claude sur la même machine » ; ne retire pas `--safe-mode`.
+La tâche `review` avec Claude exige **Claude Code 2.1.292 au minimum** et la présence de `--safe-mode` dans son aide. Avant toute lecture de la PR, Palabre sonde `--version` puis `--help` sur la CLI effectivement résolue (commande configurée, ou premier résultat du PATH), sans appel de modèle. Une CLI incompatible ou non vérifiable produit `invalid-request` avec `error.reason: "review-cli-unsupported"` (code 8), la version trouvée et le minimum ; aucune PR n'est lue ni revue publiée. Si plusieurs versions coexistent, utilisez l'agent dédié décrit dans « Plusieurs CLI Claude sur la même machine » ; ne retire pas `--safe-mode`.
 
 Le champ optionnel `cli` du résultat `--json` donne `path` et `version` pour cette vérification (version `null` si non vérifiable). Le même chemin et la même version figurent dans l'export `.relay.md` de la revue ; avec un shim npm reconnu, le chemin désigne le script CLI lancé directement. Les notifications ordinaires gardent leurs arguments historiques, sans cette exigence de version.
 
@@ -146,7 +156,6 @@ Avant publication, la tête de PR et la configuration approuvée sont revérifi�
 
 Un échec de publication sort en code **9**, `review-failed`, et conserve la réponse de l'équipier ainsi que sa délivrance. `publication: unknown` signifie qu'une revue peut avoir été publiée malgré une erreur de retour : **aucun nouvel essai automatique**. Vérifier GitHub avant de redemander. L'autorisation de revue n'est jamais une autorisation de merge.
 
-Mission v2 ajoutera l'orchestration des échanges, rôles, budgets et décisions humaines. Le réveil desktop-vers-desktop reste une recherche distincte en pause.
 
 `palabre relay` transmet **un** message à une conversation Codex ou Claude Code existante, récupère **une** réponse, puis termine. Un agent peut ainsi interroger la conversation d'un autre agent, qui répond avec tout son contexte.
 
@@ -158,7 +167,7 @@ palabre relay --from codex:<session-expéditeur> --to claude:<session-cible> "Pe
 
 Une ancienne CLI Claude peut être détectée avant la CLI récente selon l'ordre du PATH. Un chemin absolu dans `agents.claude.command` est désormais conservé à l'accueil TUI et avec `palabre config --sync-agents` : une autre installation détectée ne l'écrase plus. Si le chemin est introuvable, il est conservé et le lancement échoue explicitement, sans repli vers une autre CLI.
 
-Tu peux aussi garder un agent dédié `claude-review`, pour choisir séparément le rôle et la CLI de revue, dans les `agents` existants de ton `palabre.config.json`, sans remplacer le reste de la configuration ni sa politique `relay` :
+Vous pouvez aussi garder un agent dédié `claude-review`, pour choisir séparément le rôle et la CLI de revue, dans les `agents` existants de ton `palabre.config.json`, sans remplacer le reste de la configuration ni sa politique `relay` :
 
 ```json
 {
@@ -175,7 +184,7 @@ Tu peux aussi garder un agent dédié `claude-review`, pour choisir séparément
 }
 ```
 
-Remplace le chemin d'exemple par le chemin absolu de ta CLI Claude Code **2.1.292 ou plus récente**. Recopie les mêmes `args` que ton agent `claude` ; ceux de l'exemple sont les valeurs par défaut. Relay construit lui-même ses arguments de reprise. Après modification, le propriétaire doit réapprouver la configuration selon la procédure ci-dessus.
+Remplacez le chemin d'exemple par le chemin absolu de votre CLI Claude Code **2.1.292 ou plus récente**. Recopie les mêmes `args` que ton agent `claude` ; ceux de l'exemple sont les valeurs par défaut. Relay construit lui-même ses arguments de reprise. Après modification, le propriétaire doit réapprouver la configuration selon la procédure ci-dessus.
 
 La synchronisation ne touche que les clés d'agents connus, dont `claude`, et laisse `claude-review` intact. Relay reconnaît Claude en normalisant le nom du programme (`claude.exe`), indépendamment du nom donné à l'agent. La sonde `review-cli-unsupported` continue de vérifier la CLI choisie avant toute lecture GitHub.
 
@@ -183,44 +192,46 @@ La synchronisation ne touche que les clés d'agents connus, dont `claude`, et la
 palabre relay --from codex:<uuid> --to claude-review:<session> --task review --pr https://github.com/proprietaire/depot/pull/123 --json
 ```
 
-## Conversation fermée par défaut
+## Option Mission
 
-Sans `--open`, la conversation cible doit être **fermée** : aucun TUI, desktop, IDE ni exécution en cours ne doit y être attaché. Sinon, le relay est refusé avant tout envoi (`target-busy`). Il est aussi refusé quand Palabre ne peut pas vérifier l'état de la conversation (`target-state-unknown`).
+Mission est une option de Relay pour plusieurs étapes en lecture seule. Vous fixez avec le chef de mission l'objectif, les critères, les tâches et le budget ; il appelle son équipier une étape explicite à la fois et conserve état et résultats.
 
-Pour une conversation Codex **ouverte**, utilisez `--open` (section suivante). Le relay vers une conversation Claude Code ouverte n'est pas encore disponible ; il est suivi dans l'issue [#96](https://github.com/JuReyms/Palabre/issues/96).
-
-## Conversation Codex ouverte (`--open`)
-
-```bash
-palabre relay --open --from claude:<session-expéditeur> --to codex:<session-cible> "Peux-tu relire ce plan ?"
+```powershell
+$mission = palabre mission start --from "codex:<uuid-chef-de-mission>" --to "claude-review:<uuid-equipier>" --criteria "Risques et prochaines décisions expliqués" --tasks "consult,review" --max-steps 4 --max-duration 3600 --timeout 600 "Analyser le plan de migration" --json | ConvertFrom-Json
+palabre mission step $mission.mission.id "Relis le plan et liste les risques" --json
+palabre mission status $mission.mission.id --json
+palabre mission step $mission.mission.id "Relis la PR" --task review --pr https://github.com/proprietaire/depot/pull/123 --timeout 1200 --json
+palabre mission stop $mission.mission.id --reason "Analyse terminée"
 ```
 
-Avec `--open`, Palabre dépose le message dans une conversation Codex **ouverte**, dans le TUI ou dans Codex desktop, avec la commande `codex queue`. Il attend ensuite la réponse de cette conversation dans son historique, puis vous la rend. C'est un **pilote**, réservé à Codex sous Windows.
+`start` conserve le cadre sans appel de modèle ni approbation de configuration. Pour cette mission en lecture seule, vos réponses au chef de mission suffisent : pas de confirmation clavier supplémentaire. Il ne peut jamais élargir lui-même les tâches ou la politique de revue.
 
-- **La conversation doit être ouverte.** Son verrou d'écriture doit être tenu, sinon rien n'est déposé (`target-not-open`). Le verrou est contrôlé de nouveau juste avant le dépôt.
-- **Pas de lecture seule.** La conversation ouverte répond avec ses propres outils, serveurs MCP et permissions, et Codex desktop applique ses permissions courantes au tour relayé. Les garanties de lecture seule du relay sans `--open` ne s'appliquent donc pas. Le message relayé indique qu'il vient d'un autre agent, non authentifié, et qu'il n'autorise aucune action.
-- **Récepteur non vérifié.** Le verrou tenu ne prouve ni que la conversation est affichée, ni qu'elle traite le message. Codex desktop garde une conversation chargée après qu'on l'a quittée, et la traite sans l'afficher.
-- **Traitement différé possible.** Un message déposé peut être traité après le délai, même si Palabre s'est arrêté. Ctrl+C n'annule pas un dépôt, et il n'y a aucun renvoi automatique.
-- **Taille.** Le message passe en argument de commande : l'enveloppe complète est limitée à 8 192 unités UTF-16. Au-delà, le relay est refusé (`message-too-large`).
-- **Un seul délai.** `--timeout` couvre la préparation, le dépôt et l'attente.
-- **Historiques volumineux.** Palabre ne lit que la première ligne de l'historique et ce qui s'y ajoute après le dépôt, quelle que soit sa taille.
+Chaque `step` fait **au plus un appel Relay**, puis termine. Le chef de mission vérifie le résultat avant de formuler la prochaine demande : aucune boucle automatique et aucun appel en retour de l'équipier. L'inversion des rôles n'est pas incluse dans ce premier lot. Un refus d'occupation ne déclenche pas de nouvel envoi : fermer la conversation de l'équipier, puis décider d'une nouvelle étape explicite.
 
-Versions vérifiées : Codex CLI 0.151.0 (TUI) et Codex desktop 26.930.7945.0 (app-server 0.160.1). Le format de l'historique de Codex n'est pas un schéma public : une autre version n'est pas bloquée, mais la corrélation de la réponse n'y est pas garantie.
+### Budget, suivi et reprise
 
-## Désigner les conversations
+| Option de `start` | Défaut | Limites |
+| --- | --- | --- |
+| `--tasks` | `consult` | `consult`, `review` ou `consult,review` |
+| `--max-steps` | 10 | 1 à 100 tentatives, refus compris |
+| `--max-duration` | 3600 s | 10 à 86400 s depuis `start`, temps entre étapes compris |
+| `--timeout` | 600 s | 10 à 3600 s ; surcharge possible sur chaque `step`, limitée par la durée restante |
 
-- `--to <agent>:<session>` : `<agent>` est le nom d'un agent CLI Codex ou Claude Code de votre configuration (`codex`, `claude`, `claude-opus`…). `<session>` est l'identifiant de la conversation (un UUID).
-  - Claude Code : c'est le nom du fichier `~/.claude/projects/<dossier>/<session>.jsonl`.
-  - Codex : c'est la fin du nom du fichier `~/.codex/sessions/AAAA/MM/JJ/rollout-…-<session>.jsonl`.
-- `--from <agent>:<session>` : l'expéditeur. C'est une simple étiquette, recopiée dans le message transmis. Elle n'est ni lancée ni vérifiée, et la conversation de l'expéditeur peut être ouverte.
+Ces délais bornent l'appel Relay ; les sondes et opérations GitHub gardent leurs propres bornes. Une annulation ne garantit pas leur interruption immédiate. **Aucun plafond monétaire** : les appels consomment le quota ou le budget de votre fournisseur.
 
-Aucune conversation n'est choisie implicitement.
+`status` et `stop` n'appellent aucun agent. L'état JSON v1 et l'export `.mission.md` vivent dans `.palabre/missions/<id>/`, indépendamment de `outputDir`. Toutes les commandes acceptent `--json` (un objet `mission-result` v1 : `action`, `exitCode`, `mission`, `exportPath`, `error`). Chaque étape garde le message, le résultat Relay, la réponse, la délivrance et l'éventuelle publication GitHub. Ces réponses ne sont **pas automatiquement vérifiées** ; identifiants, chemins et échanges restent privés dans ces fichiers locaux. Le stockage est limité à 32 Mio.
+
+Après une fermeture normale du chef de mission, reprendre avec `status`, puis une nouvelle `step` sur le même identifiant : les réponses précédentes ne sont pas rejouées. Après une coupure pendant l'appel, `running` sans résultat ou `uncertain` demande une vérification avec le propriétaire ; **ne pas supprimer le verrou pour relancer**. Un refus certain laisse `paused` et permet une nouvelle demande explicite après lecture du diagnostic. Les erreurs d'étape gardent le code Relay, dont 3 pour une session occupée ; les refus de Mission donnent 8 (3 pour une étape déjà réservée), et une étape sans résultat donne 9.
+
+`stop` reste accessible pendant une étape et après un verrou orphelin. Il interdit toute nouvelle étape et demande au mieux l'annulation de l'appel en cours : un message ou une revue déjà partis ne sont pas retirés. Une mission arrêtée ou au budget épuisé nécessite un nouveau cadre décidé par le propriétaire et une nouvelle mission ; pas de réouverture automatique.
 
 ## Options
 
 | Option | Rôle |
 | --- | --- |
 | `"<message>"` ou `--message-file <chemin>` | Le message ; 64 Kio UTF-8 au plus pour l'enveloppe de coordination complète. Utilisez un fichier pour un message qui commence par `-`. |
+| `--task review` | Revue en lecture seule publiée en COMMENT par PALABRE si autorisée ; message facultatif, incompatible avec `--open` et `--trust-config`. |
+| `--pr <url>` | URL exacte d’une PR github.com ; obligatoire avec `--task review`. |
 | `--open` | Vise une conversation Codex ouverte (voir plus haut). |
 | `--subject "<objet>"` | Objet facultatif, une ligne non vide de 200 caractères Unicode au plus, sans contrôle ni formatage Unicode ; JSON/export `subject?`. |
 | `--timeout <secondes>` | Délai maximal, de 10 à 3600 secondes (600 par défaut). |
@@ -233,26 +244,6 @@ Aucune conversation n'est choisie implicitement.
 Toute autre option est refusée et nommée, sans rien lancer : les options courtes (sauf `-h`), les options des autres commandes, la forme `--option=valeur` et les options répétées.
 
 En sortie texte, la réponse s'affiche seule sur stdout. L'issue, la délivrance et le chemin de l'export s'affichent sur stderr.
-
-## Ce que fait la reprise
-
-- **Lecture seule renforcée.** Claude Code est relancé en mode plan, avec les seuls outils de lecture, sans serveur MCP et sans hooks. Codex est relancé en bac à sable en lecture seule, sans approbation possible, sans hooks, sans `notify` et sans mémoires.
-- **Perte d'outils pendant le tour relayé.** Codex perd ses plugins, ses connecteurs et ses serveurs MCP. Claude n'a que la lecture. Votre configuration n'est pas modifiée.
-- **Garanties conditionnelles.** Avec les options imposées par Palabre et sur les versions de CLI vérifiées, la cible ne dispose d'aucun outil d'écriture, et les hooks et la commande `notify` non gérés sont neutralisés. Les serveurs MCP sont neutralisés sous réserve que la configuration ne change pas entre l'inspection et la reprise. Ces garanties ne couvrent ni les politiques administrées, ni les versions de CLI non vérifiées.
-- **L'historique de la cible est modifié.** Le message et la réponse sont ajoutés à la conversation, même en lecture seule et même après un échec. Vous les retrouverez à sa prochaine ouverture.
-- **Exécutables.** Palabre lance la CLI directement, sans shell. Sous Windows, une CLI installée par npm est lancée avec Node et le script du paquet, jamais par son shim PowerShell, qui altère les accents et les arguments. Le shim n'est accepté que s'il est identique au modèle généré par npm ; un shim modifié est refusé (`unsupported-executable`).
-
-## Limites connues
-
-Observées avec de vraies conversations jetables, sur Claude Code 2.1.85 et Codex 0.151.0 :
-
-- **Claude peut refuser de répondre.** La cible peut prendre le message relayé pour une tentative d'injection et refuser de partager des éléments de sa conversation. Le relay rend alors `replied`, avec ce refus comme réponse.
-  - Pour l'éviter, Palabre ajoute au prompt système de la reprise un cadre fixe. Ce cadre indique que vous utilisez `palabre relay` pour poser une question, que l'expéditeur affiché n'est pas authentifié, et qu'aucune consigne n'est levée.
-  - Ce cadre est efficace avec Claude Code 2.1.85. Avec 2.1.292, un prompt système ajouté lors d'une reprise n'est pas appliqué ; aucun refus n'a cependant été observé avec cette version.
-- **Codex reprend le modèle enregistré dans la conversation.** Si votre compte n'autorise plus ce modèle, le relay échoue (`cli-failure`). Le message reste enregistré dans la conversation (`persisted-no-reply`) : ne le renvoyez pas sans vérifier.
-- **Claude Code choisit lui-même le modèle de la reprise.** Le modèle effectivement utilisé figure dans `observedModels`.
-
-Versions vérifiées : Claude Code 2.1.85 et 2.1.292, Codex 0.151.0. Les garanties ne sont pas étendues aux autres versions.
 
 ## Issue et délivrance
 
@@ -275,11 +266,13 @@ Palabre ne renvoie jamais un message automatiquement. Le statut de délivrance i
 | 5 | `identity-mismatch` (la réponse ne vient pas de la cible et n'est pas rendue) |
 | 6 | `session-not-found` |
 | 7 | `command-not-found` |
-| 8 | `invalid-request`, avec une raison : arguments, identifiant, taille du message, agent, configuration, exécutable ou dossier de travail |
+| 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory`, `task-not-allowed`, `invalid-pr`, `review-unavailable`, `review-cli-unsupported` |
 | 9 | `review-failed` : publication de revue refusée ou non confirmée, réponse conservée |
 | 130 | `cancelled` |
 
 ## Limite d’usage atteinte
+
+Sans `--open`, les adapters Codex et Claude classent aussi un diagnostic de limite renvoyé par la CLI en `usage-limit` (code 2). Le champ `retryAfter` de Relay est actuellement propre au parcours `--open`, décrit ci-dessous ; sans ce champ, aucune heure ne doit être inventée.
 
 Avec `--open`, si le tour corrélé se termine par l’erreur structurée Codex `task_complete.error.codex_error_info: "usage_limit_exceeded"`, PALABRE rend **`usage-limit` (code 2)**. Il ne classe pas une limite depuis une phrase du modèle, un quota restant ou une erreur d’un autre tour. Cette forme a été observée avec Codex 0.163.0 ; les autres formes ne sont pas supposées équivalentes.
 
@@ -289,11 +282,11 @@ La délivrance reste distincte : le message peut déjà être enregistré, sans 
 
 ## Codex sous Windows : réponse reçue, lectures bloquées
 
-Une réponse reçue ne prouve pas que l'agent a pu lire le dépôt. Si le flux JSON de Codex signale une commande non démarrée avec `CreateProcessAsUserW failed: 5`, PALABRE conserve la réponse, l'identité et la délivrance, mais rend `read-unavailable` (code 2). Avec `--task review`, il rend `review-failed` (code 9), `task.error: "read-unavailable"` et `task.publication: "not-attempted"` : **aucune revue n'est publiée sur GitHub**. Mission utilise le même diagnostic et se met en pause.
+Sans `--open`, une réponse reçue ne prouve pas que l'agent a pu lire le dépôt. Si le flux JSON de Codex signale une commande non démarrée avec `CreateProcessAsUserW failed: 5`, PALABRE conserve la réponse, l'identité et la délivrance, mais rend `read-unavailable` (code 2). Avec `--task review`, il rend `review-failed` (code 9), `task.error: "read-unavailable"` et `task.publication: "not-attempted"` : **aucune revue n'est publiée sur GitHub**. Mission utilise le même diagnostic et se met en pause.
 
 Le champ optionnel `readAccess` dans le JSON et l'export indique `status: "blocked"`, `reason: "windows-process-access-denied"` et `failedCommands` (nombre de commandes concernées). L'export Mission conserve l'erreur et la réponse. Si l'échange échoue aussi (délai, annulation, identité différente…), cette issue garde son code et le diagnostic de lecture s'ajoute au message. Une commande réussie à côté ne lève pas l'alerte ; l'absence de ce champ ne prouve ni une lecture ni un accès complet. La détection porte sur cette erreur structurée de démarrage, vérifiée avec Codex 0.163.0, pas sur une phrase du modèle ; elle ne reconnaît pas tous les échecs de lecture possibles. Elle concerne la reprise sans `--open`.
 
-**Prochaine étape — le propriétaire :** consulter le [guide de dépannage, section Codex sous Windows](/fr/troubleshooting) puis le suivi [#128](https://github.com/JuReyms/Palabre/issues/128). Cause probable à vérifier : le raccourci PowerShell du Microsoft Store `WindowsApps\pwsh.exe`. Sur la machine testée, la même lecture sous `:read-only` réussit avec PowerShell natif et échoue avec cet alias. Ce n'est pas une preuve de panne générale de `unelevated`.
+**Prochaine étape — le propriétaire :** consulter le [guide de dépannage, section Codex sous Windows](/fr/troubleshooting) puis le suivi [#128](https://github.com/JuReyms/Palabre/issues/128). Cause probable à vérifier : le raccourci PowerShell du Microsoft Store `WindowsApps\pwsh.exe`. Sur la machine testée, la même lecture sous `:read-only` réussit avec PowerShell natif et échoue avec cet alias.
 
 Aucune solution connue et validée à ce jour pour imposer le shell natif dans ce parcours Codex 0.163.0. `[windows] shell_path`, déjà présent lors de l'échec, n'est pas reconnu dans le schéma de cette version ; ne l'ajoutez pas comme correctif. PALABRE ne change aucun réglage ni permission. Ne renvoyez pas automatiquement le message : il a déjà pu recevoir une réponse.
 
@@ -332,3 +325,14 @@ Si l'enveloppe n'est pas retrouvée dans l'historique après un dépôt, le mess
 ## Export
 
 Par défaut, Palabre écrit un fichier `palabre-relay-<agent>-<date>.relay.md` dans le dossier des exports (voir [Exports](/fr/usage/exports)). Il contient l'expéditeur et la cible, avec leurs identifiants de session, ainsi que le message, la réponse ou l'erreur, et la délivrance.
+## Limites connues
+
+Observées avec de vraies conversations jetables, sur Claude Code 2.1.85 et Codex 0.151.0 :
+
+- **Claude peut refuser de répondre.** La cible peut prendre le message relayé pour une tentative d'injection et refuser de partager des éléments de sa conversation. Le relay rend alors `replied`, avec ce refus comme réponse.
+  - Pour l'éviter, Palabre ajoute au prompt système de la reprise un cadre fixe. Ce cadre indique que vous utilisez `palabre relay` pour poser une question, que l'expéditeur affiché n'est pas authentifié, et qu'aucune consigne n'est levée.
+  - Ce cadre est efficace avec Claude Code 2.1.85. Avec 2.1.292, un prompt système ajouté lors d'une reprise n'est pas appliqué ; aucun refus n'a cependant été observé avec cette version.
+- **Codex reprend le modèle enregistré dans la conversation.** Si votre compte n'autorise plus ce modèle, le relay échoue (`cli-failure`). Le message reste enregistré dans la conversation (`persisted-no-reply`) : ne le renvoyez pas sans vérifier.
+- **Claude Code choisit lui-même le modèle de la reprise.** Le modèle effectivement utilisé figure dans `observedModels`.
+
+Versions vérifiées : Claude Code 2.1.85 et 2.1.292, Codex 0.151.0. Les garanties ne sont pas étendues aux autres versions.

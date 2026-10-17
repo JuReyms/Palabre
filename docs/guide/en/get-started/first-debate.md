@@ -47,8 +47,9 @@ Palabre displays the path to the `.debate.md` export. Use `/history` to find Deb
 | Mode | Agents | Purpose |
 |------|--------|---------|
 | Debate | 2 | Challenge two positions — primary mode. |
-| Chat | 1 active, optional consultation | Work with one agent and request a second opinion. |
+| Relay | 1 target conversation | Hand off to an existing conversation, without a TUI screen. |
 | Ask | 1 to 4 | Compare independent answers. |
+| Chat | 1 active, optional consultation | Work with one agent and request a second opinion. |
 
 Switch to Chat with `/chat`, or to Ask with `/ask`.
 
@@ -62,6 +63,12 @@ palabre chat --agent-a codex
 palabre ask "Compare these approaches" --agents codex claude opencode
 ```
 
-In a real terminal, they still use the TUI by default. Add `--terminal` for human-readable logs or `--renderer ndjson` for an integration.
+In an interactive terminal, Debate, Ask and Chat use the TUI by default. Add `--terminal` for plain output or `--renderer ndjson` for an integration. Relay and its Mission option write to the terminal, or JSON with `--json`.
 
 Continue with [Choose a mode](/en/usage/running-a-debate), [Use the TUI](/en/usage/tui), and [Exports](/en/usage/exports).
+
+To query an existing conversation, see [Relay](/en/usage/relay):
+
+```text
+palabre relay --from codex:<session> --to claude:<session> "Review this plan and list the risks"
+```
