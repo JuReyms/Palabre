@@ -30,7 +30,7 @@ Google announced the transition from Gemini CLI to Antigravity CLI for individua
 
 Official reference: [Transitioning Gemini CLI to Antigravity CLI](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/)
 
-Palabre no longer generates Gemini CLI in new configurations and no longer exposes it in presets. The old Gemini notes are kept in [notes Gemini](https://github.com/JuReyms/Palabre/blob/main/docs/archive/gemini-en.md) for context.
+Palabre no longer generates Gemini CLI in new configurations and no longer exposes it in presets. The old Gemini notes are kept in [Gemini notes](https://github.com/JuReyms/Palabre/blob/main/docs/archive/gemini-en.md) for context.
 
 ## JSON Configuration
 

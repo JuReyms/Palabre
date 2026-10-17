@@ -118,14 +118,6 @@ From the TUI, open `/config`, then use:
 This command persistently updates `baseUrl` for every configured Ollama agent.
 The flag and environment variable do not modify the configuration file.
 
-## Check if a model is loaded in Ollama
-
-Ollama must load a model to respond quickly.
-
-```bash
-ollama ps
-```
-
 ## Automatically download a missing model
 
 By default, Palabre does not install a model automatically. To allow it at startup:
