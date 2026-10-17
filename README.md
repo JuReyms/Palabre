@@ -23,11 +23,11 @@ It does not replace your tools: it drives them. You keep your subscriptions, def
 | Mode | The question it answers | Example |
 | --- | --- | --- |
 | **Debate** | "I want two positions to confront each other." Two agents answer in turn, then a summary sets out agreements and disagreements. | `palabre codex-claude "Review this plan" -t 4` |
-| **Relay** *(after 0.16.0)* | "I want my agents to talk to each other, without copy-paste." One agent sends a message to another agent's existing conversation (Claude Code or Codex), which replies with everything it already knows about the project — like calling a colleague who is away from their desk. It can also review a GitHub PR. | `palabre relay --from codex:<session> --to claude:<session> "Review this plan"` |
+| **Relay** *(after 0.16.0)* | "I want my agents to hand off to each other, without copy-paste." One agent notifies or asks another agent's conversation (Claude Code or Codex) directly: "I commented on issue #12, your turn", "Review this PR". | `palabre relay --from codex:<session> --to claude:<session> "I commented on issue #12, your turn"` |
 | **Ask** | "I want several independent opinions." 1 to 4 agents answer without seeing each other, then a summary compares them. | `palabre ask "Compare these two approaches" --agents codex claude` |
 | **Chat** | "I work with one agent, and sometimes need a second opinion." Ask another agent with `/consult`, without leaving the conversation. | `palabre chat --agent-a codex` |
 
-In doubt: **Debate** for a decision with stakes, **Relay** so your agents talk to each other without copy-paste, **Ask** for several opinions, **Chat** to move forward with one agent.
+In doubt: **Debate** for a decision with stakes, **Relay** to hand off to another agent, **Ask** for several opinions, **Chat** to move forward with one agent.
 
 ### Installation
 
@@ -162,11 +162,11 @@ Il ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos 
 | Mode | La question à laquelle il répond | Exemple |
 | --- | --- | --- |
 | **Débat** | « Je veux confronter deux positions. » Deux agents répondent à tour de rôle, puis une synthèse dégage les accords et les désaccords. | `palabre codex-claude "Critique ce plan" -t 4` |
-| **Relay** *(après la 0.16.0)* | « Je veux que mes agents se parlent directement, sans copier-coller. » Un agent envoie un message à une conversation existante d'un autre agent (Claude Code ou Codex), qui répond avec tout ce qu'il sait déjà du projet, comme on appelle un collègue absent de son bureau. Il peut aussi relire une PR GitHub. | `palabre relay --from codex:<session> --to claude:<session> "Relis ce plan"` |
+| **Relay** *(après la 0.16.0)* | « Je veux que mes agents se passent le relais, sans copier-coller. » Un agent prévient ou interroge directement la conversation d'un autre (Claude Code ou Codex) : « J'ai commenté l'issue #12, à toi », « Relis cette PR ». | `palabre relay --from codex:<session> --to claude:<session> "J'ai commenté l'issue #12, à toi"` |
 | **Ask** | « Je veux plusieurs avis indépendants. » De 1 à 4 agents répondent sans se voir, puis une synthèse les compare. | `palabre ask "Compare ces deux approches" --agents codex claude` |
 | **Chat** | « Je travaille avec un agent, et j'ai parfois besoin d'un second avis. » Consultez un autre agent avec `/consult`, sans quitter la conversation. | `palabre chat --agent-a codex` |
 
-En cas de doute : **Débat** pour une décision qui compte, **Relay** pour que vos agents se parlent sans copier-coller, **Ask** pour plusieurs avis, **Chat** pour avancer avec un agent.
+En cas de doute : **Débat** pour une décision qui compte, **Relay** pour passer la main à un autre agent, **Ask** pour plusieurs avis, **Chat** pour avancer avec un agent.
 
 ### Installation
 
