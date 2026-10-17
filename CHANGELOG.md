@@ -17,7 +17,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Changed
 
-- README (fr et en) préparé pour la 0.17.0 : Relay est présenté comme nouveau, sans la mention « après la 0.16.0 », avec la coopération entre agents et le rôle de décideur de l'humain ; la note précise que `--open` vise une conversation Codex ouverte ; Mission apparaît en une phrase comme option de Relay, et non comme un mode (#121).
+- README (fr et en) préparé pour la 0.17.0 : Relay est présenté comme nouveau, sans la mention « après la 0.16.0 », avec la coopération entre agents et le rôle de décideur de l'humain ; la note précise que `--open` vise une conversation Codex ouverte, sous Windows pour l'instant ; Mission apparaît en une phrase comme option de Relay, et non comme un mode (#121).
 
 - Le pied des messages Relay et Mission est renommé « 🤖 Message pour l’agent » / « 🤖 Message for the agent », dans les messages, l’aide, les guides et le skill. Les copies installées du skill restent à rafraîchir manuellement.
 

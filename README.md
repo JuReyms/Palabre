@@ -35,7 +35,7 @@ PALABRE does not replace your tools: it drives them. You keep your subscriptions
 | **Ask** | "I want several independent opinions." 1 to 4 agents answer without seeing each other's answers, then a summary compares them. | `palabre ask "Compare these two approaches" --agents codex claude` |
 | **Chat** | "I'm chatting with an agent, and sometimes need a second opinion to double-check an answer." Ask another agent with `/consult`, without leaving the conversation. | `palabre chat --agent-a codex` |
 
-*Relay: by default, the conversation receiving the message must be closed. With `--open`, the message arrives in an open Codex conversation (Codex desktop or terminal), where you can watch it come in. Each message gets a single reply, with no automatic resend.*
+*Relay: by default, the conversation receiving the message must be closed. With `--open` (Windows only for now), the message arrives in an open Codex conversation (Codex desktop or terminal), where you can usually watch it come in. Each message gets a single reply, with no automatic resend.*
 
 To chain several read-only steps within a fixed scope and budget, Relay offers the **Mission** option: `palabre mission --help`.
 
@@ -186,7 +186,7 @@ PALABRE ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements,
 | **Ask** | « Je veux plusieurs avis indépendants. » De 1 à 4 agents répondent sans voir les réponses des autres, puis une synthèse les compare. | `palabre ask "Compare ces deux approches" --agents codex claude` |
 | **Chat** | « Je discute avec un agent, et j'ai parfois besoin d'un second avis pour vérifier une réponse. » Consultez un autre agent avec `/consult`, sans quitter la conversation. | `palabre chat --agent-a codex` |
 
-*Relay : par défaut, la conversation qui reçoit le message doit être fermée. Avec `--open`, le message arrive dans une conversation Codex ouverte (Codex desktop ou terminal), où vous le voyez passer. Chaque message reçoit une seule réponse, sans renvoi automatique.*
+*Relay : par défaut, la conversation qui reçoit le message doit être fermée. Avec `--open` (sous Windows pour l'instant), le message arrive dans une conversation Codex ouverte (Codex desktop ou terminal), où vous pouvez généralement le voir passer. Chaque message reçoit une seule réponse, sans renvoi automatique.*
 
 Pour enchaîner plusieurs étapes en lecture seule dans un cadre et un budget fixés, Relay propose l'option **Mission** : `palabre mission --help`.
 
