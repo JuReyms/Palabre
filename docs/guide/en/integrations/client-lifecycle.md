@@ -29,4 +29,4 @@ PALABRE_CLIENT_VERSION=2.3.0
 
 The name is open-ended. Palabre sanitizes these values and records them with its own version in exports. Without a declaration, the source is `direct-cli`. These fields are diagnostic, not a security boundary.
 
-Relay has its own outcomes: `usage-limit` and `read-unavailable` (2), `target-not-open` (3), `review-failed` (9), `invalid-request` with `error.reason` (8). `retryAfter` implies no missing date or time zone: show the indication and await a human decision, without scheduled resend. Client provenance fields described here apply to Debate/Ask/Chat exports; Relay reports its PALABRE version.
+Relay has its own outcomes: `usage-limit` and `read-unavailable` (2), `target-not-open` (3), `review-failed` (9), `invalid-request` with `error.reason` (8). `retryAfter` may be only a time, without a date or time zone: show it as supplied and await a human decision, without scheduled resend. Client provenance fields described here apply to Debate/Ask/Chat exports; Relay reports its PALABRE version.

@@ -77,7 +77,7 @@ La reprise conserve les réponses complètes et relance uniquement le prochain t
 | Commande | Description |
 | --- | --- |
 | `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> "Message"` | Conversation fermée Codex ou Claude Code, reprise en lecture seule. |
-| `palabre relay --open --from <agent>:<uuid> --to <codex>:<uuid> "Message"` | Conversation Codex ouverte, pilote Windows ; outils et permissions propres à la cible. |
+| `palabre relay --open --from <agent>:<uuid> --to codex:<uuid> "Message"` | Conversation Codex ouverte, pilote Windows ; outils et permissions propres à la cible. |
 | `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> --task review --pr https://github.com/proprietaire/depot/pull/123` | Rédige et publie une revue COMMENT si autorisée. |
 | `palabre relay allow-repo proprietaire/depot` | Autorise la tâche review après confirmation au clavier par le propriétaire. |
 
