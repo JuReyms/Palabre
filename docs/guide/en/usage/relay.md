@@ -232,14 +232,29 @@ Palabre never resends a message automatically. The delivery status tells you wha
 | --- | --- |
 | 0 | `replied` |
 | 1 | `internal-error` |
-| 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large` |
+| 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large`, `read-unavailable` |
 | 3 | `target-busy`, `target-state-unknown`, `neutralization-failed`, `target-not-open` (with `--open`) |
 | 4 | `timeout` |
 | 5 | `identity-mismatch` (the reply does not come from the target and is not returned) |
 | 6 | `session-not-found` |
 | 7 | `command-not-found` |
 | 8 | `invalid-request`, with a reason: arguments, identifier, message size, agent, configuration, executable or working directory |
+| 9 | `review-failed`: review publication refused or unconfirmed, reply preserved |
 | 130 | `cancelled` |
+
+## Codex on Windows: reply received, reads blocked
+
+A reply does not prove the agent could read the repository. If the Codex JSON stream reports a command that could not start with `CreateProcessAsUserW failed: 5`, PALABRE preserves the reply, identity and delivery, but returns `read-unavailable` (exit 2). With `--task review`, it returns `review-failed` (exit 9), `task.error: "read-unavailable"` and `task.publication: "not-attempted"`: **no review is published on GitHub**. Mission uses the same diagnostic and pauses.
+
+The optional `readAccess` field in JSON and the export contains `status: "blocked"`, `reason: "windows-process-access-denied"` and `failedCommands` (number of affected commands). The Mission export preserves the error and reply. If the exchange also fails (timeout, cancellation, identity mismatch…), that outcome keeps its exit code and the read diagnostic is added to its message. Another successful command does not clear the warning; an absent field proves neither a read nor full access. Detection covers this structured startup error, checked against Codex 0.163.0, rather than model prose; it does not recognize every possible read failure. It applies to resumption without `--open`.
+
+**Next step — the owner**, in their terminal:
+
+```powershell
+codex sandbox --help
+```
+
+Then check which PowerShell Codex launches before considering a sandbox change. On one tested machine, the `:read-only` profile allowed a read using `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`, while the `WindowsApps\pwsh.exe` alias failed with error 5 under the same conditions. This does not establish a general `unelevated` mode failure. PALABRE changes no settings and never switches to `workspace-write` or unrestricted access to bypass the failure. Do not resend automatically: the message may already have received a reply.
 
 ## JSON output
 
@@ -261,7 +276,7 @@ Palabre never resends a message automatically. The delivery status tells you wha
 }
 ```
 
-`reply` is present only for `replied`. For any other outcome, `error` contains `kind`, `message` and, for `invalid-request`, `reason`. `inActiveBranch` is a diagnostic.
+`reply` is present when a valid reply was received, including when blocked reads or a publication failure subsequently make the outcome unsuccessful. For any outcome other than `replied`, `error` contains `kind`, `message` and, for `invalid-request`, `reason`. `inActiveBranch` is a diagnostic.
 
 With `--open` only, the object adds optional fields:
 

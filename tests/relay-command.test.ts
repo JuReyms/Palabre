@@ -126,6 +126,21 @@ function palabre(world: World, argv: string[], env: Record<string, string> = {})
 const toClaude = ["--from", FROM, "--to", `claude:${CLAUDE_SESSION}`];
 const toCodex = ["--from", `claude:${CLAUDE_SESSION}`, "--to", `codex:${CODEX_SESSION}`];
 
+test("Codex répond mais les lectures échouent : JSON, texte et export signalent l'échec sans renvoi", async () => {
+  const w = makeWorld();
+  const r = await relay(w, [...toCodex, "Lis le dépôt", "--trust-config", "--json"], { FAKE_CODEX_MODE: "read-blocked" });
+  assert.equal(r.code, 2); assert.equal(r.json.status, "read-unavailable");
+  assert.equal(r.json.reply, "Constat partiel : lectures bloquées.");
+  assert.equal(r.json.delivery.status, "replied"); assert.equal(r.json.identity, "same-as-target");
+  assert.deepEqual(r.json.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 1 });
+  assert.match(r.json.error.message, /propriétaire.*codex sandbox --help/);
+  assert.equal(r.calls.filter(c => c.argv[0] === "exec").length, 1);
+  const md = readFileSync(r.json.exportPath, "utf8");
+  assert.match(md, /readAccess.*blocked/); assert.ok(md.includes(r.json.reply)); assert.ok(md.includes(r.json.error.message));
+  const text = await relay(makeWorld(), [...toCodex, "Lis le dépôt", "--trust-config", "--language", "en", "--no-export"], { FAKE_CODEX_MODE: "read-blocked" });
+  assert.equal(text.code, 2); assert.match(text.stdout, /Constat partiel/); assert.match(text.stderr, /owner.*codex sandbox --help/);
+});
+
 test("mission CLI : création, une étape Relay factice, status après reprise et stop", async () => {
   const w = makeWorld();
   const approved = await palabre(w, ["config", "--trust-config", "--json"]);

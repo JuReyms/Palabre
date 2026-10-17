@@ -20,6 +20,14 @@ To get raw output suitable for logs or scripts:
 palabre doctor --terminal
 ```
 
+## Codex on Windows: error 5 despite read-only access
+
+`CreateProcessAsUserW failed: 5` here means Codex could not start a command, even to read. On the machine tested with Codex 0.163.0, the same read under `:read-only` succeeds with native Windows PowerShell and fails with the `WindowsApps\pwsh.exe` alias. Check the selected shell rather than concluding that the entire `unelevated` sandbox is unusable.
+
+The owner starts in their terminal with `codex sandbox --help`; diagnostic options depend on the installed version. PALABRE changes no security settings, and enabling writes or unrestricted access is not needed to report this failure. Switching to `elevated` requires a separate owner decision; it is not a fix applied by PALABRE.
+
+Relay preserves the reply but reports `read-unavailable`/2 if this error is observed in Codex command events. Mission pauses; the review task does not publish the review (`review-failed`/9, `not-attempted`). Do not resend automatically. See evidence, limits and JSON fields in the [Relay guide](/en/usage/relay).
+
 ## Palabre cannot find my configuration
 
 Typical message:

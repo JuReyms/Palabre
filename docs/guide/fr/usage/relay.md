@@ -232,14 +232,29 @@ Palabre ne renvoie jamais un message automatiquement. Le statut de délivrance i
 | --- | --- |
 | 0 | `replied` |
 | 1 | `internal-error` |
-| 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large` |
+| 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large`, `read-unavailable` |
 | 3 | `target-busy`, `target-state-unknown`, `neutralization-failed`, `target-not-open` (avec `--open`) |
 | 4 | `timeout` |
 | 5 | `identity-mismatch` (la réponse ne vient pas de la cible et n'est pas rendue) |
 | 6 | `session-not-found` |
 | 7 | `command-not-found` |
 | 8 | `invalid-request`, avec une raison : arguments, identifiant, taille du message, agent, configuration, exécutable ou dossier de travail |
+| 9 | `review-failed` : publication de revue refusée ou non confirmée, réponse conservée |
 | 130 | `cancelled` |
+
+## Codex sous Windows : réponse reçue, lectures bloquées
+
+Une réponse reçue ne prouve pas que l'agent a pu lire le dépôt. Si le flux JSON de Codex signale une commande non démarrée avec `CreateProcessAsUserW failed: 5`, PALABRE conserve la réponse, l'identité et la délivrance, mais rend `read-unavailable` (code 2). Avec `--task review`, il rend `review-failed` (code 9), `task.error: "read-unavailable"` et `task.publication: "not-attempted"` : **aucune revue n'est publiée sur GitHub**. Mission utilise le même diagnostic et se met en pause.
+
+Le champ optionnel `readAccess` dans le JSON et l'export indique `status: "blocked"`, `reason: "windows-process-access-denied"` et `failedCommands` (nombre de commandes concernées). L'export Mission conserve l'erreur et la réponse. Si l'échange échoue aussi (délai, annulation, identité différente…), cette issue garde son code et le diagnostic de lecture s'ajoute au message. Une commande réussie à côté ne lève pas l'alerte ; l'absence de ce champ ne prouve ni une lecture ni un accès complet. La détection porte sur cette erreur structurée de démarrage, vérifiée avec Codex 0.163.0, pas sur une phrase du modèle ; elle ne reconnaît pas tous les échecs de lecture possibles. Elle concerne la reprise sans `--open`.
+
+**Prochaine étape — le propriétaire**, dans son terminal :
+
+```powershell
+codex sandbox --help
+```
+
+Vérifiez ensuite quel PowerShell Codex lance avant d'envisager de changer la sandbox. Sur une machine testée, le profil `:read-only` a permis la lecture avec `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`, tandis que l'alias `WindowsApps\pwsh.exe` échouait avec l'erreur 5 dans les mêmes conditions. Cela ne prouve pas une panne générale du mode `unelevated`. PALABRE ne modifie aucun réglage et ne bascule jamais vers `workspace-write` ou un accès sans restriction pour contourner cet échec. Ne renvoyez pas automatiquement le message : il a déjà pu recevoir une réponse.
 
 ## Sortie JSON
 
@@ -261,7 +276,7 @@ Palabre ne renvoie jamais un message automatiquement. Le statut de délivrance i
 }
 ```
 
-`reply` n'est présent que pour `replied`. Pour toute autre issue, `error` contient `kind`, `message` et, pour `invalid-request`, `reason`. `inActiveBranch` est un diagnostic.
+`reply` est présent quand une réponse valide a été reçue, y compris si une lecture bloquée ou un échec de publication rend ensuite l'issue non réussie. Pour toute issue autre que `replied`, `error` contient `kind`, `message` et, pour `invalid-request`, `reason`. `inActiveBranch` est un diagnostic.
 
 Avec `--open` seulement, l'objet ajoute des champs optionnels :
 

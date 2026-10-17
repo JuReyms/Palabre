@@ -151,7 +151,16 @@ export function interpretCodexOutput(stdout: string, exitCode: number | null, ta
   const errors = events
     .filter((event) => event.type === "error" || event.type === "turn.failed")
     .map((event) => asString(event.message) ?? asString(asObject(event.error)?.message) ?? "");
+  // Codex 0.163.0 : erreur de démarrage avant toute exécution du shell. Ne pas chercher dans
+  // la prose du modèle, les sorties de commandes réussies ou les outils MCP.
+  const failedCommands = events.filter((event) => {
+    const item = event.type === "item.completed" ? asObject(event.item) : undefined;
+    return item?.type === "command_execution" && item.status === "failed" && item.exit_code === -1
+      && typeof item.aggregated_output === "string"
+      && /^(?:Failed to create unified exec process: |windows sandbox failed: )CreateProcessAsUserW failed: 5(?:\s|\()/u.test(item.aggregated_output);
+  }).length;
   return {
+    ...(failedCommands ? { readAccess: { status: "blocked" as const, reason: "windows-process-access-denied" as const, failedCommands } } : {}),
     isError,
     reply: isError ? undefined : lastText,
     identity: resolveIdentity(reported, targetSessionId, isError),

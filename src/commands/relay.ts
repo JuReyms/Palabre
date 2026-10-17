@@ -37,6 +37,7 @@ import type {
   ExternalProvider,
   ExternalTarget,
   InvalidRequestReason,
+  ReadAccessDiagnostic,
   RelayOutcome,
   RelayStatus,
   SessionIdentity,
@@ -65,6 +66,8 @@ const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
  * NDJSON : un ajout optionnel ne change pas `v`.
  */
 export interface RelayResultV1 {
+  /** Échec d'accès observé, sans déduction depuis la prose du modèle. */
+  readAccess?: ReadAccessDiagnostic;
   /** Human confirmation command; the agent may open it, but must never answer for the owner. */
   remedy?: string;
   /** CLI inspected before a Claude review, including on compatibility refusal. */
@@ -332,6 +335,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
       identity: exchanged.verdict?.interpretation.identity ?? null,
       observedModels: exchanged.verdict?.interpretation.observedModels ?? []
     });
+    applyReadAccessDiagnostic(result, exchanged.verdict?.interpretation.readAccess, context.messages);
     if (review && reply !== undefined && outcome.status === "replied") {
       try {
         const reviewUrl = await publishReview(review, reply, to.value.agent, [from.value.sessionId, to.value.sessionId, nonce], undefined, async () => {
@@ -339,11 +343,11 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
             || createHash("sha256").update(await readFile(configPath)).digest("hex") !== configFingerprint) throw new Error("review-authorization-changed");
           if (controller.signal.aborted) throw new Error("review-cancelled");
           context.task!.publication = "unknown";
-        });
+        }, result.readAccess);
         context.task!.publication = "published";
         context.task!.reviewUrl = reviewUrl;
       } catch (error) {
-        const known = ["pull-request-changed", "review-authorization-changed", "invalid-review-body", "review-cancelled"];
+        const known = ["read-unavailable", "pull-request-changed", "review-authorization-changed", "invalid-review-body", "review-cancelled"];
         const reason = error instanceof Error && known.includes(error.message) ? error.message
           : context.task!.publication === "unknown" ? "review-publication-unconfirmed" : "review-publication-refused";
         context.task!.error = reason;
@@ -591,6 +595,7 @@ async function exportRelay(
       message: input.message,
       reply: result.reply,
       error: result.error?.message,
+      ...(result.readAccess ? { readAccess: result.readAccess } : {}),
       ...(result.task ? { task: result.task } : {}),
       ...(result.cli ? { cli: result.cli } : {}),
       ...(result.mode === "open" && result.queue
@@ -625,6 +630,31 @@ function writeResult(result: RelayResultV1, json: boolean, messages: Messages): 
   const text = renderRelayText(result, messages);
   process.stdout.write(text.stdout);
   process.stderr.write(text.stderr);
+}
+
+/**
+ * Qualifie le travail sans effacer la réponse ni la délivrance. Appelée avant toute publication
+ * GitHub ; une revue avec lectures bloquées reste toujours `not-attempted`.
+ */
+export function applyReadAccessDiagnostic(
+  result: RelayResultV1,
+  diagnostic: ReadAccessDiagnostic | undefined,
+  messages: Messages
+): void {
+  if (!diagnostic) return;
+  result.readAccess = diagnostic;
+  if (result.task) result.task.error = "read-unavailable";
+  const message = result.task ? messages.relay.reviewFailure("read-unavailable") : messages.relay.status("read-unavailable");
+  if (result.status !== "replied") {
+    // Le timeout, l'annulation ou l'identité étrangère gardent leur priorité ; le diagnostic
+    // d'outils reste visible aussi en texte et dans l'export Mission.
+    if (result.error) result.error.message += ` ${message}`;
+    return;
+  }
+  const status = result.task ? "review-failed" : "read-unavailable";
+  result.status = status;
+  result.exitCode = RELAY_EXIT_CODES[status];
+  result.error = { kind: status, message };
 }
 
 /** Une interruption tardive n'efface jamais l'issue d'un POST déjà parti. */

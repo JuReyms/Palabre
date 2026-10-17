@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createTranslator } from "./i18n.js";
 import type { Messages } from "./messages/index.js";
+import type { ReadAccessDiagnostic } from "./externalSessions/types.js";
 import type { DebateFailure, DebateMessage, DebateOptions, DebateSummary } from "./types.js";
 import { getPackageVersion } from "./version.js";
 
@@ -196,6 +197,7 @@ function formatAgentsForHeader(options: DebateOptions): string {
 
 /** Données d'un export `.relay.md` (voir AGENTS.md, section "Relay externe"). */
 export interface RelayExport {
+  readAccess?: ReadAccessDiagnostic;
   cli?: { path: string; version: string | null };
   task?: { name: "review"; pr: string; headSha?: string; publication: string; reviewUrl?: string; error?: string };
   from: { agent: string; session: string };
@@ -249,6 +251,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     [labels.observedModels, report.observedModels.length > 0 ? report.observedModels.join(", ") : labels.none],
     [labels.nonce, report.nonce],
     [labels.startedAt, report.startedAt],
+    ...(report.readAccess ? [["readAccess", `${report.readAccess.status}; ${report.readAccess.reason}; failedCommands=${report.readAccess.failedCommands}`]] : []),
     ...(report.cli ? [[labels.cliPath, report.cli.path], [labels.cliVersion, report.cli.version ?? labels.unknown]] : []),
     ...(report.task ? [
       [labels.task, report.task.name], [labels.pullRequest, report.task.pr], [labels.commit, report.task.headSha ?? labels.unknown],

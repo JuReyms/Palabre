@@ -6,7 +6,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { startMission, readMission, stepMission, stopMission, missionPaths, type MissionDeps, type StartMission, MissionError } from "../src/mission.js";
 import { parseMissionTokens, renderMissionText } from "../src/commands/mission.js";
-import { executeRelay, type RelayResultV1 } from "../src/commands/relay.js";
+import { executeRelay, applyReadAccessDiagnostic, type RelayResultV1 } from "../src/commands/relay.js";
 import { createTranslator } from "../src/i18n.js";
 import { missionMessages } from "../src/messages/mission.js";
 
@@ -27,6 +27,26 @@ async function world(t: { after(fn: () => Promise<void>): void }, patch: Partial
   return { workspace, input, mission: await startMission(input) };
 }
 const fails = (kind: string) => (e: unknown) => e instanceof MissionError && e.code === kind;
+
+test("lectures bloquées : Mission en pause, diagnostic conservé dans status et export, aucun renvoi", async t => {
+  for (const task of ["consult", "review"] as const) {
+    const w = await world(t, { tasks: [task] }); let calls = 0;
+    const result = replied();
+    if (task === "review") result.task = { name: "review", pr, publication: "not-attempted" };
+    applyReadAccessDiagnostic(result, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 4 }, createTranslator("fr"));
+    const done = await stepMission(w.workspace, w.mission.id, { task, message: "Analyse", ...(task === "review" ? { pr } : {}) }, {
+      now: Date.now, relay: async () => { calls++; return result; }
+    });
+    assert.equal(calls, 1); assert.equal(done.status, "paused");
+    assert.equal(done.steps[0]!.result?.readAccess?.failedCommands, 4);
+    assert.equal(done.steps[0]!.result?.delivery.status, "replied");
+    assert.deepEqual(await readMission(w.workspace, done.id), done);
+    assert.ok(renderMissionText(done, "fr").includes(result.error!.message));
+    const md = await readFile(missionPaths(w.workspace, done.id).export, "utf8");
+    assert.ok(md.includes(result.reply!)); assert.ok(md.includes(result.error!.message));
+    if (task === "review") assert.match(md, /not-attempted/);
+  }
+});
 
 test("cadre durable, aucune CLI, export avec provenance et lecture séparée", async t => {
   const w = await world(t);

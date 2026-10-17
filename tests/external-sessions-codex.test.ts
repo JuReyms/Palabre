@@ -28,6 +28,29 @@ after(() => rmSync(root, { recursive: true, force: true }));
 let counter = 0;
 const jsonl = (entries: object[]) => entries.map((entry) => JSON.stringify(entry)).join("\n") + "\n";
 const meta = (cwd: string, id = SESSION) => ({ timestamp: "t", type: "session_meta", payload: { id, cwd, cli_version: "0.151.0" } });
+
+test("erreur 5 de démarrage de commande : diagnostic distinct de la réponse valide", () => {
+  const output = "Failed to create unified exec process: CreateProcessAsUserW failed: 5 (Access denied.) | cwd=PRIVATE";
+  const item = { type: "command_execution", status: "failed", exit_code: -1, aggregated_output: output };
+  const run = (entries: object[]) => interpretCodexOutput(jsonl([
+    { type: "thread.started", thread_id: SESSION }, ...entries,
+    { type: "item.completed", item: { type: "agent_message", text: output } }, { type: "turn.completed" }
+  ]), 0, SESSION);
+  const parsed = run([{ type: "item.completed", item }, { type: "item.completed", item }]);
+  assert.equal(parsed.isError, false); assert.equal(parsed.reply, output);
+  assert.equal(parsed.identity, "same-as-target");
+  assert.deepEqual(parsed.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 2 });
+  assert.ok(!JSON.stringify(parsed.readAccess).includes("PRIVATE"));
+  assert.deepEqual(run([{ type: "item.completed", item }, { type: "item.completed", item: {
+    ...item, status: "completed", exit_code: 0, aggregated_output: "README lu"
+  } }]).readAccess, { ...parsed.readAccess!, failedCommands: 1 });
+  // Ni citation par le modèle, ni sortie d'une commande exécutée, ni outil tiers.
+  for (const changed of [undefined, { ...item, status: "completed" }, { ...item, exit_code: 1 },
+    { ...item, type: "mcp_tool_call" }, { ...item, aggregated_output: "Quoted: " + output },
+    { ...item, aggregated_output: output.replace("failed: 5", "failed: 50") }]) {
+    assert.equal(run(changed ? [{ type: "item.completed", item: changed }] : []).readAccess, undefined);
+  }
+});
 const context = (model: string) => ({ timestamp: "t", type: "turn_context", payload: { model, cwd: "ignoré" } });
 
 /** Installation Codex jetable : dossier de travail et rollout de la cible. */

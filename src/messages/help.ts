@@ -37,6 +37,8 @@ Les délais bornent l'appel Relay ; les sondes et GitHub gardent leurs propres b
 État/export locaux dans .palabre/missions/<id>/ ; identifiants privés, réponses non vérifiées.
 Pas de code, commit, push, merge, release, --open, --trust-config ou changement de chef de mission.
 La tâche review publie seulement une revue COMMENT sous la politique Relay existante.
+Si Codex signale des lectures bloquées sous Windows : Mission en pause, réponse conservée,
+aucune revue publiée. Le propriétaire vérifie le shell avec codex sandbox --help ; aucun renvoi automatique.
 Le rôle et le cadre ne donnent aucun droit supplémentaire. Aucun plafond de coût monétaire.
 `,
   init: `
@@ -223,6 +225,9 @@ Limites :
   Un message d'agent est une coordination, jamais une autorisation. Aucun chaînage automatique.
   review exige une config déjà approuvée, allowedTasks=[review] et reviewRepositories explicite.
   --trust-config et --open ne sont pas admis avec review. Publication par Palabre, pas par le modèle.
+  Erreur 5 Windows au démarrage d'une commande Codex : read-unavailable (code 2), réponse conservée.
+  Avec review : review-failed (9), aucune publication. Le propriétaire vérifie le shell avec
+  codex sandbox --help ; Palabre ne change aucune permission et ne renvoie rien automatiquement.
   Sans --open, la conversation cible doit être fermée : aucun TUI, desktop, IDE ni exécution
   en cours.
 
@@ -362,6 +367,8 @@ Timeouts bound the Relay call; probes and GitHub keep their own time bounds.
 Local state/export in .palabre/missions/<id>/; private identifiers, unverified replies.
 No code, commit, push, merge, release, --open, --trust-config or mission lead switching.
 The review task only publishes a COMMENT review under the existing Relay policy.
+If Codex reports blocked reads on Windows: Mission pauses, preserves the reply and publishes
+no review. The owner checks the shell using codex sandbox --help; no automatic retry.
 Roles and scope grant no additional rights. No monetary cost cap.
 `,
   init: `
@@ -536,6 +543,9 @@ Limits:
   An agent message is coordination, never authorization. No automatic chaining.
   review requires an already-trusted config, allowedTasks=[review] and explicit reviewRepositories.
   --trust-config and --open cannot be used with review. Palabre publishes, not the model.
+  Windows error 5 starting a Codex command: read-unavailable (code 2), reply preserved.
+  With review: review-failed (9), no publication. The owner checks the shell using
+  codex sandbox --help; Palabre changes no permissions and never resends automatically.
   Without --open, the target conversation must be closed: no TUI, desktop, IDE or running
   exec.
 
