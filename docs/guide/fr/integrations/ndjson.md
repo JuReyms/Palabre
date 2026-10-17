@@ -52,17 +52,24 @@ Après `start`, Chat émet donc toujours exactement un `done`. L'événement `er
 
 ```json
 {"v":1,"type":"error","phase":"chat","action":"consult","agent":"vibe","role":"critic","kind":"non-zero-exit","message":"..."}
-{"v":1,"type":"done","outputPath":"C:\\project\\.palabre\\session.chat.md"}
+{"v":1,"type":"done","outputPath":".palabre/palabre-subject-2026-01-01T00-00-00-000Z.chat.md"}
 ```
 
 `--dry-run` n'existe pas pour Chat : la commande est refusée avant tout événement, sans appel d'agent ni export.
 
 
+Extrait Débat minimal, après `start` :
+
 ```json
+{"v":1,"type":"turn-start","turn":1,"totalTurns":4,"agent":"codex","role":"implementer"}
 {"v":1,"type":"thinking-start","agent":"codex","role":"implementer"}
 {"v":1,"type":"thinking-end"}
 {"v":1,"type":"message","turn":1,"agent":"codex","role":"implementer","content":"..."}
-{"v":1,"type":"done","outputPath":"C:\\project\\.palabre\\session.debate.md"}
+{"v":1,"type":"done","outputPath":".palabre/palabre-subject-2026-01-01T00-00-00-000Z.debate.md"}
 ```
 
 stdout appartient au NDJSON. stderr peut contenir les diagnostics et la progression Ollama. Conservez l'ordre, ignorez les types inconnus, attendez le code de sortie et rendez le contenu agent comme texte non fiable, jamais comme HTML exécutable.
+
+## Portée et erreurs
+
+Relay et son option Mission utilisent `--json`, pas NDJSON. Les événements `error` des sessions portent `phase` (`debate`, `ask`, `summary`, `chat`), `kind`, `message`, puis selon le cas `agent`, `role`, `turn` ou `action`, `retryAfter`, `details`. Après une erreur de session commencée, PALABRE tente l'export partiel puis émet `done` ; une erreur de validation avant démarrage peut ne produire aucun flux.

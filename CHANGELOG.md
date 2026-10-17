@@ -17,6 +17,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Changed
 
+- Guide 0.17.0, lot C : configuration, référence CLI, contrats JSON/NDJSON, dépannage et fonctionnalités disponibles FR/EN corrigés contre le code ; la feuille de route reprend les cinq priorités validées par le propriétaire (Refs #131).
+
 - Guide 0.17.0, lot B : Débat, Ask, Chat, TUI, contexte, exports et agents FR/EN alignés sur les formats de synthèse, les limites de fichiers, les défauts et les capacités réelles des adapters (Refs #131).
 
 - Guide 0.17.0, lot A : prise en main et Relay FR/EN alignés sur les quatre modes, Mission en option, confiance des configurations, périmètre Windows de `--open`, revue autorisée et diagnostics réellement exposés (Refs #131).

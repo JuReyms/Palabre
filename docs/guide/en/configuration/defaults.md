@@ -1,12 +1,12 @@
 ---
 title: Default settings
-description: Define or remove the agents, number of turns, and summary used by default.
+description: Define or remove the agents, number of responses, and summary used by default.
 seo:
-  title: Set default agents, turns, and summary
-  description: Define the agent pair, number of turns, and summary behavior Palabre uses when you pass no flags at all.
+  title: Set default agents, responses, and summary
+  description: Define the agent pair, number of responses, and summary behavior Palabre uses when you pass no flags at all.
 ---
 
-Default settings are used when you start a session without specifying all agents or all options. They can be partial: you can define only the number of turns, only the summary, or a complete agent pair.
+Default settings are used when you start a session without specifying all agents or all options. They can be partial: you can define only the number of responses, only the summary, or a complete agent pair.
 
 ## Set default agents
 
@@ -60,13 +60,13 @@ Accepted values are `debate`, `chat`, and `ask`. Debate remains the primary mode
 
 The default mode also applies to direct launches: `palabre run`, `palabre -s "Subject"`, and `palabre "A subject in several words"`. In Chat mode, the subject becomes the conversation's initial context. `--mode debate`, `--mode ask`, or `--mode chat` always takes precedence over this setting, without changing it. A preset selects an agent pair for Debate or Ask: in Chat mode, it is refused with an explicit message. Use `--agent-a <agent>` instead, or add `--mode debate`. Running `palabre` without a subject still opens the home screen.
 
-## Set the number of turns
+## Set the number of responses
 
 ```bash
 palabre config -t 4
 ```
 
-`turns` is the total number of debate turns. Palabre accepts a value between 1 and 20.
+`turns` is the total Debate response limit: 4 by default, from 1 to 20, excluding the summary. With 4, each agent answers at most twice; agreement may stop the Debate earlier. This setting does not determine the Ask or Chat response count.
 
 ## Set the language
 
@@ -109,3 +109,7 @@ After that, use a preset or explicit agents:
 palabre codex-claude "Subject" -t 4
 palabre run --subject "Subject" --agent-a codex --agent-b claude
 ```
+
+Relay cannot be set as the default mode: its targets are explicit, without a preset or default pair. With Chat as default, a pair preset is refused; use `palabre chat --agent-a codex`, or add `--mode debate`.
+
+Without `defaults.askAgents`, Ask uses `defaults.agentA` and `defaults.agentB`. After `--clear-defaults`, provide a preset or explicit agents: PALABRE does not choose a hardcoded pair. `--summary-agent none` removes that default without disabling summaries.

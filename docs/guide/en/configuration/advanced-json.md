@@ -23,14 +23,14 @@ Most common settings can be done with `palabre config`. This page covers cases w
     "codex": {
       "type": "cli",
       "command": "codex",
-      "args": ["exec", "-"],
+      "args": ["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only"],
       "promptMode": "stdin",
       "role": "implementer"
     },
     "claude": {
       "type": "cli",
       "command": "claude",
-      "args": ["--print"],
+      "args": ["--print", "--output-format", "text", "--no-session-persistence", "--tools", "Read,Glob,Grep"],
       "promptMode": "stdin",
       "role": "reviewer"
     }
@@ -104,3 +104,13 @@ Useful options:
 | `keepAlive` | Duration to keep the model loaded. |
 | `temperature` | Response variation. |
 | `maxOutputBytes` | Maximum size of each buffered HTTP response, 50 MiB by default. |
+
+## Scope of settings
+
+Prefer `palabre config` when a command exists. After editing, read and reapprove the file for paths requiring it (see [Approval](/en/configuration/local-vs-global#approval)). Changing `args` can remove default restrictions; PALABRE replaces only exactly recognized old default arrays, never custom arguments.
+
+Other fields: `language`, `defaults.mode` (`debate`, `ask`, `chat`), `defaults.askAgents`, `defaults.askSummaryAgent`, `defaults.interface`, `relay` (review policy). Agents also have `tier` (`primary` or `local`). CLI agents use `type: cli` or `cli-pty` and support `allowEmptyOutput`, disabled by default.
+
+Relay uses the target's `type` and `command` to identify its CLI, then builds its own arguments. It does not use the Debate agent's `args`, `promptMode`, `model`, `shell` or `timeoutMs`. Relay configuration is still required for authorized reviews.
+
+An absolute command path is preserved during synchronization, even if missing; `doctor` and availability check that exact file, without verifying its version or falling back to PATH. To restore detection, replace the path with a simple command name yourself and reapprove when required.

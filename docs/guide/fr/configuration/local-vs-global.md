@@ -38,21 +38,15 @@ Fichier créé :
 
 Utilisez cette option si un projet doit avoir ses propres agents, modèles ou dossier d'export.
 
-Une configuration locale peut lancer les commandes déclarées dans ses agents et contacter les
-serveurs Ollama configurés. Palabre demande donc une approbation avant sa première utilisation et
-enregistre son empreinte dans `~/.palabre/trusted-configs.json`. Toute modification externe du
-fichier invalide cette approbation. Dans un flux non interactif, vérifiez le fichier puis utilisez
-`--trust-config` une fois pour enregistrer sa nouvelle empreinte.
-
-`palabre doctor` reste utilisable avant l'approbation pour examiner la configuration. Dans ce cas,
-il n'appelle pas les URLs Ollama déclarées par le fichier non fiable.
-
 ## Ordre de résolution
 
 Palabre cherche la configuration dans cet ordre :
 
-1. `./palabre.config.json`
-2. `~/.palabre/palabre.config.json`
+0. `--config <chemin>`, s’il est fourni ;
+1. `./palabre.config.json` ;
+2. `./chicane.config.json` (historique) ;
+3. `~/.palabre/palabre.config.json` ;
+4. `~/.palabre/chicane.config.json` (historique).
 
 Vous pouvez forcer un fichier :
 
@@ -60,3 +54,13 @@ Vous pouvez forcer un fichier :
 palabre run -s "Sujet" --config ./palabre.config.json
 palabre agents --config ./palabre.config.json
 ```
+
+## Approbation
+
+Une configuration peut lancer des commandes et contacter ses serveurs Ollama. L'approbation lie chemin canonique et empreinte SHA-256 dans `~/.palabre/trusted-configs.json` ; une modification externe invalide l'empreinte. `init` approuve le fichier créé. Les écritures ultérieures de PALABRE ne rafraîchissent qu'une approbation existante.
+
+La garde générale exige cette approbation pour une configuration de projet implicite. Relay et `relay allow-repo` l'exigent pour le fichier résolu, **local ou global**. La commande d'approbation explicite fonctionne aussi pour un fichier global ; cela ne signifie pas que chaque autre commande contrôle automatiquement son empreinte.
+
+Vous relisez le fichier puis lancez `palabre config --config <fichier> --trust-config`. Un agent ne doit pas l'approuver pour s'accorder des droits. Pour une configuration projet non approuvée, `doctor` reste disponible et ne contacte pas ses URLs Ollama.
+
+La politique Relay suit le fichier résolu : `palabre relay allow-repo proprietaire/depot` affiche le chemin choisi et demande votre confirmation au clavier. Toute nouvelle configuration doit s'appeler `palabre.config.json`.

@@ -12,7 +12,7 @@ Start by running the diagnostic:
 palabre doctor
 ```
 
-`doctor` does not launch any AI agent. It displays a diagnostic by sections: configuration, local tools, agents, and items to check. It verifies declared agents, default settings, number of turns, `outputDir`, available CLIs, Ollama, and configured models.
+`doctor` does not launch any AI agent. It displays a diagnostic by sections: configuration, local tools, agents, and items to check. It verifies declared agents, default settings, number of responses, `outputDir`, available CLIs, Ollama, and configured models.
 
 To get raw output suitable for logs or scripts:
 
@@ -21,6 +21,13 @@ palabre doctor --terminal
 ```
 
 ## Codex on Windows: error 5 despite read-only access
+
+**What happened:** without `--open`, Codex cannot start its read commands. PALABRE preserves its reply but returns `read-unavailable` (2); with review, nothing is published.
+
+**Probable cause:** the Microsoft Store `WindowsApps\pwsh.exe` alias. **Next step:** follow [#128](https://github.com/JuReyms/Palabre/issues/128); no validated solution yet. Do not resend the message or widen permissions.
+
+### Technical details
+
 
 `CreateProcessAsUserW failed: 5` here means Codex could not start a command, even to read. On the machine tested with Codex 0.163.0, the same read under `:read-only` succeeds with native Windows PowerShell and fails with the `WindowsApps\pwsh.exe` alias. Check the selected shell rather than concluding that the entire `unelevated` sandbox is unusable.
 
@@ -110,7 +117,7 @@ palabre config --sync-agents
 
 This command adds missing known agents and refreshes known command names without overwriting your existing settings.
 
-## The default number of turns is invalid
+## The default number of responses is invalid
 
 Typical message:
 
@@ -150,7 +157,7 @@ Actions:
 - run `palabre doctor` again;
 - fix `command` in the configuration if the command has a different name.
 
-On Windows, npm or PowerShell wrappers such as `codex`, `opencode`, and `vibe` may require `shell: true` in the configuration.
+On Windows, retain generated settings: `shell: true` enables conservative wrapper resolution, which launches recognized npm/pnpm shims directly without a shell. Do not force another value to bypass an error. See [Agents on Windows](/en/agents/overview#windows). An absolute `command` path is preserved by synchronization.
 
 Claude often works better with `claude.exe` and `shell: false`.
 
@@ -265,7 +272,7 @@ palabre update --check
 With recent pnpm versions, `palabre@latest` can temporarily stay on an older version because of supply-chain safeguards. Palabre therefore uses the exact npm version when it is available:
 
 ```bash
-pnpm add --global palabre@0.8.1
+pnpm add --global palabre@<version>
 ```
 
 Adapt the number to the version printed by `palabre update` or by:
@@ -281,3 +288,11 @@ pnpm add --global palabre@latest
 ```
 
 `--apply` remains a compatible alias for `--yes`.
+
+## Approval and Relay refusals
+
+Manual edits invalidate the approved fingerprint. For an implicit project configuration or a Relay call, read the file then run `palabre config --config <file> --trust-config` yourself. Agents wait for your action; they do not grant themselves rights.
+
+Refusals before sending (`not-delivered`): `config-untrusted` (8), `task-not-allowed` (8, owner: run `remedy` in your terminal), `review-cli-unsupported` (8, Claude ≥ 2.1.292 and `--safe-mode` required), `target-busy` (3, close the target or choose `--open` for Codex on Windows), `target-not-open` (3, open the Codex target). See [Relay](/en/usage/relay).
+
+A recognized limit gives `usage-limit`. Retry information is shown only when supplied: `retryAfter` in NDJSON errors, or Relay with `--open`. Without `--open`, Relay classifies the limit but does not expose that field. No automatic resend even after the stated time; no date or time zone is inferred from a time alone. With Relay, check delivery before any new request. Mission preserves the result and pauses on a known failure; unknown delivery needs human verification. With `--checkpoint`, `resume` preserves accepted answers.

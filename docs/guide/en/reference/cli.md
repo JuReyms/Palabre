@@ -8,18 +8,6 @@ seo:
 
 This page lists the main Palabre commands.
 
-## Read-only mission
-
-| Command | Description |
-| --- | --- |
-| `palabre mission start --from <mission-lead>:<uuid> --to <teammate>:<uuid> --criteria "…" "Objective"` | Saves the scope agreed with the owner, without an agent call. |
-| `palabre mission step <id> "Request" [--timeout <seconds>]` | At most one read-only call to the closed teammate; task defaults to `consult`. |
-| `palabre mission step <id> "Review" --task review --pr https://github.com/owner/repo/pull/123` | Reuses the review task and its already trusted Relay policy. |
-| `palabre mission status <id> --json` | Reloads scope and results without an agent call. |
-| `palabre mission stop <id> --reason "…"` | Permanently stops further steps and requests best-effort cancellation of the call. |
-
-start options: `--tasks "consult,review"` (default `consult`), `--max-steps` (1–100, default 10), `--max-duration` (10–86400 seconds, default 3600), `--timeout` (10–3600 seconds, default 600), `--config`, `--language fr|en`. `step` can override the timeout; `--json` is available throughout. Scope and `.mission.md` export live under `.palabre/missions/<id>/`; no automatic resend after a crash or unknown delivery. See [Mission and Relay](/en/usage/relay).
-
 ## Startup commands
 
 | Command | Description |
@@ -84,13 +72,30 @@ Resume keeps every complete response and calls only the next Debate turn, remain
 
 `palabre sessions` shows the 20 most recent checkpoints by default, including their status, mode, response count, and next phase. `--limit <1-100>` bounds the list. A corrupted JSON file is reported as invalid without hiding other entries. Deletion displays the exact target and asks for confirmation; non-interactive use requires `--yes`. It never removes Markdown exports or sibling checkpoints.
 
-## Ask a closed conversation
+## Relay
 
-```bash
-palabre relay --from codex:<session> --to claude:<session> "Can you review this plan?"
-```
+| Command | Description |
+| --- | --- |
+| `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> "Message"` | Closed Codex or Claude Code conversation, resumed read-only. |
+| `palabre relay --open --from <agent>:<uuid> --to codex:<uuid> "Message"` | Open Codex conversation, Windows pilot; target's own tools and permissions. |
+| `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> --task review --pr https://github.com/owner/repository/pull/123` | Writes and publishes a COMMENT review when authorized. |
+| `palabre relay allow-repo owner/repository` | Authorizes review after the owner's keyboard confirmation. |
 
-`palabre relay` sends a message to a **closed** Codex or Claude Code conversation and returns its reply, in hardened read-only mode. The target conversation history is modified, and nothing is ever resent automatically. See [Relay to a conversation](/en/usage/relay).
+Options: `--message-file <path>`, `--subject "<subject>"` (one line, 200 characters), `--timeout <seconds>` (10–3600, default 600), `--json`, `--no-export`, `--config`, `--trust-config` (refused with review), `--language`. History may change; no automatic resend. Delivery, diagnostics and limits: [Relay](/en/usage/relay).
+
+Relay's Mission option keeps several read-only steps within an agreed scope and budget; it is not another mode.
+
+### Mission option (`palabre mission`)
+
+| Command | Description |
+| --- | --- |
+| `palabre mission start --from <mission-lead>:<uuid> --to <teammate>:<uuid> --criteria "…" "Objective"` | Saves the scope agreed with the owner, without an agent call. |
+| `palabre mission step <id> "Request" [--timeout <seconds>]` | At most one read-only call to the closed teammate; task defaults to `consult`. |
+| `palabre mission step <id> "Review" --task review --pr https://github.com/owner/repo/pull/123` | Reuses the review task and its already trusted Relay policy. |
+| `palabre mission status <id> --json` | Reloads scope and results without an agent call. |
+| `palabre mission stop <id> --reason "…"` | Permanently stops further steps and requests best-effort cancellation of the call. |
+
+start options: `--tasks "consult,review"` (default `consult`), `--max-steps` (1–100, default 10), `--max-duration` (10–86400 seconds, default 3600), `--timeout` (10–3600 seconds, default 600), `--config`, `--language fr|en`. `step` can override the timeout; `--json` is available throughout. Scope and `.mission.md` export live under `.palabre/missions/<id>/`; no automatic resend after a crash or unknown delivery. See [Mission and Relay](/en/usage/relay).
 
 ## Conversation with one agent
 
@@ -100,7 +105,7 @@ Unlike Ask, which collects one or more independent answers to a single question 
 
 Use `/agents` to show available agents. `/end` saves the conversation in `.palabre/`, shows its file and folder, then returns home; `/home` returns without saving. `/consult <agent>` explicitly requests a second opinion on the six most recent retained messages; that opinion is added to the conversation. `/use <agent>` then switches the active agent, or you can continue with the initial agent. `--role-a`, `--model-a`, `--language`, `--files`, and `--context` remain available. Without `--agent-a`, Palabre uses the configured default agent A.
 
-This first version remains stateless and performs no action. The context sent with each call is bounded to the six most recent messages; Palabre reports when older messages are no longer sent. Consultation remains explicit: an agent may suggest it, but the user keeps the initiative.
+Chat keeps no persistent provider session. The context sent with each call is bounded to the six most recent messages; Palabre reports when older messages are no longer sent. Consultation remains explicit: an agent may suggest it, but the user keeps the initiative.
 
 After a Debate or Ask completes in the TUI, `/chat` directly opens a conversation whose context shows its provenance and carries over the subject with the final summary, or the six recent exchanges when no summary is available.
 
@@ -126,8 +131,11 @@ These commands are available from the TUI home screen or from `/config` dependin
 | `/ollama-sync` | Replaces the configured Ollama model with an installed model when the current one is missing. |
 | `/language fr`, `/language en` | Changes the language from `/config`. Alias: `/lang`. |
 | `/interface tui`, `/interface terminal` | Changes the default interface from `/config`. |
-| `/home` | Returns to the TUI home screen. Alias: `/back`. |
+| `/home` | Returns to the TUI home screen. |
 | `/quit` | Exits the TUI. |
+| `/back` | Returns to the previous screen. |
+| `/retry` | Explicitly runs the last session again. |
+| `/consult <agent>`, `/use <agent>`, `/end` | Chat commands; see the Chat guide. |
 
 ## Integrations
 
@@ -153,7 +161,7 @@ When no client is declared, the invocation source is `direct-cli`.
 | `palabre sessions --json` | Lists up to 20 valid or invalid checkpoints as JSON v1. |
 | `palabre sessions --json --limit 30` | Lists up to 30 checkpoints (maximum: 100). |
 | `palabre sessions delete <session-id> --yes --json` | Deletes exactly one checkpoint and confirms its id as JSON v1. |
-| `palabre relay --from <agent>:<session> --to <agent>:<session> "…" --json` | Relays a message to a closed conversation and returns a `relay-result` JSON v1 object, whatever the outcome. |
+| `palabre relay --from <agent>:<session> --to <agent>:<session> "…" --json` | Relays a message to a closed conversation or open Codex with `--open` and returns a `relay-result` JSON v1 object, whatever the outcome. |
 | `palabre config --ollama-models --json` | Returns local Ollama state as JSON v1 for integrations. |
 | `palabre context scan [paths...] --json` | Returns the folders, files, and warnings from the `--context` scan as JSON v1. |
 
@@ -164,7 +172,7 @@ When no client is declared, the invocation source is `direct-cli`.
 | `-h`, `--help` | Displays help. |
 | `-v`, `--version` | Displays the version. |
 | `--config <path>` | Uses an explicit configuration file. |
-| `--trust-config` | Trusts the local configuration fingerprint after its contents have been reviewed. |
+| `--trust-config` | Records approval of the resolved local or global configuration after human review; never to grant an agent rights. |
 | `--language <fr\|en>`, `--lang <fr\|en>` | Forces the Palabre and agent prompt language for this command. |
 | `--tui` | Forces the TUI interface, even if configuration asks for terminal rendering. |
 | `--terminal`, `--no-tui` | Uses raw terminal rendering. Also useful with `palabre doctor` for logs. |
@@ -184,7 +192,7 @@ When no client is declared, the invocation source is `direct-cli`.
 | `--role-a <role>` | Temporary role for the first agent, without editing config. |
 | `--role-b <role>` | Temporary role for the second agent, without editing config. |
 | `--ask-role <role>` | Temporary shared role applied to all Ask agents. |
-| `--mode <debate\|ask>` | Selects the orchestration mode. |
+| `--mode <debate\|ask\|chat>` | Selects the orchestration mode. |
 | `--agents <names...>` | Ask mode agents, 4 maximum. |
 | `-t`, `--turns <number>` | Total number of turns, between 1 and 20. |
 | `--no-early-stop` | Disables early stopping. |
@@ -211,3 +219,5 @@ When no client is declared, the invocation source is `direct-cli`.
 | `palabre update --dry-run` | Displays the exact steps without running them. |
 | `palabre update --yes` | Applies a safe plan without interactive confirmation. |
 | `palabre update --apply` | Compatible alias for `--yes`. |
+
+`palabre mission status <id> --json` returns a `mission-result` v1 object without calling an agent. Relay exports include the PALABRE version, but not the `PALABRE_CLIENT` provenance fields present in Debate, Ask and Chat exports.
