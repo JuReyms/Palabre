@@ -103,7 +103,7 @@ Usage:
 
 Flags:
   --clear-defaults     supprime les parametres par defaut
-  --sync-agents        ajoute les agents detectes manquants et rafraichit les commandes connues
+  --sync-agents        ajoute les agents detectes ; conserve les commandes avec chemin absolu
   --config <path>      chemin de config explicite
 `,
   new: `
@@ -373,7 +373,7 @@ Usage:
 
 Flags:
   --clear-defaults     clears default settings
-  --sync-agents        adds missing detected agents and refreshes known commands
+  --sync-agents        adds missing detected agents; preserves absolute command paths
   --config <path>      explicit config path
 `,
   new: `

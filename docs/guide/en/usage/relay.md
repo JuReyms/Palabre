@@ -61,9 +61,9 @@ palabre relay --from codex:<sender-session> --to claude:<target-session> "Can yo
 
 ## Multiple Claude CLIs on the same machine
 
-PATH ordering can cause an older Claude CLI to be detected before the newer installation. Changing only `agents.claude.command` to an absolute path is insufficient: opening the TUI home or running `palabre config --sync-agents` calls `applyDetectedCommands`, which replaces this command with the detected one.
+PATH ordering can cause an older Claude CLI to be detected before the newer installation. An absolute path in `agents.claude.command` is now preserved at TUI startup and by `palabre config --sync-agents`: a detected installation no longer overwrites it. If the path is missing, it is retained and launching fails explicitly without falling back to another CLI.
 
-Instead, add a dedicated `claude-review` agent to the existing `agents` in `palabre.config.json`, preserving the rest of the configuration and its `relay` policy:
+You can also keep a dedicated `claude-review` agent to choose the review role and CLI separately, within the existing `agents` in `palabre.config.json`, preserving the rest of the configuration and its `relay` policy:
 
 ```json
 {

@@ -52,6 +52,8 @@ Depuis l'accueil TUI, `/config` affiche les réglages courants et `/agents` list
 
 Au démarrage de l'accueil TUI, Palabre synchronise prudemment les agents connus détectés : il peut ajouter les agents connus manquants et rafraîchir les noms de commandes connus, mais il n'écrase pas les agents custom, les rôles, les modèles ni les defaults utilisateur.
 
+Une commande configurée avec un **chemin absolu** reste inchangée, dans l'accueil TUI comme avec `palabre config --sync-agents`, même si une autre installation est détectée. Un chemin devenu introuvable est conservé : il n'y a pas de remplacement silencieux. Le propriétaire vérifie l'installation ciblée et peut lancer `palabre doctor --terminal` ; pour revenir à la découverte automatique, il remplace explicitement le chemin par un nom simple tel que `claude.exe`, puis réapprouve sa configuration. Les noms simples et chemins relatifs gardent le comportement de synchronisation existant.
+
 ## Modifier les paramètres courants
 
 ```bash

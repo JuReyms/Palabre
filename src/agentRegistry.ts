@@ -1,5 +1,6 @@
 /** @file Source de vérité unique reliant les agents CLI connus à leur détection locale (voir AGENTS.md, section "Registre d'agents connus"). */
 import type { CommandDetection, ToolDiscovery } from "./discovery.js";
+import path from "node:path";
 import type { AgentConfig, PalabreConfig } from "./types.js";
 
 /**
@@ -114,7 +115,8 @@ export function detectedAgentNames(discovery: ToolDiscovery): string[] {
 /**
  * Applique les chemins de commande résolus localement aux agents CLI connus
  * d'une config. Mute `config` : l'appelant est responsable de la cloner au besoin.
- * Sans détection disponible, l'agent garde la commande déjà déclarée.
+ * Sans détection disponible ou avec un chemin absolu déjà déclaré, conserve la commande.
+ * Un chemin absent n'est pas remplacé silencieusement ; le diagnostic reste celui de la CLI.
  */
 export function applyDetectedCommands(config: PalabreConfig, discovery: ToolDiscovery): void {
   for (const agent of KNOWN_CLI_AGENTS) {
@@ -122,6 +124,7 @@ export function applyDetectedCommands(config: PalabreConfig, discovery: ToolDisc
     const cfg = config.agents[agent.configKey];
 
     if (detection.available && cfg && (cfg.type === "cli" || cfg.type === "cli-pty")) {
+      if (typeof cfg.command === "string" && (path.isAbsolute(cfg.command) || path.win32.isAbsolute(cfg.command))) continue;
       cfg.command = detection.command;
     }
   }

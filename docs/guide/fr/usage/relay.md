@@ -61,9 +61,9 @@ palabre relay --from codex:<session-expéditeur> --to claude:<session-cible> "Pe
 
 ## Plusieurs CLI Claude sur la même machine
 
-Une ancienne CLI Claude peut être détectée avant la CLI récente selon l'ordre du PATH. Modifier seulement `agents.claude.command` pour y mettre un chemin absolu ne suffit pas : à l'accueil TUI et avec `palabre config --sync-agents`, `applyDetectedCommands` remplace cette commande par celle détectée.
+Une ancienne CLI Claude peut être détectée avant la CLI récente selon l'ordre du PATH. Un chemin absolu dans `agents.claude.command` est désormais conservé à l'accueil TUI et avec `palabre config --sync-agents` : une autre installation détectée ne l'écrase plus. Si le chemin est introuvable, il est conservé et le lancement échoue explicitement, sans repli vers une autre CLI.
 
-Ajoute plutôt un agent dédié `claude-review` dans les `agents` existants de ton `palabre.config.json`, sans remplacer le reste de la configuration ni sa politique `relay` :
+Tu peux aussi garder un agent dédié `claude-review`, pour choisir séparément le rôle et la CLI de revue, dans les `agents` existants de ton `palabre.config.json`, sans remplacer le reste de la configuration ni sa politique `relay` :
 
 ```json
 {
