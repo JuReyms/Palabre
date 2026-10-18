@@ -24,28 +24,50 @@ git worktree list
 
 These commands show modified or untracked files, commits missing from local remote-tracking references and separate worktrees. References may be outdated: also check GitHub before concluding that a commit was pushed. `--no-optional-locks` avoids optional index refreshes during this inventory. Do not update a clone containing unsaved work yet.
 
+After this inventory, refresh remote-tracking references (without changing your working files):
+
+```text
+git fetch --prune
+git log --oneline --branches --not --remotes
+git branch --remotes --contains <commit-sha>
+```
+
+A squash-merged branch may still appear: its commits were combined under another identifier. With the GitHub CLI already signed in, find the commit's PR, then check its state and diff on GitHub:
+
+```text
+gh api repos/<owner>/<repository>/commits/<commit-sha>/pulls --jq '.[].html_url'
+gh pr view <pr-number> --repo <owner>/<repository> --json state,mergedAt,url
+gh pr diff <pr-number> --repo <owner>/<repository>
+```
+
+Without proof that the work is preserved, keep the branch. Do not delete or force anything based only on `git log`.
+
 Find which installations are being used. In PowerShell:
 
 ```powershell
-Get-Command node,palabre,codex,claude,pwsh,powershell -All -ErrorAction SilentlyContinue | Select-Object Name,Source
+Get-Command node,npm,pnpm,palabre,codex,claude,pwsh,powershell -All -ErrorAction SilentlyContinue | Select-Object Name,Source
 ```
 
 In Bash or Zsh, on macOS or Linux:
 
 ```sh
-type -a node palabre codex claude
+type -a node npm pnpm palabre codex claude
 ```
 
 For commands that are present, record their versions:
 
 ```text
 node --version
+npm --version
+pnpm --version
 palabre --version
 codex --version
 claude --version
 ```
 
 Several paths may mean several installations. On Windows, a `WindowsApps` path may be a Microsoft Store alias rather than the expected installation. Do not delete anything just to hide a duplicate; identify the installation to keep using [Windows troubleshooting](/en/troubleshooting). Complete duplicate diagnostics remain tracked in [#153](https://github.com/JuReyms/Palabre/issues/153).
+
+Check for duplicate npm and pnpm installations too, not just duplicate agents. Several wrappers from one installation do not prove a duplicate; compare their directories and versions. Report distinct installations without uninstalling them during this process.
 
 Also check whether the personal PALABRE folder exists. PowerShell:
 
@@ -81,6 +103,32 @@ palabre --version
 
 Before 0.17.0, `palabre update` only displays instructions, and `--check` does not exist. If Git refuses the update (local changes, a different branch), stop and examine the situation: do not force anything.
 
+If `node_modules` was created by another major version of pnpm, an installation without an interactive terminal may stop with:
+
+```text
+ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY Aborted removal of modules directory due to no TTY
+```
+
+In the clone, check the `packageManager` version in `package.json` and `pnpm --version`. Run `pnpm install` again in your terminal and confirm rebuilding dependencies only after preserving local work. If you choose to run without a terminal, pnpm's suggested remedy is `CI=true`, limited to this command. PowerShell:
+
+```powershell
+$previousCI = $env:CI
+try {
+    $env:CI = 'true'
+    pnpm install
+} finally {
+    $env:CI = $previousCI
+}
+```
+
+POSIX shell:
+
+```sh
+CI=true pnpm install
+```
+
+This operation may recreate `node_modules`; apply it only to the selected clone. If pnpm reports that the `node-pty` build script was ignored, that message alone does not prove a failure: the prebuilt binary may be sufficient, as in trial #171. From the clone, check that it loads with `node -e "require('node-pty')"`. If it fails, stop and keep the diagnostic; do not approve all dependency scripts by default.
+
 ## 2. Update the tools
 
 For an installation from a clone, follow the [clone update instructions](#palabre-installed-from-a-repository-clone-development-version) above.
@@ -110,6 +158,29 @@ npm install --global @openai/codex
 
 For other installations, use the [Claude Code](/en/agents/claude-code) and [Codex](/en/agents/codex) guides. Close and reopen the terminal, then record paths and versions again.
 
+### Windows: check for PowerShell 7 outside Microsoft Store
+
+Before your first Relay to Codex, check that PowerShell 7 installed outside the Store is present. The Store package itself, not just its alias, blocked reads during trial #171. A version number alone is not enough:
+
+```powershell
+Get-Command pwsh -All -ErrorAction SilentlyContinue | Select-Object Source
+Test-Path -LiteralPath "$env:ProgramFiles/PowerShell/7/pwsh.exe"
+```
+
+If you find only `WindowsApps` or no PowerShell 7, install the non-Store version yourself:
+
+```text
+winget install --id Microsoft.PowerShell --source winget
+```
+
+Open a new terminal, then check again. For a standard installation:
+
+```powershell
+& "$env:ProgramFiles/PowerShell/7/pwsh.exe" --version
+```
+
+A custom installation may use another path: check that it is outside `WindowsApps`. Do not remove the Store package or change Codex permissions to bypass the block. See [Windows troubleshooting](/en/troubleshooting).
+
 Check sign-in, then sign in only if needed:
 
 ```text
@@ -124,7 +195,9 @@ codex login
 
 Choose the account and access terms yourself. Being signed in to Desktop does not prove that the CLI is signed in. Do not transfer sign-in files from `~/.claude/` or `~/.codex/`; keep the results of these checks on your machine.
 
-## 3. Recreate or review the configuration
+## 3. Recreate, review and approve the configuration before Relay
+
+An approved configuration is a prerequisite: otherwise Relay refuses to start with `config-untrusted` (code 8), even if `palabre agents --json` or `doctor` shows available tools.
 
 In the project, run:
 
@@ -150,6 +223,8 @@ palabre config --config ./palabre.config.json --trust-config
 
 Only approve the file actually selected; [local/global precedence](/en/configuration/local-vs-global) matters on a previously used machine too. An agent must not approve a configuration that grants itself rights on your behalf.
 
+`--trust-config` is described in `palabre help`, not in `palabre config --help`. Run this command yourself in an interactive terminal: after approval, `palabre config --trust-config` also opens the configuration wizard. It is not an approval-only command. Exit the wizard without selecting a change if you only want to approve; do not run it from an agent or a non-terminal stream that might select an action on your behalf.
+
 For approvals referring to missing files:
 
 ```text
@@ -170,6 +245,14 @@ npx skills add JuReyms/Palabre --skill palabre --global
 ```
 
 This uses the [skills tool](https://github.com/vercel-labs/skills), downloads the skill from the repository and lets you select agents. Review the choices before confirming. For a copy-based installation, follow [the skill guide](/en/get-started/skill) and copy the entire folder, including references.
+
+Without `-y`, selection is interactive. With `-y`, confirmations are skipped and the skill may be installed for all detected agents. To limit the targets, name them explicitly with `--agent`, for example:
+
+```text
+npx skills add JuReyms/Palabre --skill palabre --global --agent claude-code codex
+```
+
+An agent preparing the installation must not add `-y` on its own. You choose the agents and confirm installation.
 
 The `skills` tool has its own Node requirements, which may be higher than PALABRE's. If `npx` reports `EBADENGINE`, update Node to meet those requirements or use copy-based installation.
 
@@ -195,6 +278,8 @@ From a new conversation with your agent, say for example:
 
 Or, from the project terminal:
 
+Before this call, complete approval in step 3 and, on Windows, the non-Store PowerShell 7 check in step 2. Also check agent sign-in and that a file is available to read.
+
 ```text
 palabre relay --new --to codex --subject "Resume fictional project Orion" "Read README.md and docs/plan.md. Summarize what still needs checking, without changing any files." --json
 ```
@@ -202,6 +287,8 @@ palabre relay --new --to codex --subject "Resume fictional project Orion" "Read 
 For a Claude teammate, replace `codex` with your configured Claude agent name. This first call uses its account and model and may consume its quota. Desktop paths and platform limitations are detailed in [Your first Relay](/en/get-started/first-relay).
 
 PALABRE does not transfer conversations from the old machine. An old identifier is not a new local target. `--new` returns a new identifier in `to.session`, with `cwd` and the delivery result; keep it locally for further exchanges. Check status, reply and evidence before continuing. No automatic resend after failure or unknown delivery.
+
+`delivery.status: replied` proves that a response arrived, not that files were read. If `status` is `read-unavailable` or `readAccess.status` is `blocked`, stop: a plausible response is not a verified read. Follow troubleshooting, then decide yourself whether to try again.
 
 ## What to keep, recreate or leave local
 
