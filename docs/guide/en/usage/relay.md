@@ -10,6 +10,8 @@ seo:
 
 `palabre relay` sends a message to an existing Codex or Claude Code conversation, then returns its reply to the caller. Agents can hand off without making you copy and paste exchanges; you remain the decision-maker.
 
+> **Good to know:** Relay connects Claude Code and Codex both ways, in the background. To hand a task to a conversation that is **already open** (desktop app or terminal), only Codex can receive it for now, on Windows. Codex to an open Claude conversation is tracked in issue [#96](https://github.com/JuReyms/Palabre/issues/96).
+
 ```text
 palabre relay --from codex:<sender-session> --to claude:<target-session> --subject "Plan review" "Read the plan in docs/plan.md and list the risks."
 ```

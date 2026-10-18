@@ -35,7 +35,7 @@ PALABRE does not replace your tools: it drives them. You keep your subscriptions
 | **Ask** | "I want several independent opinions." 1 to 4 agents answer without seeing each other's answers, then a summary compares them. | `palabre ask "Compare these two approaches" --agents codex claude` |
 | **Chat** | "I'm chatting with an agent, and sometimes need a second opinion to double-check an answer." Ask another agent with `/consult`, without leaving the conversation. | `palabre chat --agent-a codex` |
 
-*Relay: by default, the conversation receiving the message must be closed. With `--open` (Windows only for now), the message arrives in an open Codex conversation (Codex desktop or terminal), where you can usually watch it come in. Each message gets a single reply, with no automatic resend.*
+*Relay connects Claude Code and Codex both ways, in the background. To hand a task to a conversation that is already open (Codex desktop or terminal, with `--open`), only Codex can receive it for now, on Windows. Each message gets a single reply, with no automatic resend.*
 
 To chain several read-only steps within a fixed scope and budget, Relay offers the **Mission** option: `palabre mission --help`.
 
@@ -87,7 +87,7 @@ palabre relay --from claude:<sender-session> --to codex:<target-session> "Can yo
 - **Context.** `--files` injects specific files (64 KiB per file, 192 KiB in total). `--context` scans folders with limits and exclusions. `--show-prompt` shows exactly what will be sent; `palabre context scan` previews the context.
 - **Final summary.** At the end of a Debate, a summary agent writes four sections: **Consensus**, **Disagreements / uncertainties**, **Proposed actions**, **Conclusion**. At the end of an Ask, it summarizes each answer then compares them: **Faithful summary by agent**, **Comparison**, **Watchpoints / uncertainties**, **Proposed actions**, **Conclusion**. Choose the summary agent with `--summary-agent`, or turn the summary off with `--no-summary`.
 - **Early stop.** A Debate (1 to 20 responses in total) can stop after a full round when an explicit agreement is detected. Turn it off with `--no-early-stop`.
-- **Relay.** PALABRE resumes the target conversation with the agent's official CLI (`claude -p --resume`, `codex exec resume`), in hardened read-only mode. The message carries a header naming the sender. It authorizes no action: the agent receives it as information, not as an order. A single reply, with no automatic resend.
+- **Relay.** Two ways of working. In the background, PALABRE opens the other agent's conversation with its official CLI, hands it the task and returns its reply to you. With `--open`, the task arrives in an open Codex conversation, which carries it out with its usual permissions. In the background, the other agent reviews and advises for now; letting it change files, with your consent, is coming in the next version. Either way, the message says who sent it and grants no rights on its own.
 - **Exports.** Each session is saved as Markdown (`.debate.md`, `.ask.md`, `.chat.md`, `.relay.md`). If an agent fails, a partial export is kept whenever possible.
 - **Sessions.** `--checkpoint` makes a Debate or an Ask resumable with `palabre resume <session-id>`; `palabre sessions` lists or deletes checkpoints.
 
@@ -195,7 +195,7 @@ PALABRE ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements,
 | **Ask** | « Je veux plusieurs avis indépendants. » De 1 à 4 agents répondent sans voir les réponses des autres, puis une synthèse les compare. | `palabre ask "Compare ces deux approches" --agents codex claude` |
 | **Chat** | « Je discute avec un agent, et j'ai parfois besoin d'un second avis pour vérifier une réponse. » Consultez un autre agent avec `/consult`, sans quitter la conversation. | `palabre chat --agent-a codex` |
 
-*Relay : par défaut, la conversation qui reçoit le message doit être fermée. Avec `--open` (sous Windows pour l'instant), le message arrive dans une conversation Codex ouverte (Codex desktop ou terminal), où vous pouvez généralement le voir passer. Chaque message reçoit une seule réponse, sans renvoi automatique.*
+*Relay relie Claude Code et Codex dans les deux sens, en arrière-plan. Pour confier une tâche à une conversation déjà ouverte (Codex desktop ou terminal, avec `--open`), seul Codex peut la recevoir pour l'instant, sous Windows. Chaque message reçoit une seule réponse, sans renvoi automatique.*
 
 Pour enchaîner plusieurs étapes en lecture seule dans un cadre et un budget fixés, Relay propose l'option **Mission** : `palabre mission --help`.
 
@@ -247,7 +247,7 @@ palabre relay --from claude:<session-expéditeur> --to codex:<session-cible> "Pe
 - **Contexte.** `--files` injecte des fichiers précis (64 Kio par fichier, 192 Kio au total). `--context` parcourt des dossiers avec des limites et des exclusions. `--show-prompt` montre exactement ce qui sera envoyé ; `palabre context scan` prévisualise le contexte.
 - **Synthèse finale.** À la fin d'un Débat, un agent de synthèse rédige quatre sections : **Consensus**, **Désaccords / incertitudes**, **Actions proposées**, **Conclusion**. À la fin d'un Ask, il résume chaque réponse puis les compare : **Résumé fidèle par agent**, **Comparaison**, **Points de vigilance / incertitudes**, **Actions proposées**, **Conclusion**. Choisissez l'agent de synthèse avec `--summary-agent`, ou désactivez la synthèse avec `--no-summary`.
 - **Arrêt anticipé.** Un Débat (1 à 20 réponses au total) peut s'arrêter après un tour complet quand un accord explicite est détecté. Désactivez-le avec `--no-early-stop`.
-- **Relay.** PALABRE reprend la conversation cible avec la CLI officielle de l'agent (`claude -p --resume`, `codex exec resume`), en lecture seule renforcée. Le message porte un en-tête qui indique l'expéditeur. Il n'autorise aucune action : l'agent le reçoit comme une information, pas comme un ordre. Une seule réponse, sans relance automatique.
+- **Relay.** Deux façons de travailler. En arrière-plan, PALABRE ouvre la conversation de l'autre agent avec sa CLI officielle, lui transmet la tâche et vous rend sa réponse. Avec `--open`, la tâche arrive dans une conversation Codex ouverte, qui la réalise avec ses permissions habituelles. En arrière-plan, l'autre agent relit et conseille pour l'instant ; lui faire modifier des fichiers, avec votre accord, arrive dans la prochaine version. Dans tous les cas, le message indique qui l'envoie et n'accorde aucun droit à lui seul.
 - **Exports.** Chaque session est enregistrée en Markdown (`.debate.md`, `.ask.md`, `.chat.md`, `.relay.md`). Si un agent échoue, un export partiel est conservé quand c'est possible.
 - **Sessions.** `--checkpoint` rend un Débat ou un Ask reprenable avec `palabre resume <session-id>` ; `palabre sessions` liste ou supprime les points de reprise.
 
