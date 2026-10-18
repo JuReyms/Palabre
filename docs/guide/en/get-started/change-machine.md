@@ -170,10 +170,10 @@ Test-Path -LiteralPath "$env:ProgramFiles/PowerShell/7/pwsh.exe"
 If you find only `WindowsApps` or no PowerShell 7, install the non-Store version yourself:
 
 ```text
-winget install --id Microsoft.PowerShell --source winget
+winget install --id Microsoft.PowerShell --source winget --installer-type wix
 ```
 
-Open a new terminal, then check again. For a standard installation:
+`--installer-type wix` requests the MSI: `--source winget` alone may still select an MSIX package. If the MSI is unavailable, follow the MSI or ZIP instructions in [Windows troubleshooting](/en/troubleshooting), without treating the Store as equivalent. Open a new terminal, then check again. For a standard installation:
 
 ```powershell
 & "$env:ProgramFiles/PowerShell/7/pwsh.exe" --version
