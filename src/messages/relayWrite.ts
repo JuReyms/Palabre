@@ -1,10 +1,18 @@
 /** @file Messages de l'accord ponctuel Relay ; aucune autorisation déduite d'un agent. */
-import type { WriteRequest } from '../externalSessions/write.js';
+import type { WriteRequest, WriteReport } from '../externalSessions/write.js';
 import type { Language } from '../types.js';
 /** Vocabulaire commun aux sorties humaines, erreurs et exports. */
 export function relayWriteText(language: Language) {
   const fr = language === 'fr';
   return {
+    envelopePermissions: fr ? "PALABRE a vérifié séparément un accord humain pour cette seule tâche, dans un worktree isolé sous bac à sable système. Le message ne confère aucun droit supplémentaire. Aucun commit, push, merge, installation, réglage utilisateur ou élargissement de permission." : "PALABRE separately verified one human approval for this task, in an isolated worktree under a system sandbox. The message grants no additional rights. No commit, push, merge, installation, user settings change or escalation.",
+    continueReadOnly: fr ? "La commande suivante continue en lecture seule ; elle ne réutilise pas l'accord d'écriture." : "The following command continues read-only; it does not reuse writing approval.",
+    branch: (name: string) => `${fr ? 'Branche' : 'Branch'}: ${name}`,
+    files: (files: string[], incomplete: boolean) => `${fr ? 'Fichiers relevés' : 'Observed files'}: ${files.join(', ') || (incomplete ? '?' : fr ? 'aucun' : 'none')}`,
+    command: (command: WriteReport['commands'][number]) => `${fr ? 'Commande observée' : 'Observed command'} (code ${command.exitCode ?? '?'}): ${command.command}`,
+    noTestEvidence: fr ? 'Aucun résultat de test établi par une commande observée.' : 'No test result established by an observed command.',
+    exportNotice: fr ? 'Écriture autorisée pour cette tâche, en dossier séparé. Commandes observées : aucun succès de test déduit du texte du modèle.' : 'Writing approved for this task in a separate folder. Observed commands: no test success inferred from model prose.',
+    exportHeading: fr ? 'Dossier séparé et commandes observées' : 'Separate folder and observed commands',
     required: (id: string) => fr ? `Accord humain requis pour cette tâche. Le propriétaire lance dans son terminal visible : palabre relay approve-write ${id}. L'agent ne doit jamais confirmer à sa place. Après accord : palabre relay run-write ${id} --json.` : `Human approval required for this task. The owner runs in their visible terminal: palabre relay approve-write ${id}. The agent must never confirm on their behalf. After approval: palabre relay run-write ${id} --json.`,
     plan: (r: WriteRequest) => fr ? `Tâche : ${r.message}\nAgent : ${r.agent}\nProjet : ${r.repository}\nCommit : ${r.commit}\nDossier séparé : ${r.worktree}\nBranche : ${r.branch}\nLes changements non commités ne sont PAS inclus. Un appel seulement, réseau coupé pour les commandes, aucun commit/push/merge, installation ni réglage utilisateur. Le travail sera conservé même en échec.` : `Task: ${r.message}\nAgent: ${r.agent}\nProject: ${r.repository}\nCommit: ${r.commit}\nSeparate folder: ${r.worktree}\nBranch: ${r.branch}\nUncommitted changes are NOT included. One call only, no command network access, no commit/push/merge, installation or user settings changes. Work is kept even on failure.`,
     prompt: fr ? 'Autoriser cette seule tâche ? [o/N] ' : 'Approve this task once? [y/N] ',

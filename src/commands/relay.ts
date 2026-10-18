@@ -316,9 +316,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const nonce = createNonce();
   const envelopeInput = { from: context.from, to: to.value, nonce, message, subject: context.subject, header: context.header };
   const frame = flags.write ? {
-    ...context.messages.relay, envelopePermissions: context.language === "en"
-      ? "PALABRE separately verified one human approval for this task, in an isolated worktree under a system sandbox. The message grants no additional rights. No commit, push, merge, installation, user settings change or escalation."
-      : "PALABRE a vérifié séparément un accord humain pour cette seule tâche, dans un worktree isolé sous bac à sable système. Le message ne confère aucun droit supplémentaire. Aucun commit, push, merge, installation, réglage utilisateur ou élargissement de permission."
+    ...context.messages.relay, envelopePermissions: relayWriteText(context.language ?? "fr").envelopePermissions
   } : context.messages.relay;
   const coordination = context.open ? buildOpenEnvelope(envelopeInput, frame) : buildEnvelope(envelopeInput, frame);
   const envelopeCheck = validateRelayMessage(coordination);
@@ -803,7 +801,7 @@ export function renderRelayText(result: RelayResultV1, messages: Messages): { st
   }
   if (result.created && result.to?.session) {
     lines.push(messages.relay.newConversation(`${result.to.agent}:${result.to.session}`, result.cwd ?? ""));
-    if (result.write) lines.push(result.write.language === "fr" ? "La commande suivante continue en lecture seule ; elle ne réutilise pas l'accord d'écriture." : "The following command continues read-only; it does not reuse writing approval.");
+    if (result.write) lines.push(relayWriteText(result.write.language).continueReadOnly);
     lines.push(messages.relay.continueConversation(`palabre relay --to ${result.to.agent}:${result.to.session} "…"`));
     if (result.status !== "replied") lines.push(messages.relay.newFailed);
   }
@@ -813,12 +811,12 @@ export function renderRelayText(result: RelayResultV1, messages: Messages): { st
   }
   if (result.exportPath) lines.push(messages.relay.exportWritten(result.exportPath));
   if (result.write) {
-    const fr = result.write.language === "fr";
-    lines.push(relayWriteText(result.write.language).report, `${messages.relay.export.cwd}: ${result.write.worktree}`,
-      `${fr ? "Branche" : "Branch"}: ${result.write.branch}`, `${fr ? "Fichiers relevés" : "Observed files"}: ${result.write.files.join(", ") || (result.write.diagnostic ? "?" : fr ? "aucun" : "none")}`);
-    for (const command of result.write.commands) lines.push(`${fr ? "Commande observée" : "Observed command"} (code ${command.exitCode ?? "?"}): ${command.command}`, command.output);
-    if (!result.write.commands.length) lines.push(fr ? "Aucun résultat de test établi par une commande observée." : "No test result established by an observed command.");
-    if (result.write.diagnostic) lines.push(relayWriteText(result.write.language).failure(result.write.diagnostic));
+    const text = relayWriteText(result.write.language);
+    lines.push(text.report, `${messages.relay.export.cwd}: ${result.write.worktree}`,
+      text.branch(result.write.branch), text.files(result.write.files, Boolean(result.write.diagnostic)));
+    for (const command of result.write.commands) lines.push(text.command(command), command.output);
+    if (!result.write.commands.length) lines.push(text.noTestEvidence);
+    if (result.write.diagnostic) lines.push(text.failure(result.write.diagnostic));
   }
   return { stdout, stderr: `${lines.map((line) => sanitizeTerminalText(line)).join("\n")}\n` };
 }

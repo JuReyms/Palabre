@@ -95,9 +95,60 @@ Before the model, PALABRE verifies that the Codex profile allows a witness write
 
 JSON and the `.relay.md` export add `write`: folder, branch, starting commit, Git-observed files and diff, and completed commands with exit codes and output. All observed commands are kept within report limits, without claiming they are all tests. `verification: "observed-commands-only"` does not mean "tests passed". A diagnostic marks an incomplete report; interruptions can leave partial work.
 
+`exportPath` gives the exact export location. By default, it is written under `.palabre/` from the directory where you started PALABRE, not inside the worktree; a configured `outputDir` can change this. `approve-write` and `run-write` use the language saved in the request and do not accept `--language`. Keyboard confirmation cannot authenticate a human against a program already holding their rights to `~/.palabre`; teammate sandboxing remains essential.
+
 On Windows, `node --test` may fail with `spawn EPERM`. In the qualified trial, the same test passes with `node --test --experimental-test-isolation=none prices.test.js` (Node 22.17.1). This does not qualify every build; blocked tests never trigger permission changes or automatic installations.
 
 Calls without `--write` and the Mission option keep their behavior. This first release does not resume an existing conversation for writing and covers neither macOS nor OpenCode.
+
+### Retrieve the result
+
+Changed files stay in the worktree identified by `write.worktree`. They are not copied back into your project. They appear on GitHub only after a commit and a push.
+
+PALABRE returns the reply and report to the caller, but never automatically adds them to the sending agent's conversation. The mission lead must read them and report back to you.
+
+The following commands are for the owner, or an agent they authorize separately; the consumed writing approval does not permit commits, pushes or merges.
+
+**1. Review the work.** In PowerShell, replace the three values with `write.repository`, `write.worktree` and `write.branch`:
+
+```powershell
+$project = "C:\projects\example"
+$copy = "C:\path\to\worktree"
+$branch = "palabre/relay-..."
+git -C "$copy" status --short
+git -C "$copy" diff
+```
+
+Also read test exit codes and output in the report. If you accept the work, commit only the intended files. Example for `src/prices.js`:
+
+```powershell
+git -C "$copy" add -- "src/prices.js"
+git -C "$copy" commit -m "Fix the calculation"
+```
+
+**2. Integrate after approval.** To use GitHub, adjust the repository and target branch, then open a PR:
+
+```powershell
+git -C "$copy" push -u origin "$branch"
+gh pr create --repo "owner/project" --head "$branch" --base "main"
+```
+
+The owner decides whether to merge after review. If your project allows a local merge instead, place the main project on the chosen target branch, with no uncommitted changes, then run:
+
+```powershell
+git -C "$project" merge --ff-only "$branch"
+```
+
+If Git refuses, stop and inspect the situation; do not force the merge.
+
+**3. Clean up after integration.** Once the work is integrated and the worktree is clean:
+
+```powershell
+git -C "$project" worktree remove "$copy"
+git -C "$project" branch -d "$branch"
+```
+
+These commands remove the worktree and its local branch. If Git refuses, keep them for inspection; use neither `--force` nor `-D`. Do not delete approval files to retry a task.
 
 The sender is optional: without `--from`, the header says `terminal`. An agent may specify `--from claude`, or `--from claude:<uuid>` if it knows its identifier. It remains declared and unauthenticated; **none of these forms conveys human authorization**. JSON gives `from: null` without a sender, or `{ "agent": "claude" }` for a name only.
 
@@ -353,7 +404,7 @@ PALABRE never resends a message automatically. The delivery status tells you wha
 | 5 | `identity-mismatch` (the reply does not come from the target and is not returned) |
 | 6 | `session-not-found` |
 | 7 | `command-not-found` |
-| 8 | `invalid-request`, with `error.reason`: `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory`, `task-not-allowed`, `invalid-pr`, `review-unavailable`, `review-cli-unsupported` |
+| 8 | `invalid-request`, with `error.reason`: `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory`, `task-not-allowed`, `invalid-pr`, `review-unavailable`, `review-cli-unsupported`, `write-approval-required`, `write-approval-invalid`, `write-unavailable` |
 | 9 | `review-failed`: review publication refused or unconfirmed, reply preserved |
 | 130 | `cancelled` |
 

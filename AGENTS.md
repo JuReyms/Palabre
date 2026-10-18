@@ -817,7 +817,7 @@ Un échec de lancement donne `cli-failure` pour la reprise, et `neutralization-f
 | 5 | `identity-mismatch` | `persisted-no-reply` ou `unknown`. Le texte d'une autre session n'est jamais rendu comme `reply` |
 | 6 | `session-not-found` | `not-delivered` |
 | 7 | `command-not-found` : exécutable de la CLI cible introuvable | `not-delivered` |
-| 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory`, `task-not-allowed`, `invalid-pr`, `review-unavailable`, `review-cli-unsupported` | `not-delivered` |
+| 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory`, `task-not-allowed`, `invalid-pr`, `review-unavailable`, `review-cli-unsupported`, `write-approval-required`, `write-approval-invalid`, `write-unavailable` | `not-delivered` |
 | 9 | `review-failed` : publication de revue non confirmée | délivrance de la réponse de l'équipier conservée, distincte de `task.publication` |
 | 130 | `cancelled` (Ctrl+C) ; avec review seulement si aucun POST tenté | `not-delivered` avant lancement, sinon preuve conservée (dont `replied` si l'équipier avait répondu avant l'annulation de la publication) |
 

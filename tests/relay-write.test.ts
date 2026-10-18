@@ -145,17 +145,20 @@ test('rapport Git indépendant, diff des fichiers suivis et nouveaux, erreurs co
   const broken = await writeReport(w.r, '', async () => result('broken', 1));
   assert.equal(broken.diagnostic, 'git-unavailable');
 });
-test('export d’écriture ne porte pas la notice lecture seule', async () => {
+for (const language of ['fr', 'en'] as const) test('export et rendu d’écriture traduits, sans verdict de tests implicite : ' + language, async () => {
   const w = await world();
-  const report = await writeReport(w.r, '', async (_exe, args) => result(args.includes('rev-parse') ? SHA : ''));
-  const text = renderRelayMarkdown({ from: null, to: { agent: 'codex', session: null, provider: 'codex' }, write: report, status: 'replied', delivery: { status: 'replied', persisted: true, inActiveBranch: true }, identity: null, observedModels: [], nonce: 'test', startedAt: new Date().toISOString(), message: 'task' }, createTranslator('fr'), { palabreVersion: 'test' });
-  assert.match(text, /Écriture autorisée/);
+  const report = { ...await writeReport(w.r, '', async (_exe, args) => result(args.includes('rev-parse') ? SHA : '')), language };
+  const messages = createTranslator(language);
+  const text = renderRelayMarkdown({ from: null, to: { agent: 'codex', session: null, provider: 'codex' }, write: report, status: 'replied', delivery: { status: 'replied', persisted: true, inActiveBranch: true }, identity: null, observedModels: [], nonce: 'test', startedAt: new Date().toISOString(), message: 'task' }, messages, { palabreVersion: 'test' });
+  assert.match(text, language === 'fr' ? /Écriture autorisée/ : /Writing approved/);
   assert.match(text, /observed-commands-only/);
   assert.doesNotMatch(text, /lecture seule renforcée/);
-  const rendered = renderRelayText({ status: 'replied', reply: 'tests passed', write: { ...report, commands: [{ command: 'node --test', exitCode: 1, status: 'failed', output: 'spawn EPERM' }] } } as Parameters<typeof renderRelayText>[0], createTranslator('fr'));
+  assert.doesNotMatch(text, /reinforced read.only/);
+  const rendered = renderRelayText({ status: 'replied', reply: 'tests passed', created: true, to: {agent:'codex',session:'0199aaaa-bbbb-7ccc-8ddd-eeeeeeeeeeee'}, write: { ...report, commands: [{ command: 'node --test', exitCode: 1, status: 'failed', output: 'spawn EPERM' }] } } as Parameters<typeof renderRelayText>[0], messages);
   assert.match(rendered.stderr, /code 1/);
   assert.match(rendered.stderr, /spawn EPERM/);
-  assert.match(rendered.stderr, /aucun succès de test déduit/);
+  assert.match(rendered.stderr, language === 'fr' ? /aucun succès de test déduit/ : /no test success inferred/);
+  assert.match(rendered.stderr, language === 'fr' ? /continue en lecture seule/ : /continues read-only/);
 });
 test('rapport signale les sorties tronquées et refuse un nouveau fichier derrière une jonction extérieure', async () => {
   const w = await world();

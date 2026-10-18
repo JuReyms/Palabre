@@ -95,9 +95,60 @@ Avant le modèle, PALABRE vérifie que le profil Codex autorise une écriture t�
 
 Le JSON et l'export `.relay.md` ajoutent `write` : dossier, branche, commit de départ, fichiers et diff relevés par Git, commandes terminées avec leurs codes et sorties. Toutes les commandes observées sont conservées dans les bornes du rapport, sans prétendre qu'elles sont toutes des tests. `verification: "observed-commands-only"` ne signifie pas « tests réussis ». Un diagnostic indique un rapport incomplet ; une interruption peut laisser du travail partiel.
 
+Le chemin exact de l'export est donné par `exportPath`. Par défaut, il est écrit dans `.palabre/` depuis le dossier où vous avez lancé PALABRE, pas dans le worktree ; un `outputDir` configuré peut le déplacer. `approve-write` et `run-write` utilisent la langue enregistrée dans la demande et n'acceptent pas `--language`. La confirmation au clavier n'authentifie pas l'humain face à un programme ayant déjà ses droits sur `~/.palabre` ; le confinement de l'équipier reste indispensable.
+
 Sous Windows, `node --test` peut échouer avec `spawn EPERM`. Lors de l'essai qualifié, le même test réussit avec `node --test --experimental-test-isolation=none prix.test.js` (Node 22.17.1). Cela ne qualifie pas tous les builds ; aucun changement de permissions ni installation automatique ne résout un test bloqué.
 
 Les appels sans `--write` et l'option Mission gardent leur fonctionnement. Ce premier lot ne reprend pas une conversation existante en écriture et ne couvre ni macOS ni OpenCode.
+
+### Récupérer le résultat
+
+Les fichiers modifiés restent dans le worktree indiqué par `write.worktree`. Ils ne sont pas recopiés dans votre projet. Ils apparaissent sur GitHub seulement après un commit et un push.
+
+PALABRE rend la réponse et le compte rendu à l'appelant, mais ne les ajoute jamais automatiquement à la conversation de l'agent expéditeur. Le chef de mission doit les lire et vous en rendre compte.
+
+Les commandes suivantes sont destinées au propriétaire, ou à un agent qu'il autorise séparément ; l'accord d'écriture consommé ne permet pas de committer, pousser ou fusionner.
+
+**1. Relire le travail.** Dans votre PowerShell, remplacez les trois valeurs par `write.repository`, `write.worktree` et `write.branch` :
+
+```powershell
+$projet = "C:\projets\exemple"
+$copie = "C:\chemin\du\worktree"
+$branche = "palabre/relay-..."
+git -C "$copie" status --short
+git -C "$copie" diff
+```
+
+Relisez aussi les codes et sorties des tests dans le compte rendu. Si le travail vous convient, enregistrez uniquement les fichiers voulus. Exemple pour `src/prix.js` :
+
+```powershell
+git -C "$copie" add -- "src/prix.js"
+git -C "$copie" commit -m "Corriger le calcul"
+```
+
+**2. Intégrer après validation.** Pour passer par GitHub, adaptez le dépôt et la branche cible, puis ouvrez une PR :
+
+```powershell
+git -C "$copie" push -u origin "$branche"
+gh pr create --repo "proprietaire/projet" --head "$branche" --base "main"
+```
+
+Le propriétaire décide de la fusion après revue. Si votre projet autorise plutôt une fusion locale, placez le projet principal sur la branche cible choisie, sans changement non commité, puis lancez :
+
+```powershell
+git -C "$projet" merge --ff-only "$branche"
+```
+
+Si Git refuse, arrêtez-vous et examinez la situation ; ne forcez pas la fusion.
+
+**3. Ranger après intégration.** Une fois le travail intégré et le worktree propre :
+
+```powershell
+git -C "$projet" worktree remove "$copie"
+git -C "$projet" branch -d "$branche"
+```
+
+Ces commandes retirent le worktree et sa branche locale. Si Git refuse, gardez-les pour examen ; n'utilisez ni `--force` ni `-D`. Ne supprimez pas les fichiers d'accord pour réessayer une tâche.
 
 L'expéditeur est facultatif : sans `--from`, l'en-tête indique `terminal`. Un agent peut préciser `--from claude`, ou `--from claude:<uuid>` s'il connaît son identifiant. Il reste déclaré et non authentifié ; **aucune de ces formes ne transmet une autorisation humaine**. Le JSON donne `from: null` sans expéditeur, ou `{ "agent": "claude" }` pour un nom seul.
 
@@ -353,7 +404,7 @@ PALABRE ne renvoie jamais un message automatiquement. Le statut de délivrance i
 | 5 | `identity-mismatch` (la réponse ne vient pas de la cible et n'est pas rendue) |
 | 6 | `session-not-found` |
 | 7 | `command-not-found` |
-| 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory`, `task-not-allowed`, `invalid-pr`, `review-unavailable`, `review-cli-unsupported` |
+| 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory`, `task-not-allowed`, `invalid-pr`, `review-unavailable`, `review-cli-unsupported`, `write-approval-required`, `write-approval-invalid`, `write-unavailable` |
 | 9 | `review-failed` : publication de revue refusée ou non confirmée, réponse conservée |
 | 130 | `cancelled` |
 

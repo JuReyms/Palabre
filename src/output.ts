@@ -6,6 +6,7 @@ import type { Messages } from "./messages/index.js";
 import type { ReadAccessDiagnostic } from "./externalSessions/types.js";
 import type { DebateFailure, DebateMessage, DebateOptions, DebateSummary } from "./types.js";
 import { getPackageVersion } from "./version.js";
+import { relayWriteText } from "./messages/relayWrite.js";
 
 interface ReportMetadata {
   palabreVersion: string;
@@ -285,7 +286,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     "| --- | --- |",
     ...rows.map(([label, value]) => `| ${escapeTableCell(label!)} | ${escapeTableCell(value!)} |`),
     "",
-    `> ${report.write ? report.write.language === "fr" ? "Écriture autorisée pour cette tâche, en dossier séparé. Commandes observées : aucun succès de test déduit du texte du modèle." : "Writing approved for this task in a separate folder. Observed commands: no test success inferred from model prose." : report.open ? labels.openNotice : labels.readOnlyNotice}`,
+    `> ${report.write ? relayWriteText(report.write.language).exportNotice : report.open ? labels.openNotice : labels.readOnlyNotice}`,
     "",
     `## ${labels.message}`,
     "",
@@ -294,6 +295,6 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     ...(report.reply !== undefined ? [`## ${labels.reply}`, "", report.reply, ""] : []),
     ...(report.error !== undefined ? [`## ${labels.error}`, "", report.error, ""] : [])
   ];
-  if(report.write) content.push(report.write.language === "fr" ? "## Dossier séparé et commandes observées" : "## Separate folder and observed commands", "", "````json", JSON.stringify(report.write,null,2), "````", "");
+  if (report.write) content.push(`## ${relayWriteText(report.write.language).exportHeading}`, "", "````json", JSON.stringify(report.write, null, 2), "````", "");
   return normalizeMarkdownForWindowsPreview(content.join("\n"));
 }

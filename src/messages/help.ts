@@ -267,6 +267,7 @@ Limites :
   Le propriétaire lance approve-write dans un terminal visible (entrée ET sortie TTY), relit tâche,
   agent, projet, commit et dossier, puis confirme au clavier. Aucun --yes ; l'agent ne confirme jamais.
   run-write consomme cet accord pour un seul appel, même en échec. Aucun rejeu automatique.
+  approve-write/run-write gardent la langue de la demande ; aucun --language sur ces commandes.
   Le worktree part du commit annoncé : changements non commités et dépendances locales non inclus.
   Travail conservé. Confinement vérifié avant modèle : réseau des commandes coupé, aucune escalade,
   MCP/plugins/hooks neutralisés. Pas de commit/push/merge, installation ni réglage utilisateur.
@@ -628,6 +629,7 @@ Limits:
   The owner runs approve-write in a visible terminal (both input and output TTY), checks task, agent,
   project, commit and folder, then confirms at the keyboard. No --yes; the agent must never confirm.
   run-write consumes approval for one call, even on failure. No automatic retry.
+  approve-write/run-write keep the request language; no --language on those commands.
   The worktree starts from the announced commit: uncommitted changes and local dependencies are excluded.
   Work is kept. Sandbox verified before model: command network disabled, no escalation, MCP/plugins/hooks neutralized.
   No commit/push/merge, installation or user settings changes. Windows only; native Claude refused.
