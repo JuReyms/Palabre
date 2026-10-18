@@ -22,22 +22,41 @@ palabre doctor --terminal
 
 ## Codex sous Windows : erreur 5 malgré la lecture seule
 
-**Ce qui se passe :** sans `--open`, Codex ne peut pas lancer ses commandes de lecture. PALABRE conserve sa réponse mais rend `read-unavailable` (2) ; avec review, rien n’est publié.
+**Ce qui se passe :** Codex ne peut pas démarrer une commande de lecture (`CreateProcessAsUserW failed: 5`). PALABRE conserve sa réponse mais rend `read-unavailable` (2) ; avec review, aucune revue n'est publiée.
 
-**Cause probable :** l’alias Microsoft Store `WindowsApps\pwsh.exe`. **Prochaine étape :** suivre [#128](https://github.com/JuReyms/Palabre/issues/128) ; aucune solution validée pour l’instant. Ne renvoyez pas le message et n’élargissez pas les permissions.
+**Cause confirmée sur la machine testée :** l'alias PowerShell du Microsoft Store, `WindowsApps\pwsh.exe`. Sous la même politique `:read-only`, cet alias échoue, PowerShell natif lit le fichier, et les écritures restent refusées.
+
+### Ce que PALABRE fait automatiquement
+
+Pour Relay fermé, `--new`, Mission et la tâche review vers Codex, PALABRE examine le shell prioritaire. Sous Windows, il écarte de son **seul processus enfant** le dossier `WindowsApps` si son `pwsh.exe` est un alias d'exécution confirmé et qu'un PowerShell natif reste disponible. Un vrai PowerShell déjà prioritaire n'entraîne aucun changement. Une vérification impossible ou un repli incertain laisse le PATH inchangé.
+
+Aucun réglage utilisateur, PATH global ou droit d'écriture n'est modifié. Le diagnostic `read-unavailable` reste actif si une lecture est bloquée. Ni renvoi automatique ni changement de bac à sable. `--open` garde le comportement de la conversation Desktop et n'utilise pas ce correctif.
+
+**Limite :** les autres alias présents dans le dossier écarté (par exemple Python ou Windows Terminal) ne sont plus trouvés par leur nom via ce dossier, pour cet enfant seulement. PALABRE résout la CLI Codex avant ce filtrage ; son propre terminal, les commandes GitHub et les autres agents conservent leur environnement. Cela ne règle pas toutes les causes possibles d'erreur 5.
+
+### Option pour le propriétaire : installer PowerShell 7 hors Store
+
+Ce n'est pas obligatoire : Windows PowerShell natif peut suffire au correctif. Si vous préférez PowerShell 7, la [documentation Microsoft](https://learn.microsoft.com/en-us/powershell/scripting/install/install-powershell-on-windows) propose cette commande pour choisir le paquet **MSI**, s'il est disponible :
+
+```powershell
+winget install --id Microsoft.PowerShell --source winget --installer-type wix
+```
+
+Le choix MSI est important : `--source winget` seul peut installer un paquet MSIX. Si le paquet MSI n'est pas proposé, utilisez les instructions MSI ou ZIP de Microsoft. PALABRE n'installe rien à votre place. Rouvrez le terminal et l'application après installation ; vérifiez le chemin proposé avec :
+
+```powershell
+Get-Command pwsh -All | Select-Object Source
+```
+
+Le chemin natif est généralement `C:\Program Files\PowerShell\7\pwsh.exe`. S'il reste un blocage, conservez le résultat et consultez [#128](https://github.com/JuReyms/Palabre/issues/128) avant de décider d'un nouvel envoi. N'élargissez pas les permissions.
 
 ### Détails techniques
 
+L'alias est reconnu par son tag `AppExecLink` (`0x8000001b`), lu avec `fsutil` natif sans lancer l'alias. Son entrée est inspectée sans suivre sa cible : Node peut renvoyer `existsSync=false` pour un alias pourtant présent. Seul le dossier de cet alias est retiré, doublons compris ; les autres entrées gardent leur ordre. La sonde locale est bornée à 3 secondes et 8 Kio.
 
-`CreateProcessAsUserW failed: 5` signifie ici que Codex n'a pas pu démarrer une commande, même pour lire. Sur la machine testée avec Codex 0.163.0, la même lecture sous `:read-only` réussit avec PowerShell natif Windows et échoue avec l'alias `WindowsApps\pwsh.exe`. Il faut donc vérifier le shell choisi, sans conclure que toute la sandbox `unelevated` est inutilisable.
+Le [code de sélection de Codex 0.163.0](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/shell-command/src/shell_detect.rs) cherche `pwsh` avant `powershell`. `[windows] shell_path` n'est pas dans son [schéma officiel](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/core/config.schema.json) : ne l'ajoutez pas comme correctif. Un passage à `elevated` reste une décision distincte du propriétaire, non nécessaire à l'essai réussi ici.
 
-**Pas de solution connue et validée à ce jour pour forcer PowerShell natif dans ce parcours Relay avec Codex 0.163.0 ; suivi dans [#128](https://github.com/JuReyms/Palabre/issues/128).** Le propriétaire peut suivre cette issue ; aucun changement de configuration n'est demandé pour l'instant.
-
-`[windows] shell_path` figurait déjà dans la configuration de la machine testée, avec le chemin de PowerShell natif, mais Codex avait lancé l'alias Microsoft Store. Ce paramètre est absent du [schéma officiel de Codex 0.163.0](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/core/config.schema.json) : ne le présentez pas comme un réglage pris en charge. Le [code de sélection du shell de cette version](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/shell-command/src/shell_detect.rs) cherche `pwsh` avant `powershell`. La lecture réussie avec un exécutable explicitement choisi ne démontre pas comment imposer ce choix à toutes les commandes d'une session reprise.
-
-PALABRE ne modifie ni le choix du shell ni la sécurité de la machine. Ne passez pas en accès écriture ou sans restriction pour contourner cet échec. Un passage à `elevated` reste une décision distincte du propriétaire, pas une solution démontrée par ces essais.
-
-Relay conserve la réponse, mais signale `read-unavailable`/2 si cette erreur est observée dans les événements de commande Codex. Mission se met en pause ; la tâche review ne publie pas la revue (`review-failed`/9, `not-attempted`). Ne renvoyez pas automatiquement le message. Voir les preuves, limites et champs JSON dans le [guide Relay](/fr/usage/relay).
+La preuve porte sur Windows et Codex 0.163.0 : un fichier fictif illisible avant le correctif est lu après, via `relay --new`, sans changer la politique de lecture seule. Les autres versions et environnements restent à vérifier. Mission et review passent par le même échange fournisseur ; leurs protections et l'interdiction de publier une revue à l'aveugle restent inchangées.
 
 ## Palabre ne trouve pas ma configuration
 

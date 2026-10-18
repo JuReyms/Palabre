@@ -4,6 +4,11 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Fixed
+
+- Relay, Mission et review vers Codex sous Windows : un alias PowerShell Store confirmé est écarté du seul processus enfant lorsqu'un PowerShell natif reste disponible. La lecture seule et les réglages utilisateur restent inchangés ; les autres alias du dossier écarté sont indisponibles à cet enfant (Refs #128). Aide, guides fr/en et skill actualisés ; la copie installée du skill n'est pas mise à jour automatiquement.
+
+
 ### Added
 - Relay : `--new --to <agent>` crée une conversation Claude Code ou Codex persistante en lecture seule ; `--dir` choisit son dossier. L'identifiant est rendu avec une commande de continuation, en JSON et dans l'export, même si le premier tour échoue (Refs #149, #150).
 

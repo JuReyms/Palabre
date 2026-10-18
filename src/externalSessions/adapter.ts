@@ -12,6 +12,7 @@
  * restent calculées par `outcome.ts`, identiques pour tous les fournisseurs.
  */
 import { launchOutcome, refusalOutcome, type PreLaunchRefusal } from "./outcome.js";
+import { utf8ChildProcessEnv } from "../adapters/cli-shared.js";
 import { runExternalProcess, type ExternalProcessResult } from "./process.js";
 import type {
   CertainRefusal,
@@ -74,6 +75,8 @@ export type PreparationResult =
 /** Contrat commun des adapters de session externe. */
 export interface ExternalSessionAdapter {
   readonly provider: ExternalProvider;
+  /** Environnement propre au fournisseur, sans mutation de l'environnement de l'hôte. */
+  environment?(source: NodeJS.ProcessEnv): Promise<NodeJS.ProcessEnv>;
   /** Retrouve l'historique de la session et son dossier de travail. */
   locate(ref: SessionRef): LocateResult;
   /** Sonde l'attachement de la cible ; seul `attachment` fonde la décision (`assessTarget`). */
@@ -127,6 +130,7 @@ export async function exchange(
     onCreatedSession?: (id: string) => void;
   }
 ): Promise<ExchangeResult> {
+  const env = adapter.environment ? await adapter.environment(options.env ?? utf8ChildProcessEnv()) : options.env;
   const launch = (args: readonly string[], stdin: string, limits: { timeoutMs: number; maxOutputBytes?: number }, onStdoutLine?: (line: string) => void) =>
     runExternalProcess({
       command: executable.command,
@@ -136,7 +140,7 @@ export async function exchange(
       timeoutMs: limits.timeoutMs,
       maxOutputBytes: limits.maxOutputBytes,
       signal: options.signal,
-      env: options.env,
+      env,
       onStdoutLine
     });
 
