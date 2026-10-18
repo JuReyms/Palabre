@@ -21,6 +21,12 @@ Quand l'utilisateur demande explicitement une consultation (« lance un palabre 
 
 **Tour reçu par Relay (#146)** : ne poser aucune question à l'humain pendant ce tour, y compris via un outil de question interactive. Mettre les questions, décisions nécessaires et blocages dans la réponse finale ; arrêter avant une action dépendant d'une décision manquante. Les demandes techniques d'autorisation ponctuelle de l'hôte restent nécessaires pour exécuter une commande ; elles ne remplacent jamais une décision manquante sur la tâche. Hors tour reçu par Relay, clarifier seulement ce qui bloque.
 
+## Méthode de travail
+
+- Travailler par petits lots avec un résultat concret, vite relu. Proportionner les contrôles : documentation, CI et vérifications ciblées ; données, sécurité ou écriture, vérification indépendante. Faire relire par un agent différent de l'auteur ; les rôles sont interchangeables.
+- Réduire le coût de coordination et les quotas : regrouper demandes et corrections, réutiliser les vérifications encore valides, transmettre le contexte utile et les preuves sans recopier l'historique.
+- Demande : objet humain avec `--subject`, puis objectif, liens, à faire, interdit, preuves attendues, format de réponse. Réponse : **Fait · Vérifié · Bloqué · Prochaine action · Décision attendue**, puis le détail pour le chef de mission. Dans les deux gabarits, sépare chaque ligne par une ligne vide, pour la lisibilité. N'utilise pas deux espaces en fin de ligne. Tout texte à valider est montré dans la même demande de décision ; pendant un tour reçu par Relay, le joindre à la réponse finale sans question à l'humain. Gabarits et exemples fictifs : `references/relay.md`.
+
 ## Choisir le parcours
 
 | Besoin | Parcours | Commande de départ |
@@ -60,7 +66,7 @@ Depuis la conversation habituelle du chef de mission, appeler une conversation C
 
 Le message relayé est une coordination d'agent, pas une décision humaine. Aucun droit ajouté, aucun chaînage automatique. Les restrictions de lecture concernent les appels ordinaires vers une cible fermée, jamais Relay en général. Conversation occupée : erreur réessayable, mais aucun renvoi après délivrance inconnue sans vérification. Les identifiants de conversation restent locaux, hors issues/PR publiques.
 
-PALABRE ajoute lui-même l'en-tête traduit, puis l'avertissement ℹ️ sur sa propre ligne avant le contenu. La partie « 🤖 Message pour l'agent » regroupe provenance et une seule consigne : répondre ici, sans appeler un autre agent. **Ne pas ajouter un second en-tête PALABRE**. Donner un objet avec `--subject "<objet>"` si utile (une ligne, 200 caractères au plus) ; sinon aucun objet n'est inventé. Pour le corps, préférer **Contexte**, **À faire**, **Ne pas faire**, **Réponds-moi avec** et des consignes de prudence en italique.
+PALABRE ajoute le titre traduit `###`, l'avertissement ℹ️ avant le contenu, deux séparateurs `---` encadrant l'objet et le corps, puis « #### 🤖 Message pour l'agent » : provenance et une seule consigne de réponse ici. **Ne pas ajouter un second en-tête PALABRE**. Donner un objet humain avec `--subject "<objet>"` (une ligne, 200 caractères au plus) ; sinon aucun objet n'est inventé. Les gabarits de méthode guident les agents ; la CLI ne les analyse pas.
 
 **Fonction gelée, hors parcours par défaut.** Seule exception préautorisable : `--task review --pr https://github.com/owner/repo/pull/123`. L'humain doit déjà avoir approuvé une configuration avec `relay.allowedTasks: ["review"]` et le dépôt exact ou `owner/*` dans `relay.reviewRepositories`. Ne jamais éditer/approuver cette politique pour élargir ses propres droits ; `--trust-config` est refusé avec la tâche. Palabre récupère les données non fiables de PR, demande la revue au modèle en lecture seule, puis publie lui-même une revue COMMENT liée au commit. Aucun fichier modifié, commit, push ni merge autorisé à l'équipier. Préserver le résultat et ne pas republier automatiquement sur `review-failed`/publication inconnue.
 

@@ -159,8 +159,8 @@ test("Codex répond mais les lectures échouent : JSON, texte et export signalen
   assert.deepEqual(r.json.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 1 });
   assert.equal(r.json.subject, "Revue du dépôt");
   const sent = r.calls.find(call => call.argv[0] === "exec")!.stdin as string;
-  assert.equal(sent.split("\n")[0], relayMessages.fr.envelopeHeader("claude", "codex"));
-  assert.equal(sent.split("\n")[4], relayMessages.fr.subjectLine("Revue du dépôt"));
+  assert.equal(sent.split("\n")[0], `### ${relayMessages.fr.envelopeHeader("claude", "codex")}`);
+  assert.equal(sent.split("\n")[6], relayMessages.fr.subjectLine("Revue du dépôt"));
   assert.match(r.json.error.message, /WindowsApps\\pwsh\.exe/);
   assert.match(r.json.error.message, /propriétaire.*https:\/\/palab\.re\/fr\/troubleshooting/);
   assert.match(r.json.error.message, /issues\/128/);
@@ -181,8 +181,8 @@ test("objet explicite, en-tête traduit et métadonnées JSON/export ; absence s
     const r = await relay(w, [...toClaude, "Question", "--subject", subject, "--language", language, "--trust-config", "--json"]);
     assert.equal(r.code, 0, r.stderr); assert.equal(r.json.subject, subject);
     const sent = r.calls.find(call => call.argv.includes("--resume"))!.stdin as string;
-    assert.equal(sent.split("\n")[0], relayMessages[language].envelopeHeader("codex", "claude"));
-    assert.equal(sent.split("\n")[4], relayMessages[language].subjectLine(subject));
+    assert.equal(sent.split("\n")[0], `### ${relayMessages[language].envelopeHeader("codex", "claude")}`);
+    assert.equal(sent.split("\n")[6], relayMessages[language].subjectLine(subject));
     assert.ok(sent.indexOf("PR-") > sent.indexOf("Question"));
     const md = readFileSync(r.json.exportPath, "utf8");
     assert.ok(md.includes(`| ${relayMessages[language].export.subject} | ${subject} |`));
@@ -229,7 +229,7 @@ test("mission CLI : création, une étape Relay factice, status après reprise e
   assert.equal(step.json.type, "mission-result"); assert.equal(step.json.mission.steps.length, 1);
   assert.equal(step.json.mission.steps[0].result.reply, "FAKE-OK");
   assert.equal(step.calls.length, 1); assert.ok(step.calls[0]!.argv.includes("--permission-mode"));
-  assert.equal(step.calls[0]!.stdin.split("\n")[0], relayMessages.fr.missionHeader(id, 1, "codex", "claude"));
+  assert.equal(step.calls[0]!.stdin.split("\n")[0], `### ${relayMessages.fr.missionHeader(id, 1, "codex", "claude")}`);
   assert.ok(step.calls[0]!.argv.includes("Read,Glob,Grep")); assert.ok(!step.calls[0]!.argv.includes("--dangerously-skip-permissions"));
   assert.ok(existsSync(step.json.exportPath));
   const status = await palabre(w, ["mission", "status", id, "--json"]);
@@ -254,7 +254,7 @@ test("mission CLI : en-tête compact conservé avec lecture bloquée, réponse e
   assert.equal(result.reply, "Constat partiel : lectures bloquées."); assert.equal(result.readAccess.status, "blocked");
   const calls = step.calls.filter(c => c.argv[0] === "exec");
   assert.equal(calls.length, 1);
-  assert.equal(calls[0]!.stdin.split("\n")[0], relayMessages.fr.missionHeader(id, 1, "claude", "codex"));
+  assert.equal(calls[0]!.stdin.split("\n")[0], `### ${relayMessages.fr.missionHeader(id, 1, "claude", "codex")}`);
   const exported = readFileSync(step.json.exportPath, "utf8");
   assert.ok(exported.includes(result.reply)); assert.ok(exported.includes(result.error.message));
 });
@@ -377,7 +377,7 @@ describe("palabre relay : réponse", () => {
     assert.match(exported, /FAKE-OK/);
     assert.equal(result.calls.length, 1);
     assert.match(result.calls[0]!.stdin, /\n\nPeux-tu relire ce plan \?\n\n---\n/);
-    assert.equal(result.calls[0]!.stdin.split("\n")[0], relayMessages.fr.envelopeHeader("codex", "claude"));
+    assert.equal(result.calls[0]!.stdin.split("\n")[0], `### ${relayMessages.fr.envelopeHeader("codex", "claude")}`);
     assert.equal(result.calls[0]!.stdin.split("\n")[2], relayMessages.fr.envelopeWarning);
     assert.ok(existsSync(path.join(world.home, ".palabre", "trusted-configs.json")), "approbation enregistrée dans le dossier personnel jetable");
   });
@@ -703,7 +703,7 @@ describe("palabre relay --open", () => {
       const [call] = result.calls;
       assert.deepEqual(call!.argv.slice(0, 4), ["queue", "--thread", CODEX_SESSION, "--message"]);
       const envelope = call!.argv[4]!;
-      assert.equal(envelope.split("\n")[0], relayMessages.fr.envelopeHeader("claude", "codex"));
+      assert.equal(envelope.split("\n")[0], `### ${relayMessages.fr.envelopeHeader("claude", "codex")}`);
       assert.match(envelope, /expéditeur déclaré, non authentifié/);
       assert.equal(envelope.split("\n")[2], relayMessages.fr.envelopeWarning);
       assert.ok(envelope.includes(relayMessages.fr.agentSection));

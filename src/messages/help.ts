@@ -242,8 +242,8 @@ Flags:
 Limites :
   Codex desktop chef de mission : autoriser chaque commande vers Claude hors du bac à sable,
   cette fois seulement, sans règle durable. --write reste hors parcours par défaut.
-  PALABRE ajoute l'en-tête expéditeur → destinataire, puis l'avertissement ℹ️ sur sa propre ligne
-  avant le contenu. La partie « 🤖 Message pour l'agent » regroupe provenance et consigne de réponse en bas.
+  PALABRE ajoute le titre expéditeur → destinataire (###), puis l'avertissement ℹ️ avant le contenu.
+  L'objet et le corps sont entre deux séparateurs --- ; « 🤖 Message pour l'agent » (####) regroupe provenance et consigne en bas.
   Une seule réponse ici, sans appeler un autre agent. Ne pas ajouter un second en-tête PALABRE.
   Avec --open, usage_limit_exceeded du tour corrélé donne usage-limit (code 2), pas cli-failure.
   La reprise CLI reconnue figure dans le message, retryAfter (JSON) et l'export ;
@@ -613,8 +613,8 @@ Flags:
 Limits:
   Codex desktop as mission lead: approve each command to Claude outside the sandbox,
   this time only, with no lasting rule. --write stays outside the default path.
-  PALABRE adds the sender → recipient header, then the ℹ️ warning on its own line before the content.
-  The final « 🤖 Message for the agent » section groups provenance and reply instructions.
+  PALABRE adds the sender → recipient heading (###), then the ℹ️ warning before the content.
+  The subject and body sit between two --- separators; the final « 🤖 Message for the agent » section (####) groups provenance and reply instructions.
   Reply here once, without calling another agent. Do not add a second PALABRE header.
   With --open, usage_limit_exceeded in the correlated turn gives usage-limit (exit 2), not cli-failure.
   A recognized CLI retry indication appears in the message, retryAfter (JSON) and export;

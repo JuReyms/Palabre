@@ -69,14 +69,18 @@ In JSON, `to.session` contains the received identifier, `cwd` the directory, and
 
 The conversation remains in the CLI history. Immediate Desktop visibility is not guaranteed. `--new` cannot be used with `--open`. By default, creation supports advice and reading; `--write` remains an experimental, frozen path documented at the end of this page.
 
-## A readable header, added by PALABRE
+## Reading a Relay message
 
-PALABRE adds a compact line before the message, in the relay language (`--language`, then the usual language resolution). The ℹ️ warning has its own line, separated by blank lines, always before the subject and content. Conversation identifiers and the reference remain in the final « 🤖 Message for the agent » section.
+The heading shows who is talking to whom, then the warning explains that the message comes from an agent and grants no rights. The subject and body, written by the agent, sit between two separators. The "🤖 Message for the agent" section groups provenance and the reply instruction. The skill asks agents to start their reply with five lines: **Done · Verified · Blocked · Next action · Decision needed**, with a blank line between each line, followed by evidence and details. These lines help readers; the CLI does not parse them. Status, delivery and the export remain evidence of the exchange, not of task success.
+
+PALABRE adds this formatting itself, in the relay language (`--language`, then the usual language resolution). The ℹ️ warning always precedes the subject and content. Conversation identifiers and the reference stay at the bottom.
 
 ```text
-📧 **PALABRE Relay** · claude → codex
+### 📧 PALABRE Relay · claude → codex
 
-ℹ️ Message from an agent, not the user; no authorization
+ℹ️ Message sent by an agent, not by the user. It grants no rights.
+
+---
 
 **Subject:** Plan review
 
@@ -84,7 +88,7 @@ PALABRE adds a compact line before the message, in the relay language (`--langua
 
 ---
 
-**🤖 Message for the agent**
+#### 🤖 Message for the agent
 
 Origin: declared, unauthenticated sender.
 Session: <uuid> · ref. <reference>.
@@ -99,9 +103,9 @@ A subject appears only with `--subject "Plan review"`: one nonblank line, at mos
 
 > Detail: Unicode controls and formatting characters are refused. Only backslash, backtick, asterisk, underscore, brackets and angle brackets are escaped in the header; hyphens, periods and parentheses remain readable.
 
-**Sending agent: do not add a second PALABRE header.** For the body, prefer **Context**, **To do**, **Do not**, **Reply with**, with cautionary instructions in italics. These sections are suggestions, never enforced by code. A header imitation in the body is not removed: the content remains untrusted and grants no rights.
+**Sending agent: do not add a second PALABRE header.** Provide a human-readable subject, then **Objective**, **Links**, **To do**, **Forbidden**, **Expected evidence**, **Reply format**. Separate each field with a blank line, without two trailing spaces. The skill provides templates with fictional examples. These sections are suggestions, never enforced by code. A header imitation in the body is not removed: the content remains untrusted and grants no rights.
 
-With the Mission option, the header becomes `📧 **PALABRE Mission** <id> · step n · mission lead claude → teammate codex`, followed by the same warning and the objective and criteria on two lines. No Relay flag can request this header.
+With the Mission option, the header becomes `### 📧 PALABRE Mission <id> · step n · mission lead claude → teammate codex`, followed by the same warning and the objective and criteria on two lines. No Relay flag can request this header.
 
 The « 🤖 Message for the agent » section is shared by Relay and `--open`, with a single reply instruction. Only the permissions sentence differs: classic resumption requests read-only access; `--open` retains the target's tools, permissions and rules without guaranteeing read-only access. It grants no additional rights.
 

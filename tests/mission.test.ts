@@ -86,7 +86,7 @@ test("en-tête Mission interne, cadre sans identifiant redondant et numéro d'é
     assert.ok(!body.includes(w.mission.id)); assert.ok(body.includes(w.mission.objective));
     const envelope = buildEnvelope({ from: { agent: "codex", sessionId: FROM.split(":")[1]! },
       to: { agent: "claude", sessionId: TO.split(":")[1]! }, nonce: "PR-0000000000000000", message: body, header: options!.header }, relayMessages.fr);
-    assert.equal(envelope.split("\n")[0], relayMessages.fr.missionHeader(w.mission.id, number, "codex", "claude"));
+    assert.equal(envelope.split("\n")[0], `### ${relayMessages.fr.missionHeader(w.mission.id, number, "codex", "claude")}`);
     return replied();
   } };
   await stepMission(w.workspace, w.mission.id, { task: "consult", message: "Étape 1" }, deps);
