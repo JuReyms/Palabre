@@ -22,6 +22,18 @@ Vous pouvez confier du travail en arrière-plan depuis Desktop comme depuis un t
 
 Si Codex est chef de mission, son environnement peut vous demander d'autoriser l'appel réseau vers Claude Code. Cette autorisation ne remplace jamais l'accord pour écrire.
 
+## Les mots de Relay
+
+- **Chef de mission** : l'agent à qui vous parlez. Il confie la tâche et vous rend compte.
+- **Équipier** : l'agent qui reçoit la tâche.
+- **Conversation ouverte** : une conversation affichée en ce moment, dans Codex desktop ou dans un terminal. L'équipier y travaille avec ses réglages habituels, comme si vous lui écriviez vous-même.
+- **Conversation fermée** : une conversation déjà existante, mais qu'aucune fenêtre n'affiche. PALABRE la rouvre le temps d'un échange, puis la referme.
+- **Arrière-plan** : l'équipier travaille sans fenêtre. PALABRE le lance pour une seule tâche, attend sa réponse, puis s'arrête.
+- **Identifiant de conversation** : le numéro qui désigne une conversation précise. Gardez-le pour continuer avec le même équipier.
+- **Délivrance** : savoir si le message est bien arrivé. Un message arrivé ne veut pas dire tâche réussie.
+- **Accord ponctuel** : votre confirmation au clavier pour une seule tâche d'écriture. Elle ne sert qu'une fois.
+- **Worktree** : une copie séparée de votre projet, où l'équipier peut modifier des fichiers sans toucher à l'original.
+
 ## Préparer une fois
 
 Installez [PALABRE](/fr/get-started/installation), Claude Code et Codex, puis connectez les agents avec leurs outils habituels. Dans le dossier du projet, lancez `palabre init` si aucune configuration n'existe, puis vérifiez :
@@ -91,7 +103,7 @@ Pour un avis sans modification, un seul appel suffit, vers Claude Code ou Codex 
 palabre relay --new --to claude "Relis le plan et signale les risques, sans modifier de fichier."
 ```
 
-Pour viser une conversation déjà ouverte avec `--open`, suivez le [guide Relay complet](/fr/usage/relay#conversation-codex-ouverte---open).
+Pour viser une conversation déjà ouverte avec `--open`, suivez le [guide Relay complet](/fr/usage/relay#conversation-codex-ouverte-open).
 
 ## Bon à savoir
 

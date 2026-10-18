@@ -22,6 +22,18 @@ You can delegate background work from Desktop or a terminal. For advice or a rev
 
 If Codex is the mission lead, its environment may ask you to authorize the network call to Claude Code. This authorization never replaces writing approval.
 
+## Relay vocabulary
+
+- **Mission lead**: the agent you talk to. It delegates the task and reports back to you.
+- **Teammate**: the agent receiving the task.
+- **Open conversation**: a conversation currently displayed in Codex desktop or in a terminal. The teammate works there with its usual settings, as if you were writing to it yourself.
+- **Closed conversation**: an existing conversation that no window is displaying. PALABRE reopens it for one exchange, then closes it.
+- **Background**: the teammate works without a window. PALABRE launches it for a single task, waits for its reply, then stops.
+- **Conversation identifier**: the number identifying a specific conversation. Keep it to continue with the same teammate.
+- **Delivery**: knowing whether the message arrived. A delivered message does not mean the task succeeded.
+- **One-time approval**: your keyboard confirmation for a single writing task. It can only be used once.
+- **Worktree**: a separate copy of your project where the teammate can modify files without changing the original.
+
 ## Prepare once
 
 Install [PALABRE](/en/get-started/installation), Claude Code and Codex, then sign in to the agents with their usual tools. In the project folder, run `palabre init` if no configuration exists, then check:
@@ -91,7 +103,7 @@ For advice without changes, one call is enough, to Claude Code or Codex:
 palabre relay --new --to claude "Review the plan and identify risks, without changing files."
 ```
 
-To target an already open conversation with `--open`, follow the [full Relay guide](/en/usage/relay#open-codex-conversation---open).
+To target an already open conversation with `--open`, follow the [full Relay guide](/en/usage/relay#open-codex-conversation-open).
 
 ## Good to know
 
