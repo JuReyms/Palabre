@@ -17,7 +17,7 @@ Palabre ships a ready-to-use skill. It teaches an AI agent that Palabre is avail
 
 The skill follows the open [agentskills.io](https://agentskills.io) standard, so it is portable across Claude Code, Codex, Hermes Agent, and any skills-compatible agent.
 
-The skill does not replace the CLI: it drives `palabre` locally. Palabre CLI remains the source of truth for agents, presets, sessions, and exports.
+The skill does not replace the CLI: it drives `palabre` locally. Palabre CLI remains the source of truth for agents, presets, conversations, and exports.
 
 ## Install the skill
 
@@ -39,14 +39,14 @@ To start, tell Claude Code or Codex: "Use PALABRE to ask the other agent to revi
 
 ## When the agent sees the skill
 
-An agent loads its skill list when a session starts or resumes. After installing, open a new session or resume one: a session that is already running may not see the skill.
+An agent loads its skill list when a conversation starts or resumes. After installing, open a new conversation or resume one: a conversation that is already running may not see the skill.
 
-| Agent | New session | Session resumed after installing |
+| Agent | New conversation | Conversation resumed after installing |
 |-------|-------------|----------------------------------|
 | Claude Code 2.1.85 and 2.1.292 | Skill visible | Skill visible |
 | Codex 0.151.0 | Skill visible | Skill visible |
 
-These behaviors were verified in non-interactive mode (`claude -p`, `codex exec`), with a project skill and throwaway sessions. User locations, the TUI, desktop apps, and IDEs were not verified. These behaviors may change with other versions. If the agent does not mention Palabre, remind it that the `palabre` skill is available.
+These behaviors were verified in non-interactive mode (`claude -p`, `codex exec`), with a project skill and throwaway conversations. User locations, the TUI, desktop apps, and IDEs were not verified. These behaviors may change with other versions. If the agent does not mention Palabre, remind it that the `palabre` skill is available.
 
 Keep a single active copy of the skill. If an older version is also installed, for example a `palabre` skill added to your Claude account and then synced, the agent may follow the older one: update or remove it.
 
@@ -76,7 +76,7 @@ In a terminal, PALABRE displays its name and mode in the window title, for examp
 
 - **Path selection**: Debate, Relay, Ask, or Chat depending on the need, without running Palabre for a simple task or forcing a Debate for every second-opinion request.
 - **Chat driven properly**: the agent uses the [NDJSON stream](/en/integrations/ndjson) and JSON commands on stdin (`chat-send`, `chat-consult`, `chat-use`, `chat-agents`, `chat-end`), never an imitation of the TUI. It knows Chat's bounded memory: six recent messages, no resume after the process ends.
-- **Three kinds of resume kept apart**: the host agent's session, Palabre [checkpoints](/en/reference/cli#resume-a-session) for Debate and Ask, and resuming an external conversation through Relay.
+- **Three kinds of resume kept apart**: the host agent's conversation, Palabre [checkpoints](/en/reference/cli#resume-a-session) for Debate and Ask, and resuming an external conversation through Relay.
 - **Careful Relay**: target chosen by you; PALABRE header, ℹ️ warning and « 🤖 Message for the agent »; optional `--subject`, unauthenticated sender, history modified, no automatic resend; `usage-limit` or `read-unavailable` diagnostic preserved.
 - **Controlled context**: `--files` or `--context`, with a warning before sending sensitive content; Ollama to stay local.
 - **You stay in control**: installation, authentication, configuration, config approval, and updates remain your decisions. The `implementer` role is a proposal instruction, not a permission to write.

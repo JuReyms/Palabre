@@ -10,9 +10,9 @@ seo:
 
 Pour commencer sans connaître d'identifiant de conversation, suivez [Premier Relay](/fr/get-started/first-relay).
 
-Relay permet à votre agent de confier une tâche à un autre agent (Claude Code, Codex) et de vous rapporter sa réponse, sans copier-coller : dans une conversation neuve, ou dans une conversation précise que vous avez déjà eue avec lui. Chacun garde ses propres permissions, et vous décidez de la suite.
+Relay permet à votre agent de confier une tâche à un autre agent (Claude Code, Codex) et de vous rapporter sa réponse, sans copier-coller : dans une nouvelle conversation, ou dans une conversation précise que vous avez déjà eue avec lui. Chacun garde ses propres permissions, et vous décidez de la suite.
 
-Vous choisissez le **chef de mission** : Claude Code ou Codex. Même une conversation que vous venez d'ouvrir peut tenir ce rôle, avec PALABRE et son skill installés sur la machine.
+Vous choisissez le **chef de mission** : Claude Code ou Codex. Votre agent peut devenir chef de mission dans n'importe quelle conversation, même celle que vous venez d'ouvrir : il faut seulement que PALABRE soit installé sur la machine et que l'agent dispose du skill PALABRE.
 
 > **Bon à savoir :** Relay relie Claude Code et Codex dans les deux sens, en arrière-plan. Pour confier une tâche à une conversation **déjà ouverte** (application desktop ou terminal), seul Codex peut la recevoir pour l'instant, sous Windows. Le suivi de Codex vers une conversation Claude ouverte est l'issue [#96](https://github.com/JuReyms/Palabre/issues/96).
 
@@ -46,7 +46,7 @@ Cette autorisation permet à la CLI Claude d'utiliser sa connexion et d'enregist
 
 Ce parcours a été vérifié sous Windows depuis Codex desktop. Depuis Codex CLI et sur macOS, il reste à éprouver.
 
-## Démarrer une conversation neuve
+## Démarrer une nouvelle conversation
 
 Vous n'avez pas encore de conversation cible ? PALABRE peut en créer une chez Codex ou Claude Code, en lecture seule :
 
@@ -71,7 +71,7 @@ La conversation reste dans l'historique de la CLI. Son affichage immédiat dans 
 
 ## Un en-tête lisible, ajouté par PALABRE
 
-PALABRE ajoute lui-même une ligne compacte avant le message, dans la langue du relay (`--language`, puis les règles habituelles de langue). L'avertissement ℹ️ est sur sa propre ligne, séparée par des lignes vides, toujours avant l'objet et le contenu. Les identifiants de session et la référence restent dans la partie « 🤖 Message pour l'agent » en bas.
+PALABRE ajoute lui-même une ligne compacte avant le message, dans la langue du relay (`--language`, puis les règles habituelles de langue). L'avertissement ℹ️ est sur sa propre ligne, séparée par des lignes vides, toujours avant l'objet et le contenu. Les identifiants de conversation et la référence restent dans la partie « 🤖 Message pour l'agent » en bas.
 
 ```text
 📧 **PALABRE Relay** · claude → codex
@@ -278,7 +278,7 @@ Ces délais bornent l'appel Relay ; les sondes et opérations GitHub gardent leu
 
 `status` et `stop` n'appellent aucun agent. L'état JSON v1 et l'export `.mission.md` vivent dans `.palabre/missions/<id>/`, indépendamment de `outputDir`. Toutes les commandes acceptent `--json` (un objet `mission-result` v1 : `action`, `exitCode`, `mission`, `exportPath`, `error`). Chaque étape garde le message, le résultat Relay, la réponse, la délivrance et l'éventuelle publication GitHub. Ces réponses ne sont **pas automatiquement vérifiées** ; identifiants, chemins et échanges restent privés dans ces fichiers locaux. Le stockage est limité à 32 Mio.
 
-Après une fermeture normale du chef de mission, reprendre avec `status`, puis une nouvelle `step` sur le même identifiant : les réponses précédentes ne sont pas rejouées. Après une coupure pendant l'appel, `running` sans résultat ou `uncertain` demande une vérification avec le propriétaire ; **ne pas supprimer le verrou pour relancer**. Un refus certain laisse `paused` et permet une nouvelle demande explicite après lecture du diagnostic. Les erreurs d'étape gardent le code Relay, dont 3 pour une session occupée ; les refus de Mission donnent 8 (3 pour une étape déjà réservée), et une étape sans résultat donne 9.
+Après une fermeture normale du chef de mission, reprendre avec `status`, puis une nouvelle `step` sur le même identifiant : les réponses précédentes ne sont pas rejouées. Après une coupure pendant l'appel, `running` sans résultat ou `uncertain` demande une vérification avec le propriétaire ; **ne pas supprimer le verrou pour relancer**. Un refus certain laisse `paused` et permet une nouvelle demande explicite après lecture du diagnostic. Les erreurs d'étape gardent le code Relay, dont 3 pour une conversation occupée ; les refus de Mission donnent 8 (3 pour une étape déjà réservée), et une étape sans résultat donne 9.
 
 `stop` reste accessible pendant une étape et après un verrou orphelin. Il interdit toute nouvelle étape et demande au mieux l'annulation de l'appel en cours : un message ou une revue déjà partis ne sont pas retirés. Une mission arrêtée ou au budget épuisé nécessite un nouveau cadre décidé par le propriétaire et une nouvelle mission ; pas de réouverture automatique.
 
@@ -383,7 +383,7 @@ Si l'enveloppe n'est pas retrouvée dans l'historique après un dépôt, le mess
 
 ## Export
 
-Par défaut, PALABRE écrit un fichier `palabre-relay-<agent>-<date>.relay.md` dans le dossier des exports (voir [Exports](/fr/usage/exports)). Il contient l'expéditeur et la cible, avec leurs identifiants de session, ainsi que le message, la réponse ou l'erreur, et la délivrance.
+Par défaut, PALABRE écrit un fichier `palabre-relay-<agent>-<date>.relay.md` dans le dossier des exports (voir [Exports](/fr/usage/exports)). Il contient l'expéditeur et la cible, avec leurs identifiants de conversation, ainsi que le message, la réponse ou l'erreur, et la délivrance.
 ## Limites connues
 
 Observées avec de vraies conversations jetables, sur Claude Code 2.1.85 et Codex 0.151.0 :

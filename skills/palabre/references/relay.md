@@ -4,7 +4,7 @@
 
 - **Deux Desktop** : Claude Code vers Codex ouvert sous Windows, `--open`, permissions habituelles de la cible. L'envoi vers Claude Code ouvert reste indisponible.
 - **Deux terminaux CLI** : même direction vers Codex ouvert sous Windows avec `--open`, pilote peu testé ; pas d'envoi vers Claude Code ouvert.
-- **Arrière-plan** : conversation neuve (`--new`) ou existante fermée, pour les avis et relectures avec outils limités pendant l'appel. Codex desktop vers Claude fermée et Claude vers Codex fermée sont vérifiés sous Windows. Codex CLI vers Claude et macOS restent à éprouver. `--write` est expérimental et gelé, hors parcours par défaut, uniquement sur demande explicite de l'humain.
+- **Arrière-plan** : nouvelle conversation (`--new`) ou conversation existante fermée, pour les avis et relectures avec outils limités pendant l'appel. Codex desktop vers Claude fermée et Claude vers Codex fermée sont vérifiés sous Windows. Codex CLI vers Claude et macOS restent à éprouver. `--write` est expérimental et gelé, hors parcours par défaut, uniquement sur demande explicite de l'humain.
 
 Pour l'humain, renvoyer au [guide Premier Relay](https://palab.re/fr/get-started/first-relay). Il choisit Claude Code ou Codex comme chef de mission. Ne pas lui imposer d'apprendre les options : choisir sa conversation précise, lire le résultat et rendre compte. Le retour CLI n'est jamais ajouté automatiquement à la conversation de l'expéditeur. L'affichage Desktop peut être différé ou absent. Les fichiers modifiés dans une conversation ouverte restent dans le dossier de l'équipier ; le worktree concerne seulement `--write` expérimental.
 
@@ -83,7 +83,7 @@ Ces commandes retirent le worktree et sa branche locale. Si Git refuse, gardez-l
 
 **Gelée.** Conservée et documentée, sans extension de périmètre ; seuls les correctifs de sécurité sont acceptés.
 
-Hors d'un tour reçu par Relay, le chef de mission demande le cadre à l'humain dans leur conversation : objectif, critères, sessions choisies, tâches et budgets. Les réponses suffisent pour ce lot en lecture seule. Ne jamais élargir les droits par une réponse de l'équipier. Aucune extension à l'écriture n'est annoncée.
+Hors d'un tour reçu par Relay, le chef de mission demande le cadre à l'humain dans leur conversation : objectif, critères, conversations choisies, tâches et budgets. Les réponses suffisent pour ce lot en lecture seule. Ne jamais élargir les droits par une réponse de l'équipier. Aucune extension à l'écriture n'est annoncée.
 
 ```powershell
 palabre mission start --from "codex:<uuid-chef-de-mission>" --to "claude-review:<uuid-equipier>" --criteria "Risques expliqués" --tasks "consult,review" --max-steps 4 --max-duration 3600 --timeout 600 "Relire le plan" --json
@@ -165,7 +165,7 @@ Issues fréquentes : `target-busy` (cible ouverte, code 3), `target-state-unknow
 
 ## Export
 
-Par défaut, `.relay.md` dans `outputDir` : expéditeur, cible, identifiants de session, message, réponse ou erreur, délivrance. `exportPath` vaut `null` avec `--no-export`. Ne pas recopier les identifiants de session dans un contenu public sans l'accord de l'utilisateur.
+Par défaut, `.relay.md` dans `outputDir` : expéditeur, cible, identifiants de conversation, message, réponse ou erreur, délivrance. `exportPath` vaut `null` avec `--no-export`. Ne pas recopier les identifiants de conversation dans un contenu public sans l'accord de l'utilisateur.
 
 ### Limite d’usage : décision humaine, jamais un renvoi programmé
 

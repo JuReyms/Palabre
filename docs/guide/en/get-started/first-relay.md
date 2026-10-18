@@ -8,7 +8,7 @@ seo:
 
 Relay lets your agent delegate a task to another agent (Claude Code, Codex) and bring its reply back to you, without copying and pasting: in a new conversation, or in a specific conversation you have already had with it. Each keeps its own permissions, and you decide what happens next.
 
-You choose the **mission lead**: Claude Code or Codex. Even a conversation you have just opened can take that role, with PALABRE and its skill installed on the machine.
+You choose the **mission lead**: Claude Code or Codex. Your agent can become the mission lead in any conversation, even one you have just opened: PALABRE only needs to be installed on the machine and the agent needs to have the PALABRE skill.
 
 ## How it works
 

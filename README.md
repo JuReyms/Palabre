@@ -64,7 +64,7 @@ On first launch, the TUI creates the global configuration if needed and detects 
 
 | Command | What it does |
 | --- | --- |
-| `/new` | Compose a session step by step. |
+| `/new` | Compose a conversation step by step. |
 | `/chat`, `/ask` | Switch to Chat or Ask (Debate is the default mode). |
 | `/consult <agent>` | In Chat, get a second opinion from another agent. |
 | `/agents`, `/roles` | Choose the agents and their roles. |
@@ -75,7 +75,7 @@ On first launch, the TUI creates the global configuration if needed and detects 
 
 Relay lets your agent delegate a task to another agent (Claude Code, Codex) and bring its reply back to you, without copying and pasting: in a new conversation, or in a specific conversation you have already had with it. Each keeps its own permissions, and you decide what happens next.
 
-You choose the **mission lead**: Claude Code or Codex. Even a conversation you have just opened can take that role, with PALABRE and its skill installed on the machine.
+You choose the **mission lead**: Claude Code or Codex. Your agent can become the mission lead in any conversation, even one you have just opened: PALABRE only needs to be installed on the machine and the agent needs to have the PALABRE skill.
 
 With the [Palabre skill](https://palab.re/en/get-started/skill), ask your agent to reach a new conversation or the one you designate. To request a review from a terminal:
 
@@ -92,8 +92,8 @@ This command returns the conversation identifier. Follow [Your first Relay](http
 - **Final summary.** At the end of a Debate, a summary agent writes four sections: **Consensus**, **Disagreements / uncertainties**, **Proposed actions**, **Conclusion**. At the end of an Ask, it summarizes each answer then compares them: **Faithful summary by agent**, **Comparison**, **Watchpoints / uncertainties**, **Proposed actions**, **Conclusion**. Choose the summary agent with `--summary-agent`, or turn the summary off with `--no-summary`.
 - **Early stop.** A Debate (1 to 20 responses in total) can stop after a full round when an explicit agreement is detected. Turn it off with `--no-early-stop`.
 - **Relay.** PALABRE finds a specific conversation, sends one message and returns an attributable reply. Ordinary calls to a closed conversation provide advice and reviews; `--open` keeps the Codex conversation’s tools and permissions. The message grants no rights on its own and triggers no automatic resend.
-- **Exports.** Each session is saved as Markdown (`.debate.md`, `.ask.md`, `.chat.md`, `.relay.md`). If an agent fails, a partial export is kept whenever possible.
-- **Sessions.** `--checkpoint` makes a Debate or an Ask resumable with `palabre resume <session-id>`; `palabre sessions` lists or deletes checkpoints.
+- **Exports.** Each conversation is saved as Markdown (`.debate.md`, `.ask.md`, `.chat.md`, `.relay.md`). If an agent fails, a partial export is kept whenever possible.
+- **Conversations.** `--checkpoint` makes a Debate or an Ask resumable with `palabre resume <session-id>`; `palabre sessions` lists or deletes checkpoints.
 
 More examples:
 
@@ -123,10 +123,10 @@ Combinations that work well:
 
 - **`implementer` + `reviewer`**: one proposes, the other looks for what could break.
 - **`architect` + `critic`**: lay out the options, then challenge them.
-- **`scout`**: a quick first look before a deeper session.
+- **`scout`**: a quick first look before a deeper conversation.
 - **`summarizer`**: for the final summary agent.
 
-For one session: `--role-a`, `--role-b`, or `/roles` in the TUI. To change an agent's default role: `palabre agent-role <agent> <role>`.
+For one conversation: `--role-a`, `--role-b`, or `/roles` in the TUI. To change an agent's default role: `palabre agent-role <agent> <role>`.
 
 ### Compatible agents
 
@@ -141,7 +141,7 @@ For one session: `--role-a`, `--role-b`, or `/roles` in the TUI. To change an ag
 
 ### Going further
 
-- **VS Code extension.** [PALABRE for VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode) adds a sidebar to run Debate, Chat or Ask, attach workspace context, follow each session live and open its export. In Chat, you can switch the active agent or ask another agent for a one-off opinion. It stays a thin client: it launches the local `palabre` CLI and uses the public JSON/NDJSON contracts.
+- **VS Code extension.** [PALABRE for VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode) adds a sidebar to run Debate, Chat or Ask, attach workspace context, follow each conversation live and open its export. In Chat, you can switch the active agent or ask another agent for a one-off opinion. It stays a thin client: it launches the local `palabre` CLI and uses the public JSON/NDJSON contracts.
 - **Integrations.** Versioned JSON outputs: `palabre agents --json`, `palabre presets --json`, `palabre context scan --json`, and `--renderer ndjson` or `--json` to follow a debate event by event. The NDJSON v1 stream is a public integration API: compatible additions do not break v1, breaking changes change the `v` field.
 - **Skill for AI agents.** A ready-to-use skill teaches an AI agent when to use PALABRE and which mode to choose. It follows the open [agentskills.io](https://agentskills.io) standard. Copy the `skills/palabre` folder to `~/.claude/skills/` (Claude Code) or `~/.agents/skills/` (Codex), or run `hermes skills install JuReyms/Palabre/skills/palabre` (Hermes Agent). After a PALABRE update, copy the folder again. Details: [PALABRE skill](https://palab.re/en/get-started/skill).
 
@@ -151,7 +151,7 @@ For one session: `--role-a`, `--role-b`, or `/roles` in the TUI. To change an ag
 
 ### Documentation
 
-[palab.re](https://palab.re) (mirror: [palabre.netlify.app](https://palabre.netlify.app)) — [Installation](https://palab.re/en/get-started/installation), [Configuration](https://palab.re/en/get-started/configuration), [First session](https://palab.re/en/get-started/first-debate), [CLI reference](https://palab.re/en/reference/cli), [Troubleshooting](https://palab.re/en/troubleshooting), [Roadmap](https://palab.re/en/roadmap).
+[palab.re](https://palab.re) (mirror: [palabre.netlify.app](https://palabre.netlify.app)) — [Installation](https://palab.re/en/get-started/installation), [Configuration](https://palab.re/en/get-started/configuration), [First conversation](https://palab.re/en/get-started/first-debate), [CLI reference](https://palab.re/en/reference/cli), [Troubleshooting](https://palab.re/en/troubleshooting), [Roadmap](https://palab.re/en/roadmap).
 
 ### Privacy
 
@@ -170,7 +170,7 @@ palabre --version
 
 Useful commands: `pnpm check`, `pnpm test`, `pnpm build`.
 
-Before publishing, `pnpm smoke:real-presets -- --mode both --keep-going` runs real Debate and Ask sessions for the 10 active priority CLI pairs to validate the full agent → NDJSON → summary → export flow. This smoke test calls real AI CLIs and may consume quota, so it is not part of `pnpm test`.
+Before publishing, `pnpm smoke:real-presets -- --mode both --keep-going` runs real Debate and Ask conversations for the 10 active priority CLI pairs to validate the full agent → NDJSON → summary → export flow. This smoke test calls real AI CLIs and may consume quota, so it is not part of `pnpm test`.
 
 Public roadmap: [docs/guide/fr/roadmap.md](./docs/guide/fr/roadmap.md). Changes: [CHANGELOG.md](./CHANGELOG.md). Agent/contributor guide: [AGENTS.md](./AGENTS.md).
 
@@ -199,7 +199,7 @@ PALABRE ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements,
 | Mode | La question à laquelle il répond | Exemple |
 | --- | --- | --- |
 | **Débat** | « Je veux confronter deux positions. » Deux agents répondent à tour de rôle, puis une synthèse dégage les accords et les désaccords. | `palabre codex-claude "Critique ce plan" -t 4` |
-| **Relay** *(nouveau)* | « Je veux faire se parler mes conversations, sans copier-coller. » Choisissez Claude Code ou Codex comme chef de mission, et une conversation neuve ou précise comme équipier. | `palabre relay --new --to claude "Relis le plan dans docs/plan.md"` |
+| **Relay** *(nouveau)* | « Je veux faire se parler mes conversations, sans copier-coller. » Choisissez Claude Code ou Codex comme chef de mission, et une nouvelle conversation ou une conversation précise comme équipier. | `palabre relay --new --to claude "Relis le plan dans docs/plan.md"` |
 | **Ask** | « Je veux plusieurs avis indépendants. » De 1 à 4 agents répondent sans voir les réponses des autres, puis une synthèse les compare. | `palabre ask "Compare ces deux approches" --agents codex claude` |
 | **Chat** | « Je discute avec un agent, et j'ai parfois besoin d'un second avis pour vérifier une réponse. » Consultez un autre agent avec `/consult`, sans quitter la conversation. | `palabre chat --agent-a codex` |
 
@@ -232,7 +232,7 @@ Au premier lancement, la TUI crée la configuration globale si nécessaire et d�
 
 | Commande | Ce qu'elle fait |
 | --- | --- |
-| `/new` | Composer une session pas à pas. |
+| `/new` | Composer une conversation pas à pas. |
 | `/chat`, `/ask` | Passer en Chat ou en Ask (le Débat est le mode par défaut). |
 | `/consult <agent>` | En Chat, demander un second avis à un autre agent. |
 | `/agents`, `/roles` | Choisir les agents et leurs rôles. |
@@ -241,11 +241,11 @@ Au premier lancement, la TUI crée la configuration globale si nécessaire et d�
 
 `--terminal` force le rendu brut pour les logs et les scripts. `palabre init` reste disponible pour un setup explicite, notamment avec `--local`.
 
-Relay permet à votre agent de confier une tâche à un autre agent (Claude Code, Codex) et de vous rapporter sa réponse, sans copier-coller : dans une conversation neuve, ou dans une conversation précise que vous avez déjà eue avec lui. Chacun garde ses propres permissions, et vous décidez de la suite.
+Relay permet à votre agent de confier une tâche à un autre agent (Claude Code, Codex) et de vous rapporter sa réponse, sans copier-coller : dans une nouvelle conversation, ou dans une conversation précise que vous avez déjà eue avec lui. Chacun garde ses propres permissions, et vous décidez de la suite.
 
-Vous choisissez le **chef de mission** : Claude Code ou Codex. Même une conversation que vous venez d'ouvrir peut tenir ce rôle, avec PALABRE et son skill installés sur la machine.
+Vous choisissez le **chef de mission** : Claude Code ou Codex. Votre agent peut devenir chef de mission dans n'importe quelle conversation, même celle que vous venez d'ouvrir : il faut seulement que PALABRE soit installé sur la machine et que l'agent dispose du skill PALABRE.
 
-Avec le [skill Palabre](https://palab.re/fr/get-started/skill), demandez à votre agent de joindre une conversation neuve ou celle que vous désignez. Pour une relecture depuis le terminal :
+Avec le [skill Palabre](https://palab.re/fr/get-started/skill), demandez à votre agent de joindre une nouvelle conversation ou celle que vous désignez. Pour une relecture depuis le terminal :
 
 ```bash
 palabre relay --new --to codex "Relis ce projet sans modifier de fichier."
@@ -260,8 +260,8 @@ Cette commande rend l’identifiant de la conversation. Suivez [Premier Relay](h
 - **Synthèse finale.** À la fin d'un Débat, un agent de synthèse rédige quatre sections : **Consensus**, **Désaccords / incertitudes**, **Actions proposées**, **Conclusion**. À la fin d'un Ask, il résume chaque réponse puis les compare : **Résumé fidèle par agent**, **Comparaison**, **Points de vigilance / incertitudes**, **Actions proposées**, **Conclusion**. Choisissez l'agent de synthèse avec `--summary-agent`, ou désactivez la synthèse avec `--no-summary`.
 - **Arrêt anticipé.** Un Débat (1 à 20 réponses au total) peut s'arrêter après un tour complet quand un accord explicite est détecté. Désactivez-le avec `--no-early-stop`.
 - **Relay.** PALABRE retrouve une conversation précise, transmet un message et rapporte une réponse attribuable. Les appels ordinaires vers une conversation fermée servent aux avis et relectures ; `--open` conserve les outils et permissions de la conversation Codex. Le message ne donne aucun droit à lui seul et ne déclenche aucun renvoi automatique.
-- **Exports.** Chaque session est enregistrée en Markdown (`.debate.md`, `.ask.md`, `.chat.md`, `.relay.md`). Si un agent échoue, un export partiel est conservé quand c'est possible.
-- **Sessions.** `--checkpoint` rend un Débat ou un Ask reprenable avec `palabre resume <session-id>` ; `palabre sessions` liste ou supprime les points de reprise.
+- **Exports.** Chaque conversation est enregistrée en Markdown (`.debate.md`, `.ask.md`, `.chat.md`, `.relay.md`). Si un agent échoue, un export partiel est conservé quand c'est possible.
+- **Conversations.** `--checkpoint` rend un Débat ou un Ask reprenable avec `palabre resume <session-id>` ; `palabre sessions` liste ou supprime les points de reprise.
 
 Plus d'exemples :
 
@@ -291,10 +291,10 @@ Des combinaisons qui marchent bien :
 
 - **`implementer` + `reviewer`** : l'un propose, l'autre cherche ce qui pourrait casser.
 - **`architect` + `critic`** : poser les options, puis les challenger.
-- **`scout`** : un premier tour d'horizon rapide avant une session plus poussée.
+- **`scout`** : un premier tour d'horizon rapide avant une conversation plus poussée.
 - **`summarizer`** : pour l'agent de synthèse finale.
 
-Pour une session : `--role-a`, `--role-b`, ou `/roles` dans la TUI. Pour changer le rôle par défaut d'un agent : `palabre agent-role <agent> <rôle>`.
+Pour une conversation : `--role-a`, `--role-b`, ou `/roles` dans la TUI. Pour changer le rôle par défaut d'un agent : `palabre agent-role <agent> <rôle>`.
 
 ### Agents compatibles
 
@@ -309,7 +309,7 @@ Pour une session : `--role-a`, `--role-b`, ou `/roles` dans la TUI. Pour changer
 
 ### Pour aller plus loin
 
-- **Extension VS Code.** [PALABRE pour VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode) ajoute une barre latérale pour lancer Débat, Chat ou Ask, ajouter du contexte de workspace, suivre chaque session en direct et ouvrir son export. En Chat, vous pouvez changer l'agent actif ou demander ponctuellement l'avis d'un autre agent. Elle reste un client mince : elle lance le CLI local `palabre` et utilise les contrats JSON/NDJSON publics.
+- **Extension VS Code.** [PALABRE pour VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode) ajoute une barre latérale pour lancer Débat, Chat ou Ask, ajouter du contexte de workspace, suivre chaque conversation en direct et ouvrir son export. En Chat, vous pouvez changer l'agent actif ou demander ponctuellement l'avis d'un autre agent. Elle reste un client mince : elle lance le CLI local `palabre` et utilise les contrats JSON/NDJSON publics.
 - **Intégrations.** Sorties JSON versionnées : `palabre agents --json`, `palabre presets --json`, `palabre context scan --json`, et `--renderer ndjson` ou `--json` pour suivre un débat événement par événement. Le flux NDJSON v1 est une API publique d'intégration : les ajouts compatibles ne cassent pas v1, les changements cassants changent le champ `v`.
 - **Skill pour agents IA.** Un skill prêt à l'emploi apprend à un agent IA quand utiliser PALABRE et quel mode choisir. Il suit le standard ouvert [agentskills.io](https://agentskills.io). Copiez le dossier `skills/palabre` dans `~/.claude/skills/` (Claude Code) ou `~/.agents/skills/` (Codex), ou lancez `hermes skills install JuReyms/Palabre/skills/palabre` (Hermes Agent). Après une mise à jour de PALABRE, recopiez le dossier. Détails : [Skill PALABRE](https://palab.re/fr/get-started/skill).
 
@@ -319,7 +319,7 @@ Pour une session : `--role-a`, `--role-b`, ou `/roles` dans la TUI. Pour changer
 
 ### Documentation
 
-[palab.re](https://palab.re) (miroir : [palabre.netlify.app](https://palabre.netlify.app)) — [Installation](https://palab.re/fr/get-started/installation), [Configuration](https://palab.re/fr/get-started/configuration), [Première session](https://palab.re/fr/get-started/first-debate), [Référence CLI](https://palab.re/fr/reference/cli), [Dépannage](https://palab.re/fr/troubleshooting), [Roadmap](https://palab.re/fr/roadmap).
+[palab.re](https://palab.re) (miroir : [palabre.netlify.app](https://palabre.netlify.app)) — [Installation](https://palab.re/fr/get-started/installation), [Configuration](https://palab.re/fr/get-started/configuration), [Première conversation](https://palab.re/fr/get-started/first-debate), [Référence CLI](https://palab.re/fr/reference/cli), [Dépannage](https://palab.re/fr/troubleshooting), [Roadmap](https://palab.re/fr/roadmap).
 
 ### Confidentialité
 
@@ -338,7 +338,7 @@ palabre --version
 
 Commandes utiles : `pnpm check`, `pnpm test`, `pnpm build`.
 
-Avant une publication, `pnpm smoke:real-presets -- --mode both --keep-going` lance des sessions Débat et Ask réelles sur les 10 paires CLI prioritaires actives afin de vérifier le flux complet agent → NDJSON → synthèse → export. Ce smoke test appelle de vraies CLI IA et peut consommer des quotas ; il n'est donc pas lancé par `pnpm test`.
+Avant une publication, `pnpm smoke:real-presets -- --mode both --keep-going` lance des conversations Débat et Ask réelles sur les 10 paires CLI prioritaires actives afin de vérifier le flux complet agent → NDJSON → synthèse → export. Ce smoke test appelle de vraies CLI IA et peut consommer des quotas ; il n'est donc pas lancé par `pnpm test`.
 
 Roadmap publique : [docs/guide/fr/roadmap.md](./docs/guide/fr/roadmap.md). Changements : [CHANGELOG.md](./CHANGELOG.md). Guide agents/contributeurs : [AGENTS.md](./AGENTS.md).
 

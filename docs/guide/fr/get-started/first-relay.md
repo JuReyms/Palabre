@@ -6,9 +6,9 @@ seo:
   description: "Confier une tâche depuis Claude Code ou Codex, retrouver une conversation précise et recevoir sa réponse sans copier-coller."
 ---
 
-Relay permet à votre agent de confier une tâche à un autre agent (Claude Code, Codex) et de vous rapporter sa réponse, sans copier-coller : dans une conversation neuve, ou dans une conversation précise que vous avez déjà eue avec lui. Chacun garde ses propres permissions, et vous décidez de la suite.
+Relay permet à votre agent de confier une tâche à un autre agent (Claude Code, Codex) et de vous rapporter sa réponse, sans copier-coller : dans une nouvelle conversation, ou dans une conversation précise que vous avez déjà eue avec lui. Chacun garde ses propres permissions, et vous décidez de la suite.
 
-Vous choisissez le **chef de mission** : Claude Code ou Codex. Même une conversation que vous venez d'ouvrir peut tenir ce rôle, avec PALABRE et son skill installés sur la machine.
+Vous choisissez le **chef de mission** : Claude Code ou Codex. Votre agent peut devenir chef de mission dans n'importe quelle conversation, même celle que vous venez d'ouvrir : il faut seulement que PALABRE soit installé sur la machine et que l'agent dispose du skill PALABRE.
 
 ## Comment ça marche
 
@@ -18,7 +18,7 @@ Le chef de mission est l'agent à qui vous parlez. L'**équipier** est celui qui
 | --- | --- |
 | Deux applications Desktop | Claude Code peut joindre une conversation Codex ouverte sous Windows avec `--open`. Codex desktop peut joindre une conversation Claude fermée, avec une autorisation ponctuelle de son hôte par commande. Vers Claude ouvert : pas encore disponible. |
 | Deux terminaux CLI | Claude vers Codex ouvert sous Windows avec `--open` reste un parcours pilote, peu testé. Codex CLI vers Claude fermée reste à éprouver. |
-| Un équipier en arrière-plan, sans fenêtre à ouvrir | Une conversation neuve ou existante fermée peut recevoir une demande d’avis ou de relecture. Le parcours Codex desktop vers Claude fermée et le parcours Claude vers Codex fermée ont été vérifiés sous Windows. |
+| Un équipier en arrière-plan, sans fenêtre à ouvrir | Une nouvelle conversation ou une conversation existante fermée peut recevoir une demande d’avis ou de relecture. Le parcours Codex desktop vers Claude fermée et le parcours Claude vers Codex fermée ont été vérifiés sous Windows. |
 
 Dans une conversation Codex ouverte, l'équipier peut agir avec ses permissions habituelles. Les appels ordinaires vers une conversation fermée servent aux avis et relectures, avec des outils limités pendant l'appel. Relay n'accorde aucun droit supplémentaire. macOS reste à tester.
 

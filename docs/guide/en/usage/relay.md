@@ -12,7 +12,7 @@ To start without a conversation ID, follow [Your first Relay](/en/get-started/fi
 
 Relay lets your agent delegate a task to another agent (Claude Code, Codex) and bring its reply back to you, without copying and pasting: in a new conversation, or in a specific conversation you have already had with it. Each keeps its own permissions, and you decide what happens next.
 
-You choose the **mission lead**: Claude Code or Codex. Even a conversation you have just opened can take that role, with PALABRE and its skill installed on the machine.
+You choose the **mission lead**: Claude Code or Codex. Your agent can become the mission lead in any conversation, even one you have just opened: PALABRE only needs to be installed on the machine and the agent needs to have the PALABRE skill.
 
 > **Good to know:** Relay connects Claude Code and Codex both ways, in the background. To hand a task to a conversation that is **already open** (desktop app or terminal), only Codex can receive it for now, on Windows. Codex to an open Claude conversation is tracked in issue [#96](https://github.com/JuReyms/Palabre/issues/96).
 
@@ -55,7 +55,7 @@ palabre relay --new --to codex "Read this project and suggest three improvements
 palabre relay --new --to claude --dir "../another-project" "Explain this project's structure, without changing anything."
 ```
 
-Here, `--to` names an agent from your configuration, without a session identifier. The current directory is used by default; `--dir` selects another existing directory. An existing conversation keeps the directory recorded in its history: `--dir` is rejected.
+Here, `--to` names an agent from your configuration, without a conversation identifier. The current directory is used by default; `--dir` selects another existing directory. An existing conversation keeps the directory recorded in its history: `--dir` is rejected.
 
 Text output gives the identifier and a continuation command:
 
@@ -71,7 +71,7 @@ The conversation remains in the CLI history. Immediate Desktop visibility is not
 
 ## A readable header, added by PALABRE
 
-PALABRE adds a compact line before the message, in the relay language (`--language`, then the usual language resolution). The ℹ️ warning has its own line, separated by blank lines, always before the subject and content. Session identifiers and the reference remain in the final « 🤖 Message for the agent » section.
+PALABRE adds a compact line before the message, in the relay language (`--language`, then the usual language resolution). The ℹ️ warning has its own line, separated by blank lines, always before the subject and content. Conversation identifiers and the reference remain in the final « 🤖 Message for the agent » section.
 
 ```text
 📧 **PALABRE Relay** · claude → codex
@@ -278,7 +278,7 @@ These timeouts bound the Relay call; probes and GitHub operations retain their o
 
 `status` and `stop` never call an agent. JSON v1 state and the `.mission.md` export live in `.palabre/missions/<id>/`, independently of `outputDir`. All commands accept `--json` (one `mission-result` v1 object: `action`, `exitCode`, `mission`, `exportPath`, `error`). Each step keeps the message, Relay result, reply, delivery and any GitHub publication. Replies are **not automatically verified**; identifiers, paths and exchanges stay private in these local files. Storage is limited to 32 MiB.
 
-After the mission lead exits normally, resume with `status`, then a new `step` using the same identifier: earlier replies are never replayed. After a crash during a call, `running` without a result or `uncertain` needs verification with the owner; **do not delete the lock to retry**. A certain refusal leaves `paused` and permits another explicit request after reading the diagnostic. Step failures keep Relay's exit code, including 3 for a busy session; Mission refusals use 8 (3 for an already reserved step), and a step without a result uses 9.
+After the mission lead exits normally, resume with `status`, then a new `step` using the same identifier: earlier replies are never replayed. After a crash during a call, `running` without a result or `uncertain` needs verification with the owner; **do not delete the lock to retry**. A certain refusal leaves `paused` and permits another explicit request after reading the diagnostic. Step failures keep Relay's exit code, including 3 for a busy conversation; Mission refusals use 8 (3 for an already reserved step), and a step without a result uses 9.
 
 `stop` remains available during a step and with an orphaned lock. It forbids further steps and requests best-effort cancellation: an existing message or review cannot be withdrawn. A stopped or exhausted mission needs a new scope decided by the owner and a new mission; no automatic reopening.
 
@@ -383,7 +383,7 @@ If the envelope is not found in the history after queuing, the error message say
 
 ## Export
 
-By default, PALABRE writes a `palabre-relay-<agent>-<date>.relay.md` file in the export folder (see [Exports](/en/usage/exports)). It contains the sender and the target with their session identifiers, the message, the reply or the error, and the delivery.
+By default, PALABRE writes a `palabre-relay-<agent>-<date>.relay.md` file in the export folder (see [Exports](/en/usage/exports)). It contains the sender and the target with their conversation identifiers, the message, the reply or the error, and the delivery.
 ## Known limits
 
 Observed with real throwaway conversations, on Claude Code 2.1.85 and Codex 0.151.0:

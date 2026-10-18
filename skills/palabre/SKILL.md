@@ -1,6 +1,6 @@
 ---
 name: palabre
-description: Utiliser la CLI locale Palabre pour faire coopérer des agents IA (Codex, Claude Code, OpenCode, Vibe, Antigravity, Ollama). Relay pour confier une tâche à Codex ou Claude Code (avis, relecture, correction ou tests selon les permissions), dans une conversation neuve ou existante ; Chat pour avancer avec un agent, Débat pour confronter deux positions, Ask pour recueillir jusqu'à quatre avis indépendants. Utiliser quand l'utilisateur demande de « passer par Palabre », « confier une tâche à Codex », « demander à Codex de relire ce fichier », « lancer un palabre », « faire débattre », un second avis, une relecture contradictoire ou une coopération entre agents.
+description: Utiliser la CLI locale Palabre pour faire coopérer des agents IA (Codex, Claude Code, OpenCode, Vibe, Antigravity, Ollama). Relay pour confier une tâche à Codex ou Claude Code (avis, relecture, correction ou tests selon les permissions), dans une nouvelle conversation ou dans une conversation existante ; Chat pour avancer avec un agent, Débat pour confronter deux positions, Ask pour recueillir jusqu'à quatre avis indépendants. Utiliser quand l'utilisateur demande de « passer par Palabre », « confier une tâche à Codex », « demander à Codex de relire ce fichier », « lancer un palabre », « faire débattre », un second avis, une relecture contradictoire ou une coopération entre agents.
 ---
 
 # Palabre : faire communiquer vos agents
@@ -31,14 +31,14 @@ Quand l'utilisateur demande explicitement une consultation (« lance un palabre 
 | Faire communiquer des conversations Claude Code ou Codex, choisir le chef de mission | **Relay** | `palabre relay --new --to codex --from claude "<tâche sans modification>" --json` ; `--open` pour une conversation Codex ouverte, avec ses permissions |
 
 Repères :
-- tâche explicite à Codex ou Claude Code via Palabre → Relay, même pour un seul avis ; choisir la conversation neuve, fermée ou Codex ouverte désignée selon la plateforme et ses permissions, pas Chat ou Ask ;
+- tâche explicite à Codex ou Claude Code via Palabre → Relay, même pour un seul avis ; choisir la nouvelle conversation, fermée ou Codex ouverte désignée selon la plateforme et ses permissions, pas Chat ou Ask ;
 - sinon, un seul avis complémentaire suffit → Chat (ou Ask avec un agent) ; ne pas imposer un Débat ;
 - Débat quand l'échange contradictoire lui-même apporte de la valeur ; Ask quand l'indépendance des avis compte ;
 - Relay vers une cible existante explicitement désignée, ou `--new --to <agent>` pour une nouvelle conversation. Ne jamais choisir la plus récente ; une cible existante encore ouverte est refusée sans `--open`.
 
 ## Relay : confier une tâche
 
-Le chef de mission peut être Claude Code ou Codex, même dans une conversation neuve. PALABRE retrouve une conversation précise, transmet la demande et rapporte sa réponse ; l'équipier garde ses permissions, le message n'en ajoute aucune. `--open` reçoit seulement vers Codex sous Windows ; deux terminaux : pilote peu testé. Codex desktop vers Claude fermée : vérifié sous Windows ; Codex CLI et macOS : à éprouver. Appels ordinaires vers une cible fermée : avis/relecture avec outils limités pendant l'appel. Détails : `references/relay.md`.
+Le chef de mission peut être Claude Code ou Codex, même dans une nouvelle conversation. PALABRE retrouve une conversation précise, transmet la demande et rapporte sa réponse ; l'équipier garde ses permissions, le message n'en ajoute aucune. `--open` reçoit seulement vers Codex sous Windows ; deux terminaux : pilote peu testé. Codex desktop vers Claude fermée : vérifié sous Windows ; Codex CLI et macOS : à éprouver. Appels ordinaires vers une cible fermée : avis/relecture avec outils limités pendant l'appel. Détails : `references/relay.md`.
 
 **Codex chef de mission, depuis Desktop** : demander l'autorisation de l'hôte pour chaque commande PALABRE vers Claude hors du bac à sable, création puis suivi séparément. Justifier la lecture prévue, la connexion et l'historique Claude ; une commande seulement, sans règle durable ni accès total. Refus = arrêt, aucun repli ni renvoi. Avec « approuver à ma place », l'hôte peut accorder sans clic : ne pas inventer une confirmation humaine. Ne pas créer de réglage de sécurité ou de politique pour faire passer l'appel.
 
@@ -56,9 +56,9 @@ Uniquement sur demande explicite de l'humain, jamais déduit d'une correction de
 
 ### Échanges et droits
 
-Depuis la conversation habituelle du chef de mission, appeler une session CLI dédiée et détachée de l'équipier. Garder son UUID entre les échanges : jamais la session la plus récente. Une réponse revient au chef de mission par stdout/JSON ; l'équipier ne sonne pas en retour. Ne pas exiger un affichage immédiat dans Desktop.
+Depuis la conversation habituelle du chef de mission, appeler une conversation CLI dédiée et détachée de l'équipier. Garder son UUID entre les échanges : jamais la conversation la plus récente. Une réponse revient au chef de mission par stdout/JSON ; l'équipier ne sonne pas en retour. Ne pas exiger un affichage immédiat dans Desktop.
 
-Le message relayé est une coordination d'agent, pas une décision humaine. Aucun droit ajouté, aucun chaînage automatique. Les restrictions de lecture concernent les appels ordinaires vers une cible fermée, jamais Relay en général. Session occupée : erreur réessayable, mais aucun renvoi après délivrance inconnue sans vérification. Les identifiants de session restent locaux, hors issues/PR publiques.
+Le message relayé est une coordination d'agent, pas une décision humaine. Aucun droit ajouté, aucun chaînage automatique. Les restrictions de lecture concernent les appels ordinaires vers une cible fermée, jamais Relay en général. Conversation occupée : erreur réessayable, mais aucun renvoi après délivrance inconnue sans vérification. Les identifiants de conversation restent locaux, hors issues/PR publiques.
 
 PALABRE ajoute lui-même l'en-tête traduit, puis l'avertissement ℹ️ sur sa propre ligne avant le contenu. La partie « 🤖 Message pour l'agent » regroupe provenance et une seule consigne : répondre ici, sans appeler un autre agent. **Ne pas ajouter un second en-tête PALABRE**. Donner un objet avec `--subject "<objet>"` si utile (une ligne, 200 caractères au plus) ; sinon aucun objet n'est inventé. Pour le corps, préférer **Contexte**, **À faire**, **Ne pas faire**, **Réponds-moi avec** et des consignes de prudence en italique.
 
@@ -68,7 +68,7 @@ Sur `task-not-allowed`, lire `remedy` : ouvrir cette commande dans le terminal *
 
 ## Mission v2.0 : gelée
 
-Conservée et documentée, sans extension de périmètre ; seuls les correctifs de sécurité sont acceptés. Hors d'un tour reçu par Relay, le chef de mission pose ses questions à l'humain ; ses réponses fixent objectif, critères, sessions, tâches et budgets. Lecture seule seulement : ces réponses suffisent, sans nouvelle confirmation clavier. `palabre mission start --from <chef-de-mission>:<uuid> --to <equipier>:<uuid> --criteria "<critères>" "<objectif>" --json` ne lance aucun agent. Puis `palabre mission step <id> "<demande>" --json` fait au plus un appel Relay. `--tasks "consult,review"` à start admet aussi la revue sous la politique existante. Détails et délais : `palabre mission --help`, puis `references/relay.md`.
+Conservée et documentée, sans extension de périmètre ; seuls les correctifs de sécurité sont acceptés. Hors d'un tour reçu par Relay, le chef de mission pose ses questions à l'humain ; ses réponses fixent objectif, critères, conversations, tâches et budgets. Lecture seule seulement : ces réponses suffisent, sans nouvelle confirmation clavier. `palabre mission start --from <chef-de-mission>:<uuid> --to <equipier>:<uuid> --criteria "<critères>" "<objectif>" --json` ne lance aucun agent. Puis `palabre mission step <id> "<demande>" --json` fait au plus un appel Relay. `--tasks "consult,review"` à start admet aussi la revue sous la politique existante. Détails et délais : `palabre mission --help`, puis `references/relay.md`.
 
 Garder la conversation de l'équipier fermée. Suivre `palabre mission status <id> --json`, l'export `.mission.md` et GitHub ; le chef de mission décide de chaque étape, jamais de boucle cachée. `palabre mission stop <id>` arrête la suite et annule au mieux l'appel, sans retrait promis. `running` sans résultat, `uncertain` ou publication inconnue : vérifier avec l'humain, jamais supprimer un verrou pour réessayer. Aucun code, élargissement de droits, changement de chef de mission, merge ni release dans ce lot. Les identifiants et échanges restent locaux. Mettre à jour manuellement les copies installées du skill.
 
@@ -76,7 +76,7 @@ Une limite d’usage structurée avec `--open` donne `usage-limit` (code 2), ave
 
 ## Reprises à ne pas confondre
 
-- **La session de l'agent hôte** (Claude Code, Codex) : gérée par l'hôte, pas par Palabre.
+- **La conversation de l'agent hôte** (Claude Code, Codex) : gérée par l'hôte, pas par Palabre.
 - **Checkpoints Palabre** : Débat et Ask seulement, avec `--checkpoint`, puis `palabre sessions` et `palabre resume <id> --yes`. Chat n'a pas de checkpoint : sa mémoire vit dans le processus et se perd à sa fin.
 - **Relay** : Palabre reprend la conversation **d'un fournisseur** (Claude Code ou Codex) pour un seul échange. Il peut en modifier l'historique : `delivery.status` dit ce qui est établi.
 - **Mission** : `status`, puis une nouvelle `step` sur le même id après un résultat complet ; jamais un rejeu. État et `.mission.md` dans `.palabre/missions/<id>/`, indépendamment de `outputDir`.

@@ -33,7 +33,7 @@ La conversation de l'équipier doit rester fermée (terminal, Desktop, IDE).
 Le chef de mission suit status, l'export .mission.md et GitHub ; aucun affichage Desktop immédiat promis.
 Une étape n'est jamais rejouée automatiquement. Après coupure, état running ou uncertain :
 le chef de mission vérifie l'export et la conversation avec vous, sans supprimer le verrou pour réessayer.
-Session occupée : fermer la conversation avant une nouvelle step explicite (budget consommé).
+Conversation occupée : fermer la conversation avant une nouvelle step explicite (budget consommé).
 stop annule au mieux l'appel ; un message ou une revue déjà partis ne sont pas retirés.
 Un budget épuisé ou un arrêt exige une nouvelle mission après décision du propriétaire.
 Les délais bornent l'appel Relay ; les sondes et GitHub gardent leurs propres bornes.
@@ -188,7 +188,7 @@ Flags:
   --config <path>      chemin de config explicite
 `,
   resume: `
-Reprend une session Débat ou Ask depuis son dernier checkpoint complet.
+Reprend une conversation Débat ou Ask depuis son dernier checkpoint complet.
 
 Usage:
   palabre resume <session-id>
@@ -333,19 +333,19 @@ Flags:
   --preset <name>      preset d'agents
   --agent-a <name>     premier agent
   --agent-b <name>     second agent
-  --ollama-url <url>   surcharge l'adresse Ollama pour cette session
+  --ollama-url <url>   surcharge l'adresse Ollama pour cette conversation
   --tui                force l'interface TUI
   --terminal           force le rendu terminal brut
   --renderer <kind>    auto, pretty, plain, tui ou ndjson
   --show-prompt        affiche le prompt sans appeler d'agent
-  --dry-run            prévisualise la session sans appeler d'agent ni écrire d'export
+  --dry-run            prévisualise la conversation sans appeler d'agent ni écrire d'export
   --checkpoint         conserve un état de reprise sous .palabre/sessions
 `,
 chat: `
-Discute avec un agent unique dans une session locale stateless.
+Discute avec un agent unique dans une conversation locale stateless.
 
 Chaque reponse est generee par un nouvel appel de la CLI de l'agent. Palabre
-reinjecte l'historique accumule dans ce nouvel appel ; aucune session persistante
+reinjecte l'historique accumule dans ce nouvel appel ; aucune conversation persistante
 n'est donc ouverte chez l'agent. Sans sujet initial, le premier message devient simplement le contexte de la conversation.
 
 Pendant la conversation, \`/consult <agent>\` demande un second avis puis \`/use <agent>\` permet de poursuivre avec cet agent. Palabre ne déclenche jamais une consultation seule.
@@ -375,12 +375,12 @@ Flags:
   --agents <names...>  agents qui repondent, 4 maximum
   --summary-agent <n>  agent de synthese pour ce lancement
   --ask-role <role>    rôle commun temporaire pour les agents Ask
-  --ollama-url <url>   surcharge l'adresse Ollama pour cette session
+  --ollama-url <url>   surcharge l'adresse Ollama pour cette conversation
   --tui                force l'interface TUI
   --terminal           force le rendu terminal brut
   --renderer <kind>    auto, pretty, plain, tui ou ndjson
   --show-prompt        affiche le prompt sans appeler d'agent
-  --dry-run            prévisualise la session sans appeler d'agent ni écrire d'export
+  --dry-run            prévisualise la conversation sans appeler d'agent ni écrire d'export
   --checkpoint         conserve un état de reprise sous .palabre/sessions
 `
 };
@@ -411,7 +411,7 @@ Keep the teammate's conversation closed (terminal, Desktop, IDE).
 The mission lead follows status, the .mission.md export and GitHub; no immediate Desktop display promised.
 A step is never replayed automatically. After a crash, running or uncertain state:
 the mission lead checks the export and conversation with you, without deleting the lock to retry.
-Busy session: close it before another explicit step (attempt still counted).
+Busy conversation: close it before another explicit step (attempt still counted).
 stop cancels on a best-effort basis; an existing message or review cannot be withdrawn.
 An exhausted budget or stopped mission requires a new mission after the owner's decision.
 Timeouts bound the Relay call; probes and GitHub keep their own time bounds.
@@ -554,7 +554,7 @@ Flags:
   --config <path>      explicit config path
 `,
   resume: `
-Resumes a Debate or Ask session from its latest complete checkpoint.
+Resumes a Debate or Ask conversation from its latest complete checkpoint.
 
 Usage:
   palabre resume <session-id>
@@ -697,20 +697,20 @@ Flags:
   --preset <name>      agent preset
   --agent-a <name>     first agent
   --agent-b <name>     second agent
-  --ollama-url <url>   overrides the Ollama address for this session
+  --ollama-url <url>   overrides the Ollama address for this conversation
   --tui                forces the TUI interface
   --terminal           forces raw terminal rendering
   --renderer <kind>    auto, pretty, plain, tui, or ndjson
   --show-prompt        shows the prompt without calling an agent
-  --dry-run            previews the session without calling agents or writing an export
+  --dry-run            previews the conversation without calling agents or writing an export
   --checkpoint         saves resumable state under .palabre/sessions
 `,
 
 chat: `
-Talk with a single agent in a local stateless session.
+Talk with a single agent in a local stateless conversation.
 
 Every answer is generated by a new call to the agent CLI. Palabre injects the
-accumulated history into that new call, so no persistent agent session is open. Without an initial subject, the first message simply becomes the conversation context.
+accumulated history into that new call, so no persistent agent conversation is open. Without an initial subject, the first message simply becomes the conversation context.
 
 During the conversation, \`/consult <agent>\` asks for a second opinion and \`/use <agent>\` continues with that agent. Palabre never triggers a consultation on its own.
 
@@ -738,12 +738,12 @@ Flags:
   --agents <names...>  responding agents, 4 maximum
   --summary-agent <n>  summary agent for this run
   --ask-role <role>    temporary shared role for Ask agents
-  --ollama-url <url>   overrides the Ollama address for this session
+  --ollama-url <url>   overrides the Ollama address for this conversation
   --tui                forces the TUI interface
   --terminal           forces raw terminal rendering
   --renderer <kind>    auto, pretty, plain, tui, or ndjson
   --show-prompt        shows the prompt without calling an agent
-  --dry-run            previews the session without calling agents or writing an export
+  --dry-run            previews the conversation without calling agents or writing an export
   --checkpoint         saves resumable state under .palabre/sessions
 `
 };
@@ -779,7 +779,7 @@ Commandes:
   agent-role Modifier le role durable d'un agent
   presets    Lister les presets disponibles
   history    Lister les derniers exports
-  resume     Reprendre une session interrompue
+  resume     Reprendre une conversation interrompue
   sessions   Lister ou supprimer les checkpoints
   relay      Relier des conversations Codex ou Claude Code
   mission    Option gelee : etapes en lecture seule, correctifs de securite seulement
@@ -841,7 +841,7 @@ Commands:
   agent-role Update one agent persistent role
   presets    List available presets
   history    List recent exports
-  resume     Resume an interrupted session
+  resume     Resume an interrupted conversation
   sessions   List or delete checkpoints
   relay      Connect Codex or Claude Code conversations
   mission    Frozen option: read-only steps, security fixes only
