@@ -66,6 +66,8 @@ export interface RelayMessages {
   exportWritten(file: string): string;
   /** Détails des erreurs d'arguments. */
   arguments: {
+    emptySender: string;
+    emptyDirectory: string;
     toRequired: string;
     newConflict: string;
     newTarget: string;
@@ -262,6 +264,8 @@ export const relayMessages: Record<Language, RelayMessages> = {
     failed: (status) => `Relay en échec (${status}).`,
     exportWritten: (file) => `Export : ${file}`,
     arguments: {
+      emptySender: "--from est vide. Omettez cette option pour un envoi depuis le terminal, ou indiquez --from claude. Aucun message envoyé.",
+      emptyDirectory: "--dir est vide. Omettez cette option pour créer dans le dossier courant, ou indiquez --new --dir \"<chemin>\". Aucun message envoyé.",
       toRequired: "Indiquez --to <agent>:<session>, ou --new --to <agent> pour créer une conversation.",
       newConflict: "--new ne s'utilise pas avec --open ; --dir est réservé à --new. Corrigez ces options puis relancez ; aucun message envoyé.",
       newTarget: "Avec --new, indiquez seulement le nom de l'agent : palabre relay --new --to codex \"Votre question\". Pour une conversation existante, retirez --new et gardez --to <agent>:<uuid>.",
@@ -378,6 +382,8 @@ export const relayMessages: Record<Language, RelayMessages> = {
     failed: (status) => `Relay failed (${status}).`,
     exportWritten: (file) => `Export: ${file}`,
     arguments: {
+      emptySender: "--from is empty. Omit it to send from the terminal, or provide --from claude. No message was sent.",
+      emptyDirectory: "--dir is empty. Omit it to create in the current directory, or provide --new --dir \"<path>\". No message was sent.",
       toRequired: "Provide --to <agent>:<session>, or --new --to <agent> to create a conversation.",
       newConflict: "--new cannot be used with --open; --dir requires --new. Correct these options and run again; no message was sent.",
       newTarget: "With --new, provide only the agent name: palabre relay --new --to codex \"Your question\". For an existing conversation, remove --new and keep --to <agent>:<uuid>.",

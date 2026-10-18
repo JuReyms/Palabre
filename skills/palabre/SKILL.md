@@ -37,6 +37,8 @@ Repères :
 
 Pour créer un équipier sans conversation préparée : `palabre relay --new --to codex --from claude "<question en lecture seule>" --json`. Utiliser le dossier courant, ou `--dir "<autre-projet>"` pour un autre dossier existant. Lire et retenir `to.session` dès qu'il est rendu, même si le premier tour échoue ; `created` signifie identifiant reçu, pas tâche réussie. Continuer explicitement avec `palabre relay --to codex:<id> --from claude "<suite>" --json`, sans `--new`. Vérifier la délivrance avant tout renvoi après un échec. Aucun retry automatique.
 
+Ne pas construire `--from ""` ni `--dir ""` : omettre ces options quand elles n'ont pas de valeur.
+
 `--from` est facultatif : nom d'agent seul, ou nom et UUID connu. Sans expéditeur, l'en-tête indique `terminal` ; cela n'accorde aucun droit. Création en lecture seule renforcée seulement : pas de code écrit par l'équipier, pas de `--open` avec `--new`, pas de promesse d'affichage Desktop immédiat.
 
 
