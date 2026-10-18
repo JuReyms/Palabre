@@ -216,6 +216,7 @@ Flags:
   --to <agent>:<uuid>     cible existante ; nom d'agent seul avec --new
   --new                   crée une conversation persistante en lecture seule, sans --open
   --dir <chemin>          dossier de la nouvelle conversation (défaut : dossier courant)
+  Omettez --from et --dir s'ils n'ont pas de valeur ; une chaîne vide est refusée.
   --message-file <path>   lit le message dans un fichier (64 Kio au plus)
   --subject <objet>       objet facultatif : une ligne non vide, 200 caractères au plus, sans contrôle
   --task review           rédige et publie une revue COMMENT si la config l'autorise
@@ -561,6 +562,7 @@ Flags:
   --to <agent>:<uuid>     existing target; agent name only with --new
   --new                   creates a persistent read-only conversation; incompatible with --open
   --dir <path>            new conversation directory (default: current directory)
+  Omit --from and --dir when they have no value; empty strings are rejected.
   --message-file <path>   reads the message from a file (64 KiB at most)
   --subject <subject>     optional subject: one nonblank line, at most 200 characters, no controls
   --task review           draft and publish a COMMENT review if allowed by configuration

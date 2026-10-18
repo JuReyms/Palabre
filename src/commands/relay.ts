@@ -230,7 +230,8 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const toValue = optionalString(flags.to);
   if (!toValue) throw invalid("invalid-arguments", messages.relay.arguments.toRequired);
   const fromValue = optionalString(flags.from);
-  if ((flags.from !== undefined && !fromValue) || (flags.dir !== undefined && !optionalString(flags.dir))) throw invalid("invalid-arguments");
+  if (flags.from !== undefined && !fromValue) throw invalid("invalid-arguments", messages.relay.arguments.emptySender);
+  if (flags.dir !== undefined && !optionalString(flags.dir)) throw invalid("invalid-arguments", messages.relay.arguments.emptyDirectory);
   context.newSession = flags.new === true;
   if ((context.newSession && context.open) || (flags.dir !== undefined && !context.newSession)) {
     throw invalid("invalid-arguments", messages.relay.arguments.newConflict);

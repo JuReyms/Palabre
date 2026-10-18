@@ -51,6 +51,8 @@ La conversation reste dans l'historique de la CLI. Son affichage immédiat dans 
 
 L'expéditeur est facultatif : sans `--from`, l'en-tête indique `terminal`. Un agent peut préciser `--from claude`, ou `--from claude:<uuid>` s'il connaît son identifiant. Il reste déclaré et non authentifié ; **aucune de ces formes ne transmet une autorisation humaine**. Le JSON donne `from: null` sans expéditeur, ou `{ "agent": "claude" }` pour un nom seul.
 
+Omettez les options sans valeur : ne passez pas `--from ""` ni `--dir ""`. Si une option est vide, PALABRE explique comment l'omettre ou la compléter, sans envoyer de message.
+
 ## Un en-tête lisible, ajouté par PALABRE
 
 PALABRE ajoute lui-même une ligne compacte avant le message, dans la langue du relay (`--language`, puis les règles habituelles de langue). L'avertissement ℹ️ est sur sa propre ligne, séparée par des lignes vides, toujours avant l'objet et le contenu. Les identifiants de session et la référence restent dans la partie « 🤖 Message pour l'agent » en bas.

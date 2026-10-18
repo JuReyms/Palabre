@@ -51,6 +51,8 @@ The conversation remains in the CLI history. Immediate Desktop visibility is not
 
 The sender is optional: without `--from`, the header says `terminal`. An agent may specify `--from claude`, or `--from claude:<uuid>` if it knows its identifier. It remains declared and unauthenticated; **none of these forms conveys human authorization**. JSON gives `from: null` without a sender, or `{ "agent": "claude" }` for a name only.
 
+Omit options that have no value: do not pass `--from ""` or `--dir ""`. If an option is empty, PALABRE explains how to omit or fill it, without sending a message.
+
 ## A readable header, added by PALABRE
 
 PALABRE adds a compact line before the message, in the relay language (`--language`, then the usual language resolution). The ℹ️ warning has its own line, separated by blank lines, always before the subject and content. Session identifiers and the reference remain in the final « 🤖 Message for the agent » section.

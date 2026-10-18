@@ -16,7 +16,7 @@ const ids = { claude: '55555555-5555-4555-8555-555555555555', codex: '0199aaaa-5
 
 for (const provider of ['claude', 'codex'] as const) {
   test(`${provider} : démarrage structuré seul, ni prose ni identifiant mal formé`, () => {
-    const adapter = provider === 'claude' ? new ClaudeSessionAdapter() : new CodexSessionAdapter();
+    const adapter = provider === 'claude' ? new ClaudeSessionAdapter({ operatorFrame: 'Cadre fixe de test' }) : new CodexSessionAdapter();
     const event = provider === 'claude' ? { type: 'system', subtype: 'init', session_id: ids[provider] }
       : { type: 'thread.started', thread_id: ids[provider] };
     assert.equal(adapter.creationSessionId(JSON.stringify(event)), ids[provider]);
@@ -24,10 +24,15 @@ for (const provider of ['claude', 'codex'] as const) {
     assert.equal(adapter.creationSessionId(JSON.stringify({ ...event, thread_id: '../x', session_id: '../x' })), undefined);
     assert.equal(adapter.creationSessionId(JSON.stringify({ type: 'assistant', session_id: ids[provider], thread_id: ids[provider] })), undefined);
     const args = adapter.createArgs({ agent: provider, provider, sessionId: '', cwd: root }, mcpNeutralizationArgs(['temoin']));
-    const resumed = provider === 'claude' ? claudeResumeArgs(ids.claude, '') : codexResumeArgs(ids.codex, mcpNeutralizationArgs(['temoin']));
+    const resumed = provider === 'claude' ? claudeResumeArgs(ids.claude, 'Cadre fixe de test') : codexResumeArgs(ids.codex, mcpNeutralizationArgs(['temoin']));
     assert.ok(!args.includes('--resume') && !args.includes('resume'));
     if (provider === 'codex') assert.deepEqual(args, ['exec', ...resumed.slice(2, -2), '-']);
-    else assert.ok(args.includes('Read,Glob,Grep'));
+    else {
+      const resumeIndex = resumed.indexOf('--resume');
+      assert.notEqual(resumeIndex, -1);
+      // Retrait sémantique : ne pas reproduire le slice positionnel de l'implémentation.
+      assert.deepEqual(args, resumed.filter((_, index) => index !== resumeIndex && index !== resumeIndex + 1));
+    }
   });
 
   test(`${provider} : l'identifiant arrive avant la fin et survit à l'annulation`, async () => {

@@ -919,3 +919,16 @@ describe('Relay : création et expéditeur facultatif', () => {
     assert.equal(r.json.created, false); assert.equal(r.calls.length, 1);
   });
 });
+
+test('options vides : message traduit avec prochaine étape, sans lancement ni approbation', async () => {
+  for (const language of ['fr', 'en']) for (const flag of ['--from', '--dir']) for (const value of ['', '  ']) {
+    const w = makeWorld();
+    const r = await relay(w, ['--new', '--to', 'codex', 'Question', flag, value, '--language', language, '--trust-config', '--json']);
+    assert.equal(r.code, 8); assert.equal(r.json.error.reason, 'invalid-arguments');
+    assert.equal(r.json.delivery.status, 'not-delivered'); assert.equal(r.calls.length, 0);
+    assert.ok(r.json.error.message.includes(flag));
+    assert.match(r.json.error.message, language === 'fr' ? /Omettez/ : /Omit/);
+    assert.ok(r.json.error.message.includes(flag === '--from' ? '--from claude' : '--new --dir'));
+    assert.equal(existsSync(path.join(w.home, '.palabre', 'trusted-configs.json')), false);
+  }
+});
