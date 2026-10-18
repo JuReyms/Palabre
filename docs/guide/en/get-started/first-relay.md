@@ -1,12 +1,12 @@
 ---
 title: Your first Relay
-description: Ask Codex for advice from Claude, get its reply and continue with the same conversation.
+description: Hand a task to Codex from Claude, get its reply and continue with the same conversation.
 seo:
   title: Your first Relay, connect Claude Code and Codex
   description: Create a Codex conversation with Palabre, ask it for a review from Claude Code and continue without copying messages between agents.
 ---
 
-Relay is like calling a teammate working next door. You ask a question; the reply comes back where you started the request. You keep the decision.
+Relay is like calling a teammate working next door. You hand them a task; the reply comes back where you asked for it. You keep the decision.
 
 ## Before you start
 
@@ -18,7 +18,7 @@ palabre doctor
 
 If no configuration exists, run `palabre init`. Also check that `palabre relay --help` lists `--new`; otherwise, [update PALABRE](/en/get-started/installation). Each request uses the chosen agent's account and model. Before sharing a sensitive file, check what you are sending.
 
-## I work with Claude and want advice from Codex
+## I work with Claude and want to hand a task to Codex
 
 You do not need to prepare a Codex conversation. From the project folder, run:
 
@@ -28,9 +28,9 @@ palabre relay --new --to codex --from claude "Review src/prices.js. Point out po
 
 Replace `src/prices.js` with a file in your project. PALABRE creates a Codex conversation, asks it to read the file, then displays its reply. It also gives you the conversation ID, a command to continue and the path to the `.relay.md` export.
 
-`--from claude` only labels who is asking the question. You can leave it out when asking from the terminal yourself.
+`--from claude` only labels who sends the request. You can leave it out when you run it from the terminal yourself.
 
-To work in another folder, add `--dir "../other-project"` when creating the conversation. To ask Claude Code instead, replace `--to codex` with `--to claude`.
+To work in another folder, add `--dir "../other-project"` when creating the conversation. To hand the task to Claude Code instead, replace `--to codex` with `--to claude`.
 
 ## Continue with the same conversation
 
@@ -40,13 +40,13 @@ Keep the returned ID and use the continuation command shown by PALABRE. For exam
 palabre relay --to codex:<id> "Which test would check the first risk?"
 ```
 
-Do not add `--new` again: Codex keeps the context of the first exchange. Each command sends one question and waits for a single reply. Keep this conversation closed in Desktop and other tools during the call.
+Do not add `--new` again: Codex keeps the context of the first exchange. Each command sends one request and waits for a single reply. Keep this conversation closed in Desktop and other tools during the call.
 
-An ID can be returned even if the first question fails. That does not mean a reply was received. Read the diagnostic before sending anything again; PALABRE never retries automatically.
+An ID can be returned even if the first request fails. That does not mean a reply was received. Read the diagnostic before sending anything again; PALABRE never retries automatically.
 
 ## Ask a conversation that already knows the project
 
-Have you already worked on this project with Codex or Claude Code? Close that conversation, keep its ID, then address your question to it directly:
+Have you already worked on this project with Codex or Claude Code? Close that conversation, keep its ID, then hand it the task directly:
 
 ```text
 palabre relay --to claude:<id> "Review the plan we discussed and point out what is missing, without changing anything."

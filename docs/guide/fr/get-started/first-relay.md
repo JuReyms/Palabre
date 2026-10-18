@@ -1,12 +1,12 @@
 ---
 title: Premier Relay
-description: Demander un avis à Codex depuis Claude, retrouver sa réponse et continuer avec la même conversation.
+description: Confier une tâche à Codex depuis Claude, retrouver sa réponse et continuer avec la même conversation.
 seo:
   title: Premier Relay, faire coopérer Claude Code et Codex
   description: Créer une conversation Codex avec Palabre, lui confier une relecture depuis Claude Code et continuer sans copier-coller les échanges.
 ---
 
-Relay, c'est appeler un équipier qui travaille à côté. Vous lui posez une question ; sa réponse revient là où vous avez lancé la demande. Vous gardez la décision.
+Relay, c'est appeler un équipier qui travaille à côté. Vous lui confiez une tâche ; sa réponse revient là où vous l'avez demandée. Vous gardez la décision.
 
 ## Avant de commencer
 
@@ -18,7 +18,7 @@ palabre doctor
 
 Si aucune configuration n'existe, lancez `palabre init`. Vérifiez aussi que `palabre relay --help` propose `--new` ; sinon, [mettez PALABRE à jour](/fr/get-started/installation). Chaque demande utilise le compte et le modèle de l'agent choisi. Ne lui confiez pas de fichier sensible sans vérifier ce que vous partagez.
 
-## Je travaille avec Claude et je veux un avis de Codex
+## Je travaille avec Claude et je veux confier une tâche à Codex
 
 Vous n'avez pas besoin de préparer une conversation Codex. Depuis le dossier du projet, lancez :
 
@@ -28,9 +28,9 @@ palabre relay --new --to codex --from claude "Relis src/prix.js. Signale les err
 
 Remplacez `src/prix.js` par un fichier de votre projet. PALABRE crée une conversation Codex, lui demande de lire le fichier, puis affiche sa réponse. Il donne aussi l'identifiant de cette conversation, une commande pour continuer et le chemin de l'export `.relay.md`.
 
-`--from claude` indique seulement qui envoie la question. Vous pouvez l'omettre si vous la posez vous-même depuis le terminal.
+`--from claude` indique seulement qui envoie la demande. Vous pouvez l'omettre si vous la lancez vous-même depuis le terminal.
 
-Pour travailler dans un autre dossier, ajoutez `--dir "../autre-projet"` lors de la création. Pour demander plutôt un avis à Claude Code, remplacez `--to codex` par `--to claude`.
+Pour travailler dans un autre dossier, ajoutez `--dir "../autre-projet"` lors de la création. Pour confier plutôt la tâche à Claude Code, remplacez `--to codex` par `--to claude`.
 
 ## Continuer avec la même conversation
 
@@ -40,13 +40,13 @@ Gardez l'identifiant rendu et reprenez la commande affichée par PALABRE. Par ex
 palabre relay --to codex:<identifiant> "Quel test permettrait de vérifier le premier risque ?"
 ```
 
-N'ajoutez plus `--new` : Codex retrouve le contexte du premier échange. Chaque commande envoie une question et attend une seule réponse. Laissez cette conversation fermée dans Desktop et dans les autres outils pendant l'appel.
+N'ajoutez plus `--new` : Codex retrouve le contexte du premier échange. Chaque commande envoie une demande et attend une seule réponse. Laissez cette conversation fermée dans Desktop et dans les autres outils pendant l'appel.
 
-Un identifiant peut être rendu même si la première question échoue. Cela ne prouve pas qu'une réponse a été obtenue. Lisez le diagnostic avant de renvoyer quoi que ce soit ; PALABRE ne recommence jamais automatiquement.
+Un identifiant peut être rendu même si la première demande échoue. Cela ne prouve pas qu'une réponse a été obtenue. Lisez le diagnostic avant de renvoyer quoi que ce soit ; PALABRE ne recommence jamais automatiquement.
 
 ## Viser une conversation qui connaît déjà le projet
 
-Vous avez déjà travaillé sur ce projet avec Codex ou Claude Code ? Fermez cette conversation, conservez son identifiant, puis adressez-lui directement la question :
+Vous avez déjà travaillé sur ce projet avec Codex ou Claude Code ? Fermez cette conversation, conservez son identifiant, puis confiez-lui directement la tâche :
 
 ```text
 palabre relay --to claude:<identifiant> "Relis le plan dont nous avons parlé et signale ce qui manque, sans rien modifier."
