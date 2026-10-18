@@ -7,7 +7,7 @@
  */
 import { randomBytes } from "node:crypto";
 import type { RelayMessages } from "../messages/relay.js";
-import type { InvalidRequestReason, SessionRef } from "./types.js";
+import type { InvalidRequestReason, SenderRef, SessionRef } from "./types.js";
 
 /** Taille maximale de l'enveloppe de coordination, en octets UTF-8 (hors contexte PR). */
 export const MAX_RELAY_MESSAGE_BYTES = 64 * 1024;
@@ -19,8 +19,8 @@ export interface MissionEnvelopeHeader { kind: "mission"; id: string; step: numb
 
 /** Entrées déjà validées par la commande Relay ou le contrôleur Mission. */
 export interface RelayEnvelopeInput {
-  from: SessionRef;
-  to: SessionRef;
+  from: SenderRef | null;
+  to: { agent: string; sessionId?: string };
   nonce: string;
   message: string;
   subject?: string;
@@ -75,6 +75,18 @@ export function parseSessionRef(value: string): ValidationResult<SessionRef> {
   return { ok: true, value: { agent, sessionId: sessionId.toLowerCase() } };
 }
 
+/** Valide un nom seul, sans élargir la grammaire des identifiants de cible. */
+export function parseAgentName(value: string): ValidationResult<string> {
+  return AGENT_NAME.test(value) ? { ok: true, value } : { ok: false, reason: "invalid-arguments" };
+}
+
+/** Expéditeur facultatif : nom seul ou référence UUID stricte, jamais une étiquette libre. */
+export function parseSenderRef(value: string): ValidationResult<SenderRef> {
+  if (value.includes(":")) return parseSessionRef(value);
+  const name = parseAgentName(value);
+  return name.ok ? { ok: true, value: { agent: name.value } } : name;
+}
+
 /** Valide le message : non vide après suppression des espaces, et au plus `MAX_RELAY_MESSAGE_BYTES`. */
 export function validateRelayMessage(message: string): ValidationResult<string> {
   if (message.trim() === "") return { ok: false, reason: "invalid-arguments" };
@@ -95,14 +107,14 @@ function inline(text: string): string { return text.replace(/[\\`*_\[\]<>]/g, "\
 
 /** En-tête compact avant le corps inchangé ; provenance technique et nonce en fin. */
 function buildRelayEnvelope(input: RelayEnvelopeInput, messages: RelayMessages, open: boolean): string {
-  const from = inline(input.from.agent), to = inline(input.to.agent);
+  const from = input.from ? inline(input.from.agent) : messages.terminalSender, to = inline(input.to.agent);
   const title = input.header
     ? messages.missionHeader(input.header.id, input.header.step, from, to)
     : messages.envelopeHeader(from, to);
   return [title, "", messages.envelopeWarning, "",
     ...(input.subject !== undefined ? [messages.subjectLine(inline(input.subject)), ""] : []),
     input.message, "", "---", "", messages.agentSection, "", messages.envelopeProvenance,
-    messages.envelopeSession(input.from.sessionId, input.nonce), "", messages.envelopeNotice,
+    messages.envelopeSession(input.from?.sessionId, input.nonce), "", messages.envelopeNotice,
     open ? messages.openPermissions : messages.envelopePermissions, "", messages.envelopeReplyHint].join("\n");
 }
 

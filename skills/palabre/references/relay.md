@@ -32,11 +32,11 @@ Relay ne fait pas dialoguer deux conversations ouvertes, et ne renvoie rien dans
 
 ## Avant de lancer
 
-- **Cible désignée par l'utilisateur.** Aucune sélection implicite (« la plus récente ») : obtenir l'identifiant de la conversation, ou aider l'utilisateur à la retrouver puis le laisser choisir.
+- **Cible explicite.** Nouvelle conversation : `--new --to <agent>`. Conversation existante : obtenir son identifiant, ou aider l'utilisateur à la retrouver puis le laisser choisir. Aucune sélection implicite (« la plus récente »).
   - Claude Code : nom du fichier `~/.claude/projects/<dossier>/<uuid>.jsonl`.
   - Codex : fin du nom `~/.codex/sessions/AAAA/MM/JJ/rollout-…-<uuid>.jsonl`.
 - **Cible fermée.** Aucun TUI, desktop, IDE ni exécution ne doit y être attaché. La conversation de l'agent hôte est ouverte : elle ne peut pas être la cible.
-- **Expéditeur déclaratif.** `--from <agent>:<uuid>` est une étiquette recopiée dans l'enveloppe, ni lancée ni vérifiée. Utiliser l'identifiant de votre propre conversation s'il est connu (variables observées, non garanties : `CLAUDE_CODE_SESSION_ID` pour Claude Code récent, `CODEX_THREAD_ID` pour Codex) ; sinon le demander. Ne jamais inventer d'identifiant.
+- **Expéditeur déclaratif.** `--from <agent>[:<uuid>]` est une étiquette facultative, ni lancée ni vérifiée. Utiliser l'identifiant de votre propre conversation s'il est connu (variables observées, non garanties : `CLAUDE_CODE_SESSION_ID` pour Claude Code récent, `CODEX_THREAD_ID` pour Codex) ; sinon utiliser le nom seul, ou omettre `--from` pour le terminal. Ne jamais inventer d'identifiant.
 - **Agent cible** : nom d'un agent CLI Codex ou Claude Code de la config (`codex`, `claude`, `claude-opus`…).
 - **Effet possible sur la cible.** Un relay lancé peut modifier l'historique de la cible : le message, la réponse et les lectures de l'agent y sont ajoutés, et le message peut y rester même sans réponse valide. Annoncer cet effet à l'utilisateur avant de lancer. Après coup, lire `delivery.status` (ci-dessous) pour savoir ce qui est établi : un refus avant lancement (`not-delivered`) n'a rien écrit.
 
@@ -87,3 +87,10 @@ Par défaut, `.relay.md` dans `outputDir` : expéditeur, cible, identifiants de 
 Avec `--open`, seul le code structuré `usage_limit_exceeded` de `task_complete.error` du tour corrélé classe la limite (`usage-limit`, code 2). Une phrase du modèle, un `token_count` ou une erreur étrangère ne suffisent pas. La forme est observée sur Codex 0.163.0.
 
 `retryAfter`, optionnel dans le JSON v1 et l’export, vient du message de cette erreur CLI : secondes (nombre), horodatage ISO UTC ou heure `HH:mm` (texte). `3:16 PM` devient `15:16` sans date ni fuseau inventés. Une indication absente ou illisible reste absente. Présenter le diagnostic, conserver l’état et attendre la décision du propriétaire ; ne pas relancer à l’heure indiquée. Mission conserve le résultat et se met en pause sur une limite connue ; délivrance ou publication inconnue = `uncertain`. Aucun support `--open` ajouté à Mission.
+
+
+## Créer la cible et continuer
+
+`palabre relay --new --to codex --from claude "<question>" --json` crée une conversation persistante en lecture seule dans le dossier courant. `--dir "<dossier>"` est réservé à `--new`. Mémoriser `to.session` et `cwd`, puis utiliser `--to codex:<id>` sans `--new`. Sans `--from`, l'expéditeur déclaré est `terminal` ; nom seul et nom avec UUID sont aussi admis. Ni en-tête ni nom déclaré ne donnent d'autorisation.
+
+`created: true` signifie qu'un identifiant a été reçu, même en erreur ; aucun succès n'en découle. `to.session: null` indique qu'aucun identifiant valide n'a été reçu. Vérifier `status` et `delivery` avant de continuer. Pas de relance automatique, pas d'écriture par l'équipier ni de `--open` avec `--new`. L'affichage Desktop reste à vérifier.

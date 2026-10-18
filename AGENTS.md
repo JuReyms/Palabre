@@ -1411,3 +1411,10 @@ Ajouter aussi un label de zone quand le perimetre est clair : `area: cli`, `area
 - Garder les adapters independants du moteur d'orchestration.
 - Documenter les limites connues plutot que de masquer les heuristiques.
 - Eviter les abstractions prematurees, sauf quand elles gardent les adapters propres.
+
+
+### Relay : création et expéditeur facultatif (#150)
+
+`--new --to <agent>` crée une conversation persistante Claude/Codex en reprenant la même politique que Relay fermé. Le dossier est courant par défaut, ou `--dir` (création seulement). Aucun `--last`, aucune reprise implicite, aucun `--open` avec `--new`. Les adapters fournissent `createArgs` et extraient l'identité des événements structurés ; le lanceur les observe pendant stdout. L'identifiant initial est conservé même après erreur/annulation et sert à vérifier la réponse et le nonce dans l'historique. Avant cet événement, ne jamais chercher un historique avec un identifiant vide.
+
+Le JSON v1 ajoute `created` et `cwd` pour `--new` seulement : `created` signifie identifiant reçu, pas succès du tour ; `to.session` est null avant réception. La sortie et l'export conservent ces informations sans retry. `from` vaut null si absent ; un nom seul donne `{ agent }`, une référence donne `{ agent, session }`. `SenderRef` permet cette souplesse, tandis que `SessionRef` garde son UUID strict pour les cibles existantes et Mission. Le terminal est aussi un expéditeur déclaratif, jamais une autorisation humaine. L'affichage Desktop et l'écriture par un équipier ne sont pas établis par ce lot.

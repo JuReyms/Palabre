@@ -12,11 +12,13 @@
  */
 "use strict";
 const fs = require("node:fs");
+const path = require("node:path");
 
 const argv = process.argv.slice(2);
 const mode = process.env.FAKE_CLAUDE_MODE || "ok";
 const OTHER = "99999999-9999-4999-8999-999999999999";
-const target = argv[argv.indexOf("--resume") + 1];
+const creating = !argv.includes("--resume");
+const target = creating ? (process.env.FAKE_CLAUDE_NEW_ID || "55555555-5555-4555-8555-555555555555") : argv[argv.indexOf("--resume") + 1];
 const emit = (event) => process.stdout.write(JSON.stringify(event) + "\n");
 
 /** Ajoute une entrée chaînée au transcript, comme le fait Claude Code. */
@@ -51,6 +53,10 @@ process.stdin.on("end", () => {
     process.stdout.write("Usage: claude [options]\n  --print  Print response\n"
       + (process.env.FAKE_CLAUDE_SAFE_MODE === "0" ? "" : "  --safe-mode  Disable customizations\n"));
     return;
+  }
+  if (creating) {
+    process.env.FAKE_CLAUDE_TRANSCRIPT = path.join(path.dirname(process.env.FAKE_CLAUDE_TRANSCRIPT), `${target}.jsonl`);
+    fs.writeFileSync(process.env.FAKE_CLAUDE_TRANSCRIPT, "");
   }
   switch (mode) {
     case "ok":

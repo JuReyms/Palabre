@@ -1,12 +1,13 @@
 /**
  * @file Commande `palabre relay` : transmet un message à une conversation Codex ou Claude Code
- * fermée et rend une réponse, en un seul appel (voir AGENTS.md, section "Relay externe").
+ * fermée ou neuve et rend une réponse, en un seul appel (voir AGENTS.md, section "Relay externe").
  *
  * Déroulé strictement ordonné ; une étape refusée arrête le relay sans rien lancer :
  * arguments, config approuvée (sans question interactive), agent et fournisseur, exécutable,
  * historique et dossier de la cible, attachement, puis échange (étape préalable et reprise),
  * issue, délivrance, export et sortie. Aucun retry : le statut de délivrance dit à l'appelant
- * s'il peut renvoyer sans risque de doublon.
+ * s'il peut renvoyer sans risque de doublon. `--new` omet localisation et sonde d'une ancienne
+ * cible ; l'identifiant reçu pendant le flux est conservé même après un tour en échec.
  *
  * `--open` (B1, Codex seulement) inverse la condition d'attachement : la conversation doit être
  * ouverte (verrou tenu). Après la même résolution de config, d'agent et d'exécutable (D21), la
@@ -24,12 +25,13 @@ import { isConfigTrusted, trustConfig } from "../configTrust.js";
 import { exchange, exchangeOutcome, type ExchangeResult, type ExternalExecutable, type ExternalSessionAdapter } from "../externalSessions/adapter.js";
 import { ClaudeSessionAdapter } from "../externalSessions/claude.js";
 import { CodexSessionAdapter } from "../externalSessions/codex.js";
-import { buildEnvelope, buildOpenEnvelope, createNonce, MAX_RELAY_MESSAGE_BYTES, parseSessionRef, validMissionHeader, validateRelayMessage, validateRelaySubject, type MissionEnvelopeHeader } from "../externalSessions/envelope.js";
+import { buildEnvelope, buildOpenEnvelope, createNonce, MAX_RELAY_MESSAGE_BYTES, parseAgentName, parseSenderRef, parseSessionRef, validMissionHeader, validateRelayMessage, validateRelaySubject, type MissionEnvelopeHeader } from "../externalSessions/envelope.js";
 import type { OpenTurnContext } from "../externalSessions/openReader.js";
 import { defaultOpenRelayDeps, runOpenRelay, type OpenQueueReport, type OpenRelayResult } from "../externalSessions/openRelay.js";
 import { locateOpenRollout } from "../externalSessions/openRollout.js";
 import { assessTarget, classifyDelivery, RELAY_EXIT_CODES, refusalOutcome, type PreLaunchRefusal } from "../externalSessions/outcome.js";
 import { resolveExternalExecutable } from "../externalSessions/resolve.js";
+import { isUsableDirectory } from "../externalSessions/process.js";
 import { checkClaudeReviewCli, MIN_CLAUDE_REVIEW_VERSION, type ReviewCliIdentity } from "../externalSessions/reviewCli.js";
 import { parsePullRequest, reviewAllowed, readPullRequest, reviewPrompt, publishReview, type ReviewReport, type ReviewInput } from "../externalSessions/review.js";
 import type {
@@ -41,6 +43,7 @@ import type {
   RelayOutcome,
   RelayStatus,
   SessionIdentity,
+  SenderRef,
   SessionRef
 } from "../externalSessions/types.js";
 import { createTranslator, resolveLanguage } from "../i18n.js";
@@ -55,9 +58,9 @@ export const MIN_RELAY_TIMEOUT_SECONDS = 10;
 export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 
 /** Options de `palabre relay` qui attendent une valeur. */
-const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "config", "language", "task", "pr", "subject"]);
+const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "config", "language", "task", "pr", "subject", "dir"]);
 /** Options de `palabre relay` sans valeur. */
-const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open"]);
+const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "new"]);
 /** Alias acceptés, comme pour les autres commandes. */
 const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
 
@@ -84,8 +87,12 @@ export interface RelayResultV1 {
   type: "relay-result";
   status: RelayStatus;
   exitCode: number;
-  from: { agent: string; session: string } | null;
-  to: { agent: string; session: string; provider: ExternalProvider | null } | null;
+  from: { agent: string; session?: string } | null;
+  /** `session` reste null tant qu'aucun identifiant de création n'a été reçu. */
+  to: { agent: string; session: string | null; provider: ExternalProvider | null } | null;
+  /** Présents seulement avec --new ; le dossier est résolu avant toute création. */
+  created?: boolean;
+  cwd?: string;
   /** Réponse de l'agent ; conservée aussi si la publication d'une revue échoue ensuite. */
   reply?: string;
   delivery: DeliveryVerdict;
@@ -116,13 +123,15 @@ interface RelayContext {
   task?: ReviewReport;
   startedAt: number;
   messages: Messages;
-  from: SessionRef | null;
+  from: SenderRef | null;
   to: SessionRef | null;
   provider: ExternalProvider | null;
   /** Vrai dès que l'échange a commencé : une erreur interne rend alors la délivrance inconnue. */
   exchangeStarted: boolean;
   /** `--open` (B1) : dépôt dans une conversation Codex ouverte. */
   open: boolean;
+  newSession?: boolean;
+  cwd?: string;
 }
 
 /** Erreur de validation : arrête le relay avec un refus avant lancement. */
@@ -221,13 +230,25 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const toValue = optionalString(flags.to);
   if (!toValue) throw invalid("invalid-arguments", messages.relay.arguments.toRequired);
   const fromValue = optionalString(flags.from);
-  if (!fromValue) throw invalid("invalid-arguments", messages.relay.arguments.fromRequired);
-  const to = parseSessionRef(toValue);
+  if ((flags.from !== undefined && !fromValue) || (flags.dir !== undefined && !optionalString(flags.dir))) throw invalid("invalid-arguments");
+  context.newSession = flags.new === true;
+  if ((context.newSession && context.open) || (flags.dir !== undefined && !context.newSession)) {
+    throw invalid("invalid-arguments", messages.relay.arguments.newConflict);
+  }
+  // Une création n'a pas encore d'UUID ; ce nom seul ne sert jamais à chercher un historique.
+  const to = context.newSession ? parseNewTarget(toValue, messages) : parseSessionRef(toValue);
   if (!to.ok) throw invalid(to.reason);
   context.to = to.value;
-  const from = parseSessionRef(fromValue);
-  if (!from.ok) throw invalid(from.reason);
-  context.from = from.value;
+  if (fromValue !== undefined) {
+    const from = parseSenderRef(fromValue);
+    if (!from.ok) throw invalid(from.reason);
+    context.from = from.value;
+  }
+  if (context.newSession) {
+    const cwd = path.resolve(optionalString(flags.dir) ?? process.cwd());
+    if (!isUsableDirectory(cwd)) throw invalid("invalid-working-directory");
+    context.cwd = cwd;
+  }
 
   if (flags.task !== undefined && flags.task !== "review") throw invalid("task-not-allowed");
   const pr = typeof flags.pr === "string" ? parsePullRequest(flags.pr) : undefined;
@@ -272,7 +293,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   }
   if (defaultReviewMessage) message = context.messages.relay.defaultReviewMessage;
   const nonce = createNonce();
-  const envelopeInput = { from: from.value, to: to.value, nonce, message, subject: context.subject, header: context.header };
+  const envelopeInput = { from: context.from, to: to.value, nonce, message, subject: context.subject, header: context.header };
   const coordination = context.open ? buildOpenEnvelope(envelopeInput, context.messages.relay) : buildEnvelope(envelopeInput, context.messages.relay);
   const envelopeCheck = validateRelayMessage(coordination);
   if (!envelopeCheck.ok) throw invalid(envelopeCheck.reason);
@@ -292,7 +313,6 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     if (provider !== "codex") throw invalid("unsupported-agent", context.messages.relay.open.unsupportedProvider);
     return relayOpen(context, {
       to: to.value,
-      from: from.value,
       message,
       envelope: coordination,
       nonce,
@@ -307,14 +327,18 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const adapter: ExternalSessionAdapter = provider === "claude"
     ? new ClaudeSessionAdapter({ operatorFrame: context.messages.relay.operatorFrame, safeMode: flags.task === "review" })
     : new CodexSessionAdapter();
-  const located = adapter.locate(to.value);
+  const located = context.newSession
+    ? { status: "found" as const, target: { ...to.value, provider, cwd: context.cwd! } }
+    : adapter.locate(to.value);
   if (located.status !== "found") {
     throw located.status === "session-not-found"
       ? new RelayRefusal({ status: "session-not-found" })
       : invalid("invalid-working-directory");
   }
-  const decision = assessTarget(adapter.probe(located.target));
-  if (!decision.allowed) throw new RelayRefusal({ status: decision.status });
+  if (!context.newSession) {
+    const decision = assessTarget(adapter.probe(located.target));
+    if (!decision.allowed) throw new RelayRefusal({ status: decision.status });
+  }
 
   if (pr && provider === "claude") {
     const checked = await checkClaudeReviewCli(resolution.executable, located.target.cwd);
@@ -344,10 +368,11 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   try {
     const exchanged = await exchange(adapter, resolution.executable, located.target, envelope, {
       timeoutMs: timeoutSeconds * 1000,
-      signal: controller.signal
+      signal: controller.signal,
+      ...(context.newSession ? { onCreatedSession: (id: string) => { context.to = { agent: to.value.agent, sessionId: id }; } } : {})
     });
     const { outcome, launched } = exchangeOutcome(exchanged);
-    const evidence = launched ? adapter.findNonce(located.target, nonce) : undefined;
+    const evidence = launched && located.target.sessionId ? adapter.findNonce(located.target, nonce) : undefined;
     const delivery = classifyDelivery({ outcome, launched, evidence });
     const reply = outcome.status === "replied" ? exchanged.verdict?.interpretation.reply : undefined;
     const result = buildResult(context, {
@@ -360,7 +385,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     applyReadAccessDiagnostic(result, exchanged.verdict?.interpretation.readAccess, context.messages);
     if (review && reply !== undefined && outcome.status === "replied") {
       try {
-        const reviewUrl = await publishReview(review, reply, to.value.agent, [from.value.sessionId, to.value.sessionId, nonce], undefined, async () => {
+        const reviewUrl = await publishReview(review, reply, to.value.agent, [context.from?.sessionId, located.target.sessionId, nonce].filter((id): id is string => !!id), undefined, async () => {
           if (!(await isConfigTrusted(configPath))
             || createHash("sha256").update(await readFile(configPath)).digest("hex") !== configFingerprint) throw new Error("review-authorization-changed");
           if (controller.signal.aborted) throw new Error("review-cancelled");
@@ -396,7 +421,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
  */
 async function relayOpen(
   context: RelayContext,
-  input: { to: SessionRef; from: SessionRef; message: string; envelope: string; nonce: string; timeoutMs: number; executable: ExternalExecutable; outputDir: string; exportResult: boolean }
+  input: { to: SessionRef; message: string; envelope: string; nonce: string; timeoutMs: number; executable: ExternalExecutable; outputDir: string; exportResult: boolean }
 ): Promise<RelayResultV1> {
   const home = path.join(os.homedir(), ".codex");
   const located = await locateOpenRollout(home, input.to.sessionId);
@@ -537,6 +562,13 @@ function parseTimeout(value: string | string[] | boolean | undefined, messages: 
   return seconds;
 }
 
+/** La cible neuve doit être un nom de config seul, jamais un UUID ni « la dernière ». */
+function parseNewTarget(value: string, messages: Messages): { ok: true; value: SessionRef } {
+  const agent = parseAgentName(value);
+  if (!agent.ok) throw invalid(agent.reason, messages.relay.arguments.newTarget);
+  return { ok: true, value: { agent: agent.value, sessionId: "" } };
+}
+
 function errorMessage(outcome: RelayOutcome, messages: Messages, detail?: string): string {
   if (outcome.status === "invalid-request") return messages.relay.invalidRequest(outcome.reason ?? "invalid-arguments", detail);
   if (outcome.status === "replied") return "";
@@ -579,8 +611,9 @@ function buildResult(
     ...(outcome.status === "target-busy" ? { retryable: true } : {}),
     status: outcome.status,
     exitCode: outcome.exitCode,
-    from: context.from ? { agent: context.from.agent, session: context.from.sessionId } : null,
-    to: context.to ? { agent: context.to.agent, session: context.to.sessionId, provider: context.provider } : null,
+    from: context.from ? { agent: context.from.agent, ...(context.from.sessionId ? { session: context.from.sessionId } : {}) } : null,
+    to: context.to ? { agent: context.to.agent, session: context.to.sessionId || null, provider: context.provider } : null,
+    ...(context.newSession ? { created: !!context.to?.sessionId, ...(context.cwd ? { cwd: context.cwd } : {}) } : {}),
     ...(outcome.status === "replied" && input.reply !== undefined ? { reply: input.reply } : {}),
     delivery: input.delivery,
     identity: input.identity ?? null,
@@ -606,10 +639,11 @@ async function exportRelay(
   input: { nonce: string; message: string; startedAt: number },
   messages: Messages
 ): Promise<string | null> {
-  if (!result.from || !result.to || !result.to.provider) return null;
+  if (!result.to || !result.to.provider) return null;
   try {
     return await writeRelayMarkdown(outputDir, {
       from: result.from,
+      ...(result.created !== undefined ? { created: result.created, cwd: result.cwd } : {}),
       to: { agent: result.to.agent, session: result.to.session, provider: result.to.provider },
       status: result.status,
       delivery: result.delivery,
@@ -707,6 +741,11 @@ export function renderRelayText(result: RelayResultV1, messages: Messages): { st
   if (result.task) {
     lines.push(`${messages.relay.export.publication}: ${result.task.publication}`);
     if (result.task.reviewUrl) lines.push(`${messages.relay.export.reviewUrl}: ${result.task.reviewUrl}`);
+  }
+  if (result.created && result.to?.session) {
+    lines.push(messages.relay.newConversation(`${result.to.agent}:${result.to.session}`, result.cwd ?? ""));
+    lines.push(messages.relay.continueConversation(`palabre relay --to ${result.to.agent}:${result.to.session} "…"`));
+    if (result.status !== "replied") lines.push(messages.relay.newFailed);
   }
   if (result.mode === "open") {
     lines.push(messages.relay.open.unverifiedReceiver);

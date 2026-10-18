@@ -123,6 +123,12 @@ export function codexResumeArgs(sessionId: string, neutralization: readonly stri
   ];
 }
 
+/** Même politique que la reprise, sans `resume` ni identifiant ni sélection `--last`. */
+export function codexCreateArgs(neutralization: readonly string[]): string[] {
+  const args = codexResumeArgs("", neutralization);
+  return ["exec", ...args.slice(2, -2), "-"];
+}
+
 function resolveIdentity(reported: readonly string[], targetSessionId: string, isError: boolean): SessionIdentity {
   const unique = [...new Set(reported.map((id) => id.toLowerCase()))];
   if (isError || unique.length === 0) return "unavailable";
@@ -329,6 +335,16 @@ export class CodexSessionAdapter implements ExternalSessionAdapter {
 
   resumeArgs(target: ExternalTarget, preparation: readonly string[]): string[] {
     return codexResumeArgs(target.sessionId, preparation, target.model);
+  }
+
+  createArgs(_target: ExternalTarget, preparation: readonly string[]): string[] {
+    return codexCreateArgs(preparation);
+  }
+
+  creationSessionId(line: string): string | undefined {
+    const event = parseJsonLines(line)[0];
+    const id = event?.type === "thread.started" ? asString(event.thread_id) : undefined;
+    return id && isSessionId(id) ? id.toLowerCase() : undefined;
   }
 
   /**

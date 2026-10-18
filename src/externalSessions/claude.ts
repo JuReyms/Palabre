@@ -85,6 +85,11 @@ export function claudeResumeArgs(sessionId: string, operatorFrame: string, safeM
   ];
 }
 
+/** Crée une conversation persistante, en conservant toutes les restrictions de reprise. */
+export function claudeCreateArgs(operatorFrame: string, safeMode = false): string[] {
+  return claudeResumeArgs("", operatorFrame, safeMode).slice(0, -2);
+}
+
 /**
  * Identité de la session qui a répondu. Un échange en erreur ne fournit jamais d'identifiant
  * fiable : sur « No conversation found », Claude rapporte un identifiant neuf, sans lien avec la cible.
@@ -289,6 +294,17 @@ export class ClaudeSessionAdapter implements ExternalSessionAdapter {
 
   resumeArgs(target: ExternalTarget): string[] {
     return claudeResumeArgs(target.sessionId, this.operatorFrame, this.safeMode);
+  }
+
+  createArgs(): string[] {
+    return claudeCreateArgs(this.operatorFrame, this.safeMode);
+  }
+
+  creationSessionId(line: string): string | undefined {
+    const event = parseJsonLines(line)[0];
+    const id = event && ((event.type === "system" && event.subtype === "init") || event.type === "result")
+      ? asString(event.session_id) : undefined;
+    return id && isSessionId(id) ? id.toLowerCase() : undefined;
   }
 
   /**

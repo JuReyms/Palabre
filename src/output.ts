@@ -203,8 +203,11 @@ export interface RelayExport {
   subject?: string;
   cli?: { path: string; version: string | null };
   task?: { name: "review"; pr: string; headSha?: string; publication: string; reviewUrl?: string; error?: string };
-  from: { agent: string; session: string };
-  to: { agent: string; session: string; provider: string };
+  from: { agent: string; session?: string } | null;
+  to: { agent: string; session: string | null; provider: string };
+  /** Création Relay : l'identifiant peut manquer si la CLI n'a rien annoncé. */
+  created?: boolean;
+  cwd?: string;
   status: string;
   delivery: { status: string; persisted: boolean | "unknown"; inActiveBranch: boolean | "unknown" };
   identity: string | null;
@@ -243,8 +246,9 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
   const formatBoolean = (value: boolean | "unknown") => (value === "unknown" ? "unknown" : value ? messages.output.yes : messages.output.no);
   const rows = [
     [labels.palabreVersion, metadata.palabreVersion],
-    [labels.from, `${report.from.agent}:${report.from.session}`],
-    [labels.to, `${report.to.agent}:${report.to.session}`],
+    [labels.from, report.from ? `${report.from.agent}${report.from.session ? `:${report.from.session}` : ""}` : messages.relay.terminalSender],
+    [labels.to, `${report.to.agent}${report.to.session ? `:${report.to.session}` : ""}`],
+    ...(report.created !== undefined ? [[labels.created, formatBoolean(report.created)], [labels.cwd, report.cwd ?? labels.unknown]] : []),
     [labels.provider, report.to.provider],
     [labels.status, report.status],
     [labels.delivery, report.delivery.status],

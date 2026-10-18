@@ -438,7 +438,7 @@ describe("palabre relay : refus avant lancement", () => {
   test("arguments invalides : JSON structuré, code 8", async () => {
     const world = makeWorld();
     const cases: Array<[string[], string]> = [
-      [["--to", `claude:${CLAUDE_SESSION}`, "x"], "invalid-arguments"],
+      [["--from", "claude:latest", "--to", `claude:${CLAUDE_SESSION}`, "x"], "invalid-session-id"],
       [["--from", FROM, "x"], "invalid-arguments"],
       [["--from", FROM, "--to", "claude:latest", "x"], "invalid-session-id"],
       [[...toClaude], "invalid-arguments"],
@@ -793,7 +793,7 @@ describe("palabre relay --help", () => {
     const world = makeWorld();
     const result = await relay(world, ["--help"]);
     assert.equal(result.code, 0);
-    assert.match(result.stdout, /palabre relay --from <agent>:<session> --to <agent>:<session>/);
+    assert.match(result.stdout, /palabre relay --to <agent>:<session>/);
     // Réserves complètes de la garantie conditionnelle, exigées par AGENTS.md.
     const fr = result.stdout.replace(/\s+/g, " ");
     assert.match(fr, /sur les versions de CLI vérifiées, la cible ne dispose d'aucun outil d'écriture/);
@@ -811,5 +811,111 @@ describe("palabre relay --help", () => {
     assert.match(en, /provided the configuration does not change between inspection and resume/);
     assert.match(en, /cover neither administered policies nor unverified CLI versions/);
     assert.equal(result.calls.length, 0);
+  });
+});
+
+const NEW_IDS = { claude: '55555555-5555-4555-8555-555555555555', codex: '0199aaaa-5555-7ccc-8ddd-eeeeeeeeeeee' };
+
+describe('Relay : création et expéditeur facultatif', () => {
+  for (const provider of ['claude', 'codex'] as const) {
+    test(`${provider} : création persistante sans reprendre un historique existant`, async () => {
+      const w = makeWorld();
+      const before = [readFileSync(w.transcript, 'utf8'), readFileSync(w.rollout, 'utf8')];
+      const r = await relay(w, ['--new', '--to', provider, 'Question fictive', '--trust-config', '--json']);
+      assert.equal(r.code, 0, r.stdout + r.stderr);
+      assert.equal(r.json.created, true);
+      assert.equal(r.json.to.session, NEW_IDS[provider]);
+      assert.equal(r.json.to.provider, provider);
+      assert.equal(r.json.cwd, w.workspace);
+      assert.equal(r.json.from, null);
+      assert.equal(r.json.delivery.status, 'replied');
+      assert.equal(r.json.delivery.persisted, true);
+      const call = r.calls.find(c => provider === 'claude' ? c.argv.includes('-p') : c.argv[0] === 'exec')!;
+      assert.ok(call); assert.equal(call.cwd, w.workspace);
+      assert.ok(!call.argv.includes('--resume')); assert.ok(!call.argv.includes('resume')); assert.ok(!call.argv.includes('--last'));
+      assert.match(call.stdin, /terminal →/);
+      assert.ok(call.stdin.indexOf('aucune autorisation') < call.stdin.indexOf('Question fictive'));
+      assert.ok(call.stdin.includes('non authentifié'));
+      assert.ok(!call.stdin.includes('Session : undefined'));
+      if (provider === 'claude') {
+        assert.ok(call.argv.includes('Read,Glob,Grep'));
+        assert.equal(call.argv[call.argv.indexOf('--permission-mode') + 1], 'plan');
+        assert.ok(call.argv.includes('--strict-mcp-config'));
+        assert.ok(call.argv.includes('{"disableAllHooks":true}'));
+        assert.ok(!call.argv.includes('--no-session-persistence'));
+      } else {
+        assert.ok(call.argv.includes('sandbox_mode="read-only"'));
+        assert.ok(call.argv.includes('approval_policy="never"'));
+        assert.ok(call.argv.includes('plugins') && call.argv.includes('apps') && call.argv.includes('memories') && call.argv.includes('hooks'));
+        assert.ok(call.argv.includes('notify=[]')); assert.ok(!call.argv.includes('--ephemeral'));
+        assert.equal(r.calls.filter(c => c.argv[0] === 'mcp').length, 1);
+      }
+      const md = readFileSync(r.json.exportPath, 'utf8');
+      assert.ok(md.includes(`${provider}:${NEW_IDS[provider]}`)); assert.ok(md.includes(w.workspace));
+      assert.ok(md.includes('| Expéditeur | terminal |'));
+      assert.deepEqual([readFileSync(w.transcript, 'utf8'), readFileSync(w.rollout, 'utf8')], before);
+    });
+
+    test(`${provider} : --dir choisit le projet sans changer la config ni les anciens historiques`, async () => {
+      const w = makeWorld(), other = path.join(w.base, 'autre-projet'); mkdirSync(other);
+      const r = await relay(w, ['--new', '--to', provider, '--dir', other, '--from', 'claude', 'Question', '--trust-config', '--json']);
+      assert.equal(r.code, 0, r.stdout + r.stderr); assert.equal(r.json.cwd, other);
+      assert.deepEqual(r.json.from, { agent: 'claude' });
+      assert.ok(r.calls.every(c => c.cwd === other));
+      assert.ok(readFileSync(r.json.exportPath, 'utf8').includes('| Expéditeur | claude |'));
+    });
+
+    test(`${provider} : identifiant conservé après échec du premier tour, sans relance`, async () => {
+      const w = makeWorld();
+      const env: Record<string, string> = provider === 'claude' ? { FAKE_CLAUDE_MODE: 'persisted-fail' } : { FAKE_CODEX_MODE: 'created-fail' };
+      const r = await relay(w, ['--new', '--to', provider, 'Question', '--trust-config', '--json'], env);
+      assert.equal(r.code, 2); assert.equal(r.json.created, true);
+      assert.equal(r.json.to.session, NEW_IDS[provider]); assert.equal(r.json.reply, undefined);
+      assert.equal(r.json.delivery.status, 'persisted-no-reply');
+      assert.equal(r.calls.filter(c => provider === 'claude' ? c.argv.includes('-p') : c.argv[0] === 'exec').length, 1);
+      const md = readFileSync(r.json.exportPath, 'utf8'); assert.ok(md.includes(NEW_IDS[provider]));
+      const text = await relay(makeWorld(), ['--new', '--to', provider, 'Question', '--trust-config', '--no-export'], env);
+      assert.equal(text.code, 2); assert.match(text.stderr, /Pour continuer.*palabre relay --to/);
+      assert.match(text.stderr, /premier échange a échoué/); assert.equal(text.stdout, '');
+    });
+
+    test(`${provider} : un identifiant mal formé n'est jamais proposé pour continuer`, async () => {
+      const w = makeWorld();
+      const env: Record<string, string> = provider === 'claude' ? { FAKE_CLAUDE_NEW_ID: 'not-an-id' } : { FAKE_CODEX_NEW_ID: 'not-an-id' };
+      const r = await relay(w, ['--new', '--to', provider, 'Question', '--trust-config', '--json'], env);
+      assert.notEqual(r.code, 0); assert.equal(r.json.to.session, null); assert.equal(r.json.created, false);
+      assert.equal(r.json.reply, undefined);
+    });
+  }
+
+  test('expéditeur absent, nom seul et UUID restent déclaratifs en reprise fermée', async () => {
+    for (const sender of [undefined, 'claude', `codex:${CODEX_SESSION}`]) {
+      const w = makeWorld();
+      const r = await relay(w, ['--to', `claude:${CLAUDE_SESSION}`, ...(sender ? ['--from', sender] : []), 'Question', '--trust-config', '--json']);
+      assert.equal(r.code, 0, r.stdout + r.stderr);
+      assert.deepEqual(r.json.from, sender ? sender.includes(':') ? { agent: 'codex', session: CODEX_SESSION } : { agent: 'claude' } : null);
+      assert.ok(readFileSync(r.json.exportPath, 'utf8').includes('| Expéditeur |'));
+    }
+  });
+
+  test('arguments incompatibles : refus avant toute CLI, aucune cible implicite', async () => {
+    for (const extra of [
+      ['--new', '--to', 'codex', '--open'], ['--to', `codex:${CODEX_SESSION}`, '--dir', '.'],
+      ['--new', '--to', `codex:${CODEX_SESSION}`], ['--to', 'codex'],
+      ['--new', '--to', 'claude', '--from', 'claude:terminal'], ['--new', '--to', 'claude', '--from', 'a\nb'],
+      ['--new', '--to', 'claude', '--dir', 'inexistant'], ['--new', '--to', 'ollama-local'],
+      ['--new', '--to', 'claude', '--from', ''], ['--new', '--to', 'claude', '--dir', ''],
+    ]) {
+      const w = makeWorld();
+      const r = await relay(w, [...extra, 'Question', '--trust-config', '--json']);
+      assert.equal(r.code, 8, r.stdout); assert.equal(r.calls.length, 0); assert.equal(r.json.delivery.status, 'not-delivered');
+    }
+  });
+
+  test('neutralisation refusée : pas de création ni identifiant inventé', async () => {
+    const w = makeWorld();
+    const r = await relay(w, ['--new', '--to', 'codex', 'Question', '--trust-config', '--json'], { FAKE_CODEX_MCP: '[{}]' });
+    assert.equal(r.json.status, 'neutralization-failed'); assert.equal(r.json.to.session, null);
+    assert.equal(r.json.created, false); assert.equal(r.calls.length, 1);
   });
 });

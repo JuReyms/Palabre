@@ -6,7 +6,9 @@
  * arguments de reprise et le format de sortie de sa CLI. Il ne lance aucun processus lui-même :
  * `exchange` exécute l'éventuelle étape préalable de l'adapter (Codex : liste MCP) avec un
  * lanceur déjà lié à l'exécutable et au dossier de la cible, lance la reprise avec
- * `runExternalProcess`, puis délègue l'interprétation à l'adapter. Les issues et la délivrance
+ * `runExternalProcess`, puis délègue l'interprétation à l'adapter. La création utilise la même
+ * préparation et observe l'identifiant pendant stdout, sans annoncer de réponse réussie.
+ * Les issues et la délivrance
  * restent calculées par `outcome.ts`, identiques pour tous les fournisseurs.
  */
 import { launchOutcome, refusalOutcome, type PreLaunchRefusal } from "./outcome.js";
@@ -83,6 +85,10 @@ export interface ExternalSessionAdapter {
    * `preparation` contient les arguments rendus par `prepare` (vide sans étape préalable).
    */
   resumeArgs(target: ExternalTarget, preparation: readonly string[]): string[];
+  /** Création sans reprise implicite, avec la même politique que `resumeArgs`. */
+  createArgs?(target: ExternalTarget, preparation: readonly string[]): string[];
+  /** Identifiant validé dans une ligne d'événement fournisseur, même si le tour échoue ensuite. */
+  creationSessionId?(line: string): string | undefined;
   /** Interprète la sortie d'une CLI effectivement lancée. */
   interpret(run: ExternalProcessResult, target: ExternalTarget): ProviderVerdict;
   /** Cherche le nonce dans l'historique de la cible ; ne lève jamais. */
@@ -102,18 +108,26 @@ export type ExchangeResult =
 export const PREPARATION_LIMITS = { timeoutMs: 60_000, maxOutputBytes: 1024 * 1024 } as const;
 
 /**
- * Exécute l'éventuelle étape préalable, puis la reprise : exécutable résolu, arguments de
+ * Exécute l'éventuelle étape préalable, puis la reprise ou création : exécutable résolu, arguments de
  * l'adapter, dossier de la cible, enveloppe sur stdin. Ne relance jamais, et ne lève jamais
- * (les échecs sont dans le résultat).
+ * (les échecs sont dans le résultat). En création, `target.sessionId` reçoit le premier UUID
+ * structuré avant l'interprétation finale ; les identités contradictoires restent refusées.
  */
 export async function exchange(
   adapter: ExternalSessionAdapter,
   executable: ExternalExecutable,
   target: ExternalTarget,
   envelope: string,
-  options: { timeoutMs: number; maxOutputBytes?: number; signal?: AbortSignal; env?: NodeJS.ProcessEnv }
+  options: {
+    timeoutMs: number;
+    maxOutputBytes?: number;
+    signal?: AbortSignal;
+    env?: NodeJS.ProcessEnv;
+    /** Création : observation de l'identifiant avant la fin, sans annoncer un succès. */
+    onCreatedSession?: (id: string) => void;
+  }
 ): Promise<ExchangeResult> {
-  const launch = (args: readonly string[], stdin: string, limits: { timeoutMs: number; maxOutputBytes?: number }) =>
+  const launch = (args: readonly string[], stdin: string, limits: { timeoutMs: number; maxOutputBytes?: number }, onStdoutLine?: (line: string) => void) =>
     runExternalProcess({
       command: executable.command,
       args: [...executable.prefixArgs, ...args],
@@ -122,7 +136,8 @@ export async function exchange(
       timeoutMs: limits.timeoutMs,
       maxOutputBytes: limits.maxOutputBytes,
       signal: options.signal,
-      env: options.env
+      env: options.env,
+      onStdoutLine
     });
 
   let preparation: string[] = [];
@@ -131,7 +146,16 @@ export async function exchange(
     if (prepared.status === "refused") return { refusal: prepared.refusal, detail: prepared.detail };
     preparation = prepared.args;
   }
-  const run = await launch(adapter.resumeArgs(target, preparation), envelope, options);
+  const creating = options.onCreatedSession !== undefined;
+  if (creating && (!adapter.createArgs || !adapter.creationSessionId)) throw new Error("Creation unsupported");
+  const run = await launch(creating ? adapter.createArgs!(target, preparation) : adapter.resumeArgs(target, preparation), envelope, options,
+    creating ? (line) => {
+      const id = adapter.creationSessionId!(line);
+      if (id && !target.sessionId) {
+        target.sessionId = id;
+        options.onCreatedSession!(id);
+      }
+    } : undefined);
   return run.started
     ? { preparation, process: run, verdict: adapter.interpret(run, target) }
     : { preparation, process: run };

@@ -9,11 +9,29 @@ import {
   createNonce,
   MAX_RELAY_MESSAGE_BYTES,
   parseSessionRef,
+  parseSenderRef,
   validateRelayMessage
 } from "../src/externalSessions/envelope.js";
 import { relayMessages } from "../src/messages/relay.js";
 
 const SESSION = "44444444-4444-4444-8444-444444444444";
+
+test("expéditeur facultatif : formes bornées et avertissement conservé en français et anglais", () => {
+  assert.deepEqual(parseSenderRef("claude"), { ok: true, value: { agent: "claude" } });
+  assert.deepEqual(parseSenderRef(`claude:${SESSION}`), { ok: true, value: { agent: "claude", sessionId: SESSION } });
+  for (const value of ["", "x".repeat(65), "a\nb", "claude:terminal"]) assert.equal(parseSenderRef(value).ok, false);
+  for (const language of ["fr", "en"] as const) {
+    const messages = relayMessages[language];
+    for (const from of [null, { agent: "claude" }]) {
+      const envelope = buildEnvelope({ from, to: { agent: "codex" }, nonce: "PR-test", message: "Question" }, messages);
+      assert.ok(envelope.includes(from ? "claude → codex" : "terminal → codex"));
+      assert.ok(envelope.indexOf(messages.envelopeWarning) < envelope.indexOf("Question"));
+      assert.ok(envelope.includes(messages.envelopeNotice));
+      assert.ok(!envelope.includes("undefined"));
+      assert.ok(envelope.includes(messages.envelopeSession(undefined, "PR-test")));
+    }
+  }
+});
 
 describe("parseSessionRef", () => {
   test("accepte <agent>:<uuid> et normalise l'UUID en minuscules", () => {
