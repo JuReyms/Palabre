@@ -6,6 +6,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Fixed
 
+- Tests : chaque processus dispose d'un dossier personnel temporaire et le vrai `~/.palabre` est surveillé avant/après la suite, sous Windows et Linux. Les tests ne doivent plus y ajouter d'approbations. `palabre config --prune-trust` permet à l'utilisateur de retirer les approbations de fichiers disparus, avec aperçu `--dry-run`, confirmation au clavier et sauvegarde horodatée ; aucun nettoyage automatique (Fixes #156). Aide, guides fr/en, skill et consignes contributeurs actualisés ; la copie installée du skill doit être mise à jour manuellement.
+
 - Relay, Mission et review vers Codex sous Windows : un alias PowerShell Store confirmé est écarté du seul processus enfant lorsqu'un PowerShell natif reste disponible. La lecture seule et les réglages utilisateur restent inchangés ; les autres alias du dossier écarté sont indisponibles à cet enfant (Refs #128). Aide, guides fr/en et skill actualisés ; la copie installée du skill n'est pas mise à jour automatiquement.
 
 

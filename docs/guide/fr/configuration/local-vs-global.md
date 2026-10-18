@@ -64,3 +64,21 @@ La garde générale exige cette approbation pour une configuration de projet imp
 Vous relisez le fichier puis lancez `palabre config --config <fichier> --trust-config`. Un agent ne doit pas l'approuver pour s'accorder des droits. Pour une configuration projet non approuvée, `doctor` reste disponible et ne contacte pas ses URLs Ollama.
 
 La politique Relay suit le fichier résolu : `palabre relay allow-repo proprietaire/depot` affiche le chemin choisi et demande votre confirmation au clavier. Toute nouvelle configuration doit s'appeler `palabre.config.json`.
+
+## Retirer les approbations de fichiers disparus
+
+Après la suppression d'un projet ou d'un dossier temporaire, son approbation peut rester dans le registre. Pour voir ce qui serait retiré, sans rien modifier :
+
+```bash
+palabre config --prune-trust --dry-run
+```
+
+Pour effectuer le nettoyage, lancez vous-même cette commande dans votre terminal :
+
+```bash
+palabre config --prune-trust
+```
+
+PALABRE affiche les chemins concernés et demande votre confirmation au clavier. Avant d'écrire, il crée une sauvegarde horodatée à côté de `~/.palabre/trusted-configs.json` et vous en indique le chemin. Seules les approbations de fichiers disparus sont retirées. Un chemin existant ou inaccessible est conservé, même si le contenu du fichier a changé. Aucune configuration n'est approuvée par ce nettoyage.
+
+Sans confirmation, rien n'est modifié. Il n'y a pas d'option `--yes` : un agent peut vous proposer la commande, mais ne doit jamais répondre à votre place. Si le registre change pendant la confirmation, PALABRE s'arrête ; relancez la commande pour relire la nouvelle liste.
