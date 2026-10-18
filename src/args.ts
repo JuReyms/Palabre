@@ -109,6 +109,12 @@ const COMMANDS = new Set([
   "mission"
 ]);
 
+/** Nom fermé pour identifier le processus, sans reprendre un sujet ou une valeur d'option. */
+export function rawCommandName(args: readonly string[]): string {
+  const command = args[findFirstPositionalIndex(args)];
+  return command && COMMANDS.has(command) ? command : "run";
+}
+
 /**
  * Position du premier argument positionnel, c'est-à-dire de la commande éventuelle, sans rien
  * valider ni lever. Suit la même table d'arité que `parseArgs` : une valeur consommée par une

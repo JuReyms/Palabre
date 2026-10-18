@@ -66,6 +66,14 @@ palabre agents
 
 ## What the skill adds
 
+### Naming PALABRE tasks
+
+The skill asks the agent to name each task `Palabre <mode>: <subject>`, for example `Palabre Relay: send the review to Codex` or `Palabre Debate: compare two architectures`. The labels are Relay, Debate, Ask, Chat, and Mission; in French, Debate becomes Débat. Mission remains an option of Relay. The host application decides which label is actually displayed.
+
+In an interactive terminal, PALABRE sets a title such as `Palabre · Relay` and tries to restore the previous title at the end. `PALABRE_ASCII=1` uses `Palabre - Relay`. No title is sent to stdout outside a TTY, in JSON, in NDJSON, with `NO_COLOR`, or with `TERM=dumb`. On Windows, the logical name `palabre relay` does not rename the executable: `Get-Process` may still show `node`. Node may also change the native title through this logical name, independently of terminal sequences. A tab title fixed by the host or a forced shutdown may prevent restoration.
+
+### Choosing and following the path
+
 - **Path selection**: Debate, Relay, Ask, or Chat depending on the need, without running Palabre for a simple task or forcing a Debate for every second-opinion request.
 - **Chat driven properly**: the agent uses the [NDJSON stream](/en/integrations/ndjson) and JSON commands on stdin (`chat-send`, `chat-consult`, `chat-use`, `chat-agents`, `chat-end`), never an imitation of the TUI. It knows Chat's bounded memory: six recent messages, no resume after the process ends.
 - **Three kinds of resume kept apart**: the host agent's session, Palabre [checkpoints](/en/reference/cli#resume-a-session) for Debate and Ask, and resuming an external conversation through Relay.

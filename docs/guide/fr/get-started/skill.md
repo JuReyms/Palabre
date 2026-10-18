@@ -66,6 +66,14 @@ palabre agents
 
 ## Ce que le skill apporte
 
+### Nommer les tâches PALABRE
+
+Le skill demande à l'agent de nommer chaque tâche `Palabre <mode> : <objet>`, par exemple `Palabre Relay : envoyer la relecture à Codex` ou `Palabre Débat : comparer deux architectures`. Les libellés sont Relay, Débat, Ask, Chat et Mission ; en anglais, Débat devient Debate. Mission reste une option de Relay. L'application hôte décide du libellé réellement affiché.
+
+Dans un terminal interactif, PALABRE pose un titre comme `Palabre · Relay` et tente de restaurer le titre précédent à la fin. `PALABRE_ASCII=1` utilise `Palabre - Relay`. Aucun titre n'est envoyé sur stdout hors TTY, en JSON, en NDJSON, avec `NO_COLOR` ou avec `TERM=dumb`. Sous Windows, le nom logique `palabre relay` ne renomme pas l'exécutable : `Get-Process` peut toujours afficher `node`. Node peut aussi changer le titre natif via ce nom logique, indépendamment des séquences terminal. Un titre d'onglet fixé par l'hôte ou un arrêt forcé peut empêcher la restauration.
+
+### Choisir et suivre le parcours
+
 - **Choix du parcours** : Débat, Relay, Ask ou Chat selon le besoin, sans lancer Palabre pour une tâche simple ni imposer un Débat à chaque demande de second avis.
 - **Chat piloté proprement** : l'agent utilise le [flux NDJSON](/fr/integrations/ndjson) et les commandes JSON sur stdin (`chat-send`, `chat-consult`, `chat-use`, `chat-agents`, `chat-end`), jamais une imitation de la TUI. Il connaît la mémoire bornée de Chat : six messages récents, aucune reprise après arrêt.
 - **Trois reprises distinguées** : la session de l'agent hôte, les [checkpoints Palabre](/fr/reference/cli#reprendre-une-session) de Débat et Ask, et la reprise d'une conversation externe par Relay.

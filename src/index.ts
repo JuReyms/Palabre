@@ -53,10 +53,14 @@ import { runTuiChatSession } from "./tuiChat.js";
 import { activeConfiguredAgentNames, isRetiredAgentName } from "./agentRegistry.js";
 import { createResumedSessionCheckpointRuntime, createSessionCheckpointRuntime } from "./sessionCheckpointRuntime.js";
 import { prepareSessionResume } from "./sessionResume.js";
+import { startCliIdentity, type CliIdentity } from "./cliIdentity.js";
+
+let cliIdentity: CliIdentity | undefined;
 
 /** Point d'entrée principal du CLI Palabre. Dispatche vers la commande appropriée selon les arguments. */
 async function main(): Promise<void> {
   const rawArgs = process.argv.slice(2);
+  cliIdentity = startCliIdentity(rawArgs, safeStartupLanguage(rawArgs));
   // `relay` gère lui-même ses arguments, sa langue et la confiance de la config : il est aiguillé
   // avant toute validation ou handler général (langue, parseur, `--version`, `--help`), même
   // précédé d'options, pour que ses erreurs restent structurées (`--json`) et qu'aucune question
@@ -302,6 +306,7 @@ async function main(): Promise<void> {
           files: chatContext.files,
           signal: debateAbortSignal()
         }, messages);
+        cliIdentity?.update("chat", language);
         const chatResult = await runTuiChatSession(
           config,
           chatOptions,
@@ -335,6 +340,7 @@ async function main(): Promise<void> {
 
   const resumeTuiHome = async (): Promise<"run" | "quit"> => {
     for (;;) {
+      cliIdentity?.update(tuiMode, language);
       renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion, discovery: tuiDiscovery });
       const nextInput = await promptTuiHomeTopic(tuiMode, messages, { notice: tuiNotice });
       tuiNotice = undefined;
@@ -365,6 +371,7 @@ async function main(): Promise<void> {
       : tuiUpdateInfo.latestVersion;
 
     for (;;) {
+      cliIdentity?.update(tuiMode, language);
       renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion, discovery: tuiDiscovery });
       const tuiInput = await promptTuiHomeTopic(tuiMode, messages, { notice: tuiNotice });
       tuiNotice = undefined;
@@ -434,6 +441,7 @@ async function main(): Promise<void> {
           files: chatContext.files,
           signal: debateAbortSignal()
         }, messages);
+        cliIdentity?.update("chat", language);
         const chatResult = await runTuiChatSession(
           config,
           chatOptions,
@@ -477,6 +485,7 @@ async function main(): Promise<void> {
       preset,
       signal: debateAbortSignal()
     }, messages);
+    cliIdentity?.update(options.mode, language);
     if (parsed.flags["show-prompt"]) {
       printContextWarnings(context.warnings, messages);
       printPromptPreview(config, options, language, messages);
@@ -538,6 +547,7 @@ async function main(): Promise<void> {
           files: options.files,
           signal: debateAbortSignal()
         }, messages);
+        cliIdentity?.update("chat", language);
         const chatResult = await runTuiChatSession(
           config,
           handoffOptions,
@@ -553,6 +563,7 @@ async function main(): Promise<void> {
       const action = await handleTuiHomeInput(nextInput);
       if (action === "quit") return;
       if (action === "continue") {
+        cliIdentity?.update(tuiMode, language);
         renderTuiHome(config, configPath, messages, { mode: tuiMode, version: tuiVersion, latestVersion: tuiLatestVersion, discovery: tuiDiscovery });
         continue;
       }
@@ -578,6 +589,7 @@ async function runResumeCommand(flags: ParsedArgs["flags"], id: string): Promise
     signal: debateAbortSignal()
   });
   const { checkpoint, config, options, messages } = prepared;
+  cliIdentity?.update(options.mode, options.language);
   const renderer = createRendererFromFlags(flags, options.plainOutput, config.defaults?.interface, messages);
   const rendererKind = rendererKindFromFlags(flags, messages);
 
@@ -1227,7 +1239,7 @@ main().catch((error: unknown) => {
   const message = formatRuntimeError(error, messages);
   console.error(`${messages.common.errorPrefix}: ${message}`);
   process.exitCode = 1;
-});
+}).finally(() => { cliIdentity?.dispose(); });
 
 /**
  * Variante de `findRawLanguageFlag` + `resolveLanguage` qui ne peut pas lever, utilisée dans
@@ -1261,6 +1273,7 @@ function assertChatPresetUnsupported(flags: ParsedArgs["flags"], messages: Messa
 
 /** Lance une conversation locale stateless avec consultation explicite. */
 async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig, language: import("./types.js").Language, messages: Messages): Promise<void> {
+  cliIdentity?.update("chat", language);
   assertChatDryRunUnsupported(flags, messages);
   assertChatPresetUnsupported(flags, messages);
   const topic = optionalString(flags.topic) ?? "";

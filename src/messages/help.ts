@@ -801,6 +801,10 @@ Flags:
 Documentation complete:
   https://palab.re/fr
 
+Terminal interactif : titre "Palabre · <Mode>" temporaire (restauration selon l'hote).
+Pas de sequence de titre avec NO_COLOR ; PALABRE_ASCII=1 utilise "Palabre - <Mode>".
+Pas de sequence de titre hors TTY, en JSON ou NDJSON.
+
 Utilisez "palabre [command] --help" pour plus d'informations sur une commande.
 `,
     renderCommand: (command) => frCommandHelp[command]
@@ -862,6 +866,10 @@ Flags:
 
 Full documentation:
   https://palab.re/en
+
+Interactive terminal: temporary "Palabre · <Mode>" title (restoration depends on the host).
+No title sequence with NO_COLOR; PALABRE_ASCII=1 uses "Palabre - <Mode>".
+No title sequence outside a TTY, in JSON or NDJSON.
 
 Use "palabre [command] --help" for more information about a command.
 `,
