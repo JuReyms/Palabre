@@ -817,7 +817,7 @@ Un échec de lancement donne `cli-failure` pour la reprise, et `neutralization-f
 | 5 | `identity-mismatch` | `persisted-no-reply` ou `unknown`. Le texte d'une autre session n'est jamais rendu comme `reply` |
 | 6 | `session-not-found` | `not-delivered` |
 | 7 | `command-not-found` : exécutable de la CLI cible introuvable | `not-delivered` |
-| 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory`, `task-not-allowed`, `invalid-pr`, `review-unavailable`, `review-cli-unsupported` | `not-delivered` |
+| 8 | `invalid-request`, avec `error.reason` : `invalid-arguments`, `invalid-session-id`, `message-too-large`, `unknown-agent`, `unsupported-agent`, `config-untrusted`, `config-unavailable`, `unsupported-executable`, `invalid-working-directory`, `task-not-allowed`, `invalid-pr`, `review-unavailable`, `review-cli-unsupported`, `write-approval-required`, `write-approval-invalid`, `write-unavailable` | `not-delivered` |
 | 9 | `review-failed` : publication de revue non confirmée | délivrance de la réponse de l'équipier conservée, distincte de `task.publication` |
 | 130 | `cancelled` (Ctrl+C) ; avec review seulement si aucun POST tenté | `not-delivered` avant lancement, sinon preuve conservée (dont `replied` si l'équipier avait répondu avant l'annulation de la publication) |
 
@@ -1343,6 +1343,14 @@ Le package npm `palabre` doit etre configure cote npm avec un Trusted Publisher 
 - Environment: laisser vide, sauf si le workflow ajoute explicitement `environment: ...`
 
 Ne pas stocker de `NPM_TOKEN` dans GitHub et ne pas publier depuis la machine locale pour les releases normales. Si une publication manuelle d'urgence est faite, supprimer le token local avec `npm config delete //registry.npmjs.org/:_authToken` juste apres.
+
+## Relay en écriture ponctuelle (lot 2, Windows Codex)
+
+`src/externalSessions/write.ts` porte le contrat : `--new --write` prépare une demande sous `~/.palabre/relay-write/<id>/` ; `approve-write` exige une confirmation humaine en TTY ; `run-write` vérifie la demande, la config approuvée et le commit, puis consomme l'accord en création exclusive avant toute exécution. Un message, un drapeau ou le rôle d'un agent ne valent jamais accord. Aucun `--yes`, aucune approbation par un agent, même pour un essai réel ; les tests à IO injectées utilisent seulement des répertoires fictifs.
+
+PALABRE crée un worktree/une branche depuis le commit annoncé, sans inclure le travail non commité ni les dépendances locales. Le travail et les traces restent conservés en échec. Le profil Codex dérive de `:read-only`, ouvre seulement la racine du worktree avec les sous-dossiers de contrôle protégés, désactive réseau/web, escalade et intégrations habituelles. Une sonde native vérifie écriture interne/refus externe avant modèle ; aucun repli sans confinement. Le backend Windows `unelevated` garde ses limites réseau. Ne pas modifier la configuration utilisateur pour le test ou pour terminer une tâche.
+
+Le champ optionnel JSON/export `write` porte le diff et les fichiers Git, ainsi que les seules commandes structurées terminées (codes/sorties bornés). `observed-commands-only` n'est pas un verdict de tests : ni la prose du modèle ni le code CLI 0 ne prouvent leur réussite. Signaler les rapports incomplets et `spawn EPERM`, préserver la délivrance et l'identifiant même en échec. Claude Windows natif, reprise existante en écriture, Mission et rangement des exports (#158) restent hors périmètre. Les garanties concernent la CLI et le backend qualifiés ; le TTY, comme `allow-repo`, n'est pas une authentification de l'humain contre un processus qui aurait déjà ses droits.
 
 ## Sync documentation (palabre-web)
 

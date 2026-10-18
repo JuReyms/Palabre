@@ -164,6 +164,9 @@ const enStatus: Record<Exclude<RelayStatus, "replied" | "invalid-request">, stri
 };
 
 const frInvalid: Record<InvalidRequestReason, string> = {
+  "write-unavailable": "Le confinement requis pour l'écriture est indisponible. Aucun modèle lancé ; conservez le dossier et demandez une relecture sans --write.",
+  "write-approval-required": "Cette tâche exige un accord humain ponctuel.",
+  "write-approval-invalid": "Accord d'écriture absent, modifié ou déjà consommé.",
   "review-cli-unsupported": "CLI Claude incompatible ou non vérifiable : --safe-mode est requis pour la revue. Aucune PR lue ni revue publiée.",
   "task-not-allowed": "Tâche non autorisée pour ce dépôt par la configuration approuvée.",
   "invalid-pr": "Indique une PR exacte avec --task review --pr https://github.com/proprietaire/depot/pull/123, sans --open ni --trust-config.",
@@ -180,6 +183,9 @@ const frInvalid: Record<InvalidRequestReason, string> = {
 };
 
 const enInvalid: Record<InvalidRequestReason, string> = {
+  "write-unavailable": "The required write sandbox is unavailable. No model started; keep the folder and request advice without --write.",
+  "write-approval-required": "This task requires a one-time human approval.",
+  "write-approval-invalid": "Write approval missing, changed or already consumed.",
   "review-cli-unsupported": "Claude CLI unsupported or unverifiable: review requires --safe-mode. No PR read or review published.",
   "task-not-allowed": "Task not authorized for this repository by the trusted configuration.",
   "invalid-pr": "Provide an exact PR using --task review --pr https://github.com/owner/repo/pull/123, without --open or --trust-config.",
