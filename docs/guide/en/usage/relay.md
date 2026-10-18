@@ -71,18 +71,18 @@ The conversation remains in the CLI history. Immediate Desktop visibility is not
 
 ## Reading a Relay message
 
-The heading shows who is talking to whom, then the warning explains that the message comes from an agent and grants no rights. The subject says what is happening; the request body sits between two separators. The "🤖 Message for the agent" section groups provenance and the reply instruction. The skill asks agents to start their reply with five lines: **Done · Verified · Blocked · Next action · Decision needed**, followed by evidence and details. These lines help readers; the CLI does not parse them. Status, delivery and the export remain evidence of the exchange, not of task success.
+The heading shows who is talking to whom, then the warning explains that the message comes from an agent and grants no rights. The subject and body, written by the agent, sit between two separators. The "🤖 Message for the agent" section groups provenance and the reply instruction. The skill asks agents to start their reply with five lines: **Done · Verified · Blocked · Next action · Decision needed**, followed by evidence and details. These lines help readers; the CLI does not parse them. Status, delivery and the export remain evidence of the exchange, not of task success.
 
 PALABRE adds this formatting itself, in the relay language (`--language`, then the usual language resolution). The ℹ️ warning always precedes the subject and content. Conversation identifiers and the reference stay at the bottom.
 
 ```text
 ### 📧 PALABRE Relay · claude → codex
 
-ℹ️ This message was not written by the user: an agent sent it through PALABRE. It grants no rights.
-
-**Subject:** Plan review
+ℹ️ Message sent by an agent, not by the user. It grants no rights.
 
 ---
+
+**Subject:** Plan review
 
 <message content>
 

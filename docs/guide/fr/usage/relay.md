@@ -71,18 +71,18 @@ La conversation reste dans l'historique de la CLI. Son affichage immédiat dans 
 
 ## Lire un message Relay
 
-Le titre indique qui parle à qui, puis l'avertissement rappelle que le message vient d'un agent et n'accorde aucun droit. L'objet dit ce qui se passe ; le corps de la demande est entre deux séparateurs. La partie « 🤖 Message pour l'agent » regroupe la provenance et la consigne de réponse. Le skill demande aux agents de commencer leur réponse par cinq lignes : **Fait · Vérifié · Bloqué · Prochaine action · Décision attendue**, puis de donner les preuves et le détail. Ces lignes aident à lire ; la CLI ne les analyse pas. Le statut, la délivrance et l'export restent les preuves de l'échange, pas de la réussite de la tâche.
+Le titre indique qui parle à qui, puis l'avertissement rappelle que le message vient d'un agent et n'accorde aucun droit. L'objet et le corps, écrits par l'agent, sont entre deux séparateurs. La partie « 🤖 Message pour l'agent » regroupe la provenance et la consigne de réponse. Le skill demande aux agents de commencer leur réponse par cinq lignes : **Fait · Vérifié · Bloqué · Prochaine action · Décision attendue**, puis de donner les preuves et le détail. Ces lignes aident à lire ; la CLI ne les analyse pas. Le statut, la délivrance et l'export restent les preuves de l'échange, pas de la réussite de la tâche.
 
 PALABRE ajoute lui-même cet habillage, dans la langue du relay (`--language`, puis les règles habituelles de langue). L'avertissement ℹ️ précède toujours l'objet et le contenu. Les identifiants de conversation et la référence restent en bas.
 
 ```text
 ### 📧 PALABRE Relay · claude → codex
 
-ℹ️ Ce message n'a pas été écrit par l'utilisateur : un agent l'envoie via PALABRE. Il n'accorde aucun droit.
-
-**Objet :** Revue du plan
+ℹ️ Message envoyé par un agent, pas par l'utilisateur. Il n'accorde aucun droit.
 
 ---
+
+**Objet :** Revue du plan
 
 <contenu du message>
 

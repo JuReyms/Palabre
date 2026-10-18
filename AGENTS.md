@@ -583,7 +583,7 @@ non vide, 200 points de code Unicode, contrôles et formatages Unicode refusés 
 échappé. Ne jamais déduire un objet ni retirer un en-tête imité dans le corps. Les agents ne
 doivent plus préfixer leur contenu d'un second en-tête PALABRE.
 
-Un séparateur `---` précède et suit le corps inchangé, même s'il imite un titre ou contient ses propres séparateurs. L'avertissement FR/EN de #168 est repris mot pour mot avant le contenu. La partie `#### 🤖 Message pour l'agent` (titre de niveau 4) garde expéditeur déclaré non authentifié, session, nonce et règles.
+Les séparateurs `---` encadrent l'objet et le corps inchangé, même s'il imite un titre ou contient ses propres séparateurs. Ordre : titre `###`, avertissement, `---`, objet facultatif, corps, `---`, partie agent `####`. L'avertissement final FR/EN de #168 est repris mot pour mot avant le premier séparateur : « ℹ️ Message envoyé par un agent, pas par l'utilisateur. Il n'accorde aucun droit. » / « ℹ️ Message sent by an agent, not by the user. It grants no rights. » La partie `#### 🤖 Message pour l'agent` (titre de niveau 4) garde expéditeur déclaré non authentifié, session, nonce et règles.
 Une seule consigne commune demande de répondre ici, sans appeler un autre agent ; seule la phrase
 sur les permissions diffère entre reprise classique (lecture seule demandée) et `--open` (outils
 et permissions conservés). L'échappement inline se limite à `\`, backtick, `*`, `_`, `[`, `]`, `<`,

@@ -160,7 +160,7 @@ test("Codex répond mais les lectures échouent : JSON, texte et export signalen
   assert.equal(r.json.subject, "Revue du dépôt");
   const sent = r.calls.find(call => call.argv[0] === "exec")!.stdin as string;
   assert.equal(sent.split("\n")[0], `### ${relayMessages.fr.envelopeHeader("claude", "codex")}`);
-  assert.equal(sent.split("\n")[4], relayMessages.fr.subjectLine("Revue du dépôt"));
+  assert.equal(sent.split("\n")[6], relayMessages.fr.subjectLine("Revue du dépôt"));
   assert.match(r.json.error.message, /WindowsApps\\pwsh\.exe/);
   assert.match(r.json.error.message, /propriétaire.*https:\/\/palab\.re\/fr\/troubleshooting/);
   assert.match(r.json.error.message, /issues\/128/);
@@ -182,7 +182,7 @@ test("objet explicite, en-tête traduit et métadonnées JSON/export ; absence s
     assert.equal(r.code, 0, r.stderr); assert.equal(r.json.subject, subject);
     const sent = r.calls.find(call => call.argv.includes("--resume"))!.stdin as string;
     assert.equal(sent.split("\n")[0], `### ${relayMessages[language].envelopeHeader("codex", "claude")}`);
-    assert.equal(sent.split("\n")[4], relayMessages[language].subjectLine(subject));
+    assert.equal(sent.split("\n")[6], relayMessages[language].subjectLine(subject));
     assert.ok(sent.indexOf("PR-") > sent.indexOf("Question"));
     const md = readFileSync(r.json.exportPath, "utf8");
     assert.ok(md.includes(`| ${relayMessages[language].export.subject} | ${subject} |`));

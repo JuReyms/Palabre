@@ -105,15 +105,15 @@ export function createNonce(): string {
 /** Texte inline Markdown : ni l'objet ni les noms d'agents ne peuvent fermer leur mise en forme. */
 function inline(text: string): string { return text.replace(/[\\`*_\[\]<>]/g, "\\$&"); }
 
-/** Titre de niveau 3, avertissement avant le corps inchangé encadré de séparateurs ; pied agent de niveau 4. */
+/** Titre de niveau 3, avertissement avant les séparateurs qui encadrent objet et corps inchangé ; pied agent de niveau 4. */
 function buildRelayEnvelope(input: RelayEnvelopeInput, messages: RelayMessages, open: boolean): string {
   const from = input.from ? inline(input.from.agent) : messages.terminalSender, to = inline(input.to.agent);
   const title = input.header
     ? messages.missionHeader(input.header.id, input.header.step, from, to)
     : messages.envelopeHeader(from, to);
-  return [`### ${title}`, "", messages.envelopeWarning, "",
+  return [`### ${title}`, "", messages.envelopeWarning, "", "---", "",
     ...(input.subject !== undefined ? [messages.subjectLine(inline(input.subject)), ""] : []),
-    "---", "", input.message, "", "---", "", `#### ${messages.agentSection}`, "", messages.envelopeProvenance,
+    input.message, "", "---", "", `#### ${messages.agentSection}`, "", messages.envelopeProvenance,
     messages.envelopeSession(input.from?.sessionId, input.nonce), "", messages.envelopeNotice,
     open ? messages.openPermissions : messages.envelopePermissions, "", messages.envelopeReplyHint].join("\n");
 }
