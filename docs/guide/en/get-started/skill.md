@@ -11,7 +11,7 @@ Palabre ships a ready-to-use skill. It teaches an AI agent that Palabre is avail
 | Path | When the agent picks it |
 |------|-------------------------|
 | [Debate](/en/usage/debate) | Confront two positions and work through the disagreements. |
-| [Relay](/en/usage/relay) | Delegate a question or review to Codex or Claude Code: a new conversation with `--new`, or an existing one, closed by default. |
+| [Relay](/en/usage/relay) | Delegate a task to Codex or Claude Code: advice/review, action in open Codex on Windows, or fixes/tests with Windows Codex after one-time approval. |
 | [Ask](/en/usage/ask) | Collect up to four independent opinions before comparing them. |
 | [Chat](/en/usage/chat) | Move forward with one agent, ask for a one-off second opinion, continue after a summary. |
 
@@ -35,7 +35,7 @@ For Claude desktop or another agent, follow its own skill-install procedure poin
 
 After updating Palabre, copy the folder again: the installed copy is not updated automatically.
 
-To try it, say: "Use Palabre to ask Codex to review this file without changing anything." The skill creates a conversation if needed and keeps its ID for follow-up questions. Follow [Your first Relay](/en/get-started/first-relay).
+To start, say: "Use PALABRE to delegate this calculation fix and the tests to Codex. Prepare the task and show me what I need to confirm." On Windows, the skill prepares the writing path and waits for your personal keyboard confirmation. For advice or a review without changes, say so explicitly. Follow [Your first Relay](/en/get-started/first-relay).
 
 ## When the agent sees the skill
 

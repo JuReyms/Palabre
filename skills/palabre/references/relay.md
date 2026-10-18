@@ -1,5 +1,13 @@
 # Palabre — Relay
 
+## Choisir le parcours pour la tâche
+
+- **Deux Desktop** : Claude Code vers Codex ouvert sous Windows, `--open`, permissions habituelles de la cible. L'envoi vers Claude Code ouvert reste indisponible.
+- **Deux terminaux CLI** : même direction vers Codex ouvert sous Windows avec `--open`, pilote peu testé ; pas d'envoi vers Claude Code ouvert.
+- **Arrière-plan**, depuis Desktop ou terminal : avis/relecture dans les deux sens, cible neuve (`--new`) ou existante fermée ; correction/tests avec Codex sous Windows via `--new --write` et accord humain ponctuel. Claude Windows natif n'a pas le confinement requis pour agir ainsi. Depuis un chef de mission Codex, demander l'autorisation de l'hôte pour l'appel réseau si nécessaire, sans élargir durablement les permissions.
+
+Pour l'humain, renvoyer au [guide Premier Relay](https://palab.re/fr/get-started/first-relay). Ne pas lui imposer d'apprendre les options : présenter la tâche et l'accord requis, puis lire le résultat et rendre compte. Le retour CLI n'est jamais ajouté automatiquement à la conversation de l'expéditeur. L'échange appartient à la conversation de l'équipier ; les fichiers restent dans le worktree ; GitHub les montre seulement après commit/push séparément autorisés. L'affichage Desktop peut être différé ou absent.
+
 ## Agir en arrière-plan : accord par tâche
 
 Codex sous Windows seulement : `palabre relay --new --write --to codex --dir "<racine-git>" "<tâche>" --json` prépare la demande. Aucun modèle avant accord. Lire `writeRequest` et `remedy` ; le propriétaire lance `palabre relay approve-write <id>` dans son terminal visible et confirme au clavier. L'agent ne confirme jamais à sa place, n'utilise pas --yes ni un TTY caché et n'écrit jamais les fichiers d'accord. Après sa confirmation réelle : `palabre relay run-write <id> --json`, une seule fois. L'accord est lié aux données exactes ; dérive ou consommation précédente = refus.
@@ -85,14 +93,14 @@ Agent : sur `task-not-allowed`, ouvrir `remedy` dans le terminal visible de l'hu
 
 `palabre relay` crée une conversation avec `--new`, ou reprend une conversation Claude Code ou Codex existante et **fermée**. Il transmet **un** message, récupère **une** réponse, puis termine. Une cible existante retrouve le contexte de sa conversation.
 
-Relay ne fait pas dialoguer deux conversations ouvertes, et ne renvoie rien dans la conversation de l'expéditeur : la réponse revient seulement à l'appelant.
+Avec `--open`, une conversation Claude Code peut joindre une conversation Codex ouverte sous Windows. Relay n'organise pas de boucle de dialogue et ne renvoie rien automatiquement dans la conversation de l'expéditeur : la réponse revient seulement à l'appelant.
 
 ## Avant de lancer
 
 - **Cible explicite.** Nouvelle conversation : `--new --to <agent>`. Conversation existante : obtenir son identifiant, ou aider l'utilisateur à la retrouver puis le laisser choisir. Aucune sélection implicite (« la plus récente »).
   - Claude Code : nom du fichier `~/.claude/projects/<dossier>/<uuid>.jsonl`.
   - Codex : fin du nom `~/.codex/sessions/AAAA/MM/JJ/rollout-…-<uuid>.jsonl`.
-- **Cible fermée.** Aucun TUI, desktop, IDE ni exécution ne doit y être attaché. La conversation de l'agent hôte est ouverte : elle ne peut pas être la cible.
+- **Cible fermée sans `--open`.** Aucun TUI, desktop, IDE ni exécution ne doit y être attaché. `--open` vise au contraire une conversation Codex ouverte sous Windows, avec ses permissions propres ; pas de garantie d'avis sans modification dans ce parcours.
 - **Expéditeur déclaratif.** `--from <agent>[:<uuid>]` est une étiquette facultative, ni lancée ni vérifiée. Utiliser l'identifiant de votre propre conversation s'il est connu (variables observées, non garanties : `CLAUDE_CODE_SESSION_ID` pour Claude Code récent, `CODEX_THREAD_ID` pour Codex) ; sinon utiliser le nom seul, ou omettre `--from` pour le terminal. Ne jamais inventer d'identifiant.
 - **Agent cible** : nom d'un agent CLI Codex ou Claude Code de la config (`codex`, `claude`, `claude-opus`…).
 - **Effet possible sur la cible.** Un relay lancé peut modifier l'historique de la cible : le message, la réponse et les lectures de l'agent y sont ajoutés, et le message peut y rester même sans réponse valide. Annoncer cet effet à l'utilisateur avant de lancer. Après coup, lire `delivery.status` (ci-dessous) pour savoir ce qui est établi : un refus avant lancement (`not-delivered`) n'a rien écrit.
@@ -129,7 +137,7 @@ Issues fréquentes : `target-busy` (cible ouverte, code 3), `target-state-unknow
 
 ## Limites à rappeler
 
-- **Lecture seule renforcée, garanties conditionnelles.** Claude Code est repris en mode plan avec les seuls outils de lecture, sans MCP ni hooks ; Codex en bac à sable lecture seule, sans plugins, connecteurs, MCP, hooks, `notify` ni mémoires. Ces garanties valent pour les versions de CLI vérifiées et ne couvrent pas les politiques administrées.
+- **Avis/relecture sans `--open` ni `--write`, garanties conditionnelles.** Claude Code est repris en mode plan avec les seuls outils de lecture, sans MCP ni hooks ; Codex en bac à sable lecture seule, sans plugins, connecteurs, MCP, hooks, `notify` ni mémoires. Ces garanties valent pour les versions de CLI vérifiées et ne couvrent pas les politiques administrées. L'écriture ponctuelle et `--open` ont les règles distinctes décrites plus haut.
 - **Perte d'outils pendant le tour relayé** : la réponse peut différer de celle de la conversation habituelle.
 - **Claude peut refuser** de partager le contexte en croyant à une injection : le relay rend alors `replied` avec ce refus.
 - **Modèle** : Codex reprend le modèle enregistré dans la conversation (échec si le compte le refuse) ; Claude Code choisit le modèle de reprise, rapporté dans `observedModels`.
@@ -148,6 +156,6 @@ Avec `--open`, seul le code structuré `usage_limit_exceeded` de `task_complete.
 
 ## Créer la cible et continuer
 
-`palabre relay --new --to codex --from claude "<question>" --json` crée une conversation persistante en lecture seule dans le dossier courant. `--dir "<dossier>"` est réservé à `--new`. Mémoriser `to.session` et `cwd`, puis utiliser `--to codex:<id>` sans `--new`. Sans `--from`, l'expéditeur déclaré est `terminal` ; nom seul et nom avec UUID sont aussi admis. Ni en-tête ni nom déclaré ne donnent d'autorisation.
+Pour un avis ou une relecture sans modification, `palabre relay --new --to codex --from claude "<tâche sans modification>" --json` crée une conversation persistante dans le dossier courant. `--dir "<dossier>"` est réservé à `--new`. Mémoriser `to.session` et `cwd`, puis utiliser `--to codex:<id>` sans `--new` pour une suite d'avis/relecture. Sans `--from`, l'expéditeur déclaré est `terminal` ; nom seul et nom avec UUID sont aussi admis. Ni en-tête ni nom déclaré ne donnent d'autorisation.
 
-`created: true` signifie qu'un identifiant a été reçu, même en erreur ; aucun succès n'en découle. `to.session: null` indique qu'aucun identifiant valide n'a été reçu. Vérifier `status` et `delivery` avant de continuer. Pas de relance automatique, pas d'écriture par l'équipier ni de `--open` avec `--new`. L'affichage Desktop reste à vérifier.
+`created: true` signifie qu'un identifiant a été reçu, même en erreur ; aucun succès n'en découle. `to.session: null` indique qu'aucun identifiant valide n'a été reçu. Vérifier `status` et `delivery` avant de continuer. Pas de relance automatique ni de `--open` avec `--new`. Pour écrire, utiliser le parcours d'accord ponctuel : nouvelle demande, nouvelle conversation et nouvel accord pour chaque tâche ; ne pas convertir une reprise d'avis en reprise d'écriture. Aucun affichage Desktop immédiat garanti.

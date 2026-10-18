@@ -1,6 +1,6 @@
 ---
 name: palabre
-description: Utiliser la CLI locale Palabre pour consulter d'autres agents IA (Codex, Claude Code, OpenCode, Vibe, Antigravity, Ollama). Relay pour confier une question ou une relecture à Codex ou Claude Code, dans une conversation neuve ou existante ; Chat pour avancer avec un agent, Débat pour confronter deux positions, Ask pour recueillir jusqu'à quatre avis indépendants. Utiliser quand l'utilisateur demande de « passer par Palabre », « demander à Codex de relire ce fichier », « lancer un palabre », « faire débattre », un second avis, une relecture contradictoire, de comparer des agents ou de poursuivre après une synthèse.
+description: Utiliser la CLI locale Palabre pour faire coopérer des agents IA (Codex, Claude Code, OpenCode, Vibe, Antigravity, Ollama). Relay pour confier une tâche à Codex ou Claude Code (avis, relecture, correction ou tests selon les permissions), dans une conversation neuve ou existante ; Chat pour avancer avec un agent, Débat pour confronter deux positions, Ask pour recueillir jusqu'à quatre avis indépendants. Utiliser quand l'utilisateur demande de « passer par Palabre », « confier une tâche à Codex », « demander à Codex de relire ce fichier », « lancer un palabre », « faire débattre », un second avis, une relecture contradictoire ou une coopération entre agents.
 ---
 
 # Palabre : consulter d'autres agents depuis le terminal
@@ -17,7 +17,7 @@ Pour un chemin absolu, `available` et `doctor` vérifient le fichier configuré,
 
 Utiliser Palabre quand un autre regard change la décision : architecture, refactoring, revue critique, plan risqué, comparaison de modèles, désaccord à trancher. S'abstenir pour une réponse factuelle, une tâche simple que l'hôte sait faire seul, ou par réflexe à chaque demande : chaque appel est lent et consomme les quotas des agents.
 
-Quand l'utilisateur le demande explicitement (« lance un palabre », « fais débattre », « passe par Palabre pour demander à Codex de relire ce fichier »), exécuter sans redemander confirmation, en déduisant sujet et fichiers du contexte. Ne poser une question que si une information bloque : aucun sujet déductible, aucun agent disponible, ou conversation existante demandée mais non identifiée. Sans conversation désignée, `--new` évite de demander un identifiant.
+Quand l'utilisateur demande explicitement une consultation (« lance un palabre », « fais débattre », « passe par Palabre pour demander à Codex de relire ce fichier »), l'exécuter sans redemander confirmation, en déduisant sujet et fichiers du contexte. Pour agir en arrière-plan, préparer la tâche puis attendre l'accord ponctuel au clavier : la demande ordinaire ne le remplace jamais. Clarifier seulement ce qui bloque (sujet, agent, cible existante non identifiée). Sans conversation désignée, `--new` évite de demander un identifiant.
 
 ## Choisir le parcours
 
@@ -26,17 +26,19 @@ Quand l'utilisateur le demande explicitement (« lance un palabre », « fais d�
 | Avancer avec un agent, clarifier, poursuivre après une synthèse ; second avis ponctuel | **Chat** | `palabre chat --agent-a <agent> --renderer ndjson` (commandes JSON sur stdin) |
 | Confronter deux positions et travailler les désaccords | **Débat** | `palabre run --mode debate -s "<sujet>" -t 4 --terminal` |
 | Avis indépendants (1 à 4 agents), sans influence mutuelle | **Ask** | `palabre ask "<sujet>" --agents <a> <b> --terminal` |
-| Confier une question/relecture à Codex ou Claude Code, conversation neuve ou existante **fermée** | **Relay** | `palabre relay --new --to codex --from claude "<message>" --json` ; suite : `--to codex:<id>` sans `--new` |
+| Confier une tâche à Codex ou Claude Code : avis, relecture ou réalisation selon le parcours autorisé | **Relay** | Avis/relecture : `palabre relay --new --to codex --from claude "<tâche sans modification>" --json` ; action : parcours `--open` ou `--new --write` ci-dessous |
 
 Repères :
-- demande explicite à Codex ou Claude Code via Palabre → Relay, même pour un seul avis ; sans conversation désignée, créer avec `--new`, pas Chat ou Ask ;
+- tâche explicite à Codex ou Claude Code via Palabre → Relay, même pour un seul avis ; choisir avis/relecture, `--open` ou `--new --write` selon la cible, la plateforme et l'autorisation, pas Chat ou Ask ;
 - sinon, un seul avis complémentaire suffit → Chat (ou Ask avec un agent) ; ne pas imposer un Débat ;
 - Débat quand l'échange contradictoire lui-même apporte de la valeur ; Ask quand l'indépendance des avis compte ;
 - Relay vers une cible existante explicitement désignée, ou `--new --to <agent>` pour une nouvelle conversation. Ne jamais choisir la plus récente ; une cible existante encore ouverte est refusée sans `--open`.
 
-## Relay v1 : équipier en arrière-plan
+## Relay : confier une tâche
 
-Pour créer un équipier sans conversation préparée : `palabre relay --new --to codex --from claude "<question en lecture seule>" --json`. Utiliser le dossier courant, ou `--dir "<autre-projet>"` pour un autre dossier existant. Lire et retenir `to.session` dès qu'il est rendu, même si le premier tour échoue ; `created` signifie identifiant reçu, pas tâche réussie. Continuer explicitement avec `palabre relay --to codex:<id> --from claude "<suite>" --json`, sans `--new`. Vérifier la délivrance avant tout renvoi après un échec. Aucun retry automatique.
+Deux Desktop ou deux terminaux : `--open` reçoit seulement vers Codex sous Windows, avec les permissions de sa conversation ; le parcours deux terminaux reste pilote. Vers Claude ouvert : indisponible. En arrière-plan, depuis Desktop ou CLI : avis/relecture dans les deux sens, écriture avec Codex Windows seulement après accord ponctuel. Chef de mission Codex : demander à l'hôte l'autorisation de l'appel réseau si nécessaire, sans accès total. Détails : `references/relay.md`.
+
+Pour confier un avis ou une relecture sans conversation préparée : `palabre relay --new --to codex --from claude "<tâche sans modification>" --json`. Sans cible désignée, créer avec `--new` ; sinon garder la conversation explicite, jamais la plus récente. Utiliser le dossier courant, ou `--dir "<autre-projet>"` pour un autre dossier existant. Lire et retenir `to.session` dès qu'il est rendu, même si le premier tour échoue ; `created` signifie identifiant reçu, pas tâche réussie. Continuer un avis/relecture avec `palabre relay --to codex:<id> --from claude "<suite sans modification>" --json`, sans `--new`. Vérifier la délivrance avant tout renvoi après un échec. Aucun retry automatique.
 
 Dans la demande, nommer le fichier à lire et le résultat attendu, sans copier son contenu si l'équipier peut le lire. Au retour, vérifier `status`, `delivery.status` et les erreurs ; rendre à l'humain l'avis, ses limites, `to.session`, `cwd` s'il est présent et le chemin `exportPath`. Garder cet identifiant dans le contexte pour « demande au même Codex » ; aucun nouvel appel sans demande explicite. Si l'appel a échoué, un identifiant conservé n'autorise ni un succès annoncé ni un renvoi automatique.
 
@@ -48,7 +50,7 @@ Ne pas construire `--from ""` ni `--dir ""` : omettre ces options quand elles n'
 
 Après confirmation humaine réelle, lancer une seule fois `palabre relay run-write <id> --json`, sans reconstruire ni changer la tâche. L'accord est consommé même en échec. PALABRE crée un worktree depuis le commit annoncé ; les changements non commités et dépendances non versionnées sont exclus. Aucun commit/push/merge, installation ni réglage utilisateur. Le travail est conservé. Refus si confinement absent ; Claude Windows natif : relecture sans --write, ou Codex --open avec ses permissions habituelles. Aucun repli sans confinement ni nouvel appel automatique.
 
-Lire `write` et l'export : dossier/branche, fichiers et diff Git, commandes observées avec codes/sorties, diagnostics. Distinguer lecture, test proposé et test réellement exécuté. Un code CLI 0 ou « tests réussis » dans la réponse ne constitue pas une preuve. Un `spawn EPERM` reste signalé ; ne pas élargir les permissions. Donner l'identifiant cible et le dossier à l'humain ; conserver ceux-ci pour la suite, sans promettre une reprise en écriture (hors de ce lot). Détails : `references/relay.md`.
+Lire `write` et l'export : dossier/branche, fichiers et diff Git, commandes observées avec codes/sorties, diagnostics. Distinguer lecture, test proposé et test réellement exécuté. Un code CLI 0 ou « tests réussis » dans la réponse ne constitue pas une preuve. Un `spawn EPERM` reste signalé ; ne pas élargir les permissions. Donner l'identifiant cible et le dossier à l'humain ; les garder pour un suivi d'avis/relecture. Toute nouvelle tâche d'écriture en arrière-plan nécessite une nouvelle conversation et un nouvel accord, jamais une reprise en écriture. Détails : `references/relay.md`.
 
 ### Récupérer le résultat
 
