@@ -10,6 +10,8 @@ seo:
 
 `palabre relay` transmet un message à une conversation Codex ou Claude Code existante, puis rend sa réponse à l'appelant. Un agent peut ainsi passer la main sans vous faire copier-coller les échanges ; vous restez le décideur.
 
+> **Bon à savoir :** Relay relie Claude Code et Codex dans les deux sens, en arrière-plan. Pour confier une tâche à une conversation **déjà ouverte** (application desktop ou terminal), seul Codex peut la recevoir pour l'instant, sous Windows. Le suivi de Codex vers une conversation Claude ouverte est l'issue [#96](https://github.com/JuReyms/Palabre/issues/96).
+
 ```text
 palabre relay --from codex:<session-expéditeur> --to claude:<session-cible> --subject "Revue du plan" "Relis le plan dans docs/plan.md et liste les risques."
 ```
