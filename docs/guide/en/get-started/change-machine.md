@@ -65,7 +65,24 @@ fi
 
 Locate project configurations (`palabre.config.json`, or the older `chicane.config.json`) and skill copies: `~/.agents/skills/palabre/`, `~/.claude/skills/palabre/`, the older `~/.codex/skills/palabre/` and project skill directories. Also check skills added through your application. Keep backups outside directories where agents load their skills.
 
+### PALABRE installed from a repository clone (development version)
+
+If `palabre --version` shows an old version installed from a clone, update the clone yourself, after preserving the work identified in step 1:
+
+```text
+git -C <clone-directory> switch main
+git -C <clone-directory> pull --ff-only
+pnpm -C <clone-directory> install
+pnpm -C <clone-directory> build
+pnpm -C <clone-directory> link --global
+palabre --version
+```
+
+Before 0.17.0, `palabre update` only displays instructions, and `--check` does not exist. If Git refuses the update (local changes, a different branch), stop and examine the situation: do not force anything.
+
 ## 2. Update the tools
+
+For an installation from a clone, follow the [clone update instructions](#palabre-installed-from-a-repository-clone-development-version) above.
 
 First preserve the work you found: review changes, then publish the commits or PR you want to resume. For work kept in a Relay worktree, follow [Retrieve the result](/en/usage/relay#retrieve-the-result). Until then, GitHub does not know about your local changes.
 

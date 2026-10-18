@@ -65,7 +65,24 @@ fi
 
 Repérez les configurations du projet (`palabre.config.json`, ou l'ancien `chicane.config.json`) et les copies du skill : `~/.agents/skills/palabre/`, `~/.claude/skills/palabre/`, l'ancien `~/.codex/skills/palabre/` et les dossiers de skills du projet. Vérifiez aussi les skills ajoutés dans votre application. Gardez les sauvegardes hors des dossiers où les agents chargent leurs skills.
 
+### PALABRE installé depuis un clone du dépôt (version de développement)
+
+Si `palabre --version` indique une ancienne version installée depuis un clone, mettez le clone à jour vous-même, après avoir préservé le travail repéré à l'étape 1 :
+
+```text
+git -C <dossier-du-clone> switch main
+git -C <dossier-du-clone> pull --ff-only
+pnpm -C <dossier-du-clone> install
+pnpm -C <dossier-du-clone> build
+pnpm -C <dossier-du-clone> link --global
+palabre --version
+```
+
+Avant la 0.17.0, `palabre update` affiche seulement des instructions, et `--check` n'existe pas. Si Git refuse la mise à jour (changements locaux, branche différente), arrêtez-vous et examinez la situation : ne forcez rien.
+
 ## 2. Remettre les outils à niveau
+
+Pour une installation depuis un clone, suivez la [mise à jour du clone](#palabre-installé-depuis-un-clone-du-dépôt-version-de-développement) ci-dessus.
 
 Préservez d'abord le travail trouvé : relisez les modifications, puis publiez les commits ou la PR que vous souhaitez reprendre. Pour un travail conservé dans un worktree Relay, suivez [Récupérer le résultat](/fr/usage/relay#récupérer-le-résultat). Sans cette étape, GitHub ne connaît pas vos modifications locales.
 
