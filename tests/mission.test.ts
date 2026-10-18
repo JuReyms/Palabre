@@ -30,23 +30,34 @@ async function world(t: { after(fn: () => Promise<void>): void }, patch: Partial
 }
 const fails = (kind: string) => (e: unknown) => e instanceof MissionError && e.code === kind;
 
-test("lectures bloquées : Mission en pause, diagnostic conservé dans status et export, aucun renvoi", async t => {
+test("lancements refusés : Mission poursuit un consult répondu, met la revue en pause, aucun renvoi", async t => {
+  const messages = createTranslator("fr");
   for (const task of ["consult", "review"] as const) {
     const w = await world(t, { tasks: [task] }); let calls = 0;
     const result = replied();
     if (task === "review") result.task = { name: "review", pr, publication: "not-attempted" };
-    applyReadAccessDiagnostic(result, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 4 }, createTranslator("fr"));
+    applyReadAccessDiagnostic(result, { status: task === "review" ? "blocked" : "unverified", reason: "windows-process-access-denied", failedCommands: 4 }, messages);
     const done = await stepMission(w.workspace, w.mission.id, { task, message: "Analyse", ...(task === "review" ? { pr } : {}) }, {
       now: Date.now, relay: async () => { calls++; return result; }
     });
-    assert.equal(calls, 1); assert.equal(done.status, "paused");
+    assert.equal(calls, 1);
+    // Issue 171 : une réponse délivrée ne met plus la mission en pause ; seule la revue, qui
+    // publierait sans pouvoir le défaire, reste refusée.
+    assert.equal(done.status, task === "review" ? "paused" : "ready");
     assert.equal(done.steps[0]!.result?.readAccess?.failedCommands, 4);
     assert.equal(done.steps[0]!.result?.delivery.status, "replied");
     assert.deepEqual(await readMission(w.workspace, done.id), done);
-    assert.ok(renderMissionText(done, "fr").includes(result.error!.message));
+    const warning = messages.relay.readAccessUnverified(4);
     const md = await readFile(missionPaths(w.workspace, done.id).export, "utf8");
-    assert.ok(md.includes(result.reply!)); assert.ok(md.includes(result.error!.message));
-    if (task === "review") assert.match(md, /not-attempted/);
+    assert.ok(md.includes(result.reply!));
+    // Le diagnostic reste lisible dans l'export, y compris sans erreur à afficher.
+    assert.ok(md.includes(warning.split("\n")[0]!));
+    if (task === "review") {
+      assert.ok(renderMissionText(done, "fr").includes(result.error!.message));
+      assert.ok(md.includes(result.error!.message)); assert.match(md, /not-attempted/);
+    } else {
+      assert.equal(result.error, null); assert.equal(result.status, "replied");
+    }
   }
 });
 

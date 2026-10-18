@@ -22,7 +22,7 @@ palabre doctor --terminal
 
 ## Codex sous Windows : erreur 5 malgré la lecture seule
 
-**Ce qui se passe :** Codex ne peut pas démarrer une commande de lecture (`CreateProcessAsUserW failed: 5`). PALABRE conserve sa réponse mais rend `read-unavailable` (2) ; avec review, aucune revue n'est publiée.
+**Ce qui se passe :** Codex ne peut pas démarrer une commande (`CreateProcessAsUserW failed: 5`). PALABRE le signale dans le champ `readAccess` sans en conclure que l'agent n'a rien lu : si la réponse est arrivée, le relay reste `replied` (0) avec `readAccess.status: "unverified"`. Avec review, aucune revue n'est publiée (`review-failed`, 9), car une publication ne se défait pas.
 
 **Cause confirmée sur la machine testée :** l'alias PowerShell du Microsoft Store, `WindowsApps\pwsh.exe`. Sous la même politique `:read-only`, cet alias échoue, PowerShell natif lit le fichier, et les écritures restent refusées.
 
@@ -30,7 +30,7 @@ palabre doctor --terminal
 
 Pour Relay fermé, `--new`, Mission et la tâche review vers Codex, PALABRE examine le shell prioritaire. Sous Windows, il écarte de son **seul processus enfant** le dossier `WindowsApps` si son `pwsh.exe` est un alias d'exécution confirmé et qu'un PowerShell natif reste disponible. Un vrai PowerShell déjà prioritaire n'entraîne aucun changement. Une vérification impossible ou un repli incertain laisse le PATH inchangé.
 
-Aucun réglage utilisateur, PATH global ou droit d'écriture n'est modifié. Le diagnostic `read-unavailable` reste actif si une lecture est bloquée. Ni renvoi automatique ni changement de bac à sable. `--open` garde le comportement de la conversation Desktop et n'utilise pas ce correctif.
+Aucun réglage utilisateur, PATH global ou droit d'écriture n'est modifié. Le diagnostic `readAccess` reste émis tant qu'un lancement est refusé. Ni renvoi automatique ni changement de bac à sable. `--open` garde le comportement de la conversation Desktop et n'utilise pas ce correctif.
 
 **Limite :** les autres alias présents dans le dossier écarté (par exemple Python ou Windows Terminal) ne sont plus trouvés par leur nom via ce dossier, pour cet enfant seulement. PALABRE résout la CLI Codex avant ce filtrage ; son propre terminal, les commandes GitHub et les autres agents conservent leur environnement. Cela ne règle pas toutes les causes possibles d'erreur 5.
 

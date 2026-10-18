@@ -141,6 +141,9 @@ function resolveIdentity(reported: readonly string[], targetSessionId: string, i
  * Interprète le flux `codex exec --json`. Succès : exit 0, exactement un `turn.completed`, aucun
  * `turn.failed` ni `error`, et un dernier `agent_message` textuel non blanc, rendu tel quel.
  * L'identité est vérifiée sur `thread.started`. Toute autre forme est un échec, sans réponse.
+ *
+ * Les lancements de commandes refusés par Windows sont comptés à part, dans `readAccess` : ils
+ * ne changent ni `isError`, ni la réponse, ni l'identité.
  */
 export function interpretCodexOutput(stdout: string, exitCode: number | null, targetSessionId: string): ExchangeInterpretation {
   const events = parseJsonLines(stdout);
@@ -159,7 +162,8 @@ export function interpretCodexOutput(stdout: string, exitCode: number | null, ta
     .filter((event) => event.type === "error" || event.type === "turn.failed")
     .map((event) => asString(event.message) ?? asString(asObject(event.error)?.message) ?? "");
   // Codex 0.163.0 : erreur de démarrage avant toute exécution du shell. Ne pas chercher dans
-  // la prose du modèle, les sorties de commandes réussies ou les outils MCP.
+  // la prose du modèle, les sorties de commandes réussies ou les outils MCP. Ce compteur porte
+  // sur des lancements refusés, jamais sur des lectures : voir `ReadAccessDiagnostic`.
   const failedCommands = events.filter((event) => {
     const item = event.type === "item.completed" ? asObject(event.item) : undefined;
     return item?.type === "command_execution" && item.status === "failed" && item.exit_code === -1
@@ -167,7 +171,11 @@ export function interpretCodexOutput(stdout: string, exitCode: number | null, ta
       && /^(?:Failed to create unified exec process: |windows sandbox failed: )CreateProcessAsUserW failed: 5(?:\s|\()/u.test(item.aggregated_output);
   }).length;
   return {
-    ...(failedCommands ? { readAccess: { status: "blocked" as const, reason: "windows-process-access-denied" as const, failedCommands } } : {}),
+    // Une réponse valide interdit de conclure à l'impossibilité de lire : le diagnostic reste
+    // visible, mais il ne vaut que « non vérifié ».
+    ...(failedCommands
+      ? { readAccess: { status: (isError ? "blocked" : "unverified") as "blocked" | "unverified", reason: "windows-process-access-denied" as const, failedCommands } }
+      : {}),
     isError,
     reply: isError ? undefined : lastText,
     identity: resolveIdentity(reported, targetSessionId, isError),

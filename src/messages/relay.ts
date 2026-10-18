@@ -59,6 +59,11 @@ export interface RelayMessages {
   };
   /** Message d'erreur d'une issue autre que `replied`. */
   status(status: Exclude<RelayStatus, "replied" | "invalid-request">): string;
+  /**
+   * Avertissement affiché quand des lancements de commandes ont été refusés par Windows. Il ne
+   * conclut ni à une lecture réussie, ni à une lecture impossible, et ne change aucune issue.
+   */
+  readAccessUnverified(failedCommands: number): string;
   /** Message d'erreur d'un `invalid-request`, selon sa raison. */
   invalidRequest(reason: InvalidRequestReason, detail?: string): string;
   /** Consigne à l'appelant selon le statut de délivrance. */
@@ -261,6 +266,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
       permissions: (summary) => `Permissions du tour relayé : ${summary}.`
     },
     status: (status) => frStatus[status],
+    readAccessUnverified: (failedCommands) => `Lectures non vérifiées : Codex n'a pas pu démarrer ${failedCommands} commande(s) sous Windows (CreateProcessAsUserW, erreur 5). Cela ne veut pas dire que l'agent n'a rien lu : il peut lire par un autre moyen, et PALABRE ne peut ni le confirmer ni l'infirmer. La réponse et l'issue du relay sont conservées telles quelles. Cause probable à vérifier : le raccourci PowerShell du Microsoft Store (WindowsApps\\pwsh.exe). Le propriétaire peut consulter https://palab.re/fr/troubleshooting (Codex sous Windows) et le suivi https://github.com/JuReyms/Palabre/issues/128 : contournement limité au processus Codex et installation facultative de PowerShell 7 hors Store. Ne modifie pas les permissions et ne relance pas automatiquement.`,
     invalidRequest: (reason, detail) => (detail ? `${frInvalid[reason]} ${detail}` : frInvalid[reason]),
     delivery: (status) => ({
       "replied": "Délivrance : réponse reçue.",
@@ -379,6 +385,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
       permissions: (summary) => `Permissions of the relayed turn: ${summary}.`
     },
     status: (status) => enStatus[status],
+    readAccessUnverified: (failedCommands) => `Reads not verified: Codex could not start ${failedCommands} command(s) on Windows (CreateProcessAsUserW, error 5). This does not mean the agent read nothing: it may read by another route, and PALABRE can neither confirm nor rule it out. The reply and the relay outcome are preserved as they are. Probable cause to check: the Microsoft Store PowerShell shortcut (WindowsApps\\pwsh.exe). The owner may consult https://palab.re/en/troubleshooting (Codex on Windows) and https://github.com/JuReyms/Palabre/issues/128: child-only Codex workaround and optional PowerShell 7 installation outside the Store. Do not change permissions or retry automatically.`,
     invalidRequest: (reason, detail) => (detail ? `${enInvalid[reason]} ${detail}` : enInvalid[reason]),
     delivery: (status) => ({
       "replied": "Delivery: reply received.",

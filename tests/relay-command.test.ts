@@ -150,29 +150,32 @@ test("approve-write : une demande existante ne permet pas de confirmer en termin
   assert.equal(yes.code, 8); assert.equal(existsSync(path.join(directory, "approval.json")), false);
 });
 
-test("Codex répond mais les lectures échouent : JSON, texte et export signalent l'échec sans renvoi", async () => {
+test("Codex répond malgré des lancements refusés : issue conservée, diagnostic visible, aucun renvoi", async () => {
   const w = makeWorld();
   const r = await relay(w, [...toCodex, "Lis le dépôt", "--subject", "Revue du dépôt", "--trust-config", "--json"], { FAKE_CODEX_MODE: "read-blocked" });
-  assert.equal(r.code, 2); assert.equal(r.json.status, "read-unavailable");
+  // Faux négatif corrigé (issue 171) : une réponse délivrée n'est plus dégradée en échec.
+  assert.equal(r.code, 0); assert.equal(r.json.status, "replied"); assert.equal(r.json.error, null);
   assert.equal(r.json.reply, "Constat partiel : lectures bloquées.");
   assert.equal(r.json.delivery.status, "replied"); assert.equal(r.json.identity, "same-as-target");
-  assert.deepEqual(r.json.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 1 });
+  assert.deepEqual(r.json.readAccess, { status: "unverified", reason: "windows-process-access-denied", failedCommands: 1 });
   assert.equal(r.json.subject, "Revue du dépôt");
   const sent = r.calls.find(call => call.argv[0] === "exec")!.stdin as string;
   assert.equal(sent.split("\n")[0], `### ${relayMessages.fr.envelopeHeader("claude", "codex")}`);
   assert.equal(sent.split("\n")[6], relayMessages.fr.subjectLine("Revue du dépôt"));
-  assert.match(r.json.error.message, /WindowsApps\\pwsh\.exe/);
-  assert.match(r.json.error.message, /propriétaire.*https:\/\/palab\.re\/fr\/troubleshooting/);
-  assert.match(r.json.error.message, /issues\/128/);
   assert.equal(r.calls.filter(c => c.argv[0] === "exec").length, 1);
+  const warning = relayMessages.fr.readAccessUnverified(1);
+  assert.match(warning, /WindowsApps\\pwsh\.exe/);
+  assert.match(warning, /propriétaire.*https:\/\/palab\.re\/fr\/troubleshooting/);
+  assert.match(warning, /issues\/128/);
   const md = readFileSync(r.json.exportPath, "utf8");
-  assert.match(md, /Accès en lecture.*blocked/); assert.ok(!md.includes("| readAccess |"));
+  assert.match(md, /Accès en lecture.*unverified/); assert.ok(!md.includes("| readAccess |"));
   assert.ok(md.includes("| Objet | Revue du dépôt |"));
-  assert.ok(md.includes(r.json.reply)); assert.ok(md.includes(r.json.error.message));
+  assert.ok(md.includes(r.json.reply)); assert.ok(md.includes(warning));
   const text = await relay(makeWorld(), [...toCodex, "Lis le dépôt", "--trust-config", "--language", "en", "--no-export"], { FAKE_CODEX_MODE: "read-blocked" });
-  assert.equal(text.code, 2); assert.match(text.stdout, /Constat partiel/);
+  assert.equal(text.code, 0); assert.match(text.stdout, /Constat partiel/);
   assert.match(text.stderr, /WindowsApps\\pwsh\.exe/);
   assert.match(text.stderr, /owner.*https:\/\/palab\.re\/en\/troubleshooting/);
+  assert.match(text.stderr, /neither confirm nor rule it out/);
 });
 
 test("objet explicite, en-tête traduit et métadonnées JSON/export ; absence sans objet", async () => {
@@ -240,7 +243,7 @@ test("mission CLI : création, une étape Relay factice, status après reprise e
   assert.equal(refused.code, 8); assert.equal(refused.json.error.kind, "stopped"); assert.equal(refused.calls.length, 1);
 });
 
-test("mission CLI : en-tête compact conservé avec lecture bloquée, réponse et diagnostic en pause", async () => {
+test("mission CLI : en-tête compact conservé avec lancements refusés, réponse et diagnostic gardés", async () => {
   const w = makeWorld();
   assert.equal((await palabre(w, ["config", "--trust-config", "--json"])).code, 0);
   const start = await palabre(w, ["mission", "start", ...toCodex,
@@ -248,15 +251,17 @@ test("mission CLI : en-tête compact conservé avec lecture bloquée, réponse e
   assert.equal(start.code, 0, start.stderr);
   const id = start.json.mission.id;
   const step = await palabre(w, ["mission", "step", id, "Lis le dépôt", "--json"], { FAKE_CODEX_MODE: "read-blocked" });
-  assert.equal(step.code, 2); assert.equal(step.json.mission.status, "paused");
+  // Issue 171 : l'étape a reçu sa réponse, la mission reste prête pour la suivante.
+  assert.equal(step.code, 0); assert.equal(step.json.mission.status, "ready");
   const result = step.json.mission.steps[0].result;
-  assert.equal(result.status, "read-unavailable"); assert.equal(result.delivery.status, "replied");
-  assert.equal(result.reply, "Constat partiel : lectures bloquées."); assert.equal(result.readAccess.status, "blocked");
+  assert.equal(result.status, "replied"); assert.equal(result.delivery.status, "replied");
+  assert.equal(result.reply, "Constat partiel : lectures bloquées."); assert.equal(result.readAccess.status, "unverified");
   const calls = step.calls.filter(c => c.argv[0] === "exec");
   assert.equal(calls.length, 1);
   assert.equal(calls[0]!.stdin.split("\n")[0], `### ${relayMessages.fr.missionHeader(id, 1, "claude", "codex")}`);
   const exported = readFileSync(step.json.exportPath, "utf8");
-  assert.ok(exported.includes(result.reply)); assert.ok(exported.includes(result.error.message));
+  assert.ok(exported.includes(result.reply));
+  assert.ok(exported.includes(relayMessages.fr.readAccessUnverified(1).split("\n")[0]!));
 });
 
 test("mission CLI : review conserve le refus de politique, arguments d'écriture refusés", async () => {

@@ -751,8 +751,14 @@ function writeResult(result: RelayResultV1, json: boolean, messages: Messages): 
 }
 
 /**
- * Qualifie le travail sans effacer la réponse ni la délivrance. Appelée avant toute publication
- * GitHub ; une revue avec lectures bloquées reste toujours `not-attempted`.
+ * Qualifie le travail sans effacer la réponse ni la délivrance, et **sans dégrader l'issue d'un
+ * échange réussi** : des lancements de commandes refusés ne prouvent pas que l'agent n'a pas lu
+ * (issue 171, suivi #128). Un Relay dont la réponse est arrivée reste donc `replied` / code 0,
+ * avec `readAccess.status: "unverified"` ; l'avertissement passe par le rendu texte et l'export.
+ *
+ * Appelée avant toute publication GitHub. La tâche `review` reste volontairement plus stricte :
+ * tout diagnostic, quel que soit son statut, laisse la publication en `not-attempted`, parce que
+ * publier une revue est une action publique que PALABRE ne peut pas défaire.
  */
 export function applyReadAccessDiagnostic(
   result: RelayResultV1,
@@ -761,18 +767,21 @@ export function applyReadAccessDiagnostic(
 ): void {
   if (!diagnostic) return;
   result.readAccess = diagnostic;
-  if (result.task) result.task.error = "read-unavailable";
-  const message = result.task ? messages.relay.reviewFailure("read-unavailable") : messages.relay.status("read-unavailable");
+  if (!result.task) {
+    // Le statut de l'échange garde la priorité, en succès comme en échec. En échec, le message
+    // existant est seulement enrichi du diagnostic.
+    if (result.status !== "replied" && result.error) result.error.message += ` ${messages.relay.readAccessUnverified(diagnostic.failedCommands)}`;
+    return;
+  }
+  result.task.error = "read-unavailable";
+  const message = messages.relay.reviewFailure("read-unavailable");
   if (result.status !== "replied") {
-    // Le timeout, l'annulation ou l'identité étrangère gardent leur priorité ; le diagnostic
-    // d'outils reste visible aussi en texte et dans l'export Mission.
     if (result.error) result.error.message += ` ${message}`;
     return;
   }
-  const status = result.task ? "review-failed" : "read-unavailable";
-  result.status = status;
-  result.exitCode = RELAY_EXIT_CODES[status];
-  result.error = { kind: status, message };
+  result.status = "review-failed";
+  result.exitCode = RELAY_EXIT_CODES["review-failed"];
+  result.error = { kind: "review-failed", message };
 }
 
 /** Une interruption tardive n'efface jamais l'issue d'un POST déjà parti. */
@@ -795,6 +804,9 @@ export function renderRelayText(result: RelayResultV1, messages: Messages): { st
     lines.push(`${messages.relay.failed(result.status)} ${result.error?.message ?? ""}`.trim());
     lines.push(messages.relay.delivery(result.delivery.status));
   }
+  // Visible même quand l'issue reste `replied` : sans cette ligne, un échange réussi ne dirait
+  // plus rien des lancements refusés, puisque `error` est alors nul.
+  if (result.readAccess) lines.push(messages.relay.readAccessUnverified(result.readAccess.failedCommands));
   if (result.task) {
     lines.push(`${messages.relay.export.publication}: ${result.task.publication}`);
     if (result.task.reviewUrl) lines.push(`${messages.relay.export.reviewUrl}: ${result.task.reviewUrl}`);

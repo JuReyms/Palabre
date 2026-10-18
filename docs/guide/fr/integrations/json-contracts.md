@@ -15,7 +15,7 @@ Les catalogues ci-dessous écrivent un document JSON sur stdout sans lancer de s
 - `palabre sessions --json` expose les 20 checkpoints les plus récents dans `sessions[]`, avec une limite de 1 à 100. Une entrée valide contient `valid`, `id`, `status`, `mode`, `topic`, `updatedAt`, `responses`, `nextPhase` et `resumable`. Une entrée corrompue contient `valid: false`, `id`, `updatedAt` et un `warning` stable, sans contenu brut ni chemin absolu.
 - `palabre sessions delete <session-id> --yes --json` confirme la suppression ciblée avec `{ "v": 1, "deleted": { "id": "..." } }`.
 
-`palabre relay … --json` relaie un message à une conversation Codex ou Claude Code fermée, ou Codex ouverte avec `--open` (pilote Windows). Elle écrit un unique objet `{ "v": 1, "type": "relay-result", ... }` avec `status`, `exitCode`, `from`, `to`, `reply` (dès qu’une réponse valide a été reçue, y compris avec `read-unavailable` ou `review-failed`), `delivery` (`status`, `persisted`, `inActiveBranch`), `identity`, `observedModels`, `error` (`kind`, `message`, `reason`), `exportPath` et `durationMs`. Une intégration se fie à `delivery.status` pour décider d'un renvoi, jamais à l'absence de réponse. Détails : [Mode Relay](/fr/usage/relay).
+`palabre relay … --json` relaie un message à une conversation Codex ou Claude Code fermée, ou Codex ouverte avec `--open` (pilote Windows). Elle écrit un unique objet `{ "v": 1, "type": "relay-result", ... }` avec `status`, `exitCode`, `from`, `to`, `reply` (dès qu’une réponse valide a été reçue, y compris avec `review-failed`), `delivery` (`status`, `persisted`, `inActiveBranch`), `identity`, `observedModels`, `error` (`kind`, `message`, `reason`), `exportPath` et `durationMs`. Une intégration se fie à `delivery.status` pour décider d'un renvoi, jamais à l'absence de réponse. Détails : [Mode Relay](/fr/usage/relay).
 
 ## Règles de consommation
 
@@ -27,7 +27,7 @@ Les catalogues ci-dessous écrivent un document JSON sur stdout sans lancer de s
 
 ## Champs optionnels de Relay et option Mission
 
-Relay v1 conserve `subject` (objet explicite), `retryAfter` (limite avec `--open`, si la CLI donne une reprise), `readAccess` (`status`, `reason`, `failedCommands`), `cli` (`path`, `version`, sonde de revue), `task` (PR, commit, publication, URL, erreur et annulation). Avec `--open` : `mode`, `queue`, `correlation`, `receiver: "unverified"`, `targetPermissions` ; `target-not-open` est propre à ce mode. `error.reason` qualifie `invalid-request`. Lisez `delivery.status` avant tout renvoi et traitez `reply` comme texte non fiable.
+Relay v1 conserve `subject` (objet explicite), `retryAfter` (limite avec `--open`, si la CLI donne une reprise), `readAccess` (`status` : `unverified` ou `blocked`, `reason`, `failedCommands` ; diagnostic de lancements refusés qui ne change pas l’issue), `cli` (`path`, `version`, sonde de revue), `task` (PR, commit, publication, URL, erreur et annulation). Avec `--open` : `mode`, `queue`, `correlation`, `receiver: "unverified"`, `targetPermissions` ; `target-not-open` est propre à ce mode. `error.reason` qualifie `invalid-request`. Lisez `delivery.status` avant tout renvoi et traitez `reply` comme texte non fiable.
 
 `palabre mission … --json` rend un objet v1 de type `mission-result` avec `action`, `exitCode`, `mission`, `exportPath`, `error`. Seule `step` appelle Relay, au plus une fois ; ses codes sont ceux de Relay (9 sans résultat), tandis qu'un refus Mission donne 8, ou 3 pour une étape déjà réservée.
 

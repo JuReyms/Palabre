@@ -39,11 +39,18 @@ test("erreur 5 de démarrage de commande : diagnostic distinct de la réponse va
   const parsed = run([{ type: "item.completed", item }, { type: "item.completed", item }]);
   assert.equal(parsed.isError, false); assert.equal(parsed.reply, output);
   assert.equal(parsed.identity, "same-as-target");
-  assert.deepEqual(parsed.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 2 });
+  // Une réponse valide interdit de conclure à l'impossibilité de lire (issue 171, suivi #128).
+  assert.deepEqual(parsed.readAccess, { status: "unverified", reason: "windows-process-access-denied", failedCommands: 2 });
   assert.ok(!JSON.stringify(parsed.readAccess).includes("PRIVATE"));
   assert.deepEqual(run([{ type: "item.completed", item }, { type: "item.completed", item: {
     ...item, status: "completed", exit_code: 0, aggregated_output: "README lu"
   } }]).readAccess, { ...parsed.readAccess!, failedCommands: 1 });
+  // Sans réponse valide, le diagnostic reste `blocked` et n'invente aucune issue.
+  const noReply = interpretCodexOutput(jsonl([
+    { type: "thread.started", thread_id: SESSION }, { type: "item.completed", item }, { type: "turn.failed" }
+  ]), 1, SESSION);
+  assert.equal(noReply.isError, true); assert.equal(noReply.reply, undefined);
+  assert.deepEqual(noReply.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 1 });
   // Ni citation par le modèle, ni sortie d'une commande exécutée, ni outil tiers.
   for (const changed of [undefined, { ...item, status: "completed" }, { ...item, exit_code: 1 },
     { ...item, type: "mcp_tool_call" }, { ...item, aggregated_output: "Quoted: " + output },

@@ -288,6 +288,8 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     "",
     `> ${report.write ? relayWriteText(report.write.language).exportNotice : report.open ? labels.openNotice : labels.readOnlyNotice}`,
     "",
+    // Un relay réussi n'a pas de section Erreur : l'avertissement doit donc exister par lui-même.
+    ...(report.readAccess ? [`> ${messages.relay.readAccessUnverified(report.readAccess.failedCommands)}`, ""] : []),
     `## ${labels.message}`,
     "",
     report.message,

@@ -564,15 +564,24 @@ et la version du client quand elle est fournie.
 
 ## Relay externe
 
-Échecs de lecture Windows/Codex (#128) : l'adapter qualifie uniquement les événements terminés
-`command_execution`, `failed`, `exit_code: -1` dont la sortie commence par l'erreur de démarrage
-`CreateProcessAsUserW failed: 5` (préfixes qualifiés dans `codex.ts`, format 0.163.0). Le champ
-optionnel `readAccess` est un diagnostic d'échec, jamais une preuve positive d'accès. Relay conserve
-réponse, identité et délivrance, puis rend `read-unavailable`/2 ; Mission se met en pause. Pour review,
-`publishReview` refuse avant toute commande GitHub : `review-failed`/9, `task.error: read-unavailable`,
-`publication: not-attempted`. Ne jamais contourner ce refus par une publication manuelle d'agent,
-une réexécution automatique ou un élargissement du sandbox. La prose du modèle n'est pas analysée.
-L'absence du diagnostic et une autre commande réussie ne prouvent pas les lectures nécessaires.
+Lancements de commandes refusés Windows/Codex (#128, faux négatif corrigé par l'issue 171) :
+l'adapter qualifie uniquement les événements terminés `command_execution`, `failed`,
+`exit_code: -1` dont la sortie commence par l'erreur de démarrage `CreateProcessAsUserW failed: 5`
+(préfixes qualifiés dans `codex.ts`, format 0.163.0). Le champ optionnel `readAccess` compte des
+**démarrages de processus refusés, pas des lectures** : il ne prouve ni un accès ni une
+impossibilité de lire, puisque l'agent peut lire autrement. Il ne décide donc plus de l'issue.
+`interpretCodexOutput` pose `status: "unverified"` quand une réponse valide est arrivée,
+`"blocked"` sinon. Relay conserve réponse, identité, délivrance **et issue** : une réponse reçue
+reste `replied`/0 ; un échec garde son propre code, enrichi de l'avertissement. Le rendu texte,
+l'export `.relay.md` et l'export Mission affichent cet avertissement même sans erreur. Mission
+poursuit un `consult` répondu. Pour review, plus strict, `publishReview` refuse avant toute
+commande GitHub sur **tout** diagnostic, quel que soit son statut : `review-failed`/9,
+`task.error: read-unavailable`, `publication: not-attempted`, parce qu'une revue publiée ne se
+défait pas ; Mission s'y met en pause. Ne jamais contourner ce refus par une publication manuelle
+d'agent, une réexécution automatique ou un élargissement du sandbox. La prose du modèle n'est pas
+analysée. L'absence du diagnostic et une autre commande réussie ne prouvent pas les lectures
+nécessaires. `read-unavailable` reste dans `RelayStatus` et `RELAY_EXIT_CODES` — réservé et plus
+émis comme issue — pour ne pas casser le contrat v1 ; une suppression exigerait un bump `v2`.
 
 Méthode Relay (#168) : petits lots, résultat concret, corrections regroupées, contexte utile et preuves sans recopier l'historique. Réutiliser les vérifications encore valides, les relancer si un changement ou un doute le justifie, pour réduire coordination et quotas sans perdre en fiabilité. Pour la documentation : CI et contrôles ciblés ; pour les données, la sécurité ou l'écriture : vérification indépendante. Un agent différent de l'auteur relit ; les rôles sont interchangeables. Demande : objet humain via `--subject`, puis objectif, liens, à faire, interdit, preuves attendues, format de réponse. Réponse : cinq lignes Fait, Vérifié, Bloqué, Prochaine action, Décision attendue, puis preuves et détail. Tout texte à valider accompagne la demande de décision. Pendant un tour reçu par Relay, aucune question à l'humain : texte, décisions et blocages dans la réponse finale. Les gabarits sont dans le skill et `references/relay.md` ; la CLI ne les analyse pas, n'ajoute aucun champ JSON et ne déduit jamais une réussite de ces lignes.
 
@@ -831,7 +840,7 @@ Un échec de lancement donne `cli-failure` pour la reprise, et `neutralization-f
 | --- | --- | --- |
 | 0 | `replied` | `replied` |
 | 1 | `internal-error` (défaut de Palabre) | `not-delivered` avant lancement, sinon `unknown` |
-| 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large`, `read-unavailable` | `replied` si une réponse valide avec lectures bloquées a été reçue ; sinon `persisted-no-reply` ou `unknown` ; `not-delivered` si aucun processus n'a été lancé |
+| 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large` (`read-unavailable` : réservé, plus émis) | `persisted-no-reply` ou `unknown` ; `not-delivered` si aucun processus n'a été lancé |
 | 3 | `target-busy`, `target-state-unknown`, `neutralization-failed`, `target-not-open` (avec `--open` seulement) | `not-delivered` |
 | 4 | `timeout` | `persisted-no-reply` ou `unknown` |
 | 5 | `identity-mismatch` | `persisted-no-reply` ou `unknown`. Le texte d'une autre session n'est jamais rendu comme `reply` |

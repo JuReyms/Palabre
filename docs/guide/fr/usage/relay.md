@@ -321,7 +321,7 @@ PALABRE ne renvoie jamais un message automatiquement. Le statut de délivrance i
 | --- | --- |
 | 0 | `replied` |
 | 1 | `internal-error` |
-| 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large`, `read-unavailable` |
+| 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large` (`read-unavailable` : réservé, plus émis) |
 | 3 | `target-busy`, `target-state-unknown`, `neutralization-failed`, `target-not-open` (avec `--open`) |
 | 4 | `timeout` |
 | 5 | `identity-mismatch` (la réponse ne vient pas de la cible et n'est pas rendue) |
@@ -341,11 +341,17 @@ Si le message de cette erreur CLI contient une reprise reconnue, le JSON v1 ajou
 
 La délivrance reste distincte : le message peut déjà être enregistré, sans réponse (`persisted-no-reply`). **Aucun renvoi automatique**, même après l’heure indiquée. Le chef de mission présente le diagnostic au propriétaire et attend sa décision ; il ne rejoue pas l’étape. Mission conserve le résultat et l’indication dans son état et son export, et se met en pause sur une limite connue. Une délivrance ou une publication inconnue reste `uncertain`. Ce lot n’ajoute pas `--open` à Mission.
 
-## Codex sous Windows : réponse reçue, lectures bloquées
+## Codex sous Windows : lancements de commandes refusés
 
-Sans `--open`, une réponse reçue ne prouve pas que l'agent a pu lire le dépôt. Si le flux JSON de Codex signale une commande non démarrée avec `CreateProcessAsUserW failed: 5`, PALABRE conserve la réponse, l'identité et la délivrance, mais rend `read-unavailable` (code 2). Avec `--task review`, il rend `review-failed` (code 9), `task.error: "read-unavailable"` et `task.publication: "not-attempted"` : **aucune revue n'est publiée sur GitHub**. Mission utilise le même diagnostic et se met en pause.
+Sans `--open`, si le flux JSON de Codex signale une commande non démarrée avec `CreateProcessAsUserW failed: 5`, PALABRE le signale sans en tirer de conclusion. **Ce diagnostic compte des démarrages de processus refusés, pas des lectures** : l'agent peut très bien lire par un autre moyen. Un essai réel l'a montré — Codex a restitué le contenu d'un fichier créé quelques minutes plus tôt alors que deux lancements avaient été refusés ([issue 171](https://github.com/JuReyms/Palabre/issues/171)).
 
-Le champ optionnel `readAccess` dans le JSON et l'export indique `status: "blocked"`, `reason: "windows-process-access-denied"` et `failedCommands` (nombre de commandes concernées). L'export Mission conserve l'erreur et la réponse. Si l'échange échoue aussi (délai, annulation, identité différente…), cette issue garde son code et le diagnostic de lecture s'ajoute au message. Une commande réussie à côté ne lève pas l'alerte ; l'absence de ce champ ne prouve ni une lecture ni un accès complet. La détection porte sur cette erreur structurée de démarrage, vérifiée avec Codex 0.163.0, pas sur une phrase du modèle ; elle ne reconnaît pas tous les échecs de lecture possibles. Elle concerne la reprise sans `--open`.
+Le relay garde donc son issue : une réponse reçue reste **`replied` (code 0)**, avec le champ optionnel `readAccess` à `status: "unverified"`. Le rendu texte et l'export `.relay.md` affichent un avertissement : les lectures ne sont ni confirmées ni infirmées, c'est à vous de juger la réponse. Si l'échange échoue par ailleurs (délai, annulation, identité différente…), cette issue garde son code, `readAccess` vaut `blocked` et l'avertissement s'ajoute au message.
+
+**La tâche `--task review` reste plus stricte** : tout diagnostic, quel que soit son statut, donne `review-failed` (code 9), `task.error: "read-unavailable"` et `task.publication: "not-attempted"` : **aucune revue n'est publiée sur GitHub**. Publier une revue est une action publique que PALABRE ne peut pas défaire, donc un doute suffit à ne pas publier. Mission suit la même règle : une étape `consult` répondue continue, une étape `review` refusée met la mission en pause.
+
+Le champ `readAccess` porte `status` (`unverified` ou `blocked`), `reason: "windows-process-access-denied"` et `failedCommands` (nombre de lancements refusés). Une commande réussie à côté ne retire pas le champ ; son absence ne prouve ni une lecture ni un accès complet. La détection porte sur cette erreur structurée de démarrage, vérifiée avec Codex 0.163.0, pas sur une phrase du modèle ; elle ne reconnaît pas tous les échecs de lecture possibles. Elle concerne la reprise sans `--open`.
+
+Le statut `read-unavailable` reste dans le contrat v1 pour les exports et les intégrations existants, mais PALABRE ne l'émet plus comme issue de relay.
 
 **Sous Windows :** PALABRE écarte pour le seul processus Codex un alias PowerShell Store confirmé si un PowerShell natif reste disponible, sans élargir la lecture seule. Cela s'applique à `--new`, aux reprises fermées, à Mission et à review, pas à `--open`. Les autres alias du dossier retiré deviennent indisponibles pour cet enfant seulement. Si le blocage persiste, le propriétaire suit le [guide de dépannage](/fr/troubleshooting) : installation facultative de PowerShell 7 en MSI hors Store, vérification du chemin, puis décision avant tout nouvel envoi. Suivi [#128](https://github.com/JuReyms/Palabre/issues/128).
 

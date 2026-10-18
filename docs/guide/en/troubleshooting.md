@@ -22,7 +22,7 @@ palabre doctor --terminal
 
 ## Codex on Windows: error 5 despite read-only access
 
-**What happened:** Codex cannot start a read command (`CreateProcessAsUserW failed: 5`). PALABRE preserves its reply but returns `read-unavailable` (2); with review, no review is published.
+**What happened:** Codex cannot start a command (`CreateProcessAsUserW failed: 5`). PALABRE reports it in the `readAccess` field without concluding that the agent read nothing: if the reply arrived, the relay stays `replied` (0) with `readAccess.status: "unverified"`. With review, no review is published (`review-failed`, 9), because publishing cannot be undone.
 
 **Confirmed cause on the tested machine:** the Microsoft Store PowerShell alias, `WindowsApps\pwsh.exe`. Under the same `:read-only` policy, the alias fails, native PowerShell reads the file, and writes remain denied.
 
@@ -30,7 +30,7 @@ palabre doctor --terminal
 
 For closed Relay, `--new`, Mission and the review task targeting Codex, PALABRE checks the preferred shell. On Windows it removes the `WindowsApps` directory from **its child process only** if that directory's `pwsh.exe` is a confirmed execution alias and native PowerShell remains available. A native PowerShell already taking priority causes no change. An unavailable check or uncertain fallback leaves PATH unchanged.
 
-No user setting, global PATH or write permission is changed. The `read-unavailable` diagnostic stays active if reads are blocked. No automatic resend or sandbox change. `--open` keeps the Desktop conversation's behavior and does not use this fix.
+No user setting, global PATH or write permission is changed. The `readAccess` diagnostic is still reported while a launch is refused. No automatic resend or sandbox change. `--open` keeps the Desktop conversation's behavior and does not use this fix.
 
 **Limit:** other aliases in the removed directory (for example Python or Windows Terminal) can no longer be found by name through that directory, for this child only. PALABRE resolves the Codex CLI before filtering; its own terminal, GitHub commands and other agents keep their environment. This does not fix every possible cause of error 5.
 

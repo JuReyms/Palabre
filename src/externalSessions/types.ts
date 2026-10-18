@@ -82,9 +82,24 @@ export type TargetDecision =
  */
 export type SessionIdentity = "same-as-target" | "mismatch" | "unavailable";
 
-/** Échec observé du lancement de commandes de lecture ; l'absence du champ ne prouve aucun accès. */
+/**
+ * Lancements de commandes refusés par le système, observés dans le flux de la CLI cible.
+ *
+ * Ce diagnostic compte des **démarrages de processus refusés**, pas des lectures. Il ne prouve
+ * donc rien dans un sens ni dans l'autre : son absence n'établit aucun accès, et sa présence
+ * n'établit aucune impossibilité de lire, puisque l'agent peut lire par un autre moyen
+ * (issue 171 ; suivi Windows #128).
+ *
+ * - `unverified` : des lancements ont été refusés, mais une réponse valide est arrivée. PALABRE
+ *   ne peut ni confirmer ni infirmer les lectures ; le Relay garde son issue.
+ * - `blocked` : des lancements ont été refusés et aucune réponse valide n'est arrivée. L'issue
+ *   d'échec de l'échange garde la priorité ; le diagnostic enrichit seulement son message.
+ *
+ * Pour la tâche `review`, les deux statuts refusent la publication : publier est une action
+ * publique que PALABRE ne peut pas défaire.
+ */
 export interface ReadAccessDiagnostic {
-  status: "blocked";
+  status: "blocked" | "unverified";
   reason: "windows-process-access-denied";
   failedCommands: number;
 }
@@ -142,6 +157,11 @@ export type CertainRefusal = "target-busy" | "session-not-found";
  */
 export type RelayStatus =
   | "replied"
+  /**
+   * Réservé, plus émis depuis la correction du faux négatif Windows (issue 171) : un lancement de
+   * commande refusé ne dégrade plus un échange réussi. La valeur reste dans le contrat v1 pour les
+   * exports et les intégrations existants, et `task.error` la conserve pour une revue non publiée.
+   */
   | "read-unavailable"
   | "review-failed"
   | "internal-error"
