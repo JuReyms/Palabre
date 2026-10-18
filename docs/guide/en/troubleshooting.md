@@ -22,22 +22,41 @@ palabre doctor --terminal
 
 ## Codex on Windows: error 5 despite read-only access
 
-**What happened:** without `--open`, Codex cannot start its read commands. PALABRE preserves its reply but returns `read-unavailable` (2); with review, nothing is published.
+**What happened:** Codex cannot start a read command (`CreateProcessAsUserW failed: 5`). PALABRE preserves its reply but returns `read-unavailable` (2); with review, no review is published.
 
-**Probable cause:** the Microsoft Store `WindowsApps\pwsh.exe` alias. **Next step:** follow [#128](https://github.com/JuReyms/Palabre/issues/128); no validated solution yet. Do not resend the message or widen permissions.
+**Confirmed cause on the tested machine:** the Microsoft Store PowerShell alias, `WindowsApps\pwsh.exe`. Under the same `:read-only` policy, the alias fails, native PowerShell reads the file, and writes remain denied.
+
+### What PALABRE does automatically
+
+For closed Relay, `--new`, Mission and the review task targeting Codex, PALABRE checks the preferred shell. On Windows it removes the `WindowsApps` directory from **its child process only** if that directory's `pwsh.exe` is a confirmed execution alias and native PowerShell remains available. A native PowerShell already taking priority causes no change. An unavailable check or uncertain fallback leaves PATH unchanged.
+
+No user setting, global PATH or write permission is changed. The `read-unavailable` diagnostic stays active if reads are blocked. No automatic resend or sandbox change. `--open` keeps the Desktop conversation's behavior and does not use this fix.
+
+**Limit:** other aliases in the removed directory (for example Python or Windows Terminal) can no longer be found by name through that directory, for this child only. PALABRE resolves the Codex CLI before filtering; its own terminal, GitHub commands and other agents keep their environment. This does not fix every possible cause of error 5.
+
+### Owner option: install PowerShell 7 outside the Store
+
+This is optional: native Windows PowerShell may be enough for the fix. If you prefer PowerShell 7, the [Microsoft documentation](https://learn.microsoft.com/en-us/powershell/scripting/install/install-powershell-on-windows) gives this command to select the **MSI** package, when available:
+
+```powershell
+winget install --id Microsoft.PowerShell --source winget --installer-type wix
+```
+
+Choosing MSI matters: `--source winget` alone may install an MSIX package. If MSI is unavailable, follow Microsoft's MSI or ZIP instructions. PALABRE does not install anything for you. Reopen your terminal and app after installation; check the proposed path with:
+
+```powershell
+Get-Command pwsh -All | Select-Object Source
+```
+
+The native path is usually `C:\Program Files\PowerShell\7\pwsh.exe`. If reads remain blocked, keep the result and consult [#128](https://github.com/JuReyms/Palabre/issues/128) before deciding whether to send again. Do not widen permissions.
 
 ### Technical details
 
+The alias is identified by its `AppExecLink` tag (`0x8000001b`), read by native `fsutil` without launching the alias. Its entry is inspected without following its target: Node may return `existsSync=false` for an alias that is present. Only that alias directory is removed, including duplicates; all other entries keep their order. The local probe is bounded to 3 seconds and 8 KiB.
 
-`CreateProcessAsUserW failed: 5` here means Codex could not start a command, even to read. On the machine tested with Codex 0.163.0, the same read under `:read-only` succeeds with native Windows PowerShell and fails with the `WindowsApps\pwsh.exe` alias. Check the selected shell rather than concluding that the entire `unelevated` sandbox is unusable.
+[Codex 0.163.0 shell selection](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/shell-command/src/shell_detect.rs) looks for `pwsh` before `powershell`. `[windows] shell_path` is absent from its [official schema](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/core/config.schema.json): do not add it as a fix. Switching to `elevated` remains a separate owner decision, unnecessary for the successful test here.
 
-**No known, validated solution yet to force native PowerShell in this Relay workflow with Codex 0.163.0; tracked in [#128](https://github.com/JuReyms/Palabre/issues/128).** The owner can follow that issue; no configuration change is requested for now.
-
-`[windows] shell_path` already pointed to native PowerShell in the tested machine's configuration, yet Codex launched the Microsoft Store alias. This setting is absent from the [official Codex 0.163.0 schema](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/core/config.schema.json): do not present it as supported configuration. This version's [shell selection code](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/shell-command/src/shell_detect.rs) looks for `pwsh` before `powershell`. A successful read with an explicitly selected executable does not establish how to enforce that choice for all commands in a resumed session.
-
-PALABRE changes neither shell selection nor machine security. Do not enable writes or unrestricted access to bypass the failure. Switching to `elevated` remains a separate owner decision, not a solution demonstrated by these tests.
-
-Relay preserves the reply but reports `read-unavailable`/2 if this error is observed in Codex command events. Mission pauses; the review task does not publish the review (`review-failed`/9, `not-attempted`). Do not resend automatically. See evidence, limits and JSON fields in the [Relay guide](/en/usage/relay).
+The evidence covers Windows and Codex 0.163.0: a fictional file unreadable before the fix was read afterwards through `relay --new`, without changing the read-only policy. Other versions and environments need verification. Mission and review use the same provider exchange; their protections and the prohibition on publishing a blind review remain unchanged.
 
 ## Palabre cannot find my configuration
 
