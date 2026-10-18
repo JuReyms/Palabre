@@ -36,6 +36,8 @@ Dans une conversation Codex ouverte, l'équipier peut agir avec ses permissions 
 
 ## Préparer une fois
 
+Sur une autre machine ou un ancien PC à remettre à niveau, commencez par [Changer de machine](/fr/get-started/change-machine). Les conversations et approbations de l'ancien ordinateur ne sont pas transportées par PALABRE.
+
 Installez [PALABRE](/fr/get-started/installation), Claude Code et Codex, puis connectez les agents avec leurs outils habituels. Dans le dossier du projet, lancez `palabre init` si aucune configuration n'existe, puis vérifiez :
 
 ```text

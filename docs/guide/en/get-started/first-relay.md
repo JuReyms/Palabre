@@ -36,6 +36,8 @@ In an open Codex conversation, the teammate can act with its usual permissions. 
 
 ## Prepare once
 
+On another machine or an old computer that needs updating, start with [Change machines](/en/get-started/change-machine). PALABRE does not transfer conversations or approvals from the previous computer.
+
 Install [PALABRE](/en/get-started/installation), Claude Code and Codex, then sign in to the agents with their usual tools. In the project folder, run `palabre init` if no configuration exists, then check:
 
 ```text

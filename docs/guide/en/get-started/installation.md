@@ -80,6 +80,8 @@ For explicit setup, scripts, or a project-local configuration, see [the configur
 
 ## Update
 
+Moving to another computer, including a previously used one? Follow [Change machines](/en/get-started/change-machine): inventory without changes, updates and a new Relay conversation.
+
 `palabre update` detects the installation, shows the plan and asks for confirmation in an interactive terminal. `palabre update --check` checks without modifying the installation. After updating, copy the skill again if you installed it.
 
 Relay and its Mission option use existing Codex or Claude Code conversations. Each provider sets its own access conditions and limits; PALABRE does not replace them.

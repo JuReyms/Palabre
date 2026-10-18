@@ -80,6 +80,8 @@ Pour un setup explicite, des scripts ou une configuration locale au projet, cons
 
 ## Mettre à jour
 
+Vous arrivez sur un autre ordinateur, même déjà utilisé ? Suivez [Changer de machine](/fr/get-started/change-machine) : inventaire sans modification, remise à niveau et nouvelle conversation Relay.
+
 `palabre update` détecte l'installation, affiche le plan et demande confirmation en terminal interactif. `palabre update --check` vérifie sans modifier l'installation. Après une mise à jour, recopiez le skill si vous l'avez installé.
 
 Relay et son option Mission utilisent des conversations Codex ou Claude Code existantes. Chaque fournisseur fixe ses conditions d'accès et ses limites ; PALABRE ne les remplace pas.
