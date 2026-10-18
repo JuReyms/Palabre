@@ -74,7 +74,8 @@ git -C <dossier-du-clone> switch main
 git -C <dossier-du-clone> pull --ff-only
 pnpm -C <dossier-du-clone> install
 pnpm -C <dossier-du-clone> build
-pnpm -C <dossier-du-clone> link --global
+cd <dossier-du-clone>
+pnpm link --global
 palabre --version
 ```
 

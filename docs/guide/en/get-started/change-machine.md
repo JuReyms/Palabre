@@ -74,7 +74,8 @@ git -C <clone-directory> switch main
 git -C <clone-directory> pull --ff-only
 pnpm -C <clone-directory> install
 pnpm -C <clone-directory> build
-pnpm -C <clone-directory> link --global
+cd <clone-directory>
+pnpm link --global
 palabre --version
 ```
 
