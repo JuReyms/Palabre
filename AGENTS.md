@@ -27,9 +27,9 @@ Palabre est open source et utilisé par des personnes de tous niveaux techniques
 
 ## Identité visible de PALABRE
 
-Le skill demande le libellé de tâche `Palabre <mode> : <objet>` ; seul l'hôte peut l'afficher. `src/cliIdentity.ts` pose tôt `process.title = "palabre <commande>"` avec une commande connue, jamais un sujet utilisateur. Sous Windows, Node utilise aussi le titre natif de la console ; le nom d'exécutable peut rester `node.exe` dans les outils système.
+Le skill demande le libellé de tâche `Palabre <mode> : <objet>` ; seul l'hôte peut l'afficher. `src/cliIdentity.ts` pose tôt `process.title = "palabre <commande>"` avec une commande connue, jamais un sujet utilisateur. Sous Windows, Node utilise aussi le titre natif de la console, même quand les séquences terminal sont désactivées ; le nom d'exécutable peut rester `node.exe` dans les outils système.
 
-Le titre OSC `Palabre · <Mode>` et la sauvegarde/restauration xterm sont réservés à stdout TTY hors `--json` et `--renderer ndjson`, sans `NO_COLOR` ni `TERM=dumb`. `PALABRE_ASCII=1` choisit un titre ASCII. Aucun champ JSON/NDJSON n'est ajouté. Restaurer le nom logique avant de dépiler le titre assure le repli console Windows ; une erreur de décoration ne change pas le résultat CLI. Les modes/langues effectifs mettent le titre à jour, y compris depuis l'accueil TUI. Ne jamais mettre de texte libre dans une séquence de contrôle. Une terminaison forcée ou un hôte imposant son propre titre reste hors garantie.
+Le titre OSC `Palabre · <Mode>` et la sauvegarde/restauration xterm sont réservés à stdout TTY hors `--json` et `--renderer ndjson`, sans `NO_COLOR` ni `TERM=dumb`. `PALABRE_ASCII=1` choisit un titre ASCII, par exemple `Palabre - Debat`. Aucun champ JSON/NDJSON n'est ajouté. Restaurer le nom logique avant de dépiler le titre assure le repli console Windows ; une erreur de décoration ne change pas le résultat CLI. Les modes/langues effectifs mettent le titre à jour, y compris depuis l'accueil TUI. Ne jamais mettre de texte libre dans une séquence de contrôle. Une terminaison forcée ou un hôte imposant son propre titre reste hors garantie.
 
 ## Frontiere CLI / integrations
 

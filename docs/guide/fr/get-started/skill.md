@@ -68,9 +68,9 @@ palabre agents
 
 ### Nommer les tâches PALABRE
 
-Le skill demande à l'agent de nommer chaque tâche `Palabre <mode> : <objet>`, par exemple `Palabre Relay : envoyer la relecture à Codex` ou `Palabre Débat : comparer deux architectures`. Les libellés sont Relay, Débat, Ask, Chat et Mission ; en anglais, Débat devient Debate. Mission reste une option de Relay. L'application hôte décide du libellé réellement affiché.
+Votre agent nomme chaque tâche PALABRE `Palabre <mode> : <objet>`, par exemple `Palabre Relay : envoyer la relecture à Codex`. C'est le skill qui le lui demande ; l'application de votre agent décide de ce qu'elle affiche réellement.
 
-Dans un terminal interactif, PALABRE pose un titre comme `Palabre · Relay` et tente de restaurer le titre précédent à la fin. `PALABRE_ASCII=1` utilise `Palabre - Relay`. Aucun titre n'est envoyé sur stdout hors TTY, en JSON, en NDJSON, avec `NO_COLOR` ou avec `TERM=dumb`. Sous Windows, le nom logique `palabre relay` ne renomme pas l'exécutable : `Get-Process` peut toujours afficher `node`. Node peut aussi changer le titre natif via ce nom logique, indépendamment des séquences terminal. Un titre d'onglet fixé par l'hôte ou un arrêt forcé peut empêcher la restauration.
+Dans un terminal, PALABRE affiche son nom et son mode dans le titre de la fenêtre, par exemple `Palabre · Relay`. Il remet l'ancien titre à la fin quand le terminal le permet. Rien n'est ajouté quand PALABRE est lancé par un programme ou avec `--json`. Sous Windows, le Gestionnaire des tâches continue d'afficher `node`.
 
 ### Choisir et suivre le parcours
 

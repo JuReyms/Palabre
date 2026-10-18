@@ -68,9 +68,9 @@ palabre agents
 
 ### Naming PALABRE tasks
 
-The skill asks the agent to name each task `Palabre <mode>: <subject>`, for example `Palabre Relay: send the review to Codex` or `Palabre Debate: compare two architectures`. The labels are Relay, Debate, Ask, Chat, and Mission; in French, Debate becomes Débat. Mission remains an option of Relay. The host application decides which label is actually displayed.
+Your agent names each PALABRE task `Palabre <mode>: <subject>`, for example `Palabre Relay: send the review to Codex`. The skill asks it to do this; your agent's application decides what it actually displays.
 
-In an interactive terminal, PALABRE sets a title such as `Palabre · Relay` and tries to restore the previous title at the end. `PALABRE_ASCII=1` uses `Palabre - Relay`. No title is sent to stdout outside a TTY, in JSON, in NDJSON, with `NO_COLOR`, or with `TERM=dumb`. On Windows, the logical name `palabre relay` does not rename the executable: `Get-Process` may still show `node`. Node may also change the native title through this logical name, independently of terminal sequences. A tab title fixed by the host or a forced shutdown may prevent restoration.
+In a terminal, PALABRE displays its name and mode in the window title, for example `Palabre · Relay`. It restores the old title at the end when the terminal allows it. Nothing is added when PALABRE is launched by a program or with `--json`. On Windows, Task Manager continues to show `node`.
 
 ### Choosing and following the path
 
