@@ -4,6 +4,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Added
+
+- `palabre doctor` prévient sous Windows, avant tout Relay, quand le seul `pwsh.exe` du PATH est l'alias PowerShell du Microsoft Store : Codex peut alors échouer à démarrer ses commandes, ce que PALABRE ne signalait jusqu'ici qu'après l'échange, dans `readAccess`. Le contrôle réutilise la détection d'alias d'exécution déjà en place, n'exécute pas `pwsh` et ne modifie ni configuration, ni PATH, ni permissions ; il distingue l'absence de tout PowerShell régulier du repli appliqué au seul processus enfant Codex, et nomme ce repli. Avertissement seulement, jamais une erreur : la machine reste utilisable et l'agent lit souvent malgré le refus. Muet hors Windows, sans CLI Codex détectée, quand un vrai `pwsh.exe` reste disponible ou quand l'alias n'est pas confirmé (Refs #171, #128). Guides fr/en et skill actualisés, avec la commande winget qui installe réellement le `.msi` (`--installer-type wix`, vérifié avec winget 1.29.380 ; `--installer-type msi` ne correspond à aucun installeur et `--source winget` seul pose le paquet MSIX) ; la copie installée du skill n'est pas mise à jour automatiquement.
+
 ### Changed
 
 - Documentation Relay : avec les versions Codex vérifiées, une conversation créée par `relay --new` via la CLI reste joignable et réutilisable par Relay, mais n'est pas listée dans Codex Desktop. Pour la suivre dans l'application, la créer d'abord dans Desktop puis viser son identifiant (`--open` tant qu'elle est ouverte). Aide, guides fr/en et skill alignés (Refs #179, point 10) ; une copie installée du skill doit être mise à jour manuellement.

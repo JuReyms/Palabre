@@ -26,6 +26,15 @@ palabre doctor --terminal
 
 **Confirmed cause on the tested machine:** the Microsoft Store PowerShell alias, `WindowsApps\pwsh.exe`. Under the same `:read-only` policy, the alias fails, native PowerShell reads the file, and writes remain denied.
 
+### What `doctor` reports first
+
+When the Codex CLI is detected, `palabre doctor` looks at the preferred `pwsh.exe` on PATH, without launching it, and warns (`WARN`) when it is the Microsoft Store alias:
+
+- **no regular PowerShell beside it**: the workaround below cannot apply;
+- **a regular PowerShell remains available**: PALABRE will use it for its Codex child process only, and the message names it.
+
+This is a warning, never an error: the machine stays usable, and the agent often reads anyway despite the refusal. `doctor` does not launch `pwsh`, changes no config, PATH or permission, and stays silent outside Windows, without a detected Codex CLI, or when a real `pwsh.exe` remains available.
+
 ### What PALABRE does automatically
 
 For closed Relay, `--new`, Mission and the review task targeting Codex, PALABRE checks the preferred shell. On Windows it removes the `WindowsApps` directory from **its child process only** if that directory's `pwsh.exe` is a confirmed execution alias and native PowerShell remains available. A native PowerShell already taking priority causes no change. An unavailable check or uncertain fallback leaves PATH unchanged.
@@ -36,13 +45,13 @@ No user setting, global PATH or write permission is changed. The `readAccess` di
 
 ### Owner option: install PowerShell 7 outside the Store
 
-This is optional: native Windows PowerShell may be enough for the fix. If you prefer PowerShell 7, the [Microsoft documentation](https://learn.microsoft.com/en-us/powershell/scripting/install/install-powershell-on-windows) gives this command to select the **MSI** package, when available:
+This is optional: native Windows PowerShell may be enough for the fix. If you prefer PowerShell 7, ask for the **MSI** package explicitly:
 
 ```powershell
 winget install --id Microsoft.PowerShell --source winget --installer-type wix
 ```
 
-Choosing MSI matters: `--source winget` alone may install an MSIX package. If MSI is unavailable, follow Microsoft's MSI or ZIP instructions. PALABRE does not install anything for you. Reopen your terminal and app after installation; check the proposed path with:
+The selector matters. `--source winget` alone installs the Store MSIX package: in the [real test of #171](https://github.com/JuReyms/Palabre/issues/171), `winget list` reports the new version while `C:\Program Files\PowerShell\` still does not exist. `--installer-type msi` matches no installer, because PowerShell's winget manifest declares its `.msi` files under the `wix` type: `wix` is what you must ask for. Verified with winget 1.29.380: `winget show --id Microsoft.PowerShell --source winget --installer-type wix` does show a `.msi` URL, while the same command with `msi` answers "No applicable installer found". If your winget version does not offer that choice, download the `.msi` from [PowerShell's GitHub releases](https://github.com/PowerShell/PowerShell/releases). PALABRE does not install anything for you. Reopen your terminal and app after installation; check the proposed path with:
 
 ```powershell
 Get-Command pwsh -All | Select-Object Source
