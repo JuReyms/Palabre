@@ -73,6 +73,14 @@ pnpm start -- -h
 pnpm start -- -v
 ```
 
+### Isolation des tests et entretien du registre de confiance
+
+`pnpm test` passe par `scripts/test.mjs`. Avant l'import des modules, chaque processus de test reçoit un dossier personnel temporaire distinct (`HOME`, `USERPROFILE`, AppData et XDG), hérité par ses sous-processus. Les dossiers temporaires des tests sont également placés dedans et supprimés à la fin du lancement. Cela couvre la config globale, `trusted-configs.json`, les lecteurs de conversations et `~/.palabre/relay-write`, sans ajouter de variable produit ni modifier les règles de confiance. Exports, historique, checkpoints et missions restent rattachés aux projets fictifs ou aux chemins explicitement fournis par les tests.
+
+Le lanceur surveille en lecture seule le vrai `~/.palabre` et compare une empreinte des contenus et métadonnées avant/après. Une création, une modification ou une erreur de surveillance fait échouer la suite ; aucun fichier utilisateur n'est restauré ou réécrit. Une autre instance PALABRE qui écrit pendant la suite peut donc la faire échouer. Pour une sélection, utiliser `pnpm build:test`, puis `node scripts/test.mjs .tmp/test-dist/tests/config-trust.test.js` ; ne pas lancer les tests compilés directement avec `node --test`. `pnpm test:release-social` utilise la même isolation. Les scripts `smoke:real-*`, explicitement réels et hors `pnpm test`, ne sont pas concernés.
+
+`palabre config --prune-trust --dry-run` affiche les approbations dont le chemin a disparu. `palabre config --prune-trust` exige une confirmation au clavier, vérifie de nouveau le registre sous son verrou existant, conserve les chemins existants/inaccessibles et écrit d'abord une sauvegarde exclusive horodatée des octets d'origine. Un registre illisible ou modifié depuis la liste est refusé. Ni `--yes`, ni `--json`, ni `--trust-config` ne sont admis dans ce parcours. Les agents ne répondent jamais à la place de l'humain. Ne jamais utiliser le vrai registre pour tester le nettoyage.
+
 ## Structure
 
 ```text

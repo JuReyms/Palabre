@@ -12,6 +12,10 @@ palabre doctor --terminal
 
 Lire ces contrats plutôt que deviner : la disponibilité est calculée par le CLI.
 
+## Approbations de configurations disparues
+
+`palabre config --prune-trust --dry-run` affiche les approbations de fichiers disparus, sans rien modifier. Pour les retirer, proposez à l'humain de lancer lui-même `palabre config --prune-trust` dans son terminal : liste, confirmation au clavier et sauvegarde horodatée. Ne confirmez jamais à sa place ; aucun `--yes` n'est admis. Les configurations existantes ou inaccessibles sont conservées et aucun nouveau droit n'est accordé.
+
 ## Débat
 
 Deux agents se répondent avec le sujet, le contexte et l'historique ; synthèse finale par défaut (consensus, désaccords, actions, conclusion).

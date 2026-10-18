@@ -1,11 +1,72 @@
 /** @file Registre utilisateur des configurations explicitement approuvées. */
 import { createHash } from "node:crypto";
-import { mkdir, open, readFile, realpath, rm, stat } from "node:fs/promises";
+import { lstat, mkdir, open, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import { writeTextFileAtomically } from "./atomicFile.js";
 
 export const CONFIG_TRUST_PATH = path.join(os.homedir(), ".palabre", "trusted-configs.json");
+
+/** Preview bound to the exact registry shown to the human; inaccessible paths are kept. */
+export interface TrustPrunePlan {
+  sha256: string;
+  missing: string[];
+  kept: number;
+  inaccessible: number;
+}
+
+/** Strict maintenance reader: unlike trust lookup, never replaces an unreadable/corrupt registry. */
+async function readPruneStore(trustPath: string): Promise<{ raw: string; store: ConfigTrustStore }> {
+  let raw: string;
+  try {
+    if (!(await lstat(trustPath)).isFile()) throw new Error("trust-registry-invalid");
+    raw = await readFile(trustPath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return { raw: "", store: { v: 1, configs: {} } };
+    throw error;
+  }
+  const store = JSON.parse(raw) as ConfigTrustStore;
+  if (!store || store.v !== 1 || !store.configs || typeof store.configs !== "object" || Array.isArray(store.configs)
+    || Object.entries(store.configs).some(([file, entry]) => !path.isAbsolute(file) || !entry || typeof entry !== "object"
+      || typeof entry.sha256 !== "string" || !/^[a-f0-9]{64}$/i.test(entry.sha256) || typeof entry.trustedAt !== "string")) throw new Error("trust-registry-invalid");
+  return { raw, store };
+}
+
+/** A symlink counts as existing, even if broken; access failures never mean absence. */
+async function configPresence(file: string): Promise<"exists" | "missing" | "unknown"> {
+  try { await lstat(file); return "exists"; }
+  catch (error) { return ["ENOENT", "ENOTDIR"].includes((error as NodeJS.ErrnoException).code ?? "") ? "missing" : "unknown"; }
+}
+
+/** Read-only list of approvals whose configuration path no longer exists. */
+export async function planTrustPrune(trustPath = CONFIG_TRUST_PATH): Promise<TrustPrunePlan> {
+  const { raw, store } = await readPruneStore(trustPath);
+  const plan: TrustPrunePlan = { sha256: createHash("sha256").update(raw).digest("hex"), missing: [], kept: 0, inaccessible: 0 };
+  for (const file of Object.keys(store.configs).sort()) {
+    const presence = await configPresence(file);
+    if (presence === "missing") plan.missing.push(file);
+    else { plan.kept++; if (presence === "unknown") plan.inaccessible++; }
+  }
+  return plan;
+}
+
+/** Apply only the previewed removals, under the existing trust lock, after an exact backup. */
+export async function pruneTrust(plan: TrustPrunePlan, trustPath = CONFIG_TRUST_PATH): Promise<{ removed: number; backup?: string }> {
+  if (!plan.missing.length) return { removed: 0 };
+  return withTrustStoreLock(trustPath, async () => {
+    const { raw, store } = await readPruneStore(trustPath);
+    if (createHash("sha256").update(raw).digest("hex") !== plan.sha256) throw new Error("trust-registry-changed");
+    const missing: string[] = [];
+    for (const file of plan.missing) if (Object.hasOwn(store.configs, file) && await configPresence(file) === "missing") missing.push(file);
+    if (!missing.length) return { removed: 0 };
+    const backup = `${trustPath}.${new Date().toISOString().replaceAll(/[:.]/g, "-")}.${randomUUID()}.bak`;
+    await writeFile(backup, raw, { encoding: "utf8", flag: "wx", mode: 0o600 });
+    for (const file of missing) delete store.configs[file];
+    await writeTrustStore(trustPath, store);
+    return { removed: missing.length, backup };
+  });
+}
 
 interface ConfigTrustStore {
   v: 1;

@@ -138,6 +138,7 @@ Configure les agents par defaut, la synthese, le nombre de reponses et la langue
 
 Usage:
   palabre config
+  palabre config --prune-trust [--dry-run]
   palabre config --set-defaults <agentA> <agentB>
   palabre config -t <number>
   palabre config --summary-agent <name|none>
@@ -146,6 +147,10 @@ Usage:
   palabre config --ask-agents <names...>
   palabre config --interface <tui|terminal>
   palabre config --language <fr|en>
+
+  --prune-trust retire seulement les approbations de fichiers disparus : liste,
+  confirmation au clavier, puis sauvegarde horodatée. --dry-run affiche sans écrire.
+  À lancer vous-même dans votre terminal ; aucun --yes. Les fichiers existants sont conservés.
 
 Flags:
   --clear-defaults     supprime les parametres par defaut
@@ -504,6 +509,7 @@ Configures default agents, summary, response count, and language.
 
 Usage:
   palabre config
+  palabre config --prune-trust [--dry-run]
   palabre config --set-defaults <agentA> <agentB>
   palabre config -t <number>
   palabre config --summary-agent <name|none>
@@ -512,6 +518,10 @@ Usage:
   palabre config --ask-agents <names...>
   palabre config --interface <tui|terminal>
   palabre config --language <fr|en>
+
+  --prune-trust removes approvals only for missing files: preview, keyboard
+  confirmation, then a timestamped backup. --dry-run previews without writing.
+  Run it yourself in your terminal; no --yes. Existing files are kept.
 
 Flags:
   --clear-defaults     clears default settings

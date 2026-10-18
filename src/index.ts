@@ -42,6 +42,7 @@ import { runPresetsCommand } from "./commands/presets.js";
 import { runRelayCommand } from "./commands/relay.js";
 import { runMissionCommand } from "./commands/mission.js";
 import { runUpdateCommand } from "./commands/update.js";
+import { runPruneTrustCommand } from "./commands/pruneTrust.js";
 import { optionalString } from "./commands/shared.js";
 import { runTuiAgentsWizard, runTuiConfigLoop, runTuiRolesWizard, syncInteractiveDetectedAgents } from "./tuiController.js";
 import { parseInterfaceFlag, parseSessionModeFlag, resolveChatOptions, resolveRunOptions } from "./runOptions.js";
@@ -108,6 +109,12 @@ async function main(): Promise<void> {
 
   if (parsed.command === "sessions") {
     await runSessionsCommand(parsed.flags, parsed.positionals);
+    return;
+  }
+
+  // Maintenance does not consume the project config or grant trust to it.
+  if (parsed.command === "config" && parsed.flags["prune-trust"]) {
+    await runPruneTrustCommand(parsed.flags, parsed.positionals);
     return;
   }
 

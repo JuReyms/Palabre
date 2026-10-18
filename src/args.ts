@@ -46,6 +46,7 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
   checkpoint: { arity: "boolean" },
   yes: { arity: "boolean" },
   "trust-config": { arity: "boolean" },
+  "prune-trust": { arity: "boolean" },
   local: { arity: "boolean" },
   apply: { arity: "boolean" },
   "clear-defaults": { arity: "boolean" },

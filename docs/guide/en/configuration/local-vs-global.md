@@ -64,3 +64,21 @@ The general guard requires approval for an implicit project configuration. Relay
 Read the file, then run `palabre config --config <file> --trust-config`. An agent must not approve it to grant itself rights. For an unapproved project configuration, `doctor` stays available and does not contact its Ollama URLs.
 
 Relay policy follows the resolved file: `palabre relay allow-repo owner/repository` shows the chosen path and requires your keyboard confirmation. All new configurations should be named `palabre.config.json`.
+
+## Remove approvals for missing files
+
+After deleting a project or temporary folder, its approval may remain in the registry. To preview what would be removed without changing anything:
+
+```bash
+palabre config --prune-trust --dry-run
+```
+
+To clean up, run this command yourself in your terminal:
+
+```bash
+palabre config --prune-trust
+```
+
+PALABRE lists the affected paths and asks for keyboard confirmation. Before writing, it creates a timestamped backup beside `~/.palabre/trusted-configs.json` and prints its path. Only approvals for missing files are removed. An existing or inaccessible path is kept, even if the file's content has changed. Cleanup does not approve any configuration.
+
+Without confirmation, nothing changes. There is no `--yes` option: an agent may suggest the command, but must never answer on your behalf. If the registry changes during confirmation, PALABRE stops; run the command again to review the new list.
