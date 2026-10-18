@@ -4,8 +4,11 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
-### Changed
+### Added
+- Relay : `--new --to <agent>` crée une conversation Claude Code ou Codex persistante en lecture seule ; `--dir` choisit son dossier. L'identifiant est rendu avec une commande de continuation, en JSON et dans l'export, même si le premier tour échoue (Refs #149, #150).
 
+### Changed
+- Relay : `--from` devient facultatif et accepte un nom d'agent seul ; sans expéditeur, l'en-tête indique le terminal, toujours sans autorisation transmise (Refs #145). Aide, guides fr/en et skill synchronisés ; une copie installée du skill n'est pas mise à jour automatiquement.
 - Documentation : le menu « Utilisation » du site suit les quatre modes (Débat, Relay, Ask, Chat), et la page Relay s'intitule « Mode Relay », comme les autres modes. Les guides de cette section passent à des préfixes à deux chiffres, et la synchronisation supprime aussi les anciens fichiers à deux chiffres.
 
 ## [0.17.0] - 2026-10-17

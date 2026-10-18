@@ -26,6 +26,31 @@ With `--open`, the target keeps its own tools and permissions. A loaded but undi
 
 For several read-only steps within an agreed scope and budget, Relay offers the [Mission option](#mission-option).
 
+## Start a new conversation
+
+No target conversation yet? PALABRE can create one with Codex or Claude Code, in read-only mode:
+
+```text
+palabre relay --new --to codex "Read this project and suggest three improvements, without changing any files."
+palabre relay --new --to claude --dir "../another-project" "Explain this project's structure, without changing anything."
+```
+
+Here, `--to` names an agent from your configuration, without a session identifier. The current directory is used by default; `--dir` selects another existing directory. An existing conversation keeps the directory recorded in its history: `--dir` is rejected.
+
+Text output gives the identifier and a continuation command:
+
+```text
+Conversation created: codex:<uuid>
+Directory: <project-directory>
+To continue this conversation: palabre relay --to codex:<uuid> "…"
+```
+
+In JSON, `to.session` contains the received identifier, `cwd` the directory, and `created` indicates whether an identifier was received. Before that, `to.session` is `null` and `created` is `false`. The identifier is captured during the call and preserved in the result and export even if the first turn fails: **this does not mean the question was answered**. Check delivery before sending again; no retry is automatic.
+
+The conversation remains in the CLI history. Immediate Desktop visibility is not guaranteed. `--new` cannot be used with `--open`. Creation supports advice and reading only, not writing code.
+
+The sender is optional: without `--from`, the header says `terminal`. An agent may specify `--from claude`, or `--from claude:<uuid>` if it knows its identifier. It remains declared and unauthenticated; **none of these forms conveys human authorization**. JSON gives `from: null` without a sender, or `{ "agent": "claude" }` for a name only.
+
 ## A readable header, added by PALABRE
 
 PALABRE adds a compact line before the message, in the relay language (`--language`, then the usual language resolution). The ℹ️ warning has its own line, separated by blank lines, always before the subject and content. Session identifiers and the reference remain in the final « 🤖 Message for the agent » section.
@@ -69,7 +94,7 @@ Message, header, subject and coordination footer together count toward **64 KiB 
 - `--to <agent>:<session>`: `<agent>` is the name of a Codex or Claude Code CLI agent from your configuration (`codex`, `claude`, `claude-opus`…). `<session>` is the conversation identifier (a UUID).
   - Claude Code: it is the name of the `~/.claude/projects/<folder>/<session>.jsonl` file.
   - Codex: it is the end of the `~/.codex/sessions/YYYY/MM/DD/rollout-…-<session>.jsonl` file name.
-- `--from <agent>:<session>`: the sender. It is only a label, copied into the relayed message. It is neither launched nor verified, and the sender conversation may be open.
+- `--from <agent>[:<session>]`: the sender. It is only a label, copied into the relayed message. It is neither launched nor verified, and the sender conversation may be open.
 
 Copy the identifier from the host’s conversation information, or from its history filename. Never pick “the most recent” on the owner’s behalf; no target is inferred implicitly.
 

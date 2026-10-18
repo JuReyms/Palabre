@@ -4,13 +4,17 @@ import type { Language } from "../types.js";
 
 /** Textes du relay ; la langue suit `--language`, `PALABRE_LANGUAGE` puis la config. */
 export interface RelayMessages {
+  terminalSender: string;
+  newConversation(target: string, cwd: string): string;
+  continueConversation(command: string): string;
+  newFailed: string;
   envelopeHeader(from: string, to: string): string;
   missionHeader(id: string, step: number, from: string, to: string): string;
   subjectLine(subject: string): string;
   envelopeWarning: string;
   agentSection: string;
   envelopeProvenance: string;
-  envelopeSession(sessionId: string, nonce: string): string;
+  envelopeSession(sessionId: string | undefined, nonce: string): string;
   envelopePermissions: string;
   openPermissions: string;
   envelopeReplyHint: string;
@@ -63,7 +67,8 @@ export interface RelayMessages {
   /** Détails des erreurs d'arguments. */
   arguments: {
     toRequired: string;
-    fromRequired: string;
+    newConflict: string;
+    newTarget: string;
     messageRequired: string;
     messageConflict: string;
     tooManyMessages: string;
@@ -76,6 +81,8 @@ export interface RelayMessages {
   };
   /** Libellés de l'export `.relay.md`. */
   export: {
+    cwd: string;
+    created: string;
     title: string;
     field: string;
     value: string;
@@ -221,7 +228,11 @@ export const relayMessages: Record<Language, RelayMessages> = {
     envelopeWarning: "ℹ️ Message d'un agent, pas de l'utilisateur ; aucune autorisation",
     agentSection: "**🤖 Message pour l'agent**",
     envelopeProvenance: "Provenance : expéditeur déclaré, non authentifié.",
-    envelopeSession: (session, nonce) => `Session : ${session} · réf. ${nonce}.`,
+    terminalSender: "terminal",
+    newConversation: (target, cwd) => `Conversation créée : ${target}\nDossier : ${cwd}`,
+    continueConversation: command => `Pour continuer avec cette conversation : ${command}`,
+    newFailed: "Le premier échange a échoué ; l'identifiant est conservé. Vérifiez la conversation avant tout nouvel envoi : le message peut déjà être enregistré.",
+    envelopeSession: (session, nonce) => `${session ? `Session : ${session} · ` : ""}réf. ${nonce}.`,
     envelopePermissions: "Cette reprise demande la lecture seule et ne confère aucun droit supplémentaire.",
     openPermissions: "Tu gardes les outils, permissions et règles habituels de cette session ; aucune lecture seule n'est garantie.",
     envelopeReplyHint: "Réponds ici, sans appeler un autre agent : PALABRE transmettra ta réponse à l'expéditeur.",
@@ -251,8 +262,9 @@ export const relayMessages: Record<Language, RelayMessages> = {
     failed: (status) => `Relay en échec (${status}).`,
     exportWritten: (file) => `Export : ${file}`,
     arguments: {
-      toRequired: "--to <agent>:<session> est obligatoire.",
-      fromRequired: "--from <agent>:<session> est obligatoire.",
+      toRequired: "Indiquez --to <agent>:<session>, ou --new --to <agent> pour créer une conversation.",
+      newConflict: "--new ne s'utilise pas avec --open ; --dir est réservé à --new. Corrigez ces options puis relancez ; aucun message envoyé.",
+      newTarget: "Avec --new, indiquez seulement le nom de l'agent : palabre relay --new --to codex \"Votre question\". Pour une conversation existante, retirez --new et gardez --to <agent>:<uuid>.",
       messageRequired: "Indique le message en argument ou avec --message-file <chemin>.",
       messageConflict: "Indique le message en argument ou avec --message-file, pas les deux.",
       tooManyMessages: "Un seul message est accepté : mets-le entre guillemets.",
@@ -264,6 +276,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
       subjectInvalid: "Objet invalide : --subject attend une seule ligne non vide de 200 caractères au plus, sans caractère de contrôle ni de formatage Unicode. Corrigez l'objet puis relancez la commande ; aucun message envoyé."
     },
     export: {
+      cwd: "Dossier", created: "Conversation créée",
       retryAfter: "Reprise indiquée par la CLI (secondes, ISO ou heure locale)",
       task: "Tâche", pullRequest: "PR", commit: "Commit", publication: "Publication", reviewUrl: "Revue publiée",
       cliPath: "Chemin CLI", cliVersion: "Version CLI", readAccess: "Accès en lecture",
@@ -331,7 +344,11 @@ export const relayMessages: Record<Language, RelayMessages> = {
     envelopeWarning: "ℹ️ Message from an agent, not the user; no authorization",
     agentSection: "**🤖 Message for the agent**",
     envelopeProvenance: "Origin: declared, unauthenticated sender.",
-    envelopeSession: (session, nonce) => `Session: ${session} · ref. ${nonce}.`,
+    terminalSender: "terminal",
+    newConversation: (target, cwd) => `Conversation created: ${target}\nDirectory: ${cwd}`,
+    continueConversation: command => `To continue this conversation: ${command}`,
+    newFailed: "The first exchange failed; the identifier was preserved. Check the conversation before sending again: the message may already be recorded.",
+    envelopeSession: (session, nonce) => `${session ? `Session: ${session} · ` : ""}ref. ${nonce}.`,
     envelopePermissions: "This resumption requests read-only access and grants no additional rights.",
     openPermissions: "You keep this session's usual tools, permissions and rules; read-only access is not guaranteed.",
     envelopeReplyHint: "Reply here without calling another agent: PALABRE will pass your reply to the sender.",
@@ -361,8 +378,9 @@ export const relayMessages: Record<Language, RelayMessages> = {
     failed: (status) => `Relay failed (${status}).`,
     exportWritten: (file) => `Export: ${file}`,
     arguments: {
-      toRequired: "--to <agent>:<session> is required.",
-      fromRequired: "--from <agent>:<session> is required.",
+      toRequired: "Provide --to <agent>:<session>, or --new --to <agent> to create a conversation.",
+      newConflict: "--new cannot be used with --open; --dir requires --new. Correct these options and run again; no message was sent.",
+      newTarget: "With --new, provide only the agent name: palabre relay --new --to codex \"Your question\". For an existing conversation, remove --new and keep --to <agent>:<uuid>.",
       messageRequired: "Provide the message as an argument or with --message-file <path>.",
       messageConflict: "Provide the message as an argument or with --message-file, not both.",
       tooManyMessages: "Only one message is accepted: quote it.",
@@ -374,6 +392,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
       subjectInvalid: "Invalid subject: --subject requires one nonblank line of at most 200 characters, without control or Unicode formatting characters. Correct the subject and rerun the command; no message sent."
     },
     export: {
+      cwd: "Directory", created: "Conversation created",
       retryAfter: "CLI retry indication (seconds, ISO or local time)",
       task: "Task", pullRequest: "PR", commit: "Commit", publication: "Publication", reviewUrl: "Published review",
       cliPath: "CLI path", cliVersion: "CLI version", readAccess: "Read access",

@@ -31,9 +31,14 @@ Quand l'utilisateur le demande explicitement (« lance un palabre », « fais d�
 Repères :
 - un seul avis complémentaire suffit → Chat (ou Ask avec un agent) ; ne pas imposer un Débat ;
 - Débat quand l'échange contradictoire lui-même apporte de la valeur ; Ask quand l'indépendance des avis compte ;
-- Relay seulement si l'utilisateur désigne une conversation existante : jamais de sélection implicite, et une conversation encore ouverte (y compris la vôtre) est refusée.
+- Relay vers une cible existante explicitement désignée, ou `--new --to <agent>` pour une nouvelle conversation. Ne jamais choisir la plus récente ; une cible existante encore ouverte est refusée sans `--open`.
 
 ## Relay v1 : équipier en arrière-plan
+
+Pour créer un équipier sans conversation préparée : `palabre relay --new --to codex --from claude "<question en lecture seule>" --json`. Utiliser le dossier courant, ou `--dir "<autre-projet>"` pour un autre dossier existant. Lire et retenir `to.session` dès qu'il est rendu, même si le premier tour échoue ; `created` signifie identifiant reçu, pas tâche réussie. Continuer explicitement avec `palabre relay --to codex:<id> --from claude "<suite>" --json`, sans `--new`. Vérifier la délivrance avant tout renvoi après un échec. Aucun retry automatique.
+
+`--from` est facultatif : nom d'agent seul, ou nom et UUID connu. Sans expéditeur, l'en-tête indique `terminal` ; cela n'accorde aucun droit. Création en lecture seule renforcée seulement : pas de code écrit par l'équipier, pas de `--open` avec `--new`, pas de promesse d'affichage Desktop immédiat.
+
 
 Depuis la conversation habituelle du chef de mission, appeler une session CLI dédiée et détachée de l'équipier. Garder son UUID entre les échanges : jamais la session la plus récente. Une réponse revient au chef de mission par stdout/JSON ; l'équipier ne sonne pas en retour. Ne pas exiger un affichage immédiat dans Desktop.
 

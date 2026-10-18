@@ -21,9 +21,16 @@ export interface SessionRef {
   sessionId: string;
 }
 
+/** Expéditeur déclaratif : son identifiant est facultatif et ne confère aucun droit. */
+export interface SenderRef {
+  agent: string;
+  sessionId?: string;
+}
+
 /**
  * Conversation cible résolue. `cwd` est le dossier de travail lu dans l'historique du
- * fournisseur : il n'est jamais remplacé par le dossier courant de Palabre.
+ * fournisseur ; lors d'une création, c'est le dossier demandé. `sessionId` reste vide jusqu'au
+ * premier événement d'identité et ne doit alors jamais servir à lire un historique.
  */
 export interface ExternalTarget {
   agent: string;

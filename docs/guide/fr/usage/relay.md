@@ -26,6 +26,31 @@ Avec `--open`, la cible conserve ses propres outils et permissions. Le message p
 
 Pour plusieurs étapes en lecture seule dans un cadre et un budget convenus, Relay propose l'[option Mission](#option-mission).
 
+## Démarrer une conversation neuve
+
+Vous n'avez pas encore de conversation cible ? PALABRE peut en créer une chez Codex ou Claude Code, en lecture seule :
+
+```text
+palabre relay --new --to codex "Lis ce projet et propose trois pistes d'amélioration, sans modifier de fichier."
+palabre relay --new --to claude --dir "../autre-projet" "Explique la structure de ce projet, sans rien modifier."
+```
+
+`--to` désigne ici un agent de votre configuration, sans identifiant. Le dossier courant est utilisé par défaut ; `--dir` choisit un autre dossier existant. Pour une conversation existante, son dossier reste celui de son historique : `--dir` est refusé.
+
+La sortie donne l'identifiant et une commande pour continuer :
+
+```text
+Conversation créée : codex:<uuid>
+Dossier : <dossier-du-projet>
+Pour continuer avec cette conversation : palabre relay --to codex:<uuid> "…"
+```
+
+En JSON, `to.session` contient l'identifiant reçu, `cwd` le dossier et `created` indique si un identifiant a été reçu. Avant réception, `to.session` vaut `null` et `created` vaut `false`. L'identifiant est capturé pendant l'appel et conservé dans le résultat et l'export même si le premier tour échoue : **cela ne signifie pas que la question a reçu une réponse**. Vérifiez alors la délivrance avant de renvoyer ; aucun nouvel essai n'est automatique.
+
+La conversation reste dans l'historique de la CLI. Son affichage immédiat dans Desktop n'est pas garanti. `--new` ne s'utilise pas avec `--open`. La création autorise seulement les avis et lectures, pas l'écriture de code.
+
+L'expéditeur est facultatif : sans `--from`, l'en-tête indique `terminal`. Un agent peut préciser `--from claude`, ou `--from claude:<uuid>` s'il connaît son identifiant. Il reste déclaré et non authentifié ; **aucune de ces formes ne transmet une autorisation humaine**. Le JSON donne `from: null` sans expéditeur, ou `{ "agent": "claude" }` pour un nom seul.
+
 ## Un en-tête lisible, ajouté par PALABRE
 
 PALABRE ajoute lui-même une ligne compacte avant le message, dans la langue du relay (`--language`, puis les règles habituelles de langue). L'avertissement ℹ️ est sur sa propre ligne, séparée par des lignes vides, toujours avant l'objet et le contenu. Les identifiants de session et la référence restent dans la partie « 🤖 Message pour l'agent » en bas.
@@ -69,7 +94,7 @@ Message, en-tête, objet et pied de coordination comptent ensemble dans les **64
 - `--to <agent>:<session>` : `<agent>` est le nom d'un agent CLI Codex ou Claude Code de votre configuration (`codex`, `claude`, `claude-opus`…). `<session>` est l'identifiant de la conversation (un UUID).
   - Claude Code : c'est le nom du fichier `~/.claude/projects/<dossier>/<session>.jsonl`.
   - Codex : c'est la fin du nom du fichier `~/.codex/sessions/AAAA/MM/JJ/rollout-…-<session>.jsonl`.
-- `--from <agent>:<session>` : l'expéditeur. C'est une simple étiquette, recopiée dans le message transmis. Elle n'est ni lancée ni vérifiée, et la conversation de l'expéditeur peut être ouverte.
+- `--from <agent>[:<session>]` : l'expéditeur facultatif. C'est une simple étiquette, recopiée dans le message transmis. Elle n'est ni lancée ni vérifiée, et la conversation de l'expéditeur peut être ouverte.
 
 Copiez l'identifiant des informations de la conversation dans l'hôte, ou du nom de son fichier d'historique. Ne choisissez jamais « la plus récente » à la place de l'humain ; aucune cible n'est déduite implicitement.
 

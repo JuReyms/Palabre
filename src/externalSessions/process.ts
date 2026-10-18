@@ -17,6 +17,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
 import path from "node:path";
+import { StringDecoder } from "node:string_decoder";
 import { resolveMaxOutputBytes, utf8ChildProcessEnv } from "../adapters/cli-shared.js";
 import { resolveExecutablePath } from "../exec.js";
 import type { Liveness } from "./types.js";
@@ -42,6 +43,8 @@ export type StopReason = "timeout" | "output-too-large" | "cancelled";
 
 /** Paramètres d'un lancement. `command` est un exécutable déjà résolu, lancé sans shell. */
 export interface ExternalProcessSpec {
+  /** Observation synchrone des lignes stdout acceptées, avant la fin du processus. */
+  onStdoutLine?: (line: string) => void;
   command: string;
   args: readonly string[];
   /** Dossier de travail de la cible ; doit exister. */
@@ -216,6 +219,18 @@ export function runExternalProcess(spec: ExternalProcessSpec): Promise<ExternalP
 
     const stdoutChunks: Buffer[] = [];
     const stderrChunks: Buffer[] = [];
+    const decoder = new StringDecoder("utf8");
+    let pendingLine = "";
+    const observe = (text: string) => {
+      if (!spec.onStdoutLine) return;
+      pendingLine += text;
+      let newline: number;
+      while ((newline = pendingLine.indexOf("\n")) >= 0) {
+        const line = pendingLine.slice(0, newline);
+        pendingLine = pendingLine.slice(newline + 1);
+        spec.onStdoutLine(line);
+      }
+    };
     let outputBytes = 0;
     let settled = false;
     let exited = false;
@@ -226,6 +241,8 @@ export function runExternalProcess(spec: ExternalProcessSpec): Promise<ExternalP
     const finish = (exitCode: number | null, signal: NodeJS.Signals | null, forcedReturn: boolean) => {
       if (settled) return;
       settled = true;
+      observe(decoder.end());
+      if (pendingLine) spec.onStdoutLine?.(pendingLine);
       clearTimeout(hardTimer);
       if (graceTimer) clearTimeout(graceTimer);
       spec.signal?.removeEventListener("abort", onAbort);
@@ -283,6 +300,7 @@ export function runExternalProcess(spec: ExternalProcessSpec): Promise<ExternalP
         return;
       }
       chunks.push(chunk);
+      if (chunks === stdoutChunks && spec.onStdoutLine) observe(decoder.write(chunk));
     };
     child.stdout?.on("data", collect(stdoutChunks));
     child.stderr?.on("data", collect(stderrChunks));

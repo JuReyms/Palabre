@@ -1,5 +1,7 @@
+/** @file Aide CLI FR/EN : options, prochaines étapes et limites de chaque commande. */
 import type { Language } from "../types.js";
 
+/** Rendu de l'aide globale et des commandes, sans lancer d'agent ni modifier de configuration. */
 export interface HelpMessages {
   render(presets: string): string;
   renderCommand(command: string): string | undefined;
@@ -201,15 +203,18 @@ Transmet un message à une conversation Codex ou Claude Code fermée et renvoie 
 Avec --open, dépose le message dans une conversation Codex ouverte et attend sa réponse.
 
 Usage:
-  palabre relay --from <agent>:<session> --to <agent>:<session> "<message>"
+  palabre relay --to <agent>:<session> "<message>"
+  palabre relay --new --to <agent> "<message>"
   palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <chemin>
   palabre relay allow-repo proprietaire/depot [--config <path>]
   palabre relay allow-repo 'proprietaire/*' [--config <path>]
   palabre relay --open --from <agent>:<session> --to <agent-codex>:<session> "<message>"
 
 Flags:
-  --from <agent>:<uuid>   expéditeur, étiquette déclarative (jamais lancé)
-  --to <agent>:<uuid>     agent cible de la config et identifiant de sa conversation
+  --from <agent>[:<uuid>] expéditeur facultatif, déclaré et non authentifié ; terminal si absent
+  --to <agent>:<uuid>     cible existante ; nom d'agent seul avec --new
+  --new                   crée une conversation persistante en lecture seule, sans --open
+  --dir <chemin>          dossier de la nouvelle conversation (défaut : dossier courant)
   --message-file <path>   lit le message dans un fichier (64 Kio au plus)
   --subject <objet>       objet facultatif : une ligne non vide, 200 caractères au plus, sans contrôle
   --task review           rédige et publie une revue COMMENT si la config l'autorise
@@ -245,7 +250,11 @@ Limites :
   WindowsApps\\pwsh.exe. Le propriétaire consulte https://palab.re/fr/troubleshooting (Codex sous Windows)
   et https://github.com/JuReyms/Palabre/issues/128 : pas de solution validée pour ce parcours.
   Palabre ne change aucune permission et ne renvoie rien automatiquement.
-  Sans --open, la conversation cible doit être fermée : aucun TUI, desktop, IDE ni exécution
+  --new crée la cible sans choisir une conversation existante. L'identifiant reçu reste
+  dans to.session et l'export, même si le premier tour échoue ; cwd indique le dossier.
+  La sortie donne la commande pour continuer ; aucun renvoi automatique après un échec.
+  Écriture non autorisée, affichage Desktop non garanti.
+  Sans --open, une conversation existante doit être fermée : aucun TUI, desktop, IDE ni exécution
   en cours.
 
 Avec --open (pilote Codex, Windows) :
@@ -536,15 +545,18 @@ Sends one message to a closed Codex or Claude Code conversation and returns its 
 With --open, queues the message into an open Codex conversation and waits for its reply.
 
 Usage:
-  palabre relay --from <agent>:<session> --to <agent>:<session> "<message>"
+  palabre relay --to <agent>:<session> "<message>"
+  palabre relay --new --to <agent> "<message>"
   palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <path>
   palabre relay allow-repo owner/repository [--config <path>]
   palabre relay allow-repo 'owner/*' [--config <path>]
   palabre relay --open --from <agent>:<session> --to <codex-agent>:<session> "<message>"
 
 Flags:
-  --from <agent>:<uuid>   sender, declarative label (never launched)
-  --to <agent>:<uuid>     target config agent and its conversation identifier
+  --from <agent>[:<uuid>] optional, declared and unauthenticated sender; terminal when omitted
+  --to <agent>:<uuid>     existing target; agent name only with --new
+  --new                   creates a persistent read-only conversation; incompatible with --open
+  --dir <path>            new conversation directory (default: current directory)
   --message-file <path>   reads the message from a file (64 KiB at most)
   --subject <subject>     optional subject: one nonblank line, at most 200 characters, no controls
   --task review           draft and publish a COMMENT review if allowed by configuration
@@ -580,7 +592,10 @@ Limits:
   WindowsApps\\pwsh.exe. The owner reads https://palab.re/en/troubleshooting (Codex on Windows)
   and https://github.com/JuReyms/Palabre/issues/128: no validated solution yet for this workflow.
   Palabre changes no permissions and never resends automatically.
-  Without --open, the target conversation must be closed: no TUI, desktop, IDE or running
+  --new never selects an existing conversation. The received identifier remains in to.session
+  and the export even when the first turn fails; cwd gives the directory. Text output gives
+  a continuation command. No automatic retry, write access or guaranteed Desktop visibility.
+  Without --open, an existing target conversation must be closed: no TUI, desktop, IDE or running
   exec.
 
 With --open (Codex pilot, Windows):

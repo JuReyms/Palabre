@@ -17,8 +17,11 @@
  */
 "use strict";
 const fs = require("node:fs");
+const path = require("node:path");
 
 const argv = process.argv.slice(2);
+const creating = argv[0] === "exec" && argv[1] !== "resume";
+const createdId = process.env.FAKE_CODEX_NEW_ID || "0199aaaa-5555-7ccc-8ddd-eeeeeeeeeeee";
 const mode = process.env.FAKE_CODEX_MODE || "ok";
 const OTHER = "99999999-9999-4999-8999-999999999999";
 const emit = (event) => process.stdout.write(JSON.stringify(event) + "\n");
@@ -93,6 +96,17 @@ process.stdin.on("end", () => {
     fs.appendFileSync(process.env.FAKE_CODEX_ROLLOUT, rows.map((row) => JSON.stringify(row)).join("\n") + "\n");
     return;
   }
+  if (creating) {
+    process.env.FAKE_CODEX_ROLLOUT = path.join(path.dirname(process.env.FAKE_CODEX_ROLLOUT), `rollout-new-${createdId}.jsonl`);
+    fs.writeFileSync(process.env.FAKE_CODEX_ROLLOUT, JSON.stringify({ type: "session_meta", payload: { id: createdId, cwd: process.cwd() } }) + "\n");
+  }
+  if (mode === "created-fail" || mode === "created-hang") {
+    turn(createdId, stdin, []);
+    if (mode === "created-hang") { setTimeout(() => {}, 60000); return; }
+    emit({ type: "turn.failed", error: { message: "failed after creation" } });
+    process.exitCode = 1;
+    return;
+  }
   if (mode === "read-blocked") {
     turn(argv.at(-2), stdin, ["Constat partiel : lectures bloquées."]);
     emit({ type: "item.completed", item: { id: "read-1", type: "command_execution", status: "failed", exit_code: -1,
@@ -101,7 +115,7 @@ process.stdin.on("end", () => {
     emit({ type: "turn.completed", usage: {} });
     return;
   }
-  const target = argv[argv.length - 2];
+  const target = creating ? createdId : argv[argv.length - 2];
   switch (mode) {
     case "ok":
       turn(target, stdin, ["Je regarde.", "FAKE-OK"]);
