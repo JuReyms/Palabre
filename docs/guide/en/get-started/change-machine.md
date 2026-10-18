@@ -160,7 +160,7 @@ For other installations, use the [Claude Code](/en/agents/claude-code) and [Code
 
 ### Windows: check for PowerShell 7 outside Microsoft Store
 
-Before your first Relay to Codex, check that PowerShell 7 installed outside the Store is present. The Store package itself, not just its alias, blocked reads during trial #171. A version number alone is not enough:
+Before your first Relay to Codex, check that PowerShell 7 installed outside the Store is present. The Store package itself, not just its alias, made some Codex commands fail during trial #171. A version number alone is not enough:
 
 ```powershell
 Get-Command pwsh -All -ErrorAction SilentlyContinue | Select-Object Source

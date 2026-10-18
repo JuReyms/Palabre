@@ -160,7 +160,7 @@ Pour les autres installations, utilisez les instructions des guides [Claude Code
 
 ### Windows : vérifier PowerShell 7 hors Microsoft Store
 
-Avant le premier Relay vers Codex, vérifiez qu'un PowerShell 7 installé hors Store est présent. Le paquet Store lui-même, pas seulement son alias, a bloqué les lectures lors de l'essai #171. Un numéro de version seul ne suffit pas :
+Avant le premier Relay vers Codex, vérifiez qu'un PowerShell 7 installé hors Store est présent. Le paquet Store lui-même, pas seulement son alias, a fait échouer des commandes de Codex lors de l'essai #171. Un numéro de version seul ne suffit pas :
 
 ```powershell
 Get-Command pwsh -All -ErrorAction SilentlyContinue | Select-Object Source
