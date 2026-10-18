@@ -1,5 +1,62 @@
 # Palabre — Relay
 
+## Agir en arrière-plan : accord par tâche
+
+Codex sous Windows seulement : `palabre relay --new --write --to codex --dir "<racine-git>" "<tâche>" --json` prépare la demande. Aucun modèle avant accord. Lire `writeRequest` et `remedy` ; le propriétaire lance `palabre relay approve-write <id>` dans son terminal visible et confirme au clavier. L'agent ne confirme jamais à sa place, n'utilise pas --yes ni un TTY caché et n'écrit jamais les fichiers d'accord. Après sa confirmation réelle : `palabre relay run-write <id> --json`, une seule fois. L'accord est lié aux données exactes ; dérive ou consommation précédente = refus.
+
+PALABRE crée le worktree depuis le commit annoncé ; uncommitted et dépendances locales non versionnées sont exclus. Préflight de confinement avant modèle : écritures internes autorisées, témoin extérieur refusé. Réseau des commandes désactivé, aucune escalade, neutralisations habituelles. Aucun commit/push/merge, installation ni réglage utilisateur. Le dossier est conservé même en échec. Les métadonnées Git/CLI et le compte rendu nécessitent leurs écritures ordinaires. Garanties conditionnelles ; backend Windows unelevated : réseau moins isolé. Windows natif Claude ne fournit pas ce confinement : refuser ce parcours, proposer une relecture ou --open vers Codex avec ses permissions propres. macOS, OpenCode, reprise existante en écriture, Mission et rangement des exports sont hors de ce lot.
+
+`write` dans le JSON et l'export conserve commit, branche, dossier, fichiers/diff Git, commandes terminées avec codes et sorties. `verification: observed-commands-only` : ce ne sont pas toutes des commandes de test et aucun succès n'est inféré de la prose du modèle. Rapports bornés, diagnostic si incomplets ; vérifier aussi `status`/`delivery`. Ne jamais renvoyer automatiquement ni effacer consumed.json pour réessayer. `node --test` peut échouer par spawn EPERM ; la variante Node 22 `--experimental-test-isolation=none` a réussi dans l'essai fictif, pas dans tous les builds.
+
+## Récupérer le résultat
+
+Les fichiers modifiés restent dans le worktree indiqué par `write.worktree`. Ils ne sont pas recopiés dans votre projet. Ils apparaissent sur GitHub seulement après un commit et un push.
+
+PALABRE rend la réponse et le compte rendu à l'appelant, mais ne les ajoute jamais automatiquement à la conversation de l'agent expéditeur. Le chef de mission doit les lire et vous en rendre compte.
+
+Les commandes suivantes sont destinées au propriétaire, ou à un agent qu'il autorise séparément ; l'accord d'écriture consommé ne permet pas de committer, pousser ou fusionner.
+
+**1. Relire le travail.** Dans votre PowerShell, remplacez les trois valeurs par `write.repository`, `write.worktree` et `write.branch` :
+
+```powershell
+$projet = "C:\projets\exemple"
+$copie = "C:\chemin\du\worktree"
+$branche = "palabre/relay-..."
+git -C "$copie" status --short
+git -C "$copie" diff
+```
+
+Relisez aussi les codes et sorties des tests dans le compte rendu. Si le travail vous convient, enregistrez uniquement les fichiers voulus. Exemple pour `src/prix.js` :
+
+```powershell
+git -C "$copie" add -- "src/prix.js"
+git -C "$copie" commit -m "Corriger le calcul"
+```
+
+**2. Intégrer après validation.** Pour passer par GitHub, adaptez le dépôt et la branche cible, puis ouvrez une PR :
+
+```powershell
+git -C "$copie" push -u origin "$branche"
+gh pr create --repo "proprietaire/projet" --head "$branche" --base "main"
+```
+
+Le propriétaire décide de la fusion après revue. Si votre projet autorise plutôt une fusion locale, placez le projet principal sur la branche cible choisie, sans changement non commité, puis lancez :
+
+```powershell
+git -C "$projet" merge --ff-only "$branche"
+```
+
+Si Git refuse, arrêtez-vous et examinez la situation ; ne forcez pas la fusion.
+
+**3. Ranger après intégration.** Une fois le travail intégré et le worktree propre :
+
+```powershell
+git -C "$projet" worktree remove "$copie"
+git -C "$projet" branch -d "$branche"
+```
+
+Ces commandes retirent le worktree et sa branche locale. Si Git refuse, gardez-les pour examen ; n'utilisez ni `--force` ni `-D`. Ne supprimez pas les fichiers d'accord pour réessayer une tâche.
+
 ## Mission v2.0 : un chef de mission, des étapes explicites
 
 Le chef de mission demande le cadre à l'humain dans leur conversation : objectif, critères, sessions choisies, tâches et budgets. Les réponses suffisent pour ce lot en lecture seule. Ne jamais élargir les droits par une réponse de l'équipier. La délégation d'écriture et sa confirmation clavier appartiennent à v2.1, hors de ce lot.

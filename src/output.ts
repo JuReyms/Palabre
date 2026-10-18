@@ -6,6 +6,7 @@ import type { Messages } from "./messages/index.js";
 import type { ReadAccessDiagnostic } from "./externalSessions/types.js";
 import type { DebateFailure, DebateMessage, DebateOptions, DebateSummary } from "./types.js";
 import { getPackageVersion } from "./version.js";
+import { relayWriteText } from "./messages/relayWrite.js";
 
 interface ReportMetadata {
   palabreVersion: string;
@@ -197,6 +198,8 @@ function formatAgentsForHeader(options: DebateOptions): string {
 
 /** Données d'un export `.relay.md` (voir AGENTS.md, section "Relay externe"). */
 export interface RelayExport {
+  /** Rapport Git et commandes observées, uniquement après un accord d'écriture ponctuel. */
+  write?: import("./externalSessions/write.js").WriteReport;
   /** Indication de reprise CLI, sans date/fuseau implicites ni relance automatique. */
   retryAfter?: number | string;
   readAccess?: ReadAccessDiagnostic;
@@ -283,7 +286,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     "| --- | --- |",
     ...rows.map(([label, value]) => `| ${escapeTableCell(label!)} | ${escapeTableCell(value!)} |`),
     "",
-    `> ${report.open ? labels.openNotice : labels.readOnlyNotice}`,
+    `> ${report.write ? relayWriteText(report.write.language).exportNotice : report.open ? labels.openNotice : labels.readOnlyNotice}`,
     "",
     `## ${labels.message}`,
     "",
@@ -292,5 +295,6 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     ...(report.reply !== undefined ? [`## ${labels.reply}`, "", report.reply, ""] : []),
     ...(report.error !== undefined ? [`## ${labels.error}`, "", report.error, ""] : [])
   ];
+  if (report.write) content.push(`## ${relayWriteText(report.write.language).exportHeading}`, "", "````json", JSON.stringify(report.write, null, 2), "````", "");
   return normalizeMarkdownForWindowsPreview(content.join("\n"));
 }

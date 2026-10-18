@@ -42,8 +42,23 @@ Dans la demande, nommer le fichier à lire et le résultat attendu, sans copier 
 
 Ne pas construire `--from ""` ni `--dir ""` : omettre ces options quand elles n'ont pas de valeur.
 
-`--from` est facultatif : nom d'agent seul, ou nom et UUID connu. Sans expéditeur, l'en-tête indique `terminal` ; cela n'accorde aucun droit. Création en lecture seule renforcée seulement : pas de code écrit par l'équipier, pas de `--open` avec `--new`, pas de promesse d'affichage Desktop immédiat.
+`--from` est facultatif : nom d'agent seul, ou nom et UUID connu. Sans expéditeur, l'en-tête indique `terminal` ; cela n'accorde aucun droit. Création en lecture seule renforcée par défaut ; écriture seulement avec le parcours explicite ci-dessous. Pas de `--open` avec `--new`, pas de promesse d'affichage Desktop immédiat.
 
+**Pour agir en arrière-plan (Codex sous Windows seulement)** : préparer `palabre relay --new --write --to codex --dir "<racine-git>" "<tâche>" --json`. Le premier appel ne lance aucun modèle : `write-approval-required`, `writeRequest`, `remedy`. Présenter la tâche et ouvrir/fournir `palabre relay approve-write <id>` dans le terminal visible de l'humain. Lui seul relit et confirme au clavier ; ne jamais répondre pour lui, créer/modifier un accord, employer un TTY caché ou --yes, ni élargir une politique.
+
+Après confirmation humaine réelle, lancer une seule fois `palabre relay run-write <id> --json`, sans reconstruire ni changer la tâche. L'accord est consommé même en échec. PALABRE crée un worktree depuis le commit annoncé ; les changements non commités et dépendances non versionnées sont exclus. Aucun commit/push/merge, installation ni réglage utilisateur. Le travail est conservé. Refus si confinement absent ; Claude Windows natif : relecture sans --write, ou Codex --open avec ses permissions habituelles. Aucun repli sans confinement ni nouvel appel automatique.
+
+Lire `write` et l'export : dossier/branche, fichiers et diff Git, commandes observées avec codes/sorties, diagnostics. Distinguer lecture, test proposé et test réellement exécuté. Un code CLI 0 ou « tests réussis » dans la réponse ne constitue pas une preuve. Un `spawn EPERM` reste signalé ; ne pas élargir les permissions. Donner l'identifiant cible et le dossier à l'humain ; conserver ceux-ci pour la suite, sans promettre une reprise en écriture (hors de ce lot). Détails : `references/relay.md`.
+
+### Récupérer le résultat
+
+Le travail reste dans `write.worktree` ; GitHub le montre seulement après commit/push. La réponse revient à l'appelant, jamais automatiquement dans la conversation de l'expéditeur : le chef de mission lit le rapport et rend compte à l'humain. Donner aussi `exportPath` : par défaut `.palabre/` dans le dossier de lancement, pas dans le worktree.
+
+Relire avec `git -C "<worktree>" status --short` puis `git -C "<worktree>" diff`. Le propriétaire, ou un agent autorisé séparément, peut ensuite sélectionner ses fichiers avec `git -C "<worktree>" add -- "<fichier>"`, puis `git -C "<worktree>" commit -m "<résumé>"`. L'accord consommé ne couvre jamais ces opérations.
+
+Pour GitHub : `git -C "<worktree>" push -u origin "<branche>"`, puis `gh pr create --repo "<proprietaire/depot>" --head "<branche>" --base "<cible>"` ; le propriétaire décide de la fusion. Si le projet autorise une fusion locale, sur sa branche cible choisie et propre : `git -C "<projet>" merge --ff-only "<branche>"`. Après intégration et worktree propre : `git -C "<projet>" worktree remove "<worktree>"`, puis `git -C "<projet>" branch -d "<branche>"`. Refus Git : arrêter, aucun `--force`/`-D`, aucun effacement d'accord. Exemples détaillés : `references/relay.md`.
+
+### Échanges et droits
 
 Depuis la conversation habituelle du chef de mission, appeler une session CLI dédiée et détachée de l'équipier. Garder son UUID entre les échanges : jamais la session la plus récente. Une réponse revient au chef de mission par stdout/JSON ; l'équipier ne sonne pas en retour. Ne pas exiger un affichage immédiat dans Desktop.
 
