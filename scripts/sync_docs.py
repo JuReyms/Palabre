@@ -22,6 +22,7 @@ ROUTE_MAP = {
     "get-started/configuration.md": "1.get-started/5.configuration.md",
     "get-started/vscode-extension.md": "1.get-started/6.vscode-extension.md",
     "get-started/skill.md": "1.get-started/7.skill.md",
+    "get-started/change-machine.md": "1.get-started/8.change-machine.md",
     "agents/overview.md": "2.agents/1.overview.md",
     "agents/claude-code.md": "2.agents/2.claude-code.md",
     "agents/codex.md": "2.agents/3.codex.md",
