@@ -197,6 +197,8 @@ function formatAgentsForHeader(options: DebateOptions): string {
 
 /** Données d'un export `.relay.md` (voir AGENTS.md, section "Relay externe"). */
 export interface RelayExport {
+  /** Rapport Git et commandes observées, uniquement après un accord d'écriture ponctuel. */
+  write?: import("./externalSessions/write.js").WriteReport;
   /** Indication de reprise CLI, sans date/fuseau implicites ni relance automatique. */
   retryAfter?: number | string;
   readAccess?: ReadAccessDiagnostic;
@@ -283,7 +285,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     "| --- | --- |",
     ...rows.map(([label, value]) => `| ${escapeTableCell(label!)} | ${escapeTableCell(value!)} |`),
     "",
-    `> ${report.open ? labels.openNotice : labels.readOnlyNotice}`,
+    `> ${report.write ? report.write.language === "fr" ? "Écriture autorisée pour cette tâche, en dossier séparé. Commandes observées : aucun succès de test déduit du texte du modèle." : "Writing approved for this task in a separate folder. Observed commands: no test success inferred from model prose." : report.open ? labels.openNotice : labels.readOnlyNotice}`,
     "",
     `## ${labels.message}`,
     "",
@@ -292,5 +294,6 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     ...(report.reply !== undefined ? [`## ${labels.reply}`, "", report.reply, ""] : []),
     ...(report.error !== undefined ? [`## ${labels.error}`, "", report.error, ""] : [])
   ];
+  if(report.write) content.push(report.write.language === "fr" ? "## Dossier séparé et commandes observées" : "## Separate folder and observed commands", "", "````json", JSON.stringify(report.write,null,2), "````", "");
   return normalizeMarkdownForWindowsPreview(content.join("\n"));
 }

@@ -1,0 +1,22 @@
+/** @file Messages de l'accord ponctuel Relay ; aucune autorisation déduite d'un agent. */
+import type { WriteRequest } from '../externalSessions/write.js';
+import type { Language } from '../types.js';
+/** Vocabulaire commun aux sorties humaines, erreurs et exports. */
+export function relayWriteText(language: Language) {
+  const fr = language === 'fr';
+  return {
+    required: (id: string) => fr ? `Accord humain requis pour cette tâche. Le propriétaire lance dans son terminal visible : palabre relay approve-write ${id}. L'agent ne doit jamais confirmer à sa place. Après accord : palabre relay run-write ${id} --json.` : `Human approval required for this task. The owner runs in their visible terminal: palabre relay approve-write ${id}. The agent must never confirm on their behalf. After approval: palabre relay run-write ${id} --json.`,
+    plan: (r: WriteRequest) => fr ? `Tâche : ${r.message}\nAgent : ${r.agent}\nProjet : ${r.repository}\nCommit : ${r.commit}\nDossier séparé : ${r.worktree}\nBranche : ${r.branch}\nLes changements non commités ne sont PAS inclus. Un appel seulement, réseau coupé pour les commandes, aucun commit/push/merge, installation ni réglage utilisateur. Le travail sera conservé même en échec.` : `Task: ${r.message}\nAgent: ${r.agent}\nProject: ${r.repository}\nCommit: ${r.commit}\nSeparate folder: ${r.worktree}\nBranch: ${r.branch}\nUncommitted changes are NOT included. One call only, no command network access, no commit/push/merge, installation or user settings changes. Work is kept even on failure.`,
+    prompt: fr ? 'Autoriser cette seule tâche ? [o/N] ' : 'Approve this task once? [y/N] ',
+    approved: (id: string) => fr ? `Tâche autorisée une fois. Le chef de mission peut lancer : palabre relay run-write ${id} --json.` : `Task approved once. The mission lead can run: palabre relay run-write ${id} --json.`,
+    unavailable: fr ? 'Écriture indisponible : ce lot exige Windows et un agent Codex avec confinement système vérifiable. Claude Windows natif ne le fournit pas. Pour relire, retirez --write ; pour agir dans une conversation Codex ouverte, utilisez --open, avec ses permissions habituelles. Aucun modèle lancé.' : 'Writing unavailable: this release requires Windows and a Codex agent with verifiable system sandboxing. Native Windows Claude does not provide it. For advice, omit --write; to act in an open Codex conversation, use --open with its existing permissions. No model started.',
+    conflict: fr ? '--write exige --new vers Codex, sans --open, --task, --trust-config ni option Mission. Pour une relecture, retirez --write.' : '--write requires --new to Codex, without --open, --task, --trust-config or Mission. For advice, omit --write.',
+    failure: (reason: string) => {
+      if (reason === 'repository-root-required') return fr ? 'Aucune tâche lancée : --dir doit désigner la racine du dépôt Git. Trouvez-la avec git rev-parse --show-toplevel, puis préparez la tâche depuis cette racine.' : 'No task started: --dir must point to the Git repository root. Find it with git rev-parse --show-toplevel, then prepare the task from that root.';
+      if (reason === 'declined') return fr ? 'Tâche refusée par le propriétaire. Aucun accord créé, aucun appel lancé.' : 'Task declined by the owner. No approval created and no call started.';
+      return fr ? `Tâche non exécutée ou compte rendu incomplet (${reason}). Conservez le dossier et les traces. Le chef de mission doit lire le diagnostic et le compte rendu ; le propriétaire décide de la suite. Ne recréez pas un accord et ne relancez pas automatiquement.` : `Task not executed or report incomplete (${reason}). Keep the folder and evidence. The mission lead must inspect the diagnostic and report; the owner decides what happens next. Do not create another approval or retry automatically.`;
+    },
+    terminal: fr ? 'Confirmation refusée : le propriétaire doit lancer approve-write dans un terminal visible avec entrée et sortie interactives. Aucun --yes. Un agent ne doit jamais répondre pour lui.' : 'Confirmation refused: the owner must run approve-write in a visible terminal with interactive input and output. No --yes. An agent must never answer on their behalf.',
+    report: fr ? 'Travail en dossier séparé (commandes observées, aucun succès de test déduit du texte du modèle)' : 'Work in separate folder (observed commands, no test success inferred from model prose)',
+  };
+}

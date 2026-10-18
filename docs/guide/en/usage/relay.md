@@ -49,7 +49,55 @@ To continue this conversation: palabre relay --to codex:<uuid> "…"
 
 In JSON, `to.session` contains the received identifier, `cwd` the directory, and `created` indicates whether an identifier was received. Before that, `to.session` is `null` and `created` is `false`. The identifier is captured during the call and preserved in the result and export even if the first turn fails: **this does not mean the question was answered**. Check delivery before sending again; no retry is automatic.
 
-The conversation remains in the CLI history. Immediate Desktop visibility is not guaranteed. `--new` cannot be used with `--open`. Creation supports advice and reading only, not writing code.
+The conversation remains in the CLI history. Immediate Desktop visibility is not guaranteed. `--new` cannot be used with `--open`. By default, creation supports advice and reading; writing requires the separate workflow below.
+
+## Delegate a task that changes files
+
+This workflow covers **C, in the background, Claude to Codex on Windows**: your agent can delegate a correction without opening the Codex conversation. You can also run it from your terminal. Writing with native Windows Claude is refused because system sandboxing is unavailable in this context. For advice, omit `--write`; to act in an already open Codex conversation on Windows, use `--open` with its existing permissions.
+
+### 1. Prepare the task
+
+From the root of a Git repository with at least one commit:
+
+```text
+palabre relay --new --write --to codex "Fix the calculation in src/prices.js and run the existing test without installing dependencies."
+```
+
+Choose another Git root with `--dir "../other-project"`. PALABRE prepares a request and displays the confirmation command. No model is called at this stage. A `--write` flag, relayed message or agent role alone grants no permission.
+
+### 2. Confirm it yourself
+
+In your visible terminal, run the displayed command with the exact request ID:
+
+```text
+palabre relay approve-write <request-id>
+```
+
+Check the task, agent, project, commit and separate folder. Reply `y` to approve this task once. Confirmation requires interactive input and output; there is no `--yes`. Your agent may open this command in your terminal or provide it to you; it must never answer for you, fabricate approval or modify authorization files.
+
+### 3. Execute the approved call
+
+Your agent can then run, without changing the request:
+
+```text
+palabre relay run-write <request-id> --json
+```
+
+Approval is consumed before execution. A failure does not let you reuse it: check the result before deciding on another task. Request text, trusted configuration and commit are rechecked; a change refuses the call.
+
+If Codex is the mission lead, its own sandbox may prevent network or PALABRE registry access. Request host approval for that command alone, or run it in your usual terminal; do not switch to full access. Launch approval does not replace PALABRE's write approval.
+
+PALABRE creates a branch and worktree from the announced commit. **Uncommitted changes and unversioned local dependencies are not included.** The teammate does not modify the main project's files; Git writes worktree metadata and the CLIs keep their usual history. Work stays in `~/.palabre/relay-write/<id>/worktree`, even on failure. Never delete consumed approval to retry.
+
+Before the model, PALABRE verifies that the Codex profile allows a witness write inside the worktree and refuses one beside it. If verification fails, the call is refused, without full access or an unsandboxed fallback. Commands keep networking disabled and cannot request escalation; MCP, plugins, hooks and memories are neutralized. These guarantees remain conditional on the CLI and Windows backend; `unelevated` provides weaker network isolation. No commit, push, merge, installation or user settings changes are authorized.
+
+### Read the report
+
+JSON and the `.relay.md` export add `write`: folder, branch, starting commit, Git-observed files and diff, and completed commands with exit codes and output. All observed commands are kept within report limits, without claiming they are all tests. `verification: "observed-commands-only"` does not mean "tests passed". A diagnostic marks an incomplete report; interruptions can leave partial work.
+
+On Windows, `node --test` may fail with `spawn EPERM`. In the qualified trial, the same test passes with `node --test --experimental-test-isolation=none prices.test.js` (Node 22.17.1). This does not qualify every build; blocked tests never trigger permission changes or automatic installations.
+
+Calls without `--write` and the Mission option keep their behavior. This first release does not resume an existing conversation for writing and covers neither macOS nor OpenCode.
 
 The sender is optional: without `--from`, the header says `terminal`. An agent may specify `--from claude`, or `--from claude:<uuid>` if it knows its identifier. It remains declared and unauthenticated; **none of these forms conveys human authorization**. JSON gives `from: null` without a sender, or `{ "agent": "claude" }` for a name only.
 

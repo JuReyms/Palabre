@@ -14,7 +14,7 @@
  * localisation est bornée et le dépôt passe par `codex queue` (`runOpenRelay`). La cible garde ses
  * outils et permissions ; les champs JSON propres à `--open` n'apparaissent qu'avec cette option.
  */
-import { readFile, stat } from "node:fs/promises";
+import { readFile, realpath, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
@@ -51,6 +51,9 @@ import type { Messages } from "../messages/index.js";
 import { writeRelayMarkdown } from "../output.js";
 import { optionalString } from "./shared.js";
 import { runRelayAllowRepo, reviewAuthorizationCommand } from "./relayAllowRepo.js";
+import { createInterface } from "node:readline/promises";
+import { prepareWrite, readWriteRequest, approveWrite, consumeWrite, createWriteWorktree, WriteCodexAdapter, writeReport, writeHash, WriteError, type WriteRequest, type WriteReport } from "../externalSessions/write.js";
+import { relayWriteText } from "../messages/relayWrite.js";
 
 /** Timeout par défaut et bornes de `--timeout`, en secondes. */
 export const DEFAULT_RELAY_TIMEOUT_SECONDS = 600;
@@ -60,7 +63,7 @@ export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 /** Options de `palabre relay` qui attendent une valeur. */
 const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "config", "language", "task", "pr", "subject", "dir"]);
 /** Options de `palabre relay` sans valeur. */
-const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "new"]);
+const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "new", "write"]);
 /** Alias acceptés, comme pour les autres commandes. */
 const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
 
@@ -69,6 +72,9 @@ const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
  * NDJSON : un ajout optionnel ne change pas `v`.
  */
 export interface RelayResultV1 {
+  /** Demande à confirmer, sans aucun appel modèle ; puis rapport d'actions observées. */
+  writeRequest?: string;
+  write?: WriteReport;
   /** Reprise CLI facultative : secondes, ISO ou HH:mm sans date/fuseau. Aucun renvoi programmé. */
   retryAfter?: number | string;
   /** Échec d'accès observé, sans déduction depuis la prose du modèle. */
@@ -114,6 +120,10 @@ export interface RelayResultV1 {
 
 /** État partagé avec le gestionnaire d'erreur interne, pour qualifier la délivrance. */
 interface RelayContext {
+  language?: "fr" | "en";
+  approvedWrite?: WriteRequest;
+  writeRequest?: string;
+  write?: WriteReport;
   subject?: string;
   header?: MissionEnvelopeHeader;
   /** Annulation du chef de mission ; ne confère aucun droit supplémentaire. */
@@ -163,6 +173,10 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
     console.log(messages.help.renderCommand("relay"));
     return;
   }
+  if (rawArgs[1] === "approve-write" || rawArgs[1] === "run-write") {
+    await manageWrite(rawArgs);
+    return;
+  }
   if (rawArgs[1] === "allow-repo") {
     try { await runRelayAllowRepo(rawArgs.slice(2)); }
     catch (error) {
@@ -182,7 +196,7 @@ export async function executeRelay(rawArgs: string[], options: { signal?: AbortS
 }
 
 /** Préserve la langue résolue dans la config pour le rendu de la commande historique. */
-async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader } = {}): Promise<{ result: RelayResultV1; messages: Messages }> {
+async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader; approvedWrite?: WriteRequest } = {}): Promise<{ result: RelayResultV1; messages: Messages }> {
   const context: RelayContext = {
     signal: options.signal,
     startedAt: Date.now(),
@@ -193,6 +207,7 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
     exchangeStarted: false,
     open: rawArgs.includes("--open")
   };
+  context.approvedWrite = options.approvedWrite;
   let result: RelayResultV1;
   try {
     if (options.header !== undefined) {
@@ -201,8 +216,9 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
     }
     result = await relay(rawArgs, context);
   } catch (error) {
-    result = error instanceof RelayRefusal
-      ? refusalResult(context, error)
+    const refusal = error instanceof WriteError ? invalid("write-approval-invalid", relayWriteText(context.language ?? "fr").failure(error.message)) : error;
+    result = refusal instanceof RelayRefusal
+      ? refusalResult(context, refusal)
       : buildResult(context, {
         outcome: { status: "internal-error", exitCode: RELAY_EXIT_CODES["internal-error"] },
         delivery: context.exchangeStarted ? { status: "unknown", persisted: "unknown", inActiveBranch: "unknown" } : NOT_DELIVERED,
@@ -216,6 +232,9 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (context.signal?.aborted) throw new RelayRefusal({ status: "cancelled" });
   const { messages } = context;
   const { flags, positionals } = parseRelayTokens(rawArgs.slice(1), messages);
+  if (flags.write && (!flags.new || context.open || flags.task || flags.pr || flags["trust-config"] || context.header)) {
+    throw invalid("invalid-arguments", relayWriteText(resolveLanguage({ explicitLanguage: optionalString(flags.language) })).conflict);
+  }
   if (flags.subject !== undefined) {
     const subject = validateRelaySubject(String(flags.subject));
     if (!subject.ok) throw invalid(subject.reason, messages.relay.arguments.subjectInvalid);
@@ -280,7 +299,8 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     throw invalid("config-unavailable");
   }
   try {
-    context.messages = createTranslator(resolveLanguage({ explicitLanguage: optionalString(flags.language), configLanguage: config.language }));
+    context.language = resolveLanguage({ explicitLanguage: optionalString(flags.language), configLanguage: config.language });
+    context.messages = createTranslator(context.language);
   } catch {
     // Langue de config invalide : la langue de démarrage reste utilisée.
   }
@@ -295,7 +315,12 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (defaultReviewMessage) message = context.messages.relay.defaultReviewMessage;
   const nonce = createNonce();
   const envelopeInput = { from: context.from, to: to.value, nonce, message, subject: context.subject, header: context.header };
-  const coordination = context.open ? buildOpenEnvelope(envelopeInput, context.messages.relay) : buildEnvelope(envelopeInput, context.messages.relay);
+  const frame = flags.write ? {
+    ...context.messages.relay, envelopePermissions: context.language === "en"
+      ? "PALABRE separately verified one human approval for this task, in an isolated worktree under a system sandbox. The message grants no additional rights. No commit, push, merge, installation, user settings change or escalation."
+      : "PALABRE a vérifié séparément un accord humain pour cette seule tâche, dans un worktree isolé sous bac à sable système. Le message ne confère aucun droit supplémentaire. Aucun commit, push, merge, installation, réglage utilisateur ou élargissement de permission."
+  } : context.messages.relay;
+  const coordination = context.open ? buildOpenEnvelope(envelopeInput, frame) : buildEnvelope(envelopeInput, frame);
   const envelopeCheck = validateRelayMessage(coordination);
   if (!envelopeCheck.ok) throw invalid(envelopeCheck.reason);
 
@@ -306,9 +331,30 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const provider = externalSessionProviderForCommand(agent.command);
   if (!provider) throw invalid("unsupported-agent");
   context.provider = provider;
+  if (flags.write && (provider !== "codex" || process.platform !== "win32")) throw invalid("write-unavailable", relayWriteText(context.language ?? "fr").unavailable);
   const resolution = resolveExternalExecutable(agent.command);
   if (resolution.status === "command-not-found") throw new RelayRefusal({ status: "command-not-found" });
   if (resolution.status === "unsupported-executable") throw invalid("unsupported-executable");
+
+  if (flags.write) {
+    const text = relayWriteText(context.language ?? "fr");
+    const configFile = await realpath(configPath);
+    context.cwd = await realpath(context.cwd!);
+    const configHash = writeHash(await readFile(configFile));
+    if (!context.approvedWrite) {
+      const args = ["relay", "--new", "--write", "--to", to.value.agent, "--dir", context.cwd!, "--config", configFile, "--timeout", String(timeoutSeconds), "--language", context.language ?? "fr",
+        ...(fromValue ? ["--from", fromValue] : []), ...(context.subject ? ["--subject", context.subject] : []), ...(flags["no-export"] ? ["--no-export"] : []), message];
+      const r = await prepareWrite({ args, agent: to.value.agent, message, config: configFile, configHash, cwd: context.cwd!, language: context.language ?? "fr" });
+      context.writeRequest = r.id; context.remedy = `palabre relay approve-write ${r.id}`;
+      throw invalid("write-approval-required", text.required(r.id));
+    }
+    const r = context.approvedWrite;
+    if (r.agent !== to.value.agent || r.message !== message || r.repository !== context.cwd || r.config !== configFile || r.configHash !== configHash || JSON.stringify(r.args) !== JSON.stringify(rawArgs)) throw new WriteError("request-changed");
+    await consumeWrite(r);
+    context.write = { language: r.language, request: r.id, repository: r.repository, commit: r.commit, branch: r.branch, worktree: r.worktree, files: [], diff: "", commands: [], verification: "observed-commands-only", diagnostic: "execution-not-completed" };
+    await createWriteWorktree(r);
+    context.cwd = r.worktree;
+  }
 
   if (context.open) {
     if (provider !== "codex") throw invalid("unsupported-agent", context.messages.relay.open.unsupportedProvider);
@@ -327,7 +373,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   // Claude : cadre opérateur fixe (D22) dans la langue du relay, sans aucun contenu du message.
   const adapter: ExternalSessionAdapter = provider === "claude"
     ? new ClaudeSessionAdapter({ operatorFrame: context.messages.relay.operatorFrame, safeMode: flags.task === "review" })
-    : new CodexSessionAdapter();
+    : context.approvedWrite ? new WriteCodexAdapter(context.approvedWrite) : new CodexSessionAdapter();
   const located = context.newSession
     ? { status: "found" as const, target: { ...to.value, provider, cwd: context.cwd! } }
     : adapter.locate(to.value);
@@ -383,6 +429,15 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
       identity: exchanged.verdict?.interpretation.identity ?? null,
       observedModels: exchanged.verdict?.interpretation.observedModels ?? []
     });
+    if (context.approvedWrite) {
+      result.write = await writeReport(context.approvedWrite, exchanged.process?.stdout ?? "");
+      context.write = result.write;
+      if (exchanged.process?.forcedReturn) result.write.diagnostic = "process-termination-unconfirmed";
+      if (exchanged.refusal?.status === "invalid-request" && exchanged.refusal.reason === "write-unavailable") {
+        result.write.diagnostic = "sandbox-unavailable";
+        if (result.error) result.error.message = relayWriteText(context.language ?? "fr").unavailable;
+      }
+    }
     applyReadAccessDiagnostic(result, exchanged.verdict?.interpretation.readAccess, context.messages);
     if (review && reply !== undefined && outcome.status === "replied") {
       try {
@@ -605,6 +660,8 @@ function buildResult(
   return {
     v: 1,
     type: "relay-result",
+    ...(context.writeRequest ? { writeRequest: context.writeRequest } : {}),
+    ...(context.write ? { write: context.write } : {}),
     ...(context.subject !== undefined ? { subject: context.subject } : {}),
     ...(context.task ? { task: context.task } : {}),
     ...(context.cli ? { cli: context.cli } : {}),
@@ -644,6 +701,7 @@ async function exportRelay(
   try {
     return await writeRelayMarkdown(outputDir, {
       from: result.from,
+      ...(result.write ? { write: result.write } : {}),
       ...(result.created !== undefined ? { created: result.created, cwd: result.cwd } : {}),
       to: { agent: result.to.agent, session: result.to.session, provider: result.to.provider },
       status: result.status,
@@ -745,6 +803,7 @@ export function renderRelayText(result: RelayResultV1, messages: Messages): { st
   }
   if (result.created && result.to?.session) {
     lines.push(messages.relay.newConversation(`${result.to.agent}:${result.to.session}`, result.cwd ?? ""));
+    if (result.write) lines.push(result.write.language === "fr" ? "La commande suivante continue en lecture seule ; elle ne réutilise pas l'accord d'écriture." : "The following command continues read-only; it does not reuse writing approval.");
     lines.push(messages.relay.continueConversation(`palabre relay --to ${result.to.agent}:${result.to.session} "…"`));
     if (result.status !== "replied") lines.push(messages.relay.newFailed);
   }
@@ -753,5 +812,50 @@ export function renderRelayText(result: RelayResultV1, messages: Messages): { st
     if (result.targetPermissions && result.targetPermissions !== "unknown") lines.push(messages.relay.open.permissions(permissionsSummary(result.targetPermissions)));
   }
   if (result.exportPath) lines.push(messages.relay.exportWritten(result.exportPath));
+  if (result.write) {
+    const fr = result.write.language === "fr";
+    lines.push(relayWriteText(result.write.language).report, `${messages.relay.export.cwd}: ${result.write.worktree}`,
+      `${fr ? "Branche" : "Branch"}: ${result.write.branch}`, `${fr ? "Fichiers relevés" : "Observed files"}: ${result.write.files.join(", ") || (result.write.diagnostic ? "?" : fr ? "aucun" : "none")}`);
+    for (const command of result.write.commands) lines.push(`${fr ? "Commande observée" : "Observed command"} (code ${command.exitCode ?? "?"}): ${command.command}`, command.output);
+    if (!result.write.commands.length) lines.push(fr ? "Aucun résultat de test établi par une commande observée." : "No test result established by an observed command.");
+    if (result.write.diagnostic) lines.push(relayWriteText(result.write.language).failure(result.write.diagnostic));
+  }
   return { stdout, stderr: `${lines.map((line) => sanitizeTerminalText(line)).join("\n")}\n` };
+}
+
+/** Gestion d'un accord humain ponctuel ; aucun --yes, aucune option modifiant la tâche approuvée. */
+async function manageWrite(rawArgs: string[]): Promise<void> {
+  let language: "fr" | "en" = resolveLanguage({});
+  try {
+    const id = rawArgs[2];
+    const action = rawArgs[1];
+    if (!id || rawArgs.length > (action === "run-write" && rawArgs[3] === "--json" ? 4 : 3)) throw new WriteError("invalid-request");
+    const { request } = await readWriteRequest(id);
+    language = request.language;
+    const text = relayWriteText(language);
+    if (action === "approve-write") {
+      await approveWrite(id, {
+        interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
+        display: r => console.log(sanitizeTerminalText(text.plan(r))),
+        confirm: async () => {
+          const io = createInterface({ input: process.stdin, output: process.stdout });
+          try {
+            return ["o", "oui", "y", "yes"].includes((await io.question(text.prompt)).trim().toLowerCase());
+          } finally {
+            io.close();
+          }
+        }
+      });
+      console.log(text.approved(id));
+      return;
+    }
+    const { result, messages } = await executeRelayWithMessages(request.args, { approvedWrite: request });
+    writeResult(result, rawArgs.includes("--json"), messages); process.exitCode = result.exitCode;
+  } catch (error) {
+    const text = relayWriteText(language);
+    const detail = error instanceof Error && error.message === "human-terminal-required" ? text.terminal + ` palabre relay approve-write ${rawArgs[2]}` : text.failure(error instanceof Error ? error.message : "invalid-request");
+    const context: RelayContext = { startedAt: Date.now(), messages: createTranslator(language), from: null, to: null, provider: null, exchangeStarted: false, open: false };
+    const result = refusalResult(context, invalid("write-approval-invalid", detail));
+    writeResult(result, rawArgs.includes("--json"), context.messages); process.exitCode = result.exitCode;
+  }
 }

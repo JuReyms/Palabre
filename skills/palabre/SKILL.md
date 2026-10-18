@@ -39,7 +39,13 @@ Pour créer un équipier sans conversation préparée : `palabre relay --new --t
 
 Ne pas construire `--from ""` ni `--dir ""` : omettre ces options quand elles n'ont pas de valeur.
 
-`--from` est facultatif : nom d'agent seul, ou nom et UUID connu. Sans expéditeur, l'en-tête indique `terminal` ; cela n'accorde aucun droit. Création en lecture seule renforcée seulement : pas de code écrit par l'équipier, pas de `--open` avec `--new`, pas de promesse d'affichage Desktop immédiat.
+`--from` est facultatif : nom d'agent seul, ou nom et UUID connu. Sans expéditeur, l'en-tête indique `terminal` ; cela n'accorde aucun droit. Création en lecture seule renforcée par défaut ; écriture seulement avec le parcours explicite ci-dessous. Pas de `--open` avec `--new`, pas de promesse d'affichage Desktop immédiat.
+
+**Pour agir en arrière-plan (Codex sous Windows seulement)** : préparer `palabre relay --new --write --to codex --dir "<racine-git>" "<tâche>" --json`. Le premier appel ne lance aucun modèle : `write-approval-required`, `writeRequest`, `remedy`. Présenter la tâche et ouvrir/fournir `palabre relay approve-write <id>` dans le terminal visible de l'humain. Lui seul relit et confirme au clavier ; ne jamais répondre pour lui, créer/modifier un accord, employer un TTY caché ou --yes, ni élargir une politique.
+
+Après confirmation humaine réelle, lancer une seule fois `palabre relay run-write <id> --json`, sans reconstruire ni changer la tâche. L'accord est consommé même en échec. PALABRE crée un worktree depuis le commit annoncé ; les changements non commités et dépendances non versionnées sont exclus. Aucun commit/push/merge, installation ni réglage utilisateur. Le travail est conservé. Refus si confinement absent ; Claude Windows natif : relecture sans --write, ou Codex --open avec ses permissions habituelles. Aucun repli sans confinement ni nouvel appel automatique.
+
+Lire `write` et l'export : dossier/branche, fichiers et diff Git, commandes observées avec codes/sorties, diagnostics. Distinguer lecture, test proposé et test réellement exécuté. Un code CLI 0 ou « tests réussis » dans la réponse ne constitue pas une preuve. Un `spawn EPERM` reste signalé ; ne pas élargir les permissions. Donner l'identifiant cible et le dossier à l'humain ; conserver ceux-ci pour la suite, sans promettre une reprise en écriture (hors de ce lot). Détails : `references/relay.md`.
 
 
 Depuis la conversation habituelle du chef de mission, appeler une session CLI dédiée et détachée de l'équipier. Garder son UUID entre les échanges : jamais la session la plus récente. Une réponse revient au chef de mission par stdout/JSON ; l'équipier ne sonne pas en retour. Ne pas exiger un affichage immédiat dans Desktop.

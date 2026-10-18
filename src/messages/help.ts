@@ -206,6 +206,9 @@ Avec --open, dépose le message dans une conversation Codex ouverte et attend sa
 Usage:
   palabre relay --to <agent>:<session> "<message>"
   palabre relay --new --to <agent> "<message>"
+  palabre relay --new --write --to codex --dir <projet-git> "<tâche>"
+  palabre relay approve-write <WR-id>    # confirmation par l'humain, dans son terminal
+  palabre relay run-write <WR-id> --json # un seul appel après accord
   palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <chemin>
   palabre relay allow-repo proprietaire/depot [--config <path>]
   palabre relay allow-repo 'proprietaire/*' [--config <path>]
@@ -214,7 +217,8 @@ Usage:
 Flags:
   --from <agent>[:<uuid>] expéditeur facultatif, déclaré et non authentifié ; terminal si absent
   --to <agent>:<uuid>     cible existante ; nom d'agent seul avec --new
-  --new                   crée une conversation persistante en lecture seule, sans --open
+  --new                   crée une conversation persistante, lecture seule par défaut, sans --open
+  --write                 prépare une tâche Codex Windows : accord humain ponctuel et worktree séparé
   --dir <chemin>          dossier de la nouvelle conversation (défaut : dossier courant)
   Omettez --from et --dir s'ils n'ont pas de valeur ; une chaîne vide est refusée.
   --message-file <path>   lit le message dans un fichier (64 Kio au plus)
@@ -257,7 +261,19 @@ Limites :
   --new crée la cible sans choisir une conversation existante. L'identifiant reçu reste
   dans to.session et l'export, même si le premier tour échoue ; cwd indique le dossier.
   La sortie donne la commande pour continuer ; aucun renvoi automatique après un échec.
-  Écriture non autorisée, affichage Desktop non garanti.
+  Sans --write, aucune écriture en arrière-plan. Affichage Desktop non garanti.
+  --write exige --new, un dépôt Git et une config déjà approuvée. Aucun --open, --task ou --trust-config.
+  Le premier appel ne lance pas de modèle : write-approval-required (8), writeRequest et remedy.
+  Le propriétaire lance approve-write dans un terminal visible (entrée ET sortie TTY), relit tâche,
+  agent, projet, commit et dossier, puis confirme au clavier. Aucun --yes ; l'agent ne confirme jamais.
+  run-write consomme cet accord pour un seul appel, même en échec. Aucun rejeu automatique.
+  Le worktree part du commit annoncé : changements non commités et dépendances locales non inclus.
+  Travail conservé. Confinement vérifié avant modèle : réseau des commandes coupé, aucune escalade,
+  MCP/plugins/hooks neutralisés. Pas de commit/push/merge, installation ni réglage utilisateur.
+  Ces garanties dépendent du backend Windows ; unelevated a une isolation réseau plus faible.
+  Windows seulement ; Claude natif refusé. Métadonnées CLI/Git nécessaires hors du worktree.
+  JSON/export : write donne branche, dossier, fichiers/diff Git, commandes observées avec codes/sorties.
+  Aucun succès de test déduit de la prose ; spawn EPERM reste un blocage, sans repli non confiné.
   Sans --open, une conversation existante doit être fermée : aucun TUI, desktop, IDE ni exécution
   en cours.
 
@@ -552,6 +568,9 @@ With --open, queues the message into an open Codex conversation and waits for it
 Usage:
   palabre relay --to <agent>:<session> "<message>"
   palabre relay --new --to <agent> "<message>"
+  palabre relay --new --write --to codex --dir <git-project> "<task>"
+  palabre relay approve-write <WR-id>    # owner confirms in their terminal
+  palabre relay run-write <WR-id> --json # one call after approval
   palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <path>
   palabre relay allow-repo owner/repository [--config <path>]
   palabre relay allow-repo 'owner/*' [--config <path>]
@@ -560,7 +579,8 @@ Usage:
 Flags:
   --from <agent>[:<uuid>] optional, declared and unauthenticated sender; terminal when omitted
   --to <agent>:<uuid>     existing target; agent name only with --new
-  --new                   creates a persistent read-only conversation; incompatible with --open
+  --new                   creates a persistent conversation, read-only by default; no --open
+  --write                 prepares a Windows Codex task: one-time human approval and separate worktree
   --dir <path>            new conversation directory (default: current directory)
   Omit --from and --dir when they have no value; empty strings are rejected.
   --message-file <path>   reads the message from a file (64 KiB at most)
@@ -602,7 +622,19 @@ Limits:
   Palabre changes no permissions and never resends automatically.
   --new never selects an existing conversation. The received identifier remains in to.session
   and the export even when the first turn fails; cwd gives the directory. Text output gives
-  a continuation command. No automatic retry, write access or guaranteed Desktop visibility.
+  a continuation command. No automatic retry or guaranteed Desktop visibility. Without --write, no background writing.
+  --write requires --new, a Git repository and an already trusted config. No --open, --task or --trust-config.
+  The first call starts no model: write-approval-required (8), writeRequest and remedy.
+  The owner runs approve-write in a visible terminal (both input and output TTY), checks task, agent,
+  project, commit and folder, then confirms at the keyboard. No --yes; the agent must never confirm.
+  run-write consumes approval for one call, even on failure. No automatic retry.
+  The worktree starts from the announced commit: uncommitted changes and local dependencies are excluded.
+  Work is kept. Sandbox verified before model: command network disabled, no escalation, MCP/plugins/hooks neutralized.
+  No commit/push/merge, installation or user settings changes. Windows only; native Claude refused.
+  Guarantees depend on the Windows backend; unelevated has weaker network isolation.
+  CLI/Git metadata writes remain necessary outside the worktree.
+  JSON/export: write contains branch, folder, Git files/diff and observed commands with codes/output.
+  No test success inferred from prose. spawn EPERM stays blocked; no unsandboxed fallback.
   Without --open, an existing target conversation must be closed: no TUI, desktop, IDE or running
   exec.
 

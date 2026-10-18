@@ -10,6 +10,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 
 ### Added
+- Relay : `--new --write` prépare une tâche Codex sous Windows, avec accord humain ponctuel `approve-write`, exécution unique `run-write`, worktree Git séparé conservé et préflight de confinement avant modèle. Le JSON et l'export conservent fichiers/diff Git et commandes observées avec codes/sorties ; aucun succès de test déduit de la prose. Claude Windows natif refuse ce parcours. Aide, guide fr/en et skill actualisés (Refs #150) ; une copie installée du skill n'est pas mise à jour automatiquement.
 - Relay : `--new --to <agent>` crée une conversation Claude Code ou Codex persistante en lecture seule ; `--dir` choisit son dossier. L'identifiant est rendu avec une commande de continuation, en JSON et dans l'export, même si le premier tour échoue (Refs #149, #150).
 
 ### Changed

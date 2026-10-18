@@ -1,5 +1,13 @@
 # Palabre — Relay
 
+## Agir en arrière-plan : accord par tâche
+
+Codex sous Windows seulement : `palabre relay --new --write --to codex --dir "<racine-git>" "<tâche>" --json` prépare la demande. Aucun modèle avant accord. Lire `writeRequest` et `remedy` ; le propriétaire lance `palabre relay approve-write <id>` dans son terminal visible et confirme au clavier. L'agent ne confirme jamais à sa place, n'utilise pas --yes ni un TTY caché et n'écrit jamais les fichiers d'accord. Après sa confirmation réelle : `palabre relay run-write <id> --json`, une seule fois. L'accord est lié aux données exactes ; dérive ou consommation précédente = refus.
+
+PALABRE crée le worktree depuis le commit annoncé ; uncommitted et dépendances locales non versionnées sont exclus. Préflight de confinement avant modèle : écritures internes autorisées, témoin extérieur refusé. Réseau des commandes désactivé, aucune escalade, neutralisations habituelles. Aucun commit/push/merge, installation ni réglage utilisateur. Le dossier est conservé même en échec. Les métadonnées Git/CLI et le compte rendu nécessitent leurs écritures ordinaires. Garanties conditionnelles ; backend Windows unelevated : réseau moins isolé. Windows natif Claude ne fournit pas ce confinement : refuser ce parcours, proposer une relecture ou --open vers Codex avec ses permissions propres. macOS, OpenCode, reprise existante en écriture, Mission et rangement des exports sont hors de ce lot.
+
+`write` dans le JSON et l'export conserve commit, branche, dossier, fichiers/diff Git, commandes terminées avec codes et sorties. `verification: observed-commands-only` : ce ne sont pas toutes des commandes de test et aucun succès n'est inféré de la prose du modèle. Rapports bornés, diagnostic si incomplets ; vérifier aussi `status`/`delivery`. Ne jamais renvoyer automatiquement ni effacer consumed.json pour réessayer. `node --test` peut échouer par spawn EPERM ; la variante Node 22 `--experimental-test-isolation=none` a réussi dans l'essai fictif, pas dans tous les builds.
+
 ## Mission v2.0 : un chef de mission, des étapes explicites
 
 Le chef de mission demande le cadre à l'humain dans leur conversation : objectif, critères, sessions choisies, tâches et budgets. Les réponses suffisent pour ce lot en lecture seule. Ne jamais élargir les droits par une réponse de l'équipier. La délégation d'écriture et sa confirmation clavier appartiennent à v2.1, hors de ce lot.

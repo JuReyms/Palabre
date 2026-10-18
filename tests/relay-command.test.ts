@@ -13,6 +13,7 @@ import { after, describe, test } from "node:test";
 import { relayMessages } from "../src/messages/relay.js";
 import { buildEnvelope, MAX_RELAY_MESSAGE_BYTES } from "../src/externalSessions/envelope.js";
 import { npmPowerShellShim } from "./fixtures/external-sessions/npm-shim.js";
+import { trustConfig } from "../src/configTrust.js";
 
 const entry = path.resolve(".tmp", "test-dist", "src", "index.js");
 const fixtures = path.resolve("tests", "fixtures", "external-sessions");
@@ -126,6 +127,28 @@ function palabre(world: World, argv: string[], env: Record<string, string> = {})
 
 const toClaude = ["--from", FROM, "--to", `claude:${CLAUDE_SESSION}`];
 const toCodex = ["--from", `claude:${CLAUDE_SESSION}`, "--to", `codex:${CODEX_SESSION}`];
+
+test("--write vers Claude : refus traduit et aucune commande de l'agent", async () => {
+  for (const language of ["fr", "en"]) {
+    const w = makeWorld();
+    await trustConfig(path.join(w.workspace, "palabre.config.json"), path.join(w.home, ".palabre", "trusted-configs.json"));
+    const r = await relay(w, ["--new", "--write", "--to", "claude", "task", "--language", language, "--json"]);
+    assert.equal(r.code, 8); assert.equal(r.json.error.reason, "write-unavailable"); assert.equal(r.calls.length, 0);
+    assert.match(r.json.error.message, /--open/); assert.match(r.json.error.message, /--write/);
+  }
+});
+
+test("approve-write : une demande existante ne permet pas de confirmer en terminal caché", async () => {
+  const w = makeWorld(), id = "WR-" + "a".repeat(24);
+  const directory = path.join(w.home, ".palabre", "relay-write", id);
+  mkdirSync(directory, { recursive: true });
+  writeFileSync(path.join(directory, "request.json"), JSON.stringify({v:1,id,language:"fr",args:["relay","--new","--write"],agent:"codex",message:"fictional task",config:path.join(w.workspace,"palabre.config.json"),configHash:"b".repeat(64),repository:w.workspace,commit:"a".repeat(40),branch:"palabre/relay-"+id.slice(3),worktree:path.join(directory,"worktree")}));
+  const r = await palabre(w, ["relay", "approve-write", id]);
+  assert.equal(r.code, 8); assert.match(r.stderr, /terminal visible/); assert.match(r.stderr, /approve-write/);
+  assert.equal(existsSync(path.join(directory, "approval.json")), false); assert.equal(r.calls.length, 0);
+  const yes = await palabre(w, ["relay", "approve-write", id, "--yes"]);
+  assert.equal(yes.code, 8); assert.equal(existsSync(path.join(directory, "approval.json")), false);
+});
 
 test("Codex répond mais les lectures échouent : JSON, texte et export signalent l'échec sans renvoi", async () => {
   const w = makeWorld();

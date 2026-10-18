@@ -1344,6 +1344,14 @@ Le package npm `palabre` doit etre configure cote npm avec un Trusted Publisher 
 
 Ne pas stocker de `NPM_TOKEN` dans GitHub et ne pas publier depuis la machine locale pour les releases normales. Si une publication manuelle d'urgence est faite, supprimer le token local avec `npm config delete //registry.npmjs.org/:_authToken` juste apres.
 
+## Relay en écriture ponctuelle (lot 2, Windows Codex)
+
+`src/externalSessions/write.ts` porte le contrat : `--new --write` prépare une demande sous `~/.palabre/relay-write/<id>/` ; `approve-write` exige une confirmation humaine en TTY ; `run-write` vérifie la demande, la config approuvée et le commit, puis consomme l'accord en création exclusive avant toute exécution. Un message, un drapeau ou le rôle d'un agent ne valent jamais accord. Aucun `--yes`, aucune approbation par un agent, même pour un essai réel ; les tests à IO injectées utilisent seulement des répertoires fictifs.
+
+PALABRE crée un worktree/une branche depuis le commit annoncé, sans inclure le travail non commité ni les dépendances locales. Le travail et les traces restent conservés en échec. Le profil Codex dérive de `:read-only`, ouvre seulement la racine du worktree avec les sous-dossiers de contrôle protégés, désactive réseau/web, escalade et intégrations habituelles. Une sonde native vérifie écriture interne/refus externe avant modèle ; aucun repli sans confinement. Le backend Windows `unelevated` garde ses limites réseau. Ne pas modifier la configuration utilisateur pour le test ou pour terminer une tâche.
+
+Le champ optionnel JSON/export `write` porte le diff et les fichiers Git, ainsi que les seules commandes structurées terminées (codes/sorties bornés). `observed-commands-only` n'est pas un verdict de tests : ni la prose du modèle ni le code CLI 0 ne prouvent leur réussite. Signaler les rapports incomplets et `spawn EPERM`, préserver la délivrance et l'identifiant même en échec. Claude Windows natif, reprise existante en écriture, Mission et rangement des exports (#158) restent hors périmètre. Les garanties concernent la CLI et le backend qualifiés ; le TTY, comme `allow-repo`, n'est pas une authentification de l'humain contre un processus qui aurait déjà ses droits.
+
 ## Sync documentation (palabre-web)
 
 Le repo CLI est public. Le site de documentation (`JuReyms/palabre-web`, Nuxt SSG sur Netlify) recoit les mises a jour via deux workflows GitHub Actions qui poussent directement dans la branche `dev` de palabre-web. Netlify produit depuis `main` : le workflow de release cree ou rappelle donc une PR `dev -> main`, dont la fusion reste manuelle.

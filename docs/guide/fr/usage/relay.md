@@ -49,7 +49,55 @@ Pour continuer avec cette conversation : palabre relay --to codex:<uuid> "…"
 
 En JSON, `to.session` contient l'identifiant reçu, `cwd` le dossier et `created` indique si un identifiant a été reçu. Avant réception, `to.session` vaut `null` et `created` vaut `false`. L'identifiant est capturé pendant l'appel et conservé dans le résultat et l'export même si le premier tour échoue : **cela ne signifie pas que la question a reçu une réponse**. Vérifiez alors la délivrance avant de renvoyer ; aucun nouvel essai n'est automatique.
 
-La conversation reste dans l'historique de la CLI. Son affichage immédiat dans Desktop n'est pas garanti. `--new` ne s'utilise pas avec `--open`. La création autorise seulement les avis et lectures, pas l'écriture de code.
+La conversation reste dans l'historique de la CLI. Son affichage immédiat dans Desktop n'est pas garanti. `--new` ne s'utilise pas avec `--open`. Par défaut, la création sert aux avis et lectures ; l'écriture demande le parcours distinct ci-dessous.
+
+## Confier une tâche qui modifie des fichiers
+
+Ce parcours couvre **C, en arrière-plan, Claude vers Codex sous Windows** : votre agent peut confier une correction à Codex sans ouvrir sa conversation. Il peut aussi être lancé depuis votre terminal. L'écriture avec Claude sous Windows natif est refusée, car son confinement système n'est pas disponible dans ce contexte. Pour une relecture, omettez `--write` ; pour agir dans une conversation Codex déjà ouverte sous Windows, utilisez `--open` avec ses permissions habituelles.
+
+### 1. Préparer la tâche
+
+Depuis la racine d'un dépôt Git ayant au moins un commit :
+
+```text
+palabre relay --new --write --to codex "Corrige le calcul dans src/prix.js et lance le test existant, sans installer de dépendance."
+```
+
+Vous pouvez indiquer une autre racine Git avec `--dir "../autre-projet"`. PALABRE prépare une demande et affiche la commande de confirmation. Aucun modèle n'est appelé à cette étape. Un simple `--write`, un message relayé ou le rôle d'un agent ne donnent aucun droit.
+
+### 2. Confirmer vous-même
+
+Dans votre terminal visible, lancez la commande affichée, avec l'identifiant exact de la demande :
+
+```text
+palabre relay approve-write <identifiant-de-demande>
+```
+
+Relisez la tâche, l'agent, le projet, le commit et le dossier séparé. Répondez `o` pour autoriser cette seule tâche. La confirmation exige une entrée et une sortie interactives ; aucun `--yes` n'existe. Votre agent peut ouvrir cette commande dans votre terminal ou vous la fournir ; il ne doit jamais répondre à votre place, fabriquer l'accord ni modifier les fichiers d'autorisation.
+
+### 3. Exécuter l'appel autorisé
+
+Votre agent peut alors lancer, sans changer la demande :
+
+```text
+palabre relay run-write <identifiant-de-demande> --json
+```
+
+L'accord est consommé avant l'exécution. Un échec ne permet pas de le réutiliser : vérifiez le résultat avant de décider d'une nouvelle tâche. Le texte de la demande, la configuration approuvée et le commit sont revérifiés ; une dérive refuse l'appel.
+
+Si Codex est le chef de mission, sa propre bulle peut empêcher l'accès au réseau ou au registre PALABRE. Demandez l'autorisation de l'hôte pour cette seule commande ou faites-la lancer dans votre terminal habituel ; ne passez pas en accès total. Cette autorisation de lancement ne remplace pas l'accord PALABRE pour écrire.
+
+PALABRE crée une branche et un worktree depuis le commit annoncé. **Les changements non commités et les dépendances locales non versionnées ne sont pas inclus.** Les fichiers du projet principal ne sont pas modifiés par l'équipier ; Git écrit ses métadonnées de worktree et les CLI leur historique habituel. Le travail est conservé dans `~/.palabre/relay-write/<identifiant>/worktree`, même en échec. Ne supprimez pas un accord consommé pour réessayer.
+
+Avant le modèle, PALABRE vérifie que le profil Codex autorise une écriture témoin dans le worktree et refuse une écriture témoin à côté. Si cette vérification échoue, l'appel est refusé, sans accès total ni repli non confiné. Les commandes gardent le réseau désactivé et ne peuvent demander d'escalade ; MCP, plugins, hooks et mémoires sont neutralisés. Ces garanties restent conditionnelles à la CLI et au backend Windows ; `unelevated` a une isolation réseau plus faible. Aucun commit, push, merge, installation ni changement des réglages utilisateur n'est autorisé.
+
+### Lire le compte rendu
+
+Le JSON et l'export `.relay.md` ajoutent `write` : dossier, branche, commit de départ, fichiers et diff relevés par Git, commandes terminées avec leurs codes et sorties. Toutes les commandes observées sont conservées dans les bornes du rapport, sans prétendre qu'elles sont toutes des tests. `verification: "observed-commands-only"` ne signifie pas « tests réussis ». Un diagnostic indique un rapport incomplet ; une interruption peut laisser du travail partiel.
+
+Sous Windows, `node --test` peut échouer avec `spawn EPERM`. Lors de l'essai qualifié, le même test réussit avec `node --test --experimental-test-isolation=none prix.test.js` (Node 22.17.1). Cela ne qualifie pas tous les builds ; aucun changement de permissions ni installation automatique ne résout un test bloqué.
+
+Les appels sans `--write` et l'option Mission gardent leur fonctionnement. Ce premier lot ne reprend pas une conversation existante en écriture et ne couvre ni macOS ni OpenCode.
 
 L'expéditeur est facultatif : sans `--from`, l'en-tête indique `terminal`. Un agent peut préciser `--from claude`, ou `--from claude:<uuid>` s'il connaît son identifiant. Il reste déclaré et non authentifié ; **aucune de ces formes ne transmet une autorisation humaine**. Le JSON donne `from: null` sans expéditeur, ou `{ "agent": "claude" }` pour un nom seul.
 

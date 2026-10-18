@@ -162,6 +162,9 @@ export type RelayStatus =
 
 /** Raison détaillée d'une issue `invalid-request`. */
 export type InvalidRequestReason =
+  | "write-unavailable"
+  | "write-approval-required"
+  | "write-approval-invalid"
   | "task-not-allowed"
   | "invalid-pr"
   | "review-unavailable"
