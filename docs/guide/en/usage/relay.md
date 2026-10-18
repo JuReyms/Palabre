@@ -1,12 +1,14 @@
 ---
 title: Relay mode
-description: Send a message to a closed Codex or Claude Code conversation, or to an open Codex conversation with --open, and get its reply with palabre relay.
+description: Delegate a task to Codex or Claude Code and receive its reply, for advice, a review or action through the authorized path.
 seo:
-  title: palabre relay, ask a Codex or Claude Code conversation
-  description: Send a message to an existing, closed Codex or Claude Code conversation and receive its reply in a single call, in hardened read-only mode.
+  title: palabre relay, delegate a task to Codex or Claude Code
+  description: "Make Claude Code and Codex cooperate: advice and reviews, action in open Codex or writing with one-time approval on Windows."
 ---
 
 ## What Relay is for
+
+To start without a conversation ID, follow [Your first Relay](/en/get-started/first-relay).
 
 `palabre relay` sends a message to an existing Codex or Claude Code conversation, then returns its reply to the caller. Agents can hand off without making you copy and paste exchanges; you remain the decision-maker.
 

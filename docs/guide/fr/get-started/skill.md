@@ -11,7 +11,7 @@ Palabre fournit un skill prêt à l'emploi. Il apprend à un agent IA que Palabr
 | Parcours | Quand l'agent le choisit |
 |----------|--------------------------|
 | [Débat](/fr/usage/debate) | Confronter deux positions et travailler les désaccords. |
-| [Relay](/fr/usage/relay) | Interroger une conversation existante qui possède le contexte : fermée par défaut, ou Codex ouverte avec `--open` (pilote Windows). |
+| [Relay](/fr/usage/relay) | Confier une tâche à Codex ou Claude Code : avis/relecture, action dans Codex ouvert sous Windows, ou correction/tests avec Codex Windows après accord ponctuel. |
 | [Ask](/fr/usage/ask) | Recueillir jusqu'à quatre avis indépendants avant de les comparer. |
 | [Chat](/fr/usage/chat) | Avancer avec un agent, demander un second avis ponctuel, poursuivre après une synthèse. |
 
@@ -34,6 +34,8 @@ Pour Codex, `~/.agents/skills/` est l'emplacement utilisateur indiqué par la [d
 Pour Claude desktop ou un autre agent, suivez sa procédure d'installation de skills en pointant vers ce dossier.
 
 Après une mise à jour de Palabre, recopiez le dossier : la copie installée n'est pas mise à jour automatiquement.
+
+Pour commencer, dites : « Passe par PALABRE pour confier à Codex la correction de ce calcul et le lancement des tests. Prépare la tâche et montre-moi ce que je dois confirmer. » Sous Windows, le skill prépare le parcours d'écriture et attend votre confirmation personnelle au clavier. Pour un avis ou une relecture sans modification, dites-le explicitement. Suivez le parcours [Premier Relay](/fr/get-started/first-relay).
 
 ## Quand l'agent voit le skill
 

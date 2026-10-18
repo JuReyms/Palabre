@@ -1,12 +1,14 @@
 ---
 title: Mode Relay
-description: Envoyer un message à une conversation Codex ou Claude Code existante et recevoir sa réponse ; enchaîner des étapes en lecture seule avec l’option Mission.
+description: Confier une tâche à Codex ou Claude Code et recevoir sa réponse, pour un avis, une relecture ou une action selon le parcours autorisé.
 seo:
-  title: palabre relay, interroger une conversation Codex ou Claude Code
-  description: Envoyer un message à une conversation Codex ou Claude Code existante, fermée, et recevoir sa réponse en un seul appel, en lecture seule renforcée.
+  title: palabre relay, confier une tâche à Codex ou Claude Code
+  description: "Faire coopérer Claude Code et Codex : avis et relectures, action dans Codex ouvert ou écriture avec accord ponctuel sous Windows."
 ---
 
 ## À quoi sert Relay
+
+Pour commencer sans connaître d'identifiant de conversation, suivez [Premier Relay](/fr/get-started/first-relay).
 
 `palabre relay` transmet un message à une conversation Codex ou Claude Code existante, puis rend sa réponse à l'appelant. Un agent peut ainsi passer la main sans vous faire copier-coller les échanges ; vous restez le décideur.
 
