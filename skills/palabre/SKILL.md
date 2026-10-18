@@ -5,9 +5,9 @@ description: Utiliser la CLI locale Palabre pour faire coopérer des agents IA (
 
 # Palabre : consulter d'autres agents depuis le terminal
 
-Palabre est une CLI locale (`palabre`) qui pilote les agents installés et authentifiés sur la machine. Il aide à mieux décider avant d'agir : avis contradictoires, arbitrages explicites, exports Markdown relisibles. Il ne remplace ni l'agent hôte ni l'utilisateur.
+Palabre est une CLI locale (`palabre`) qui pilote les agents installés et authentifiés sur la machine. Il aide à mieux décider avant d'agir : avis contradictoires, arbitrages explicites, exports Markdown relisibles. Il ne remplace ni l'agent hôte ni l'utilisateur. Disponibilité : `palabre --version`, puis `palabre agents --json` (agents configurés et `available`). Ne jamais recopier une liste d'agents figée : lire ce contrat.
 
-Disponibilité : `palabre --version`, puis `palabre agents --json` (agents configurés et `available`). Ne jamais recopier une liste d'agents figée : lire ce contrat.
+Quand tu lances une commande PALABRE, nomme la tâche `Palabre <mode> : <objet>`. Exemples : `Palabre Relay : envoyer la relecture à Codex` et `Palabre Débat : comparer deux architectures`. Libellés français : Relay, Débat, Ask, Chat, Mission ; anglais : Relay, Debate, Ask, Chat, Mission. Le libellé affiché dépend de l'hôte : PALABRE ne peut pas l'imposer.
 
 La synchronisation des agents (accueil TUI ou `palabre config --sync-agents`) conserve les commandes configurées avec un chemin absolu, même introuvable. Agent : ne pas remplacer ce choix par une autre installation ; signaler un lancement refusé et laisser le propriétaire vérifier son chemin. Les commandes sans chemin absolu continuent d'être synchronisées.
 

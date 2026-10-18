@@ -66,6 +66,14 @@ palabre agents
 
 ## What the skill adds
 
+### Naming PALABRE tasks
+
+Your agent names each PALABRE task `Palabre <mode>: <subject>`, for example `Palabre Relay: send the review to Codex`. The skill asks it to do this; your agent's application decides what it actually displays.
+
+In a terminal, PALABRE displays its name and mode in the window title, for example `Palabre · Relay`. It restores the old title at the end when the terminal allows it. Nothing is added when PALABRE is launched by a program or with `--json`. On Windows, Task Manager continues to show `node`.
+
+### Choosing and following the path
+
 - **Path selection**: Debate, Relay, Ask, or Chat depending on the need, without running Palabre for a simple task or forcing a Debate for every second-opinion request.
 - **Chat driven properly**: the agent uses the [NDJSON stream](/en/integrations/ndjson) and JSON commands on stdin (`chat-send`, `chat-consult`, `chat-use`, `chat-agents`, `chat-end`), never an imitation of the TUI. It knows Chat's bounded memory: six recent messages, no resume after the process ends.
 - **Three kinds of resume kept apart**: the host agent's session, Palabre [checkpoints](/en/reference/cli#resume-a-session) for Debate and Ask, and resuming an external conversation through Relay.

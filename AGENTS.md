@@ -25,6 +25,12 @@ Palabre est open source et utilisé par des personnes de tous niveaux techniques
 - Pour les humains : pas de jargon inutile, et des images simples quand elles aident (par exemple relay = « appeler un équipier absent »). Le détail technique va dans AGENTS.md.
 - Toute évolution de comportement met à jour, dans la même PR : l'aide CLI, le guide fr et en, et le skill `skills/palabre`. Une copie installée du skill n'est pas mise à jour automatiquement : le dire dans les notes de version.
 
+## Identité visible de PALABRE
+
+Le skill demande le libellé de tâche `Palabre <mode> : <objet>` ; seul l'hôte peut l'afficher. `src/cliIdentity.ts` pose tôt `process.title = "palabre <commande>"` avec une commande connue, jamais un sujet utilisateur. Sous Windows, Node utilise aussi le titre natif de la console, même quand les séquences terminal sont désactivées ; le nom d'exécutable peut rester `node.exe` dans les outils système.
+
+Le titre OSC `Palabre · <Mode>` et la sauvegarde/restauration xterm sont réservés à stdout TTY hors `--json` et `--renderer ndjson`, sans `NO_COLOR` ni `TERM=dumb`. `PALABRE_ASCII=1` choisit un titre ASCII, par exemple `Palabre - Debat`. Aucun champ JSON/NDJSON n'est ajouté. Restaurer le nom logique avant de dépiler le titre assure le repli console Windows ; une erreur de décoration ne change pas le résultat CLI. Les modes/langues effectifs mettent le titre à jour, y compris depuis l'accueil TUI. Ne jamais mettre de texte libre dans une séquence de contrôle. Une terminaison forcée ou un hôte imposant son propre titre reste hors garantie.
+
 ## Frontiere CLI / integrations
 
 Palabre CLI est la source de verite produit. Toute fonctionnalite qui doit produire le meme resultat hors VS Code appartient au CLI avant d'etre exposee par une integration.

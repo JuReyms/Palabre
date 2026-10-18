@@ -66,6 +66,14 @@ palabre agents
 
 ## Ce que le skill apporte
 
+### Nommer les tâches PALABRE
+
+Votre agent nomme chaque tâche PALABRE `Palabre <mode> : <objet>`, par exemple `Palabre Relay : envoyer la relecture à Codex`. C'est le skill qui le lui demande ; l'application de votre agent décide de ce qu'elle affiche réellement.
+
+Dans un terminal, PALABRE affiche son nom et son mode dans le titre de la fenêtre, par exemple `Palabre · Relay`. Il remet l'ancien titre à la fin quand le terminal le permet. Rien n'est ajouté quand PALABRE est lancé par un programme ou avec `--json`. Sous Windows, le Gestionnaire des tâches continue d'afficher `node`.
+
+### Choisir et suivre le parcours
+
 - **Choix du parcours** : Débat, Relay, Ask ou Chat selon le besoin, sans lancer Palabre pour une tâche simple ni imposer un Débat à chaque demande de second avis.
 - **Chat piloté proprement** : l'agent utilise le [flux NDJSON](/fr/integrations/ndjson) et les commandes JSON sur stdin (`chat-send`, `chat-consult`, `chat-use`, `chat-agents`, `chat-end`), jamais une imitation de la TUI. Il connaît la mémoire bornée de Chat : six messages récents, aucune reprise après arrêt.
 - **Trois reprises distinguées** : la session de l'agent hôte, les [checkpoints Palabre](/fr/reference/cli#reprendre-une-session) de Débat et Ask, et la reprise d'une conversation externe par Relay.
