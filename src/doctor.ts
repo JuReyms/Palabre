@@ -1,9 +1,10 @@
-/** @file Diagnostic `palabre doctor` : vérifie config, agents détectés et connectivité Ollama. */
+/** @file Doctor : guide d'arrivée sans réparation, approbation vérifiée avant toute sonde d'agent ou URL configurée. */
 import path from "node:path";
 import { stat } from "node:fs/promises";
 import { configExists, DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir } from "./config.js";
 import { isConfigTrusted, isImplicitProjectConfig } from "./configTrust.js";
-import { detectedAgentNames, detectionForCommand, isAbsoluteCommand } from "./agentRegistry.js";
+import { detectedAgentNames, detectionForCommand, isAbsoluteCommand, isRetiredAgentName, normalizeCommandName, externalSessionProviderForCommand } from "./agentRegistry.js";
+import { inspectDoctorArrival, probeDoctorAuth, type DoctorArrivalOptions, type DoctorAuthState } from "./doctorArrival.js";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { createTranslator, resolveLanguage } from "./i18n.js";
 import { DEFAULT_TURNS, MAX_TURNS } from "./limits.js";
@@ -19,10 +20,12 @@ export interface DoctorResult {
   output: string;
 }
 
+/** Sondes injectables : les tests utilisent des profils fictifs et ne lancent aucun agent réel. */
 export interface DoctorOptions {
   checkVersion?: boolean;
   /** Injected tool inventory for tests; the CLI always performs its own discovery. */
   discovery?: ToolDiscovery;
+  arrival?: DoctorArrivalOptions;
 }
 
 interface DiagnosticLine {
@@ -32,7 +35,9 @@ interface DiagnosticLine {
 }
 
 /**
- * Exécute le diagnostic complet : config, outils locaux et agents.
+ * Exécute le diagnostic complet : approbation, arrivée, outils locaux et agents.
+ * Les sondes auth/status sont bornées et limitées aux commandes connues d'une configuration approuvée.
+ * Aucun modèle, login, changement de configuration ou installation n'est lancé.
  * Retourne toujours un résultat (pas de throw) ; les erreurs de config sont reportées comme lignes `error`.
  */
 export async function runDoctor(explicitConfigPath?: string, plain = false, explicitLanguage?: string, options: DoctorOptions = {}): Promise<DoctorResult> {
@@ -71,18 +76,22 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
   lines.push(ok(t.doctor.configReadable));
   lines.push(ok(t.doctor.interfaceLanguage(language)));
 
+  const trusted = await isConfigTrusted(configPath).catch(() => false);
+  const approve = `palabre config --config ${quoteCommandArgument(path.resolve(configPath), options.arrival?.platform)} --trust-config`;
+  lines.push(trusted ? ok(t.doctor.arrival.configTrusted) : error(t.doctor.arrival.configUntrusted(approve)));
   const untrustedProjectConfig = isImplicitProjectConfig(
     configPath,
     process.cwd(),
     [DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH]
-  ) && !(await isConfigTrusted(configPath));
+  ) && !trusted;
   if (untrustedProjectConfig) {
     lines.push(warn(t.doctor.untrustedConfigInspection));
   }
 
+  await inspectArrival(config, trusted, lines, t, options.arrival);
   await inspectConfig(config, lines, t);
 
-  const ollamaTargets = untrustedProjectConfig ? {} : Object.fromEntries(
+  const ollamaTargets = !trusted ? {} : Object.fromEntries(
     Object.entries(configuredOllamaTargets(config))
       .map(([name, value]) => [name, value && isValidOllamaBaseUrl(value) ? value : undefined])
   );
@@ -105,6 +114,49 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
   inspectAgents(config, discovery, lines, t);
 
   return render(lines, plain, t);
+}
+
+/** Citation pour la commande à copier ; aucune interpolation d'un chemin n'est exécutée. */
+function quoteCommandArgument(value: string, platform = process.platform): string {
+  return `'${value.replaceAll("'", platform === "win32" ? "''" : "'\\''")}'`;
+}
+
+/** Priorité des actions : shell, connexion, agents archivés, skill, puis doublons. */
+async function inspectArrival(config: PalabreConfig, trusted: boolean, lines: DiagnosticLine[], t: Messages, options: DoctorArrivalOptions = {}): Promise<void> {
+  const local = inspectDoctorArrival(options);
+  const m = t.doctor.arrival;
+  if (local.shell === "store-only") lines.push(warn(m.shellStore(local.shellPaths.join(", "))));
+  else if (local.shell === "missing") lines.push(warn(m.shellMissing));
+  else if (local.shell === "unverified") lines.push(warn(m.shellUnverified));
+  else if (local.shell === "native") lines.push(info(m.shellNative(local.shellPaths.join(", "))));
+
+  const auth = new Map<string, DoctorAuthState>();
+  if (!trusted) lines.push(info(m.authSkipped));
+  for (const [name, agent] of Object.entries(config.agents)) {
+    if (agent.type !== "cli" && agent.type !== "cli-pty") continue;
+    if (isRetiredAgentName(name) || isRetiredAgentName(normalizeCommandName(agent.command))) continue;
+    const provider = externalSessionProviderForCommand(agent.command);
+    if (!trusted || !provider) continue;
+    let state = auth.get(agent.command);
+    if (!state) {
+      state = await probeDoctorAuth(provider, agent.command, options);
+      auth.set(agent.command, state);
+    }
+    const command = quoteCommandArgument(agent.command, options.platform);
+    const invocation = (options.platform ?? process.platform) === "win32" ? `& ${command}` : command;
+    if (state === "connected") lines.push(ok(m.authConnected(name)));
+    else if (state === "disconnected") lines.push(warn(m.authDisconnected(name, `${invocation} ${provider === "claude" ? "auth login" : "login"}`)));
+    else lines.push(warn(m.authUnknown(name, `${invocation} ${provider === "claude" ? "auth status --json" : "login status"}`)));
+  }
+  for (const [name, agent] of Object.entries(config.agents)) {
+    if (isRetiredAgentName(name) || ((agent.type === "cli" || agent.type === "cli-pty") && isRetiredAgentName(normalizeCommandName(agent.command)))) lines.push(warn(m.retiredAgent(name)));
+  }
+  lines.push(local.skills.length ? info(m.skillPresent(local.skills.join(", "))) : warn(m.skillMissing));
+  for (const installation of local.duplicates) {
+    const inspect = (options.platform ?? process.platform) === "win32"
+      ? `Get-Command ${installation.command} -All | Select-Object Source` : `type -a ${installation.command}`;
+    lines.push(warn(m.duplicateInstallations(installation.command, installation.paths.join(", "), inspect)));
+  }
 }
 
 async function inspectCliVersion(lines: DiagnosticLine[], t: Messages): Promise<void> {
@@ -260,6 +312,7 @@ function inspectAgents(
   lines.push(info(t.doctor.configuredAgents, "agents"));
 
   for (const [name, agent] of Object.entries(config.agents)) {
+    if (isRetiredAgentName(name) || ((agent.type === "cli" || agent.type === "cli-pty") && isRetiredAgentName(normalizeCommandName(agent.command)))) continue;
     inspectAgentShape(name, agent, lines, t);
 
     if (agent.type === "cli" || agent.type === "cli-pty") {

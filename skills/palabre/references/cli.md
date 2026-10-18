@@ -12,6 +12,8 @@ palabre doctor --terminal
 
 Lire ces contrats plutôt que deviner : la disponibilité est calculée par le CLI.
 
+`doctor` guide l'arrivée sur une machine : approbation, PowerShell hors Store sous Windows, connexions Claude/Codex, agents archivés, skill, emplacements multiples. Il ne répare rien. Sans approbation, il n'exécute aucune commande d'agent et ne contacte pas les URLs configurées. Après approbation, seules les sondes `auth status --json` ou `login status` sont lancées (3 s, 32 Kio, aucun modèle) ; « non vérifié » ne signifie pas « déconnecté ». Une CLI présente n'est pas une connexion, un skill présent n'est pas une copie à jour, un état connecté ne prouve pas la validité future du jeton. Proposer à l'humain l'action affichée ; ne pas approuver une configuration, installer ni reconnecter à sa place. Les copies installées du skill se mettent à jour manuellement.
+
 ## Approbations de configurations disparues
 
 `palabre config --prune-trust --dry-run` affiche les approbations de fichiers disparus, sans rien modifier. Pour les retirer, proposez à l'humain de lancer lui-même `palabre config --prune-trust` dans son terminal : liste, confirmation au clavier et sauvegarde horodatée. Ne confirmez jamais à sa place ; aucun `--yes` n'est admis. Les configurations existantes ou inaccessibles sont conservées et aucun nouveau droit n'est accordé.

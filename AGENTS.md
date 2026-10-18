@@ -133,8 +133,9 @@ son chemin canonique et a son empreinte SHA-256, conservee dans
 Palabre demande confirmation ; en non-interactif, `--trust-config` enregistre explicitement
 l'empreinte. Toute config creee par `palabre init`, y compris via `--config`, est approuvee avec
 son contenu exact. Les ecritures ulterieures effectuees par Palabre rafraichissent uniquement une
-approbation existante. `palabre doctor` reste accessible sur une config projet non approuvee, mais
-n'en contacte pas les URLs Ollama et assainit toutes les valeurs avant affichage terminal.
+approbation existante. `palabre doctor` reste accessible sur toute config non approuvee, mais
+n'en contacte pas les URLs configurées, n'exécute aucune commande d'agent, signale le prérequis
+et rend le code 1. Toutes les valeurs sont assainies avant affichage terminal.
 
 Exemples :
 
@@ -1185,6 +1186,8 @@ Le renderer NDJSON est une API publique d'integration. Toute integration officie
 Ces points sont a evaluer au cas par cas si un consommateur reel les demande. Eviter de speculer.
 
 ## Tests et verification
+
+Doctor comme guide d'arrivée (#151, #153) : `doctorArrival.ts` inventorie les chemins, le skill et PowerShell sans les exécuter. Après approbation seulement, les sous-programmes Claude `auth status --json` et Codex `login status` de la commande configurée sont sondés sans shell, sans args de modèle et sans modèle (3 s, sortie cumulée 32 Kio, arrêt borné). Aucun repli vers une autre CLI pour un chemin absolu, aucun login, aucune réparation. Les tests injectent commandes et profils fictifs. Un format inconnu, une erreur de lancement ou un timeout restent non vérifiés ; aucune sortie brute de compte n'est affichée. L'état déclaré ne garantit ni renouvellement de jeton ni quota. Les emplacements multiples dans PATH n'attestent pas des versions différentes ; wrappers voisins et alias de dossier sont regroupés, le diagnostic complet reste #153. Le contrat `{ ok, output }` de doctor est inchangé, aucun champ JSON/NDJSON ajouté.
 
 Relay vers une conversation ouverte (#96, B1, `palabre relay --open`) : le contrat vit dans
 `scripts/prototypes/relay/CONTRAT-B1.md` ; le code dans `src/externalSessions/` (`openReader`,

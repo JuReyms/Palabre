@@ -155,7 +155,7 @@ Usage:
 Flags:
   --clear-defaults     supprime les parametres par defaut
   --sync-agents        ajoute les agents detectes ; conserve les commandes avec chemin absolu
-                       Chemin absent : indisponible ; doctor vérifie le fichier sans le lancer.
+                       Chemin absent : indisponible ; aucun repli vers une autre installation.
   --config <path>      chemin de config explicite
 `,
   new: `
@@ -169,7 +169,8 @@ Flags:
   --language <fr|en>   force la langue
 `,
   doctor: `
-Verifie la config et les outils locaux.
+Verifie l'approbation, PowerShell Windows, les connexions Claude/Codex et le skill.
+Ne modifie rien. Sondes status bornees sur config approuvee, aucun appel modele.
 
 Usage:
   palabre doctor [flags]
@@ -526,7 +527,7 @@ Usage:
 Flags:
   --clear-defaults     clears default settings
   --sync-agents        adds missing detected agents; preserves absolute command paths
-                       Missing path: unavailable; doctor checks the file without executing it.
+                       Missing path: unavailable; no fallback to another installation.
   --config <path>      explicit config path
 `,
   new: `
@@ -540,7 +541,8 @@ Flags:
   --language <fr|en>   forces the language
 `,
   doctor: `
-Checks config and local tools.
+Checks approval, Windows PowerShell, Claude/Codex sign-in and skill presence.
+Changes nothing. Bounded status probes on approved configs, no model calls.
 
 Usage:
   palabre doctor [flags]
