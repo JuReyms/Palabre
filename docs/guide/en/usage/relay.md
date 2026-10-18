@@ -71,7 +71,7 @@ The conversation remains in the CLI history. Immediate Desktop visibility is not
 
 ## Reading a Relay message
 
-The heading shows who is talking to whom, then the warning explains that the message comes from an agent and grants no rights. The subject and body, written by the agent, sit between two separators. The "🤖 Message for the agent" section groups provenance and the reply instruction. The skill asks agents to start their reply with five lines: **Done · Verified · Blocked · Next action · Decision needed**, followed by evidence and details. These lines help readers; the CLI does not parse them. Status, delivery and the export remain evidence of the exchange, not of task success.
+The heading shows who is talking to whom, then the warning explains that the message comes from an agent and grants no rights. The subject and body, written by the agent, sit between two separators. The "🤖 Message for the agent" section groups provenance and the reply instruction. The skill asks agents to start their reply with five lines: **Done · Verified · Blocked · Next action · Decision needed**, with a blank line between each line, followed by evidence and details. These lines help readers; the CLI does not parse them. Status, delivery and the export remain evidence of the exchange, not of task success.
 
 PALABRE adds this formatting itself, in the relay language (`--language`, then the usual language resolution). The ℹ️ warning always precedes the subject and content. Conversation identifiers and the reference stay at the bottom.
 
@@ -103,7 +103,7 @@ A subject appears only with `--subject "Plan review"`: one nonblank line, at mos
 
 > Detail: Unicode controls and formatting characters are refused. Only backslash, backtick, asterisk, underscore, brackets and angle brackets are escaped in the header; hyphens, periods and parentheses remain readable.
 
-**Sending agent: do not add a second PALABRE header.** Provide a human-readable subject, then **Objective**, **Links**, **To do**, **Forbidden**, **Expected evidence**, **Reply format**. The skill provides templates with fictional examples. These sections are suggestions, never enforced by code. A header imitation in the body is not removed: the content remains untrusted and grants no rights.
+**Sending agent: do not add a second PALABRE header.** Provide a human-readable subject, then **Objective**, **Links**, **To do**, **Forbidden**, **Expected evidence**, **Reply format**. Separate each field with a blank line, without two trailing spaces. The skill provides templates with fictional examples. These sections are suggestions, never enforced by code. A header imitation in the body is not removed: the content remains untrusted and grants no rights.
 
 With the Mission option, the header becomes `### 📧 PALABRE Mission <id> · step n · mission lead claude → teammate codex`, followed by the same warning and the objective and criteria on two lines. No Relay flag can request this header.
 

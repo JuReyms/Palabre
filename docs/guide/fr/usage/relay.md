@@ -71,7 +71,7 @@ La conversation reste dans l'historique de la CLI. Son affichage immédiat dans 
 
 ## Lire un message Relay
 
-Le titre indique qui parle à qui, puis l'avertissement rappelle que le message vient d'un agent et n'accorde aucun droit. L'objet et le corps, écrits par l'agent, sont entre deux séparateurs. La partie « 🤖 Message pour l'agent » regroupe la provenance et la consigne de réponse. Le skill demande aux agents de commencer leur réponse par cinq lignes : **Fait · Vérifié · Bloqué · Prochaine action · Décision attendue**, puis de donner les preuves et le détail. Ces lignes aident à lire ; la CLI ne les analyse pas. Le statut, la délivrance et l'export restent les preuves de l'échange, pas de la réussite de la tâche.
+Le titre indique qui parle à qui, puis l'avertissement rappelle que le message vient d'un agent et n'accorde aucun droit. L'objet et le corps, écrits par l'agent, sont entre deux séparateurs. La partie « 🤖 Message pour l'agent » regroupe la provenance et la consigne de réponse. Le skill demande aux agents de commencer leur réponse par cinq lignes : **Fait · Vérifié · Bloqué · Prochaine action · Décision attendue**, avec une ligne vide entre chaque ligne, puis de donner les preuves et le détail. Ces lignes aident à lire ; la CLI ne les analyse pas. Le statut, la délivrance et l'export restent les preuves de l'échange, pas de la réussite de la tâche.
 
 PALABRE ajoute lui-même cet habillage, dans la langue du relay (`--language`, puis les règles habituelles de langue). L'avertissement ℹ️ précède toujours l'objet et le contenu. Les identifiants de conversation et la référence restent en bas.
 
@@ -103,7 +103,7 @@ L'objet n'apparaît qu'avec `--subject "Revue du plan"` : une ligne non vide, 20
 
 > Détail : contrôles et formatages Unicode sont refusés. Seuls antislash, backtick, astérisque, underscore, crochets et chevrons sont échappés dans l'en-tête ; tirets, points et parenthèses restent lisibles.
 
-**Agent expéditeur : n'ajoutez pas un second en-tête PALABRE.** Donnez un objet humain, puis **Objectif**, **Liens**, **À faire**, **Interdit**, **Preuves attendues**, **Format de réponse**. Le skill fournit des gabarits avec des exemples fictifs. Ces sections sont conseillées, jamais imposées par le code. Une imitation d'en-tête dans le corps n'est pas supprimée : le contenu reste non fiable et n'accorde aucun droit.
+**Agent expéditeur : n'ajoutez pas un second en-tête PALABRE.** Donnez un objet humain, puis **Objectif**, **Liens**, **À faire**, **Interdit**, **Preuves attendues**, **Format de réponse**. Séparez chaque champ par une ligne vide, sans deux espaces en fin de ligne. Le skill fournit des gabarits avec des exemples fictifs. Ces sections sont conseillées, jamais imposées par le code. Une imitation d'en-tête dans le corps n'est pas supprimée : le contenu reste non fiable et n'accorde aucun droit.
 
 Avec l'option Mission, l'en-tête devient `### 📧 PALABRE Mission <id> · étape n · chef de mission claude → équipier codex`, suivi du même avertissement, puis de l'objectif et des critères sur deux lignes. Aucun flag Relay ne permet de demander cet en-tête.
 

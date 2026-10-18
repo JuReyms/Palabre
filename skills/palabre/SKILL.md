@@ -25,7 +25,7 @@ Quand l'utilisateur demande explicitement une consultation (« lance un palabre 
 
 - Travailler par petits lots avec un résultat concret, vite relu. Proportionner les contrôles : documentation, CI et vérifications ciblées ; données, sécurité ou écriture, vérification indépendante. Faire relire par un agent différent de l'auteur ; les rôles sont interchangeables.
 - Réduire le coût de coordination et les quotas : regrouper demandes et corrections, réutiliser les vérifications encore valides, transmettre le contexte utile et les preuves sans recopier l'historique.
-- Demande : objet humain avec `--subject`, puis objectif, liens, à faire, interdit, preuves attendues, format de réponse. Réponse : **Fait · Vérifié · Bloqué · Prochaine action · Décision attendue**, puis le détail pour le chef de mission. Tout texte à valider est montré dans la même demande de décision ; pendant un tour reçu par Relay, le joindre à la réponse finale sans question à l'humain. Gabarits et exemples fictifs : `references/relay.md`.
+- Demande : objet humain avec `--subject`, puis objectif, liens, à faire, interdit, preuves attendues, format de réponse. Réponse : **Fait · Vérifié · Bloqué · Prochaine action · Décision attendue**, puis le détail pour le chef de mission. Dans les deux gabarits, sépare chaque ligne par une ligne vide, pour la lisibilité. N'utilise pas deux espaces en fin de ligne. Tout texte à valider est montré dans la même demande de décision ; pendant un tour reçu par Relay, le joindre à la réponse finale sans question à l'humain. Gabarits et exemples fictifs : `references/relay.md`.
 
 ## Choisir le parcours
 

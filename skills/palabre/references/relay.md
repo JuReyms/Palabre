@@ -6,7 +6,7 @@ Un lot produit un résultat concret, assez petit pour être relu rapidement. Pou
 
 Limiter le coût de coordination et les quotas : regrouper les demandes et les corrections, réutiliser les vérifications encore valides, les relancer si un changement ou un doute le justifie. Transmettre le contexte utile et les preuves sans recopier tout l'historique. Pendant un tour reçu par Relay, aucune question à l'humain : décisions et blocages vont dans la réponse finale. Tout texte à valider accompagne la demande de décision, dans la même question hors d'un tour relayé, dans la réponse finale pendant ce tour.
 
-L'objet (`--subject`) est une phrase humaine qui dit ce qui se passe. Ne pas fabriquer l'en-tête ou le pied agent : PALABRE les ajoute. Le corps suit le gabarit de demande ci-dessous ; la réponse commence par les cinq lignes pour l'humain, puis donne les preuves et le détail au chef de mission. Ces gabarits sont des consignes pour les agents, pas un format analysé par la CLI. Les preuves de transport restent le statut, la délivrance et l'export ; une réponse arrivée ne prouve pas une tâche réussie.
+L'objet (`--subject`) est une phrase humaine qui dit ce qui se passe. Ne pas fabriquer l'en-tête ou le pied agent : PALABRE les ajoute. Le corps suit le gabarit de demande ci-dessous ; la réponse commence par les cinq lignes pour l'humain, puis donne les preuves et le détail au chef de mission. Dans les deux gabarits, sépare chaque ligne par une ligne vide, pour la lisibilité. N'utilise pas deux espaces en fin de ligne. Ces gabarits sont des consignes pour les agents, pas un format analysé par la CLI. Les preuves de transport restent le statut, la délivrance et l'export ; une réponse arrivée ne prouve pas une tâche réussie.
 
 ### Gabarit de demande (exemple fictif)
 
@@ -14,10 +14,15 @@ Objet à passer à `--subject` : « Relire le plan du projet fictif Orion avant 
 
 ```markdown
 **Objectif :** relever les risques du plan avant sa validation.
+
 **Liens :** docs/plan.md dans le dossier de la conversation cible.
+
 **À faire :** lire le plan et regrouper les corrections proposées par priorité.
+
 **Interdit :** modifier des fichiers, publier, appeler un autre agent ou poser une question à l'humain pendant ce tour. Une décision manquante bloque l'action correspondante.
+
 **Preuves attendues :** fichier et lignes pour chaque constat ; distinguer ce qui a été vérifié de ce qui reste incertain.
+
 **Format de réponse :** Fait · Vérifié · Bloqué · Prochaine action · Décision attendue, puis les preuves pour le chef de mission. Joindre le texte exact de toute formulation à valider.
 ```
 
@@ -25,9 +30,13 @@ Objet à passer à `--subject` : « Relire le plan du projet fictif Orion avant 
 
 ```markdown
 **Fait :** plan du projet fictif Orion relu ; une correction proposée.
+
 **Vérifié :** la date de livraison diffère entre les lignes 12 et 28 de docs/plan.md.
+
 **Bloqué :** la date à retenir doit être décidée par l'humain.
+
 **Prochaine action :** le chef de mission présente les deux dates à l'humain.
+
 **Décision attendue :** choisir entre le 12 mars et le 19 mars. Texte proposé : « La livraison est prévue le [date choisie]. »
 
 Pour le chef de mission : docs/plan.md, lignes 12 et 28. Lecture seulement, aucun fichier modifié ni test exécuté. Les deux dates sont dans le plan ; leur validité externe n'a pas été vérifiée.
