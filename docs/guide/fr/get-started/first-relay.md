@@ -2,25 +2,25 @@
 title: Premier Relay
 description: Confier une tâche à un équipier depuis votre agent, garder la décision et retrouver le travail réalisé.
 seo:
-  title: Premier Relay, confier une tâche à Claude Code ou Codex
-  description: "Faire coopérer vos agents avec PALABRE : avis, relecture ou correction avec accord ponctuel, depuis Desktop, le terminal ou en arrière-plan."
+  title: Premier Relay, faire communiquer Claude Code et Codex
+  description: "Confier une tâche depuis Claude Code ou Codex, retrouver une conversation précise et recevoir sa réponse sans copier-coller."
 ---
 
-Relay, c'est confier une tâche à un équipier. Votre agent transmet le travail à l'autre agent et vous rend compte du résultat. Vous n'avez plus à copier-coller les échanges ; vous gardez la décision.
+Relay permet à votre agent de confier une tâche à un autre agent (Claude Code, Codex) et de vous rapporter sa réponse, sans copier-coller : dans une nouvelle conversation, ou dans une conversation précise que vous avez déjà eue avec lui. Chacun garde ses propres permissions, et vous décidez de la suite.
+
+Vous choisissez le **chef de mission** : Claude Code ou Codex. Votre agent peut devenir chef de mission dans n'importe quelle conversation, même celle que vous venez d'ouvrir : il faut seulement que PALABRE soit installé sur la machine et que l'agent dispose du skill PALABRE.
 
 ## Comment ça marche
 
-L'agent à qui vous parlez est le **chef de mission**. Celui qui reçoit la tâche est l'**équipier**. Ils peuvent travailler de trois façons :
+Le chef de mission est l'agent à qui vous parlez. L'**équipier** est celui qui reçoit la tâche. PALABRE transmet le message et rapporte la réponse ; ce sont les agents qui réalisent le travail, avec leurs permissions.
 
 | Votre façon de travailler | Sens des échanges et possibilités actuelles |
 | --- | --- |
-| Deux applications Desktop | Claude Code peut confier une tâche à une conversation Codex ouverte, sous Windows, avec `--open`. Elle agit avec ses permissions habituelles. L'envoi vers une conversation Claude Code ouverte n'est pas encore disponible. |
-| Deux terminaux CLI | Même direction vers Codex ouvert sous Windows avec `--open`, mais ce parcours reste pilote et peu testé. L'envoi vers Claude Code ouvert n'est pas disponible. |
-| Un équipier en arrière-plan, sans fenêtre à ouvrir | Claude Code et Codex peuvent se confier des avis ou relectures dans les deux sens. Codex peut aussi corriger et tester sous Windows avec `--new --write`, après votre accord pour la tâche. Claude Code ne peut pas encore agir ainsi sous Windows natif. |
+| Deux applications Desktop | Claude Code peut joindre une conversation Codex ouverte sous Windows avec `--open`. Codex desktop peut joindre une conversation Claude fermée, avec une autorisation ponctuelle de son hôte par commande. Vers Claude ouvert : pas encore disponible. |
+| Deux terminaux CLI | Claude vers Codex ouvert sous Windows avec `--open` reste un parcours pilote, peu testé. Codex CLI vers Claude fermée reste à éprouver. |
+| Un équipier en arrière-plan, sans fenêtre à ouvrir | Une nouvelle conversation ou une conversation existante fermée peut recevoir une demande d’avis ou de relecture. Le parcours Codex desktop vers Claude fermée et le parcours Claude vers Codex fermée ont été vérifiés sous Windows. |
 
-Vous pouvez confier du travail en arrière-plan depuis Desktop comme depuis un terminal. Pour un avis ou une relecture sans modification, PALABRE crée une conversation avec `--new`, ou reprend une conversation existante fermée. Pour agir dans une conversation Codex déjà ouverte, `--open` conserve ses permissions : le message ne lui donne aucun droit supplémentaire.
-
-Si Codex est chef de mission, son environnement peut vous demander d'autoriser l'appel réseau vers Claude Code. Cette autorisation ne remplace jamais l'accord pour écrire.
+Dans une conversation Codex ouverte, l'équipier peut agir avec ses permissions habituelles. Les appels ordinaires vers une conversation fermée servent aux avis et relectures, avec des outils limités pendant l'appel. Relay n'accorde aucun droit supplémentaire. macOS reste à tester.
 
 ## Les mots de Relay
 
@@ -43,7 +43,7 @@ palabre doctor
 palabre relay --help
 ```
 
-L'aide doit proposer `--new` et `--write` pour suivre tout ce guide. Sinon, utilisez une version de PALABRE qui les contient ; voir [Installation et mise à jour](/fr/get-started/installation).
+L'aide doit proposer `--new`. Sinon, utilisez une version de PALABRE qui le contient ; voir [Installation et mise à jour](/fr/get-started/installation).
 
 Installez aussi le [skill Palabre](/fr/get-started/skill) pour votre agent habituel. Copiez le dossier complet, références comprises, puis ouvrez une nouvelle conversation pour qu'il le voie. Après une évolution du skill, sa copie installée doit être mise à jour manuellement.
 
@@ -51,66 +51,64 @@ Chaque appel utilise le compte et le modèle de l'agent choisi. Vérifiez ce que
 
 ## Confier une tâche par votre agent
 
-Depuis votre conversation habituelle avec Claude Code, dites par exemple :
+Depuis votre conversation avec Claude Code, dites par exemple :
 
-> Passe par PALABRE pour confier à Codex la correction du calcul dans src/prix.js et le lancement des tests existants. Prépare la tâche et montre-moi ce que je dois confirmer.
+> Passe par PALABRE pour demander à Codex de relire le plan dans docs/plan.md et de signaler les risques, sans modifier de fichier. Crée une conversation et garde son identifiant pour la suite.
 
-Sous Windows, votre agent prépare une tâche `--new --write`. Vous relisez la tâche, le projet et la copie de travail annoncée, puis vous confirmez vous-même dans votre terminal avec `approve-write`. Votre agent peut ensuite lancer `run-write`, une seule fois. Il ne confirme jamais à votre place.
+Le skill crée une conversation si vous n'en avez pas désigné une. Si vous choisissez une conversation existante, il garde cette cible précise, jamais « la dernière ».
 
-Codex travaille dans une copie Git séparée, appelée **worktree**, à partir du commit annoncé. Vos changements non commités n'y sont pas inclus. Votre projet principal garde ses fichiers ; le travail de l'équipier est conservé, même en échec.
+Pour travailler dans une conversation Codex déjà ouverte sous Windows, désignez-la et dites le travail attendu. Le chef de mission emploie `--open` ; l'équipier conserve ses permissions, sans droit ajouté par le message.
 
-Pour une relecture sans modification, dites plutôt :
+### Codex chef de mission
 
-> Passe par PALABRE pour confier à Claude Code la relecture de ce plan, sans rien modifier.
+Depuis une conversation Codex desktop ouverte dans le dossier du projet, dites par exemple :
 
-Le skill choisit le parcours adapté. Sans conversation désignée, il en crée une ; sinon, il garde la cible que vous avez choisie. Pour une suite d'avis ou de relecture :
+> Passe par PALABRE pour demander à Claude Code de relire le plan dans docs/plan.md, sans modifier de fichier. Crée une conversation et garde son identifiant pour la suite.
 
-> Continue avec le même Codex pour relire le résultat, sans rien modifier.
+Codex demande l'autorisation d'exécuter chaque commande PALABRE **hors de son bac à sable**. Relisez la commande affichée, puis acceptez **cette fois seulement**. N'accordez ni accès total, ni droit permanent, ni « toujours autoriser ». La commande de suivi demande sa propre autorisation.
 
-Le chef de mission garde l'identifiant et vous dit ce qui a été fait, les tests réellement exécutés, les blocages et ce qui attend votre décision. Une nouvelle tâche d'écriture en arrière-plan exige une nouvelle conversation et un nouvel accord ponctuel.
+Cette autorisation permet à la CLI Claude d'utiliser sa connexion et d'enregistrer l'échange dans son historique. Elle n'accorde aucun droit supplémentaire à l'équipier. Le réglage **« approuver à ma place »** de Codex desktop peut accorder ces sorties sans afficher de demande : laissez-le désactivé si vous voulez confirmer chaque commande vous-même.
 
-### Où retrouver le travail
+Ce parcours a été vérifié sous Windows depuis Codex desktop. Depuis Codex CLI et sur macOS, il reste à éprouver.
 
-- L'échange appartient à la propre conversation de l'équipier, dont PALABRE donne l'identifiant. Son apparition dans Desktop n'est pas garantie immédiatement.
-- Les fichiers modifiés restent dans le worktree indiqué par le compte rendu.
-- Ils se retrouvent sur GitHub après un commit et un push, autorisés séparément, puis peuvent être relus dans une PR.
+### Continuer et retrouver le résultat
 
-Rien ne remonte tout seul dans la conversation de l'agent qui a confié la tâche. Le chef de mission lit la réponse et le compte rendu rendus par PALABRE, puis vous les restitue. Pour intégrer et ranger le travail, suivez [Récupérer le résultat](/fr/usage/relay#récupérer-le-résultat).
+> Continue avec le même Claude pour préciser le risque principal, sans modifier de fichier.
+
+Le chef de mission réutilise l'identifiant, lit la réponse et vous en rend compte. L'échange reste dans la conversation de l'équipier ; PALABRE donne aussi le chemin de l'export `.relay.md`. Son apparition immédiate dans Desktop n'est pas garantie. La réponse revient à l'appelant, sans être ajoutée automatiquement à la conversation de l'expéditeur.
+
+Si l'équipier modifie des fichiers dans une conversation ouverte, ils restent dans son dossier de travail. Ils apparaissent sur GitHub seulement après un commit et un push autorisés séparément. Une réponse reçue ne prouve pas que le travail ou les tests ont réussi.
 
 ## Sans agent
 
-Vous pouvez aussi piloter Relay vous-même. Pour une correction avec Codex sous Windows, placez-vous à la racine d'un dépôt Git ayant au moins un commit :
+Vous pouvez piloter Relay vous-même depuis le dossier du projet :
 
 ```text
-palabre relay --new --write --to codex "Corrige le calcul dans src/prix.js et lance les tests existants, sans installer de dépendance."
+palabre relay --new --to claude "Relis le plan dans docs/plan.md et signale les risques, sans modifier de fichier."
 ```
 
-Cette commande prépare la demande, sans lancer de modèle. Remplacez `<demande>` ci-dessous par l'identifiant affiché, puis confirmez vous-même :
+Gardez l'identifiant rendu pour continuer, sans `--new` :
 
 ```text
-palabre relay approve-write <demande>
+palabre relay --to claude:<identifiant> "Précise le risque principal, sans modifier de fichier."
 ```
 
-Après confirmation, lancez une seule fois :
+Pour viser une conversation Codex déjà ouverte, suivez le [guide Relay complet](/fr/usage/relay#conversation-codex-ouverte-open).
 
-```text
-palabre relay run-write <demande> --json
-```
+## Parcours expérimental : écriture en arrière-plan
 
-Pour un avis sans modification, un seul appel suffit, vers Claude Code ou Codex :
+`--new --write` vers Codex sous Windows est **expérimental et gelé**, hors parcours par défaut. Une demande ordinaire ne l'active jamais : il faut le demander explicitement à votre agent. Il prépare alors la tâche ; vous devez la relire et la confirmer vous-même avec `approve-write` avant l'unique appel `run-write`.
 
-```text
-palabre relay --new --to claude "Relis le plan et signale les risques, sans modifier de fichier."
-```
-
-Pour viser une conversation déjà ouverte avec `--open`, suivez le [guide Relay complet](/fr/usage/relay#conversation-codex-ouverte-open).
+Ce parcours conserve une copie Git séparée, ou **worktree**, sans vos changements non commités. L'accord ponctuel ne sert qu'une fois. Les étapes et restrictions restent documentées dans [Confier une tâche qui modifie des fichiers](/fr/usage/relay#confier-une-tâche-qui-modifie-des-fichiers), puis [Récupérer le résultat](/fr/usage/relay#récupérer-le-résultat).
 
 ## Bon à savoir
+
+Mission et `--task review` sont gelés : conservés et documentés, sans extension de périmètre ; seuls les correctifs de sécurité sont acceptés.
 
 - Gardez l'identifiant rendu pour continuer explicitement un avis ou une relecture avec `--to codex:<identifiant>` ou `--to claude:<identifiant>`, sans `--new`. Ne choisissez jamais « la dernière conversation » à la place de la cible.
 - Sans `--open`, une conversation existante doit être fermée pendant l'appel. Avec `--open`, seul Codex sous Windows est pris en charge ; le parcours à deux terminaux reste à éprouver davantage.
 - Un identifiant reçu ne prouve pas que la tâche a réussi. Lisez le statut, la délivrance et les preuves du compte rendu. En cas d'échec, ne renvoyez pas automatiquement la demande.
-- `--write` ne permet ni commit, ni push, ni fusion, ni installation de dépendances par l'équipier. Un test bloqué reste signalé ; PALABRE n'élargit pas les permissions pour le faire passer. L'accord est consommé même en échec.
-- Pour créer l'équipier dans un autre projet, utilisez `--dir "../autre-projet"` avec `--new`. L'écriture exige la racine d'un dépôt Git.
+- Dans le parcours expérimental, `--write` ne permet ni commit, ni push, ni fusion, ni installation de dépendances par l'équipier. Un test bloqué reste signalé ; PALABRE n'élargit pas les permissions pour le faire passer. L'accord est consommé même en échec.
+- Pour créer l'équipier dans un autre projet, utilisez `--dir "../autre-projet"` avec `--new`. Le parcours expérimental d'écriture exige la racine d'un dépôt Git.
 
 Les détails, les statuts et les limites de chaque parcours sont dans le [guide Relay complet](/fr/usage/relay).

@@ -2,25 +2,25 @@
 title: Your first Relay
 description: Delegate a task to a teammate through your agent, keep the decision and find the completed work.
 seo:
-  title: Your first Relay, delegate a task to Claude Code or Codex
-  description: "Make your agents cooperate with PALABRE: advice, review or a fix with one-time approval, from Desktop, a terminal or in the background."
+  title: Your first Relay, connect Claude Code and Codex
+  description: "Delegate a task from Claude Code or Codex, find a specific conversation and receive its reply without copying and pasting."
 ---
 
-Relay means delegating a task to a teammate. Your agent hands the work to the other agent and reports back to you. You no longer copy and paste their exchanges; you keep the decision.
+Relay lets your agent delegate a task to another agent (Claude Code, Codex) and bring its reply back to you, without copying and pasting: in a new conversation, or in a specific conversation you have already had with it. Each keeps its own permissions, and you decide what happens next.
+
+You choose the **mission lead**: Claude Code or Codex. Your agent can become the mission lead in any conversation, even one you have just opened: PALABRE only needs to be installed on the machine and the agent needs to have the PALABRE skill.
 
 ## How it works
 
-The agent you talk to is the **mission lead**. The one receiving the task is the **teammate**. They can work in three ways:
+The mission lead is the agent you talk to. The **teammate** receives the task. PALABRE sends the message and returns the reply; the agents carry out the work with their permissions.
 
 | How you work | Directions and current possibilities |
 | --- | --- |
-| Two Desktop applications | Claude Code can delegate a task to an open Codex conversation on Windows with `--open`. It acts with its existing permissions. Sending to an open Claude Code conversation is not yet available. |
-| Two CLI terminals | The same direction to open Codex on Windows with `--open`, but this path remains a pilot with limited testing. Sending to open Claude Code is unavailable. |
-| A background teammate, with no window to open | Claude Code and Codex can delegate advice or reviews in either direction. Codex can also fix files and run tests on Windows with `--new --write`, after your approval for the task. Claude Code cannot yet act this way on native Windows. |
+| Two Desktop applications | Claude Code can reach an open Codex conversation on Windows with `--open`. Codex desktop can reach a closed Claude conversation, with one-time host approval for each command. Sending to open Claude is not yet available. |
+| Two CLI terminals | Claude to open Codex on Windows with `--open` remains a pilot with limited testing. Codex CLI to closed Claude still needs testing. |
+| A background teammate, with no window to open | A new or existing closed conversation can receive a request for advice or a review. Codex desktop to closed Claude and Claude to closed Codex have been verified on Windows. |
 
-You can delegate background work from Desktop or a terminal. For advice or a review without changes, PALABRE creates a conversation with `--new`, or resumes an existing closed conversation. To act in an already open Codex conversation, `--open` keeps its permissions: the message grants no additional rights.
-
-If Codex is the mission lead, its environment may ask you to authorize the network call to Claude Code. This authorization never replaces writing approval.
+In an open Codex conversation, the teammate can act with its usual permissions. Ordinary calls to a closed conversation provide advice and reviews, with restricted tools during the call. Relay grants no additional rights. macOS still needs testing.
 
 ## Relay vocabulary
 
@@ -43,7 +43,7 @@ palabre doctor
 palabre relay --help
 ```
 
-Help must list `--new` and `--write` to follow the whole guide. Otherwise, use a PALABRE version that includes them; see [Installation and updates](/en/get-started/installation).
+Help must list `--new`. Otherwise, use a PALABRE version that includes it; see [Installation and updates](/en/get-started/installation).
 
 Also install the [Palabre skill](/en/get-started/skill) for your usual agent. Copy the entire folder, including references, then open a new conversation so the agent can see it. After a skill update, its installed copy must be updated manually.
 
@@ -51,66 +51,64 @@ Each call uses the selected agent's account and model. Check what you share befo
 
 ## Delegate a task through your agent
 
-From your usual conversation with Claude Code, say for example:
+From your conversation with Claude Code, say for example:
 
-> Use PALABRE to have Codex fix the calculation in src/prices.js and run the existing tests. Prepare the task and show me what I need to confirm.
+> Use PALABRE to ask Codex to review the plan in docs/plan.md and identify risks, without changing files. Create a conversation and keep its identifier for follow-up.
 
-On Windows, your agent prepares a `--new --write` task. You review the task, project and proposed working copy, then confirm yourself in your terminal with `approve-write`. Your agent can then run `run-write`, once only. It never confirms on your behalf.
+The skill creates a conversation if you have not designated one. If you choose an existing conversation, it keeps that specific target, never "the latest".
 
-Codex works in a separate Git copy, called a **worktree**, starting from the announced commit. Your uncommitted changes are not included. Your main project keeps its files; the teammate's work is retained, even on failure.
+To work in an already open Codex conversation on Windows, identify it and describe the task. The mission lead uses `--open`; the teammate keeps its permissions, with no rights added by the message.
 
-For a review without changes, say instead:
+### Codex as mission lead
 
-> Use PALABRE to delegate this plan's review to Claude Code, without changing anything.
+From a Codex desktop conversation opened in the project folder, say for example:
 
-The skill selects the appropriate path. Without a designated conversation, it creates one; otherwise, it keeps your chosen target. For follow-up advice or a review:
+> Use PALABRE to ask Claude Code to review the plan in docs/plan.md, without changing files. Create a conversation and keep its identifier for follow-up.
 
-> Continue with the same Codex to review the result, without changing anything.
+Codex asks for permission to run each PALABRE command **outside its sandbox**. Read the displayed command, then approve **this time only**. Do not grant full access, permanent rights or "always allow". The follow-up command needs its own approval.
 
-The mission lead keeps the identifier and tells you what was done, which tests actually ran, any blockers and what awaits your decision. A new background writing task requires a new conversation and a new one-time approval.
+This approval lets the Claude CLI use its connection and save the exchange in its history. It grants no additional rights to the teammate. Codex desktop's **"Approve on my behalf"** setting may grant these requests without showing a prompt: leave it disabled if you want to confirm each command yourself.
 
-### Where to find the work
+This path has been verified on Windows from Codex desktop. It still needs testing from Codex CLI and on macOS.
 
-- The exchange belongs to the teammate's own conversation, whose identifier PALABRE provides. Immediate Desktop visibility is not guaranteed.
-- Changed files stay in the worktree identified in the report.
-- They appear on GitHub after a separately authorized commit and push, and can then be reviewed in a PR.
+### Continue and find the result
 
-Nothing automatically returns to the conversation of the agent that delegated the task. The mission lead reads the reply and report returned by PALABRE, then reports back to you. To integrate and clean up the work, follow [Retrieve the result](/en/usage/relay#retrieve-the-result).
+> Continue with the same Claude to clarify the main risk, without changing files.
+
+The mission lead reuses the identifier, reads the reply and reports back to you. The exchange stays in the teammate's conversation; PALABRE also gives you the `.relay.md` export path. Immediate Desktop visibility is not guaranteed. The reply returns to the caller without being added automatically to the sender's conversation.
+
+If the teammate changes files in an open conversation, they stay in its working directory. They appear on GitHub only after a separately authorized commit and push. Receiving a reply does not prove the work or tests succeeded.
 
 ## Without an agent
 
-You can also operate Relay yourself. For a fix with Codex on Windows, start at the root of a Git repository with at least one commit:
+You can operate Relay yourself from the project folder:
 
 ```text
-palabre relay --new --write --to codex "Fix the calculation in src/prices.js and run the existing tests, without installing dependencies."
+palabre relay --new --to claude "Review the plan in docs/plan.md and identify risks, without changing files."
 ```
 
-This command prepares the request without starting a model. Replace `<request>` below with the displayed identifier, then confirm yourself:
+Keep the returned identifier to continue, without `--new`:
 
 ```text
-palabre relay approve-write <request>
+palabre relay --to claude:<identifier> "Clarify the main risk, without changing files."
 ```
 
-After approval, run once only:
+To target an already open Codex conversation, follow the [full Relay guide](/en/usage/relay#open-codex-conversation-open).
 
-```text
-palabre relay run-write <request> --json
-```
+## Experimental path: background writing
 
-For advice without changes, one call is enough, to Claude Code or Codex:
+`--new --write` to Codex on Windows is **experimental and frozen**, outside the default path. An ordinary request never enables it: you must explicitly ask your agent for it. It then prepares the task; you must read and confirm it yourself with `approve-write` before the single `run-write` call.
 
-```text
-palabre relay --new --to claude "Review the plan and identify risks, without changing files."
-```
-
-To target an already open conversation with `--open`, follow the [full Relay guide](/en/usage/relay#open-codex-conversation-open).
+This path keeps a separate Git copy, or **worktree**, without your uncommitted changes. One-time approval can only be used once. Steps and restrictions remain documented in [Delegate a task that changes files](/en/usage/relay#delegate-a-task-that-changes-files), then [Retrieve the result](/en/usage/relay#retrieve-the-result).
 
 ## Good to know
+
+Mission and `--task review` are frozen: retained and documented, with no scope expansion; only security fixes are accepted.
 
 - Keep the returned identifier to explicitly continue advice or a review with `--to codex:<identifier>` or `--to claude:<identifier>`, without `--new`. Never choose “the latest conversation” instead of the target.
 - Without `--open`, an existing conversation must be closed during the call. With `--open`, only Codex on Windows is supported; the two-terminal path still needs more testing.
 - Receiving an identifier does not prove task success. Read status, delivery and the report's evidence. After a failure, never resend the request automatically.
-- `--write` permits no commit, push, merge or dependency installation by the teammate. A blocked test stays reported; PALABRE does not widen permissions to make it pass. Approval is consumed even on failure.
-- To create the teammate in another project, use `--dir "../other-project"` with `--new`. Writing requires the root of a Git repository.
+- In the experimental path, `--write` permits no commit, push, merge or dependency installation by the teammate. A blocked test stays reported; PALABRE does not widen permissions to make it pass. Approval is consumed even on failure.
+- To create the teammate in another project, use `--dir "../other-project"` with `--new`. The experimental writing path requires the root of a Git repository.
 
 Details, statuses and limits for each path are in the [full Relay guide](/en/usage/relay).

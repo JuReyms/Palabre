@@ -260,6 +260,10 @@ Ollama doit rester configure par defaut comme `critic`, `scout` ou `summarizer`,
 
 ## Decisions actuelles
 
+- Relay suit la direction B de `docs/relay-cahier-des-charges.md` : communication entre conversations précises, choix du chef de mission Claude Code ou Codex, réponse attribuable ; jamais de sélection de « la dernière » ni de renvoi automatique. Les permissions restent celles des agents ; ne pas décrire Relay comme « lecture seule » en général.
+- `--write` est expérimental et gelé, hors parcours par défaut du skill : seulement sur demande explicite de l'humain, avec ses garde-fous existants. Mission et `--task review` sont gelés : documentation conservée, correctifs de sécurité seulement, aucune extension de périmètre. Ne pas annoncer Mission en écriture.
+- Pendant un tour reçu par Relay, ne poser aucune question à l'humain via la conversation ou un outil interactif (#146) : questions et blocages dans la réponse finale, arrêt avant les actions dépendant d'une décision manquante. Les autorisations techniques de l'hôte pour chaque commande restent nécessaires. Depuis Codex desktop vers Claude, les demander une commande à la fois, sans règle durable ni accès total ; ne jamais attribuer un clic humain sur la seule base d'un succès d'exécution.
+
 - Utiliser `pnpm`, pas npm ou yarn.
 - Palabre devient TUI-first : `palabre` ouvre l'accueil TUI, les commandes directes utilisent la TUI par defaut en TTY, et `--terminal` sert a retrouver le rendu brut.
 - Garder la config en JSON pour le MVP. YAML peut venir plus tard.
