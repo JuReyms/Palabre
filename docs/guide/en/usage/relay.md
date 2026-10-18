@@ -8,6 +8,8 @@ seo:
 
 ## What Relay is for
 
+To start without a conversation ID, follow [Your first Relay](/en/get-started/first-relay).
+
 `palabre relay` sends a message to an existing Codex or Claude Code conversation, then returns its reply to the caller. Agents can hand off without making you copy and paste exchanges; you remain the decision-maker.
 
 ```text

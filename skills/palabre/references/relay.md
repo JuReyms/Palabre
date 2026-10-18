@@ -26,7 +26,7 @@ Le propriétaire lance `palabre relay allow-repo proprietaire/depot`, ou `palabr
 
 Agent : sur `task-not-allowed`, ouvrir `remedy` dans le terminal visible de l'humain et attendre sa réponse. Ne jamais confirmer pour lui, éditer sa politique ni s'accorder des droits. Si l'hôte ne peut pas ouvrir le terminal, lui donner la commande exacte. La tâche ne publie qu'une revue COMMENT ; le merge reste humain. La présence d'un TTY n'est pas une authentification de l'humain.
 
-`palabre relay` transmet **un** message à une conversation Claude Code ou Codex existante et **fermée**, récupère **une** réponse, puis termine. La cible répond avec tout le contexte de sa conversation.
+`palabre relay` crée une conversation avec `--new`, ou reprend une conversation Claude Code ou Codex existante et **fermée**. Il transmet **un** message, récupère **une** réponse, puis termine. Une cible existante retrouve le contexte de sa conversation.
 
 Relay ne fait pas dialoguer deux conversations ouvertes, et ne renvoie rien dans la conversation de l'expéditeur : la réponse revient seulement à l'appelant.
 

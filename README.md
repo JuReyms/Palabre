@@ -76,10 +76,10 @@ On first launch, the TUI creates the global configuration if needed and detects 
 **Relay** runs from the command line:
 
 ```bash
-palabre relay --from claude:<sender-session> --to codex:<target-session> "Can you review my plan?"
+palabre relay --new --to codex "Review this project without changing any file."
 ```
 
-`<session>` is the ID of an existing conversation. By default, the target conversation must be closed: it receives your message with its full context and replies once. To find the ID: [Relay guide](https://palab.re/en/usage/relay).
+`--new` creates a read-only conversation and returns its ID so you can continue. Follow [Your first Relay](https://palab.re/en/get-started/first-relay), or the [full Relay guide](https://palab.re/en/usage/relay) to use an existing conversation.
 
 ### How it works
 
@@ -236,10 +236,10 @@ Au premier lancement, la TUI crée la configuration globale si nécessaire et d�
 **Relay** se lance en ligne de commande :
 
 ```bash
-palabre relay --from claude:<session-expéditeur> --to codex:<session-cible> "Peux-tu relire mon plan ?"
+palabre relay --new --to codex "Relis ce projet sans modifier de fichier."
 ```
 
-`<session>` est l'identifiant d'une conversation existante. Par défaut, la conversation cible doit être fermée : elle reçoit votre message avec tout son contexte et répond une fois. Pour trouver l'identifiant : [guide Relay](https://palab.re/fr/usage/relay).
+`--new` crée une conversation en lecture seule et rend son identifiant pour continuer. Suivez [Premier Relay](https://palab.re/fr/get-started/first-relay), ou le [guide Relay complet](https://palab.re/fr/usage/relay) pour viser une conversation existante.
 
 ### Comment ça fonctionne
 

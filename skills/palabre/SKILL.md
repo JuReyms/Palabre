@@ -1,6 +1,6 @@
 ---
 name: palabre
-description: Utiliser la CLI locale Palabre pour consulter d'autres agents IA (Codex, Claude Code, OpenCode, Vibe, Antigravity, Ollama) et choisir le bon parcours — Chat pour avancer avec un agent et demander un second avis ponctuel, Débat pour confronter deux positions, Ask pour recueillir jusqu'à quatre avis indépendants, Relay pour interroger une conversation Claude Code ou Codex fermée qui possède déjà le contexte. Utiliser quand l'utilisateur demande de « lancer un palabre », « faire débattre », « confronter deux avis », un second avis, une relecture contradictoire, de comparer des agents ou des modèles, de poursuivre après une synthèse, ou de « demander à » une autre conversation d'agent.
+description: Utiliser la CLI locale Palabre pour consulter d'autres agents IA (Codex, Claude Code, OpenCode, Vibe, Antigravity, Ollama). Relay pour confier une question ou une relecture à Codex ou Claude Code, dans une conversation neuve ou existante ; Chat pour avancer avec un agent, Débat pour confronter deux positions, Ask pour recueillir jusqu'à quatre avis indépendants. Utiliser quand l'utilisateur demande de « passer par Palabre », « demander à Codex de relire ce fichier », « lancer un palabre », « faire débattre », un second avis, une relecture contradictoire, de comparer des agents ou de poursuivre après une synthèse.
 ---
 
 # Palabre : consulter d'autres agents depuis le terminal
@@ -17,7 +17,7 @@ Pour un chemin absolu, `available` et `doctor` vérifient le fichier configuré,
 
 Utiliser Palabre quand un autre regard change la décision : architecture, refactoring, revue critique, plan risqué, comparaison de modèles, désaccord à trancher. S'abstenir pour une réponse factuelle, une tâche simple que l'hôte sait faire seul, ou par réflexe à chaque demande : chaque appel est lent et consomme les quotas des agents.
 
-Quand l'utilisateur le demande explicitement (« lance un palabre », « fais débattre »), exécuter sans redemander confirmation, en déduisant sujet et fichiers du contexte. Ne poser une question que si une information bloque : aucun sujet déductible, aucun agent disponible, ou cible Relay inconnue.
+Quand l'utilisateur le demande explicitement (« lance un palabre », « fais débattre », « passe par Palabre pour demander à Codex de relire ce fichier »), exécuter sans redemander confirmation, en déduisant sujet et fichiers du contexte. Ne poser une question que si une information bloque : aucun sujet déductible, aucun agent disponible, ou conversation existante demandée mais non identifiée. Sans conversation désignée, `--new` évite de demander un identifiant.
 
 ## Choisir le parcours
 
@@ -26,16 +26,19 @@ Quand l'utilisateur le demande explicitement (« lance un palabre », « fais d�
 | Avancer avec un agent, clarifier, poursuivre après une synthèse ; second avis ponctuel | **Chat** | `palabre chat --agent-a <agent> --renderer ndjson` (commandes JSON sur stdin) |
 | Confronter deux positions et travailler les désaccords | **Débat** | `palabre run --mode debate -s "<sujet>" -t 4 --terminal` |
 | Avis indépendants (1 à 4 agents), sans influence mutuelle | **Ask** | `palabre ask "<sujet>" --agents <a> <b> --terminal` |
-| Interroger une conversation Claude Code ou Codex **fermée** qui a déjà le contexte | **Relay** | `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> "<message>" --json` |
+| Confier une question/relecture à Codex ou Claude Code, conversation neuve ou existante **fermée** | **Relay** | `palabre relay --new --to codex --from claude "<message>" --json` ; suite : `--to codex:<id>` sans `--new` |
 
 Repères :
-- un seul avis complémentaire suffit → Chat (ou Ask avec un agent) ; ne pas imposer un Débat ;
+- demande explicite à Codex ou Claude Code via Palabre → Relay, même pour un seul avis ; sans conversation désignée, créer avec `--new`, pas Chat ou Ask ;
+- sinon, un seul avis complémentaire suffit → Chat (ou Ask avec un agent) ; ne pas imposer un Débat ;
 - Débat quand l'échange contradictoire lui-même apporte de la valeur ; Ask quand l'indépendance des avis compte ;
 - Relay vers une cible existante explicitement désignée, ou `--new --to <agent>` pour une nouvelle conversation. Ne jamais choisir la plus récente ; une cible existante encore ouverte est refusée sans `--open`.
 
 ## Relay v1 : équipier en arrière-plan
 
 Pour créer un équipier sans conversation préparée : `palabre relay --new --to codex --from claude "<question en lecture seule>" --json`. Utiliser le dossier courant, ou `--dir "<autre-projet>"` pour un autre dossier existant. Lire et retenir `to.session` dès qu'il est rendu, même si le premier tour échoue ; `created` signifie identifiant reçu, pas tâche réussie. Continuer explicitement avec `palabre relay --to codex:<id> --from claude "<suite>" --json`, sans `--new`. Vérifier la délivrance avant tout renvoi après un échec. Aucun retry automatique.
+
+Dans la demande, nommer le fichier à lire et le résultat attendu, sans copier son contenu si l'équipier peut le lire. Au retour, vérifier `status`, `delivery.status` et les erreurs ; rendre à l'humain l'avis, ses limites, `to.session`, `cwd` s'il est présent et le chemin `exportPath`. Garder cet identifiant dans le contexte pour « demande au même Codex » ; aucun nouvel appel sans demande explicite. Si l'appel a échoué, un identifiant conservé n'autorise ni un succès annoncé ni un renvoi automatique.
 
 Ne pas construire `--from ""` ni `--dir ""` : omettre ces options quand elles n'ont pas de valeur.
 
@@ -83,6 +86,8 @@ Une limite d’usage structurée avec `--open` donne `usage-limit` (code 2), ave
 ## Restitution
 
 Lire l'export annoncé (`done.outputPath`, `exportPath` ou chemin affiché) : `.chat.md`, `.debate.md`, `.ask.md`, `.relay.md`, dans `outputDir` (`.palabre/` par défaut). Rendre simplement décisions, désaccords, limites et prochaines étapes, puis proposer une suite : tâches, application du seul consensus, nouveau tour sur un désaccord, Chat pour poursuivre, commentaire de PR ou ADR.
+
+**Après un Relay, même pour un compte rendu bref**, terminer par « Conversation : `<agent>:<to.session>` » si l'identifiant est reçu, « Dossier : `<cwd>` » si présent, puis « Export : `<exportPath>` » sauf export désactivé. Donner la commande `palabre relay --to <agent>:<to.session> "<suite>"` pour continuer, sans l'exécuter. Ne pas remplacer ces informations par « je garde l'identifiant » ni par une proposition de Chat. Si aucun identifiant n'est reçu, le dire ; si l'appel échoue, exposer l'erreur avant l'avis et ne pas annoncer de relecture réussie.
 
 ## Références (charger à la demande)
 

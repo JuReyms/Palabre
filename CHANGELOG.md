@@ -10,6 +10,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 
 ### Added
+- Documentation : guide « Premier Relay » en fr/en, lié depuis le démarrage rapide et le guide Relay. Le skill choisit Relay pour une relecture déléguée à Codex ou Claude Code, crée un équipier si nécessaire et garde son identifiant pour la suite (Refs #150). Une copie installée du skill doit être mise à jour manuellement.
 - Relay : `--new --to <agent>` crée une conversation Claude Code ou Codex persistante en lecture seule ; `--dir` choisit son dossier. L'identifiant est rendu avec une commande de continuation, en JSON et dans l'export, même si le premier tour échoue (Refs #149, #150).
 
 ### Changed

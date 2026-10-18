@@ -8,6 +8,8 @@ seo:
 
 ## À quoi sert Relay
 
+Pour commencer sans connaître d'identifiant de conversation, suivez [Premier Relay](/fr/get-started/first-relay).
+
 `palabre relay` transmet un message à une conversation Codex ou Claude Code existante, puis rend sa réponse à l'appelant. Un agent peut ainsi passer la main sans vous faire copier-coller les échanges ; vous restez le décideur.
 
 ```text

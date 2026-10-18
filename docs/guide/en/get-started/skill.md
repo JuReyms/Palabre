@@ -11,7 +11,7 @@ Palabre ships a ready-to-use skill. It teaches an AI agent that Palabre is avail
 | Path | When the agent picks it |
 |------|-------------------------|
 | [Debate](/en/usage/debate) | Confront two positions and work through the disagreements. |
-| [Relay](/en/usage/relay) | Query an existing conversation that holds the context: closed by default, or open Codex with `--open` (Windows pilot). |
+| [Relay](/en/usage/relay) | Delegate a question or review to Codex or Claude Code: a new conversation with `--new`, or an existing one, closed by default. |
 | [Ask](/en/usage/ask) | Collect up to four independent opinions before comparing them. |
 | [Chat](/en/usage/chat) | Move forward with one agent, ask for a one-off second opinion, continue after a summary. |
 
@@ -34,6 +34,8 @@ For Codex, `~/.agents/skills/` is the user location given by the [Codex document
 For Claude desktop or another agent, follow its own skill-install procedure pointing at this folder.
 
 After updating Palabre, copy the folder again: the installed copy is not updated automatically.
+
+To try it, say: "Use Palabre to ask Codex to review this file without changing anything." The skill creates a conversation if needed and keeps its ID for follow-up questions. Follow [Your first Relay](/en/get-started/first-relay).
 
 ## When the agent sees the skill
 
