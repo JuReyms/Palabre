@@ -42,7 +42,8 @@ La tâche review publie seulement une revue COMMENT sous la politique Relay exis
 Si Codex signale des lectures bloquées sous Windows : Mission en pause, réponse conservée,
 aucune revue publiée. Cause probable : le raccourci Microsoft Store WindowsApps\\pwsh.exe.
 Le propriétaire consulte https://palab.re/fr/troubleshooting (Codex sous Windows) et #128 ;
-pas de solution validée à ce jour pour ce parcours, aucun changement de permission ni renvoi automatique.
+alias Store confirmé écarté seulement dans l'enfant Codex si un PowerShell natif reste disponible.
+Les autres alias de ce dossier y deviennent indisponibles. Aucun changement de permission ni renvoi automatique.
 Chaque étape reçoit l'en-tête PALABRE Mission, puis l'avertissement ℹ️ sur une ligne séparée
 avant le contenu. Objectif et critères sont lisibles sur deux lignes, sans JSON ; la partie
 « 🤖 Message pour l'agent » termine le message. Le tout compte dans les 64 Kio UTF-8 de coordination.
@@ -248,7 +249,9 @@ Limites :
   Erreur 5 Windows au démarrage d'une commande Codex : read-unavailable (code 2), réponse conservée.
   Avec review : review-failed (9), aucune publication. Cause probable : le raccourci Microsoft Store
   WindowsApps\\pwsh.exe. Le propriétaire consulte https://palab.re/fr/troubleshooting (Codex sous Windows)
-  et https://github.com/JuReyms/Palabre/issues/128 : pas de solution validée pour ce parcours.
+  et https://github.com/JuReyms/Palabre/issues/128 : étapes pour PowerShell natif si le blocage persiste.
+  L'alias Store confirmé est écarté seulement dans l'enfant Codex si un PowerShell natif reste disponible.
+  Les autres alias du dossier écarté y deviennent indisponibles. Aucun PATH global modifié.
   Palabre ne change aucune permission et ne renvoie rien automatiquement.
   --new crée la cible sans choisir une conversation existante. L'identifiant reçu reste
   dans to.session et l'export, même si le premier tour échoue ; cwd indique le dossier.
@@ -396,7 +399,8 @@ The review task only publishes a COMMENT review under the existing Relay policy.
 If Codex reports blocked reads on Windows: Mission pauses, preserves the reply and publishes
 no review. Probable cause: the Microsoft Store shortcut WindowsApps\\pwsh.exe.
 The owner reads https://palab.re/en/troubleshooting (Codex on Windows) and #128;
-no validated solution yet for this workflow, no permission changes or automatic retries.
+a confirmed Store alias is excluded only in the Codex child if native PowerShell remains available.
+Other aliases in that directory become unavailable there. No permission changes or automatic retries.
 Each step receives a PALABRE Mission header, then the ℹ️ warning on a separate line before
 the content. Objective and criteria appear on two readable lines, without JSON; the final
 « 🤖 Message for the agent » section closes the message. All count toward 64 KiB UTF-8 of coordination.
@@ -590,7 +594,9 @@ Limits:
   Windows error 5 starting a Codex command: read-unavailable (code 2), reply preserved.
   With review: review-failed (9), no publication. Probable cause: the Microsoft Store shortcut
   WindowsApps\\pwsh.exe. The owner reads https://palab.re/en/troubleshooting (Codex on Windows)
-  and https://github.com/JuReyms/Palabre/issues/128: no validated solution yet for this workflow.
+  and https://github.com/JuReyms/Palabre/issues/128: native PowerShell steps if reads remain blocked.
+  A confirmed Store alias is excluded only in the Codex child if native PowerShell remains available.
+  Other aliases in that directory become unavailable there. No global PATH change.
   Palabre changes no permissions and never resends automatically.
   --new never selects an existing conversation. The received identifier remains in to.session
   and the export even when the first turn fails; cwd gives the directory. Text output gives

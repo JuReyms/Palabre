@@ -22,6 +22,7 @@ import path from "node:path";
 import { extractUsageLimitMessage } from "../adapters/cli-shared.js";
 import { PREPARATION_LIMITS, type ExternalSessionAdapter, type LocateResult, type PreparationResult, type PreparationRunner, type ProviderVerdict } from "./adapter.js";
 import { isSessionId } from "./envelope.js";
+import { codexWindowsEnvironment } from "./codexWindowsEnvironment.js";
 import type { PreLaunchRefusal } from "./outcome.js";
 import { isUsableDirectory, type ExternalProcessResult } from "./process.js";
 import type { DeliveryEvidence, ExchangeInterpretation, ExternalTarget, SessionIdentity, SessionRef, TargetProbe } from "./types.js";
@@ -259,6 +260,10 @@ function preparationLaunchRefusal(run: ExternalProcessResult): PreLaunchRefusal 
 /** Adapter Codex. */
 export class CodexSessionAdapter implements ExternalSessionAdapter {
   readonly provider = "codex" as const;
+  /** Évite seulement l'alias PowerShell Store confirmé ; les permissions restent inchangées. */
+  environment(source: NodeJS.ProcessEnv): Promise<NodeJS.ProcessEnv> {
+    return codexWindowsEnvironment(source);
+  }
   private readonly home: string;
   private readonly lockProbe: (file: string) => LockProbe;
 
