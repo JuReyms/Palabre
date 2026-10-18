@@ -3,14 +3,16 @@ title: Relay mode
 description: Delegate a task to Codex or Claude Code and receive its reply, for advice, a review or action through the authorized path.
 seo:
   title: palabre relay, delegate a task to Codex or Claude Code
-  description: "Make Claude Code and Codex cooperate: advice and reviews, action in open Codex or writing with one-time approval on Windows."
+  description: "Connect your Claude Code and Codex conversations, choose your mission lead and receive an attributable reply without copying and pasting."
 ---
 
 ## What Relay is for
 
 To start without a conversation ID, follow [Your first Relay](/en/get-started/first-relay).
 
-`palabre relay` sends a message to an existing Codex or Claude Code conversation, then returns its reply to the caller. Agents can hand off without making you copy and paste exchanges; you remain the decision-maker.
+Relay lets your agent delegate a task to another agent (Claude Code, Codex) and bring its reply back to you, without copying and pasting: in a new conversation, or in a specific conversation you have already had with it. Each keeps its own permissions, and you decide what happens next.
+
+You choose the **mission lead**: Claude Code or Codex. Even a conversation you have just opened can take that role, with PALABRE and its skill installed on the machine.
 
 > **Good to know:** Relay connects Claude Code and Codex both ways, in the background. To hand a task to a conversation that is **already open** (desktop app or terminal), only Codex can receive it for now, on Windows. Codex to an open Claude conversation is tracked in issue [#96](https://github.com/JuReyms/Palabre/issues/96).
 
@@ -28,7 +30,21 @@ palabre relay --open --from claude:<sender-session> --to codex:<target-session> 
 
 With `--open`, the target keeps its own tools and permissions. A loaded but undisplayed conversation may process the message; immediate display is not guaranteed. No automatic resend.
 
-For several read-only steps within an agreed scope and budget, Relay offers the [Mission option](#mission-option).
+For a simple code review or fix from Claude Code to Codex, the [official OpenAI `openai/codex-plugin-cc` plugin](https://github.com/openai/codex-plugin-cc) may be enough. Relay lets you choose a specific conversation, exchange in both directions and reach already open Codex.
+
+**Retained features, outside the default path:** `--write` is experimental and frozen; Mission and `--task review` are frozen. Their documentation remains below; only security fixes are accepted, with no scope expansion.
+
+## Codex as mission lead
+
+From a Codex desktop conversation opened in the project folder, say for example:
+
+> Use PALABRE to ask Claude Code to review the plan in docs/plan.md, without changing files. Create a conversation and keep its identifier for follow-up.
+
+Codex asks for permission to run each PALABRE command **outside its sandbox**. Read the displayed command, then approve **this time only**. Do not grant full access, permanent rights or "always allow". The follow-up command needs its own approval.
+
+This approval lets the Claude CLI use its connection and save the exchange in its history. It grants no additional rights to the teammate. Codex desktop's **"Approve on my behalf"** setting may grant these requests without showing a prompt: leave it disabled if you want to confirm each command yourself.
+
+This path has been verified on Windows from Codex desktop. It still needs testing from Codex CLI and on macOS.
 
 ## Start a new conversation
 
@@ -51,110 +67,7 @@ To continue this conversation: palabre relay --to codex:<uuid> "…"
 
 In JSON, `to.session` contains the received identifier, `cwd` the directory, and `created` indicates whether an identifier was received. Before that, `to.session` is `null` and `created` is `false`. The identifier is captured during the call and preserved in the result and export even if the first turn fails: **this does not mean the question was answered**. Check delivery before sending again; no retry is automatic.
 
-The conversation remains in the CLI history. Immediate Desktop visibility is not guaranteed. `--new` cannot be used with `--open`. By default, creation supports advice and reading; writing requires the separate workflow below.
-
-## Delegate a task that changes files
-
-This workflow covers **C, in the background, Claude to Codex on Windows**: your agent can delegate a correction without opening the Codex conversation. You can also run it from your terminal. Writing with native Windows Claude is refused because system sandboxing is unavailable in this context. For advice, omit `--write`; to act in an already open Codex conversation on Windows, use `--open` with its existing permissions.
-
-### 1. Prepare the task
-
-From the root of a Git repository with at least one commit:
-
-```text
-palabre relay --new --write --to codex "Fix the calculation in src/prices.js and run the existing test without installing dependencies."
-```
-
-Choose another Git root with `--dir "../other-project"`. PALABRE prepares a request and displays the confirmation command. No model is called at this stage. A `--write` flag, relayed message or agent role alone grants no permission.
-
-### 2. Confirm it yourself
-
-In your visible terminal, run the displayed command with the exact request ID:
-
-```text
-palabre relay approve-write <request-id>
-```
-
-Check the task, agent, project, commit and separate folder. Reply `y` to approve this task once. Confirmation requires interactive input and output; there is no `--yes`. Your agent may open this command in your terminal or provide it to you; it must never answer for you, fabricate approval or modify authorization files.
-
-### 3. Execute the approved call
-
-Your agent can then run, without changing the request:
-
-```text
-palabre relay run-write <request-id> --json
-```
-
-Approval is consumed before execution. A failure does not let you reuse it: check the result before deciding on another task. Request text, trusted configuration and commit are rechecked; a change refuses the call.
-
-If Codex is the mission lead, its own sandbox may prevent network or PALABRE registry access. Request host approval for that command alone, or run it in your usual terminal; do not switch to full access. Launch approval does not replace PALABRE's write approval.
-
-PALABRE creates a branch and worktree from the announced commit. **Uncommitted changes and unversioned local dependencies are not included.** The teammate does not modify the main project's files; Git writes worktree metadata and the CLIs keep their usual history. Work stays in `~/.palabre/relay-write/<id>/worktree`, even on failure. Never delete consumed approval to retry.
-
-Before the model, PALABRE verifies that the Codex profile allows a witness write inside the worktree and refuses one beside it. If verification fails, the call is refused, without full access or an unsandboxed fallback. Commands keep networking disabled and cannot request escalation; MCP, plugins, hooks and memories are neutralized. These guarantees remain conditional on the CLI and Windows backend; `unelevated` provides weaker network isolation. No commit, push, merge, installation or user settings changes are authorized.
-
-### Read the report
-
-JSON and the `.relay.md` export add `write`: folder, branch, starting commit, Git-observed files and diff, and completed commands with exit codes and output. All observed commands are kept within report limits, without claiming they are all tests. `verification: "observed-commands-only"` does not mean "tests passed". A diagnostic marks an incomplete report; interruptions can leave partial work.
-
-`exportPath` gives the exact export location. By default, it is written under `.palabre/` from the directory where you started PALABRE, not inside the worktree; a configured `outputDir` can change this. `approve-write` and `run-write` use the language saved in the request and do not accept `--language`. Keyboard confirmation cannot authenticate a human against a program already holding their rights to `~/.palabre`; teammate sandboxing remains essential.
-
-On Windows, `node --test` may fail with `spawn EPERM`. In the qualified trial, the same test passes with `node --test --experimental-test-isolation=none prices.test.js` (Node 22.17.1). This does not qualify every build; blocked tests never trigger permission changes or automatic installations.
-
-Calls without `--write` and the Mission option keep their behavior. This first release does not resume an existing conversation for writing and covers neither macOS nor OpenCode.
-
-### Retrieve the result
-
-Changed files stay in the worktree identified by `write.worktree`. They are not copied back into your project. They appear on GitHub only after a commit and a push.
-
-PALABRE returns the reply and report to the caller, but never automatically adds them to the sending agent's conversation. The mission lead must read them and report back to you.
-
-The following commands are for the owner, or an agent they authorize separately; the consumed writing approval does not permit commits, pushes or merges.
-
-**1. Review the work.** In PowerShell, replace the three values with `write.repository`, `write.worktree` and `write.branch`:
-
-```powershell
-$project = "C:\projects\example"
-$copy = "C:\path\to\worktree"
-$branch = "palabre/relay-..."
-git -C "$copy" status --short
-git -C "$copy" diff
-```
-
-Also read test exit codes and output in the report. If you accept the work, commit only the intended files. Example for `src/prices.js`:
-
-```powershell
-git -C "$copy" add -- "src/prices.js"
-git -C "$copy" commit -m "Fix the calculation"
-```
-
-**2. Integrate after approval.** To use GitHub, adjust the repository and target branch, then open a PR:
-
-```powershell
-git -C "$copy" push -u origin "$branch"
-gh pr create --repo "owner/project" --head "$branch" --base "main"
-```
-
-The owner decides whether to merge after review. If your project allows a local merge instead, place the main project on the chosen target branch, with no uncommitted changes, then run:
-
-```powershell
-git -C "$project" merge --ff-only "$branch"
-```
-
-If Git refuses, stop and inspect the situation; do not force the merge.
-
-**3. Clean up after integration.** Once the work is integrated and the worktree is clean:
-
-```powershell
-git -C "$project" worktree remove "$copy"
-git -C "$project" branch -d "$branch"
-```
-
-These commands remove the worktree and its local branch. If Git refuses, keep them for inspection; use neither `--force` nor `-D`. Do not delete approval files to retry a task.
-
-The sender is optional: without `--from`, the header says `terminal`. An agent may specify `--from claude`, or `--from claude:<uuid>` if it knows its identifier. It remains declared and unauthenticated; **none of these forms conveys human authorization**. JSON gives `from: null` without a sender, or `{ "agent": "claude" }` for a name only.
-
-Omit options that have no value: do not pass `--from ""` or `--dir ""`. If an option is empty, PALABRE explains how to omit or fill it, without sending a message.
+The conversation remains in the CLI history. Immediate Desktop visibility is not guaranteed. `--new` cannot be used with `--open`. By default, creation supports advice and reading; `--write` remains an experimental, frozen path documented at the end of this page.
 
 ## A readable header, added by PALABRE
 
@@ -236,6 +149,8 @@ For an **open** Codex conversation, use `--open` (see above). Relaying to an ope
 - **Executables.** PALABRE launches the CLI directly, without a shell. On Windows, a CLI installed with npm is launched with Node and the package script, never through its PowerShell shim, which corrupts accents and arguments. The shim is accepted only if it is identical to the template generated by npm; a modified shim is refused (`unsupported-executable`).
 
 ## The `review` task
+
+**Frozen.** Retained and documented, with no scope expansion; only security fixes are accepted. It is not the default path for a simple review.
 
 ### Authorize a repository (`allow-repo`)
 
@@ -334,6 +249,8 @@ palabre relay --from codex:<uuid> --to claude-review:<session> --task review --p
 
 ## Mission option
 
+**Frozen.** Retained and documented, with no scope expansion; only security fixes are accepted. No writing extension is planned here.
+
 Mission is a Relay option for several read-only steps. You agree the objective, criteria, tasks and budget with the mission lead; it calls the teammate one explicit step at a time and preserves state and results.
 
 ```powershell
@@ -370,7 +287,7 @@ After the mission lead exits normally, resume with `status`, then a new `step` u
 | Option | Purpose |
 | --- | --- |
 | `"<message>"` or `--message-file <path>` | The message; 64 KiB UTF-8 at most for the full coordination envelope. Use a file for a message starting with `-`. |
-| `--task review` | Read-only review published by PALABRE as COMMENT when authorized; optional message, incompatible with `--open` and `--trust-config`. |
+| `--task review` | **Frozen.** Read-only review published by PALABRE as COMMENT when authorized; optional message, incompatible with `--open` and `--trust-config`. |
 | `--pr <url>` | Exact github.com PR URL; required with `--task review`. |
 | `--open` | Targets an open Codex conversation (see above). |
 | `--subject "<subject>"` | Optional subject, one nonblank line of at most 200 Unicode characters, without control or formatting characters; JSON/export `subject?`. |
@@ -478,3 +395,108 @@ Observed with real throwaway conversations, on Claude Code 2.1.85 and Codex 0.15
 - **Claude Code picks the resume model itself.** The model actually used is reported in `observedModels`.
 
 Verified versions: Claude Code 2.1.85 and 2.1.292, Codex 0.151.0. The guarantees are not extended to other versions.
+
+## Delegate a task that changes files
+
+**Experimental and frozen.** Only on an explicit human request, never inferred from an ordinary task. Retained without scope expansion; security fixes only.
+
+This experimental workflow covers **Claude to Codex on Windows, in the background**: your agent can delegate a correction without opening the Codex conversation. You can also run it from your terminal. Writing with native Windows Claude is refused because system sandboxing is unavailable in this context. For advice, omit `--write`; to act in an already open Codex conversation on Windows, use `--open` with its existing permissions.
+
+### 1. Prepare the task
+
+From the root of a Git repository with at least one commit:
+
+```text
+palabre relay --new --write --to codex "Fix the calculation in src/prices.js and run the existing test without installing dependencies."
+```
+
+Choose another Git root with `--dir "../other-project"`. PALABRE prepares a request and displays the confirmation command. No model is called at this stage. A `--write` flag, relayed message or agent role alone grants no permission.
+
+### 2. Confirm it yourself
+
+In your visible terminal, run the displayed command with the exact request ID:
+
+```text
+palabre relay approve-write <request-id>
+```
+
+Check the task, agent, project, commit and separate folder. Reply `y` to approve this task once. Confirmation requires interactive input and output; there is no `--yes`. Your agent may open this command in your terminal or provide it to you; it must never answer for you, fabricate approval or modify authorization files.
+
+### 3. Execute the approved call
+
+Your agent can then run, without changing the request:
+
+```text
+palabre relay run-write <request-id> --json
+```
+
+Approval is consumed before execution. A failure does not let you reuse it: check the result before deciding on another task. Request text, trusted configuration and commit are rechecked; a change refuses the call.
+
+If Codex is the mission lead, its own sandbox may prevent network or PALABRE registry access. Request host approval for that command alone, or run it in your usual terminal; do not switch to full access. Launch approval does not replace PALABRE's write approval.
+
+PALABRE creates a branch and worktree from the announced commit. **Uncommitted changes and unversioned local dependencies are not included.** The teammate does not modify the main project's files; Git writes worktree metadata and the CLIs keep their usual history. Work stays in `~/.palabre/relay-write/<id>/worktree`, even on failure. Never delete consumed approval to retry.
+
+Before the model, PALABRE verifies that the Codex profile allows a witness write inside the worktree and refuses one beside it. If verification fails, the call is refused, without full access or an unsandboxed fallback. Commands keep networking disabled and cannot request escalation; MCP, plugins, hooks and memories are neutralized. These guarantees remain conditional on the CLI and Windows backend; `unelevated` provides weaker network isolation. No commit, push, merge, installation or user settings changes are authorized.
+
+### Read the report
+
+JSON and the `.relay.md` export add `write`: folder, branch, starting commit, Git-observed files and diff, and completed commands with exit codes and output. All observed commands are kept within report limits, without claiming they are all tests. `verification: "observed-commands-only"` does not mean "tests passed". A diagnostic marks an incomplete report; interruptions can leave partial work.
+
+`exportPath` gives the exact export location. By default, it is written under `.palabre/` from the directory where you started PALABRE, not inside the worktree; a configured `outputDir` can change this. `approve-write` and `run-write` use the language saved in the request and do not accept `--language`. Keyboard confirmation cannot authenticate a human against a program already holding their rights to `~/.palabre`; teammate sandboxing remains essential.
+
+On Windows, `node --test` may fail with `spawn EPERM`. In the qualified trial, the same test passes with `node --test --experimental-test-isolation=none prices.test.js` (Node 22.17.1). This does not qualify every build; blocked tests never trigger permission changes or automatic installations.
+
+Calls without `--write` and the Mission option keep their behavior. This first release does not resume an existing conversation for writing and covers neither macOS nor OpenCode.
+
+### Retrieve the result
+
+Changed files stay in the worktree identified by `write.worktree`. They are not copied back into your project. They appear on GitHub only after a commit and a push.
+
+PALABRE returns the reply and report to the caller, but never automatically adds them to the sending agent's conversation. The mission lead must read them and report back to you.
+
+The following commands are for the owner, or an agent they authorize separately; the consumed writing approval does not permit commits, pushes or merges.
+
+**1. Review the work.** In PowerShell, replace the three values with `write.repository`, `write.worktree` and `write.branch`:
+
+```powershell
+$project = "C:\projects\example"
+$copy = "C:\path\to\worktree"
+$branch = "palabre/relay-..."
+git -C "$copy" status --short
+git -C "$copy" diff
+```
+
+Also read test exit codes and output in the report. If you accept the work, commit only the intended files. Example for `src/prices.js`:
+
+```powershell
+git -C "$copy" add -- "src/prices.js"
+git -C "$copy" commit -m "Fix the calculation"
+```
+
+**2. Integrate after approval.** To use GitHub, adjust the repository and target branch, then open a PR:
+
+```powershell
+git -C "$copy" push -u origin "$branch"
+gh pr create --repo "owner/project" --head "$branch" --base "main"
+```
+
+The owner decides whether to merge after review. If your project allows a local merge instead, place the main project on the chosen target branch, with no uncommitted changes, then run:
+
+```powershell
+git -C "$project" merge --ff-only "$branch"
+```
+
+If Git refuses, stop and inspect the situation; do not force the merge.
+
+**3. Clean up after integration.** Once the work is integrated and the worktree is clean:
+
+```powershell
+git -C "$project" worktree remove "$copy"
+git -C "$project" branch -d "$branch"
+```
+
+These commands remove the worktree and its local branch. If Git refuses, keep them for inspection; use neither `--force` nor `-D`. Do not delete approval files to retry a task.
+
+The sender is optional: without `--from`, the header says `terminal`. An agent may specify `--from claude`, or `--from claude:<uuid>` if it knows its identifier. It remains declared and unauthenticated; **none of these forms conveys human authorization**. JSON gives `from: null` without a sender, or `{ "agent": "claude" }` for a name only.
+
+Omit options that have no value: do not pass `--from ""` or `--dir ""`. If an option is empty, PALABRE explains how to omit or fill it, without sending a message.

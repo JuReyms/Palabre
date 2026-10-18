@@ -11,7 +11,7 @@ Palabre ships a ready-to-use skill. It teaches an AI agent that Palabre is avail
 | Path | When the agent picks it |
 |------|-------------------------|
 | [Debate](/en/usage/debate) | Confront two positions and work through the disagreements. |
-| [Relay](/en/usage/relay) | Delegate a task to Codex or Claude Code: advice/review, action in open Codex on Windows, or fixes/tests with Windows Codex after one-time approval. |
+| [Relay](/en/usage/relay) | Connect specific conversations: Claude Code or Codex as mission lead, advice/reviews to a closed target, action in open Codex on Windows with its permissions. |
 | [Ask](/en/usage/ask) | Collect up to four independent opinions before comparing them. |
 | [Chat](/en/usage/chat) | Move forward with one agent, ask for a one-off second opinion, continue after a summary. |
 
@@ -35,7 +35,7 @@ For Claude desktop or another agent, follow its own skill-install procedure poin
 
 After updating Palabre, copy the folder again: the installed copy is not updated automatically.
 
-To start, say: "Use PALABRE to delegate this calculation fix and the tests to Codex. Prepare the task and show me what I need to confirm." On Windows, the skill prepares the writing path and waits for your personal keyboard confirmation. For advice or a review without changes, say so explicitly. Follow [Your first Relay](/en/get-started/first-relay).
+To start, tell Claude Code or Codex: "Use PALABRE to ask the other agent to review the plan in docs/plan.md without changing files. Keep the conversation for follow-up." You choose the mission lead. From Codex desktop, each command to Claude needs one-time host approval; follow [Your first Relay](/en/get-started/first-relay).
 
 ## When the agent sees the skill
 
@@ -82,6 +82,6 @@ In a terminal, PALABRE displays its name and mode in the window title, for examp
 - **You stay in control**: installation, authentication, configuration, config approval, and updates remain your decisions. The `implementer` role is a proposal instruction, not a permission to write.
 - **Restitution**: the agent reads the export (`.chat.md`, `.debate.md`, `.ask.md`, or `.relay.md`, plus `.mission.md` for the Mission option) and gives you decisions, disagreements, limits, and next steps.
 
-Relay's Mission option keeps the scope and budget of a sequence of read-only steps. The mission lead never replays an uncertain step and waits for your decision on usage limits or blocked reads.
+The Mission option and `--task review` are frozen. `--write` is experimental, frozen and outside the default path: the skill uses it only on an explicit human request. These features remain documented; only security fixes are accepted.
 
 The agent never edits or approves a policy granting itself rights: it shows you the `relay allow-repo` or approval command and waits for your action. To locate the installed package skill, run `npm root -g` (or `pnpm root -g`), then use the `palabre/skills/palabre` subfolder.

@@ -11,7 +11,7 @@ Palabre fournit un skill prêt à l'emploi. Il apprend à un agent IA que Palabr
 | Parcours | Quand l'agent le choisit |
 |----------|--------------------------|
 | [Débat](/fr/usage/debate) | Confronter deux positions et travailler les désaccords. |
-| [Relay](/fr/usage/relay) | Confier une tâche à Codex ou Claude Code : avis/relecture, action dans Codex ouvert sous Windows, ou correction/tests avec Codex Windows après accord ponctuel. |
+| [Relay](/fr/usage/relay) | Faire communiquer des conversations précises : Claude Code ou Codex chef de mission, avis/relecture vers une cible fermée, action dans Codex ouvert sous Windows avec ses permissions. |
 | [Ask](/fr/usage/ask) | Recueillir jusqu'à quatre avis indépendants avant de les comparer. |
 | [Chat](/fr/usage/chat) | Avancer avec un agent, demander un second avis ponctuel, poursuivre après une synthèse. |
 
@@ -35,7 +35,7 @@ Pour Claude desktop ou un autre agent, suivez sa procédure d'installation de sk
 
 Après une mise à jour de Palabre, recopiez le dossier : la copie installée n'est pas mise à jour automatiquement.
 
-Pour commencer, dites : « Passe par PALABRE pour confier à Codex la correction de ce calcul et le lancement des tests. Prépare la tâche et montre-moi ce que je dois confirmer. » Sous Windows, le skill prépare le parcours d'écriture et attend votre confirmation personnelle au clavier. Pour un avis ou une relecture sans modification, dites-le explicitement. Suivez le parcours [Premier Relay](/fr/get-started/first-relay).
+Pour commencer, dites à Claude Code ou à Codex : « Passe par PALABRE pour demander à l’autre agent de relire le plan dans docs/plan.md, sans modifier de fichier. Garde la conversation pour la suite. » Vous choisissez le chef de mission. Depuis Codex desktop, chaque commande vers Claude demande une autorisation ponctuelle de l’hôte ; suivez [Premier Relay](/fr/get-started/first-relay).
 
 ## Quand l'agent voit le skill
 
@@ -82,6 +82,6 @@ Dans un terminal, PALABRE affiche son nom et son mode dans le titre de la fenêt
 - **Vous gardez la main** : installation, authentification, configuration, approbation de config et mises à jour restent vos décisions. Le rôle `implementer` est une consigne de proposition, pas une autorisation d'écrire.
 - **Restitution** : l'agent lit l'export (`.chat.md`, `.debate.md`, `.ask.md` ou `.relay.md`, ainsi que `.mission.md` pour l’option Mission) et vous rend décisions, désaccords, limites et prochaines étapes.
 
-L'option Mission de Relay garde le cadre et le budget d'une suite d'étapes en lecture seule. Le chef de mission ne rejoue pas une étape incertaine et attend votre décision sur les limites d'usage ou les lectures bloquées.
+L’option Mission et `--task review` sont gelés. `--write` est expérimental, gelé et hors parcours par défaut : le skill ne le propose que sur demande explicite de l’humain. Ces fonctions restent documentées ; seuls les correctifs de sécurité sont acceptés.
 
 L'agent ne modifie ni n'approuve lui-même une politique qui lui accorde des droits : il vous montre la commande `relay allow-repo` ou d'approbation et attend votre action. Pour retrouver le skill du paquet installé : `npm root -g` (ou `pnpm root -g`), puis le sous-dossier `palabre/skills/palabre`.

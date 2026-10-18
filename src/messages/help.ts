@@ -10,6 +10,7 @@ export interface HelpMessages {
 const frCommandHelp: Record<string, string> = {
   mission: `
 Un chef de mission appelle son équipier en arrière-plan ; vous prenez les décisions.
+Mission est gelée : conservée, correctifs de sécurité seulement.
 Lot v2.0 : lecture seule, un appel explicite par étape, aucune boucle automatique.
 
 Usage (depuis le même dossier) :
@@ -218,12 +219,12 @@ Flags:
   --from <agent>[:<uuid>] expéditeur facultatif, déclaré et non authentifié ; terminal si absent
   --to <agent>:<uuid>     cible existante ; nom d'agent seul avec --new
   --new                   crée une conversation persistante, lecture seule par défaut, sans --open
-  --write                 prépare une tâche Codex Windows : accord humain ponctuel et worktree séparé
+  --write                 expérimental, gelé : tâche Codex Windows avec accord humain et worktree séparé
   --dir <chemin>          dossier de la nouvelle conversation (défaut : dossier courant)
   Omettez --from et --dir s'ils n'ont pas de valeur ; une chaîne vide est refusée.
   --message-file <path>   lit le message dans un fichier (64 Kio au plus)
   --subject <objet>       objet facultatif : une ligne non vide, 200 caractères au plus, sans contrôle
-  --task review           rédige et publie une revue COMMENT si la config l'autorise
+  --task review           gelé : rédige et publie une revue COMMENT si la config l'autorise
   --pr <url>              PR github.com exacte ; obligatoire avec --task review
   --open                  vise une conversation Codex ouverte (TUI ou Codex desktop)
   --timeout <secondes>    délai maximal, de 10 à 3600 (défaut : 600)
@@ -234,6 +235,8 @@ Flags:
   --language <fr|en>      force la langue
 
 Limites :
+  Codex desktop chef de mission : autoriser chaque commande vers Claude hors du bac à sable,
+  cette fois seulement, sans règle durable. --write reste hors parcours par défaut.
   PALABRE ajoute l'en-tête expéditeur → destinataire, puis l'avertissement ℹ️ sur sa propre ligne
   avant le contenu. La partie « 🤖 Message pour l'agent » regroupe provenance et consigne de réponse en bas.
   Une seule réponse ici, sans appeler un autre agent. Ne pas ajouter un second en-tête PALABRE.
@@ -385,6 +388,7 @@ Flags:
 const enCommandHelp: Record<string, string> = {
   mission: `
 A mission lead calls a teammate in the background; you make the decisions.
+Mission is frozen: retained, security fixes only.
 v2.0: read-only, one explicit call per step, no automatic loop.
 
 Usage (from the same directory):
@@ -581,12 +585,12 @@ Flags:
   --from <agent>[:<uuid>] optional, declared and unauthenticated sender; terminal when omitted
   --to <agent>:<uuid>     existing target; agent name only with --new
   --new                   creates a persistent conversation, read-only by default; no --open
-  --write                 prepares a Windows Codex task: one-time human approval and separate worktree
+  --write                 experimental, frozen: Windows Codex task with human approval and separate worktree
   --dir <path>            new conversation directory (default: current directory)
   Omit --from and --dir when they have no value; empty strings are rejected.
   --message-file <path>   reads the message from a file (64 KiB at most)
   --subject <subject>     optional subject: one nonblank line, at most 200 characters, no controls
-  --task review           draft and publish a COMMENT review if allowed by configuration
+  --task review           frozen: draft and publish a COMMENT review if allowed by configuration
   --pr <url>              exact github.com PR; required with --task review
   --open                  targets an open Codex conversation (TUI or Codex desktop)
   --timeout <seconds>     maximum duration, 10 to 3600 (default: 600)
@@ -597,6 +601,8 @@ Flags:
   --language <fr|en>      force language
 
 Limits:
+  Codex desktop as mission lead: approve each command to Claude outside the sandbox,
+  this time only, with no lasting rule. --write stays outside the default path.
   PALABRE adds the sender → recipient header, then the ℹ️ warning on its own line before the content.
   The final « 🤖 Message for the agent » section groups provenance and reply instructions.
   Reply here once, without calling another agent. Do not add a second PALABRE header.
@@ -775,8 +781,8 @@ Commandes:
   history    Lister les derniers exports
   resume     Reprendre une session interrompue
   sessions   Lister ou supprimer les checkpoints
-  relay      Interroger une conversation Codex ou Claude Code fermee
-  mission    Faire travailler un equipier en lecture seule, une etape a la fois
+  relay      Relier des conversations Codex ou Claude Code
+  mission    Option gelee : etapes en lecture seule, correctifs de securite seulement
   context    Scanner le contexte projet
   config     Modifier les parametres par defaut
   doctor     Verifier la config et les outils locaux
@@ -837,8 +843,8 @@ Commands:
   history    List recent exports
   resume     Resume an interrupted session
   sessions   List or delete checkpoints
-  relay      Ask a closed Codex or Claude Code conversation
-  mission    Work with a read-only teammate, one explicit step at a time
+  relay      Connect Codex or Claude Code conversations
+  mission    Frozen option: read-only steps, security fixes only
   context    Scan project context
   config     Edit default settings
   doctor     Check config and local tools

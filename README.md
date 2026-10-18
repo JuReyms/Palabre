@@ -31,13 +31,13 @@ PALABRE does not replace your tools: it drives them. You keep your subscriptions
 | Mode | The question it answers | Example |
 | --- | --- | --- |
 | **Debate** | "I want two positions to confront each other." Two agents answer in turn, then a summary sets out agreements and disagreements. | `palabre codex-claude "Review this plan" -t 4` |
-| **Relay** *(new)* | "I want my agents to cooperate and hand off to each other, without any copy-paste from me." One agent sends a message directly to another agent (Claude Code or Codex), which replies. You are no longer the go-between, but the decision-maker. | `palabre relay --from codex:<session> --to claude:<session> "I commented on issue #42, your turn"` |
+| **Relay** *(new)* | "I want my conversations to talk to each other, without copying and pasting." Choose Claude Code or Codex as mission lead, and a new or specific conversation as teammate. | `palabre relay --new --to claude "Review the plan in docs/plan.md"` |
 | **Ask** | "I want several independent opinions." 1 to 4 agents answer without seeing each other's answers, then a summary compares them. | `palabre ask "Compare these two approaches" --agents codex claude` |
 | **Chat** | "I'm chatting with an agent, and sometimes need a second opinion to double-check an answer." Ask another agent with `/consult`, without leaving the conversation. | `palabre chat --agent-a codex` |
 
-*Relay connects Claude Code and Codex both ways, in the background. To hand a task to a conversation that is already open (Codex desktop or terminal, with `--open`), only Codex can receive it for now, on Windows. Each message gets a single reply, with no automatic resend.*
+*From Codex desktop, the path to closed Claude has been verified on Windows with host approval for each command. Codex CLI and macOS still need testing. Only open Codex on Windows can receive a task (`--open`); two terminals still have limited testing. No automatic resend.*
 
-To chain several read-only steps within a fixed scope and budget, Relay offers the **Mission** option: `palabre mission --help`.
+The **Mission** option is frozen: it remains available and documented, with no scope expansion.
 
 In doubt: **Debate** for a decision with stakes, **Relay** to orchestrate work across several agents, **Ask** for several opinions, **Chat** to talk with one agent.
 
@@ -73,15 +73,17 @@ On first launch, the TUI creates the global configuration if needed and detects 
 
 `--terminal` forces the raw renderer for logs and scripts. `palabre init` remains available for an explicit setup, especially with `--local`.
 
-**Relay**: delegate through your agent, or use a terminal.
+Relay lets your agent delegate a task to another agent (Claude Code, Codex) and bring its reply back to you, without copying and pasting: in a new conversation, or in a specific conversation you have already had with it. Each keeps its own permissions, and you decide what happens next.
 
-With the [Palabre skill](https://palab.re/en/get-started/skill), delegate the task through your agent: it selects advice/review, an open Codex conversation or a one-time writing approval. To request a review yourself from a terminal:
+You choose the **mission lead**: Claude Code or Codex. Even a conversation you have just opened can take that role, with PALABRE and its skill installed on the machine.
+
+With the [Palabre skill](https://palab.re/en/get-started/skill), ask your agent to reach a new conversation or the one you designate. To request a review from a terminal:
 
 ```bash
 palabre relay --new --to codex "Review this project without changing any file."
 ```
 
-This command requests a review without changes and returns the conversation ID. Follow [Your first Relay](https://palab.re/en/get-started/first-relay) to delegate a task through your agent or operate Relay yourself, including the `--new --write` path for fixes with Codex on Windows. The [full Relay guide](https://palab.re/en/usage/relay) explains how to retrieve and integrate the result.
+This command returns the conversation identifier. Follow [Your first Relay](https://palab.re/en/get-started/first-relay) to choose your mission lead, continue the same exchange and understand Codex desktop’s one-time approvals.
 
 ### How it works
 
@@ -89,7 +91,7 @@ This command requests a review without changes and returns the conversation ID. 
 - **Context.** `--files` injects specific files (64 KiB per file, 192 KiB in total). `--context` scans folders with limits and exclusions. `--show-prompt` shows exactly what will be sent; `palabre context scan` previews the context.
 - **Final summary.** At the end of a Debate, a summary agent writes four sections: **Consensus**, **Disagreements / uncertainties**, **Proposed actions**, **Conclusion**. At the end of an Ask, it summarizes each answer then compares them: **Faithful summary by agent**, **Comparison**, **Watchpoints / uncertainties**, **Proposed actions**, **Conclusion**. Choose the summary agent with `--summary-agent`, or turn the summary off with `--no-summary`.
 - **Early stop.** A Debate (1 to 20 responses in total) can stop after a full round when an explicit agreement is detected. Turn it off with `--no-early-stop`.
-- **Relay.** Two ways of working. In the background, PALABRE opens the other agent's conversation with its official CLI, hands it the task and returns its reply to you. With `--open`, the task arrives in an open Codex conversation, which carries it out with its usual permissions. With `--new --write`, Codex on Windows can change files and run tests in a separate Git worktree after your approval for that task: see the [writing workflow](https://palab.re/en/usage/relay#delegate-a-task-that-changes-files). Other background calls review and advise. Either way, the message says who sent it and grants no rights on its own.
+- **Relay.** PALABRE finds a specific conversation, sends one message and returns an attributable reply. Ordinary calls to a closed conversation provide advice and reviews; `--open` keeps the Codex conversation’s tools and permissions. The message grants no rights on its own and triggers no automatic resend.
 - **Exports.** Each session is saved as Markdown (`.debate.md`, `.ask.md`, `.chat.md`, `.relay.md`). If an agent fails, a partial export is kept whenever possible.
 - **Sessions.** `--checkpoint` makes a Debate or an Ask resumable with `palabre resume <session-id>`; `palabre sessions` lists or deletes checkpoints.
 
@@ -143,6 +145,10 @@ For one session: `--role-a`, `--role-b`, or `/roles` in the TUI. To change an ag
 - **Integrations.** Versioned JSON outputs: `palabre agents --json`, `palabre presets --json`, `palabre context scan --json`, and `--renderer ndjson` or `--json` to follow a debate event by event. The NDJSON v1 stream is a public integration API: compatible additions do not break v1, breaking changes change the `v` field.
 - **Skill for AI agents.** A ready-to-use skill teaches an AI agent when to use PALABRE and which mode to choose. It follows the open [agentskills.io](https://agentskills.io) standard. Copy the `skills/palabre` folder to `~/.claude/skills/` (Claude Code) or `~/.agents/skills/` (Codex), or run `hermes skills install JuReyms/Palabre/skills/palabre` (Hermes Agent). After a PALABRE update, copy the folder again. Details: [PALABRE skill](https://palab.re/en/get-started/skill).
 
+### Relay: experimental path and frozen features
+
+`--write` is experimental, frozen and outside the default path: only on an explicit human request, with one-time approval. Mission and `--task review` are also frozen; only security fixes are accepted, with no scope expansion. Their documentation remains in the [Relay guide](https://palab.re/en/usage/relay).
+
 ### Documentation
 
 [palab.re](https://palab.re) (mirror: [palabre.netlify.app](https://palabre.netlify.app)) — [Installation](https://palab.re/en/get-started/installation), [Configuration](https://palab.re/en/get-started/configuration), [First session](https://palab.re/en/get-started/first-debate), [CLI reference](https://palab.re/en/reference/cli), [Troubleshooting](https://palab.re/en/troubleshooting), [Roadmap](https://palab.re/en/roadmap).
@@ -193,13 +199,13 @@ PALABRE ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements,
 | Mode | La question à laquelle il répond | Exemple |
 | --- | --- | --- |
 | **Débat** | « Je veux confronter deux positions. » Deux agents répondent à tour de rôle, puis une synthèse dégage les accords et les désaccords. | `palabre codex-claude "Critique ce plan" -t 4` |
-| **Relay** *(nouveau)* | « Je veux que mes agents coopèrent et se passent le relais, sans copier-coller de ma part. » Un agent envoie directement un message à un autre agent (Claude Code ou Codex), qui lui répond. Vous n'êtes plus l'intermédiaire, mais le décideur. | `palabre relay --from codex:<session> --to claude:<session> "J'ai commenté l'issue #42, à toi"` |
+| **Relay** *(nouveau)* | « Je veux faire se parler mes conversations, sans copier-coller. » Choisissez Claude Code ou Codex comme chef de mission, et une conversation neuve ou précise comme équipier. | `palabre relay --new --to claude "Relis le plan dans docs/plan.md"` |
 | **Ask** | « Je veux plusieurs avis indépendants. » De 1 à 4 agents répondent sans voir les réponses des autres, puis une synthèse les compare. | `palabre ask "Compare ces deux approches" --agents codex claude` |
 | **Chat** | « Je discute avec un agent, et j'ai parfois besoin d'un second avis pour vérifier une réponse. » Consultez un autre agent avec `/consult`, sans quitter la conversation. | `palabre chat --agent-a codex` |
 
-*Relay relie Claude Code et Codex dans les deux sens, en arrière-plan. Pour confier une tâche à une conversation déjà ouverte (Codex desktop ou terminal, avec `--open`), seul Codex peut la recevoir pour l'instant, sous Windows. Chaque message reçoit une seule réponse, sans renvoi automatique.*
+*Depuis Codex desktop, le parcours vers Claude fermée est vérifié sous Windows avec une autorisation de l’hôte pour chaque commande. Depuis Codex CLI et sur macOS, il reste à éprouver. Vers une conversation ouverte, seul Codex sous Windows peut recevoir la tâche (`--open`) ; les deux terminaux restent peu testés. Aucun renvoi automatique.*
 
-Pour enchaîner plusieurs étapes en lecture seule dans un cadre et un budget fixés, Relay propose l'option **Mission** : `palabre mission --help`.
+L'option **Mission** est gelée : elle reste disponible et documentée, sans extension de périmètre.
 
 En cas de doute : **Débat** pour une décision qui compte, **Relay** pour orchestrer le travail avec plusieurs agents, **Ask** pour plusieurs avis, **Chat** pour discuter avec un agent.
 
@@ -235,15 +241,17 @@ Au premier lancement, la TUI crée la configuration globale si nécessaire et d�
 
 `--terminal` force le rendu brut pour les logs et les scripts. `palabre init` reste disponible pour un setup explicite, notamment avec `--local`.
 
-**Relay** : confiez une tâche par votre agent, ou depuis un terminal.
+Relay permet à votre agent de confier une tâche à un autre agent (Claude Code, Codex) et de vous rapporter sa réponse, sans copier-coller : dans une conversation neuve, ou dans une conversation précise que vous avez déjà eue avec lui. Chacun garde ses propres permissions, et vous décidez de la suite.
 
-Avec le [skill Palabre](https://palab.re/fr/get-started/skill), confiez la tâche à votre agent : il choisit avis/relecture, conversation Codex ouverte ou accord d'écriture ponctuel. Pour demander vous-même une relecture depuis le terminal :
+Vous choisissez le **chef de mission** : Claude Code ou Codex. Même une conversation que vous venez d'ouvrir peut tenir ce rôle, avec PALABRE et son skill installés sur la machine.
+
+Avec le [skill Palabre](https://palab.re/fr/get-started/skill), demandez à votre agent de joindre une conversation neuve ou celle que vous désignez. Pour une relecture depuis le terminal :
 
 ```bash
 palabre relay --new --to codex "Relis ce projet sans modifier de fichier."
 ```
 
-Cette commande demande une relecture sans modification et rend l'identifiant de la conversation. Suivez [Premier Relay](https://palab.re/fr/get-started/first-relay) pour confier une tâche par votre agent ou piloter Relay vous-même, y compris le parcours `--new --write` pour corriger avec Codex sous Windows. Le [guide Relay complet](https://palab.re/fr/usage/relay) explique comment récupérer et intégrer le résultat.
+Cette commande rend l’identifiant de la conversation. Suivez [Premier Relay](https://palab.re/fr/get-started/first-relay) pour choisir votre chef de mission, continuer le même échange et comprendre les autorisations ponctuelles de Codex desktop.
 
 ### Comment ça fonctionne
 
@@ -251,7 +259,7 @@ Cette commande demande une relecture sans modification et rend l'identifiant de 
 - **Contexte.** `--files` injecte des fichiers précis (64 Kio par fichier, 192 Kio au total). `--context` parcourt des dossiers avec des limites et des exclusions. `--show-prompt` montre exactement ce qui sera envoyé ; `palabre context scan` prévisualise le contexte.
 - **Synthèse finale.** À la fin d'un Débat, un agent de synthèse rédige quatre sections : **Consensus**, **Désaccords / incertitudes**, **Actions proposées**, **Conclusion**. À la fin d'un Ask, il résume chaque réponse puis les compare : **Résumé fidèle par agent**, **Comparaison**, **Points de vigilance / incertitudes**, **Actions proposées**, **Conclusion**. Choisissez l'agent de synthèse avec `--summary-agent`, ou désactivez la synthèse avec `--no-summary`.
 - **Arrêt anticipé.** Un Débat (1 à 20 réponses au total) peut s'arrêter après un tour complet quand un accord explicite est détecté. Désactivez-le avec `--no-early-stop`.
-- **Relay.** Deux façons de travailler. En arrière-plan, PALABRE ouvre la conversation de l'autre agent avec sa CLI officielle, lui transmet la tâche et vous rend sa réponse. Avec `--open`, la tâche arrive dans une conversation Codex ouverte, qui la réalise avec ses permissions habituelles. Avec `--new --write`, Codex sous Windows peut modifier et tester dans un worktree Git séparé après votre accord pour cette tâche : voir le [parcours d'écriture](https://palab.re/fr/usage/relay#confier-une-tâche-qui-modifie-des-fichiers). Les autres appels en arrière-plan servent à relire et conseiller. Dans tous les cas, le message indique qui l'envoie et n'accorde aucun droit à lui seul.
+- **Relay.** PALABRE retrouve une conversation précise, transmet un message et rapporte une réponse attribuable. Les appels ordinaires vers une conversation fermée servent aux avis et relectures ; `--open` conserve les outils et permissions de la conversation Codex. Le message ne donne aucun droit à lui seul et ne déclenche aucun renvoi automatique.
 - **Exports.** Chaque session est enregistrée en Markdown (`.debate.md`, `.ask.md`, `.chat.md`, `.relay.md`). Si un agent échoue, un export partiel est conservé quand c'est possible.
 - **Sessions.** `--checkpoint` rend un Débat ou un Ask reprenable avec `palabre resume <session-id>` ; `palabre sessions` liste ou supprime les points de reprise.
 
@@ -304,6 +312,10 @@ Pour une session : `--role-a`, `--role-b`, ou `/roles` dans la TUI. Pour changer
 - **Extension VS Code.** [PALABRE pour VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode) ajoute une barre latérale pour lancer Débat, Chat ou Ask, ajouter du contexte de workspace, suivre chaque session en direct et ouvrir son export. En Chat, vous pouvez changer l'agent actif ou demander ponctuellement l'avis d'un autre agent. Elle reste un client mince : elle lance le CLI local `palabre` et utilise les contrats JSON/NDJSON publics.
 - **Intégrations.** Sorties JSON versionnées : `palabre agents --json`, `palabre presets --json`, `palabre context scan --json`, et `--renderer ndjson` ou `--json` pour suivre un débat événement par événement. Le flux NDJSON v1 est une API publique d'intégration : les ajouts compatibles ne cassent pas v1, les changements cassants changent le champ `v`.
 - **Skill pour agents IA.** Un skill prêt à l'emploi apprend à un agent IA quand utiliser PALABRE et quel mode choisir. Il suit le standard ouvert [agentskills.io](https://agentskills.io). Copiez le dossier `skills/palabre` dans `~/.claude/skills/` (Claude Code) ou `~/.agents/skills/` (Codex), ou lancez `hermes skills install JuReyms/Palabre/skills/palabre` (Hermes Agent). Après une mise à jour de PALABRE, recopiez le dossier. Détails : [Skill PALABRE](https://palab.re/fr/get-started/skill).
+
+### Relay : parcours expérimental et fonctions gelées
+
+`--write` est expérimental, gelé et hors parcours par défaut : uniquement sur demande explicite de l’humain, avec un accord ponctuel. Mission et `--task review` sont également gelés ; seule leur sécurité sera corrigée, sans extension de périmètre. Leur documentation reste dans le [guide Relay](https://palab.re/fr/usage/relay).
 
 ### Documentation
 

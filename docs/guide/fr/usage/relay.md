@@ -3,14 +3,16 @@ title: Mode Relay
 description: Confier une tâche à Codex ou Claude Code et recevoir sa réponse, pour un avis, une relecture ou une action selon le parcours autorisé.
 seo:
   title: palabre relay, confier une tâche à Codex ou Claude Code
-  description: "Faire coopérer Claude Code et Codex : avis et relectures, action dans Codex ouvert ou écriture avec accord ponctuel sous Windows."
+  description: "Faire communiquer vos conversations Claude Code et Codex, choisir votre chef de mission et recevoir une réponse attribuable sans copier-coller."
 ---
 
 ## À quoi sert Relay
 
 Pour commencer sans connaître d'identifiant de conversation, suivez [Premier Relay](/fr/get-started/first-relay).
 
-`palabre relay` transmet un message à une conversation Codex ou Claude Code existante, puis rend sa réponse à l'appelant. Un agent peut ainsi passer la main sans vous faire copier-coller les échanges ; vous restez le décideur.
+Relay permet à votre agent de confier une tâche à un autre agent (Claude Code, Codex) et de vous rapporter sa réponse, sans copier-coller : dans une conversation neuve, ou dans une conversation précise que vous avez déjà eue avec lui. Chacun garde ses propres permissions, et vous décidez de la suite.
+
+Vous choisissez le **chef de mission** : Claude Code ou Codex. Même une conversation que vous venez d'ouvrir peut tenir ce rôle, avec PALABRE et son skill installés sur la machine.
 
 > **Bon à savoir :** Relay relie Claude Code et Codex dans les deux sens, en arrière-plan. Pour confier une tâche à une conversation **déjà ouverte** (application desktop ou terminal), seul Codex peut la recevoir pour l'instant, sous Windows. Le suivi de Codex vers une conversation Claude ouverte est l'issue [#96](https://github.com/JuReyms/Palabre/issues/96).
 
@@ -28,7 +30,21 @@ palabre relay --open --from claude:<session-expéditeur> --to codex:<session-cib
 
 Avec `--open`, la cible conserve ses propres outils et permissions. Le message peut être traité dans une conversation chargée mais non affichée ; aucun affichage immédiat n'est garanti. Aucun renvoi automatique.
 
-Pour plusieurs étapes en lecture seule dans un cadre et un budget convenus, Relay propose l'[option Mission](#option-mission).
+Pour une simple relecture ou correction de code depuis Claude Code vers Codex, le [plugin officiel OpenAI `openai/codex-plugin-cc`](https://github.com/openai/codex-plugin-cc) peut suffire. Relay sert à choisir une conversation précise, à échanger dans les deux sens et à joindre Codex déjà ouvert.
+
+**Fonctions conservées, hors parcours par défaut :** `--write` est expérimental et gelé ; Mission et `--task review` sont gelés. Leur documentation est conservée ci-dessous ; seuls les correctifs de sécurité sont acceptés, sans extension de périmètre.
+
+## Codex chef de mission
+
+Depuis une conversation Codex desktop ouverte dans le dossier du projet, dites par exemple :
+
+> Passe par PALABRE pour demander à Claude Code de relire le plan dans docs/plan.md, sans modifier de fichier. Crée une conversation et garde son identifiant pour la suite.
+
+Codex demande l'autorisation d'exécuter chaque commande PALABRE **hors de son bac à sable**. Relisez la commande affichée, puis acceptez **cette fois seulement**. N'accordez ni accès total, ni droit permanent, ni « toujours autoriser ». La commande de suivi demande sa propre autorisation.
+
+Cette autorisation permet à la CLI Claude d'utiliser sa connexion et d'enregistrer l'échange dans son historique. Elle n'accorde aucun droit supplémentaire à l'équipier. Le réglage **« approuver à ma place »** de Codex desktop peut accorder ces sorties sans afficher de demande : laissez-le désactivé si vous voulez confirmer chaque commande vous-même.
+
+Ce parcours a été vérifié sous Windows depuis Codex desktop. Depuis Codex CLI et sur macOS, il reste à éprouver.
 
 ## Démarrer une conversation neuve
 
@@ -51,110 +67,7 @@ Pour continuer avec cette conversation : palabre relay --to codex:<uuid> "…"
 
 En JSON, `to.session` contient l'identifiant reçu, `cwd` le dossier et `created` indique si un identifiant a été reçu. Avant réception, `to.session` vaut `null` et `created` vaut `false`. L'identifiant est capturé pendant l'appel et conservé dans le résultat et l'export même si le premier tour échoue : **cela ne signifie pas que la question a reçu une réponse**. Vérifiez alors la délivrance avant de renvoyer ; aucun nouvel essai n'est automatique.
 
-La conversation reste dans l'historique de la CLI. Son affichage immédiat dans Desktop n'est pas garanti. `--new` ne s'utilise pas avec `--open`. Par défaut, la création sert aux avis et lectures ; l'écriture demande le parcours distinct ci-dessous.
-
-## Confier une tâche qui modifie des fichiers
-
-Ce parcours couvre **C, en arrière-plan, Claude vers Codex sous Windows** : votre agent peut confier une correction à Codex sans ouvrir sa conversation. Il peut aussi être lancé depuis votre terminal. L'écriture avec Claude sous Windows natif est refusée, car son confinement système n'est pas disponible dans ce contexte. Pour une relecture, omettez `--write` ; pour agir dans une conversation Codex déjà ouverte sous Windows, utilisez `--open` avec ses permissions habituelles.
-
-### 1. Préparer la tâche
-
-Depuis la racine d'un dépôt Git ayant au moins un commit :
-
-```text
-palabre relay --new --write --to codex "Corrige le calcul dans src/prix.js et lance le test existant, sans installer de dépendance."
-```
-
-Vous pouvez indiquer une autre racine Git avec `--dir "../autre-projet"`. PALABRE prépare une demande et affiche la commande de confirmation. Aucun modèle n'est appelé à cette étape. Un simple `--write`, un message relayé ou le rôle d'un agent ne donnent aucun droit.
-
-### 2. Confirmer vous-même
-
-Dans votre terminal visible, lancez la commande affichée, avec l'identifiant exact de la demande :
-
-```text
-palabre relay approve-write <identifiant-de-demande>
-```
-
-Relisez la tâche, l'agent, le projet, le commit et le dossier séparé. Répondez `o` pour autoriser cette seule tâche. La confirmation exige une entrée et une sortie interactives ; aucun `--yes` n'existe. Votre agent peut ouvrir cette commande dans votre terminal ou vous la fournir ; il ne doit jamais répondre à votre place, fabriquer l'accord ni modifier les fichiers d'autorisation.
-
-### 3. Exécuter l'appel autorisé
-
-Votre agent peut alors lancer, sans changer la demande :
-
-```text
-palabre relay run-write <identifiant-de-demande> --json
-```
-
-L'accord est consommé avant l'exécution. Un échec ne permet pas de le réutiliser : vérifiez le résultat avant de décider d'une nouvelle tâche. Le texte de la demande, la configuration approuvée et le commit sont revérifiés ; une dérive refuse l'appel.
-
-Si Codex est le chef de mission, sa propre bulle peut empêcher l'accès au réseau ou au registre PALABRE. Demandez l'autorisation de l'hôte pour cette seule commande ou faites-la lancer dans votre terminal habituel ; ne passez pas en accès total. Cette autorisation de lancement ne remplace pas l'accord PALABRE pour écrire.
-
-PALABRE crée une branche et un worktree depuis le commit annoncé. **Les changements non commités et les dépendances locales non versionnées ne sont pas inclus.** Les fichiers du projet principal ne sont pas modifiés par l'équipier ; Git écrit ses métadonnées de worktree et les CLI leur historique habituel. Le travail est conservé dans `~/.palabre/relay-write/<identifiant>/worktree`, même en échec. Ne supprimez pas un accord consommé pour réessayer.
-
-Avant le modèle, PALABRE vérifie que le profil Codex autorise une écriture témoin dans le worktree et refuse une écriture témoin à côté. Si cette vérification échoue, l'appel est refusé, sans accès total ni repli non confiné. Les commandes gardent le réseau désactivé et ne peuvent demander d'escalade ; MCP, plugins, hooks et mémoires sont neutralisés. Ces garanties restent conditionnelles à la CLI et au backend Windows ; `unelevated` a une isolation réseau plus faible. Aucun commit, push, merge, installation ni changement des réglages utilisateur n'est autorisé.
-
-### Lire le compte rendu
-
-Le JSON et l'export `.relay.md` ajoutent `write` : dossier, branche, commit de départ, fichiers et diff relevés par Git, commandes terminées avec leurs codes et sorties. Toutes les commandes observées sont conservées dans les bornes du rapport, sans prétendre qu'elles sont toutes des tests. `verification: "observed-commands-only"` ne signifie pas « tests réussis ». Un diagnostic indique un rapport incomplet ; une interruption peut laisser du travail partiel.
-
-Le chemin exact de l'export est donné par `exportPath`. Par défaut, il est écrit dans `.palabre/` depuis le dossier où vous avez lancé PALABRE, pas dans le worktree ; un `outputDir` configuré peut le déplacer. `approve-write` et `run-write` utilisent la langue enregistrée dans la demande et n'acceptent pas `--language`. La confirmation au clavier n'authentifie pas l'humain face à un programme ayant déjà ses droits sur `~/.palabre` ; le confinement de l'équipier reste indispensable.
-
-Sous Windows, `node --test` peut échouer avec `spawn EPERM`. Lors de l'essai qualifié, le même test réussit avec `node --test --experimental-test-isolation=none prix.test.js` (Node 22.17.1). Cela ne qualifie pas tous les builds ; aucun changement de permissions ni installation automatique ne résout un test bloqué.
-
-Les appels sans `--write` et l'option Mission gardent leur fonctionnement. Ce premier lot ne reprend pas une conversation existante en écriture et ne couvre ni macOS ni OpenCode.
-
-### Récupérer le résultat
-
-Les fichiers modifiés restent dans le worktree indiqué par `write.worktree`. Ils ne sont pas recopiés dans votre projet. Ils apparaissent sur GitHub seulement après un commit et un push.
-
-PALABRE rend la réponse et le compte rendu à l'appelant, mais ne les ajoute jamais automatiquement à la conversation de l'agent expéditeur. Le chef de mission doit les lire et vous en rendre compte.
-
-Les commandes suivantes sont destinées au propriétaire, ou à un agent qu'il autorise séparément ; l'accord d'écriture consommé ne permet pas de committer, pousser ou fusionner.
-
-**1. Relire le travail.** Dans votre PowerShell, remplacez les trois valeurs par `write.repository`, `write.worktree` et `write.branch` :
-
-```powershell
-$projet = "C:\projets\exemple"
-$copie = "C:\chemin\du\worktree"
-$branche = "palabre/relay-..."
-git -C "$copie" status --short
-git -C "$copie" diff
-```
-
-Relisez aussi les codes et sorties des tests dans le compte rendu. Si le travail vous convient, enregistrez uniquement les fichiers voulus. Exemple pour `src/prix.js` :
-
-```powershell
-git -C "$copie" add -- "src/prix.js"
-git -C "$copie" commit -m "Corriger le calcul"
-```
-
-**2. Intégrer après validation.** Pour passer par GitHub, adaptez le dépôt et la branche cible, puis ouvrez une PR :
-
-```powershell
-git -C "$copie" push -u origin "$branche"
-gh pr create --repo "proprietaire/projet" --head "$branche" --base "main"
-```
-
-Le propriétaire décide de la fusion après revue. Si votre projet autorise plutôt une fusion locale, placez le projet principal sur la branche cible choisie, sans changement non commité, puis lancez :
-
-```powershell
-git -C "$projet" merge --ff-only "$branche"
-```
-
-Si Git refuse, arrêtez-vous et examinez la situation ; ne forcez pas la fusion.
-
-**3. Ranger après intégration.** Une fois le travail intégré et le worktree propre :
-
-```powershell
-git -C "$projet" worktree remove "$copie"
-git -C "$projet" branch -d "$branche"
-```
-
-Ces commandes retirent le worktree et sa branche locale. Si Git refuse, gardez-les pour examen ; n'utilisez ni `--force` ni `-D`. Ne supprimez pas les fichiers d'accord pour réessayer une tâche.
-
-L'expéditeur est facultatif : sans `--from`, l'en-tête indique `terminal`. Un agent peut préciser `--from claude`, ou `--from claude:<uuid>` s'il connaît son identifiant. Il reste déclaré et non authentifié ; **aucune de ces formes ne transmet une autorisation humaine**. Le JSON donne `from: null` sans expéditeur, ou `{ "agent": "claude" }` pour un nom seul.
-
-Omettez les options sans valeur : ne passez pas `--from ""` ni `--dir ""`. Si une option est vide, PALABRE explique comment l'omettre ou la compléter, sans envoyer de message.
+La conversation reste dans l'historique de la CLI. Son affichage immédiat dans Desktop n'est pas garanti. `--new` ne s'utilise pas avec `--open`. Par défaut, la création sert aux avis et lectures ; `--write` reste un parcours expérimental et gelé, décrit en fin de page.
 
 ## Un en-tête lisible, ajouté par PALABRE
 
@@ -236,6 +149,8 @@ Pour une conversation Codex **ouverte**, utilisez `--open` (voir plus haut). Le 
 - **Exécutables.** PALABRE lance la CLI directement, sans shell. Sous Windows, une CLI installée par npm est lancée avec Node et le script du paquet, jamais par son shim PowerShell, qui altère les accents et les arguments. Le shim n'est accepté que s'il est identique au modèle généré par npm ; un shim modifié est refusé (`unsupported-executable`).
 
 ## Tâche `review`
+
+**Gelée.** Conservée et documentée, sans extension de périmètre ; seuls les correctifs de sécurité sont acceptés. Elle ne devient pas le parcours par défaut d’une simple relecture.
 
 ### Autoriser un dépôt (`allow-repo`)
 
@@ -334,6 +249,8 @@ palabre relay --from codex:<uuid> --to claude-review:<session> --task review --p
 
 ## Option Mission
 
+**Gelée.** Conservée et documentée, sans extension de périmètre ; seuls les correctifs de sécurité sont acceptés. Aucune évolution vers l’écriture n’est annoncée.
+
 Mission est une option de Relay pour plusieurs étapes en lecture seule. Vous fixez avec le chef de mission l'objectif, les critères, les tâches et le budget ; il appelle son équipier une étape explicite à la fois et conserve état et résultats.
 
 ```powershell
@@ -370,7 +287,7 @@ Après une fermeture normale du chef de mission, reprendre avec `status`, puis u
 | Option | Rôle |
 | --- | --- |
 | `"<message>"` ou `--message-file <chemin>` | Le message ; 64 Kio UTF-8 au plus pour l'enveloppe de coordination complète. Utilisez un fichier pour un message qui commence par `-`. |
-| `--task review` | Revue en lecture seule publiée en COMMENT par PALABRE si autorisée ; message facultatif, incompatible avec `--open` et `--trust-config`. |
+| `--task review` | **Gelée.** Revue en lecture seule publiée en COMMENT par PALABRE si autorisée ; message facultatif, incompatible avec `--open` et `--trust-config`. |
 | `--pr <url>` | URL exacte d’une PR github.com ; obligatoire avec `--task review`. |
 | `--open` | Vise une conversation Codex ouverte (voir plus haut). |
 | `--subject "<objet>"` | Objet facultatif, une ligne non vide de 200 caractères Unicode au plus, sans contrôle ni formatage Unicode ; JSON/export `subject?`. |
@@ -478,3 +395,108 @@ Observées avec de vraies conversations jetables, sur Claude Code 2.1.85 et Code
 - **Claude Code choisit lui-même le modèle de la reprise.** Le modèle effectivement utilisé figure dans `observedModels`.
 
 Versions vérifiées : Claude Code 2.1.85 et 2.1.292, Codex 0.151.0. Les garanties ne sont pas étendues aux autres versions.
+
+## Confier une tâche qui modifie des fichiers
+
+**Expérimental et gelé.** Uniquement sur demande explicite de l'humain, jamais déduit d'une demande ordinaire. Conservé sans extension de périmètre, correctifs de sécurité seulement.
+
+Ce parcours expérimental couvre **Claude vers Codex sous Windows, en arrière-plan** : votre agent peut confier une correction à Codex sans ouvrir sa conversation. Il peut aussi être lancé depuis votre terminal. L'écriture avec Claude sous Windows natif est refusée, car son confinement système n'est pas disponible dans ce contexte. Pour une relecture, omettez `--write` ; pour agir dans une conversation Codex déjà ouverte sous Windows, utilisez `--open` avec ses permissions habituelles.
+
+### 1. Préparer la tâche
+
+Depuis la racine d'un dépôt Git ayant au moins un commit :
+
+```text
+palabre relay --new --write --to codex "Corrige le calcul dans src/prix.js et lance le test existant, sans installer de dépendance."
+```
+
+Vous pouvez indiquer une autre racine Git avec `--dir "../autre-projet"`. PALABRE prépare une demande et affiche la commande de confirmation. Aucun modèle n'est appelé à cette étape. Un simple `--write`, un message relayé ou le rôle d'un agent ne donnent aucun droit.
+
+### 2. Confirmer vous-même
+
+Dans votre terminal visible, lancez la commande affichée, avec l'identifiant exact de la demande :
+
+```text
+palabre relay approve-write <identifiant-de-demande>
+```
+
+Relisez la tâche, l'agent, le projet, le commit et le dossier séparé. Répondez `o` pour autoriser cette seule tâche. La confirmation exige une entrée et une sortie interactives ; aucun `--yes` n'existe. Votre agent peut ouvrir cette commande dans votre terminal ou vous la fournir ; il ne doit jamais répondre à votre place, fabriquer l'accord ni modifier les fichiers d'autorisation.
+
+### 3. Exécuter l'appel autorisé
+
+Votre agent peut alors lancer, sans changer la demande :
+
+```text
+palabre relay run-write <identifiant-de-demande> --json
+```
+
+L'accord est consommé avant l'exécution. Un échec ne permet pas de le réutiliser : vérifiez le résultat avant de décider d'une nouvelle tâche. Le texte de la demande, la configuration approuvée et le commit sont revérifiés ; une dérive refuse l'appel.
+
+Si Codex est le chef de mission, sa propre bulle peut empêcher l'accès au réseau ou au registre PALABRE. Demandez l'autorisation de l'hôte pour cette seule commande ou faites-la lancer dans votre terminal habituel ; ne passez pas en accès total. Cette autorisation de lancement ne remplace pas l'accord PALABRE pour écrire.
+
+PALABRE crée une branche et un worktree depuis le commit annoncé. **Les changements non commités et les dépendances locales non versionnées ne sont pas inclus.** Les fichiers du projet principal ne sont pas modifiés par l'équipier ; Git écrit ses métadonnées de worktree et les CLI leur historique habituel. Le travail est conservé dans `~/.palabre/relay-write/<identifiant>/worktree`, même en échec. Ne supprimez pas un accord consommé pour réessayer.
+
+Avant le modèle, PALABRE vérifie que le profil Codex autorise une écriture témoin dans le worktree et refuse une écriture témoin à côté. Si cette vérification échoue, l'appel est refusé, sans accès total ni repli non confiné. Les commandes gardent le réseau désactivé et ne peuvent demander d'escalade ; MCP, plugins, hooks et mémoires sont neutralisés. Ces garanties restent conditionnelles à la CLI et au backend Windows ; `unelevated` a une isolation réseau plus faible. Aucun commit, push, merge, installation ni changement des réglages utilisateur n'est autorisé.
+
+### Lire le compte rendu
+
+Le JSON et l'export `.relay.md` ajoutent `write` : dossier, branche, commit de départ, fichiers et diff relevés par Git, commandes terminées avec leurs codes et sorties. Toutes les commandes observées sont conservées dans les bornes du rapport, sans prétendre qu'elles sont toutes des tests. `verification: "observed-commands-only"` ne signifie pas « tests réussis ». Un diagnostic indique un rapport incomplet ; une interruption peut laisser du travail partiel.
+
+Le chemin exact de l'export est donné par `exportPath`. Par défaut, il est écrit dans `.palabre/` depuis le dossier où vous avez lancé PALABRE, pas dans le worktree ; un `outputDir` configuré peut le déplacer. `approve-write` et `run-write` utilisent la langue enregistrée dans la demande et n'acceptent pas `--language`. La confirmation au clavier n'authentifie pas l'humain face à un programme ayant déjà ses droits sur `~/.palabre` ; le confinement de l'équipier reste indispensable.
+
+Sous Windows, `node --test` peut échouer avec `spawn EPERM`. Lors de l'essai qualifié, le même test réussit avec `node --test --experimental-test-isolation=none prix.test.js` (Node 22.17.1). Cela ne qualifie pas tous les builds ; aucun changement de permissions ni installation automatique ne résout un test bloqué.
+
+Les appels sans `--write` et l'option Mission gardent leur fonctionnement. Ce premier lot ne reprend pas une conversation existante en écriture et ne couvre ni macOS ni OpenCode.
+
+### Récupérer le résultat
+
+Les fichiers modifiés restent dans le worktree indiqué par `write.worktree`. Ils ne sont pas recopiés dans votre projet. Ils apparaissent sur GitHub seulement après un commit et un push.
+
+PALABRE rend la réponse et le compte rendu à l'appelant, mais ne les ajoute jamais automatiquement à la conversation de l'agent expéditeur. Le chef de mission doit les lire et vous en rendre compte.
+
+Les commandes suivantes sont destinées au propriétaire, ou à un agent qu'il autorise séparément ; l'accord d'écriture consommé ne permet pas de committer, pousser ou fusionner.
+
+**1. Relire le travail.** Dans votre PowerShell, remplacez les trois valeurs par `write.repository`, `write.worktree` et `write.branch` :
+
+```powershell
+$projet = "C:\projets\exemple"
+$copie = "C:\chemin\du\worktree"
+$branche = "palabre/relay-..."
+git -C "$copie" status --short
+git -C "$copie" diff
+```
+
+Relisez aussi les codes et sorties des tests dans le compte rendu. Si le travail vous convient, enregistrez uniquement les fichiers voulus. Exemple pour `src/prix.js` :
+
+```powershell
+git -C "$copie" add -- "src/prix.js"
+git -C "$copie" commit -m "Corriger le calcul"
+```
+
+**2. Intégrer après validation.** Pour passer par GitHub, adaptez le dépôt et la branche cible, puis ouvrez une PR :
+
+```powershell
+git -C "$copie" push -u origin "$branche"
+gh pr create --repo "proprietaire/projet" --head "$branche" --base "main"
+```
+
+Le propriétaire décide de la fusion après revue. Si votre projet autorise plutôt une fusion locale, placez le projet principal sur la branche cible choisie, sans changement non commité, puis lancez :
+
+```powershell
+git -C "$projet" merge --ff-only "$branche"
+```
+
+Si Git refuse, arrêtez-vous et examinez la situation ; ne forcez pas la fusion.
+
+**3. Ranger après intégration.** Une fois le travail intégré et le worktree propre :
+
+```powershell
+git -C "$projet" worktree remove "$copie"
+git -C "$projet" branch -d "$branche"
+```
+
+Ces commandes retirent le worktree et sa branche locale. Si Git refuse, gardez-les pour examen ; n'utilisez ni `--force` ni `-D`. Ne supprimez pas les fichiers d'accord pour réessayer une tâche.
+
+L'expéditeur est facultatif : sans `--from`, l'en-tête indique `terminal`. Un agent peut préciser `--from claude`, ou `--from claude:<uuid>` s'il connaît son identifiant. Il reste déclaré et non authentifié ; **aucune de ces formes ne transmet une autorisation humaine**. Le JSON donne `from: null` sans expéditeur, ou `{ "agent": "claude" }` pour un nom seul.
+
+Omettez les options sans valeur : ne passez pas `--from ""` ni `--dir ""`. Si une option est vide, PALABRE explique comment l'omettre ou la compléter, sans envoyer de message.
