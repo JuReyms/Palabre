@@ -564,6 +564,12 @@ et la version du client quand elle est fournie.
 
 ## Relay externe
 
+OpenCode (#136), contrat en préparation : voir `docs/relay-opencode-copy-contract.md`.
+Décision du propriétaire du 19 octobre 2026 : environnement OpenCode habituel conservé,
+consultation demandée sur copie, sans lecture seule imposée. Le contrat n'active pas
+encore ce fournisseur dans Relay et ne change pas Claude Code, Codex, Mission ou review.
+Les exclusions de fork ci-dessous décrivent la commande actuelle, pas ce futur lot.
+
 Échecs de lecture Windows/Codex (#128) : l'adapter qualifie uniquement les événements terminés
 `command_execution`, `failed`, `exit_code: -1` dont la sortie commence par l'erreur de démarrage
 `CreateProcessAsUserW failed: 5` (préfixes qualifiés dans `codex.ts`, format 0.163.0). Le champ
