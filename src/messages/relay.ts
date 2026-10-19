@@ -1,9 +1,12 @@
 /** @file Messages FR/EN de `palabre relay` : enveloppe transmise à la cible, issues, délivrance et export. */
 import type { DeliveryStatus, InvalidRequestReason, RelayStatus } from "../externalSessions/types.js";
 import type { Language } from "../types.js";
+import { relayCopyText } from "./relayCopy.js";
 
 /** Textes du relay ; la langue suit `--language`, `PALABRE_LANGUAGE` puis la config. */
 export interface RelayMessages {
+  /** Consultation OpenCode sur copie, distincte des garanties des reprises UUID. */
+  copy: ReturnType<typeof relayCopyText>;
   terminalSender: string;
   newConversation(target: string, cwd: string): string;
   continueConversation(command: string): string;
@@ -166,6 +169,7 @@ const enStatus: Record<Exclude<RelayStatus, "replied" | "invalid-request">, stri
 };
 
 const frInvalid: Record<InvalidRequestReason, string> = {
+  "opencode-cli-unsupported": relayCopyText("fr").unsupported,
   "write-unavailable": "Le confinement requis pour l'écriture est indisponible. Aucun modèle lancé ; conservez le dossier et demandez une relecture sans --write.",
   "write-approval-required": "Cette tâche exige un accord humain ponctuel.",
   "write-approval-invalid": "Accord d'écriture absent, modifié ou déjà consommé.",
@@ -177,7 +181,7 @@ const frInvalid: Record<InvalidRequestReason, string> = {
   "invalid-session-id": "Identifiant de session invalide : un UUID est attendu (<agent>:<uuid>).",
   "message-too-large": "Enveloppe trop longue : 64 Kio UTF-8 au plus pour le message, l'objet, l'en-tête et la provenance. Raccourcissez le message ou l'objet.",
   "unknown-agent": "Agent inconnu dans la configuration.",
-  "unsupported-agent": "Agent non pris en charge par le relay : seuls les agents CLI Codex et Claude Code sont acceptés.",
+  "unsupported-agent": "Agent non pris en charge par ce parcours : Codex et Claude Code en reprise ; OpenCode avec --copy et --dir seulement.",
   "config-untrusted": "Configuration non approuvée. Vérifie-la, puis relance avec --trust-config.",
   "config-unavailable": "Configuration introuvable ou illisible.",
   "unsupported-executable": "Exécutable de l'agent non pris en charge : le relay ne lance ni wrapper .cmd ni shim PowerShell modifié.",
@@ -185,6 +189,7 @@ const frInvalid: Record<InvalidRequestReason, string> = {
 };
 
 const enInvalid: Record<InvalidRequestReason, string> = {
+  "opencode-cli-unsupported": relayCopyText("en").unsupported,
   "write-unavailable": "The required write sandbox is unavailable. No model started; keep the folder and request advice without --write.",
   "write-approval-required": "This task requires a one-time human approval.",
   "write-approval-invalid": "Write approval missing, changed or already consumed.",
@@ -196,7 +201,7 @@ const enInvalid: Record<InvalidRequestReason, string> = {
   "invalid-session-id": "Invalid session identifier: a UUID is expected (<agent>:<uuid>).",
   "message-too-large": "Envelope too long: at most 64 KiB UTF-8 for the message, subject, header and provenance. Shorten the message or subject.",
   "unknown-agent": "Unknown agent in the configuration.",
-  "unsupported-agent": "Agent not supported by relay: only Codex and Claude Code CLI agents are accepted.",
+  "unsupported-agent": "Agent not supported by this path: Codex and Claude Code for resume; OpenCode only with --copy and --dir.",
   "config-untrusted": "Configuration not trusted. Review it, then retry with --trust-config.",
   "config-unavailable": "Configuration not found or unreadable.",
   "unsupported-executable": "Agent executable not supported: relay never launches .cmd wrappers or modified PowerShell shims.",
@@ -205,6 +210,7 @@ const enInvalid: Record<InvalidRequestReason, string> = {
 
 export const relayMessages: Record<Language, RelayMessages> = {
   fr: {
+    copy: relayCopyText("fr"),
     usageLimit: retry => "Codex a atteint sa limite d'usage. " + (retry === undefined
       ? "La CLI n'indique pas de reprise exploitable."
       : typeof retry === "number" ? `Reprise indiquée par la CLI : dans ${retry} s.`
@@ -323,6 +329,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
     }
   },
   en: {
+    copy: relayCopyText("en"),
     usageLimit: retry => "Codex has reached its usage limit. " + (retry === undefined
       ? "The CLI provides no usable retry indication."
       : typeof retry === "number" ? `CLI retry indication: in ${retry} s.`

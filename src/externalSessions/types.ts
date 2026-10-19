@@ -1,5 +1,5 @@
 /**
- * @file Contrats partagés du relay vers une session externe Codex ou Claude Code (voir AGENTS.md,
+ * @file Contrats partagés du relay Codex, Claude Code ou copie OpenCode (voir AGENTS.md,
  * section "Relay externe").
  *
  * Une session externe n'est pas un adapter de débat : elle n'expose pas `generate(prompt)` et
@@ -9,12 +9,13 @@
  */
 
 /** Fournisseurs de session externe pris en charge. */
-export type ExternalProvider = "codex" | "claude";
+export type ExternalProvider = "codex" | "claude" | "opencode";
 
 /**
  * Référence `<agent>:<session>` validée syntaxiquement par `parseSessionRef`.
  * `agent` est un nom d'agent de config (cible) ou une étiquette déclarative (expéditeur) ;
- * `sessionId` est un UUID normalisé en minuscules.
+ * `sessionId` est un UUID normalisé par parseSessionRef ; le parcours --copy emploie
+ * son parseur dédié d'ID OpenCode sensible à la casse, sans élargir celui de Mission.
  */
 export interface SessionRef {
   agent: string;
@@ -162,6 +163,7 @@ export type RelayStatus =
 
 /** Raison détaillée d'une issue `invalid-request`. */
 export type InvalidRequestReason =
+  | "opencode-cli-unsupported"
   | "write-unavailable"
   | "write-approval-required"
   | "write-approval-invalid"

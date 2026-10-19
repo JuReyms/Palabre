@@ -85,6 +85,8 @@ palabre relay --new --to codex "Review this project without changing any file."
 
 This command returns the conversation identifier. Follow [Your first Relay](https://palab.re/en/get-started/first-relay) to choose your mission lead, continue the same exchange and understand Codex desktop’s one-time approvals.
 
+Unreleased OpenCode CLI pilot (Windows, 2.0.32): `palabre relay --copy --to opencode:ses_... --dir "C:\projects\example" "Give advice without changing files"`. Explicit source, verified copy, usual permissions/plugins/MCP kept; no enforced read-only mode and no project sandbox. Source and copy are retained. One real CLI trial succeeded on a fictional project; Desktop remains unqualified. See the [Relay guide](https://palab.re/en/usage/relay).
+
 ### How it works
 
 - **PALABRE drives your CLIs.** Each agent runs with its own tool, account and default model. PALABRE does not list models: `--model-a`, `--model-b` and `--summary-model` pass the raw value to the agent.
@@ -252,6 +254,8 @@ palabre relay --new --to codex "Relis ce projet sans modifier de fichier."
 ```
 
 Cette commande rend l’identifiant de la conversation. Suivez [Premier Relay](https://palab.re/fr/get-started/first-relay) pour choisir votre chef de mission, continuer le même échange et comprendre les autorisations ponctuelles de Codex desktop.
+
+Pilote OpenCode CLI non publié (Windows, 2.0.32) : `palabre relay --copy --to opencode:ses_... --dir "C:\projets\exemple" "Donne un avis sans modifier de fichier"`. Source explicite, copie vérifiée, permissions/plugins/MCP habituels conservés ; aucune lecture seule imposée ni bac à sable pour le projet. Source et copie restent conservées. Un essai réel CLI sur projet fictif a réussi ; Desktop reste non qualifié. Voir le [guide Relay](https://palab.re/fr/usage/relay).
 
 ### Comment ça fonctionne
 

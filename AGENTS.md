@@ -101,7 +101,7 @@ src/discovery.ts          Detection locale des CLIs et d'Ollama pendant init
 src/doctor.ts             Diagnostics de configuration et de disponibilite locale
 src/agentRegistry.ts      Source de verite des agents CLI connus (mapping commande -> decouverte)
 src/exec.ts               Resolution d'extensions executables partagee
-src/npmShim.ts            Reconnaissance stricte des shims PowerShell npm et pnpm, lancement direct sans PowerShell (adapters ; Relay : forme npm Node + script seulement)
+src/npmShim.ts            Reconnaissance stricte des shims npm/pnpm, lancement direct sans PowerShell (Relay : npm Node ; --copy OpenCode accepte aussi npm natif)
 src/types.ts              Contrats partages
 src/prompt.ts             Rendu des prompts agent
 src/context.ts            Chargement des fichiers et dossiers de contexte
@@ -368,7 +368,9 @@ Shims pnpm (#109), dans `src/npmShim.ts` :
   ou `vsce`), cible native, `pnpx`, shim modifie.
 
 Relay (D21) reste limite a la forme npm Node + script : un shim pnpm y donne
-`unsupported-executable`.
+`unsupported-executable`. Exception explicite OpenCode `--copy` : variante native npm
+reconnue ligne à ligne par `npmNativeShimLaunch`, cible .exe/.com interne existante
+lancée directement ; jamais de PowerShell, pnpm ou wrapper modifié. Reprises Codex/Claude inchangées.
 
 Les defaults Palabre appliquent une politique d'outils en lecture seule quand la CLI l'expose :
 Claude est limite a `Read,Glob,Grep`, Vibe a `read,grep`, et OpenCode utilise `--pure` pour
@@ -564,11 +566,16 @@ et la version du client quand elle est fournie.
 
 ## Relay externe
 
-OpenCode (#136), contrat en préparation : voir `docs/relay-opencode-copy-contract.md`.
+OpenCode (#136), pilote CLI sur copie : voir `docs/relay-opencode-copy-contract.md`.
 Décision du propriétaire du 19 octobre 2026 : environnement OpenCode habituel conservé,
-consultation demandée sur copie, sans lecture seule imposée. Le contrat n'active pas
-encore ce fournisseur dans Relay et ne change pas Claude Code, Codex, Mission ou review.
-Les exclusions de fork ci-dessous décrivent la commande actuelle, pas ce futur lot.
+consultation demandée sur copie, sans lecture seule imposée. `--copy --dir` est réservé
+à OpenCode CLI Windows 2.0.32 et ne change pas Claude Code, Codex, Mission ou review.
+`copyRelay.ts` conserve les phases/ID/preuves ; `opencodeCopy.ts` vérifie les données,
+`opencodeTransport.ts` possède le serveur stdio privé et les IO bornées. La réponse
+validée et sa délivrance survivent à une erreur ultérieure de source/arrêt/export.
+La commande CLI a passé un essai réel fictif le 19 octobre 2026 ; voir
+`docs/relay-opencode-copy-qualification.md`. Desktop reste hors de cette preuve.
+Les exclusions générales de fork ci-dessous concernent les reprises Codex/Claude.
 
 Échecs de lecture Windows/Codex (#128) : l'adapter qualifie uniquement les événements terminés
 `command_execution`, `failed`, `exit_code: -1` dont la sortie commence par l'erreur de démarrage

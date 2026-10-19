@@ -1,7 +1,8 @@
 /**
  * @file Reconnaissance stricte des shims PowerShell générés par npm (#98) et par pnpm (#109).
  * La forme npm Node + script est partagée par Relay et les adapters CLI/PTY ; la variante native npm
- * et les formes pnpm ne servent qu'aux adapters (Relay garde la décision D21).
+ * sert aussi à l'opt-in OpenCode --copy ; les formes pnpm restent réservées aux adapters.
+ * Les reprises Relay Codex/Claude gardent la décision D21.
  *
  * Avec Windows PowerShell 5.1, lancer ces shims refuse l'argument `-`, retire les guillemets
  * internes des arguments et remplace les caractères non ASCII de stdin par `?`. Quand un shim

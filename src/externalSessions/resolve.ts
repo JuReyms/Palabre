@@ -9,13 +9,15 @@
  * 2. shim PowerShell npm de forme reconnue, **lu comme du texte** (jamais exécuté ni évalué) :
  *    l'interpréteur Node et le script du paquet sont alors lancés directement. La reconnaissance
  *    est partagée avec les adapters CLI/PTY (`src/npmShim.ts`) ;
+ *    Avec l'opt-in OpenCode --copy seulement, la variante npm native est reconnue par le même
+ *    lecteur strict partagé, et son exécutable littéral est lancé directement ;
  * 3. tout autre wrapper (`.cmd`, `.bat`, shim modifié ou ambigu) est refusé.
  * Ailleurs, la commande est résolue dans le PATH et lancée directement.
  */
 import { statSync } from "node:fs";
 import path from "node:path";
 import { resolveExecutablePath } from "../exec.js";
-import { npmShimLaunch } from "../npmShim.js";
+import { npmShimLaunch, npmNativeShimLaunch } from "../npmShim.js";
 import type { ExternalExecutable } from "./adapter.js";
 
 /**
@@ -54,7 +56,7 @@ export function executableFromNpmShim(shimPath: string): ExecutableResolution {
 /** Variantes Windows d'une commande, dans l'ordre de préférence au sein d'un même dossier. */
 const WINDOWS_CANDIDATE_EXTENSIONS = [".exe", ".com", ".ps1", ".cmd", ".bat", ""];
 
-function resolveWindows(command: string): ExecutableResolution {
+function resolveWindows(command: string, allowNpmNative: boolean): ExecutableResolution {
   const explicit = path.isAbsolute(command) || command.includes("/") || command.includes("\\");
   const extension = path.extname(command).toLowerCase();
   let found: string | undefined;
@@ -72,16 +74,24 @@ function resolveWindows(command: string): ExecutableResolution {
   }
   // `.ps1`, wrapper `.cmd`/`.bat` ou script sans extension : seul un shim npm voisin est accepté.
   const shim = foundExtension === ".ps1" ? found : `${found.slice(0, found.length - foundExtension.length)}.ps1`;
-  if (isFile(shim)) return executableFromNpmShim(shim);
+  if (isFile(shim)) {
+    const node = executableFromNpmShim(shim);
+    if (!allowNpmNative || node.status !== "unsupported-executable") return node;
+    const native = npmNativeShimLaunch(shim);
+    if (native.status === "resolved") return { status: "resolved", executable: { command: native.command, prefixArgs: [] }, kind: "npm-shim" };
+    if (native.status === "missing") return { status: "command-not-found", detail: native.detail };
+    return node;
+  }
   return { status: "unsupported-executable", detail: "wrapper non pris en charge (ni exécutable natif, ni shim npm)" };
 }
 
 /**
- * Résout la commande d'un agent en exécutable lançable sans shell. Ne lance et n'évalue rien.
+ * Résout sans exécuter/évaluer. `allowNpmNative` est réservé au parcours OpenCode --copy ;
+ * absent, la décision D21 des reprises Codex/Claude reste identique.
  */
-export function resolveExternalExecutable(command: string): ExecutableResolution {
+export function resolveExternalExecutable(command: string, options: { allowNpmNative?: boolean } = {}): ExecutableResolution {
   if (command.trim() === "") return { status: "command-not-found", detail: "commande vide" };
-  if (process.platform === "win32") return resolveWindows(command);
+  if (process.platform === "win32") return resolveWindows(command, options.allowNpmNative === true);
   const resolved = resolveExecutablePath(command, [""]);
   return resolved && isFile(resolved)
     ? { status: "resolved", executable: { command: resolved, prefixArgs: [] }, kind: "native" }

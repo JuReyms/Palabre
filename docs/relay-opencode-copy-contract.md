@@ -2,9 +2,10 @@
 
 19 octobre 2026 — Codex MSI — recherche #136.
 
-**Contrat d'implémentation, pas fonctionnalité disponible.** Cette branche ne
-raccorde pas encore OpenCode à `palabre relay`. Les exemples ci-dessous décrivent
-le parcours à construire. Le cahier des charges Relay reste inchangé pour Claude
+**Contrat du pilote non publié.** Cette branche raccorde OpenCode à `palabre relay`
+avec des tests simulés et un essai CLI réel réussi le 19 octobre 2026 ; voir
+`docs/relay-opencode-copy-qualification.md` pour la portée exacte de cette preuve.
+Les exemples ci-dessous décrivent ce pilote. Le cahier des charges reste inchangé pour Claude
 Code et Codex ; Desktop garde sa qualification séparée.
 
 ## 1. Décision et preuve de départ
@@ -72,6 +73,9 @@ L'agent destinataire expose ses questions ou blocages dans sa réponse finale.
 
 1. Valider arguments, configuration approuvée, exécutable sans shell, version,
    dossier et budget. Une seule échéance couvre démarrage, relevés, fork et tour.
+   Le shim npm natif habituel d'OpenCode est accepté seulement s'il correspond
+   exactement au modèle du lecteur partagé et désigne un exécutable interne
+   existant ; lancement direct sans PowerShell. D21 reste inchangé ailleurs.
 2. Démarrer un **serveur privé possédé par cet appel**, dans le dossier explicite :
    `serve --stdio --hostname 127.0.0.1 --port 0`. Profil habituel conservé, sans
    copie de connexion, lecture directe de base ou modification de configuration.

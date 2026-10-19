@@ -34,6 +34,59 @@ Pour une simple relecture ou correction de code depuis Claude Code vers Codex, l
 
 **Fonctions conservées, hors parcours par défaut :** `--write` est expérimental et gelé ; Mission et `--task review` sont gelés. Leur documentation est conservée ci-dessous ; seuls les correctifs de sécurité sont acceptés, sans extension de périmètre.
 
+## Demander un avis à une copie OpenCode
+
+Pilote **Windows, OpenCode CLI 2.0.32 seulement**, non publié. Un essai réel de la
+commande CLI sur projet fictif a réussi le 19 octobre 2026 ; cette preuve ne
+qualifie pas Desktop ou tous les contenus de conversation. Claude Code et Codex
+ne changent pas de permissions.
+
+Dans OpenCode, choisissez votre modèle, attendez la fin du tour et relevez
+l'identifiant exact `ses_...` et le dossier de la conversation. Fermez-la puis,
+depuis votre agent ou votre terminal, demandez par exemple :
+
+```powershell
+palabre relay --copy --to opencode:ses_ExempleSource --dir "C:\projets\exemple" --subject "Avis sur le plan" "Lis docs/plan.md et relève les risques, sans modifier de fichier." --json
+```
+
+Remplacez l'identifiant fictif et le dossier par ceux de votre source ; `opencode`
+est le nom de votre agent configuré. Vérifiez la version avec `opencode --version`.
+Une autre version est refusée, sans mise à jour automatique. La configuration
+Palabre doit être approuvée comme pour les autres parcours Relay.
+
+Palabre crée et vérifie une copie, puis lui envoie un seul message. **L'original
+n'est jamais repris pour cet envoi.** Agent, modèle et variante de la source sont
+conservés, sans modèle de remplacement ni repli payant implicite. Les connexions,
+permissions, plugins, MCP et règles d'organisation restent ceux d'OpenCode. Des
+intégrations peuvent démarrer dès le lancement du serveur privé, avant le message.
+
+« Sans modifier de fichier » est une consigne, pas une lecture seule imposée.
+La copie de conversation partage les fichiers du projet : **ce n'est pas un bac
+à sable**. Ne rouvrez pas la source pendant l'appel ; les relevés avant/après ne
+constituent pas un verrou global. Un contenu ou un schéma non qualifié est refusé
+avant envoi si détecté à cette étape, sans tentative de réparation de l'historique.
+
+Le résultat distingue `copy.source` (original) et `to.session` (copie vérifiée,
+ou `null`). `copy.session` conserve l'ID reçu même si la vérification échoue ;
+`copy.verified` ne signifie pas que la réponse a réussi. `copy.sourceCheck` donne
+le dernier relevé de l'original, `copy.serverStop` l'arrêt observé. Une création
+incertaine peut laisser une copie sans ID connu (`retention: unknown`).
+
+Source et copie restent dans OpenCode après l'appel, même en échec. `--no-export`
+désactive seulement le fichier `.relay.md`, pas cette rétention. Conservez le
+résultat : `delivery.status` peut être `replied`, `persisted-no-reply` ou `unknown`
+après une tentative. Aucun renvoi automatique. Une réponse validée reste dans
+`reply` et sa délivrance reste `replied` si seul un contrôle final, l'arrêt ou
+l'export échoue. Une annulation tente d'interrompre seulement la copie ; elle ne
+promet ni retrait du message ni annulation d'effets. L'arrêt dispose d'au plus
+10 secondes supplémentaires après l'échéance d'attente.
+
+Pour inspecter une copie connue, ouvrez le dossier du projet dans votre terminal
+puis lancez `opencode --session ses_IdentifiantCopie`. Pour une nouvelle consultation
+Relay, `--copy --to opencode:ses_IdentifiantCopie --dir "C:\projets\exemple"` créera
+encore une copie : aucune reprise directe ni poursuite automatique. Pas de
+`--new`, `--open`, `--write`, `--task review`, `--pr` ou Mission dans ce pilote.
+
 ## Codex chef de mission
 
 Depuis une conversation Codex desktop ouverte dans le dossier du projet, dites par exemple :
@@ -55,7 +108,7 @@ palabre relay --new --to codex "Lis ce projet et propose trois pistes d'amélior
 palabre relay --new --to claude --dir "../autre-projet" "Explique la structure de ce projet, sans rien modifier."
 ```
 
-`--to` désigne ici un agent de votre configuration, sans identifiant. Le dossier courant est utilisé par défaut ; `--dir` choisit un autre dossier existant. Pour une conversation existante, son dossier reste celui de son historique : `--dir` est refusé.
+`--to` désigne ici un agent de votre configuration, sans identifiant. Le dossier courant est utilisé par défaut ; `--dir` choisit un autre dossier existant. Pour une reprise Codex/Claude existante, son dossier reste celui de son historique : `--dir` est refusé. OpenCode utilise le parcours `--copy` distinct ci-dessus.
 
 La sortie donne l'identifiant et une commande pour continuer :
 

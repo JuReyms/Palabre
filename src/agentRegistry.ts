@@ -23,7 +23,7 @@ interface KnownCliAgent {
    * Fournisseur de session externe pris en charge par `palabre relay` (voir AGENTS.md, section
    * "Relay externe"). Absent pour les CLIs dont la reprise de session n'est pas vérifiée.
    */
-  externalSession?: "codex" | "claude";
+  externalSession?: "codex" | "claude" | "opencode";
 }
 
 /**
@@ -35,7 +35,7 @@ const KNOWN_CLI_AGENTS: readonly KnownCliAgent[] = [
   { configKey: "codex", commandAliases: ["codex"], discoveryKey: "codex", externalSession: "codex" },
   { configKey: "claude", commandAliases: ["claude"], discoveryKey: "claude", externalSession: "claude" },
   { configKey: "antigravity", commandAliases: ["agy", "antigravity"], discoveryKey: "antigravity" },
-  { configKey: "opencode", commandAliases: ["opencode"], discoveryKey: "opencode" },
+  { configKey: "opencode", commandAliases: ["opencode"], discoveryKey: "opencode", externalSession: "opencode" },
   { configKey: "vibe", commandAliases: ["vibe"], discoveryKey: "vibe" }
 ];
 
@@ -78,7 +78,7 @@ export function normalizeCommandName(command: string): string {
  * Retourne `undefined` pour une CLI connue sans reprise vérifiée ou pour une commande custom :
  * Palabre ne connaît pas sa sémantique de reprise.
  */
-export function externalSessionProviderForCommand(command: string): "codex" | "claude" | undefined {
+export function externalSessionProviderForCommand(command: string): "codex" | "claude" | "opencode" | undefined {
   const normalized = normalizeCommandName(command);
   return KNOWN_CLI_AGENTS.find((agent) => agent.commandAliases.includes(normalized))?.externalSession;
 }

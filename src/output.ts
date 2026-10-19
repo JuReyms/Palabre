@@ -198,6 +198,8 @@ function formatAgentsForHeader(options: DebateOptions): string {
 
 /** Données d'un export `.relay.md` (voir AGENTS.md, section "Relay externe"). */
 export interface RelayExport {
+  /** Source et copie distinctes, même après erreur ou absence de réponse. */
+  copy?: import("./externalSessions/copyRelay.js").CopyReport;
   /** Rapport Git et commandes observées, uniquement après un accord d'écriture ponctuel. */
   write?: import("./externalSessions/write.js").WriteReport;
   /** Indication de reprise CLI, sans date/fuseau implicites ni relance automatique. */
@@ -253,6 +255,14 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     [labels.to, `${report.to.agent}${report.to.session ? `:${report.to.session}` : ""}`],
     ...(report.created !== undefined ? [[labels.created, formatBoolean(report.created)], [labels.cwd, report.cwd ?? labels.unknown]] : []),
     [labels.provider, report.to.provider],
+    ...(report.copy ? [
+      [labels.mode, "copy"], [messages.relay.copy.source, report.copy.source],
+      [messages.relay.copy.copy, report.copy.session ?? (report.copy.retention === "none" ? messages.relay.copy.none : messages.relay.copy.unknown)],
+      [messages.relay.copy.verified, formatBoolean(report.copy.verified)], [messages.relay.copy.retention, report.copy.retention],
+      ...(report.copy.diagnostic ? [[messages.relay.copy.diagnostic, report.copy.diagnostic]] : []),
+      [labels.cwd, report.cwd ?? labels.unknown], [messages.relay.copy.check, report.copy.sourceCheck],
+      [messages.relay.copy.stop, report.copy.serverStop]
+    ] : []),
     [labels.status, report.status],
     [labels.delivery, report.delivery.status],
     [labels.persisted, formatBoolean(report.delivery.persisted)],
@@ -286,7 +296,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     "| --- | --- |",
     ...rows.map(([label, value]) => `| ${escapeTableCell(label!)} | ${escapeTableCell(value!)} |`),
     "",
-    `> ${report.write ? relayWriteText(report.write.language).exportNotice : report.open ? labels.openNotice : labels.readOnlyNotice}`,
+    `> ${report.copy ? messages.relay.copy.notice : report.write ? relayWriteText(report.write.language).exportNotice : report.open ? labels.openNotice : labels.readOnlyNotice}`,
     "",
     `## ${labels.message}`,
     "",

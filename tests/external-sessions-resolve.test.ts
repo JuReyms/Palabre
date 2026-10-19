@@ -24,12 +24,14 @@ function npmBin(files: Record<string, string>) {
 }
 
 describe("externalSessionProviderForCommand", () => {
-  test("Codex et Claude Code seulement, quels que soient le chemin et l'extension", () => {
+  test("Codex, Claude Code et OpenCode, quels que soient le chemin et l'extension", () => {
     assert.equal(externalSessionProviderForCommand("codex"), "codex");
     assert.equal(externalSessionProviderForCommand("C:\\npm\\codex.cmd"), "codex");
     assert.equal(externalSessionProviderForCommand("claude.exe"), "claude");
     assert.equal(externalSessionProviderForCommand("/usr/local/bin/claude"), "claude");
-    for (const command of ["agy", "opencode", "vibe", "ollama", "my-claude-wrapper"]) {
+    assert.equal(externalSessionProviderForCommand("opencode"), "opencode");
+    assert.equal(externalSessionProviderForCommand("C:\\npm\\opencode.ps1"), "opencode");
+    for (const command of ["agy", "vibe", "ollama", "my-claude-wrapper"]) {
       assert.equal(externalSessionProviderForCommand(command), undefined, command);
     }
   });
@@ -122,6 +124,28 @@ describe("executableFromNpmShim", () => {
 });
 
 describe("resolveExternalExecutable", () => {
+  test("--copy seulement : shim npm natif strict, jamais PowerShell ni cible externe", { skip: process.platform !== "win32" }, () => {
+    const native = (target: string) => [
+      "#!/usr/bin/env pwsh", "$basedir=Split-Path $MyInvocation.MyCommand.Definition -Parent", "", '$exe=""',
+      'if ($PSVersionTable.PSVersion -lt "6.0" -or $IsWindows) {',
+      "  # Fix case when both the Windows and Linux builds of Node", "  # are installed in the same directory", '  $exe=".exe"', "}",
+      "# Support pipeline input", "if ($MyInvocation.ExpectingInput) {", `  $input | & "$basedir/${target}"   $args`,
+      "} else {", `  & "$basedir/${target}"   $args`, "}", "exit $LASTEXITCODE", ""
+    ].join("\r\n");
+    const relative = "node_modules/@opencode/cli/bin/opencode.exe";
+    const dir = npmBin({ "opencode.ps1": native(relative), [relative]: "fake native metadata only" });
+    const command = path.join(dir, "opencode.ps1");
+    assert.equal(resolveExternalExecutable(command).status, "unsupported-executable");
+    assert.deepEqual(resolveExternalExecutable(command, { allowNpmNative: true }), {
+      status: "resolved", executable: { command: path.join(dir, relative), prefixArgs: [] }, kind: "npm-shim"
+    });
+    for (const target of ["../outside.exe", "node_modules/package/run.cmd", "node_modules/package/missing.exe"]) {
+      const other = npmBin({ "opencode.ps1": native(target) });
+      assert.notEqual(resolveExternalExecutable(path.join(other, "opencode.ps1"), { allowNpmNative: true }).status, "resolved");
+    }
+    writeFileSync(command, native(relative) + "Write-Output injected\n");
+    assert.equal(resolveExternalExecutable(command, { allowNpmNative: true }).status, "unsupported-executable");
+  });
   test("commande vide ou introuvable : command-not-found", () => {
     assert.equal(resolveExternalExecutable("").status, "command-not-found");
     assert.equal(resolveExternalExecutable(path.join(root, "absent", "codex")).status, "command-not-found");

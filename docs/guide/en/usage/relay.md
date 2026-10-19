@@ -34,6 +34,58 @@ For a simple code review or fix from Claude Code to Codex, the [official OpenAI 
 
 **Retained features, outside the default path:** `--write` is experimental and frozen; Mission and `--task review` are frozen. Their documentation remains below; only security fixes are accepted, with no scope expansion.
 
+## Ask an OpenCode copy for advice
+
+Unreleased pilot for **Windows and OpenCode CLI 2.0.32 only**. One real CLI-command
+trial on a fictional project succeeded on October 19, 2026; this does not qualify
+Desktop or every kind of conversation content. Claude Code and Codex permissions
+remain unchanged.
+
+In OpenCode, select your model, wait for the turn to finish and note the exact
+`ses_...` identifier and conversation directory. Close it, then ask from your
+agent or terminal, for example:
+
+```powershell
+palabre relay --copy --to opencode:ses_ExampleSource --dir "C:\projects\example" --subject "Plan advice" "Read docs/plan.md and identify risks without modifying files." --json
+```
+
+Replace the fictional ID and directory with your source's values; `opencode` is
+your configured agent name. Check the version with `opencode --version`. Other
+versions are refused, without automatic updates. The Palabre configuration must
+be trusted as with other Relay paths.
+
+Palabre creates and verifies a copy, then sends one message to it. **The original
+is never resumed for this send.** The source agent, model and variant are kept,
+without a replacement model or implicit paid fallback. OpenCode connections,
+permissions, plugins, MCP and organization policies remain in effect. Integrations
+may start with the private server, before any message is sent.
+
+“Without modifying files” is a task instruction, not enforced read-only access.
+The conversation copy shares project files: **it is not a sandbox**. Do not reopen
+the source during the call; before/after snapshots are not a global lock. Unknown
+content or schemas are refused before sending when detected at that stage;
+Palabre does not repair conversation history.
+
+The result distinguishes `copy.source` (original) and `to.session` (verified copy,
+or `null`). `copy.session` keeps a received ID even if verification fails;
+`copy.verified` does not mean the reply succeeded. `copy.sourceCheck` reports the
+last original snapshot check and `copy.serverStop` the observed shutdown. Uncertain
+creation may leave a copy without a known ID (`retention: unknown`).
+
+Source and copy remain in OpenCode even after failure. `--no-export` only disables
+the `.relay.md` file, not this retention. Keep the result: `delivery.status` can be
+`replied`, `persisted-no-reply` or `unknown` after an attempt. No automatic resend.
+A validated reply remains in `reply` with delivery `replied` if only a final
+check, shutdown or export fails. Cancellation tries to interrupt only the copy;
+it promises neither message withdrawal nor reversal of effects. Cleanup has at
+most 10 additional seconds after the waiting deadline.
+
+To inspect a known copy, open the project directory in your terminal and run
+`opencode --session ses_CopyIdentifier`. Another Relay consultation using
+`--copy --to opencode:ses_CopyIdentifier --dir "C:\projects\example"` creates
+another copy: no direct resumption or automatic follow-up. No `--new`, `--open`,
+`--write`, `--task review`, `--pr` or Mission in this pilot.
+
 ## Codex as mission lead
 
 From a Codex desktop conversation opened in the project folder, say for example:
@@ -55,7 +107,7 @@ palabre relay --new --to codex "Read this project and suggest three improvements
 palabre relay --new --to claude --dir "../another-project" "Explain this project's structure, without changing anything."
 ```
 
-Here, `--to` names an agent from your configuration, without a conversation identifier. The current directory is used by default; `--dir` selects another existing directory. An existing conversation keeps the directory recorded in its history: `--dir` is rejected.
+Here, `--to` names an agent from your configuration, without a conversation identifier. The current directory is used by default; `--dir` selects another existing directory. Existing Codex/Claude resumes keep the directory recorded in history: `--dir` is rejected. OpenCode uses the separate `--copy` path above.
 
 Text output gives the identifier and a continuation command:
 

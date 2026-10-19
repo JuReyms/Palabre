@@ -208,10 +208,12 @@ Flags:
   relay: `
 Transmet un message à une conversation Codex ou Claude Code fermée et renvoie sa réponse.
 Avec --open, dépose le message dans une conversation Codex ouverte et attend sa réponse.
+Avec --copy, demande un avis dans une copie OpenCode (pilote Windows, CLI 2.0.32).
 
 Usage:
   palabre relay --to <agent>:<session> "<message>"
   palabre relay --new --to <agent> "<message>"
+  palabre relay --copy --to opencode:ses_... --dir "C:\\projets\\exemple" "<avis sans modification>"
   palabre relay --new --write --to codex --dir <projet-git> "<tâche>"
   palabre relay approve-write <WR-id>    # confirmation par l'humain, dans son terminal
   palabre relay run-write <WR-id> --json # un seul appel après accord
@@ -224,8 +226,9 @@ Flags:
   --from <agent>[:<uuid>] expéditeur facultatif, déclaré et non authentifié ; terminal si absent
   --to <agent>:<uuid>     cible existante ; nom d'agent seul avec --new
   --new                   crée une conversation persistante, lecture seule par défaut, sans --open
+  --copy                  OpenCode seulement : source exacte copiée, environnement habituel conservé
   --write                 expérimental, gelé : tâche Codex Windows avec accord humain et worktree séparé
-  --dir <chemin>          dossier de la nouvelle conversation (défaut : dossier courant)
+  --dir <chemin>          dossier avec --new ; dossier exact obligatoire avec --copy
   Omettez --from et --dir s'ils n'ont pas de valeur ; une chaîne vide est refusée.
   --message-file <path>   lit le message dans un fichier (64 Kio au plus)
   --subject <objet>       objet facultatif : une ligne non vide, 200 caractères au plus, sans contrôle
@@ -269,7 +272,7 @@ Limites :
   --new crée la cible sans choisir une conversation existante. L'identifiant reçu reste
   dans to.session et l'export, même si le premier tour échoue ; cwd indique le dossier.
   La sortie donne la commande pour continuer ; aucun renvoi automatique après un échec.
-  Sans --write, aucune écriture en arrière-plan. Affichage Desktop non garanti.
+  Reprises Codex/Claude sans --write : aucune écriture en arrière-plan. Affichage Desktop non garanti.
   --write exige --new, un dépôt Git et une config déjà approuvée. Aucun --open, --task ou --trust-config.
   Le premier appel ne lance pas de modèle : write-approval-required (8), writeRequest et remedy.
   Le propriétaire lance approve-write dans un terminal visible (entrée ET sortie TTY), relit tâche,
@@ -295,7 +298,20 @@ Avec --open (pilote Codex, Windows) :
   pas. Un message déposé peut être traité après le délai, même sans être affiché ; Ctrl+C
   n'annule pas un dépôt, et il n'y a aucun renvoi automatique.
 
-Garanties conditionnelles :
+Avec --copy (pilote OpenCode CLI 2.0.32, Windows seulement) :
+  Fermez la source et indiquez son ID exact ses_... et son dossier --dir. La source ne reçoit
+  jamais le message : PALABRE vérifie un fork, puis lui demande un avis. Aucun --auto, modèle
+  imposé, retry ou repli payant. Agent, modèle et variante sont ceux de la source.
+  Permissions, plugins et MCP habituels conservés : aucune lecture seule imposée. Le fork copie
+  la conversation, pas les fichiers du projet. Ne réutilisez pas la source pendant l'appel :
+  les relevés ne forment pas un verrou global. Source et copie restent dans OpenCode, même
+  après échec ; --no-export ne supprime pas la copie. Nettoyage : 10 s au plus après le délai.
+  JSON mode=copy : copy.source est l'original ; to.session est la copie vérifiée, ou null.
+  copy.session conserve aussi une copie non vérifiée ; vérifiez copy.verified et delivery.
+  Une réponse validée est conservée même si l'arrêt ou l'export échoue ensuite.
+  Aucun --new, --open, --write, --task, --pr ou Mission. Desktop non qualifié.
+
+Garanties conditionnelles (reprises Codex/Claude seulement, pas --copy) :
   Avec les options imposées par Palabre et sur les versions de CLI vérifiées, la cible ne
   dispose d'aucun outil d'écriture, et les hooks et la commande notify non gérés sont
   neutralisés. Les serveurs MCP sont neutralisés sous réserve que la configuration ne change
@@ -579,10 +595,12 @@ Flags:
   relay: `
 Sends one message to a closed Codex or Claude Code conversation and returns its reply.
 With --open, queues the message into an open Codex conversation and waits for its reply.
+With --copy, requests advice in an OpenCode copy (Windows pilot, CLI 2.0.32).
 
 Usage:
   palabre relay --to <agent>:<session> "<message>"
   palabre relay --new --to <agent> "<message>"
+  palabre relay --copy --to opencode:ses_... --dir "C:\\projects\\example" "<advice without changes>"
   palabre relay --new --write --to codex --dir <git-project> "<task>"
   palabre relay approve-write <WR-id>    # owner confirms in their terminal
   palabre relay run-write <WR-id> --json # one call after approval
@@ -595,8 +613,9 @@ Flags:
   --from <agent>[:<uuid>] optional, declared and unauthenticated sender; terminal when omitted
   --to <agent>:<uuid>     existing target; agent name only with --new
   --new                   creates a persistent conversation, read-only by default; no --open
+  --copy                  OpenCode only: explicit source copied, usual environment preserved
   --write                 experimental, frozen: Windows Codex task with human approval and separate worktree
-  --dir <path>            new conversation directory (default: current directory)
+  --dir <path>            directory with --new; exact directory required with --copy
   Omit --from and --dir when they have no value; empty strings are rejected.
   --message-file <path>   reads the message from a file (64 KiB at most)
   --subject <subject>     optional subject: one nonblank line, at most 200 characters, no controls
@@ -639,7 +658,7 @@ Limits:
   Palabre changes no permissions and never resends automatically.
   --new never selects an existing conversation. The received identifier remains in to.session
   and the export even when the first turn fails; cwd gives the directory. Text output gives
-  a continuation command. No automatic retry or guaranteed Desktop visibility. Without --write, no background writing.
+  a continuation command. No automatic retry or guaranteed Desktop visibility. Codex/Claude resumes without --write have no background writing.
   --write requires --new, a Git repository and an already trusted config. No --open, --task or --trust-config.
   The first call starts no model: write-approval-required (8), writeRequest and remedy.
   The owner runs approve-write in a visible terminal (both input and output TTY), checks task, agent,
@@ -665,7 +684,20 @@ With --open (Codex pilot, Windows):
   A queued message may be processed after the timeout, even without being displayed; Ctrl+C
   does not cancel a queued message, and there is no automatic resend.
 
-Conditional guarantees:
+With --copy (OpenCode CLI 2.0.32 pilot, Windows only):
+  Close the source and provide its exact ses_... ID and --dir directory. The source never
+  receives the message: PALABRE checks a fork, then asks it for advice. No --auto, imposed
+  model, retry or paid fallback. Agent, model and variant are inherited from the source.
+  Usual permissions, plugins and MCP are kept: no enforced read-only mode. A fork copies
+  the conversation, not project files. Do not reuse the source during the call: snapshots
+  are not a global lock. Source and copy remain in OpenCode, even after failure; --no-export
+  does not delete the copy. Cleanup takes at most 10 s after the waiting deadline.
+  JSON mode=copy: copy.source is the original; to.session is the verified copy, or null.
+  copy.session also retains an unverified copy; check copy.verified and delivery.
+  A validated reply is retained even if shutdown or export fails later.
+  No --new, --open, --write, --task, --pr or Mission. Desktop is not qualified.
+
+Conditional guarantees (Codex/Claude resumes only, not --copy):
   With the options enforced by Palabre and on verified CLI versions, the target has no
   write tool, and unmanaged hooks and the notify command are neutralized. MCP servers are
   neutralized provided the configuration does not change between inspection and resume.
