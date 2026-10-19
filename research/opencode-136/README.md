@@ -17,6 +17,21 @@ Le but est de travailler avec OpenCode comme avec Claude Code et Codex, puis de 
 
 Le dernier test local avec Ollama prouve le transport, le fork et la réutilisation d'une fausse clé. Sa réponse finale ne respectait pas entièrement la consigne : il ne faut pas le présenter comme un succès fonctionnel complet.
 
+### Reprise sur le deuxième PC, 19 octobre 2026
+
+Le paquet installé est `@opencode/cli` **2.0.32** et son binaire a exactement
+l'empreinte qualifiée. Le contre-exemple Console/MCP a été rejoué avec des profils
+fictifs : **une requête au MCP malgré le refus local**, sans session ni modèle ;
+la politique distante reste absente de l'API de configuration. La connexion réelle
+annoncée par le propriétaire n'a pas été utilisée pour cet essai.
+
+La lecture des sources précise une distinction : un `deny` effectif dans les
+permissions de session est contrôlé avant les politiques, mais il n'empêche pas
+l'initialisation des MCP. Aucun plafond d'intégrations indépendant des politiques
+Console n'a été établi dans les interfaces examinées. Le blocage du profil habituel
+reste ouvert. Voir le [bilan de reprise](resumption-2026-10-19.md), les pistes
+écartées et la question amont préparée, non publiée.
+
 ## Prochaine étape pour le chef de mission
 
 1. Relever la version et le chemin de la CLI sur la machine utilisée, sans lire les connexions. Si elle a changé, requalifier les points concernés ; ne pas contourner le contrôle d'empreinte.
