@@ -31,6 +31,20 @@ la ferme avant l'essai de copie.
 Identité de l'agent sur cette machine : **Codex MSI**. Utiliser cette signature
 dans les interventions GitHub ; ne pas réécrire les anciennes signatures.
 
+### Premier essai réel réussi avec le profil habituel
+
+Le 19 octobre, le propriétaire a créé et fermé la source dans le dossier fictif.
+Un essai unique dans une copie a conservé `build` et le modèle choisi
+`opencode/deepseek-v4.1-flash-free`, variante `high`. La réponse restitue le code
+de contexte, relève correctement l'erreur de calcul et propose des tests utiles.
+Trois outils `read` terminés sont observés. Les relevés de la source sont
+identiques avant/après ; les fichiers et leur inventaire hors `.git` sont inchangés.
+La copie est conservée et le serveur privé s'est arrêté normalement.
+
+Voir le [bilan réel](habitual-profile-result-2026-10-19.md). Ce passage qualifie ce
+scénario CLI simple ; l'adapter produit, Desktop, la concurrence et les autres
+contenus de conversation restent à traiter séparément.
+
 ## Où nous en sommes au 19 octobre 2026
 
 Le but est de travailler avec OpenCode comme avec Claude Code et Codex, puis de permettre les échanges dans les deux sens. Les modèles gratuits sont un cas d'usage, pas la limite du produit. L'ordre retenu reste : avis sur une copie, choix du modèle, puis écriture. Desktop se qualifie séparément.
@@ -65,8 +79,8 @@ invalider l'essai. Voir le [bilan de reprise](resumption-2026-10-19.md), les pis
 ## Prochaine étape pour le chef de mission
 
 1. Relever la version et le chemin de la CLI sur la machine utilisée, sans lire les connexions. Si elle a changé, requalifier les points concernés ; ne pas contourner le contrôle d'empreinte. Le moteur 2.0.32 identique a été retrouvé sur le deuxième PC.
-2. Préparer le laboratoire avec `scripts/habitual-lab.mjs prepare`. Le propriétaire crée une conversation fictive avec le modèle qu'il choisit dans son OpenCode habituel, puis ferme l'interface. Conserver son identifiant exact et son dossier ; aucune sélection de « la dernière ».
-3. À partir de cette source désignée, relever l'état initial, créer et contrôler une copie avant tout prompt, puis demander un avis uniquement dans la copie. Vérifier réponse attribuable, modèle observé, source et fichiers. Un résultat ambigu ou partiel reste un échec de qualification ; aucun retry automatique. Code produit et Desktop restent des lots séparés.
+2. Le premier parcours avec source et dossier explicites est désormais éprouvé ; conserver sa copie et ses traces locales, sans rejouer l'appel pour refaire un bilan. `scripts/habitual-copy.mjs` est un lanceur de recherche, pas une commande produit.
+3. Préparer le contrat de l'adapter CLI sur une branche produit distincte depuis `main` à jour : consultation sur copie, environnement habituel, sélection de modèle explicite, corrélation stricte, erreurs et délivrance sans retry, rétention annoncée. Utiliser des faux transports pour ses tests ordinaires et les preuves réelles encore valides. Desktop garde sa qualification séparée.
 
 Les bilans complets sont dans `historical/` et dans #136. Ils sont datés ; leurs anciens chemins `.cache/` sont des références de provenance, pas des commandes à reprendre. Les pièces brutes restent sur la première machine et ne sont pas nécessaires pour lire ces conclusions.
 
@@ -99,6 +113,7 @@ Node.js 22.13 ou plus est nécessaire pour les tests SQLite en mémoire. Depuis 
 ```powershell
 node --test research/opencode-136/scripts/static-model.test.mjs research/opencode-136/scripts/lab-paths.test.mjs
 node --test research/opencode-136/scripts/habitual-lab.test.mjs
+node --test research/opencode-136/scripts/habitual-copy.test.mjs
 node --test research/opencode-136/fixtures/habitual-project/test/total.test.mjs
 ```
 
@@ -115,4 +130,9 @@ Les scripts ont été adaptés pour retirer les chemins propres au premier PC : 
 
 Un futur passage de ces essais exige un choix explicite du chef de mission. Sous Windows seulement, le chemin du binaire qualifié se fournit avec `$env:PALABRE_LAB_OPENCODE`, puis se retire après l'essai. Le moteur est refusé si son empreinte ne correspond pas ; il ne faut ni copier un binaire de l'autre PC ni modifier son installation pour forcer le passage.
 
-Les sorties `.local/` contiennent uniquement des essais fictifs, mais peuvent avoir des identifiants de session et des mots de passe éphémères de serveurs. Ne les ajoutez pas à Git. Publiez un bilan relu, jamais une base ou un journal brut. Les originaux locaux ne sont ni effacés ni remplacés par cette copie de travail.
+Les sorties `.local/` contiennent des profils fictifs et, pour le nouveau parcours,
+des traces issues du profil habituel sur une conversation fictive. Elles peuvent
+contenir des identifiants de session, des informations du profil et des mots de
+passe éphémères de serveurs. Ne les ajoutez pas à Git. Publiez un bilan relu,
+jamais une base ou un journal brut. Les originaux locaux ne sont ni effacés ni
+remplacés par cette copie de travail.

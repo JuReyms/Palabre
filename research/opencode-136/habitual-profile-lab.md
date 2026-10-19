@@ -1,5 +1,9 @@
 # Laboratoire OpenCode avec le profil habituel
 
+Le premier essai réel a réussi le 19 octobre 2026 ; voir le
+[bilan et les limites](habitual-profile-result-2026-10-19.md). La procédure est
+conservée pour la provenance, pas pour demander de refaire cet appel.
+
 ## Décision du propriétaire, 19 octobre 2026
 
 Pour OpenCode, Relay respecte l'environnement configuré par l'utilisateur :
@@ -100,6 +104,28 @@ copie et les traces jusqu'à examen ; la rétention finale sera décidée ensuit
 Les écritures du laboratoire, l'adapter produit et Desktop restent des étapes
 distinctes. L'emploi futur de permissions plus larges fera l'objet d'un scénario
 annoncé et d'une vérification des fichiers.
+
+## Lanceur de recherche de l'essai réel
+
+`scripts/habitual-copy.mjs` reçoit l'export Markdown et le dossier du laboratoire
+par leurs chemins absolus. `PALABRE_LAB_OPENCODE` désigne explicitement le binaire
+natif dont l'empreinte est vérifiée. Il démarre un serveur privé avec le profil
+habituel, vérifie la source, crée un fork et contrôle son contenu avant de lancer
+un seul `run` dans cette copie. Le prompt est transmis par stdin, sans shell.
+Il ne passe ni `--model`, ni `--agent`, ni `--auto`, ni politique fermée.
+
+Les appels API sont bornés, la sortie CLI est limitée à 4 Mio, l'appel à 150 s,
+et l'essai global à environ quatre minutes, arrêt compris. Un timeout du client
+déclenche une tentative d'interruption sur la seule copie : la délivrance peut
+rester inconnue et aucun nouvel envoi n'est effectué. Les tentatives internes du
+fournisseur restent celles d'OpenCode sur le même modèle.
+
+Le résultat `verified-transport-review-to-inspect` est une preuve de transport,
+de contexte et des relevés, pas une notation automatique de l'avis. Le contenu
+de l'avis est inspecté séparément. Un code CLI 0 ne suffit jamais. Le test
+`habitual-copy.test.mjs` couvre les mauvaises cibles, l'absence de modèle, la
+concurrence, le contenu partiel, les erreurs d'outil et les tours ambigus, sans
+OpenCode ni compte.
 
 ## Texte de mise à jour de #136, préparé mais non publié
 
