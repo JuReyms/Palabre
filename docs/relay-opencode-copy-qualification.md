@@ -80,6 +80,23 @@ d'effets externes.
   nouvel appel modèle. La résolution npm native est opt-in OpenCode `--copy`
   seulement ; les reprises Codex/Claude gardent leur politique existante.
 
+## Correctif après le premier passage CI
+
+La première CI Linux de la PR #178 a révélé un défaut distinct des délais
+Windows : quand le serveur dépasse son plafond de sortie pendant des requêtes
+API, son arrêt coupe leurs sockets. L'erreur HTTP secondaire masquait alors
+la cause connue `server-output-limit` et rendait `cli-failure` au lieu de
+`output-too-large`.
+
+Un scénario fictif déclenche désormais la rafale après la première requête API :
+il reproduit l'échec avant correction également sous Windows. Les handlers
+d'erreur HTTP conservent maintenant la cause serveur déjà connue ; sans cause
+connue, une coupure API reste une erreur de transport générique. Le contrôleur
+garde la priorité de l'annulation/échéance et ses preuves de délivrance.
+Les 20 tests ciblés OpenCode passent après correction, avec le garde-profil
+inchangé. Aucun plafond, délai, droit ou règle de retry modifié ; aucun nouvel
+appel OpenCode réel ou modèle pour ce correctif.
+
 ## Limites conservées
 
 Cette preuve concerne cette CLI, cette version Windows et ce contexte textuel

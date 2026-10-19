@@ -27,9 +27,19 @@ if (args[0] === 'run') {
     process.exit(latest.mode === 'client-error' ? 1 : 0);
   });
 } else if (args[0] === 'serve') {
+  let overflowStarted = false;
   const server = http.createServer((req, res) => {
     const expected = 'Basic ' + Buffer.from('opencode:' + process.env.OPENCODE_PASSWORD).toString('base64');
     if (req.headers.authorization !== expected) { res.writeHead(401).end(); return; }
+    // Cause d'arrêt connue pendant des requêtes pendantes : le socket coupé est une conséquence.
+    if (state.mode === 'server-overflow-request') {
+      if (!overflowStarted) {
+        overflowStarted = true;
+        for (let i = 0; i < 100; i++) process.stderr.write('X'.repeat(65536));
+      }
+      return;
+    }
+    if (state.mode === 'api-disconnect') { req.socket.destroy(); return; }
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {

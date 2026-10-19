@@ -1,4 +1,7 @@
-/** @file Transport OpenCode privé : processus possédés, API locale authentifiée, lectures bornées sans retry. */
+/**
+ * @file Transport OpenCode privé : processus possédés, API locale authentifiée, lectures bornées
+ * sans retry. Une cause d'arrêt serveur déjà connue prime sur les erreurs HTTP qu'elle provoque.
+ */
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { request } from "node:http";
@@ -141,6 +144,12 @@ export class OpenCodeCopyTransport implements CopyTransport {
     this.server?.failed();
     if (!this.url || signal.aborted) return Promise.reject(new CopyFailure("cli-failure", "api-unavailable"));
     return new Promise((resolve, reject) => {
+      // Le kill pour plafond coupe les sockets : ne pas remplacer sa cause par ECONNRESET.
+      const rejectIO = (diagnostic: string) => {
+        try { this.server?.failed(); }
+        catch (failure) { reject(failure); return; }
+        reject(new CopyFailure("cli-failure", diagnostic));
+      };
       const req = request(new URL(route, this.url), {
         method: body ? "POST" : "GET", signal,
         headers: { Authorization: `Basic ${Buffer.from(`opencode:${this.password}`).toString("base64")}`,
@@ -155,7 +164,7 @@ export class OpenCodeCopyTransport implements CopyTransport {
           }
           chunks.push(chunk);
         });
-        response.on("error", () => reject(new CopyFailure("cli-failure", "api-read")));
+        response.on("error", () => rejectIO("api-read"));
         response.on("end", () => {
           try {
             this.server?.failed();
@@ -167,7 +176,7 @@ export class OpenCodeCopyTransport implements CopyTransport {
           } catch (error) { reject(error instanceof CopyFailure ? error : new CopyFailure("no-valid-reply", "api-schema")); }
         });
       });
-      req.on("error", () => reject(new CopyFailure("cli-failure", "api-request")));
+      req.on("error", () => rejectIO("api-request"));
       // Les API locales ordinaires ne doivent pas monopoliser toute une longue attente modèle.
       req.setTimeout(20_000, () => req.destroy());
       req.end(body ? JSON.stringify(body) : undefined);

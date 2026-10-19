@@ -87,6 +87,22 @@ test("transport : plafonds serveur et API cumulée restent bornés, même avec p
   }
 });
 
+test("transport : arrêt pour plafond pendant les requêtes API conserve sa cause primaire", async () => {
+  for (const mode of ["server-overflow-request", "api-disconnect"]) {
+    const w = world(mode);
+    try {
+      const result = await runCopyRelay({ source: sourceId, cwd: w.cwd, timeoutMs: 8000, envelope: () => "Corps exact" },
+        { transport: new OpenCodeCopyTransport({ command: process.execPath, prefixArgs: [fixture] }, w.cwd, 8000), platform: "win32" });
+      const overflow = mode === "server-overflow-request";
+      assert.equal(result.outcome.status, overflow ? "output-too-large" : "cli-failure", JSON.stringify(result));
+      assert.equal(result.copy.diagnostic, overflow ? "server-output-limit" : "api-request");
+      assert.equal(result.delivery.status, "not-delivered"); assert.equal(result.copy.retention, "none");
+      assert.equal(result.copy.serverStop, "confirmed"); assert.equal(result.reply, undefined);
+      assert.equal(w.readCalls().some(c => c.args[0] === "run"), false);
+    } finally { w.restore(); }
+  }
+});
+
 test("commande Windows : copie et export FR/EN ; refus incompatibles avant lancement", { skip: process.platform !== "win32" }, async () => {
   for (const language of ["fr", "en"] as const) {
     const w = world();
