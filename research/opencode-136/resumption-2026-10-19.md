@@ -1,5 +1,10 @@
 # Reprise du 19 octobre 2026 : frontière des politiques Console
 
+> Bilan établi avant la décision de conserver l'environnement OpenCode habituel.
+> Le contre-exemple reste valable ; la neutralisation générale n'est plus un
+> préalable au parcours retenu. Voir [la décision actuelle](README.md#décision-actuelle--environnement-opencode-habituel).
+> La question amont ci-dessous est conservée comme piste facultative, non publiée.
+
 **Le blocage du profil habituel est reproduit sur le deuxième PC.** La connexion
 OpenCode annoncée par le propriétaire permet de préparer un futur essai, mais ne
 qualifie pas la neutralisation des intégrations. Aucun essai avec cette connexion
