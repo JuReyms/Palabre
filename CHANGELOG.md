@@ -6,7 +6,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Fixed
 
-- Pilote Relay OpenCode `--copy` : un arrêt du serveur pour dépassement de sortie conserve le diagnostic `output-too-large` lorsque les requêtes API pendantes sont coupées ; une erreur HTTP secondaire ne masque plus la cause connue. Test de régression sans modèle ajouté après l'échec CI Linux de #178.
+- Pilote Relay OpenCode `--copy` : un dépassement de sortie conserve `output-too-large` pendant les requêtes API ou le drainage final ; une erreur HTTP ou la fermeture confirmée ne masquent plus sa cause. La réponse et sa délivrance restent conservées après une erreur tardive. Régressions de l'ordre des événements et des coupures vérifiées sans modèle après les échecs CI Linux de #178.
 
 - Tests : chaque processus dispose d'un dossier personnel temporaire et le vrai `~/.palabre` est surveillé avant/après la suite, sous Windows et Linux. Les tests ne doivent plus y ajouter d'approbations. `palabre config --prune-trust` permet à l'utilisateur de retirer les approbations de fichiers disparus, avec aperçu `--dry-run`, confirmation au clavier et sauvegarde horodatée ; aucun nettoyage automatique (Fixes #156). Aide, guides fr/en, skill et consignes contributeurs actualisés ; la copie installée du skill doit être mise à jour manuellement.
 

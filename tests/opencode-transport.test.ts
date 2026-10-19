@@ -103,6 +103,19 @@ test("transport : arrêt pour plafond pendant les requêtes API conserve sa caus
   }
 });
 
+test("transport : plafond détecté à l'arrêt refuse le succès global sans effacer la réponse", async () => {
+  const w = world("server-overflow-stop");
+  try {
+    const result = await runCopyRelay({ source: sourceId, cwd: w.cwd, timeoutMs: 8000, envelope: () => "Corps exact" },
+      { transport: new OpenCodeCopyTransport({ command: process.execPath, prefixArgs: [fixture] }, w.cwd, 8000), platform: "win32" });
+    assert.equal(result.outcome.status, "output-too-large", JSON.stringify(result));
+    assert.equal(result.copy.diagnostic, "server-output-limit"); assert.equal(result.copy.serverStop, "confirmed");
+    assert.equal(result.reply, "Avis fictif transport"); assert.equal(result.delivery.status, "replied");
+    assert.equal(result.copy.sourceCheck, "unchanged"); assert.equal(result.copy.session, copyId);
+    assert.equal(w.readCalls().filter(c => c.args[0] === "run").length, 1);
+  } finally { w.restore(); }
+});
+
 test("commande Windows : copie et export FR/EN ; refus incompatibles avant lancement", { skip: process.platform !== "win32" }, async () => {
   for (const language of ["fr", "en"] as const) {
     const w = world();

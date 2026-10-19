@@ -55,7 +55,7 @@ function world() {
     async fork(id) { calls.push(`fork:${id}`); return { id: copyId }; },
     async run(id, body) { calls.push(`run:${id}`); assert.equal(body, prompt); after = answer(before); return cloned(success); },
     async interrupt(id) { calls.push(`interrupt:${id}`); },
-    async stop() { calls.push("stop"); return true; }
+    async stop() { calls.push("stop"); return { confirmed: true }; }
   };
   const run = (extra: Partial<Parameters<typeof runCopyRelay>[0]> = {}) => runCopyRelay({ source: sourceId, cwd, timeoutMs: 2000,
     envelope: () => prompt, ...extra }, { transport, platform: "win32", canonicalDirectory: async dir => dir });
@@ -166,7 +166,7 @@ test("réponse validée : erreurs finales de source ou arrêt ne l'effacent jama
     const run = w.transport.run; w.transport.run = async (...args) => { const r = await run(...args); ran = true; return r; };
     const snapshot = w.transport.snapshot;
     if (fail === "source") w.transport.snapshot = async (id, signal) => { const s = await snapshot(id, signal); if (ran && id === sourceId) s.info.title = "changed"; return s; };
-    else w.transport.stop = async () => { if (fail === "throw") throw Error("secret"); return false; };
+    else w.transport.stop = async () => { if (fail === "throw") throw Error("secret"); return { confirmed: false }; };
     const r = await w.run(); assert.equal(r.outcome.status, "cli-failure"); assert.equal(r.delivery.status, "replied");
     assert.equal(r.reply, "  Avis fictif\n"); assert.equal(r.copy.session, copyId);
   }
@@ -196,4 +196,22 @@ test("délai et plafond : causes primaires préservées, envoi unique", async ()
   }
   const w = world(); w.transport.version = signal => new Promise((_, reject) => signal.addEventListener("abort", () => reject(Error()), { once: true }));
   const r = await w.run({ timeoutMs: 10 }); assert.equal(r.outcome.status, "timeout"); assert.equal(r.delivery.status, "not-delivered");
+});
+
+test("cause tardive au drainage : refus/annulation/délai primaires et preuves conservés", async () => {
+  for (const primary of ["replied", "cancelled", "timeout", "output-too-large", "invalid-request"] as const) {
+    const w = world(), run = w.transport.run, abort = new AbortController();
+    w.transport.run = async (...args) => {
+      const r = await run(...args);
+      if (primary === "cancelled") abort.abort();
+      if (primary === "timeout" || primary === "output-too-large") r.stopReason = primary;
+      return r;
+    };
+    w.transport.stop = async () => ({ confirmed: true, failure: new CopyFailure("output-too-large", "server-output-limit") });
+    const r = await w.run({ signal: abort.signal, ...(primary === "invalid-request" ? { envelope: () => "X".repeat(65537) } : {}) });
+    assert.equal(r.outcome.status, primary === "replied" ? "output-too-large" : primary);
+    assert.equal(r.copy.serverStop, "confirmed"); assert.equal(r.copy.session, copyId);
+    assert.equal(r.delivery.status, primary === "replied" ? "replied" : primary === "invalid-request" ? "not-delivered" : "persisted-no-reply");
+    if (primary === "replied") { assert.equal(r.reply, "  Avis fictif\n"); assert.equal(r.copy.diagnostic, "server-output-limit"); }
+  }
 });

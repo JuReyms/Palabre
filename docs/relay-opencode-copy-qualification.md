@@ -93,9 +93,28 @@ il reproduit l'échec avant correction également sous Windows. Les handlers
 d'erreur HTTP conservent maintenant la cause serveur déjà connue ; sans cause
 connue, une coupure API reste une erreur de transport générique. Le contrôleur
 garde la priorité de l'annulation/échéance et ses preuves de délivrance.
-Les 20 tests ciblés OpenCode passent après correction, avec le garde-profil
+Les 20 tests ciblés OpenCode passent après cette première correction, avec le garde-profil
 inchangé. Aucun plafond, délai, droit ou règle de retry modifié ; aucun nouvel
 appel OpenCode réel ou modèle pour ce correctif.
+
+Le passage CI suivant confirme la correction HTTP mais révèle une seconde
+course : le serveur peut finir le tour avant que son dépassement de sortie soit
+observé. Le drainage lors de l'arrêt connaissait cette cause, mais ne rendait
+qu'un booléen de fermeture et laissait donc le statut global à `replied`.
+Un autre scénario fictif n'émet la rafale qu'à la fermeture de stdin ; il
+reproduit le faux succès avant correction également sous Windows.
+
+Le contrat d'arrêt rend désormais séparément la fermeture confirmée et la cause
+connue après drainage des flux. Une fermeture demandée normale n'est pas un
+échec ; une cause tardive interdit le succès global, sans effacer la réponse
+validée ou sa délivrance. Refus, annulation, délai et plafond déjà établi gardent
+leur priorité. Une sortie inattendue est mémorisée dès `exit`, sans figer une
+cause générique avant les derniers chunks ; elle reste un échec si `stop`
+intervient avant `close`. Les tests de ce cycle de vie pilotent les événements
+sans processus réel. Aucun nouvel appel OpenCode ni augmentation des limites.
+Les 27 tests OpenCode passent après ce second correctif, ainsi que le typage,
+le build et la validation du skill. La relecture indépendante confirme les
+priorités et les ordres d'événements ; le garde-profil reste inchangé.
 
 ## Limites conservées
 

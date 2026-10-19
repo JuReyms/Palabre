@@ -7,7 +7,7 @@ import { randomBytes } from "node:crypto";
 import { request } from "node:http";
 import { StringDecoder } from "node:string_decoder";
 import type { ExternalExecutable } from "./adapter.js";
-import type { CopyTransport } from "./copyRelay.js";
+import type { CopyStopResult, CopyTransport } from "./copyRelay.js";
 import { CopyFailure, copyObject, isOpenCodeSessionId, readCopySnapshot, type OpenCodeSnapshot } from "./opencodeCopy.js";
 import { cleanExternalEnv, killProcessTree, runExternalProcess, type ExternalProcessResult } from "./process.js";
 import { utf8ChildProcessEnv } from "../adapters/cli-shared.js";
@@ -15,10 +15,18 @@ import { utf8ChildProcessEnv } from "../adapters/cli-shared.js";
 const PROCESS_LIMIT = 4 * 1024 * 1024;
 const API_TOTAL_LIMIT = 32 * 1024 * 1024;
 
-interface OwnedServer {
+/** @internal Cycle de vie du seul serveur possédé ; les tests peuvent piloter l'ordre exit/close. */
+export interface OwnedServer {
   ready: Promise<string>;
   failed(): void;
+  failure(): CopyFailure | undefined;
   stop(signal: AbortSignal): Promise<boolean>;
+}
+
+/** @internal Injection du processus et du kill ; jamais alimentée par les arguments utilisateur. */
+export interface OwnedServerDeps {
+  spawnProcess?: typeof spawn;
+  killTree?: (pid: number) => void;
 }
 
 /** Attente bornée d'un enfant possédé ; aucune temporisation ni listener ne survit à la course. */
@@ -36,9 +44,9 @@ async function waitClosed(done: Promise<void>, ms: number, signal: AbortSignal):
   }
 }
 
-/** Serveur seul autorisé : stdio local, mot de passe éphémère ; aucune sortie brute n'est rendue. */
-function startOwnedServer(executable: ExternalExecutable, cwd: string, env: NodeJS.ProcessEnv, signal: AbortSignal): OwnedServer {
-  let child: ChildProcess | undefined, closed = false, exited = false, bytes = 0, pending = "";
+/** @internal Serveur stdio local ; sorties bornées et cause finale après drainage, sans données brutes rendues. */
+export function startOwnedServer(executable: ExternalExecutable, cwd: string, env: NodeJS.ProcessEnv, signal: AbortSignal, deps: OwnedServerDeps = {}): OwnedServer {
+  let child: ChildProcess | undefined, closed = false, exited = false, stopping = false, unexpectedExit = false, bytes = 0, pending = "";
   let failure: CopyFailure | undefined;
   let readyResolve!: (url: string) => void, readyReject!: (error: CopyFailure) => void;
   let doneResolve!: () => void;
@@ -46,7 +54,7 @@ function startOwnedServer(executable: ExternalExecutable, cwd: string, env: Node
   const ready = new Promise<string>((resolve, reject) => { readyResolve = resolve; readyReject = reject; });
   // Un rejet peut survenir avant que l'appelant entre dans await start().
   void ready.catch(() => {});
-  const kill = () => { if (child?.pid && !exited) killProcessTree(child.pid); };
+  const kill = () => { if (child?.pid && !exited) (deps.killTree ?? killProcessTree)(child.pid); };
   const fail = (status: "cli-failure" | "output-too-large", diagnostic: string) => {
     if (failure) return;
     failure = new CopyFailure(status, diagnostic); readyReject(failure); kill();
@@ -56,7 +64,7 @@ function startOwnedServer(executable: ExternalExecutable, cwd: string, env: Node
   const detach = () => { clearTimeout(startupTimer); signal.removeEventListener("abort", onAbort); };
   try {
     if (signal.aborted) throw Error();
-    child = spawn(executable.command, [...executable.prefixArgs, "serve", "--stdio", "--hostname", "127.0.0.1", "--port", "0"], {
+    child = (deps.spawnProcess ?? spawn)(executable.command, [...executable.prefixArgs, "serve", "--stdio", "--hostname", "127.0.0.1", "--port", "0"], {
       cwd, env: cleanExternalEnv(env), shell: false, windowsHide: true, detached: process.platform !== "win32", stdio: ["pipe", "pipe", "pipe"]
     });
     const decoder = new StringDecoder("utf8");
@@ -83,10 +91,17 @@ function startOwnedServer(executable: ExternalExecutable, cwd: string, env: Node
     child.stderr!.on("data", count);
     child.stdin!.on("error", () => { /* La fermeture est diagnostiquée par close. */ });
     child.on("error", () => { failure ??= new CopyFailure("cli-failure", "server-spawn"); readyReject(failure); });
-    child.on("exit", () => { exited = true; detach(); });
+    child.on("exit", () => {
+      unexpectedExit = !stopping; exited = true; detach();
+      // Ne pas attendre close pour libérer un démarrage sans URL ; des descendants peuvent
+      // retenir les flux. Le booléen conserve l'attribution sans figer une cause générique.
+      readyReject(failure ?? new CopyFailure("cli-failure", "server-closed"));
+    });
     child.on("close", () => {
       closed = true; exited = true; detach();
-      failure ??= new CopyFailure("cli-failure", "server-closed"); readyReject(failure); doneResolve();
+      const closure = failure ?? new CopyFailure("cli-failure", "server-closed");
+      if (!stopping || unexpectedExit) failure ??= closure;
+      readyReject(closure); doneResolve();
     });
     signal.addEventListener("abort", onAbort, { once: true });
     if (signal.aborted) onAbort();
@@ -96,9 +111,13 @@ function startOwnedServer(executable: ExternalExecutable, cwd: string, env: Node
   }
   return {
     ready,
-    failed() { if (failure) throw failure; },
+    failed() {
+      if (failure) throw failure;
+      if (closed || unexpectedExit) throw new CopyFailure("cli-failure", "server-closed");
+    },
+    failure() { return failure; },
     async stop(cleanupSignal) {
-      detach();
+      stopping = true; detach();
       if (closed) return true;
       child?.stdin?.end();
       if (await waitClosed(done, 3000, cleanupSignal)) return true;
@@ -211,5 +230,10 @@ export class OpenCodeCopyTransport implements CopyTransport {
     await this.api(`/api/session/${id}/interrupt`, signal, {});
   }
 
-  async stop(signal: AbortSignal): Promise<boolean> { return this.server ? this.server.stop(signal) : true; }
+  /** Le bilan de cause est figé après l'attente de close, donc après les derniers chunks acceptés. */
+  async stop(signal: AbortSignal): Promise<CopyStopResult> {
+    if (!this.server) return { confirmed: true };
+    const confirmed = await this.server.stop(signal);
+    return { confirmed, failure: this.server.failure() };
+  }
 }

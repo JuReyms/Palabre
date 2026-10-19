@@ -573,6 +573,9 @@ consultation demandée sur copie, sans lecture seule imposée. `--copy --dir` es
 `copyRelay.ts` conserve les phases/ID/preuves ; `opencodeCopy.ts` vérifie les données,
 `opencodeTransport.ts` possède le serveur stdio privé et les IO bornées. La réponse
 validée et sa délivrance survivent à une erreur ultérieure de source/arrêt/export.
+`CopyTransport.stop` rend fermeture confirmée et cause éventuelle après drainage ;
+ne jamais conclure au succès sur le seul `close`. Une sortie non demandée est
+mémorisée dès `exit`, mais une cause précise des derniers chunks reste prioritaire.
 La commande CLI a passé un essai réel fictif le 19 octobre 2026 ; voir
 `docs/relay-opencode-copy-qualification.md`. Desktop reste hors de cette preuve.
 Les exclusions générales de fork ci-dessous concernent les reprises Codex/Claude.

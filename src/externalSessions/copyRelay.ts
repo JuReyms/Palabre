@@ -19,6 +19,12 @@ export interface CopyReport {
   diagnostic?: string;
 }
 
+/** Arrêt observé et cause éventuelle, relevée après drainage des sorties, sans effacer la réponse. */
+export interface CopyStopResult {
+  confirmed: boolean;
+  failure?: CopyFailure;
+}
+
 /** Transport possédé par le socle ; les tests n'ont besoin ni de serveur ni de compte. */
 export interface CopyTransport {
   version(signal: AbortSignal): Promise<string | undefined>;
@@ -27,7 +33,7 @@ export interface CopyTransport {
   fork(id: string, signal: AbortSignal): Promise<unknown>;
   run(id: string, envelope: string, signal: AbortSignal): Promise<ExternalProcessResult>;
   interrupt(id: string, signal: AbortSignal): Promise<void>;
-  stop(signal: AbortSignal): Promise<boolean>;
+  stop(signal: AbortSignal): Promise<CopyStopResult>;
 }
 
 /** Entrées explicites ; l'enveloppe se construit seulement après vérification du fork. */
@@ -172,7 +178,15 @@ export async function runCopyRelay(input: CopyRelayInput, deps: CopyRelayDeps): 
           catch { copy.sourceCheck = "unknown"; }
         }
       } finally {
-        try { copy.serverStop = await transport.stop(cleanup.signal) ? "confirmed" : "unknown"; }
+        try {
+          const stopped = await transport.stop(cleanup.signal);
+          copy.serverStop = stopped.confirmed ? "confirmed" : "unknown";
+          // Une cause connue lors du drainage interdit le succès global. Les refus, limites
+          // déjà établies, l'annulation et l'échéance gardent leur priorité ; les preuves restent.
+          if (stopped.failure && ["replied", "cli-failure", "no-valid-reply"].includes(status)) {
+            status = stopped.failure.status; copy.diagnostic = stopped.failure.diagnostic;
+          }
+        }
         catch { copy.serverStop = "unknown"; }
         clearTimeout(cleanupTimer);
       }

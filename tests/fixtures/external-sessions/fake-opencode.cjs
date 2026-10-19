@@ -73,5 +73,10 @@ if (args[0] === 'run') {
       for (let i = 0; i < 100; i++) process.stdout.write('X'.repeat(65536));
     }
   });
-  process.stdin.resume(); process.stdin.on('end', () => server.close());
+  process.stdin.resume(); process.stdin.on('end', () => {
+    if (state.mode === 'server-overflow-stop') {
+      for (let i = 0; i < 100; i++) process.stderr.write('X'.repeat(65536));
+    }
+    server.close();
+  });
 } else process.exit(9);

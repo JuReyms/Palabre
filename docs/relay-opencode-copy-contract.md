@@ -106,6 +106,9 @@ L'agent destinataire expose ses questions ou blocages dans sa réponse finale.
 9. Fermer l'entrée du serveur possédé par cet appel et attendre son arrêt borné.
    Si nécessaire, arrêter uniquement son arbre de processus. Conserver le
    diagnostic si l'arrêt n'est pas établi ; ne pas arrêter d'autres OpenCode.
+   Examiner la cause connue après drainage des dernières sorties : une fermeture
+   confirmée ne suffit pas au succès si un plafond est détecté pendant l'attente.
+   Une réponse déjà validée reste conservée.
 
 Les lectures API, sorties serveur et client sont bornées **avant** leur parsing :
 4 Mio cumulés par processus ; 4 Mio par réponse API et 32 Mio cumulés par appel.
