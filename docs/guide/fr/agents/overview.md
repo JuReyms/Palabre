@@ -19,6 +19,8 @@ Un agent CLI est lancé comme une commande de terminal. Palabre lui envoie un pr
 
 Chaque CLI garde ses propres règles : authentification, modèle par défaut, abonnement, limites d'usage et options de configuration. Certaines CLIs peuvent fonctionner avec une offre gratuite, un abonnement, un provider local ou un provider cloud ; dans tous les cas, les quotas et erreurs de limite viennent de l'agent utilisé, pas de Palabre.
 
+Si une CLI termine en erreur sans écrire sur stderr, Palabre affiche un extrait nettoyé et borné de stdout pour aider au diagnostic, par exemple une erreur d'authentification. La session reste en échec : cet extrait n'est jamais accepté comme réponse. Corrigez d'abord l'authentification ou la configuration dans la CLI concernée, puis relancez Palabre.
+
 ## Agents locaux
 
 Un agent local comme Ollama utilise un modèle installé sur votre machine. C'est utile pour des rôles de critique, d'exploration ou de synthèse légère. Si vous configurez Ollama avec une offre cloud ou un service payant, les limites associées restent celles d'Ollama ou du provider choisi.
