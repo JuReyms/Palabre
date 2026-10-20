@@ -268,7 +268,8 @@ Limites :
   Palabre ne change aucune permission et ne renvoie rien automatiquement.
   --new crée la cible sans choisir une conversation existante. L'identifiant reçu reste
   dans to.session et l'export, même si le premier tour échoue ; cwd indique le dossier.
-  La sortie donne la commande pour continuer ; aucun renvoi automatique après un échec.
+  La sortie texte donne la commande pour continuer. En JSON, utiliser to.session avec
+  palabre relay --to <agent>:<session> "<suite>" ; aucun renvoi automatique après un échec.
   Sans --write, aucune écriture en arrière-plan. Affichage Desktop non garanti.
   --write exige --new, un dépôt Git et une config déjà approuvée. Aucun --open, --task ou --trust-config.
   Le premier appel ne lance pas de modèle : write-approval-required (8), writeRequest et remedy.
@@ -640,7 +641,9 @@ Limits:
   Palabre changes no permissions and never resends automatically.
   --new never selects an existing conversation. The received identifier remains in to.session
   and the export even when the first turn fails; cwd gives the directory. Text output gives
-  a continuation command. No automatic retry or guaranteed Desktop visibility. Without --write, no background writing.
+  a continuation command. In JSON, use to.session with
+  palabre relay --to <agent>:<session> "<follow-up>". No automatic retry or guaranteed Desktop visibility.
+  Without --write, no background writing.
   --write requires --new, a Git repository and an already trusted config. No --open, --task or --trust-config.
   The first call starts no model: write-approval-required (8), writeRequest and remedy.
   The owner runs approve-write in a visible terminal (both input and output TTY), checks task, agent,

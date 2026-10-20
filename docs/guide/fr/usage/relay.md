@@ -57,7 +57,7 @@ palabre relay --new --to claude --dir "../autre-projet" "Explique la structure d
 
 `--to` désigne ici un agent de votre configuration, sans identifiant. Le dossier courant est utilisé par défaut ; `--dir` choisit un autre dossier existant. Pour une conversation existante, son dossier reste celui de son historique : `--dir` est refusé.
 
-La sortie donne l'identifiant et une commande pour continuer :
+La sortie texte donne l'identifiant et une commande pour continuer :
 
 ```text
 Conversation créée : codex:<uuid>
@@ -65,7 +65,7 @@ Dossier : <dossier-du-projet>
 Pour continuer avec cette conversation : palabre relay --to codex:<uuid> "…"
 ```
 
-En JSON, `to.session` contient l'identifiant reçu, `cwd` le dossier et `created` indique si un identifiant a été reçu. Avant réception, `to.session` vaut `null` et `created` vaut `false`. L'identifiant est capturé pendant l'appel et conservé dans le résultat et l'export même si le premier tour échoue : **cela ne signifie pas que la question a reçu une réponse**. Vérifiez alors la délivrance avant de renvoyer ; aucun nouvel essai n'est automatique.
+En JSON, `to.session` contient l'identifiant reçu, `cwd` le dossier et `created`, à la racine, indique si un identifiant a été reçu. `identity` reste lui aussi à la racine. Avant réception, `to.session` vaut `null` et `created` vaut `false`. Le JSON et l'export ne contiennent pas de commande de continuation : utilisez la forme documentée `palabre relay --to <agent>:<to.session> "<suite>" --json`. L'identifiant est capturé pendant l'appel et conservé dans le résultat et l'export même si le premier tour échoue : **cela ne signifie pas que la question a reçu une réponse**. Vérifiez alors la délivrance avant de renvoyer ; aucun nouvel essai n'est automatique.
 
 La conversation reste dans l'historique de la CLI. Son affichage immédiat dans Desktop n'est pas garanti. `--new` ne s'utilise pas avec `--open`. Par défaut, la création sert aux avis et lectures ; `--write` reste un parcours expérimental et gelé, décrit en fin de page.
 
@@ -137,7 +137,7 @@ Avec `--open`, PALABRE dépose le message dans une conversation Codex **ouverte*
 - **Un seul délai.** `--timeout` couvre la préparation, le dépôt et l'attente.
 - **Historiques volumineux.** PALABRE ne lit que la première ligne de l'historique et ce qui s'y ajoute après le dépôt, quelle que soit sa taille.
 
-Versions vérifiées : Codex CLI 0.151.0 (TUI) et Codex desktop 26.930.7945.0 (app-server 0.160.1). Le format de l'historique de Codex n'est pas un schéma public : une autre version n'est pas bloquée, mais la corrélation de la réponse n'y est pas garantie.
+Versions vérifiées : Windows avec Codex CLI 0.151.0 (TUI) et Codex desktop 26.930.7945.0 (app-server 0.160.1) ; macOS 26.6.1 sur Apple Silicon avec Codex CLI 0.163.0 et Codex Desktop intégré à ChatGPT.app. Le format de l'historique de Codex n'est pas un schéma public : une autre version n'est pas bloquée, mais la corrélation de la réponse n'y est pas garantie.
 
 ## Conversation fermée par défaut
 
@@ -374,7 +374,7 @@ Le nonce en bas reste un marqueur dans le message utilisateur ; la corrélation 
 }
 ```
 
-`reply` est présent quand une réponse valide a été reçue, y compris si une lecture bloquée ou un échec de publication rend ensuite l'issue non réussie. Pour toute issue autre que `replied`, `error` contient `kind`, `message` et, pour `invalid-request`, `reason`. `inActiveBranch` est un diagnostic.
+`reply` est présent quand une réponse valide a été reçue, y compris si une lecture bloquée ou un échec de publication rend ensuite l'issue non réussie. Pour toute issue autre que `replied`, `error` contient `kind`, `message` et, pour `invalid-request`, `reason`. `inActiveBranch` est un diagnostic. Avec `--open`, il vaut actuellement `"unknown"` même quand `correlation.reason` vaut `"correlated-final"` : la réponse est bien corrélée au tour déposé, mais PALABRE ne prétend pas reconstruire la branche active d'un historique toujours écrit par Codex Desktop. Fiez-vous à `delivery.status` pour décider d'un renvoi.
 
 Avec `--open` seulement, l'objet ajoute des champs optionnels :
 

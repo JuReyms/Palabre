@@ -65,7 +65,7 @@ Directory: <project-directory>
 To continue this conversation: palabre relay --to codex:<uuid> "…"
 ```
 
-In JSON, `to.session` contains the received identifier, `cwd` the directory, and `created` indicates whether an identifier was received. Before that, `to.session` is `null` and `created` is `false`. The identifier is captured during the call and preserved in the result and export even if the first turn fails: **this does not mean the question was answered**. Check delivery before sending again; no retry is automatic.
+In JSON, `to.session` contains the received identifier, `cwd` the directory, and root-level `created` indicates whether an identifier was received. `identity` also remains at the root. Before that, `to.session` is `null` and `created` is `false`. JSON and the export do not contain a continuation command: use the documented form `palabre relay --to <agent>:<to.session> "<follow-up>" --json`. The identifier is captured during the call and preserved in the result and export even if the first turn fails: **this does not mean the question was answered**. Check delivery before sending again; no retry is automatic.
 
 The conversation remains in the CLI history. Immediate Desktop visibility is not guaranteed. `--new` cannot be used with `--open`. By default, creation supports advice and reading; `--write` remains an experimental, frozen path documented at the end of this page.
 
@@ -137,7 +137,7 @@ With `--open`, PALABRE queues the message into an **open** Codex conversation, i
 - **A single timeout.** `--timeout` covers preparation, queuing and waiting.
 - **Large histories.** PALABRE only reads the first line of the history and what is appended after queuing, whatever its size.
 
-Verified versions: Codex CLI 0.151.0 (TUI) and Codex desktop 26.930.7945.0 (app-server 0.160.1). The Codex history format is not a public schema: another version is not blocked, but reply correlation is not guaranteed there.
+Verified versions: Windows with Codex CLI 0.151.0 (TUI) and Codex desktop 26.930.7945.0 (app-server 0.160.1); macOS 26.6.1 on Apple Silicon with Codex CLI 0.163.0 and Codex Desktop integrated into ChatGPT.app. The Codex history format is not a public schema: another version is not blocked, but reply correlation is not guaranteed there.
 
 ## Closed conversations by default
 
@@ -374,7 +374,7 @@ The nonce at the bottom remains a marker in the user message; `--open` correlati
 }
 ```
 
-`reply` is present when a valid reply was received, including when blocked reads or a publication failure subsequently make the outcome unsuccessful. For any outcome other than `replied`, `error` contains `kind`, `message` and, for `invalid-request`, `reason`. `inActiveBranch` is a diagnostic.
+`reply` is present when a valid reply was received, including when blocked reads or a publication failure subsequently make the outcome unsuccessful. For any outcome other than `replied`, `error` contains `kind`, `message` and, for `invalid-request`, `reason`. `inActiveBranch` is a diagnostic. With `--open`, it is currently `"unknown"` even when `correlation.reason` is `"correlated-final"`: the reply is correlated to the queued turn, but PALABRE does not claim to reconstruct the active branch of a history still written by Codex Desktop. Rely on `delivery.status` when deciding whether to resend.
 
 With `--open` only, the object adds optional fields:
 
