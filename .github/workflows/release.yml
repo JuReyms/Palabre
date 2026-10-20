@@ -1,11 +1,13 @@
 # Publication d'une release GitHub
 #
-# Se déclenche uniquement sur les tags au format vX.Y.Z (ex. v0.1.0, v1.2.3).
+# Se déclenche sur les tags de release stable ou de préversion.
+# Le script release_metadata.mjs exige vX.Y.Z[-suffixe] et la version exacte de package.json.
 # Préparer le bump sans tag dans une PR, la fusionner, puis taguer exactement
 # le commit courant de main et pousser uniquement ce tag.
 #
 # Procédure standard :
-#   pnpm version patch --no-git-tag-version   # ou minor / major
+#   pnpm version patch --no-git-tag-version   # stable : ou minor / major
+#   pnpm version 0.18.0-beta.1 --no-git-tag-version  # préversion
 #   # après fusion de la PR de release :
 #   git tag vX.Y.Z && git push origin vX.Y.Z
 #
@@ -15,12 +17,12 @@
 #   2. Installation de pnpm et Node.js 22
 #   3. Vérification TypeScript, tests automatisés et compilation
 #   4. Empaquetage npm (pnpm pack → tarball .tgz dans le répertoire courant)
-#   5. Publication npm via Trusted Publishing (npm publish --provenance)
+#   5. Publication npm via Trusted Publishing (`latest` stable, `next` préversion)
 #   6. Création de la release GitHub avec :
 #      - le tarball en pièce jointe (installable via npm/pnpm directement)
 #      - les notes de release générées automatiquement depuis les commits
-#   7. Push de public/version.json dans palabre-web (branche dev)
-#   8. Création ou rappel d'une PR palabre-web dev → main
+#   7. Stable seulement : push de public/version.json dans palabre-web (branche dev)
+#   8. Stable seulement : création ou rappel d'une PR palabre-web dev → main
 #      → sa fusion manuelle déclenche le build Netlify de production
 
 name: Release
@@ -62,6 +64,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Resolve release channel
+        id: release
+        run: node scripts/release_metadata.mjs --tag "${{ github.ref_name }}"
+
       - name: Type check
         run: pnpm check
 
@@ -86,7 +92,7 @@ jobs:
       - name: Publish to npm
         # Utilise npm Trusted Publishing : pas de token npm stocké dans GitHub.
         # Le package npm doit être configuré avec ce repository et ce workflow.
-        run: npm publish --access public --provenance
+        run: npm publish --access public --provenance --tag "${{ steps.release.outputs.npm_tag }}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
@@ -94,11 +100,15 @@ jobs:
           files: '*.tgz'
           # Génère les notes depuis les commits entre ce tag et le précédent
           generate_release_notes: true
+          prerelease: ${{ steps.release.outputs.prerelease }}
+          make_latest: ${{ steps.release.outputs.make_latest }}
 
       - name: Generate changelog pages
+        if: steps.release.outputs.prerelease != 'true'
         run: node scripts/sync_changelog.mjs
 
       - name: Push version to palabre-web
+        if: steps.release.outputs.prerelease != 'true'
         env:
           TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
         run: |
@@ -122,6 +132,7 @@ jobs:
             git push origin dev
           fi
       - name: Propose palabre-web production deployment
+        if: steps.release.outputs.prerelease != 'true'
         env:
           GH_TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
           RELEASE_TAG: ${{ github.ref_name }}
@@ -168,6 +179,7 @@ jobs:
             echo "Fusionner la PR suivante pour déclencher Netlify en production : $PR_URL"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Publish release summary to Bluesky
+        if: steps.release.outputs.prerelease != 'true'
         env:
           BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
           BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}

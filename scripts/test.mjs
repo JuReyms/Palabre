@@ -14,7 +14,11 @@ try {
   const files = process.argv.slice(2);
   if (!files.length) {
     for (const name of (await readdir(path.join(root, '.tmp/test-dist/tests'))).sort()) if (name.endsWith('.test.js')) files.push(path.join(root, '.tmp/test-dist/tests', name));
-    files.push(path.join(root, 'scripts/test-profile.test.mjs'), path.join(root, 'scripts/post_release_bluesky.test.mjs'));
+    files.push(
+      path.join(root, 'scripts/test-profile.test.mjs'),
+      path.join(root, 'scripts/post_release_bluesky.test.mjs'),
+      path.join(root, 'scripts/release_metadata.test.mjs')
+    );
   }
   const code = await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, ['--import', new URL('./test-home.mjs', import.meta.url).href, '--test', ...files], {

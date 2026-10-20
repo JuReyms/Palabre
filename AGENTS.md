@@ -1315,10 +1315,10 @@ Regle d'entretien : chaque fichier TypeScript modifie doit faire l'objet d'une r
 
 ## Releases
 
-Les releases sont gerees via des tags Git. Deux workflows GitHub Actions sont en place :
+Les releases sont gerees via des tags Git. Trois workflows GitHub Actions sont en place :
 
 - `.github/workflows/ci.yml` : type check + tests + build sur chaque push `main` et chaque PR.
-- `.github/workflows/release.yml` : type check + tests + build + pack + publication npm via Trusted Publishing + creation de release GitHub sur chaque tag `v*`.
+- `.github/workflows/release.yml` : validation stricte du tag et de `package.json`, type check + tests + build + pack + publication npm via Trusted Publishing + creation de release GitHub sur chaque tag stable ou de preversion.
 - `.github/workflows/release-social.yml` : reprise manuelle ciblée du post Bluesky pour un tag déjà publié, sans republier npm ni recréer la release.
 
 ### Preparer et publier une release
@@ -1330,6 +1330,8 @@ pnpm version patch --no-git-tag-version   # ou minor / major
 ```
 
 Avant le bump, mettre a jour `CHANGELOG.md` avec l'entree datee de la version cible. La PR de release contient au minimum `package.json` et le changelog ; `main` reste protegee et ne recoit pas de commit direct.
+
+Pour une preversion, utiliser une version explicite comme `0.18.0-beta.1` et un tag Git identique prefixe par `v`. Le workflow refuse tout ecart entre le tag et `package.json`. Il publie la preversion sur le dist-tag npm `next`, cree une GitHub prerelease qui ne devient pas Latest, et n'actualise ni palabre-web ni Bluesky. La version stable reste installee par defaut. Commandes utilisateur : `npm install -g palabre@next`, puis retour arriere avec `npm install -g palabre@0.17.0` ou une autre version stable explicite.
 
 Apres fusion de la PR, taguer exactement le commit courant de `main`, puis pousser seulement ce tag :
 
@@ -1347,10 +1349,10 @@ Le push du tag declenche le workflow `release.yml` qui :
 3. lance les tests automatises (`pnpm test`) ;
 4. compile (`pnpm build`) ;
 5. pack un tarball npm (`pnpm pack`) ;
-6. publie sur npm via Trusted Publishing (`npm publish --access public --provenance`) sans token npm stocke dans GitHub ;
-7. cree une release GitHub avec le tarball en artifact et les notes generees depuis les commits ;
-8. pousse `public/version.json` dans le repo `JuReyms/palabre-web` (branche `dev`) ;
-9. cree une PR `dev -> main` dans palabre-web, ou commente la PR deja ouverte, puis expose son lien dans le resume du workflow. La fusion manuelle de cette PR declenche le build Netlify de production et met a jour le badge de version.
+6. publie sur npm via Trusted Publishing, sous `latest` pour une stable ou `next` pour une preversion, sans token npm stocke dans GitHub ;
+7. cree une release GitHub avec le tarball en artifact et les notes generees depuis les commits ; une preversion est marquee comme telle et ne devient pas Latest ;
+8. pour une stable seulement, pousse `public/version.json` dans le repo `JuReyms/palabre-web` (branche `dev`) ;
+9. pour une stable seulement, cree une PR `dev -> main` dans palabre-web, ou commente la PR deja ouverte, puis expose son lien dans le resume du workflow. La fusion manuelle de cette PR declenche le build Netlify de production et met a jour le badge de version.
 
 Les workflows de release et de synchronisation documentaire recréent la branche `dev` de `palabre-web` depuis `main` lorsqu'elle a été supprimée après fusion. Si le workflow principal s'interrompt après la publication npm mais avant le post social, ne jamais republier le même tag : déclencher manuellement `release-social.yml` avec le tag existant.
 

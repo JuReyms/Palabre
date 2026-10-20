@@ -4,6 +4,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.18.0-beta.1] - 2026-10-20
+
 ### Fixed
 
 - Relay vers Codex sous macOS/Linux : le verrou consultatif est désormais éprouvé par `flock(LOCK_EX | LOCK_NB)` via un appel `python3` borné, sans shell ni lecture du contenu. Un verrou tenu distingue la cible ouverte (`target-busy` sans `--open`, dépôt autorisé avec `--open`) d'un verrou libre ; Python absent, timeout ou erreur ambiguë reste `target-state-unknown`, sans dépôt. Windows est inchangé, la CI couvre maintenant macOS et le diagnostic indique l'action exacte (Fixes #180). Aide, guides fr/en, skill et consignes contributeurs actualisés ; la copie installée du skill doit être mise à jour manuellement.
@@ -23,6 +25,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 - Relay : `--new --to <agent>` crée une conversation Claude Code ou Codex persistante en lecture seule ; `--dir` choisit son dossier. L'identifiant est rendu avec une commande de continuation, en JSON et dans l'export, même si le premier tour échoue (Refs #149, #150).
 
 ### Changed
+- Releases : un tag de préversion doit correspondre exactement à `package.json`, publie npm sous le dist-tag `next` et crée une GitHub prerelease qui ne devient pas Latest. Le site et Bluesky restent sur la dernière version stable jusqu'au tag final.
 - Documentation : le guide « Changer de machine » fr/en intègre les neuf constats de l'essai réel : approbation avant Relay, assistant de configuration, PowerShell 7 hors Store, références Git après squash, dépendances pnpm, `node-pty`, choix des agents pour le skill et doublons npm/pnpm (Refs #151, #171).
 - Relay : méthode de travail et gabarits demande/réponse dans le skill pour réduire coordination et quotas tout en gardant les preuves et la relecture indépendante. Enveloppes classiques et `--open` : avertissement FR/EN clarifié, titre `###`, séparateurs autour de l'objet et du corps intact et partie agent `####`. Guides fr/en et consignes contributeurs alignés ; aucun nouveau champ JSON ni analyse des réponses. La copie installée du skill doit être mise à jour manuellement (Fixes #168).
 - Relay, direction B : communication entre conversations précises et choix du chef de mission Claude Code ou Codex. README, Premier Relay et guide fr/en expliquent le parcours Codex desktop vers Claude fermée sous Windows, avec une autorisation de l'hôte par commande, sans droit permanent. `--write` devient un parcours documentaire expérimental et gelé, hors défaut et uniquement sur demande humaine explicite ; Mission et `--task review` sont gelés, conservés sans extension, correctifs de sécurité seulement. Aide et skill alignés ; aucune fonctionnalité supprimée ni code Relay modifié. Pendant un tour reçu par Relay, les questions vont dans la réponse finale (#146). Les copies installées du skill sont à mettre à jour manuellement (Refs #150).
