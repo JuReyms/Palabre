@@ -67,7 +67,7 @@ Pour continuer avec cette conversation : palabre relay --to codex:<uuid> "…"
 
 En JSON, `to.session` contient l'identifiant reçu, `cwd` le dossier et `created`, à la racine, indique si un identifiant a été reçu. `identity` reste lui aussi à la racine. Avant réception, `to.session` vaut `null` et `created` vaut `false`. Le JSON et l'export ne contiennent pas de commande de continuation : utilisez la forme documentée `palabre relay --to <agent>:<to.session> "<suite>" --json`. L'identifiant est capturé pendant l'appel et conservé dans le résultat et l'export même si le premier tour échoue : **cela ne signifie pas que la question a reçu une réponse**. Vérifiez alors la délivrance avant de renvoyer ; aucun nouvel essai n'est automatique.
 
-La conversation reste dans l'historique de la CLI. Son affichage immédiat dans Desktop n'est pas garanti. `--new` ne s'utilise pas avec `--open`. Par défaut, la création sert aux avis et lectures ; `--write` reste un parcours expérimental et gelé, décrit en fin de page.
+La conversation reste dans l'historique de la CLI et peut être reprise par Relay. Pour Codex, avec les versions vérifiées, une conversation créée par `--new` via la CLI n'est pas listée dans Codex Desktop. Cela n'empêche pas Relay de la joindre. Pour suivre l'équipier dans l'application, créez plutôt la conversation dans Desktop, relevez son identifiant, puis visez-la sans `--new` ; ajoutez `--open` tant qu'elle est ouverte. `--new` ne s'utilise pas avec `--open`. Par défaut, la création sert aux avis et lectures ; `--write` reste un parcours expérimental et gelé, décrit en fin de page.
 
 ## Lire un message Relay
 
