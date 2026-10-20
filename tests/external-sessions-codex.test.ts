@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { closeSync, constants, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, constants, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
@@ -334,7 +334,7 @@ describe("échange avec une CLI Codex simulée", () => {
       assert.deepEqual(list!.argv, ["mcp", "list", "--json", "--disable", "plugins", "--disable", "apps"]);
       assert.deepEqual(resume!.argv, codexResumeArgs(SESSION, mcpNeutralizationArgs(["linear", "node_repl"]), "gpt-test"));
       for (const call of calls) {
-        assert.equal(path.resolve(call.cwd).toLowerCase(), path.resolve(home.cwd).toLowerCase());
+        assert.equal(realpathSync.native(call.cwd), realpathSync.native(home.cwd));
         assert.equal(call.envKeys.some((key) => key.toUpperCase() === "CODEX_THREAD_ID"), false);
       }
       assert.equal(list!.stdin, "");

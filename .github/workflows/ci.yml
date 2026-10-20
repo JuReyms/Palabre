@@ -78,8 +78,11 @@ jobs:
       - name: Type check
         run: pnpm check
 
-      - name: Test
-        run: pnpm test
+      - name: Build tests
+        run: pnpm build:test
+
+      - name: Test POSIX Codex lock
+        run: node scripts/test.mjs .tmp/test-dist/tests/external-sessions-codex.test.js
 
       - name: Build
         run: pnpm build
