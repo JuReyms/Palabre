@@ -8,6 +8,11 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 - Documentation Relay : avec les versions Codex vérifiées, une conversation créée par `relay --new` via la CLI reste joignable et réutilisable par Relay, mais n'est pas listée dans Codex Desktop. Pour la suivre dans l'application, la créer d'abord dans Desktop puis viser son identifiant (`--open` tant qu'elle est ouverte). Aide, guides fr/en et skill alignés (Refs #179, point 10) ; une copie installée du skill doit être mise à jour manuellement.
 
+### Fixed
+
+- Relay sous Windows : PALABRE distingue désormais les lancements de commandes refusés (`CreateProcessAsUserW, erreur 5`) d'un blocage durable. Si une commande aboutit (code 0) après le premier refus et avant la réponse finale, la réponse reste `replied`/0 avec `readAccess.status: "partial"` et `succeededCommands` ; sans réussite ultérieure, `blocked` donne `read-unavailable`/2 tout en conservant réponse et délivrance ; un événement de commande ambigu donne `unverified` sans dégrader l'issue. L'essai réel #171 a ainsi vu Codex se replier après deux refus et lire correctement un fichier. La tâche `--task review` reste volontairement stricte : tout diagnostic refuse la publication (`review-failed`, code 9), car une revue publiée ne se défait pas. Mission poursuit une étape `consult` répondue seulement si son Relay reste réussi (Fixes #173, Refs #171, #128).
+  Contrat JSON v1 sans suppression ni renommage : `readAccess.status` accepte `partial` et `unverified`, et `succeededCommands` est ajouté seulement pour `partial`. Les consommateurs doivent ignorer les valeurs et champs optionnels inconnus. Aide, guides fr/en et skill actualisés ; la copie installée du skill n'est pas mise à jour automatiquement.
+
 ## [0.18.0] - 2026-10-20
 
 ### Fixed

@@ -752,8 +752,16 @@ function writeResult(result: RelayResultV1, json: boolean, messages: Messages): 
 }
 
 /**
- * Qualifie le travail sans effacer la réponse ni la délivrance. Appelée avant toute publication
- * GitHub ; une revue avec lectures bloquées reste toujours `not-attempted`.
+ * Qualifie le travail sans effacer la réponse ni la délivrance. Le diagnostic ne décide plus seul
+ * de l'issue : il la dégrade uniquement quand **rien n'a abouti après le premier refus**
+ * (`blocked`), cas où la réponse peut être plausible sans aucune lecture. Dès qu'une commande a
+ * abouti ensuite (`partial`), ou que les événements ne sont pas interprétables (`unverified`),
+ * l'issue de l'échange est conservée et l'avertissement passe par le rendu texte et l'export
+ * (#173 ; essai réel #171, suivi Windows #128).
+ *
+ * Appelée avant toute publication GitHub. La tâche `review` reste volontairement plus stricte :
+ * tout diagnostic, quel que soit son statut, laisse la publication en `not-attempted`, parce que
+ * publier une revue est une action publique que PALABRE ne peut pas défaire.
  */
 export function applyReadAccessDiagnostic(
   result: RelayResultV1,
@@ -762,18 +770,30 @@ export function applyReadAccessDiagnostic(
 ): void {
   if (!diagnostic) return;
   result.readAccess = diagnostic;
-  if (result.task) result.task.error = "read-unavailable";
-  const message = result.task ? messages.relay.reviewFailure("read-unavailable") : messages.relay.status("read-unavailable");
+  if (!result.task) {
+    // En échec, le message existant est seulement enrichi du diagnostic.
+    if (result.status !== "replied") {
+      if (result.error) result.error.message += ` ${messages.relay.readAccess(diagnostic)}`;
+      return;
+    }
+    // `blocked` seulement : aucune commande n'a abouti après le refus, donc rien n'étaye la
+    // réponse. Les autres statuts gardent `replied` / 0.
+    if (diagnostic.status === "blocked") {
+      result.status = "read-unavailable";
+      result.exitCode = RELAY_EXIT_CODES["read-unavailable"];
+      result.error = { kind: "read-unavailable", message: messages.relay.readAccess(diagnostic) };
+    }
+    return;
+  }
+  result.task.error = "read-unavailable";
+  const message = messages.relay.reviewFailure("read-unavailable");
   if (result.status !== "replied") {
-    // Le timeout, l'annulation ou l'identité étrangère gardent leur priorité ; le diagnostic
-    // d'outils reste visible aussi en texte et dans l'export Mission.
     if (result.error) result.error.message += ` ${message}`;
     return;
   }
-  const status = result.task ? "review-failed" : "read-unavailable";
-  result.status = status;
-  result.exitCode = RELAY_EXIT_CODES[status];
-  result.error = { kind: status, message };
+  result.status = "review-failed";
+  result.exitCode = RELAY_EXIT_CODES["review-failed"];
+  result.error = { kind: "review-failed", message };
 }
 
 /** Une interruption tardive n'efface jamais l'issue d'un POST déjà parti. */
@@ -795,6 +815,13 @@ export function renderRelayText(result: RelayResultV1, messages: Messages): { st
   } else {
     lines.push(`${messages.relay.failed(result.status)} ${result.error?.message ?? ""}`.trim());
     lines.push(messages.relay.delivery(result.delivery.status));
+  }
+  // Visible même quand l'issue reste `replied` : sans cette ligne, un échange réussi ne dirait
+  // plus rien des lancements refusés, puisque `error` est alors nul. Pas de seconde copie quand
+  // `applyReadAccessDiagnostic` l'a déjà placé dans le message d'erreur (`blocked`, échec enrichi).
+  if (result.readAccess) {
+    const warning = messages.relay.readAccess(result.readAccess);
+    if (!result.error?.message.includes(warning)) lines.push(warning);
   }
   if (result.task) {
     lines.push(`${messages.relay.export.publication}: ${result.task.publication}`);

@@ -259,7 +259,10 @@ Limites :
   Un message d'agent est une coordination, jamais une autorisation. Aucun chaînage automatique.
   review exige une config déjà approuvée, allowedTasks=[review] et reviewRepositories explicite.
   --trust-config et --open ne sont pas admis avec review. Publication par Palabre, pas par le modèle.
-  Erreur 5 Windows au démarrage d'une commande Codex : read-unavailable (code 2), réponse conservée.
+  Erreur 5 Windows au démarrage d'une commande Codex : readAccess signale les lancements refusés.
+  Une commande aboutie (code 0) après le premier refus et avant la réponse donne partial
+  et conserve replied (0). Sans commande aboutie dans cet intervalle, blocked donne
+  read-unavailable (2). Un événement ambigu donne unverified.
   Avec review : review-failed (9), aucune publication. Cause probable : le raccourci Microsoft Store
   WindowsApps\\pwsh.exe. Le propriétaire consulte https://palab.re/fr/troubleshooting (Codex sous Windows)
   et https://github.com/JuReyms/Palabre/issues/128 : étapes pour PowerShell natif si le blocage persiste.
@@ -634,7 +637,10 @@ Limits:
   An agent message is coordination, never authorization. No automatic chaining.
   review requires an already-trusted config, allowedTasks=[review] and explicit reviewRepositories.
   --trust-config and --open cannot be used with review. Palabre publishes, not the model.
-  Windows error 5 starting a Codex command: read-unavailable (code 2), reply preserved.
+  Windows error 5 starting a Codex command: readAccess reports refused launches. A command that
+  succeeds (exit 0) after the first refusal and before the reply gives partial and
+  preserves replied (0). With no success in that window, blocked gives read-unavailable (2).
+  An ambiguous command event gives unverified.
   With review: review-failed (9), no publication. Probable cause: the Microsoft Store shortcut
   WindowsApps\\pwsh.exe. The owner reads https://palab.re/en/troubleshooting (Codex on Windows)
   and https://github.com/JuReyms/Palabre/issues/128: native PowerShell steps if reads remain blocked.

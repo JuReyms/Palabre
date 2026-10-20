@@ -32,7 +32,7 @@ PALABRE offers four modes: **Debate**, **Relay**, **Ask** and **Chat**, with you
 - [TUI](/en/usage/tui), agent skill and VS Code extension.
 - `--files` / `--context`, previews, Debate/Ask summaries and Markdown exports; Debate/Ask/Chat history.
 - Opt-in Debate/Ask checkpoints and resume without replaying accepted answers; partial export where possible after failure.
-- `usage-limit` and `read-unavailable` diagnostics, retry information when supplied, no automatic resend.
+- `usage-limit` and `readAccess` diagnostics, retry information when supplied, no automatic resend.
 - `palabre doctor`, JSON/NDJSON contracts and `palabre update` with confirmation.
 
 ## Upcoming improvements
@@ -40,7 +40,7 @@ PALABRE offers four modes: **Debate**, **Relay**, **Ask** and **Chat**, with you
 1. **Relay to OpenCode, in the CLI and Desktop**: another viewpoint with free or local models ([#136](https://github.com/JuReyms/Palabre/issues/136)).
 2. **Quotas**: display each agent's remaining quota and offer choices to the human ([#41](https://github.com/JuReyms/Palabre/issues/41)).
 3. **Relay to an open Claude Code conversation** ([#96](https://github.com/JuReyms/Palabre/issues/96)).
-4. **Codex reading on Windows**: provide a solution to the `read-unavailable` blockage ([#128](https://github.com/JuReyms/Palabre/issues/128)).
+4. **Codex reading on Windows**: provide a solution to the refused command launches reported by `readAccess` ([#128](https://github.com/JuReyms/Palabre/issues/128)).
 5. **OpenAI-compatible local agents** (llama.cpp, LM Studio…) for Debate, Ask and Chat ([#120](https://github.com/JuReyms/Palabre/issues/120)).
 
 ## Philosophy
