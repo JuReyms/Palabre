@@ -44,7 +44,7 @@ Repères :
 
 ## Relay : confier une tâche
 
-Le chef de mission peut être Claude Code ou Codex, même dans une nouvelle conversation. PALABRE retrouve une conversation précise, transmet la demande et rapporte sa réponse ; l'équipier garde ses permissions, le message n'en ajoute aucune. `--open` reçoit seulement vers Codex sous Windows ; deux terminaux : pilote peu testé. Codex desktop vers Claude fermée : vérifié sous Windows ; Codex CLI et macOS : à éprouver. Appels ordinaires vers une cible fermée : avis/relecture avec outils limités pendant l'appel. Détails : `references/relay.md`.
+Le chef de mission peut être Claude Code ou Codex, même dans une nouvelle conversation. PALABRE retrouve une conversation précise, transmet la demande et rapporte sa réponse ; l'équipier garde ses permissions, le message n'en ajoute aucune. `--open` reçoit seulement vers Codex, sous Windows, macOS ou Linux ; sur POSIX, `python3` doit être disponible pour éprouver le verrou. Deux terminaux : pilote peu testé. Codex desktop vers Claude fermée : vérifié sous Windows ; Codex CLI comme expéditeur reste à éprouver. Appels ordinaires vers une cible fermée : avis/relecture avec outils limités pendant l'appel. Détails : `references/relay.md`.
 
 **Codex chef de mission, depuis Desktop** : demander l'autorisation de l'hôte pour chaque commande PALABRE vers Claude hors du bac à sable, création puis suivi séparément. Justifier la lecture prévue, la connexion et l'historique Claude ; une commande seulement, sans règle durable ni accès total. Refus = arrêt, aucun repli ni renvoi. Avec « approuver à ma place », l'hôte peut accorder sans clic : ne pas inventer une confirmation humaine. Ne pas créer de réglage de sécurité ou de politique pour faire passer l'appel.
 

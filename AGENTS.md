@@ -632,7 +632,7 @@ L'approbation de configuration est une frontière opérateur, pas un isolement c
 
 `palabre relay` transmet **un** message à une conversation Codex ou Claude Code existante, récupère **une** réponse, puis termine. Sans `--open`, il vise les conversations **fermées** : aucun processus (TUI, desktop, IDE, `exec`, `-p`) n'y est attaché.
 
-Avec `--open` (lot B1, pilote Codex sous Windows, non publié), il dépose le message dans une conversation Codex **ouverte** (TUI ou Codex desktop) par `codex queue`, puis attend la réponse corrélée dans le rollout. La cible garde ses outils et permissions. Voir la section « Relay vers une conversation ouverte » plus bas. Claude Code (B2) et Codex desktop comme expéditeur restent hors de ce lot : l'objectif de l'issue #96 n'est pas entièrement résolu.
+Avec `--open` (lot B1, pilote Codex sous Windows, macOS et Linux), il dépose le message dans une conversation Codex **ouverte** (TUI ou Codex desktop) par `codex queue`, puis attend la réponse corrélée dans le rollout. Sur POSIX, `python3` est requis pour éprouver le verrou de la conversation. La cible garde ses outils et permissions. Voir la section « Relay vers une conversation ouverte » plus bas. Claude Code (B2) et Codex desktop comme expéditeur restent hors de ce lot : l'objectif de l'issue #96 n'est pas entièrement résolu.
 
 Le relay est distinct de deux mécanismes existants :
 
@@ -746,8 +746,9 @@ Les étapes sont strictement ordonnées, et une étape refusée arrête le relay
    - un attachement invérifiable donne `target-state-unknown`. C'est le cas quand le registre Claude est absent ou illisible, ou quand il contient une entrée sans `sessionId` valide (`{}`, `{ pid }`, `sessionId: null`…). Une entrée n'est écartée comme « autre session » que si son identifiant est valide et différent.
    - Codex : verrou `~/.codex/thread-writer-locks/<session>.lock`.
      - Absent, ou présent mais libre (verrou laissé après un kill) : `detached`.
-     - Tenu (ouverture exclusive refusée sous Windows) : `attached`.
-     - Hors Windows, le verrou est consultatif et ne peut pas être éprouvé : un verrou présent donne `unknown`, donc un refus.
+     - Sous Windows, une ouverture exclusive refusée par `EBUSY` signifie `attached` ; toute autre erreur reste `unknown`.
+     - Sous macOS/Linux, PALABRE lance `python3` sans shell, avec un script fixe et un délai de 2 s, pour tenter `flock(LOCK_EX | LOCK_NB)` sans lire le contenu. Verrou acquis puis relâché : `detached` ; `EACCES`, `EAGAIN` ou `EWOULDBLOCK` : `attached`.
+     - Python absent, timeout, signal ou résultat ambigu : `unknown`, donc un refus prudent. `lsof` n'est jamais une preuve du verrou.
 5. **Envelopper le message** avec l'expéditeur et un nonce à usage unique.
 6. **Codex : neutraliser les MCP** (`prepare`).
    - La commande `codex mcp list --json --disable plugins --disable apps` est lancée par le même exécutable, dans le dossier de la cible, en 60 s et 1 Mio au plus.
@@ -880,7 +881,7 @@ Un seul objet JSON est écrit sur stdout, quelle que soit l'issue :
 
 ### Relay vers une conversation ouverte (`--open`, B1)
 
-Contrat de référence : `scripts/prototypes/relay/CONTRAT-B1.md`, relu dans la PR #110. Pilote **Codex seulement, sous Windows** ; une cible Claude donne `invalid-request` / `unsupported-agent`. Hors Windows, le verrou ne peut pas être éprouvé : l'issue est `target-state-unknown`, sans dépôt.
+Contrat de référence : `scripts/prototypes/relay/CONTRAT-B1.md`, relu dans la PR #110. Pilote **Codex seulement, sous Windows, macOS et Linux** ; une cible Claude donne `invalid-request` / `unsupported-agent`. Sous macOS/Linux, `python3` doit être disponible pour la sonde `flock` ; sinon l'issue est `target-state-unknown`, sans dépôt.
 
 ```text
 palabre relay --open --from <agent>:<session> --to <agent-codex>:<session> ("<message>" | --message-file <chemin>)
@@ -942,7 +943,7 @@ Après un échec du déposant (code non nul, accusé absent ou étranger, plafon
 
 - Le fork d'une conversation.
 - La détection automatique de l'expéditeur.
-- Avec `--open` : Claude Code (lot B2), Codex desktop comme expéditeur (bloqué par son bac à sable), l'app-server `--remote`, les IDE, macOS et Linux.
+- Avec `--open` : Claude Code (lot B2), Codex desktop comme expéditeur (bloqué par son bac à sable), l'app-server `--remote` et les IDE.
 - Sans `--open` : les desktops, IDE et conversations ouvertes.
 - Les chaînes de relay et le retry.
 - Palabre-vscode, qui consommera `--json` sans recalculer l'état.

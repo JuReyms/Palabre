@@ -126,9 +126,10 @@ Copiez l'identifiant des informations de la conversation dans l'hôte, ou du nom
 palabre relay --open --from claude:<session-expéditeur> --to codex:<session-cible> "Peux-tu relire ce plan ?"
 ```
 
-Avec `--open`, PALABRE dépose le message dans une conversation Codex **ouverte**, dans le TUI ou dans Codex desktop, avec la commande `codex queue`. Il attend ensuite la réponse de cette conversation dans son historique, puis vous la rend. C'est un **pilote**, réservé à Codex sous Windows.
+Avec `--open`, PALABRE dépose le message dans une conversation Codex **ouverte**, dans le TUI ou dans Codex desktop, avec la commande `codex queue`. Il attend ensuite la réponse de cette conversation dans son historique, puis vous la rend. C'est un **pilote Codex** disponible sous Windows, macOS et Linux.
 
 - **La conversation doit être ouverte.** Son verrou d'écriture doit être tenu, sinon rien n'est déposé (`target-not-open`). Le verrou est contrôlé de nouveau juste avant le dépôt.
+- **Sonde POSIX.** Sous macOS et Linux, PALABRE lance `python3` sans shell pour tenter `flock(LOCK_EX | LOCK_NB)`, sans lire le contenu du verrou. Verrou acquis puis relâché : cible fermée ; `EWOULDBLOCK`/`EAGAIN` : cible ouverte. Python absent, timeout ou erreur ambiguë : `target-state-unknown`, sans dépôt.
 - **Pas de lecture seule.** La conversation ouverte répond avec ses propres outils, serveurs MCP et permissions, et Codex desktop applique ses permissions courantes au tour relayé. Les garanties de lecture seule du relay sans `--open` ne s'appliquent donc pas. Le message relayé indique qu'il vient d'un autre agent, non authentifié, et qu'il n'autorise aucune action.
 - **Récepteur non vérifié.** Le verrou tenu ne prouve ni que la conversation est affichée, ni qu'elle traite le message. Codex desktop garde une conversation chargée après qu'on l'a quittée, et la traite sans l'afficher.
 - **Traitement différé possible.** Un message déposé peut être traité après le délai, même si PALABRE s'est arrêté. Ctrl+C n'annule pas un dépôt, et il n'y a aucun renvoi automatique.
@@ -142,7 +143,7 @@ Versions vérifiées : Codex CLI 0.151.0 (TUI) et Codex desktop 26.930.7945.0 (a
 
 Sans `--open`, la conversation cible doit être **fermée** : aucun TUI, desktop, IDE ni exécution en cours ne doit y être attaché. Sinon, le relay est refusé avant tout envoi (`target-busy`). Il est aussi refusé quand PALABRE ne peut pas vérifier l'état de la conversation (`target-state-unknown`).
 
-Pour une conversation Codex **ouverte**, utilisez `--open` (voir plus haut). Le relay vers une conversation Claude Code ouverte n'est pas encore disponible ; il est suivi dans l'issue [#96](https://github.com/JuReyms/Palabre/issues/96).
+Pour une conversation Codex **ouverte**, utilisez `--open` (voir plus haut). Sous macOS/Linux, vérifiez d'abord `python3 --version`. Le relay vers une conversation Claude Code ouverte n'est pas encore disponible ; il est suivi dans l'issue [#96](https://github.com/JuReyms/Palabre/issues/96).
 
 ## Ce que fait la reprise
 
@@ -404,7 +405,7 @@ Versions vérifiées : Claude Code 2.1.85 et 2.1.292, Codex 0.151.0. Les garanti
 
 **Expérimental et gelé.** Uniquement sur demande explicite de l'humain, jamais déduit d'une demande ordinaire. Conservé sans extension de périmètre, correctifs de sécurité seulement.
 
-Ce parcours expérimental couvre **Claude vers Codex sous Windows, en arrière-plan** : votre agent peut confier une correction à Codex sans ouvrir sa conversation. Il peut aussi être lancé depuis votre terminal. L'écriture avec Claude sous Windows natif est refusée, car son confinement système n'est pas disponible dans ce contexte. Pour une relecture, omettez `--write` ; pour agir dans une conversation Codex déjà ouverte sous Windows, utilisez `--open` avec ses permissions habituelles.
+Ce parcours expérimental couvre **Claude vers Codex sous Windows, en arrière-plan** : votre agent peut confier une correction à Codex sans ouvrir sa conversation. Il peut aussi être lancé depuis votre terminal. L'écriture avec Claude sous Windows natif est refusée, car son confinement système n'est pas disponible dans ce contexte. Pour une relecture, omettez `--write` ; pour agir dans une conversation Codex déjà ouverte sous Windows, macOS ou Linux, utilisez `--open` avec ses permissions habituelles (`python3` requis sur POSIX).
 
 ### 1. Préparer la tâche
 

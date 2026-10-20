@@ -286,14 +286,15 @@ Limites :
   Sans --open, une conversation existante doit être fermée : aucun TUI, desktop, IDE ni exécution
   en cours.
 
-Avec --open (pilote Codex, Windows) :
+Avec --open (pilote Codex ; Windows, macOS et Linux) :
   La conversation cible doit être ouverte : son verrou d'écriture doit être tenu, sinon rien
   n'est déposé (target-not-open). Le message passe par codex queue ; l'enveloppe complète est
   limitée à 8 192 unités UTF-16. Le verrou ne prouve ni l'affichage ni la consommation du
   message : le récepteur est annoncé non vérifié. La cible répond avec ses propres outils et
   permissions : aucune lecture seule n'est garantie, et les garanties ci-dessous ne s'appliquent
   pas. Un message déposé peut être traité après le délai, même sans être affiché ; Ctrl+C
-  n'annule pas un dépôt, et il n'y a aucun renvoi automatique.
+  n'annule pas un dépôt, et il n'y a aucun renvoi automatique. Sur macOS/Linux, python3 est requis
+  pour éprouver le verrou POSIX ; outil absent, timeout ou erreur ambiguë = target-state-unknown.
 
 Garanties conditionnelles :
   Avec les options imposées par Palabre et sur les versions de CLI vérifiées, la cible ne
@@ -656,14 +657,15 @@ Limits:
   Without --open, an existing target conversation must be closed: no TUI, desktop, IDE or running
   exec.
 
-With --open (Codex pilot, Windows):
+With --open (Codex pilot; Windows, macOS, and Linux):
   The target conversation must be open: its write lock must be held, otherwise nothing is
   queued (target-not-open). The message goes through codex queue; the full envelope is
   limited to 8,192 UTF-16 units. The lock proves neither the display nor the consumption of
   the message: the receiver is reported as unverified. The target replies with its own tools
   and permissions: no read-only guarantee applies, and the guarantees below do not apply.
   A queued message may be processed after the timeout, even without being displayed; Ctrl+C
-  does not cancel a queued message, and there is no automatic resend.
+  does not cancel a queued message, and there is no automatic resend. On macOS/Linux, python3 is
+  required to probe the POSIX lock; missing tool, timeout, or ambiguous error = target-state-unknown.
 
 Conditional guarantees:
   With the options enforced by Palabre and on verified CLI versions, the target has no

@@ -97,6 +97,6 @@ Continuez avec [Choisir un mode](/fr/usage/running-a-debate), [Contexte et fichi
 palabre relay --from claude:<session-expéditeur> --to codex:<session-cible> "Relis le plan et liste les risques"
 ```
 
-Par défaut, la cible est fermée. `--open` vise une conversation Codex ouverte sous Windows (pilote), qui garde ses propres outils et permissions ; l’affichage immédiat n’est pas garanti. L'option Mission de Relay garde plusieurs étapes en lecture seule dans un cadre et un budget convenus. Voir [Relay](/fr/usage/relay).
+Par défaut, la cible est fermée. `--open` vise une conversation Codex ouverte sous Windows, macOS ou Linux (pilote ; `python3` requis sur POSIX), qui garde ses propres outils et permissions ; l’affichage immédiat n’est pas garanti. L'option Mission de Relay garde plusieurs étapes en lecture seule dans un cadre et un budget convenus. Voir [Relay](/fr/usage/relay).
 
 Agents : [OpenCode](/fr/agents/opencode), [Mistral Vibe](/fr/agents/vibe), [Ollama](/fr/agents/ollama).

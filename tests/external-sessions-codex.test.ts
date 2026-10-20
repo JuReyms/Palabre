@@ -1,5 +1,7 @@
 /** @file Tests de l'adapter de session externe Codex : rollouts, verrou, liste MCP, sortie et échange avec une CLI simulée. */
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { closeSync, constants, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -13,6 +15,7 @@ import {
   interpretCodexOutput,
   mcpNeutralizationArgs,
   parseMcpServerNames,
+  posixFlockProbe,
   probeCodexLock
 } from "../src/externalSessions/codex.js";
 import { buildEnvelope, createNonce } from "../src/externalSessions/envelope.js";
@@ -180,10 +183,46 @@ describe("verrou d'écriture", () => {
     assert.deepEqual(exclusiveOpenProbe(lock), { exists: true, held: false });
   });
 
-  test("hors Windows : verrou présent invérifiable", { skip: process.platform === "win32" }, () => {
+  test("sonde POSIX injectée : libre, tenu, disparu et erreurs prudentes", () => {
     const lock = path.join(root, `verrou-${++counter}.lock`);
     writeFileSync(lock, "");
-    assert.equal(exclusiveOpenProbe(lock).held, undefined);
+    assert.deepEqual(posixFlockProbe(lock, () => ({ status: 0 })), { exists: true, held: false });
+    assert.deepEqual(posixFlockProbe(lock, () => ({ status: 2 })), { exists: true, held: true });
+    assert.deepEqual(posixFlockProbe(lock, () => ({ status: 3 })), { exists: false });
+    assert.deepEqual(posixFlockProbe(lock, () => ({ status: null, errorCode: "ENOENT" })), { exists: true, code: "python3-unavailable" });
+    assert.deepEqual(posixFlockProbe(lock, () => ({ status: null, errorCode: "ETIMEDOUT" })), { exists: true, code: "posix-flock-timeout" });
+    assert.deepEqual(posixFlockProbe(lock, () => ({ status: 4 })), { exists: true, code: "posix-flock-failed" });
+    assert.deepEqual(posixFlockProbe(path.join(root, "absent"), () => assert.fail("aucun lancement")), { exists: false });
+  });
+
+  test("POSIX réel : verrou libre puis tenu par flock", { skip: process.platform === "win32", timeout: 10_000 }, async () => {
+    const lock = path.join(root, `verrou-${++counter}.lock`);
+    writeFileSync(lock, "");
+    assert.deepEqual(exclusiveOpenProbe(lock), { exists: true, held: false });
+    const holder = spawn("python3", ["-c", [
+      "import fcntl, os, sys, time",
+      "fd = os.open(sys.argv[1], os.O_RDWR)",
+      "fcntl.flock(fd, fcntl.LOCK_EX)",
+      "print('ready', flush=True)",
+      "time.sleep(30)"
+    ].join("\n"), lock], { stdio: ["ignore", "pipe", "pipe"], shell: false });
+    let readyTimer: NodeJS.Timeout | undefined;
+    try {
+      const ready = Promise.race([
+        once(holder.stdout!, "data").then(([chunk]) => String(chunk)),
+        once(holder, "error").then(([error]) => Promise.reject(error)),
+        new Promise<never>((_, reject) => {
+          readyTimer = setTimeout(() => reject(new Error("python3 lock holder timeout")), 5_000);
+        })
+      ]);
+      assert.match(await ready, /ready/);
+      assert.deepEqual(exclusiveOpenProbe(lock), { exists: true, held: true });
+    } finally {
+      if (readyTimer) clearTimeout(readyTimer);
+      holder.kill("SIGKILL");
+      if (holder.exitCode === null && holder.signalCode === null) await once(holder, "exit");
+    }
+    assert.deepEqual(exclusiveOpenProbe(lock), { exists: true, held: false });
   });
 });
 
