@@ -24,7 +24,7 @@ palabre doctor --terminal
 
 **What happened:** Codex cannot start a command (`CreateProcessAsUserW failed: 5`). PALABRE reports it in `readAccess`. If a command succeeds afterwards, the relay stays `replied` (0) with `status: "partial"` and `succeededCommands`. With no later success, a received reply becomes `read-unavailable` (2) with `status: "blocked"`, while preserving the reply and delivery. An ambiguous event gives `unverified` without degrading the outcome. With review, no review is published (`review-failed`, 9), because publishing cannot be undone.
 
-**Confirmed cause on the tested machine:** the Microsoft Store PowerShell alias, `WindowsApps\pwsh.exe`. Under the same `:read-only` policy, the alias fails, native PowerShell reads the file, and writes remain denied.
+**Confirmed cause on the tested machine:** the Microsoft Store PowerShell alias, `WindowsApps\pwsh.exe` or, after an update through winget or the Store, `WindowsApps\Microsoft.PowerShell_8wekyb3d8bbwe\pwsh.exe`. Both locations may coexist in PATH. Under the same `:read-only` policy, the alias fails, native PowerShell reads the file, and writes remain denied.
 
 ### What `doctor` reports first
 

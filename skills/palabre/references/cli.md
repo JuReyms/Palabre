@@ -12,7 +12,7 @@ palabre doctor --terminal
 
 Lire ces contrats plutôt que deviner : la disponibilité est calculée par le CLI.
 
-Sous Windows, si la CLI Codex est détectée, `doctor` avertit (`WARN`) quand le seul `pwsh.exe` du PATH est l'alias du Microsoft Store : Codex peut alors échouer à démarrer ses commandes (`readAccess`, revue de PR refusée). Le contrôle ne lance rien et ne modifie rien. Signaler ce message au propriétaire, avec la commande qu'il contient (`winget install --id Microsoft.PowerShell --source winget --installer-type wix`, ou le `.msi` des releases GitHub de PowerShell) ; ne jamais installer ni modifier le PATH à sa place.
+Sous Windows, si la CLI Codex est détectée, `doctor` avertit (`WARN`) quand le seul `pwsh.exe` du PATH est l'alias du Microsoft Store : Codex peut alors échouer à démarrer ses commandes (`readAccess`, revue de PR refusée). Le contrôle ne lance jamais `pwsh` et ne modifie rien : il lit seulement le type de lien avec `fsutil`. Il reconnaît l'alias directement sous `WindowsApps` comme dans le dossier du paquet (`WindowsApps\Microsoft.PowerShell_…`). Signaler ce message au propriétaire, avec la commande qu'il contient (`winget install --id Microsoft.PowerShell --source winget --installer-type wix`, ou le `.msi` des releases GitHub de PowerShell) ; ne jamais installer ni modifier le PATH à sa place.
 
 ## Approbations de configurations disparues
 
