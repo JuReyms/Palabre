@@ -270,7 +270,9 @@ Limites :
   dans to.session et l'export, même si le premier tour échoue ; cwd indique le dossier.
   La sortie texte donne la commande pour continuer. En JSON, utiliser to.session avec
   palabre relay --to <agent>:<session> "<suite>" ; aucun renvoi automatique après un échec.
-  Sans --write, aucune écriture en arrière-plan. Affichage Desktop non garanti.
+  Sans --write, aucune écriture en arrière-plan. Avec les versions Codex vérifiées,
+  une cible créée par --new n'est pas listée dans Desktop, mais reste joignable par Relay.
+  Pour la suivre dans l'app, la créer dans Desktop puis viser son identifiant (--open si ouverte).
   --write exige --new, un dépôt Git et une config déjà approuvée. Aucun --open, --task ou --trust-config.
   Le premier appel ne lance pas de modèle : write-approval-required (8), writeRequest et remedy.
   Le propriétaire lance approve-write dans un terminal visible (entrée ET sortie TTY), relit tâche,
@@ -642,8 +644,10 @@ Limits:
   --new never selects an existing conversation. The received identifier remains in to.session
   and the export even when the first turn fails; cwd gives the directory. Text output gives
   a continuation command. In JSON, use to.session with
-  palabre relay --to <agent>:<session> "<follow-up>". No automatic retry or guaranteed Desktop visibility.
-  Without --write, no background writing.
+  palabre relay --to <agent>:<session> "<follow-up>". No automatic retry.
+  Without --write, no background writing. With verified Codex versions, a target created by --new
+  is not listed in Desktop but remains reachable through Relay. To follow it in the app, create it
+  in Desktop first, then target its identifier (--open while it is open).
   --write requires --new, a Git repository and an already trusted config. No --open, --task or --trust-config.
   The first call starts no model: write-approval-required (8), writeRequest and remedy.
   The owner runs approve-write in a visible terminal (both input and output TTY), checks task, agent,

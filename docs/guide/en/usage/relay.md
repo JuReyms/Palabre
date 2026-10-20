@@ -67,7 +67,7 @@ To continue this conversation: palabre relay --to codex:<uuid> "…"
 
 In JSON, `to.session` contains the received identifier, `cwd` the directory, and root-level `created` indicates whether an identifier was received. `identity` also remains at the root. Before that, `to.session` is `null` and `created` is `false`. JSON and the export do not contain a continuation command: use the documented form `palabre relay --to <agent>:<to.session> "<follow-up>" --json`. The identifier is captured during the call and preserved in the result and export even if the first turn fails: **this does not mean the question was answered**. Check delivery before sending again; no retry is automatic.
 
-The conversation remains in the CLI history. Immediate Desktop visibility is not guaranteed. `--new` cannot be used with `--open`. By default, creation supports advice and reading; `--write` remains an experimental, frozen path documented at the end of this page.
+The conversation remains in the CLI history and can be resumed through Relay. For Codex, with the verified versions, a conversation created by `--new` through the CLI is not listed in Codex Desktop. This does not prevent Relay from reaching it. To follow the teammate in the app, create the conversation in Desktop instead, record its identifier, then target it without `--new`; add `--open` while it is open. `--new` cannot be used with `--open`. By default, creation supports advice and reading; `--write` remains an experimental, frozen path documented at the end of this page.
 
 ## Reading a Relay message
 

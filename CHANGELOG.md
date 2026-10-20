@@ -4,6 +4,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Changed
+
+- Documentation Relay : avec les versions Codex vérifiées, une conversation créée par `relay --new` via la CLI reste joignable et réutilisable par Relay, mais n'est pas listée dans Codex Desktop. Pour la suivre dans l'application, la créer d'abord dans Desktop puis viser son identifiant (`--open` tant qu'elle est ouverte). Aide, guides fr/en et skill alignés (Refs #179, point 10) ; une copie installée du skill doit être mise à jour manuellement.
+
 ## [0.18.0] - 2026-10-20
 
 ### Fixed
