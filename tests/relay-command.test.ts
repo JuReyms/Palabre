@@ -704,6 +704,23 @@ describe("palabre relay --open", () => {
     assert.equal(result.calls.length, 0);
   });
 
+  test("POSIX sans python3 : diagnostic distinct avec et sans --open, aucun dépôt", { skip: process.platform === "win32" }, async () => {
+    for (const open of [false, true]) {
+      const world = makeWorld();
+      const directory = path.join(world.home, ".codex", "thread-writer-locks");
+      mkdirSync(directory, { recursive: true });
+      writeFileSync(path.join(directory, `${CODEX_SESSION}.lock`), "");
+      const args = [...(open ? toOpenCodex : toCodex), "Bonjour", "--trust-config", "--json"];
+      const result = await relay(world, args, { PATH: world.bin });
+      assert.equal(result.code, 3, result.stderr);
+      assert.equal(result.json.status, "target-state-unknown");
+      assert.equal(result.json.delivery.status, "not-delivered");
+      assert.match(result.json.error.message, /python3 --version/);
+      assert.match(result.json.error.message, open ? /laisse ChatGPT\/Codex ouvert/ : /quitte complètement l'application/);
+      assert.equal(result.calls.length, 0);
+    }
+  });
+
   test("cible Claude : invalid-request / unsupported-agent, sans lancement", async () => {
     const world = makeWorld();
     const result = await relay(world, ["--open", ...toClaude, "Bonjour", "--trust-config", "--json"]);

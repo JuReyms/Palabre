@@ -25,7 +25,7 @@ Acting is optional and remains under the user's control. Palabre is not intended
 PALABRE offers four modes: **Debate**, **Relay**, **Ask** and **Chat**, with your installed agents.
 
 - Contradictory Debate, independent Ask (1–4 agents) and Chat with an explicit second opinion; after Debate/Ask, Chat continues from subject and summary.
-- Relay to closed Codex or Claude Code; `--open` to open Codex on Windows (pilot), with its own tools and permissions, without guaranteed immediate display.
+- Relay to closed Codex or Claude Code; `--open` to open Codex on Windows, macOS, or Linux (pilot, `python3` required on POSIX), with its own tools and permissions, without guaranteed immediate display.
 - GitHub COMMENT review on a repository authorized through `palabre relay allow-repo`; PALABRE header, optional subject, JSON and `.relay.md` export.
 - Relay's Mission option: read-only steps within a scope and budget agreed with you.
 - Local/global configuration, conservative agent discovery/synchronization, presets and CLI-selected models.

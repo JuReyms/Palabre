@@ -17,6 +17,7 @@
  * documentés comme stables : toute ambiguïté est traitée prudemment (refus ou `unknown`).
  */
 import { closeSync, constants, existsSync, openSync, readdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { extractUsageLimitMessage } from "../adapters/cli-shared.js";
@@ -41,6 +42,15 @@ export interface LockProbe {
   held?: boolean;
   code?: string;
 }
+
+/** Résultat minimal injectable de la sonde Python POSIX. */
+export interface PosixFlockRun {
+  status: number | null;
+  errorCode?: string;
+  signal?: NodeJS.Signals | null;
+}
+
+export type PosixFlockRunner = (file: string) => PosixFlockRun;
 
 type JsonObject = Record<string, unknown>;
 
@@ -228,14 +238,71 @@ export function findNonceInCodexRollout(content: string, nonce: string): Deliver
   return { persisted: false, inActiveBranch: "unknown", detail: "nonce absent du rollout" };
 }
 
+const POSIX_FLOCK_SCRIPT = [
+  "import errno, fcntl, os, sys",
+  "try:",
+  "    fd = os.open(sys.argv[1], os.O_RDWR)",
+  "except FileNotFoundError:",
+  "    raise SystemExit(3)",
+  "except OSError:",
+  "    raise SystemExit(4)",
+  "try:",
+  "    try:",
+  "        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)",
+  "    except BlockingIOError as error:",
+  "        if error.errno in (errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK):",
+  "            raise SystemExit(2)",
+  "        raise SystemExit(4)",
+  "    except OSError:",
+  "        raise SystemExit(4)",
+  "    else:",
+  "        fcntl.flock(fd, fcntl.LOCK_UN)",
+  "finally:",
+  "    os.close(fd)"
+].join("\n");
+
+/** Lance le probe POSIX borné, sans shell et sans lire le contenu du verrou. */
+function runPosixFlock(file: string): PosixFlockRun {
+  const result = spawnSync("python3", ["-c", POSIX_FLOCK_SCRIPT, file], {
+    stdio: "ignore",
+    shell: false,
+    timeout: 2_000,
+    killSignal: "SIGKILL",
+    windowsHide: true
+  });
+  const errorCode = (result.error as NodeJS.ErrnoException | undefined)?.code;
+  return {
+    status: result.status,
+    ...(errorCode ? { errorCode } : {}),
+    signal: result.signal
+  };
+}
+
+/**
+ * Test POSIX réel avec `flock(LOCK_EX | LOCK_NB)` via Python 3. Les codes du script sont privés et
+ * stables : 0 libre, 2 tenu, 3 disparu, 4 erreur. Tout outil absent, timeout, signal ou résultat
+ * ambigu reste `unknown` ; l'appelant refuse alors par prudence.
+ */
+export function posixFlockProbe(file: string, run: PosixFlockRunner = runPosixFlock): LockProbe {
+  if (!existsSync(file)) return { exists: false };
+  const result = run(file);
+  if (result.errorCode === "ENOENT") return { exists: true, code: "python3-unavailable" };
+  if (result.errorCode === "ETIMEDOUT") return { exists: true, code: "posix-flock-timeout" };
+  if (result.errorCode || result.signal) return { exists: true, code: "posix-flock-failed" };
+  if (result.status === 0) return { exists: true, held: false };
+  if (result.status === 2) return { exists: true, held: true };
+  if (result.status === 3) return { exists: false };
+  return { exists: true, code: "posix-flock-failed" };
+}
+
 /**
  * Test non destructif du verrou : sous Windows, un fichier ouvert par l'écrivain sans partage
- * refuse l'ouverture exclusive (`EBUSY`). L'ouverture réussie est refermée aussitôt. Hors
- * Windows, le verrou est consultatif et ne peut pas être éprouvé : `held` reste absent.
+ * refuse l'ouverture exclusive (`EBUSY`). Sur POSIX, le verrou consultatif est éprouvé par une
+ * tentative `flock` non bloquante. Toute ambiguïté reste inconnue.
  */
 export function exclusiveOpenProbe(file: string): LockProbe {
   if (!existsSync(file)) return { exists: false };
-  if (process.platform !== "win32") return { exists: true, code: "unsupported-platform" };
+  if (process.platform !== "win32") return posixFlockProbe(file);
   // Node 22 n'expose pas `UV_FS_O_EXLOCK` dans `fs.constants` ; valeur libuv documentée.
   const exlock = (constants as Record<string, number>).UV_FS_O_EXLOCK ?? 0x10000000;
   try {

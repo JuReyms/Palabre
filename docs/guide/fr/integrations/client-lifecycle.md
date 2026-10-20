@@ -18,6 +18,8 @@ Attendez toujours la fermeture du processus. `error` décrit l'échec métier ; 
 
 Un événement `error` peut contenir la phase, l'agent, le rôle, le tour, un `kind` stable, un message et des détails. Les kinds incluent notamment `command-not-found`, `spawn-failed`, `timeout`, `idle-timeout`, `output-too-large`, `empty-output`, `non-zero-exit`, `usage-limit`, `unsupported-model`, `model-unavailable`, `model-pull-failed`, `http-error` et `cancelled`. Pour un `usage-limit`, `retryAfter` est parfois présent : durée en secondes, timestamp ISO ou heure locale `HH:mm`. Il est best-effort ; branchez la logique sur `kind`, pas sur le texte du message.
 
+Un agent CLI qui termine avec un code non nul reste un échec, même s'il a écrit sur stdout. Palabre donne la priorité à stderr ; si stderr est vide, le message `non-zero-exit` inclut seulement un extrait nettoyé et borné de stdout pour le diagnostic. Cet extrait ne constitue jamais une réponse de l'agent et ne sert pas à reclasser automatiquement l'erreur.
+
 Palabre tente de conserver les réponses dans un export partiel après un échec. Acceptez donc `done` avec un chemin suivi d'un code non nul. Une annulation doit rester distincte d'une erreur.
 
 ## Identité du client

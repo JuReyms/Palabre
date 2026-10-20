@@ -57,7 +57,7 @@ palabre relay --new --to claude --dir "../autre-projet" "Explique la structure d
 
 `--to` désigne ici un agent de votre configuration, sans identifiant. Le dossier courant est utilisé par défaut ; `--dir` choisit un autre dossier existant. Pour une conversation existante, son dossier reste celui de son historique : `--dir` est refusé.
 
-La sortie donne l'identifiant et une commande pour continuer :
+La sortie texte donne l'identifiant et une commande pour continuer :
 
 ```text
 Conversation créée : codex:<uuid>
@@ -65,9 +65,9 @@ Dossier : <dossier-du-projet>
 Pour continuer avec cette conversation : palabre relay --to codex:<uuid> "…"
 ```
 
-En JSON, `to.session` contient l'identifiant reçu, `cwd` le dossier et `created` indique si un identifiant a été reçu. Avant réception, `to.session` vaut `null` et `created` vaut `false`. L'identifiant est capturé pendant l'appel et conservé dans le résultat et l'export même si le premier tour échoue : **cela ne signifie pas que la question a reçu une réponse**. Vérifiez alors la délivrance avant de renvoyer ; aucun nouvel essai n'est automatique.
+En JSON, `to.session` contient l'identifiant reçu, `cwd` le dossier et `created`, à la racine, indique si un identifiant a été reçu. `identity` reste lui aussi à la racine. Avant réception, `to.session` vaut `null` et `created` vaut `false`. Le JSON et l'export ne contiennent pas de commande de continuation : utilisez la forme documentée `palabre relay --to <agent>:<to.session> "<suite>" --json`. L'identifiant est capturé pendant l'appel et conservé dans le résultat et l'export même si le premier tour échoue : **cela ne signifie pas que la question a reçu une réponse**. Vérifiez alors la délivrance avant de renvoyer ; aucun nouvel essai n'est automatique.
 
-La conversation reste dans l'historique de la CLI. Son affichage immédiat dans Desktop n'est pas garanti. `--new` ne s'utilise pas avec `--open`. Par défaut, la création sert aux avis et lectures ; `--write` reste un parcours expérimental et gelé, décrit en fin de page.
+La conversation reste dans l'historique de la CLI et peut être reprise par Relay. Pour Codex, avec les versions vérifiées, une conversation créée par `--new` via la CLI n'est pas listée dans Codex Desktop. Cela n'empêche pas Relay de la joindre. Pour suivre l'équipier dans l'application, créez plutôt la conversation dans Desktop, relevez son identifiant, puis visez-la sans `--new` ; ajoutez `--open` tant qu'elle est ouverte. `--new` ne s'utilise pas avec `--open`. Par défaut, la création sert aux avis et lectures ; `--write` reste un parcours expérimental et gelé, décrit en fin de page.
 
 ## Lire un message Relay
 
@@ -126,9 +126,10 @@ Copiez l'identifiant des informations de la conversation dans l'hôte, ou du nom
 palabre relay --open --from claude:<session-expéditeur> --to codex:<session-cible> "Peux-tu relire ce plan ?"
 ```
 
-Avec `--open`, PALABRE dépose le message dans une conversation Codex **ouverte**, dans le TUI ou dans Codex desktop, avec la commande `codex queue`. Il attend ensuite la réponse de cette conversation dans son historique, puis vous la rend. C'est un **pilote**, réservé à Codex sous Windows.
+Avec `--open`, PALABRE dépose le message dans une conversation Codex **ouverte**, dans le TUI ou dans Codex desktop, avec la commande `codex queue`. Il attend ensuite la réponse de cette conversation dans son historique, puis vous la rend. C'est un **pilote Codex** disponible sous Windows, macOS et Linux.
 
 - **La conversation doit être ouverte.** Son verrou d'écriture doit être tenu, sinon rien n'est déposé (`target-not-open`). Le verrou est contrôlé de nouveau juste avant le dépôt.
+- **Sonde POSIX.** Sous macOS et Linux, PALABRE lance `python3` sans shell pour tenter `flock(LOCK_EX | LOCK_NB)`, sans lire le contenu du verrou. Verrou acquis puis relâché : cible fermée ; `EWOULDBLOCK`/`EAGAIN` : cible ouverte. Python absent, timeout ou erreur ambiguë : `target-state-unknown`, sans dépôt.
 - **Pas de lecture seule.** La conversation ouverte répond avec ses propres outils, serveurs MCP et permissions, et Codex desktop applique ses permissions courantes au tour relayé. Les garanties de lecture seule du relay sans `--open` ne s'appliquent donc pas. Le message relayé indique qu'il vient d'un autre agent, non authentifié, et qu'il n'autorise aucune action.
 - **Récepteur non vérifié.** Le verrou tenu ne prouve ni que la conversation est affichée, ni qu'elle traite le message. Codex desktop garde une conversation chargée après qu'on l'a quittée, et la traite sans l'afficher.
 - **Traitement différé possible.** Un message déposé peut être traité après le délai, même si PALABRE s'est arrêté. Ctrl+C n'annule pas un dépôt, et il n'y a aucun renvoi automatique.
@@ -136,13 +137,13 @@ Avec `--open`, PALABRE dépose le message dans une conversation Codex **ouverte*
 - **Un seul délai.** `--timeout` couvre la préparation, le dépôt et l'attente.
 - **Historiques volumineux.** PALABRE ne lit que la première ligne de l'historique et ce qui s'y ajoute après le dépôt, quelle que soit sa taille.
 
-Versions vérifiées : Codex CLI 0.151.0 (TUI) et Codex desktop 26.930.7945.0 (app-server 0.160.1). Le format de l'historique de Codex n'est pas un schéma public : une autre version n'est pas bloquée, mais la corrélation de la réponse n'y est pas garantie.
+Versions vérifiées : Windows avec Codex CLI 0.151.0 (TUI) et Codex desktop 26.930.7945.0 (app-server 0.160.1) ; macOS 26.6.1 sur Apple Silicon avec Codex CLI 0.163.0 et Codex Desktop intégré à ChatGPT.app. Le format de l'historique de Codex n'est pas un schéma public : une autre version n'est pas bloquée, mais la corrélation de la réponse n'y est pas garantie.
 
 ## Conversation fermée par défaut
 
 Sans `--open`, la conversation cible doit être **fermée** : aucun TUI, desktop, IDE ni exécution en cours ne doit y être attaché. Sinon, le relay est refusé avant tout envoi (`target-busy`). Il est aussi refusé quand PALABRE ne peut pas vérifier l'état de la conversation (`target-state-unknown`).
 
-Pour une conversation Codex **ouverte**, utilisez `--open` (voir plus haut). Le relay vers une conversation Claude Code ouverte n'est pas encore disponible ; il est suivi dans l'issue [#96](https://github.com/JuReyms/Palabre/issues/96).
+Pour une conversation Codex **ouverte**, utilisez `--open` (voir plus haut). Sous macOS/Linux, vérifiez d'abord `python3 --version`. Le relay vers une conversation Claude Code ouverte n'est pas encore disponible ; il est suivi dans l'issue [#96](https://github.com/JuReyms/Palabre/issues/96).
 
 ## Ce que fait la reprise
 
@@ -379,7 +380,7 @@ Le nonce en bas reste un marqueur dans le message utilisateur ; la corrélation 
 }
 ```
 
-`reply` est présent quand une réponse valide a été reçue, y compris si une lecture bloquée ou un échec de publication rend ensuite l'issue non réussie. Pour toute issue autre que `replied`, `error` contient `kind`, `message` et, pour `invalid-request`, `reason`. `inActiveBranch` est un diagnostic.
+`reply` est présent quand une réponse valide a été reçue, y compris si une lecture bloquée ou un échec de publication rend ensuite l'issue non réussie. Pour toute issue autre que `replied`, `error` contient `kind`, `message` et, pour `invalid-request`, `reason`. `inActiveBranch` est un diagnostic. Avec `--open`, il vaut actuellement `"unknown"` même quand `correlation.reason` vaut `"correlated-final"` : la réponse est bien corrélée au tour déposé, mais PALABRE ne prétend pas reconstruire la branche active d'un historique toujours écrit par Codex Desktop. Fiez-vous à `delivery.status` pour décider d'un renvoi.
 
 Avec `--open` seulement, l'objet ajoute des champs optionnels :
 
@@ -410,7 +411,7 @@ Versions vérifiées : Claude Code 2.1.85 et 2.1.292, Codex 0.151.0. Les garanti
 
 **Expérimental et gelé.** Uniquement sur demande explicite de l'humain, jamais déduit d'une demande ordinaire. Conservé sans extension de périmètre, correctifs de sécurité seulement.
 
-Ce parcours expérimental couvre **Claude vers Codex sous Windows, en arrière-plan** : votre agent peut confier une correction à Codex sans ouvrir sa conversation. Il peut aussi être lancé depuis votre terminal. L'écriture avec Claude sous Windows natif est refusée, car son confinement système n'est pas disponible dans ce contexte. Pour une relecture, omettez `--write` ; pour agir dans une conversation Codex déjà ouverte sous Windows, utilisez `--open` avec ses permissions habituelles.
+Ce parcours expérimental couvre **Claude vers Codex sous Windows, en arrière-plan** : votre agent peut confier une correction à Codex sans ouvrir sa conversation. Il peut aussi être lancé depuis votre terminal. L'écriture avec Claude sous Windows natif est refusée, car son confinement système n'est pas disponible dans ce contexte. Pour une relecture, omettez `--write` ; pour agir dans une conversation Codex déjà ouverte sous Windows, macOS ou Linux, utilisez `--open` avec ses permissions habituelles (`python3` requis sur POSIX).
 
 ### 1. Préparer la tâche
 

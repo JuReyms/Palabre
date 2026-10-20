@@ -226,8 +226,53 @@ test("CliAdapter rejects non-zero exits even when stdout has content", async () 
   }));
 
   await assert.rejects(
+    adapter.generate(basePrompt({ language: "en" })),
+    (error) => error instanceof AdapterError
+      && error.kind === "non-zero-exit"
+      && error.message.includes("stderr was empty; stdout diagnostic: partial answer")
+      && !error.message.includes("no stderr captured")
+  );
+});
+
+test("CliAdapter sanitizes and bounds the stdout diagnostic after a non-zero exit", async () => {
+  const adapter = new CliAdapter("mock", cliConfig({
+    args: ["-e", "process.stdout.write('\\u001b[31mAuthentication failed\\u001b[0m ' + 'x'.repeat(5000)); process.exit(1)"]
+  }));
+
+  await assert.rejects(
     adapter.generate(basePrompt()),
-    (error) => error instanceof AdapterError && error.kind === "non-zero-exit"
+    (error) => error instanceof AdapterError
+      && error.kind === "non-zero-exit"
+      && error.message.includes("Authentication failed")
+      && !error.message.includes("\u001b")
+      && error.message.length < 1_400
+  );
+});
+
+test("CliAdapter prefers stderr over stdout for a non-zero exit diagnostic", async () => {
+  const adapter = new CliAdapter("mock", cliConfig({
+    args: ["-e", "process.stdout.write('partial answer'); process.stderr.write('boom'); process.exit(3)"]
+  }));
+
+  await assert.rejects(
+    adapter.generate(basePrompt()),
+    (error) => error instanceof AdapterError
+      && error.kind === "non-zero-exit"
+      && error.message.includes("boom")
+      && !error.message.includes("partial answer")
+  );
+});
+
+test("CliAdapter does not classify a stdout-only usage message as a known error", async () => {
+  const adapter = new CliAdapter("mock", cliConfig({
+    args: ["-e", "process.stdout.write('usage limit reached'); process.exit(1)"]
+  }));
+
+  await assert.rejects(
+    adapter.generate(basePrompt({ language: "en" })),
+    (error) => error instanceof AdapterError
+      && error.kind === "non-zero-exit"
+      && error.message.includes("stdout diagnostic: usage limit reached")
   );
 });
 

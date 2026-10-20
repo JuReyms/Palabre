@@ -34,7 +34,7 @@ Compare approaches, challenge a plan, confront opinions, or hand off to a conver
 
 PALABRE does not create accounts or provide model access. Each agent must be installed and, where required, authenticated separately. A role or a message from another agent never authorizes an action on your behalf.
 
-Debate, Ask and Chat make a new agent call for each reply. PALABRE supplies the whole Debate transcript, or at most the six recent Chat messages. Relay instead resumes an existing conversation and can modify its history: closed by default, or open with `--open` for Codex on Windows (pilot). It never resends a message automatically.
+Debate, Ask and Chat make a new agent call for each reply. PALABRE supplies the whole Debate transcript, or at most the six recent Chat messages. Relay instead resumes an existing conversation and can modify its history: closed by default, or open with `--open` for Codex on Windows, macOS, or Linux (pilot; `python3` required on POSIX). It never resends a message automatically.
 
 ## Privacy
 

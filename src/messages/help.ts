@@ -270,8 +270,11 @@ Limites :
   Palabre ne change aucune permission et ne renvoie rien automatiquement.
   --new crée la cible sans choisir une conversation existante. L'identifiant reçu reste
   dans to.session et l'export, même si le premier tour échoue ; cwd indique le dossier.
-  La sortie donne la commande pour continuer ; aucun renvoi automatique après un échec.
-  Sans --write, aucune écriture en arrière-plan. Affichage Desktop non garanti.
+  La sortie texte donne la commande pour continuer. En JSON, utiliser to.session avec
+  palabre relay --to <agent>:<session> "<suite>" ; aucun renvoi automatique après un échec.
+  Sans --write, aucune écriture en arrière-plan. Avec les versions Codex vérifiées,
+  une cible créée par --new n'est pas listée dans Desktop, mais reste joignable par Relay.
+  Pour la suivre dans l'app, la créer dans Desktop puis viser son identifiant (--open si ouverte).
   --write exige --new, un dépôt Git et une config déjà approuvée. Aucun --open, --task ou --trust-config.
   Le premier appel ne lance pas de modèle : write-approval-required (8), writeRequest et remedy.
   Le propriétaire lance approve-write dans un terminal visible (entrée ET sortie TTY), relit tâche,
@@ -288,14 +291,15 @@ Limites :
   Sans --open, une conversation existante doit être fermée : aucun TUI, desktop, IDE ni exécution
   en cours.
 
-Avec --open (pilote Codex, Windows) :
+Avec --open (pilote Codex ; Windows, macOS et Linux) :
   La conversation cible doit être ouverte : son verrou d'écriture doit être tenu, sinon rien
   n'est déposé (target-not-open). Le message passe par codex queue ; l'enveloppe complète est
   limitée à 8 192 unités UTF-16. Le verrou ne prouve ni l'affichage ni la consommation du
   message : le récepteur est annoncé non vérifié. La cible répond avec ses propres outils et
   permissions : aucune lecture seule n'est garantie, et les garanties ci-dessous ne s'appliquent
   pas. Un message déposé peut être traité après le délai, même sans être affiché ; Ctrl+C
-  n'annule pas un dépôt, et il n'y a aucun renvoi automatique.
+  n'annule pas un dépôt, et il n'y a aucun renvoi automatique. Sur macOS/Linux, python3 est requis
+  pour éprouver le verrou POSIX ; outil absent, timeout ou erreur ambiguë = target-state-unknown.
 
 Garanties conditionnelles :
   Avec les options imposées par Palabre et sur les versions de CLI vérifiées, la cible ne
@@ -643,7 +647,11 @@ Limits:
   Palabre changes no permissions and never resends automatically.
   --new never selects an existing conversation. The received identifier remains in to.session
   and the export even when the first turn fails; cwd gives the directory. Text output gives
-  a continuation command. No automatic retry or guaranteed Desktop visibility. Without --write, no background writing.
+  a continuation command. In JSON, use to.session with
+  palabre relay --to <agent>:<session> "<follow-up>". No automatic retry.
+  Without --write, no background writing. With verified Codex versions, a target created by --new
+  is not listed in Desktop but remains reachable through Relay. To follow it in the app, create it
+  in Desktop first, then target its identifier (--open while it is open).
   --write requires --new, a Git repository and an already trusted config. No --open, --task or --trust-config.
   The first call starts no model: write-approval-required (8), writeRequest and remedy.
   The owner runs approve-write in a visible terminal (both input and output TTY), checks task, agent,
@@ -660,14 +668,15 @@ Limits:
   Without --open, an existing target conversation must be closed: no TUI, desktop, IDE or running
   exec.
 
-With --open (Codex pilot, Windows):
+With --open (Codex pilot; Windows, macOS, and Linux):
   The target conversation must be open: its write lock must be held, otherwise nothing is
   queued (target-not-open). The message goes through codex queue; the full envelope is
   limited to 8,192 UTF-16 units. The lock proves neither the display nor the consumption of
   the message: the receiver is reported as unverified. The target replies with its own tools
   and permissions: no read-only guarantee applies, and the guarantees below do not apply.
   A queued message may be processed after the timeout, even without being displayed; Ctrl+C
-  does not cancel a queued message, and there is no automatic resend.
+  does not cancel a queued message, and there is no automatic resend. On macOS/Linux, python3 is
+  required to probe the POSIX lock; missing tool, timeout, or ambiguous error = target-state-unknown.
 
 Conditional guarantees:
   With the options enforced by Palabre and on verified CLI versions, the target has no
@@ -818,6 +827,9 @@ Flags:
   --config <path>         chemin de config explicite
   --trust-config          approuve l'empreinte de la config locale
 
+Un agent qui termine avec un code non nul reste en echec. Si stderr est vide,
+Palabre affiche seulement un extrait nettoye et borne de stdout comme diagnostic.
+
 Documentation complete:
   https://palab.re/fr
 
@@ -879,6 +891,9 @@ Flags:
   --language <fr|en>      force language
   --config <path>         explicit config path
   --trust-config          trusts the local config fingerprint
+
+An agent that exits with a non-zero code still fails. If stderr is empty,
+Palabre only shows a sanitized, bounded stdout excerpt as a diagnostic.
 
 Full documentation:
   https://palab.re/en

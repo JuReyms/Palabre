@@ -395,7 +395,7 @@ Il supporte :
 Une valeur `maxOutputBytes` invalide ne desactive jamais la protection : CLI, PTY et Ollama
 retombent tous sur la limite par defaut.
 
-Les adapters CLI et PTY doivent rejeter tout exit code non nul, meme si la CLI a ecrit une sortie partielle sur stdout ou dans le PTY. Une sortie partielle issue d'un process en erreur ne doit pas etre traitee comme une reponse valide.
+Les adapters CLI et PTY doivent rejeter tout exit code non nul, meme si la CLI a ecrit une sortie partielle sur stdout ou dans le PTY. Une sortie partielle issue d'un process en erreur ne doit pas etre traitee comme une reponse valide. Pour l'adapter CLI uniquement, si stderr est vide et stdout non vide, le message `non-zero-exit` peut reprendre un extrait nettoye et borne de stdout comme diagnostic. Cet extrait ne devient jamais une reponse et ne sert pas a classifier une erreur connue ; stderr garde la priorite.
 
 Erreurs connues classees :
 
@@ -644,7 +644,7 @@ L'approbation de configuration est une frontière opérateur, pas un isolement c
 
 `palabre relay` transmet **un** message à une conversation Codex ou Claude Code existante, récupère **une** réponse, puis termine. Sans `--open`, il vise les conversations **fermées** : aucun processus (TUI, desktop, IDE, `exec`, `-p`) n'y est attaché.
 
-Avec `--open` (lot B1, pilote Codex sous Windows, non publié), il dépose le message dans une conversation Codex **ouverte** (TUI ou Codex desktop) par `codex queue`, puis attend la réponse corrélée dans le rollout. La cible garde ses outils et permissions. Voir la section « Relay vers une conversation ouverte » plus bas. Claude Code (B2) et Codex desktop comme expéditeur restent hors de ce lot : l'objectif de l'issue #96 n'est pas entièrement résolu.
+Avec `--open` (lot B1, pilote Codex sous Windows, macOS et Linux), il dépose le message dans une conversation Codex **ouverte** (TUI ou Codex desktop) par `codex queue`, puis attend la réponse corrélée dans le rollout. Sur POSIX, `python3` est requis pour éprouver le verrou de la conversation. La cible garde ses outils et permissions. Voir la section « Relay vers une conversation ouverte » plus bas. Claude Code (B2) et Codex desktop comme expéditeur restent hors de ce lot : l'objectif de l'issue #96 n'est pas entièrement résolu.
 
 Le relay est distinct de deux mécanismes existants :
 
@@ -758,8 +758,9 @@ Les étapes sont strictement ordonnées, et une étape refusée arrête le relay
    - un attachement invérifiable donne `target-state-unknown`. C'est le cas quand le registre Claude est absent ou illisible, ou quand il contient une entrée sans `sessionId` valide (`{}`, `{ pid }`, `sessionId: null`…). Une entrée n'est écartée comme « autre session » que si son identifiant est valide et différent.
    - Codex : verrou `~/.codex/thread-writer-locks/<session>.lock`.
      - Absent, ou présent mais libre (verrou laissé après un kill) : `detached`.
-     - Tenu (ouverture exclusive refusée sous Windows) : `attached`.
-     - Hors Windows, le verrou est consultatif et ne peut pas être éprouvé : un verrou présent donne `unknown`, donc un refus.
+     - Sous Windows, une ouverture exclusive refusée par `EBUSY` signifie `attached` ; toute autre erreur reste `unknown`.
+     - Sous macOS/Linux, PALABRE lance `python3` sans shell, avec un script fixe et un délai de 2 s, pour tenter `flock(LOCK_EX | LOCK_NB)` sans lire le contenu. Verrou acquis puis relâché : `detached` ; `EACCES`, `EAGAIN` ou `EWOULDBLOCK` : `attached`.
+     - Python absent, timeout, signal ou résultat ambigu : `unknown`, donc un refus prudent. `lsof` n'est jamais une preuve du verrou.
 5. **Envelopper le message** avec l'expéditeur et un nonce à usage unique.
 6. **Codex : neutraliser les MCP** (`prepare`).
    - La commande `codex mcp list --json --disable plugins --disable apps` est lancée par le même exécutable, dans le dossier de la cible, en 60 s et 1 Mio au plus.
@@ -892,7 +893,7 @@ Un seul objet JSON est écrit sur stdout, quelle que soit l'issue :
 
 ### Relay vers une conversation ouverte (`--open`, B1)
 
-Contrat de référence : `scripts/prototypes/relay/CONTRAT-B1.md`, relu dans la PR #110. Pilote **Codex seulement, sous Windows** ; une cible Claude donne `invalid-request` / `unsupported-agent`. Hors Windows, le verrou ne peut pas être éprouvé : l'issue est `target-state-unknown`, sans dépôt.
+Contrat de référence : `scripts/prototypes/relay/CONTRAT-B1.md`, relu dans la PR #110. Pilote **Codex seulement, sous Windows, macOS et Linux** ; une cible Claude donne `invalid-request` / `unsupported-agent`. Sous macOS/Linux, `python3` doit être disponible pour la sonde `flock` ; sinon l'issue est `target-state-unknown`, sans dépôt.
 
 ```text
 palabre relay --open --from <agent>:<session> --to <agent-codex>:<session> ("<message>" | --message-file <chemin>)
@@ -954,7 +955,7 @@ Après un échec du déposant (code non nul, accusé absent ou étranger, plafon
 
 - Le fork d'une conversation.
 - La détection automatique de l'expéditeur.
-- Avec `--open` : Claude Code (lot B2), Codex desktop comme expéditeur (bloqué par son bac à sable), l'app-server `--remote`, les IDE, macOS et Linux.
+- Avec `--open` : Claude Code (lot B2), Codex desktop comme expéditeur (bloqué par son bac à sable), l'app-server `--remote` et les IDE.
 - Sans `--open` : les desktops, IDE et conversations ouvertes.
 - Les chaînes de relay et le retry.
 - Palabre-vscode, qui consommera `--json` sans recalculer l'état.
@@ -1326,10 +1327,10 @@ Regle d'entretien : chaque fichier TypeScript modifie doit faire l'objet d'une r
 
 ## Releases
 
-Les releases sont gerees via des tags Git. Deux workflows GitHub Actions sont en place :
+Les releases sont gerees via des tags Git. Trois workflows GitHub Actions sont en place :
 
 - `.github/workflows/ci.yml` : type check + tests + build sur chaque push `main` et chaque PR.
-- `.github/workflows/release.yml` : type check + tests + build + pack + publication npm via Trusted Publishing + creation de release GitHub sur chaque tag `v*`.
+- `.github/workflows/release.yml` : validation stricte du tag et de `package.json`, type check + tests + build + pack + publication npm via Trusted Publishing + creation de release GitHub sur chaque tag stable ou de preversion.
 - `.github/workflows/release-social.yml` : reprise manuelle ciblée du post Bluesky pour un tag déjà publié, sans republier npm ni recréer la release.
 
 ### Preparer et publier une release
@@ -1341,6 +1342,8 @@ pnpm version patch --no-git-tag-version   # ou minor / major
 ```
 
 Avant le bump, mettre a jour `CHANGELOG.md` avec l'entree datee de la version cible. La PR de release contient au minimum `package.json` et le changelog ; `main` reste protegee et ne recoit pas de commit direct.
+
+Pour une preversion, utiliser une version explicite comme `0.18.0-beta.1` et un tag Git identique prefixe par `v`. Le workflow refuse tout ecart entre le tag et `package.json`. Il publie la preversion sur le dist-tag npm `next`, cree une GitHub prerelease qui ne devient pas Latest, et n'actualise ni palabre-web ni Bluesky. La version stable reste installee par defaut. Commandes utilisateur : `npm install -g palabre@next`, puis retour arriere avec `npm install -g palabre@0.17.0` ou une autre version stable explicite.
 
 Apres fusion de la PR, taguer exactement le commit courant de `main`, puis pousser seulement ce tag :
 
@@ -1358,10 +1361,10 @@ Le push du tag declenche le workflow `release.yml` qui :
 3. lance les tests automatises (`pnpm test`) ;
 4. compile (`pnpm build`) ;
 5. pack un tarball npm (`pnpm pack`) ;
-6. publie sur npm via Trusted Publishing (`npm publish --access public --provenance`) sans token npm stocke dans GitHub ;
-7. cree une release GitHub avec le tarball en artifact et les notes generees depuis les commits ;
-8. pousse `public/version.json` dans le repo `JuReyms/palabre-web` (branche `dev`) ;
-9. cree une PR `dev -> main` dans palabre-web, ou commente la PR deja ouverte, puis expose son lien dans le resume du workflow. La fusion manuelle de cette PR declenche le build Netlify de production et met a jour le badge de version.
+6. publie sur npm via Trusted Publishing, sous `latest` pour une stable ou `next` pour une preversion, sans token npm stocke dans GitHub ;
+7. cree une release GitHub avec le tarball en artifact et les notes generees depuis les commits ; une preversion est marquee comme telle et ne devient pas Latest ;
+8. pour une stable seulement, pousse `public/version.json` dans le repo `JuReyms/palabre-web` (branche `dev`) ;
+9. pour une stable seulement, cree une PR `dev -> main` dans palabre-web, ou commente la PR deja ouverte, puis expose son lien dans le resume du workflow. La fusion manuelle de cette PR declenche le build Netlify de production et met a jour le badge de version.
 
 Les workflows de release et de synchronisation documentaire recréent la branche `dev` de `palabre-web` depuis `main` lorsqu'elle a été supprimée après fusion. Si le workflow principal s'interrompt après la publication npm mais avant le post social, ne jamais republier le même tag : déclencher manuellement `release-social.yml` avec le tag existant.
 

@@ -65,9 +65,9 @@ Directory: <project-directory>
 To continue this conversation: palabre relay --to codex:<uuid> "…"
 ```
 
-In JSON, `to.session` contains the received identifier, `cwd` the directory, and `created` indicates whether an identifier was received. Before that, `to.session` is `null` and `created` is `false`. The identifier is captured during the call and preserved in the result and export even if the first turn fails: **this does not mean the question was answered**. Check delivery before sending again; no retry is automatic.
+In JSON, `to.session` contains the received identifier, `cwd` the directory, and root-level `created` indicates whether an identifier was received. `identity` also remains at the root. Before that, `to.session` is `null` and `created` is `false`. JSON and the export do not contain a continuation command: use the documented form `palabre relay --to <agent>:<to.session> "<follow-up>" --json`. The identifier is captured during the call and preserved in the result and export even if the first turn fails: **this does not mean the question was answered**. Check delivery before sending again; no retry is automatic.
 
-The conversation remains in the CLI history. Immediate Desktop visibility is not guaranteed. `--new` cannot be used with `--open`. By default, creation supports advice and reading; `--write` remains an experimental, frozen path documented at the end of this page.
+The conversation remains in the CLI history and can be resumed through Relay. For Codex, with the verified versions, a conversation created by `--new` through the CLI is not listed in Codex Desktop. This does not prevent Relay from reaching it. To follow the teammate in the app, create the conversation in Desktop instead, record its identifier, then target it without `--new`; add `--open` while it is open. `--new` cannot be used with `--open`. By default, creation supports advice and reading; `--write` remains an experimental, frozen path documented at the end of this page.
 
 ## Reading a Relay message
 
@@ -126,9 +126,10 @@ Copy the identifier from the host’s conversation information, or from its hist
 palabre relay --open --from claude:<sender-session> --to codex:<target-session> "Can you review this plan?"
 ```
 
-With `--open`, PALABRE queues the message into an **open** Codex conversation, in the TUI or in Codex desktop, with the `codex queue` command. It then waits for that conversation's reply in its history and returns it to you. This is a **pilot**, limited to Codex on Windows.
+With `--open`, PALABRE queues the message into an **open** Codex conversation, in the TUI or in Codex desktop, with the `codex queue` command. It then waits for that conversation's reply in its history and returns it to you. This is a **Codex pilot** available on Windows, macOS, and Linux.
 
 - **The conversation must be open.** Its write lock must be held, otherwise nothing is queued (`target-not-open`). The lock is checked again right before queuing.
+- **POSIX probe.** On macOS and Linux, PALABRE launches `python3` without a shell to try `flock(LOCK_EX | LOCK_NB)`, without reading the lock contents. Lock acquired then released: closed target; `EWOULDBLOCK`/`EAGAIN`: open target. Missing Python, timeout, or ambiguous error: `target-state-unknown`, with nothing queued.
 - **No read-only mode.** The open conversation replies with its own tools, MCP servers and permissions, and Codex desktop applies its current permissions to the relayed turn. The read-only guarantees of relay without `--open` therefore do not apply. The relayed message states that it comes from another, unauthenticated agent and authorizes no action.
 - **Unverified receiver.** A held lock proves neither that the conversation is displayed nor that it processes the message. Codex desktop keeps a conversation loaded after you leave it, and processes it without displaying it.
 - **Deferred processing is possible.** A queued message may be processed after the timeout, even once PALABRE has stopped. Ctrl+C does not cancel a queued message, and there is no automatic resend.
@@ -136,13 +137,13 @@ With `--open`, PALABRE queues the message into an **open** Codex conversation, i
 - **A single timeout.** `--timeout` covers preparation, queuing and waiting.
 - **Large histories.** PALABRE only reads the first line of the history and what is appended after queuing, whatever its size.
 
-Verified versions: Codex CLI 0.151.0 (TUI) and Codex desktop 26.930.7945.0 (app-server 0.160.1). The Codex history format is not a public schema: another version is not blocked, but reply correlation is not guaranteed there.
+Verified versions: Windows with Codex CLI 0.151.0 (TUI) and Codex desktop 26.930.7945.0 (app-server 0.160.1); macOS 26.6.1 on Apple Silicon with Codex CLI 0.163.0 and Codex Desktop integrated into ChatGPT.app. The Codex history format is not a public schema: another version is not blocked, but reply correlation is not guaranteed there.
 
 ## Closed conversations by default
 
 Without `--open`, the target conversation must be **closed**: no TUI, desktop, IDE or running exec may be attached to it. Otherwise the relay is refused before anything is sent (`target-busy`). It is also refused when PALABRE cannot verify the conversation state (`target-state-unknown`).
 
-For an **open** Codex conversation, use `--open` (see above). Relaying to an open Claude Code conversation is not available yet; it is tracked in issue [#96](https://github.com/JuReyms/Palabre/issues/96).
+For an **open** Codex conversation, use `--open` (see above). On macOS/Linux, first check `python3 --version`. Relaying to an open Claude Code conversation is not available yet; it is tracked in issue [#96](https://github.com/JuReyms/Palabre/issues/96).
 
 ## What the resume does
 
@@ -379,7 +380,7 @@ The nonce at the bottom remains a marker in the user message; `--open` correlati
 }
 ```
 
-`reply` is present when a valid reply was received, including when blocked reads or a publication failure subsequently make the outcome unsuccessful. For any outcome other than `replied`, `error` contains `kind`, `message` and, for `invalid-request`, `reason`. `inActiveBranch` is a diagnostic.
+`reply` is present when a valid reply was received, including when blocked reads or a publication failure subsequently make the outcome unsuccessful. For any outcome other than `replied`, `error` contains `kind`, `message` and, for `invalid-request`, `reason`. `inActiveBranch` is a diagnostic. With `--open`, it is currently `"unknown"` even when `correlation.reason` is `"correlated-final"`: the reply is correlated to the queued turn, but PALABRE does not claim to reconstruct the active branch of a history still written by Codex Desktop. Rely on `delivery.status` when deciding whether to resend.
 
 With `--open` only, the object adds optional fields:
 
@@ -410,7 +411,7 @@ Verified versions: Claude Code 2.1.85 and 2.1.292, Codex 0.151.0. The guarantees
 
 **Experimental and frozen.** Only on an explicit human request, never inferred from an ordinary task. Retained without scope expansion; security fixes only.
 
-This experimental workflow covers **Claude to Codex on Windows, in the background**: your agent can delegate a correction without opening the Codex conversation. You can also run it from your terminal. Writing with native Windows Claude is refused because system sandboxing is unavailable in this context. For advice, omit `--write`; to act in an already open Codex conversation on Windows, use `--open` with its existing permissions.
+This experimental workflow covers **Claude to Codex on Windows, in the background**: your agent can delegate a correction without opening the Codex conversation. You can also run it from your terminal. Writing with native Windows Claude is refused because system sandboxing is unavailable in this context. For advice, omit `--write`; to act in an already open Codex conversation on Windows, macOS, or Linux, use `--open` with its existing permissions (`python3` required on POSIX).
 
 ### 1. Prepare the task
 
