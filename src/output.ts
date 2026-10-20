@@ -261,7 +261,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     [labels.observedModels, report.observedModels.length > 0 ? report.observedModels.join(", ") : labels.none],
     [labels.nonce, report.nonce],
     [labels.startedAt, report.startedAt],
-    ...(report.readAccess ? [[labels.readAccess, `${report.readAccess.status}; ${report.readAccess.reason}; failedCommands=${report.readAccess.failedCommands}`]] : []),
+    ...(report.readAccess ? [[labels.readAccess, `${report.readAccess.status}; ${report.readAccess.reason}; failedCommands=${report.readAccess.failedCommands}${report.readAccess.succeededCommands === undefined ? "" : `; succeededCommands=${report.readAccess.succeededCommands}`}`]] : []),
     ...(report.retryAfter !== undefined ? [[labels.retryAfter, String(report.retryAfter)]] : []),
     ...(report.subject !== undefined ? [[labels.subject, report.subject]] : []),
     ...(report.cli ? [[labels.cliPath, report.cli.path], [labels.cliVersion, report.cli.version ?? labels.unknown]] : []),
@@ -289,7 +289,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     `> ${report.write ? relayWriteText(report.write.language).exportNotice : report.open ? labels.openNotice : labels.readOnlyNotice}`,
     "",
     // Un relay réussi n'a pas de section Erreur : l'avertissement doit donc exister par lui-même.
-    ...(report.readAccess ? [`> ${messages.relay.readAccessUnverified(report.readAccess.failedCommands)}`, ""] : []),
+    ...(report.readAccess ? [`> ${messages.relay.readAccess(report.readAccess)}`, ""] : []),
     `## ${labels.message}`,
     "",
     report.message,

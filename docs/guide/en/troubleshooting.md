@@ -22,7 +22,7 @@ palabre doctor --terminal
 
 ## Codex on Windows: error 5 despite read-only access
 
-**What happened:** Codex cannot start a command (`CreateProcessAsUserW failed: 5`). PALABRE reports it in the `readAccess` field without concluding that the agent read nothing: if the reply arrived, the relay stays `replied` (0) with `readAccess.status: "unverified"`. With review, no review is published (`review-failed`, 9), because publishing cannot be undone.
+**What happened:** Codex cannot start a command (`CreateProcessAsUserW failed: 5`). PALABRE reports it in `readAccess`. If a command succeeds afterwards, the relay stays `replied` (0) with `status: "partial"` and `succeededCommands`. With no later success, a received reply becomes `read-unavailable` (2) with `status: "blocked"`, while preserving the reply and delivery. An ambiguous event gives `unverified` without degrading the outcome. With review, no review is published (`review-failed`, 9), because publishing cannot be undone.
 
 **Confirmed cause on the tested machine:** the Microsoft Store PowerShell alias, `WindowsApps\pwsh.exe`. Under the same `:read-only` policy, the alias fails, native PowerShell reads the file, and writes remain denied.
 

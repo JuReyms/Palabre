@@ -292,7 +292,7 @@ export function renderMissionMarkdown(mission: Mission): string {
     if (step.result?.reply) lines.push(data(step.result.reply), "");
     // Une étape réussie n'a pas d'erreur : sans cette ligne, les lancements refusés
     // disparaîtraient de l'export de mission.
-    if (step.result?.readAccess) lines.push(data(relayMessages[mission.language].readAccessUnverified(step.result.readAccess.failedCommands)), "");
+    if (step.result?.readAccess) lines.push(data(relayMessages[mission.language].readAccess(step.result.readAccess)), "");
     if (step.result?.error) lines.push(data(step.result.error.message), "");
     if (step.result?.remedy) lines.push(data(step.result.remedy), "");
     if (step.result?.task) lines.push(`GitHub: ${step.result.task.publication} ${step.result.task.reviewUrl ?? ""}`, "");

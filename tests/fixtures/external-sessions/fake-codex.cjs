@@ -4,7 +4,8 @@
  *
  * Variables :
  *   FAKE_CODEX_MODE      comportement de `exec resume` : ok, mismatch, active-writer, not-found,
- *                        turn-failed, no-message, blank, two-completed, usage-limit, read-blocked, hang ;
+ *                        turn-failed, no-message, blank, two-completed, usage-limit, read-blocked,
+ *                        read-partial, read-uninterpretable, hang ;
  *   FAKE_CODEX_MCP       sortie brute de `codex mcp list --json` (défaut `[]`, peut être invalide) ;
  *   FAKE_CODEX_MCP_EXIT  code de sortie non nul simulé pour `codex mcp list` ;
  *   FAKE_CODEX_ROLLOUT   rollout de la cible, où le message reçu est ajouté (modes qui jouent un tour) ;
@@ -107,11 +108,34 @@ process.stdin.on("end", () => {
     process.exitCode = 1;
     return;
   }
+  // Un lancement refusé, sans aucune commande aboutie ensuite : rien n'étaye la réponse.
   if (mode === "read-blocked") {
     turn(argv.at(-2), stdin, ["Constat partiel : lectures bloquées."]);
     emit({ type: "item.completed", item: { id: "read-1", type: "command_execution", status: "failed", exit_code: -1,
       command: "powershell -Command Get-Content package.json",
       aggregated_output: "Failed to create unified exec process: CreateProcessAsUserW failed: 5 (Access denied.)" } });
+    emit({ type: "turn.completed", usage: {} });
+    return;
+  }
+  // Trace observée dans l'essai réel de l'issue 171 : deux refus sur pwsh, puis repli de l'agent
+  // sur cmd.exe et deux commandes abouties, dont la lecture demandée.
+  if (mode === "read-partial" || mode === "read-uninterpretable") {
+    turn(argv.at(-2), stdin, ["La livraison est prévue le 12 mars."]);
+    for (const id of ["read-1", "read-2"]) {
+      emit({ type: "item.completed", item: { id, type: "command_execution", status: "failed", exit_code: -1,
+        command: "pwsh -Command Get-Content note.md",
+        aggregated_output: "Failed to create unified exec process: CreateProcessAsUserW failed: 5 (Access denied.)" } });
+    }
+    if (mode === "read-partial") {
+      emit({ type: "item.completed", item: { id: "read-3", type: "command_execution", status: "completed", exit_code: 0,
+        command: "cmd.exe /c type SKILL.md", aggregated_output: "---" } });
+      emit({ type: "item.completed", item: { id: "read-4", type: "command_execution", status: "completed", exit_code: 0,
+        command: "cmd.exe /c type note.md", aggregated_output: "12 mars" } });
+    } else {
+      // Statut inconnu : une réussite ne peut pas être écartée.
+      emit({ type: "item.completed", item: { id: "read-3", type: "command_execution", status: "interrupted",
+        command: "cmd.exe /c type note.md" } });
+    }
     emit({ type: "turn.completed", usage: {} });
     return;
   }

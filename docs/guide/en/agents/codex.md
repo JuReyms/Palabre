@@ -63,6 +63,6 @@ palabre codex-opencode "Compare these two approaches" -t 3
 
 Closed conversation: read-only resumption, without plugins, connectors or MCP, using the model saved in the conversation. Open conversation: `--open` (Windows pilot), with the target's own tools and permissions; immediate display is not guaranteed. See [Relay](/en/usage/relay).
 
-With `--open`, a structured limit gives `usage-limit` and `retryAfter` when supplied. Without `--open`, `CreateProcessAsUserW failed: 5` when starting a command fills `readAccess` without changing the outcome: a received reply stays `replied`, with `status: "unverified"`. Only the review task then refuses to publish. See [Troubleshooting](/en/troubleshooting).
+With `--open`, a structured limit gives `usage-limit` and `retryAfter` when supplied. Without `--open`, `CreateProcessAsUserW failed: 5` when starting a command fills `readAccess`: a later successful command gives `partial` and preserves `replied`; no later success gives `blocked` and `read-unavailable`; an ambiguous event gives `unverified`. The review task refuses to publish for all three statuses. See [Troubleshooting](/en/troubleshooting).
 
 The configuration example is for Windows (`shell: true`); elsewhere, generated configuration uses `false`.

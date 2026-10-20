@@ -751,10 +751,12 @@ function writeResult(result: RelayResultV1, json: boolean, messages: Messages): 
 }
 
 /**
- * Qualifie le travail sans effacer la réponse ni la délivrance, et **sans dégrader l'issue d'un
- * échange réussi** : des lancements de commandes refusés ne prouvent pas que l'agent n'a pas lu
- * (issue 171, suivi #128). Un Relay dont la réponse est arrivée reste donc `replied` / code 0,
- * avec `readAccess.status: "unverified"` ; l'avertissement passe par le rendu texte et l'export.
+ * Qualifie le travail sans effacer la réponse ni la délivrance. Le diagnostic ne décide plus seul
+ * de l'issue : il la dégrade uniquement quand **rien n'a abouti après le premier refus**
+ * (`blocked`), cas où la réponse peut être plausible sans aucune lecture. Dès qu'une commande a
+ * abouti ensuite (`partial`), ou que les événements ne sont pas interprétables (`unverified`),
+ * l'issue de l'échange est conservée et l'avertissement passe par le rendu texte et l'export
+ * (#173 ; essai réel #171, suivi Windows #128).
  *
  * Appelée avant toute publication GitHub. La tâche `review` reste volontairement plus stricte :
  * tout diagnostic, quel que soit son statut, laisse la publication en `not-attempted`, parce que
@@ -768,9 +770,18 @@ export function applyReadAccessDiagnostic(
   if (!diagnostic) return;
   result.readAccess = diagnostic;
   if (!result.task) {
-    // Le statut de l'échange garde la priorité, en succès comme en échec. En échec, le message
-    // existant est seulement enrichi du diagnostic.
-    if (result.status !== "replied" && result.error) result.error.message += ` ${messages.relay.readAccessUnverified(diagnostic.failedCommands)}`;
+    // En échec, le message existant est seulement enrichi du diagnostic.
+    if (result.status !== "replied") {
+      if (result.error) result.error.message += ` ${messages.relay.readAccess(diagnostic)}`;
+      return;
+    }
+    // `blocked` seulement : aucune commande n'a abouti après le refus, donc rien n'étaye la
+    // réponse. Les autres statuts gardent `replied` / 0.
+    if (diagnostic.status === "blocked") {
+      result.status = "read-unavailable";
+      result.exitCode = RELAY_EXIT_CODES["read-unavailable"];
+      result.error = { kind: "read-unavailable", message: messages.relay.readAccess(diagnostic) };
+    }
     return;
   }
   result.task.error = "read-unavailable";
@@ -806,7 +817,7 @@ export function renderRelayText(result: RelayResultV1, messages: Messages): { st
   }
   // Visible même quand l'issue reste `replied` : sans cette ligne, un échange réussi ne dirait
   // plus rien des lancements refusés, puisque `error` est alors nul.
-  if (result.readAccess) lines.push(messages.relay.readAccessUnverified(result.readAccess.failedCommands));
+  if (result.readAccess) lines.push(messages.relay.readAccess(result.readAccess));
   if (result.task) {
     lines.push(`${messages.relay.export.publication}: ${result.task.publication}`);
     if (result.task.reviewUrl) lines.push(`${messages.relay.export.reviewUrl}: ${result.task.reviewUrl}`);

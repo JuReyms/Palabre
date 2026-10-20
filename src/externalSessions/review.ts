@@ -83,9 +83,9 @@ export function reviewPrompt(input: ReviewInput, request: string): string {
 }
 /**
  * Refuse une revue dès qu'un lancement de commande a été refusé, avant toute commande GitHub et
- * sans perdre la réponse. Plus strict que le relay simple, qui garde son issue dans ce cas
- * (`readAccess.status: "unverified"`) : publier une revue est une action publique que PALABRE ne
- * peut pas défaire, donc un doute suffit à ne pas publier.
+ * sans perdre la réponse. Plus strict que le relay simple, qui ne dégrade son issue que sur
+ * `blocked` : publier une revue est une action publique que PALABRE ne peut pas défaire, donc un
+ * doute suffit à ne pas publier, y compris sur `partial` et `unverified`.
  */
 export async function publishReview(input: ReviewInput, reply: string, agent: string, localIds: string[], run: GitHubRun = runGitHub,
   authorize: () => Promise<void> = async () => {},

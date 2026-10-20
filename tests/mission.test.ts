@@ -36,7 +36,8 @@ test("lancements refusés : Mission poursuit un consult répondu, met la revue e
     const w = await world(t, { tasks: [task] }); let calls = 0;
     const result = replied();
     if (task === "review") result.task = { name: "review", pr, publication: "not-attempted" };
-    applyReadAccessDiagnostic(result, { status: task === "review" ? "blocked" : "unverified", reason: "windows-process-access-denied", failedCommands: 4 }, messages);
+    const diagnostic = { status: "partial" as const, reason: "windows-process-access-denied" as const, failedCommands: 4, succeededCommands: 1 };
+    applyReadAccessDiagnostic(result, diagnostic, messages);
     const done = await stepMission(w.workspace, w.mission.id, { task, message: "Analyse", ...(task === "review" ? { pr } : {}) }, {
       now: Date.now, relay: async () => { calls++; return result; }
     });
@@ -47,7 +48,7 @@ test("lancements refusés : Mission poursuit un consult répondu, met la revue e
     assert.equal(done.steps[0]!.result?.readAccess?.failedCommands, 4);
     assert.equal(done.steps[0]!.result?.delivery.status, "replied");
     assert.deepEqual(await readMission(w.workspace, done.id), done);
-    const warning = messages.relay.readAccessUnverified(4);
+    const warning = messages.relay.readAccess(diagnostic);
     const md = await readFile(missionPaths(w.workspace, done.id).export, "utf8");
     assert.ok(md.includes(result.reply!));
     // Le diagnostic reste lisible dans l'export, y compris sans erreur à afficher.

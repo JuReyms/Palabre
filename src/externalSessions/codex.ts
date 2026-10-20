@@ -138,6 +138,46 @@ function resolveIdentity(reported: readonly string[], targetSessionId: string, i
 }
 
 /**
+ * Lancement de commande refusé par Windows avant toute exécution du shell, dans la forme observée
+ * avec Codex 0.163.0. Ne jamais chercher ce signal dans la prose du modèle, dans la sortie d'une
+ * commande réussie ou dans les outils MCP.
+ */
+function isRefusedLaunch(item: JsonObject): boolean {
+  return item.status === "failed" && item.exit_code === -1 && typeof item.aggregated_output === "string"
+    && /^(?:Failed to create unified exec process: |windows sandbox failed: )CreateProcessAsUserW failed: 5(?:\s|\()/u.test(item.aggregated_output);
+}
+
+/**
+ * Classe les lancements refusés d'après **la suite du même tour**, jamais d'après la réponse du
+ * modèle (#173 ; essai réel #171). Seules les commandes postérieures au premier refus comptent :
+ * l'essai a montré un agent qui se replie seul sur un autre shell après deux refus, puis lit ce
+ * qui lui était demandé. Compter les refus sans regarder ce qui suit dégradait donc des relays
+ * réussis, parfois à cause de refus étrangers à la demande.
+ *
+ * Une commande terminée dont le statut n'est ni `completed` ni `failed` n'est pas interprétable :
+ * une réussite ne pouvant pas être écartée, le repli explicite est `unverified`.
+ */
+function diagnoseReadAccess(events: JsonObject[]): ExchangeInterpretation["readAccess"] {
+  let failedCommands = 0;
+  let succeededCommands = 0;
+  let uninterpretable = 0;
+  for (const event of events) {
+    const item = event.type === "item.completed" ? asObject(event.item) : undefined;
+    if (item?.type !== "command_execution") continue;
+    if (isRefusedLaunch(item)) { failedCommands += 1; continue; }
+    // Avant le premier refus, une réussite ne prouve rien sur ce qui a suivi.
+    if (failedCommands === 0) continue;
+    if (item.status === "completed") succeededCommands += 1;
+    else if (item.status !== "failed") uninterpretable += 1;
+  }
+  if (failedCommands === 0) return undefined;
+  const reason = "windows-process-access-denied" as const;
+  if (succeededCommands > 0) return { status: "partial", reason, failedCommands, succeededCommands };
+  if (uninterpretable > 0) return { status: "unverified", reason, failedCommands };
+  return { status: "blocked", reason, failedCommands };
+}
+
+/**
  * Interprète le flux `codex exec --json`. Succès : exit 0, exactement un `turn.completed`, aucun
  * `turn.failed` ni `error`, et un dernier `agent_message` textuel non blanc, rendu tel quel.
  * L'identité est vérifiée sur `thread.started`. Toute autre forme est un échec, sans réponse.
@@ -161,21 +201,9 @@ export function interpretCodexOutput(stdout: string, exitCode: number | null, ta
   const errors = events
     .filter((event) => event.type === "error" || event.type === "turn.failed")
     .map((event) => asString(event.message) ?? asString(asObject(event.error)?.message) ?? "");
-  // Codex 0.163.0 : erreur de démarrage avant toute exécution du shell. Ne pas chercher dans
-  // la prose du modèle, les sorties de commandes réussies ou les outils MCP. Ce compteur porte
-  // sur des lancements refusés, jamais sur des lectures : voir `ReadAccessDiagnostic`.
-  const failedCommands = events.filter((event) => {
-    const item = event.type === "item.completed" ? asObject(event.item) : undefined;
-    return item?.type === "command_execution" && item.status === "failed" && item.exit_code === -1
-      && typeof item.aggregated_output === "string"
-      && /^(?:Failed to create unified exec process: |windows sandbox failed: )CreateProcessAsUserW failed: 5(?:\s|\()/u.test(item.aggregated_output);
-  }).length;
+  const readAccess = diagnoseReadAccess(events);
   return {
-    // Une réponse valide interdit de conclure à l'impossibilité de lire : le diagnostic reste
-    // visible, mais il ne vaut que « non vérifié ».
-    ...(failedCommands
-      ? { readAccess: { status: (isError ? "blocked" : "unverified") as "blocked" | "unverified", reason: "windows-process-access-denied" as const, failedCommands } }
-      : {}),
+    ...(readAccess ? { readAccess } : {}),
     isError,
     reply: isError ? undefined : lastText,
     identity: resolveIdentity(reported, targetSessionId, isError),

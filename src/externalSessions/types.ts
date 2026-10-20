@@ -85,23 +85,33 @@ export type SessionIdentity = "same-as-target" | "mismatch" | "unavailable";
 /**
  * Lancements de commandes refusés par le système, observés dans le flux de la CLI cible.
  *
- * Ce diagnostic compte des **démarrages de processus refusés**, pas des lectures. Il ne prouve
- * donc rien dans un sens ni dans l'autre : son absence n'établit aucun accès, et sa présence
- * n'établit aucune impossibilité de lire, puisque l'agent peut lire par un autre moyen
- * (issue 171 ; suivi Windows #128).
+ * Ce diagnostic compte des **démarrages de processus refusés**, pas des lectures : son absence
+ * n'établit aucun accès, et sa présence seule n'établit aucune impossibilité de lire. Le statut
+ * vient de la suite du même tour, et non de la réponse du modèle (#173 ; essai réel #171 ; suivi
+ * Windows #128) :
  *
- * - `unverified` : des lancements ont été refusés, mais une réponse valide est arrivée. PALABRE
- *   ne peut ni confirmer ni infirmer les lectures ; le Relay garde son issue.
- * - `blocked` : des lancements ont été refusés et aucune réponse valide n'est arrivée. L'issue
- *   d'échec de l'échange garde la priorité ; le diagnostic enrichit seulement son message.
+ * - `partial` : au moins une commande a abouti **après** le premier refus. L'agent a donc pu
+ *   exécuter des commandes ; le Relay garde son issue. Quelles lectures ont eu lieu reste
+ *   indéterminé.
+ * - `blocked` : aucune commande n'a abouti après le premier refus. Un Relay par ailleurs réussi
+ *   est alors dégradé en `read-unavailable`, ce qui couvre la réponse plausible mais non lue.
+ * - `unverified` : des événements de commande ne sont pas interprétables, donc une réussite ne
+ *   peut pas être écartée. Repli explicite : le Relay garde son issue. C'est la limite assumée
+ *   de la CLI, qui ne distingue alors pas une lecture réelle d'une réponse inventée.
  *
- * Pour la tâche `review`, les deux statuts refusent la publication : publier est une action
+ * Pour la tâche `review`, les trois statuts refusent la publication : publier est une action
  * publique que PALABRE ne peut pas défaire.
  */
 export interface ReadAccessDiagnostic {
-  status: "blocked" | "unverified";
+  status: "blocked" | "partial" | "unverified";
   reason: "windows-process-access-denied";
   failedCommands: number;
+  /**
+   * Commandes terminées avec succès **après le premier refus**, et non sur tout le tour : c'est
+   * ce décompte qui sépare `partial` (> 0) de `blocked` (aucune réussite). Présent seulement pour
+   * `partial` ; `blocked` est déjà explicite et aucun décompte fiable n'existe pour `unverified`.
+   */
+  succeededCommands?: number;
 }
 
 /** Interprétation de la sortie d'une CLI fournisseur, produite par son adapter. */

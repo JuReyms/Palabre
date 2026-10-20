@@ -321,7 +321,7 @@ PALABRE never resends a message automatically. The delivery status tells you wha
 | --- | --- |
 | 0 | `replied` |
 | 1 | `internal-error` |
-| 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large` (`read-unavailable`: reserved, no longer emitted) |
+| 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large`, `read-unavailable` |
 | 3 | `target-busy`, `target-state-unknown`, `neutralization-failed`, `target-not-open` (with `--open`) |
 | 4 | `timeout` |
 | 5 | `identity-mismatch` (the reply does not come from the target and is not returned) |
@@ -345,13 +345,13 @@ Delivery remains separate: the message may already be persisted without a reply 
 
 Without `--open`, if the Codex JSON stream reports a command that could not start with `CreateProcessAsUserW failed: 5`, PALABRE reports it without drawing a conclusion. **This diagnostic counts refused process launches, not reads**: the agent may well read by another route. A real run showed it — Codex returned the content of a file created minutes earlier while two launches had been refused ([issue 171](https://github.com/JuReyms/Palabre/issues/171)).
 
-The relay therefore keeps its outcome: a received reply stays **`replied` (exit 0)**, with the optional `readAccess` field set to `status: "unverified"`. The text output and the `.relay.md` export show a warning: reads are neither confirmed nor ruled out, and judging the reply is up to you. If the exchange fails for another reason (timeout, cancellation, identity mismatch…), that outcome keeps its exit code, `readAccess` is `blocked`, and the warning is added to its message.
+PALABRE examines command events completed after the first refusal. If at least one command succeeds, the reply stays **`replied` (exit 0)** with `readAccess.status: "partial"` and `succeededCommands`; the warning notes that this does not prove which reads happened. If no command succeeds afterwards, `status: "blocked"` degrades a received reply to **`read-unavailable` (exit 2)** without removing the reply or delivery. An uninterpretable command event gives `unverified` and preserves the outcome. If the exchange already fails for another reason (timeout, cancellation, identity mismatch…), that outcome keeps its exit code and the warning is appended.
 
-**The `--task review` task stays stricter**: any diagnostic, whatever its status, returns `review-failed` (exit 9), `task.error: "read-unavailable"` and `task.publication: "not-attempted"`: **no review is published on GitHub**. Publishing a review is a public action PALABRE cannot undo, so a doubt is enough not to publish. Mission follows the same rule: an answered `consult` step continues, a refused `review` step pauses the mission.
+**The `--task review` task stays stricter**: any diagnostic, whatever its status, returns `review-failed` (exit 9), `task.error: "read-unavailable"` and `task.publication: "not-attempted"`: **no review is published on GitHub**. Publishing a review is a public action PALABRE cannot undo, so a doubt is enough not to publish. Mission follows the same rule: a `consult` step continues only if its Relay remains successful; a refused `review` step pauses the mission.
 
-The `readAccess` field carries `status` (`unverified` or `blocked`), `reason: "windows-process-access-denied"` and `failedCommands` (number of refused launches). Another successful command does not remove the field; its absence proves neither a read nor full access. Detection covers this structured startup error, checked against Codex 0.163.0, rather than model prose; it does not recognize every possible read failure. It applies to resumption without `--open`.
+The `readAccess` field carries `status` (`partial`, `blocked`, or `unverified`), `reason: "windows-process-access-denied"`, and `failedCommands` (number of refused launches). `partial` adds `succeededCommands`, counted after the first refusal. A success does not prove which read happened; absence of the field proves neither a read nor full access. Detection covers this structured startup error, checked against Codex 0.163.0, rather than model prose; it does not recognize every possible read failure. It applies to resumption without `--open`.
 
-The `read-unavailable` status stays in the v1 contract for existing exports and integrations, but PALABRE no longer emits it as a relay outcome.
+The `read-unavailable` status stays in the v1 contract and is emitted when a reply accompanied by refusals has no successful command after the first refusal.
 
 **On Windows:** PALABRE excludes a confirmed Store PowerShell alias from the Codex process only when native PowerShell remains available, without widening read-only access. This applies to `--new`, closed resumption, Mission and review, not `--open`. Other aliases in the removed directory become unavailable to this child only. If reads remain blocked, the owner follows the [troubleshooting guide](/en/troubleshooting): optional PowerShell 7 MSI installation outside the Store, path check, then a decision before sending again. Tracked in [#128](https://github.com/JuReyms/Palabre/issues/128).
 

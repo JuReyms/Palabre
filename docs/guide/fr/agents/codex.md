@@ -63,6 +63,6 @@ palabre codex-opencode "Compare ces deux approches" -t 3
 
 Conversation fermée : reprise en lecture seule, sans plugins, connecteurs ni MCP, avec le modèle enregistré dans la conversation. Conversation ouverte : `--open` (pilote Windows), avec les outils et permissions propres à la cible ; l'affichage immédiat n'est pas garanti. Voir [Relay](/fr/usage/relay).
 
-Avec `--open`, une limite structurée donne `usage-limit` et `retryAfter` si l'heure est fournie. Sans `--open`, `CreateProcessAsUserW failed: 5` au démarrage d'une commande remplit `readAccess` sans changer l'issue : une réponse reçue reste `replied`, avec `status: "unverified"`. Seule la tâche review refuse alors de publier. Voir [Dépannage](/fr/troubleshooting).
+Avec `--open`, une limite structurée donne `usage-limit` et `retryAfter` si l'heure est fournie. Sans `--open`, `CreateProcessAsUserW failed: 5` au démarrage d'une commande remplit `readAccess` : une commande aboutie ensuite donne `partial` et conserve `replied`; aucune réussite ultérieure donne `blocked` et `read-unavailable`; un événement ambigu donne `unverified`. La tâche review refuse de publier sur les trois statuts. Voir [Dépannage](/fr/troubleshooting).
 
 L'exemple de configuration est celui de Windows (`shell: true`) ; ailleurs, la configuration générée utilise `false`.

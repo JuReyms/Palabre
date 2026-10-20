@@ -39,12 +39,12 @@ test("erreur 5 de démarrage de commande : diagnostic distinct de la réponse va
   const parsed = run([{ type: "item.completed", item }, { type: "item.completed", item }]);
   assert.equal(parsed.isError, false); assert.equal(parsed.reply, output);
   assert.equal(parsed.identity, "same-as-target");
-  // Une réponse valide interdit de conclure à l'impossibilité de lire (issue 171, suivi #128).
-  assert.deepEqual(parsed.readAccess, { status: "unverified", reason: "windows-process-access-denied", failedCommands: 2 });
+  // Deux refus sans commande aboutie ensuite restent bloqués, même si le modèle a répondu.
+  assert.deepEqual(parsed.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 2 });
   assert.ok(!JSON.stringify(parsed.readAccess).includes("PRIVATE"));
   assert.deepEqual(run([{ type: "item.completed", item }, { type: "item.completed", item: {
     ...item, status: "completed", exit_code: 0, aggregated_output: "README lu"
-  } }]).readAccess, { ...parsed.readAccess!, failedCommands: 1 });
+  } }]).readAccess, { status: "partial", reason: "windows-process-access-denied", failedCommands: 1, succeededCommands: 1 });
   // Sans réponse valide, le diagnostic reste `blocked` et n'invente aucune issue.
   const noReply = interpretCodexOutput(jsonl([
     { type: "thread.started", thread_id: SESSION }, { type: "item.completed", item }, { type: "turn.failed" }
