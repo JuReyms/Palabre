@@ -46,9 +46,9 @@ Le chef de mission conserve aussi l'identifiant de conversation, le dossier et l
 
 ## Choisir le parcours pour la tâche
 
-- **Deux Desktop** : Claude Code vers Codex ouvert sous Windows, `--open`, permissions habituelles de la cible. L'envoi vers Claude Code ouvert reste indisponible.
-- **Deux terminaux CLI** : même direction vers Codex ouvert sous Windows avec `--open`, pilote peu testé ; pas d'envoi vers Claude Code ouvert.
-- **Arrière-plan** : nouvelle conversation (`--new`) ou conversation existante fermée, pour les avis et relectures avec outils limités pendant l'appel. Codex desktop vers Claude fermée et Claude vers Codex fermée sont vérifiés sous Windows. Codex CLI vers Claude et macOS restent à éprouver. `--write` est expérimental et gelé, hors parcours par défaut, uniquement sur demande explicite de l'humain.
+- **Deux Desktop** : Claude Code vers Codex ouvert sous Windows, macOS ou Linux, `--open`, permissions habituelles de la cible. Sur POSIX, `python3` doit être disponible pour éprouver le verrou. L'envoi vers Claude Code ouvert reste indisponible.
+- **Deux terminaux CLI** : même direction vers Codex ouvert avec `--open`, pilote peu testé ; pas d'envoi vers Claude Code ouvert.
+- **Arrière-plan** : nouvelle conversation (`--new`) ou conversation existante fermée, pour les avis et relectures avec outils limités pendant l'appel. Codex desktop vers Claude fermée et Claude vers Codex fermée sont vérifiés sous Windows ; la cible Codex fermée est aussi vérifiée sur macOS. Codex CLI comme expéditeur reste à éprouver. `--write` est expérimental et gelé, hors parcours par défaut, uniquement sur demande explicite de l'humain.
 
 Pour l'humain, renvoyer au [guide Premier Relay](https://palab.re/fr/get-started/first-relay). Il choisit Claude Code ou Codex comme chef de mission. Ne pas lui imposer d'apprendre les options : choisir sa conversation précise, lire le résultat et rendre compte. Le retour CLI n'est jamais ajouté automatiquement à la conversation de l'expéditeur. L'affichage Desktop peut être différé ou absent. Les fichiers modifiés dans une conversation ouverte restent dans le dossier de l'équipier ; le worktree concerne seulement `--write` expérimental.
 
@@ -155,7 +155,7 @@ Agent : sur `task-not-allowed`, ouvrir `remedy` dans le terminal visible de l'hu
 
 `palabre relay` crée une conversation avec `--new`, ou reprend une conversation Claude Code ou Codex existante et **fermée**. Il transmet **un** message, récupère **une** réponse, puis termine. Une cible existante retrouve le contexte de sa conversation.
 
-Avec `--open`, une conversation Claude Code peut joindre une conversation Codex ouverte sous Windows. Relay n'organise pas de boucle de dialogue et ne renvoie rien automatiquement dans la conversation de l'expéditeur : la réponse revient seulement à l'appelant.
+Avec `--open`, une conversation Claude Code peut joindre une conversation Codex ouverte sous Windows, macOS ou Linux. Sur POSIX, `python3` doit être disponible pour éprouver réellement le verrou. Relay n'organise pas de boucle de dialogue et ne renvoie rien automatiquement dans la conversation de l'expéditeur : la réponse revient seulement à l'appelant.
 
 Pour une simple relecture ou correction Claude Code vers Codex, le [plugin officiel OpenAI `openai/codex-plugin-cc`](https://github.com/openai/codex-plugin-cc) peut suffire. Relay vise aussi des conversations précises, les deux sens et Codex ouvert.
 
@@ -164,7 +164,7 @@ Pour une simple relecture ou correction Claude Code vers Codex, le [plugin offic
 - **Cible explicite.** Nouvelle conversation : `--new --to <agent>`. Conversation existante : obtenir son identifiant, ou aider l'utilisateur à la retrouver puis le laisser choisir. Aucune sélection implicite (« la plus récente »).
   - Claude Code : nom du fichier `~/.claude/projects/<dossier>/<uuid>.jsonl`.
   - Codex : fin du nom `~/.codex/sessions/AAAA/MM/JJ/rollout-…-<uuid>.jsonl`.
-- **Cible fermée sans `--open`.** Aucun TUI, desktop, IDE ni exécution ne doit y être attaché. `--open` vise au contraire une conversation Codex ouverte sous Windows, avec ses permissions propres ; pas de garantie d'avis sans modification dans ce parcours.
+- **Cible fermée sans `--open`.** Aucun TUI, desktop, IDE ni exécution ne doit y être attaché. `--open` vise au contraire une conversation Codex ouverte sous Windows, macOS ou Linux, avec ses permissions propres ; sur POSIX, `python3` sonde le verrou. Pas de garantie d'avis sans modification dans ce parcours.
 - **Expéditeur déclaratif.** `--from <agent>[:<uuid>]` est une étiquette facultative, ni lancée ni vérifiée. Utiliser l'identifiant de votre propre conversation s'il est connu (variables observées, non garanties : `CLAUDE_CODE_SESSION_ID` pour Claude Code récent, `CODEX_THREAD_ID` pour Codex) ; sinon utiliser le nom seul, ou omettre `--from` pour le terminal. Ne jamais inventer d'identifiant.
 - **Agent cible** : nom d'un agent CLI Codex ou Claude Code de la config (`codex`, `claude`, `claude-opus`…).
 - **Effet possible sur la cible.** Un relay lancé peut modifier l'historique de la cible : le message, la réponse et les lectures de l'agent y sont ajoutés, et le message peut y rester même sans réponse valide. Annoncer cet effet à l'utilisateur avant de lancer. Après coup, lire `delivery.status` (ci-dessous) pour savoir ce qui est établi : un refus avant lancement (`not-delivered`) n'a rien écrit.
@@ -197,7 +197,7 @@ palabre relay --from claude:<uuid> --to codex:<uuid> --message-file message.md -
 | `persisted-no-reply` | Le message est dans la cible sans réponse : **ne pas renvoyer**, un renvoi le dupliquerait |
 | `unknown` | **Ne pas renvoyer** sans vérifier la conversation cible |
 
-Issues fréquentes : `target-busy` (cible ouverte, code 3), `target-state-unknown` (état invérifiable, code 3), `session-not-found` (code 6), `invalid-request` avec `error.reason` (code 8), `cli-failure` (code 2), `timeout` (code 4). Palabre ne renvoie jamais automatiquement.
+Issues fréquentes : `target-busy` (cible ouverte, code 3), `target-state-unknown` (état invérifiable, code 3 ; sur macOS/Linux, vérifier `python3 --version`), `session-not-found` (code 6), `invalid-request` avec `error.reason` (code 8), `cli-failure` (code 2), `timeout` (code 4). Palabre ne renvoie jamais automatiquement.
 
 ## Limites à rappeler
 

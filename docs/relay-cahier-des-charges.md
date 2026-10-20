@@ -42,13 +42,13 @@ Seules les cases promises ou en étude figurent ici. « Fermée » inclut une co
 | Chef de mission → équipier | Conversation | Aujourd'hui | Preuve |
 | --- | --- | --- | --- |
 | Claude → Codex | fermée | ✅ Windows | Essais du 18 octobre 2026 |
-| Claude → Codex | ouverte, desktop | ✅ Windows (`--open`) ; fiabilité à améliorer (#146) | Usage réel quotidien |
+| Claude → Codex | ouverte, desktop | ✅ Windows ; pilote macOS/Linux avec `--open` et `python3` (#180) ; fiabilité à améliorer (#146) | Usage réel quotidien sous Windows ; validation réelle macOS demandée |
 | Claude → Codex | ouverte, deux terminaux | ❓ Prévu, peu testé | À faire |
 | Codex → Claude | fermée | ✅ Windows, depuis Codex desktop : Codex demande d'autoriser chaque commande PALABRE hors de son bac à sable, l'humain accepte cette fois seulement · ❓ depuis Codex CLI | Essai 3 du 18 octobre 2026, réglages par défaut (conversation neuve, puis suite dans la même sans relire le fichier ; deux demandes d'autorisation vues et acceptées par le propriétaire) |
 | Codex → Claude | ouverte | 🔬 En étude (#96) | — |
 | OpenCode ↔ Claude, Codex | fermée ou ouverte | 🔬 En étude (#136) | — |
 
-**Plateformes** : Windows en priorité ; macOS à tester (#141). `--open` ne fonctionne que sous Windows pour l'instant.
+**Plateformes** : Windows reste le parcours le plus éprouvé. Le verrou Codex est testé nativement sous Windows et par `flock` via `python3` sous macOS/Linux ; une sonde indisponible ou ambiguë reste refusée (#180).
 
 ## 5. Ce qui prouve une case
 

@@ -90,7 +90,7 @@ When you use `--model-a`, `--model-b`, or `--summary-model`, Palabre does not ve
 
 ## Agents and Relay
 
-[Relay](/en/usage/relay) targets Codex or Claude Code conversations: closed by default; `--open` targets only Codex on Windows (pilot). Mission, a Relay option, uses closed conversations. Antigravity, OpenCode, Mistral Vibe and Ollama participate in Debate, Ask and Chat, not as Relay targets.
+[Relay](/en/usage/relay) targets Codex or Claude Code conversations: closed by default; `--open` targets only Codex on Windows, macOS, or Linux (pilot, with `python3` required on POSIX). Mission, a Relay option, uses closed conversations. Antigravity, OpenCode, Mistral Vibe and Ollama participate in Debate, Ask and Chat, not as Relay targets.
 
 CLI agents run from the current directory. Defaults request read-only tools where available: Claude `Read,Glob,Grep`, Codex `--sandbox read-only`, Vibe `read,grep`. OpenCode `--pure` disables plugins **without guaranteeing a read-only tool allowlist**. Custom arguments remain under your control; migrations replace only exact old defaults. A recognized limit gives `usage-limit`, without automatic resend.
 

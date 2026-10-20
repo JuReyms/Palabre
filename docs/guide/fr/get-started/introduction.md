@@ -34,7 +34,7 @@ Comparer des approches, faire critiquer un plan, confronter des avis, ou passer 
 
 PALABRE n'ouvre pas de compte et ne fournit pas d'accès aux modèles. Chaque agent doit être installé et, si nécessaire, authentifié séparément. Un rôle ou un message d'un autre agent n'autorise pas une action à votre place.
 
-Débat, Ask et Chat lancent un nouvel appel d'agent pour chaque réponse. PALABRE fournit tout le transcript du Débat, ou au plus les six messages récents du Chat. Relay reprend au contraire une conversation existante et peut en modifier l'historique : fermée par défaut, ou ouverte avec `--open` pour Codex sous Windows (pilote). Il ne renvoie jamais un message automatiquement.
+Débat, Ask et Chat lancent un nouvel appel d'agent pour chaque réponse. PALABRE fournit tout le transcript du Débat, ou au plus les six messages récents du Chat. Relay reprend au contraire une conversation existante et peut en modifier l'historique : fermée par défaut, ou ouverte avec `--open` pour Codex sous Windows, macOS ou Linux (pilote ; `python3` requis sur POSIX). Il ne renvoie jamais un message automatiquement.
 
 ## Confidentialité
 

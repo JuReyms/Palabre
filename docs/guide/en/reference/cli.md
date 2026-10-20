@@ -77,7 +77,7 @@ Resume keeps every complete response and calls only the next Debate turn, remain
 | Command | Description |
 | --- | --- |
 | `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> "Message"` | Closed Codex or Claude Code conversation, resumed read-only. |
-| `palabre relay --open --from <agent>:<uuid> --to codex:<uuid> "Message"` | Open Codex conversation, Windows pilot; target's own tools and permissions. |
+| `palabre relay --open --from <agent>:<uuid> --to codex:<uuid> "Message"` | Open Codex conversation, Windows/macOS/Linux pilot (`python3` on POSIX); target's own tools and permissions. |
 | `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> --task review --pr https://github.com/owner/repository/pull/123` | Writes and publishes a COMMENT review when authorized. |
 | `palabre relay allow-repo owner/repository` | Authorizes review after the owner's keyboard confirmation. |
 

@@ -53,6 +53,8 @@ export interface RelayMessages {
     messageTooLarge(detail: string): string;
     /** Après tentative, sans enveloppe observée dans l'historique. */
     receptionNotObserved: string;
+    /** Sonde de verrou invérifiable avant tout dépôt en mode ouvert. */
+    targetStateUnknown: string;
     unverifiedReceiver: string;
     diagnostic(code: string): string;
     permissions(summary: string): string;
@@ -136,7 +138,7 @@ const frStatus: Record<Exclude<RelayStatus, "replied" | "invalid-request">, stri
   "usage-limit": "La CLI cible signale une limite d'usage ou un quota atteint.",
   "output-too-large": "La sortie de la CLI cible dépasse le plafond autorisé ; elle a été arrêtée.",
   "target-busy": "La conversation cible est ouverte dans un autre processus (TUI, desktop, IDE ou exécution en cours). Ferme-la, puis relance le relay.",
-  "target-state-unknown": "Impossible de vérifier qu'aucun processus n'est attaché à la conversation cible ; le relay est refusé par prudence.",
+  "target-state-unknown": "Impossible de vérifier qu'aucun processus n'est attaché à la conversation cible ; le relay est refusé par prudence. Sur macOS ou Linux, vérifie que `python3 --version` fonctionne. Si ChatGPT/Codex tient cette conversation, quitte complètement l'application, puis relance la même commande.",
   "target-not-open": "La conversation cible n'est pas ouverte : aucun écrivain ne tient son verrou. Avec --open, aucun message n'est déposé ; ouvre-la dans le TUI ou dans Codex desktop, ou relance sans --open.",
   "neutralization-failed": "La neutralisation des serveurs MCP de Codex n'a pas pu être garantie ; aucun message n'a été envoyé.",
   "timeout": "La CLI cible n'a pas répondu dans le délai imparti.",
@@ -155,7 +157,7 @@ const enStatus: Record<Exclude<RelayStatus, "replied" | "invalid-request">, stri
   "usage-limit": "The target CLI reports a usage limit or exhausted quota.",
   "output-too-large": "The target CLI output exceeded the allowed limit; it was stopped.",
   "target-busy": "The target conversation is open in another process (TUI, desktop, IDE or running exec). Close it, then retry the relay.",
-  "target-state-unknown": "Cannot verify that no process is attached to the target conversation; the relay is refused as a precaution.",
+  "target-state-unknown": "Cannot verify that no process is attached to the target conversation; the relay is refused as a precaution. On macOS or Linux, check that `python3 --version` works. If ChatGPT/Codex holds this conversation, quit the application completely, then retry the same command.",
   "target-not-open": "The target conversation is not open: no writer holds its lock. With --open, no message is queued; open it in the TUI or in Codex desktop, or retry without --open.",
   "neutralization-failed": "Neutralization of the Codex MCP servers could not be guaranteed; no message was sent.",
   "timeout": "The target CLI did not reply in time.",
@@ -256,6 +258,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
       unsupportedProvider: "--open ne vise que les conversations Codex.",
       messageTooLarge: (detail) => `--open : enveloppe limitée à 8 192 unités UTF-16, ligne de commande Windows à 32 767, sans caractère NUL (${detail}).`,
       receptionNotObserved: "Réception non observée : le message déposé peut encore être traité plus tard, même sans être affiché. Aucun renvoi automatique.",
+      targetStateUnknown: "Impossible de vérifier que la conversation cible est ouverte ; aucun message n'est déposé. Sur macOS ou Linux, laisse ChatGPT/Codex ouvert, vérifie que `python3 --version` fonctionne, puis relance la même commande.",
       unverifiedReceiver: "Récepteur non vérifié : le verrou tenu ne prouve ni la surface, ni la version, ni l'affichage, ni la consommation du message.",
       diagnostic: (code) => `Diagnostic : ${code}.`,
       permissions: (summary) => `Permissions du tour relayé : ${summary}.`
@@ -374,6 +377,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
       unsupportedProvider: "--open only targets Codex conversations.",
       messageTooLarge: (detail) => `--open: envelope limited to 8,192 UTF-16 units, Windows command line to 32,767, without NUL characters (${detail}).`,
       receptionNotObserved: "Reception not observed: the queued message may still be processed later, even without being displayed. No automatic resend.",
+      targetStateUnknown: "Cannot verify that the target conversation is open; no message is queued. On macOS or Linux, keep ChatGPT/Codex open, check that `python3 --version` works, then retry the same command.",
       unverifiedReceiver: "Unverified receiver: a held lock proves neither the surface, the version, the display nor the consumption of the message.",
       diagnostic: (code) => `Diagnostic: ${code}.`,
       permissions: (summary) => `Permissions of the relayed turn: ${summary}.`

@@ -527,6 +527,7 @@ function openErrorMessage(open: OpenRelayResult, messages: Messages): string | u
   const tooLarge = open.outcome.status === "invalid-request" && open.outcome.reason === "message-too-large";
   const parts = [open.outcome.status === "usage-limit"
     ? relayMessages.usageLimit(open.retryAfter)
+    : open.outcome.status === "target-state-unknown" ? relayMessages.open.targetStateUnknown
     : tooLarge ? relayMessages.open.messageTooLarge(open.diagnostic ?? "") : errorMessage(open.outcome, messages)];
   if (open.diagnostic && !tooLarge) parts.push(relayMessages.open.diagnostic(open.diagnostic));
   if (open.queue.attempted && !open.receptionObserved) parts.push(relayMessages.open.receptionNotObserved);

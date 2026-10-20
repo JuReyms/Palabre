@@ -25,7 +25,7 @@ L’action reste optionnelle et sous le contrôle de l’utilisateur. Palabre n�
 PALABRE propose quatre modes : **Débat**, **Relay**, **Ask** et **Chat**, avec vos agents installés.
 
 - Débat contradictoire, Ask indépendant (1 à 4 agents) et Chat avec second avis explicite ; après Débat/Ask, Chat reprend le sujet et la synthèse.
-- Relay vers Codex ou Claude Code fermé ; `--open` vers Codex ouvert sous Windows (pilote), avec ses propres outils et permissions, sans affichage immédiat garanti.
+- Relay vers Codex ou Claude Code fermé ; `--open` vers Codex ouvert sous Windows, macOS ou Linux (pilote, `python3` requis sur POSIX), avec ses propres outils et permissions, sans affichage immédiat garanti.
 - Revue GitHub COMMENT sur dépôt autorisé par `palabre relay allow-repo` ; en-tête PALABRE, objet facultatif, JSON et export `.relay.md`.
 - Option Mission de Relay : étapes en lecture seule dans un cadre et un budget fixés avec vous.
 - Configuration locale/globale, détection et synchronisation prudente des agents, presets et modèles choisis par les CLI.
