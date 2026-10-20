@@ -570,7 +570,7 @@ l'adapter qualifie uniquement les événements terminés `command_execution`, `f
 (préfixes qualifiés dans `codex.ts`, format 0.163.0). Le champ optionnel `readAccess` compte des
 **démarrages de processus refusés, pas des lectures** : il ne prouve ni un accès ni une
 impossibilité de lire, puisque l'agent peut lire autrement. `interpretCodexOutput` examine les
-commandes terminées après le premier refus : une réussite donne `status: "partial"` avec
+commandes terminées après le premier refus et avant la réponse finale : une réussite (`completed`, `exit_code: 0`) donne `status: "partial"` avec
 `succeededCommands`, aucune réussite donne `"blocked"`, et un événement non interprétable donne
 `"unverified"`. Relay conserve réponse, identité et délivrance. `partial` et `unverified`
 conservent l'issue ; `blocked` dégrade une réponse reçue en `read-unavailable`/2. Un échange déjà

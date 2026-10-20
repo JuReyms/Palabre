@@ -289,7 +289,10 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     `> ${report.write ? relayWriteText(report.write.language).exportNotice : report.open ? labels.openNotice : labels.readOnlyNotice}`,
     "",
     // Un relay réussi n'a pas de section Erreur : l'avertissement doit donc exister par lui-même.
-    ...(report.readAccess ? [`> ${messages.relay.readAccess(report.readAccess)}`, ""] : []),
+    // Une seule copie : quand l'erreur porte déjà l'avertissement (`blocked`, échec enrichi), la
+    // section Erreur suffit.
+    ...(report.readAccess && !report.error?.includes(messages.relay.readAccess(report.readAccess))
+      ? [`> ${messages.relay.readAccess(report.readAccess)}`, ""] : []),
     `## ${labels.message}`,
     "",
     report.message,

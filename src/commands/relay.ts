@@ -817,8 +817,12 @@ export function renderRelayText(result: RelayResultV1, messages: Messages): { st
     lines.push(messages.relay.delivery(result.delivery.status));
   }
   // Visible même quand l'issue reste `replied` : sans cette ligne, un échange réussi ne dirait
-  // plus rien des lancements refusés, puisque `error` est alors nul.
-  if (result.readAccess) lines.push(messages.relay.readAccess(result.readAccess));
+  // plus rien des lancements refusés, puisque `error` est alors nul. Pas de seconde copie quand
+  // `applyReadAccessDiagnostic` l'a déjà placé dans le message d'erreur (`blocked`, échec enrichi).
+  if (result.readAccess) {
+    const warning = messages.relay.readAccess(result.readAccess);
+    if (!result.error?.message.includes(warning)) lines.push(warning);
+  }
   if (result.task) {
     lines.push(`${messages.relay.export.publication}: ${result.task.publication}`);
     if (result.task.reviewUrl) lines.push(`${messages.relay.export.reviewUrl}: ${result.task.reviewUrl}`);

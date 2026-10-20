@@ -194,6 +194,21 @@ test("aucune commande aboutie après le refus : relay dégradé en read-unavaila
   assert.equal(r.json.delivery.status, "replied");
   assert.deepEqual(r.json.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 1 });
   assert.equal(r.calls.filter(c => c.argv[0] === "exec").length, 1);
+  // Une seule copie de l'avertissement, en texte comme dans l'export, même s'il est dans l'erreur.
+  const warning = relayMessages.fr.readAccess(r.json.readAccess as ReadAccessDiagnostic);
+  assert.equal(readFileSync(r.json.exportPath, "utf8").split(warning).length - 1, 1);
+  const text = await relay(makeWorld(), [...toCodex, "Lis le dépôt", "--trust-config", "--no-export"], { FAKE_CODEX_MODE: "read-blocked" });
+  assert.equal(text.code, 2); assert.equal(text.stderr.split(warning).length - 1, 1);
+});
+
+test("réponse écrite avant toute commande : une réussite ultérieure ne la fait pas passer pour partial", async () => {
+  const w = makeWorld();
+  const r = await relay(w, [...toCodex, "Lis note.md", "--trust-config", "--json"], { FAKE_CODEX_MODE: "read-reply-first" });
+  // Relecture indépendante de #174 : la commande réussie vient après la réponse, qui n'a donc pu
+  // s'appuyer sur aucune lecture.
+  assert.equal(r.code, 2); assert.equal(r.json.status, "read-unavailable");
+  assert.equal(r.json.reply, "La livraison est prévue le 12 mars.");
+  assert.deepEqual(r.json.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 2 });
 });
 
 test("événements de commande non interprétables : repli unverified, issue conservée", async () => {

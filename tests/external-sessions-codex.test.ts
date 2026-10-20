@@ -48,6 +48,20 @@ test("erreur 5 de démarrage de commande : diagnostic distinct de la réponse va
   assert.deepEqual(run([{ type: "item.completed", item }, { type: "item.completed", item: {
     ...item, status: "completed", exit_code: 0, aggregated_output: "README lu"
   } }]).readAccess, { status: "partial", reason: "windows-process-access-denied", failedCommands: 1, succeededCommands: 1 });
+  // Relecture indépendante de #174 : une réussite n'en est une qu'avec `exit_code: 0`, et seulement
+  // si elle précède la réponse finale.
+  const ok = { ...item, status: "completed", exit_code: 0, aggregated_output: "README lu" };
+  const blocked = { status: "blocked", reason: "windows-process-access-denied", failedCommands: 1 };
+  assert.deepEqual(run([{ type: "item.completed", item }, { type: "item.completed", item: { ...ok, exit_code: 1 } }]).readAccess, blocked);
+  assert.deepEqual(run([{ type: "item.completed", item }, { type: "item.completed", item: { ...ok, exit_code: undefined } }]).readAccess,
+    { status: "unverified", reason: "windows-process-access-denied", failedCommands: 1 });
+  const replyFirst = interpretCodexOutput(jsonl([
+    { type: "thread.started", thread_id: SESSION },
+    { type: "item.completed", item: { type: "agent_message", text: "Réponse inventée" } },
+    { type: "item.completed", item }, { type: "item.completed", item: ok }, { type: "turn.completed" }
+  ]), 0, SESSION);
+  assert.equal(replyFirst.reply, "Réponse inventée");
+  assert.deepEqual(replyFirst.readAccess, blocked);
   // Sans réponse valide, le diagnostic reste `blocked` et n'invente aucune issue.
   const noReply = interpretCodexOutput(jsonl([
     { type: "thread.started", thread_id: SESSION }, { type: "item.completed", item }, { type: "turn.failed" }

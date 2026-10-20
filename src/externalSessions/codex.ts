@@ -164,22 +164,32 @@ function isRefusedLaunch(item: JsonObject): boolean {
  * qui lui était demandé. Compter les refus sans regarder ce qui suit dégradait donc des relays
  * réussis, parfois à cause de refus étrangers à la demande.
  *
- * Une commande terminée dont le statut n'est ni `completed` ni `failed` n'est pas interprétable :
- * une réussite ne pouvant pas être écartée, le repli explicite est `unverified`.
+ * Une réussite doit aussi **précéder la réponse finale** (le dernier `agent_message`) : une
+ * commande lancée après coup ne peut pas avoir nourri la réponse, qui serait alors plausible sans
+ * aucune lecture (relecture indépendante de #174). Les refus, eux, sont comptés sur tout le tour.
+ *
+ * Une commande n'est réussie que si elle est `completed` avec `exit_code: 0`. Un code entier non
+ * nul est un échec ordinaire. Un statut inconnu, ou `completed` sans code entier, n'est pas
+ * interprétable : une réussite ne pouvant pas être écartée, le repli explicite est `unverified`.
  */
 function diagnoseReadAccess(events: JsonObject[]): ExchangeInterpretation["readAccess"] {
+  const items = events.map((event) => (event.type === "item.completed" ? asObject(event.item) : undefined));
+  let replyIndex = -1;
+  items.forEach((item, index) => { if (item?.type === "agent_message") replyIndex = index; });
   let failedCommands = 0;
   let succeededCommands = 0;
   let uninterpretable = 0;
-  for (const event of events) {
-    const item = event.type === "item.completed" ? asObject(event.item) : undefined;
-    if (item?.type !== "command_execution") continue;
-    if (isRefusedLaunch(item)) { failedCommands += 1; continue; }
-    // Avant le premier refus, une réussite ne prouve rien sur ce qui a suivi.
-    if (failedCommands === 0) continue;
-    if (item.status === "completed") succeededCommands += 1;
-    else if (item.status !== "failed") uninterpretable += 1;
-  }
+  items.forEach((item, index) => {
+    if (item?.type !== "command_execution") return;
+    if (isRefusedLaunch(item)) { failedCommands += 1; return; }
+    // Avant le premier refus, une réussite ne prouve rien sur ce qui a suivi ; après la réponse,
+    // elle ne l'a pas nourrie. Sans réponse, tout le tour reste examiné.
+    if (failedCommands === 0 || (replyIndex >= 0 && index > replyIndex)) return;
+    if (item.status === "completed") {
+      if (item.exit_code === 0) succeededCommands += 1;
+      else if (!Number.isInteger(item.exit_code)) uninterpretable += 1;
+    } else if (item.status !== "failed") uninterpretable += 1;
+  });
   if (failedCommands === 0) return undefined;
   const reason = "windows-process-access-denied" as const;
   if (succeededCommands > 0) return { status: "partial", reason, failedCommands, succeededCommands };
