@@ -18,6 +18,8 @@ Always wait for process termination. `error` describes the business failure; the
 
 An `error` event may include phase, agent, role, turn, a stable `kind`, message, and details. Kinds include `command-not-found`, `spawn-failed`, `timeout`, `idle-timeout`, `output-too-large`, `empty-output`, `non-zero-exit`, `usage-limit`, `unsupported-model`, `model-unavailable`, `model-pull-failed`, `http-error`, and `cancelled`. For a `usage-limit`, `retryAfter` may be present: duration in seconds, ISO timestamp, or local `HH:mm` time. It is best-effort; branch on `kind`, not message text.
 
+A CLI agent that exits with a non-zero code still fails, even if it wrote to stdout. Palabre gives stderr priority; when stderr is empty, the `non-zero-exit` message includes only a sanitized, bounded stdout excerpt for diagnostics. This excerpt is never an agent response and does not automatically reclassify the error.
+
 Palabre attempts to preserve responses in a partial export after failure. Accept `done` with a path followed by a non-zero code. Cancellation must remain distinct from an error.
 
 ## Client identity

@@ -395,7 +395,7 @@ Il supporte :
 Une valeur `maxOutputBytes` invalide ne desactive jamais la protection : CLI, PTY et Ollama
 retombent tous sur la limite par defaut.
 
-Les adapters CLI et PTY doivent rejeter tout exit code non nul, meme si la CLI a ecrit une sortie partielle sur stdout ou dans le PTY. Une sortie partielle issue d'un process en erreur ne doit pas etre traitee comme une reponse valide.
+Les adapters CLI et PTY doivent rejeter tout exit code non nul, meme si la CLI a ecrit une sortie partielle sur stdout ou dans le PTY. Une sortie partielle issue d'un process en erreur ne doit pas etre traitee comme une reponse valide. Pour l'adapter CLI uniquement, si stderr est vide et stdout non vide, le message `non-zero-exit` peut reprendre un extrait nettoye et borne de stdout comme diagnostic. Cet extrait ne devient jamais une reponse et ne sert pas a classifier une erreur connue ; stderr garde la priorite.
 
 Erreurs connues classees :
 

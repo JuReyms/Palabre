@@ -816,6 +816,9 @@ Flags:
   --config <path>         chemin de config explicite
   --trust-config          approuve l'empreinte de la config locale
 
+Un agent qui termine avec un code non nul reste en echec. Si stderr est vide,
+Palabre affiche seulement un extrait nettoye et borne de stdout comme diagnostic.
+
 Documentation complete:
   https://palab.re/fr
 
@@ -877,6 +880,9 @@ Flags:
   --language <fr|en>      force language
   --config <path>         explicit config path
   --trust-config          trusts the local config fingerprint
+
+An agent that exits with a non-zero code still fails. If stderr is empty,
+Palabre only shows a sanitized, bounded stdout excerpt as a diagnostic.
 
 Full documentation:
   https://palab.re/en

@@ -19,6 +19,8 @@ A CLI agent is launched as a terminal command. Palabre sends it a prompt, retrie
 
 Each CLI keeps its own rules: authentication, default model, subscription, usage limits, and configuration options. Some CLIs can work with a free tier, a subscription, a local provider, or a cloud provider; in all cases, quotas and rate limit errors come from the agent being used, not from Palabre.
 
+If a CLI exits with an error without writing to stderr, Palabre shows a sanitized, bounded stdout excerpt to help diagnose the failure, for example an authentication error. The session still fails: this excerpt is never accepted as a response. Fix authentication or configuration in the affected CLI first, then run Palabre again.
+
 ## Local agents
 
 A local agent like Ollama uses a model installed on your machine. This is useful for critic, exploration, or lightweight summary roles. If you configure Ollama with a cloud offer or a paid service, the associated limits remain those of Ollama or the chosen provider.
