@@ -77,7 +77,7 @@ Ce parcours a été vérifié sous Windows depuis Codex desktop. Depuis Codex CL
 
 > Continue avec le même Claude pour préciser le risque principal, sans modifier de fichier.
 
-Le chef de mission réutilise l'identifiant, lit la réponse et vous en rend compte. L'échange reste dans la conversation de l'équipier ; PALABRE donne aussi le chemin de l'export `.relay.md`. Avec les versions Codex vérifiées, une conversation créée par `--new` n'est pas listée dans Codex Desktop, mais Relay peut continuer à la joindre. Pour la suivre dans l'application, créez-la d'abord dans Desktop puis visez son identifiant (`--open` tant qu'elle est ouverte). La réponse revient à l'appelant, sans être ajoutée automatiquement à la conversation de l'expéditeur.
+Le chef de mission réutilise l'identifiant, lit la réponse et vous en rend compte. L'échange reste dans la conversation de l'équipier ; PALABRE donne aussi le chemin de l'export `.relay.md`. Avec les versions Codex vérifiées, une conversation créée par `--new` n'est pas listée dans Codex Desktop, mais Relay peut continuer à la joindre. Pour la suivre dans l'application, ouvrez le lien `codex://threads/<identifiant>` affiché après la création ; une fois ouverte dans Desktop, joignez-la avec `--open`. La réponse revient à l'appelant, sans être ajoutée automatiquement à la conversation de l'expéditeur.
 
 Si l'équipier modifie des fichiers dans une conversation ouverte, ils restent dans son dossier de travail. Ils apparaissent sur GitHub seulement après un commit et un push autorisés séparément. Une réponse reçue ne prouve pas que le travail ou les tests ont réussi.
 

@@ -24,7 +24,7 @@ import { configExists, loadConfig, resolveDefaultConfigPath, resolveOutputDir } 
 import { isConfigTrusted, trustConfig } from "../configTrust.js";
 import { exchange, exchangeOutcome, type ExchangeResult, type ExternalExecutable, type ExternalSessionAdapter } from "../externalSessions/adapter.js";
 import { ClaudeSessionAdapter } from "../externalSessions/claude.js";
-import { CodexSessionAdapter } from "../externalSessions/codex.js";
+import { CodexSessionAdapter, codexDesktopThreadLink } from "../externalSessions/codex.js";
 import { buildEnvelope, buildOpenEnvelope, createNonce, MAX_RELAY_MESSAGE_BYTES, parseAgentName, parseSenderRef, parseSessionRef, validMissionHeader, validateRelayMessage, validateRelaySubject, type MissionEnvelopeHeader } from "../externalSessions/envelope.js";
 import type { OpenTurnContext } from "../externalSessions/openReader.js";
 import { defaultOpenRelayDeps, runOpenRelay, type OpenQueueReport, type OpenRelayResult } from "../externalSessions/openRelay.js";
@@ -702,6 +702,7 @@ async function exportRelay(
       from: result.from,
       ...(result.write ? { write: result.write } : {}),
       ...(result.created !== undefined ? { created: result.created, cwd: result.cwd } : {}),
+      ...(relayDesktopLink(result) ? { desktopLink: relayDesktopLink(result) } : {}),
       to: { agent: result.to.agent, session: result.to.session, provider: result.to.provider },
       status: result.status,
       delivery: result.delivery,
@@ -806,6 +807,17 @@ export function applyReviewCancellation(result: RelayResultV1, interrupted: bool
   result.error = { kind: "cancelled", message: messages.relay.status("cancelled") };
 }
 
+/**
+ * Lien `codex://threads/…` d'une conversation **Codex créée** par ce relay, dès que son identifiant
+ * est connu, même si le premier tour a échoué : la conversation existe. Absente de la liste de
+ * Desktop, elle s'ouvre par ce lien (#179). Jamais pour Claude, ni pour une reprise. Aucun champ JSON
+ * n'est ajouté : une intégration construit le même lien depuis `to.session`.
+ */
+export function relayDesktopLink(result: RelayResultV1): string | undefined {
+  if (!result.created || !result.to?.session || result.to.provider !== "codex") return undefined;
+  return codexDesktopThreadLink(result.to.session);
+}
+
 /** Même réponse en texte qu'en JSON, y compris après une publication refusée ou interrompue. */
 export function renderRelayText(result: RelayResultV1, messages: Messages): { stdout: string; stderr: string } {
   const lines: string[] = [];
@@ -831,6 +843,8 @@ export function renderRelayText(result: RelayResultV1, messages: Messages): { st
     lines.push(messages.relay.newConversation(`${result.to.agent}:${result.to.session}`, result.cwd ?? ""));
     if (result.write) lines.push(relayWriteText(result.write.language).continueReadOnly);
     lines.push(messages.relay.continueConversation(`palabre relay --to ${result.to.agent}:${result.to.session} "…"`));
+    const link = relayDesktopLink(result);
+    if (link) lines.push(messages.relay.desktopLink(link));
     if (result.status !== "replied") lines.push(messages.relay.newFailed);
   }
   if (result.mode === "open") {

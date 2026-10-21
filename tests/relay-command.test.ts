@@ -940,6 +940,11 @@ describe('Relay : création et expéditeur facultatif', () => {
       const md = readFileSync(r.json.exportPath, 'utf8');
       assert.ok(md.includes(`${provider}:${NEW_IDS[provider]}`)); assert.ok(md.includes(w.workspace));
       assert.ok(md.includes('| Expéditeur | terminal |'));
+      // #179 : Codex seulement ; aucun champ JSON ajouté, l'intégration le construit depuis to.session.
+      const link = `codex://threads/${NEW_IDS[provider]}`;
+      if (provider === 'codex') assert.ok(md.includes(`| Lien Codex Desktop | ${link} |`));
+      else assert.ok(!md.includes('codex://') && !md.includes('Lien Codex Desktop'));
+      assert.ok(!r.stdout.includes('codex://')); assert.equal(r.json.desktopLink, undefined);
       assert.deepEqual([readFileSync(w.transcript, 'utf8'), readFileSync(w.rollout, 'utf8')], before);
     });
 
@@ -964,6 +969,10 @@ describe('Relay : création et expéditeur facultatif', () => {
       const text = await relay(makeWorld(), ['--new', '--to', provider, 'Question', '--trust-config', '--no-export'], env);
       assert.equal(text.code, 2); assert.match(text.stderr, /Pour continuer.*palabre relay --to/);
       assert.match(text.stderr, /premier échange a échoué/); assert.equal(text.stdout, '');
+      if (provider === 'codex') {
+        assert.ok(text.stderr.includes(`codex://threads/${NEW_IDS.codex}`));
+        assert.match(text.stderr, /--open/); assert.match(text.stderr, /permissions de Codex Desktop/);
+      } else assert.ok(!text.stderr.includes('codex://'));
     });
 
     test(`${provider} : un identifiant mal formé n'est jamais proposé pour continuer`, async () => {
@@ -972,8 +981,21 @@ describe('Relay : création et expéditeur facultatif', () => {
       const r = await relay(w, ['--new', '--to', provider, 'Question', '--trust-config', '--json'], env);
       assert.notEqual(r.code, 0); assert.equal(r.json.to.session, null); assert.equal(r.json.created, false);
       assert.equal(r.json.reply, undefined);
+      assert.ok(!readFileSync(r.json.exportPath ?? w.transcript, 'utf8').includes('codex://'));
     });
   }
+
+  test('lien Codex Desktop : texte anglais après création, jamais sur une reprise', async () => {
+    const created = await relay(makeWorld(), ['--new', '--to', 'codex', 'Question', '--trust-config', '--language', 'en', '--no-export']);
+    assert.equal(created.code, 0, created.stderr);
+    assert.ok(created.stderr.includes(`To follow it in Codex Desktop, open this link: codex://threads/${NEW_IDS.codex}`));
+    const w = makeWorld();
+    const resumed = await relay(w, ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--json']);
+    assert.equal(resumed.code, 0, resumed.stdout + resumed.stderr);
+    assert.ok(!readFileSync(resumed.json.exportPath, 'utf8').includes('codex://'));
+    const text = await relay(makeWorld(), ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--no-export']);
+    assert.ok(!text.stderr.includes('codex://'));
+  });
 
   test('expéditeur absent, nom seul et UUID restent déclaratifs en reprise fermée', async () => {
     for (const sender of [undefined, 'claude', `codex:${CODEX_SESSION}`]) {
