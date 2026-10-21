@@ -30,14 +30,14 @@ palabre doctor --terminal
 
 When the Codex CLI is detected, `palabre doctor` looks at the preferred `pwsh.exe` on PATH, without launching it, and warns (`WARN`) when it is the Microsoft Store alias:
 
-- **no regular PowerShell beside it**: the workaround below cannot apply;
+- **no safe fallback** (no regular PowerShell, or another unconfirmed alias still takes priority): the workaround below cannot apply;
 - **a regular PowerShell remains available**: PALABRE will use it for its Codex child process only, and the message names it.
 
 This is a warning, never an error: the machine stays usable, and the agent often reads anyway despite the refusal. `doctor` does not launch `pwsh`, changes no config, PATH or permission, and stays silent outside Windows, without a detected Codex CLI, or when a real `pwsh.exe` remains available.
 
 ### What PALABRE does automatically
 
-For closed Relay, `--new`, Mission and the review task targeting Codex, PALABRE checks the preferred shell. On Windows it removes the `WindowsApps` directory from **its child process only** if that directory's `pwsh.exe` is a confirmed execution alias and native PowerShell remains available. A native PowerShell already taking priority causes no change. An unavailable check or uncertain fallback leaves PATH unchanged.
+For closed Relay, `--new`, Mission and the review task targeting Codex, PALABRE checks the preferred shell. On Windows it removes from **its child process only** each alias directory that takes priority — `WindowsApps` or the package directory `WindowsApps\Microsoft.PowerShell_…` — if its `pwsh.exe` is a confirmed execution alias and native PowerShell remains available. A native PowerShell already taking priority causes no change. An unavailable check or uncertain fallback leaves PATH unchanged.
 
 No user setting, global PATH or write permission is changed. The `readAccess` diagnostic is still reported while a launch is refused. No automatic resend or sandbox change. `--open` keeps the Desktop conversation's behavior and does not use this fix.
 

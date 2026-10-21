@@ -30,14 +30,14 @@ palabre doctor --terminal
 
 Quand la CLI Codex est détectée, `palabre doctor` regarde le `pwsh.exe` prioritaire du PATH, sans le lancer, et avertit (`WARN`) s'il s'agit de l'alias du Microsoft Store :
 
-- **aucun PowerShell régulier à côté** : le contournement décrit ci-dessous ne peut pas s'appliquer ;
+- **aucun repli sûr** (pas de PowerShell régulier, ou un autre alias non confirmé reste en tête) : le contournement décrit ci-dessous ne peut pas s'appliquer ;
 - **un PowerShell régulier reste disponible** : PALABRE l'utilisera pour son seul processus enfant Codex, et le message le nomme.
 
 C'est un avertissement, jamais une erreur : la machine reste utilisable, et l'agent lit souvent malgré le refus. `doctor` ne lance pas `pwsh`, ne modifie ni configuration, ni PATH, ni permissions, et reste muet hors Windows, sans CLI Codex détectée, ou quand un vrai `pwsh.exe` reste disponible.
 
 ### Ce que PALABRE fait automatiquement
 
-Pour Relay fermé, `--new`, Mission et la tâche review vers Codex, PALABRE examine le shell prioritaire. Sous Windows, il écarte de son **seul processus enfant** le dossier `WindowsApps` si son `pwsh.exe` est un alias d'exécution confirmé et qu'un PowerShell natif reste disponible. Un vrai PowerShell déjà prioritaire n'entraîne aucun changement. Une vérification impossible ou un repli incertain laisse le PATH inchangé.
+Pour Relay fermé, `--new`, Mission et la tâche review vers Codex, PALABRE examine le shell prioritaire. Sous Windows, il écarte de son **seul processus enfant** chaque dossier d'alias qui passe en tête — `WindowsApps` ou le dossier du paquet `WindowsApps\Microsoft.PowerShell_…` — si son `pwsh.exe` est un alias d'exécution confirmé et qu'un PowerShell natif reste disponible. Un vrai PowerShell déjà prioritaire n'entraîne aucun changement. Une vérification impossible ou un repli incertain laisse le PATH inchangé.
 
 Aucun réglage utilisateur, PATH global ou droit d'écriture n'est modifié. Le diagnostic `readAccess` reste émis tant qu'un lancement est refusé. Ni renvoi automatique ni changement de bac à sable. `--open` garde le comportement de la conversation Desktop et n'utilise pas ce correctif.
 
