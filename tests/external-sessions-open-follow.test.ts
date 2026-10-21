@@ -78,6 +78,7 @@ describe("#195 : lecteur du tour suivi", () => {
     const observation = inspectFollowedTurn(await readOpenRollout(file, baseline), { threadId: THREAD, baseline });
     assert.equal(observation.status, "followed");
     assert.equal(observation.reason, "turn-started-before-follow");
+    assert.equal(observation.reply, "Réponse au relais.");
     assert.equal(observation.startObserved, false);
     assert.equal(observation.context, undefined);
   });

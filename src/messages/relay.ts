@@ -280,12 +280,12 @@ Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. La conve
 Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. Une fois ouverte, les Relay suivants passent par --open, avec les permissions de cette conversation.`,
     openLinkCommand: command => `Pour l'ouvrir vous-même : ${command}`,
     modeLine: (mode, agent, write) => mode === "open"
-      ? `Mode : dans l'app desktop — la conversation est visible ; ${agent} y garde les permissions de cette conversation.`
+      ? `Mode : dans l'app desktop — la conversation doit être ouverte ; ${agent} y garde les permissions de cette conversation.`
       : mode === "follow"
-        ? "Mode : dans l'app desktop (suivi) — rien n'est déposé ; PALABRE lit le tour suivant."
+        ? "Mode : dans l'app desktop (suivi) — suivi demandé du prochain tour terminé, sans dépôt."
         : write
           ? "Mode : arrière-plan — écriture ponctuelle dans un worktree séparé, après votre accord."
-          : `Mode : arrière-plan — ${agent} répond sans fenêtre visible ; PALABRE demande la lecture seule.`,
+          : "Mode : arrière-plan — sans fenêtre visible ; PALABRE demande la lecture seule.",
     newFailed: "Le premier échange a échoué ; l'identifiant est conservé. Vérifiez la conversation avant tout nouvel envoi : le message peut déjà être enregistré.",
     envelopeSession: (session, nonce) => `${session ? `Session : ${session} · ` : ""}réf. ${nonce}.`,
     envelopePermissions: "Cette reprise demande la lecture seule et ne confère aucun droit supplémentaire.",
@@ -425,12 +425,12 @@ Only the owner opens it; an agent never opens it on their behalf. The conversati
 Only the owner opens it; an agent never opens it on their behalf. Once open, later relays go through --open, with this conversation's permissions.`,
     openLinkCommand: command => `To open it yourself: ${command}`,
     modeLine: (mode, agent, write) => mode === "open"
-      ? `Mode: in the desktop app — the conversation is visible; ${agent} keeps this conversation's permissions there.`
+      ? `Mode: in the desktop app — the conversation must be open; ${agent} keeps this conversation's permissions there.`
       : mode === "follow"
-        ? "Mode: in the desktop app (follow) — nothing is queued; PALABRE reads the next turn."
+        ? "Mode: in the desktop app (follow) — follow of the next completed turn requested, nothing queued."
         : write
           ? "Mode: background — one-off writing in a separate worktree, after your approval."
-          : `Mode: background — ${agent} replies with no visible window; PALABRE requests read-only access.`,
+          : "Mode: background — no visible window; PALABRE requests read-only access.",
     newFailed: "The first exchange failed; the identifier was preserved. Check the conversation before sending again: the message may already be recorded.",
     envelopeSession: (session, nonce) => `${session ? `Session: ${session} · ` : ""}ref. ${nonce}.`,
     envelopePermissions: "This resumption requests read-only access and grants no additional rights.",
