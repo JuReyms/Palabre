@@ -92,10 +92,10 @@ export type SessionIdentity = "same-as-target" | "mismatch" | "unavailable";
  *
  * - `partial` : au moins une commande a abouti **après** le premier refus. L'agent a donc pu
  *   exécuter des commandes ; le Relay garde son issue. Quelles lectures ont eu lieu reste
- *   indéterminé.
- * - `blocked` : aucune commande n'a abouti après le premier refus. Un Relay par ailleurs réussi
+ *   indéterminé. Une réussite explicite donne priorité à `partial`, même avec un autre événement ambigu.
+ * - `blocked` : aucune commande n'a abouti après le premier refus et aucun événement n'est ambigu. Un Relay par ailleurs réussi
  *   est alors dégradé en `read-unavailable`, ce qui couvre la réponse plausible mais non lue.
- * - `unverified` : des événements de commande ne sont pas interprétables, donc une réussite ne
+ * - `unverified` : sans réussite explicite, des événements de commande ne sont pas interprétables, donc une réussite ne
  *   peut pas être écartée. Repli explicite : le Relay garde son issue. C'est la limite assumée
  *   de la CLI, qui ne distingue alors pas une lecture réelle d'une réponse inventée.
  *

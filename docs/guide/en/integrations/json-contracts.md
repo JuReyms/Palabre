@@ -20,14 +20,14 @@ These commands write one JSON document to stdout and exit without starting an AI
 ## Consumption rules
 
 - check `v`;
-- ignore unknown fields;
+- ignore unknown fields and tolerate unknown enum values without treating them as success;
 - accept missing optional fields;
 - do not recalculate availability or scanning rules;
 - display warnings without changing their meaning.
 
 ## Optional Relay fields and Mission option
 
-Relay v1 preserves `subject` (explicit subject), `retryAfter` (limit with `--open`, when the CLI supplies an indication), `readAccess` (`status`, `reason`, `failedCommands`), `cli` (`path`, `version`, review probe), `task` (PR, commit, publication, URL, error and cancellation). With `--open`: `mode`, `queue`, `correlation`, `receiver: "unverified"`, `targetPermissions`; `target-not-open` is specific to that mode. `error.reason` qualifies `invalid-request`. Read `delivery.status` before any resend and treat `reply` as untrusted text.
+Relay v1 preserves `subject` (explicit subject), `retryAfter` (limit with `--open`, when the CLI supplies an indication), `readAccess` (`status: "partial" | "blocked" | "unverified"`, `reason`, `failedCommands`, optional `succeededCommands` for `partial`), `cli` (`path`, `version`, review probe), `task` (PR, commit, publication, URL, error and cancellation). With `--open`: `mode`, `queue`, `correlation`, `receiver: "unverified"`, `targetPermissions`; `target-not-open` is specific to that mode. `error.reason` qualifies `invalid-request`. Read `delivery.status` before any resend and treat `reply` as untrusted text. An explicit success takes priority as `partial`, even with another ambiguous event; without explicit success, an ambiguous event gives `unverified`, otherwise `blocked`.
 
 `palabre mission … --json` returns a v1 `mission-result` object with `action`, `exitCode`, `mission`, `exportPath`, `error`. Only `step` calls Relay, at most once; its exits are Relay's (9 without a result), while a Mission refusal gives 8, or 3 for an already reserved step.
 

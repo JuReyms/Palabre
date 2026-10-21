@@ -284,8 +284,9 @@ Limites :
   --trust-config et --open ne sont pas admis avec review. Publication par Palabre, pas par le modèle.
   Erreur 5 Windows au démarrage d'une commande Codex : readAccess signale les lancements refusés.
   Une commande aboutie (code 0) après le premier refus et avant la réponse donne partial
-  et conserve replied (0). Sans commande aboutie dans cet intervalle, blocked donne
-  read-unavailable (2). Un événement ambigu donne unverified.
+  et conserve replied (0), même si un autre événement est ambigu. Sans réussite explicite,
+  un événement ambigu donne unverified ; sans réussite ni événement ambigu, blocked donne
+  read-unavailable (2).
   Avec review : review-failed (9), aucune publication. Cause probable : le raccourci Microsoft Store
   WindowsApps\\pwsh.exe. Le propriétaire consulte https://palab.re/fr/troubleshooting (Codex sous Windows)
   et https://github.com/JuReyms/Palabre/issues/128 : étapes pour PowerShell natif si le blocage persiste.
@@ -299,7 +300,8 @@ Limites :
   Sans --write, aucune écriture en arrière-plan. Avec les versions Codex vérifiées,
   une cible créée par --new n'est pas listée dans Desktop, mais reste joignable par Relay.
   Pour la suivre dans l'app, le propriétaire ouvre le lien codex://threads/<id> affiché
-  (jamais un agent à sa place) ; ensuite, --open.
+  (jamais un agent à sa place) ; ensuite, --open. Ouverture vérifiée sous Windows seulement ;
+  macOS et Linux restent à vérifier pour ce lien Desktop.
   --write exige --new, un dépôt Git et une config déjà approuvée. Aucun --open, --task ou --trust-config.
   Le premier appel ne lance pas de modèle : write-approval-required (8), writeRequest et remedy.
   Le propriétaire lance approve-write dans un terminal visible (entrée ET sortie TTY), relit tâche,
@@ -686,8 +688,9 @@ Limits:
   --trust-config and --open cannot be used with review. Palabre publishes, not the model.
   Windows error 5 starting a Codex command: readAccess reports refused launches. A command that
   succeeds (exit 0) after the first refusal and before the reply gives partial and
-  preserves replied (0). With no success in that window, blocked gives read-unavailable (2).
-  An ambiguous command event gives unverified.
+  preserves replied (0), even if another event is ambiguous. Without explicit success,
+  an ambiguous command event gives unverified; with neither success nor an ambiguous event,
+  blocked gives read-unavailable (2).
   With review: review-failed (9), no publication. Probable cause: the Microsoft Store shortcut
   WindowsApps\\pwsh.exe. The owner reads https://palab.re/en/troubleshooting (Codex on Windows)
   and https://github.com/JuReyms/Palabre/issues/128: native PowerShell steps if reads remain blocked.
@@ -701,6 +704,7 @@ Limits:
   Without --write, no background writing. With verified Codex versions, a target created by --new
   is not listed in Desktop but remains reachable through Relay. To follow it in the app, the owner
   opens the codex://threads/<id> link shown after creation (never an agent); then use --open.
+  Opening this Desktop link is verified on Windows only; macOS and Linux remain unverified.
   --write requires --new, a Git repository and an already trusted config. No --open, --task or --trust-config.
   The first call starts no model: write-approval-required (8), writeRequest and remedy.
   The owner runs approve-write in a visible terminal (both input and output TTY), checks task, agent,

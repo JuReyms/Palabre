@@ -69,6 +69,19 @@ test("alias Store seul : WARN qui nomme l'alias et la commande MSI, sans faire �
   }
 });
 
+test("plusieurs alias Store successifs sans pwsh natif : diagnostic fr/en sans prétendre à un seul alias", async () => {
+  const packageApps = `${apps}\\Microsoft.PowerShell_fixture`;
+  const packageAlias = `${packageApps}\\pwsh.exe`;
+  for (const language of ["fr", "en"] as const) {
+    const result = await doctorOutput(language, probes(`${apps};${packageApps}`, [alias, packageAlias], [alias, packageAlias]));
+    const line = result.output.split("\n").find(line => line.includes("PowerShell :") || line.includes("PowerShell:"));
+    assert.ok(line);
+    assert.match(line, language === "fr" ? /aucun pwsh.exe natif/ : /no native pwsh.exe/);
+    assert.doesNotMatch(line, /le seul pwsh.exe|the only pwsh.exe/);
+    assert.equal(result.ok, true);
+  }
+});
+
 test("repli sur Windows PowerShell : WARN distinct qui nomme le repli du seul enfant Codex", async () => {
   const result = await doctorOutput("fr", probes(`${apps};${windows}`, [alias, `${windows}\\powershell.exe`]));
   const line = result.output.split("\n").find(line => line.includes("PowerShell :"));

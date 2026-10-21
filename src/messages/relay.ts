@@ -69,8 +69,9 @@ export interface RelayMessages {
   status(status: Exclude<RelayStatus, "replied" | "invalid-request">): string;
   /**
    * Avertissement affiché quand des lancements de commandes ont été refusés par Windows. Le texte
-   * suit le statut : `partial` (une commande a abouti ensuite), `blocked` (aucune) ou `unverified`
-   * (événements non interprétables). Lui seul, il ne prouve aucune lecture.
+   * suit le statut : `partial` (réussite explicite prioritaire, même avec un événement ambigu),
+   * `unverified` (sans réussite explicite, événements non interprétables), sinon `blocked`.
+   * Lui seul, il ne prouve aucune lecture.
    */
   readAccess(diagnostic: ReadAccessDiagnostic): string;
   /** Message d'erreur d'un `invalid-request`, selon sa raison. */
@@ -242,7 +243,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
       allowed: repository => `Revues relay autorisées pour ${repository}.`
     },
     defaultReviewMessage: "Relis la PR indiquée.",
-    reviewFailure: reason => reason === "read-unavailable" ? `Aucune revue publiée : lectures bloquées. ${frStatus["read-unavailable"]}`
+    reviewFailure: reason => reason === "read-unavailable" ? `Aucune revue publiée : lectures requises insuffisamment établies. ${frStatus["read-unavailable"]}`
       : reason === "pull-request-changed" ? "La PR a changé : publication non tentée."
       : reason === "review-authorization-changed" ? "L'autorisation a changé : publication non tentée."
       : reason === "review-publication-unconfirmed" ? frStatus["review-failed"] : "Publication non tentée ; la réponse de l'agent est conservée.",
@@ -368,7 +369,7 @@ Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. La conve
       allowed: repository => `Relay reviews authorized for ${repository}.`
     },
     defaultReviewMessage: "Review the specified pull request.",
-    reviewFailure: reason => reason === "read-unavailable" ? `No review published: reads were blocked. ${enStatus["read-unavailable"]}`
+    reviewFailure: reason => reason === "read-unavailable" ? `No review published: required reads were not established with sufficient certainty. ${enStatus["read-unavailable"]}`
       : reason === "pull-request-changed" ? "The PR changed: publication was not attempted."
       : reason === "review-authorization-changed" ? "Authorization changed: publication was not attempted."
       : reason === "review-publication-unconfirmed" ? enStatus["review-failed"] : "Publication was not attempted; the agent reply is preserved.",

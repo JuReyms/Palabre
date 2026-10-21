@@ -77,7 +77,7 @@ This path has been verified on Windows from Codex desktop. It still needs testin
 
 > Continue with the same Claude to clarify the main risk, without changing files.
 
-The mission lead reuses the identifier, reads the reply and reports back to you. The exchange stays in the teammate's conversation; PALABRE also gives you the `.relay.md` export path. With the verified Codex versions, a conversation created by `--new` is not listed in Codex Desktop, but Relay can keep reaching it. To follow it in the app, open the `codex://threads/<identifier>` link shown after creation; once open in Desktop, reach it with `--open`. The reply returns to the caller without being added automatically to the sender's conversation.
+The mission lead reuses the identifier, reads the reply and reports back to you. The exchange stays in the teammate's conversation; PALABRE also gives you the `.relay.md` export path. With the verified Codex versions, a conversation created by `--new` is not listed in Codex Desktop, but Relay can keep reaching it. To follow it in the app, open the `codex://threads/<identifier>` link shown after creation; once open in Desktop, reach it with `--open`. The reply returns to the caller without being added automatically to the sender's conversation. Opening this Desktop link is verified on Windows only; macOS and Linux remain unverified.
 
 If the teammate changes files in an open conversation, they stay in its working directory. They appear on GitHub only after a separately authorized commit and push. Receiving a reply does not prove the work or tests succeeded.
 
