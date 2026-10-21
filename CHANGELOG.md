@@ -2,6 +2,12 @@
 
 Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspire de [Keep a Changelog](https://keepachangelog.com/), versionnage [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- Relay `--open` : le contexte AGENTS.md réinjecté avant l'enveloppe n'empêche plus une réponse corrélée lorsque sa forme et sa métadonnée sont reconnues ; un bloc AGENTS et un bloc d'environnement au plus par tour, séparés ou regroupés, sans liaison utilisateur ni nonce. Une saisie concurrente de forme `user.text` reste `no-valid-reply`, avec `user-input-during-turn` et invitation à vérifier la conversation avant tout renvoi. Aucun droit ni auteur n'en est déduit. Lot partiel : la réponse liée à une question reste ambiguë, sa forme réelle n'ayant pas été observée localement ; aucun champ `humanInput` n'est émis (Refs #146). Copies installées : `palabre skill --sync`, après accord humain.
+
 ## [0.19.0] - 2026-10-21
 
 ### Added

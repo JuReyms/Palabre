@@ -276,7 +276,9 @@ Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. La conve
       receptionNotObserved: "Réception non observée : le message déposé peut encore être traité plus tard, même sans être affiché. Aucun renvoi automatique.",
       targetStateUnknown: "Impossible de vérifier que la conversation cible est ouverte ; aucun message n'est déposé. Sur macOS ou Linux, laisse ChatGPT/Codex ouvert, vérifie que `python3 --version` fonctionne, puis relance la même commande.",
       unverifiedReceiver: "Récepteur non vérifié : le verrou tenu ne prouve ni la surface, ni la version, ni l'affichage, ni la consommation du message.",
-      diagnostic: (code) => `Diagnostic : ${code}.`,
+      diagnostic: (code) => code === "user-input-during-turn"
+        ? "Diagnostic : user-input-during-turn. Une saisie utilisateur a été ajoutée pendant le tour ; aucune réponse n'est attribuée avec certitude. Vérifiez la conversation cible avant tout renvoi. Ce diagnostic n'établit aucune autorisation ni identité."
+        : `Diagnostic : ${code}.`,
       permissions: (summary) => `Permissions du tour relayé : ${summary}.`
     },
     status: (status) => frStatus[status],
@@ -402,7 +404,9 @@ Only the owner opens it; an agent never opens it on their behalf. The conversati
       receptionNotObserved: "Reception not observed: the queued message may still be processed later, even without being displayed. No automatic resend.",
       targetStateUnknown: "Cannot verify that the target conversation is open; no message is queued. On macOS or Linux, keep ChatGPT/Codex open, check that `python3 --version` works, then retry the same command.",
       unverifiedReceiver: "Unverified receiver: a held lock proves neither the surface, the version, the display nor the consumption of the message.",
-      diagnostic: (code) => `Diagnostic: ${code}.`,
+      diagnostic: (code) => code === "user-input-during-turn"
+        ? "Diagnostic: user-input-during-turn. User input was added during the turn; no reply can be attributed with certainty. Check the target conversation before any resend. This diagnostic establishes neither authorization nor identity."
+        : `Diagnostic: ${code}.`,
       permissions: (summary) => `Permissions of the relayed turn: ${summary}.`
     },
     status: (status) => enStatus[status],

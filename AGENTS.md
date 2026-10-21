@@ -945,6 +945,10 @@ L'enveloppe `--open` annonce un expéditeur déclaré non authentifié et une de
 
 Après un échec du déposant (code non nul, accusé absent ou étranger, plafond), une dernière lecture bornée peut relever une réception, si le budget le permet et sans annulation. Elle ne remplace jamais l'issue primaire, ne rend jamais de réponse et n'efface aucune preuve. Aucun renvoi, aucune reprise `exec resume`.
 
+**Corrélation #146 (lot partiel).** Les messages de contexte observés sous Windows sont exemptés seulement après `task_started`, avant l'enveloppe, sans liaison `UserMessage`, sans nonce et avec métadonnée du tour corrélé. Une sorte AGENTS et une sorte environnement au plus, en messages séparés ou dans un message à deux parties AGENTS puis environnement : `content_item_kinds` doit correspondre exactement aux blocs complets (`agents_md.instructions`, `environments.environment_context`). Aucun autre texte ni doublon n'est exempté. Ces métadonnées ne sont pas une authentification système.
+
+Une saisie libre de forme `user.text` du même tour, après l'enveloppe et avant la finale, ne devient pas une réponse liée : `no-valid-reply` / 2, `correlation.reason: user-input-during-turn`, vérification de la conversation avant tout renvoi. Une enveloppe d'agent ou un format inconnu conserve l'ambiguïté générique. Aucun auteur humain, clic, accord ou droit n'en est déduit. La forme réelle d'une réponse liée à une question n'a pas été observée localement : aucune exemption supposée ni champ `humanInput`. #146 reste partielle ; #190 n'est pas validée par ce lot. Les fixtures ne contiennent que structures relevées et textes factices ; leur provenance et les variations négatives sont précisées dans `tests/fixtures/external-sessions/open-user-context.md`. Le skill conserve la consigne de ne pas poser de question pendant un tour relayé.
+
 **Champs JSON v1 optionnels, avec `--open` seulement :**
 
 - `mode: "open"` ;

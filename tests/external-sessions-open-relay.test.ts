@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { buildOpenEnvelope } from "../src/externalSessions/envelope.js";
 import { relayMessages } from "../src/messages/relay.js";
-import { appendFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { open } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -118,6 +118,35 @@ describe("B1 : parcours nominal", () => {
     assert.equal(result.outcome.status, "replied");
     assert.equal(result.targetPermissions, "unknown");
     assert.deepEqual(result.observedModels, []);
+  });
+});
+
+describe("B1 #146 : transport avec les formes utilisateur observées", () => {
+  for (const kind of ["agents", "combined", "free"]) test(`${kind} : corrélation et délivrance sans second dépôt`, async () => {
+    const fixtures = JSON.parse(readFileSync(path.resolve("tests/fixtures/external-sessions/open-user-context.json"), "utf8"));
+    const row = fixtures[kind] as Row;
+    const payload = row.payload as Row;
+    (payload.internal_chat_message_metadata_passthrough as Row).turn_id = TURN;
+    const file = rollout();
+    const rows = fullTurn();
+    if (kind === "free") rows.splice(4, 0, row, item("UserMessage", ((payload.content as Row[])[0]!).text as string));
+    else rows.splice(2, 0, row);
+    const h = harness(file, { onRun: () => { appendRows(file, rows); return queued(); } });
+    const result = await runOpenRelay(input(file), h.deps);
+    assert.equal(result.outcome.status, kind === "free" ? "no-valid-reply" : "replied");
+    assert.equal(result.delivery.status, kind === "free" ? "persisted-no-reply" : "replied");
+    assert.equal(result.reply, kind === "free" ? undefined : "Réponse « été ».");
+    assert.equal(h.calls.run.length, 1);
+    assert.equal("humanInput" in result, false);
+    if (kind === "free") {
+      assert.equal(result.diagnostic, "user-input-during-turn");
+      for (const language of ["fr", "en"] as const) {
+        const diagnostic = relayMessages[language].open.diagnostic(result.diagnostic!);
+        assert.match(diagnostic, /user-input-during-turn/);
+        assert.match(diagnostic, language === "fr" ? /Vérifiez la conversation cible avant tout renvoi/ : /Check the target conversation before any resend/);
+        assert.ok(!diagnostic.includes(((payload.content as Row[])[0]!).text as string));
+      }
+    }
   });
 });
 

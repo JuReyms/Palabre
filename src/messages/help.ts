@@ -269,6 +269,10 @@ Limites :
   L'objet et le corps sont entre deux séparateurs --- ; « 🤖 Message pour l'agent » (####) regroupe provenance et consigne en bas.
   Une seule réponse ici, sans appeler un autre agent. Ne pas ajouter un second en-tête PALABRE.
   Avec --open, usage_limit_exceeded du tour corrélé donne usage-limit (code 2), pas cli-failure.
+  Le contexte AGENTS/environnement reconnu avant l'enveloppe est exempté, une fois par sorte,
+  sans liaison UserMessage ni nonce. Une saisie user.text pendant le tour reste no-valid-reply :
+  user-input-during-turn ; vérifier la conversation cible avant tout renvoi.
+  Réponses liées à une question : format non observé localement, encore ambigu ; aucun humanInput.
   La reprise CLI reconnue figure dans le message, retryAfter (JSON) et l'export ;
   une heure sans date/fuseau reste telle quelle. Aucune reprise automatique : décision humaine.
   L'enveloppe complète de coordination compte dans les 64 Kio UTF-8 (contexte PR séparé).
@@ -673,6 +677,10 @@ Limits:
   The subject and body sit between two --- separators; the final « 🤖 Message for the agent » section (####) groups provenance and reply instructions.
   Reply here once, without calling another agent. Do not add a second PALABRE header.
   With --open, usage_limit_exceeded in the correlated turn gives usage-limit (exit 2), not cli-failure.
+  Recognized AGENTS/environment context before the envelope is exempted once per kind,
+  without a UserMessage binding or nonce. User.text input during the turn stays no-valid-reply:
+  user-input-during-turn; check the target conversation before any resend.
+  Linked question replies: format not observed locally, still ambiguous; no humanInput field.
   A recognized CLI retry indication appears in the message, retryAfter (JSON) and export;
   a time without date/time zone stays that way. No automatic resend: the owner decides.
   The full coordination envelope counts toward 64 KiB UTF-8 (separate PR context limit).

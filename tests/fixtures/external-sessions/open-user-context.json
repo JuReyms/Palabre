@@ -1,0 +1,37 @@
+{
+  "agents": {
+    "type": "response_item",
+    "payload": {
+      "type": "message", "id": "fake-context", "role": "user",
+      "content": [{ "type": "input_text", "text": "# AGENTS.md instructions for C:\\fixture\n\n<INSTRUCTIONS>\nConsigne factice.\n</INSTRUCTIONS>" }],
+      "internal_chat_message_metadata_passthrough": { "turn_id": "turn-a", "create_time": 1, "content_item_kinds": ["agents_md.instructions"] }
+    }
+  },
+  "environment": {
+    "type": "response_item",
+    "payload": {
+      "type": "message", "id": "fake-environment", "role": "user",
+      "content": [{ "type": "input_text", "text": "<environment_context>\n<cwd>C:\\fixture</cwd>\n</environment_context>" }],
+      "internal_chat_message_metadata_passthrough": { "turn_id": "turn-a", "create_time": 1, "content_item_kinds": ["environments.environment_context"] }
+    }
+  },
+  "combined": {
+    "type": "response_item",
+    "payload": {
+      "type": "message", "id": "fake-combined", "role": "user",
+      "content": [
+        { "type": "input_text", "text": "# AGENTS.md instructions for C:\\fixture\n\n<INSTRUCTIONS>\nConsigne factice.\n</INSTRUCTIONS>" },
+        { "type": "input_text", "text": "<environment_context>\n<cwd>C:\\fixture</cwd>\n</environment_context>" }
+      ],
+      "internal_chat_message_metadata_passthrough": { "turn_id": "turn-a", "create_time": 1, "content_item_kinds": ["agents_md.instructions", "environments.environment_context"] }
+    }
+  },
+  "free": {
+    "type": "response_item",
+    "payload": {
+      "type": "message", "id": "fake-free", "role": "user",
+      "content": [{ "type": "input_text", "text": "Remarque factice pendant le tour." }],
+      "internal_chat_message_metadata_passthrough": { "turn_id": "turn-a", "create_time": 1, "content_item_kinds": ["user.text"] }
+    }
+  }
+}

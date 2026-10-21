@@ -88,18 +88,48 @@ function contentText(value: unknown): string | undefined {
 }
 
 /**
- * Exception observée avec Codex desktop 0.160.1 : au premier tour après un changement
- * d'environnement ou de permissions, Codex ajoute un message `user` de contexte sans liaison
- * UserMessage. Il n'est toléré que s'il porte la métadonnée interne du tour corrélé et une seule
- * partie textuelle formée d'un seul bloc `<environment_context>`. Une balise seule reste ambiguë.
+ * Contextes observés sous Windows : environnement (desktop 0.160.1), AGENTS seul ou AGENTS puis
+ * environnement en deux parties (rollouts locaux du 21 octobre 2026). Seules les sortes, leur
+ * ordre dans le message et les délimiteurs sont inspectés ; aucun texte privé n'est exporté.
+ * Chaque sorte exige la métadonnée du tour et un bloc complet. Cette exception n'authentifie
+ * pas une origine système et n'ajoute aucun droit ; ses bornes sont vérifiées par l'appelant.
  */
-function isTurnEnvironmentContext(payload: JsonObject, turnId: string): boolean {
+function turnSystemContexts(payload: JsonObject, turnId: string): Array<"environment" | "agents"> | undefined {
   const metadata = object(payload.internal_chat_message_metadata_passthrough);
   const kinds = metadata?.content_item_kinds;
-  if (metadata?.turn_id !== turnId || !Array.isArray(kinds) || kinds.length !== 1 || kinds[0] !== "environments.environment_context") return false;
-  if (!Array.isArray(payload.content) || payload.content.length !== 1) return false;
+  if (metadata?.turn_id !== turnId || !Array.isArray(kinds) || !Array.isArray(payload.content) || payload.content.length !== kinds.length) return undefined;
+  // Formes observées sous Windows : un contexte seul ou AGENTS puis environnement, jamais
+  // une liste arbitraire. Les métadonnées ne sont pas une authentification de leur provenance.
+  const signature = JSON.stringify(kinds);
+  if (![ '["environments.environment_context"]', '["agents_md.instructions"]', '["agents_md.instructions","environments.environment_context"]' ].includes(signature)) return undefined;
+  const result: Array<"environment" | "agents"> = [];
+  for (let i = 0; i < kinds.length; i++) {
+    if ((kinds[i] === "agents_md.instructions" || kinds.length === 2) && object(payload.content[i])?.type !== "input_text") return undefined;
+    const text = contentText([payload.content[i]])?.trim();
+    if (text === undefined) return undefined;
+    if (kinds[i] === "environments.environment_context") {
+      if (!/^<environment_context>(?:(?!<\/?environment_context>)[\s\S])*<\/environment_context>$/.test(text)) return undefined;
+      result.push("environment");
+    } else {
+      if (!/^# AGENTS\.md instructions for [^\r\n]+\r?\n\s*<INSTRUCTIONS>(?:(?!<\/?INSTRUCTIONS>)[\s\S])*<\/INSTRUCTIONS>$/.test(text)) return undefined;
+      result.push("agents");
+    }
+  }
+  return result;
+}
+
+/**
+ * Forme `user.text` observée : diagnostic de saisie concurrente seulement, jamais une preuve
+ * de l'identité du propriétaire ni une réponse liée à une question. Enveloppes, wrappers et
+ * formats inconnus gardent l'ambiguïté générique ; aucun contenu ne devient une autorisation.
+ */
+function isTurnFreeInput(payload: JsonObject, turnId: string, nonce: string): boolean {
+  const metadata = object(payload.internal_chat_message_metadata_passthrough);
+  const kinds = metadata?.content_item_kinds;
+  if (metadata?.turn_id !== turnId || !Array.isArray(kinds) || kinds.length !== 1 || kinds[0] !== "user.text") return false;
+  if (!Array.isArray(payload.content) || payload.content.length !== 1 || object(payload.content[0])?.type !== "input_text") return false;
   const text = contentText(payload.content)?.trim();
-  return text !== undefined && /^<environment_context>(?:(?!<\/?environment_context>)[\s\S])*<\/environment_context>$/.test(text);
+  return Boolean(text && !text.includes(nonce) && !/PR-[a-f0-9]{16}|PALABRE (?:Relay|Mission)|^# AGENTS\.md instructions for |^[<{\[]/.test(text));
 }
 
 /** Valeur courte et sans caractère de contrôle, recopiable dans un diagnostic. */
@@ -152,8 +182,10 @@ export function captureOpenBaseline(reference: OpenReference): OpenBaseline {
  * Succès : enveloppe exacte dans un message utilisateur neuf, item UserMessage du même texte
  * lié à la cible et à un tour commencé après l'offset, un seul utilisateur et une seule réponse
  * final_answer dans ce tour, puis task_complete sans `error` avec un texte identique. Un seul
- * contexte d'environnement par tour, porteur de la métadonnée du tour, sans le nonce et placé
- * avant le relay, échappe à la règle des saisies non liées. Tout conflit reste explicite.
+ * contexte de chaque sorte (AGENTS/environnement), porteur de la métadonnée du tour, sans le
+ * nonce et placé avant le relay, échappe à la règle des saisies non liées. Une saisie libre de
+ * forme user.text reste ambiguë, avec un diagnostic distinct, jamais une autorisation. Une
+ * réponse à une question n'est pas exemptée tant que sa liaison réelle n'a pas été observée.
  * Les anciens event_msg/user_message et agent_message ne suffisent pas à identifier un tour.
  */
 export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): OpenObservation {
@@ -225,7 +257,23 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
   if (starts.length !== 1) return observation("ambiguous", "duplicate-turn-start", turnId);
   if (position(starts[0]!) >= userPosition) return observation("ambiguous", "invalid-event-order", turnId);
   const turnUsers = turn.filter((event) => event.type === "item_completed" && object(event.item)?.type === "UserMessage");
-  if (turnUsers.length !== 1) return observation("ambiguous", "multiple-users-in-turn", turnId);
+  if (turnUsers.length !== 1) {
+    const finalPosition = fresh.findIndex(row => row.type === "event_msg" && object(row.payload)?.turn_id === turnId
+      && object(object(row.payload)?.item)?.type === "AgentMessage" && object(object(row.payload)?.item)?.phase === "final_answer");
+    const extras = turnUsers.filter(event => event !== anchor);
+    const freeOnly = extras.length > 0 && extras.every(event => {
+      const text = contentText(object(event.item)?.content);
+      const raw = fresh.filter(row => row.type === "response_item" && object(row.payload)?.type === "message"
+        && object(row.payload)?.role === "user" && contentText(object(row.payload)?.content) === text);
+      return text !== undefined && raw.length === 1 && event.thread_id === request.threadId
+        && turnUsers.filter(candidate => contentText(object(candidate.item)?.content) === text).length === 1
+        && position(event) > position(anchor)
+        && fresh.indexOf(raw[0]!) > userPosition && position(event) >= fresh.indexOf(raw[0]!)
+        && (finalPosition < 0 || position(event) < finalPosition)
+        && isTurnFreeInput(object(raw[0]!.payload)!, turnId, request.nonce);
+    });
+    return observation("ambiguous", freeOnly ? "user-input-during-turn" : "multiple-users-in-turn", turnId);
+  }
   // Hypothèses défensives testées sur fixtures : ces formats d'échec du rollout restent à
   // observer réellement. Une erreur non attribuable au tour ne prouve pas sa terminaison.
   if (turn.some((event) => ["error", "turn_aborted", "task_cancelled", "task_failed"].includes(String(event.type)))) return observation("failed", "turn-failed-or-cancelled", turnId);
@@ -255,8 +303,8 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
   if (final.thread_id !== request.threadId) return observation("ambiguous", "unidentified-final-thread", turnId);
   // Une seconde saisie brute peut manquer d'événement typé. Ne pas supposer alors qu'elle
   // appartient à un autre tour ; seules des liaisons uniques et explicites le démontrent.
-  // Une seule exemption de contexte par tour : un doublon, même identique, reste ambigu.
-  let exemptedContext = false;
+  // Une exemption par sorte de contexte, y compris pour le message regroupant les deux sortes.
+  const exemptedContexts = new Set<"environment" | "agents">();
   for (const row of fresh.slice(position(starts[0]!) + 1, completionPosition)) {
     if (row === users[0]) continue;
     const payload = object(row.payload);
@@ -266,18 +314,26 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
       const item = object(event.item);
       return text !== undefined && event.type === "item_completed" && item?.type === "UserMessage" && contentText(item.content) === text;
     });
-    if (bindings.length === 0 && fresh.indexOf(row) < userPosition && isTurnEnvironmentContext(payload, turnId)) {
+    const contexts = turnSystemContexts(payload, turnId);
+    const contextPartBound = contexts && (payload.content as unknown[]).some(part => events.some(event =>
+      event.type === "item_completed" && object(event.item)?.type === "UserMessage"
+      && contentText(object(event.item)?.content) === contentText([part])));
+    if (bindings.length === 0 && !contextPartBound && fresh.indexOf(row) < userPosition && contexts) {
       // Un contexte qui cite le nonce pourrait porter la demande : il n'est jamais exempté.
-      if (text!.includes(request.nonce)) return observation("ambiguous", "nonce-in-environment-context", turnId);
-      if (exemptedContext) return observation("ambiguous", "multiple-environment-contexts", turnId);
-      exemptedContext = true;
+      if (text!.includes(request.nonce)) return observation("ambiguous", contexts.includes("agents") ? "nonce-in-agents-context" : "nonce-in-environment-context", turnId);
+      for (const kind of contexts) {
+        if (exemptedContexts.has(kind)) return observation("ambiguous", kind === "agents" ? "multiple-agents-contexts" : "multiple-environment-contexts", turnId);
+        exemptedContexts.add(kind);
+      }
       continue;
     }
     const binding = bindings[0];
     if (bindings.length !== 1 || !binding || binding.thread_id !== request.threadId
       || typeof binding.turn_id !== "string" || binding.turn_id === "" || binding.turn_id === turnId
       || position(binding) < fresh.indexOf(row) || position(binding) > completionPosition) {
-      return observation("ambiguous", "unbound-concurrent-user", turnId);
+      const freeInput = bindings.length === 0 && fresh.indexOf(row) > position(anchor) && fresh.indexOf(row) < position(final)
+        && isTurnFreeInput(payload, turnId, request.nonce);
+      return observation("ambiguous", freeInput ? "user-input-during-turn" : "unbound-concurrent-user", turnId);
     }
   }
   if (completion.status !== undefined && completion.status !== "completed") return observation("failed", "unsuccessful-completion", turnId);

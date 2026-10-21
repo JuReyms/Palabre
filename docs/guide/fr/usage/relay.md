@@ -153,6 +153,14 @@ Avec `--open`, PALABRE dépose le message dans une conversation Codex **ouverte*
 
 Versions vérifiées : Windows avec Codex CLI 0.151.0 (TUI) et Codex desktop 26.930.7945.0 (app-server 0.160.1) ; macOS 26.6.1 sur Apple Silicon avec Codex CLI 0.163.0 et Codex Desktop intégré à ChatGPT.app. Le format de l'historique de Codex n'est pas un schéma public : une autre version n'est pas bloquée, mais la corrélation de la réponse n'y est pas garantie.
 
+### Contexte réinjecté et saisies pendant le tour (#146, correction partielle)
+
+Un contexte AGENTS.md ou d'environnement reconnu avant l'enveloppe ne fait plus perdre la réponse : métadonnée du même tour, blocs complets, aucune liaison `UserMessage`, aucun nonce et au plus un bloc de chaque sorte. Les formes séparées et AGENTS puis environnement dans un même message ont été observées sous Windows ; ce format de rollout reste expérimental.
+
+Une saisie libre reconnue par la forme `user.text`, après l'enveloppe et avant la réponse finale, reste `no-valid-reply` (2), avec `correlation.reason: "user-input-during-turn"`. Vérifiez la conversation cible avant tout renvoi : le travail a pu être fait. Ce diagnostic ne prouve ni identité, ni autorisation, ni clic humain. Les enveloppes d'agent, doublons et formats inconnus restent ambigus.
+
+Le format réel d'une réponse liée à une question n'a pas été retrouvé dans les historiques locaux disponibles : ce cas reste ambigu et aucun champ `humanInput` n'est émis. La consigne aux agents reste de ne poser aucune question pendant un tour reçu par Relay ; rapporter questions et blocages dans la réponse finale. #146 reste partiellement ouverte ; cette correction ne valide pas le choix Desktop par défaut de #190.
+
 ## Conversation fermée par défaut
 
 Sans `--open`, la conversation cible doit être **fermée** : aucun TUI, desktop, IDE ni exécution en cours ne doit y être attaché. Sinon, le relay est refusé avant tout envoi (`target-busy`). Il est aussi refusé quand PALABRE ne peut pas vérifier l'état de la conversation (`target-state-unknown`).
