@@ -19,6 +19,47 @@ const flags = [...flagTable.matchAll(/^\s*(?:"([a-z-]+)"|([a-z]+)):\s*\{ arity:/
 
 for (const language of ["fr", "en"] as const) {
   const help = helpMessages[language];
+  test(`listes d'options ${language} : descriptions alignées dans chaque aide`, () => {
+    let checked = 0;
+    for (const [command, text] of [["principale", help.render("")], ...commands.map(c => [c, help.renderCommand(c)!])] as [string, string][]) {
+      let column: number | undefined;
+      let inList = false;
+      const lines = text.split(/\r?\n/);
+      for (let index = 0; index < lines.length; index++) {
+        const line = lines[index]!;
+        if (!line.trim() || /^\S.*:$/.test(line)) {
+          column = undefined;
+          inList = /^(?:Options|Flags|Options de session|Session options|Agents et mode|Agents and mode|Contexte et modèles|Context and models|Synthèse et préparation|Summary and preparation|Affichage et configuration|Display and configuration|Cadre de start|start scope).*:$/.test(line);
+          continue;
+        }
+        if (line.startsWith("  palabre skill ")) inList = true;
+        if (!inList) continue;
+        if (!/^  (?:-[a-z], )?--/.test(line)) continue; // Explications intercalées.
+        const option = line.match(/^  ((?:-[a-z], )?--[a-z-]+(?:(?:, | \/ )--[a-z-]+)?(?: (?:<[^>]+>(?:\[:<[^>]+>\]|:<[^>]+>)?|review))?)(?= {2,}|$)(?: {2,}(\S.*))?$/);
+        assert.ok(option, `${command} : séparer option et description par au moins deux espaces : ${line}`);
+        // Un libellé long peut placer sa description à la ligne suivante.
+        const descriptionLine = option[2] ? line : lines[++index]!;
+        assert.ok(descriptionLine?.trim(), `${command} : description manquante : ${line}`);
+        const actual = option[2] ? line.length - option[2].length : descriptionLine.search(/\S/);
+        column ??= actual;
+        assert.equal(actual, column, `${command} : colonne de description différente : ${line}`);
+        checked++;
+      }
+    }
+    assert.ok(checked > 120, `inventaire des listes incomplet : ${checked}`);
+  });
+
+  if (language === "fr") test("aide française : titres et paramètres homogènes", () => {
+    const text = [help.render(""), ...commands.map(c => help.renderCommand(c))].join("\n");
+    assert.doesNotMatch(text, /^Usage\b|^Flags:|^Démarrage rapide:/m);
+    assert.match(text, /Démarrage rapide :/);
+    assert.doesNotMatch(text, /<(?:names\.\.\.|role|model|path|n|m|kind|name|number|session-id)>/);
+    for (const command of commands) {
+      const commandText = help.renderCommand(command)!;
+      assert.doesNotMatch(commandText, /^[A-Za-zÀ-ÿ][^\n]*\S:$/m, `espace avant les deux-points : ${command}`);
+    }
+  });
+
   test(`aide principale ${language} : quatre modes et options essentielles, sans encyclopédie`, () => {
     const text = help.render("");
     for (const mode of [language === "fr" ? "Débat" : "Debate", "Relay", "Ask", "Chat"]) assert.ok(text.includes(mode));
