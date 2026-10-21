@@ -8,6 +8,23 @@ export interface HelpMessages {
 }
 
 const frCommandHelp: Record<string, string> = {
+  skill: `
+Garde le skill installé aligné sur le paquet de la CLI exécutée, sans réseau ni config.
+  palabre skill                         affiche l'état et le plan, sans écrire
+  palabre skill --sync                  rafraîchit les copies détectées après confirmation
+  palabre skill --install codex         installe dans ~/.agents/skills/palabre
+  palabre skill --install claude        installe dans ~/.claude/skills/palabre
+  --check, --dry-run                    lecture seule, même avec --sync ou --install
+  --yes                                accord explicite sans question, plan toujours affiché
+Les fichiers personnalisés remplacés sont sauvegardés hors des dossiers de skills.
+Les jonctions et ajouts privés sont conservés. Les liens internes sont refusés.
+Les copies illisibles sont signalées et ignorées, sans bloquer update ni les autres copies.
+Sans copie différente, --sync et --install ne demandent aucun accord et n'écrivent rien.
+Si la CLI est mise à jour mais pas le skill, le message le précise : palabre skill --sync.
+La source est skills/palabre du paquet courant ; aucun suivi de GitHub main.
+L'agent ne lance pas --sync, --install ou update sans accord humain sur ces instructions.
+Après rafraîchissement, rechargez le skill ou reprenez la conversation de l'agent.
+`,
   mission: `
 Un chef de mission appelle son équipier en arrière-plan ; vous prenez les décisions.
 Mission est gelée : conservée, correctifs de sécurité seulement.
@@ -182,6 +199,11 @@ Flags:
 `,
   update: `
 Affiche ou execute les etapes de mise a jour.
+Le même plan et la même confirmation couvrent le skill des copies détectées.
+Après mise à jour, la source est le paquet nouvellement installé, avec sauvegardes
+sous ~/.palabre/skill-backups, jonctions et ajouts privés conservés.
+Si seule la copie du skill diffère, son rafraîchissement reste proposé.
+Pour le skill seul sans réseau : palabre skill --sync.
 
 Usage:
   palabre update [flags]
@@ -400,6 +422,23 @@ Flags:
 };
 
 const enCommandHelp: Record<string, string> = {
+  skill: `
+Keeps installed skills aligned with the running CLI package, without network or config.
+  palabre skill                         shows status and plan without writing
+  palabre skill --sync                  refreshes detected copies after confirmation
+  palabre skill --install codex         installs into ~/.agents/skills/palabre
+  palabre skill --install claude        installs into ~/.claude/skills/palabre
+  --check, --dry-run                    read-only, including with --sync or --install
+  --yes                                explicit consent without a prompt; plan still displayed
+Replaced customized files are backed up outside skill directories.
+Junctions and private additions are preserved. Internal links are refused.
+Unreadable copies are reported and skipped without blocking update or other copies.
+Without a different copy, --sync and --install do not ask for consent or write anything.
+If the CLI updates but the skill fails, the message says so: palabre skill --sync.
+The source is the running package's skills/palabre, never GitHub main.
+Agents must not run --sync, --install or update without human consent for these instructions.
+Reload the skill or resume the agent conversation after refreshing it.
+`,
   mission: `
 A mission lead calls a teammate in the background; you make the decisions.
 Mission is frozen: retained, security fixes only.
@@ -562,6 +601,11 @@ Flags:
 `,
   update: `
 Shows or applies update steps.
+The same plan and confirmation cover the skill in detected copies.
+After updating, the source is the newly installed package, with backups under
+~/.palabre/skill-backups and preserved junctions and private additions.
+If only a skill copy differs, its refresh is still offered.
+For skills only, without network: palabre skill --sync.
 
 Usage:
   palabre update [flags]
@@ -815,6 +859,7 @@ Commandes:
   config     Modifier les parametres par defaut
   doctor     Verifier la config et les outils locaux
   update     Afficher ou appliquer les etapes de mise a jour
+  skill      Installer ou rafraîchir le skill livré par cette CLI
   help       Afficher l'aide
   version    Afficher la version
 
@@ -880,6 +925,7 @@ Commands:
   config     Edit default settings
   doctor     Check config and local tools
   update     Show or apply update steps
+  skill      Install or refresh the skill bundled with this CLI
   help       Show help
   version    Show version
 

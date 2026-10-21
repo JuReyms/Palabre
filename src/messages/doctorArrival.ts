@@ -12,6 +12,8 @@ export interface DoctorArrivalMessages {
   retiredAgent(name: string): string;
   skillMissing: string;
   skillPresent(paths: string): string;
+  skillCurrent(directory: string): string;
+  skillDifferent(directory: string, unreadable: boolean): string;
   duplicateInstallations(command: string, paths: string, inspect: string): string;
 }
 
@@ -25,8 +27,10 @@ export const doctorArrivalMessages: Record<Language, DoctorArrivalMessages> = {
     authUnknown: (name, command) => `${name} : connexion non vérifiée (sonde indisponible, délai ou format non reconnu). Le propriétaire vérifie lui-même : ${command}. Aucun modèle appelé ; aide : https://palab.re/fr/get-started/change-machine.`,
     authSkipped: "Connexions non sondées : approuver d'abord la configuration ci-dessus. La présence d'une CLI ne prouve pas sa connexion.",
     retiredAgent: name => `${name} : agent archivé encore déclaré, ignoré par PALABRE. Action : palabre agents pour voir les agents actifs ; le propriétaire peut ensuite retirer cette entrée selon https://palab.re/fr/configuration/advanced-json.`,
-    skillMissing: "Skill PALABRE non trouvé dans les emplacements connus du projet et du dossier personnel. S'il n'est pas installé dans l'application, le propriétaire choisit les agents avec : npx skills add JuReyms/Palabre --skill palabre --global. Ne pas ajouter -y par défaut.",
-    skillPresent: paths => `Skill PALABRE repéré (${paths}). Chargement et fraîcheur non vérifiés. Pour le mettre à jour, le propriétaire lance : npx skills add JuReyms/Palabre --skill palabre --global.`,
+    skillMissing: "Skill PALABRE non trouvé dans les emplacements connus du projet et du dossier personnel. Le propriétaire peut installer celui de cette CLI : palabre skill --install codex ou palabre skill --install claude. Le plan demande confirmation.",
+    skillPresent: paths => `Skill PALABRE repéré (${paths}). Le chargement dans l'agent reste à vérifier.`,
+    skillCurrent: directory => `Skill identique aux fichiers livrés par cette CLI, fins de ligne normalisées (${directory}).`,
+    skillDifferent: (directory, unreadable) => `Skill ${unreadable ? "non vérifié (copie ou source illisible)" : "différent de cette CLI, ancien ou personnalisé"} (${directory}). Le propriétaire examine le plan : palabre skill --sync. Sauvegarde avant remplacement ; aucune mise à jour silencieuse.`,
     duplicateInstallations: (command, paths, inspect) => `${command} : plusieurs emplacements dans PATH (${paths}), premier affiché en tête ; un chemin absolu configuré garde priorité. Action : ${inspect}. Ne rien désinstaller automatiquement ; versions et diagnostic complet : https://github.com/JuReyms/Palabre/issues/153.`
   },
   en: {
@@ -37,8 +41,10 @@ export const doctorArrivalMessages: Record<Language, DoctorArrivalMessages> = {
     authUnknown: (name, command) => `${name}: sign-in not verified (probe unavailable, timeout or unrecognized format). The owner checks: ${command}. No model called; help: https://palab.re/en/get-started/change-machine.`,
     authSkipped: "Sign-in not probed: approve the configuration above first. A detected CLI does not prove sign-in.",
     retiredAgent: name => `${name}: archived agent still declared, ignored by PALABRE. Action: palabre agents to see active agents; the owner can then remove this entry following https://palab.re/en/configuration/advanced-json.`,
-    skillMissing: "PALABRE skill not found in known project and personal directories. If it is not installed through the application, the owner selects agents using: npx skills add JuReyms/Palabre --skill palabre --global. Do not add -y by default.",
-    skillPresent: paths => `PALABRE skill found (${paths}). Loading and freshness not verified. To update it, the owner runs: npx skills add JuReyms/Palabre --skill palabre --global.`,
+    skillMissing: "PALABRE skill not found in known project and personal directories. The owner can install this CLI's skill: palabre skill --install codex or palabre skill --install claude. The plan asks for confirmation.",
+    skillPresent: paths => `PALABRE skill found (${paths}). Loading in the agent remains unverified.`,
+    skillCurrent: directory => `Skill matches this CLI's bundled files, with normalized line endings (${directory}).`,
+    skillDifferent: (directory, unreadable) => `Skill ${unreadable ? "not verified (unreadable copy or source)" : "differs from this CLI, old or customized"} (${directory}). The owner inspects the plan: palabre skill --sync. Backup before replacement; no silent update.`,
     duplicateInstallations: (command, paths, inspect) => `${command}: several PATH locations (${paths}), first listed first; an absolute configured path still takes priority. Action: ${inspect}. Do not uninstall anything automatically; versions and full diagnostics: https://github.com/JuReyms/Palabre/issues/153.`
   }
 };

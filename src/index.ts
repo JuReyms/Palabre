@@ -26,7 +26,7 @@ import { createTuiRenderer, promptTuiHomeTopic, promptTuiNavigation, promptTuiUp
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { buildDryRunPreview, printDryRun } from "./dryRun.js";
-import { applyUpdate, getUpdateInfo, hasAvailableUpdate } from "./update.js";
+import { applyUpdate, getUpdateInfo, hasAvailableUpdate, type UpdateInfo } from "./update.js";
 import { findFirstPositionalIndex, getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { clearTuiRunOverrides } from "./tuiState.js";
 import { formatOllamaUrlError, OllamaUrlError } from "./ollamaUrl.js";
@@ -42,6 +42,7 @@ import { runPresetsCommand } from "./commands/presets.js";
 import { runRelayCommand } from "./commands/relay.js";
 import { runMissionCommand } from "./commands/mission.js";
 import { runUpdateCommand } from "./commands/update.js";
+import { runSkillCommand } from "./commands/skill.js";
 import { runPruneTrustCommand } from "./commands/pruneTrust.js";
 import { optionalString } from "./commands/shared.js";
 import { runTuiAgentsWizard, runTuiConfigLoop, runTuiRolesWizard, syncInteractiveDetectedAgents } from "./tuiController.js";
@@ -115,6 +116,11 @@ async function main(): Promise<void> {
   // Maintenance does not consume the project config or grant trust to it.
   if (parsed.command === "config" && parsed.flags["prune-trust"]) {
     await runPruneTrustCommand(parsed.flags, parsed.positionals);
+    return;
+  }
+
+  if (parsed.command === "skill") {
+    await runSkillCommand(parsed.flags, parsed.positionals);
     return;
   }
 
@@ -209,6 +215,7 @@ async function main(): Promise<void> {
 
   const handleTuiHomeInput = async (tuiInput: TuiHomeInput): Promise<"continue" | "run" | "retry" | "quit"> => {
     let input = tuiInput;
+    let confirmedUpdate: UpdateInfo | undefined;
 
     // Les vues informatives (/help, /history) proposent uniquement la navigation
     // minimale. `/update` conserve le même retour, avec une action explicite dédiée.
@@ -236,13 +243,15 @@ async function main(): Promise<void> {
 
       if (input.kind === "update") {
         const info = await getUpdateInfo(tuiVersion);
+        confirmedUpdate = info;
         renderTuiUpdate(info, messages);
         input = await promptTuiUpdate(info, messages);
         continue;
       }
 
       if (input.kind === "apply-update") {
-        await applyUpdate(await getUpdateInfo(tuiVersion), messages);
+        if (!confirmedUpdate) throw Error(messages.update.automaticUnavailable);
+        await applyUpdate(confirmedUpdate, messages);
         tuiNotice = messages.update.updateComplete;
         return "continue";
       }

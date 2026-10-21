@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { resolveExternalExecutable } from "./externalSessions/resolve.js";
 import { runExternalProcess } from "./externalSessions/process.js";
+import { inspectSkillCopies, type SkillCopy } from "./skillSync.js";
 
 /** État déclaré par la CLI, sans preuve qu'un jeton restera valide pour un futur appel. */
 export type DoctorAuthState = "connected" | "disconnected" | "unknown";
@@ -18,6 +19,8 @@ export interface DoctorArrivalOptions {
   canonicalDirectory?: (directory: string) => string;
   resolve?: typeof resolveExternalExecutable;
   run?: typeof runExternalProcess;
+  /** Skill embarqué de substitution pour les tests, jamais une option CLI. */
+  skillSource?: string;
 }
 
 /** Chemins uniques par installation : les wrappers voisins ne comptent qu'une fois. */
@@ -32,6 +35,7 @@ export interface DoctorInstallation {
  */
 export interface DoctorLocalArrival {
   skills: string[];
+  skillCopies: SkillCopy[];
   duplicates: DoctorInstallation[];
 }
 
@@ -78,6 +82,7 @@ export function inspectDoctorArrival(options: DoctorArrivalOptions = {}): Doctor
   const skills = [...new Set([home, cwd].flatMap(root => [".agents", ".claude", ".codex"].map(agent => paths.join(root, agent, "skills", "palabre", "SKILL.md"))))].filter(exists);
   return {
     skills,
+    skillCopies: inspectSkillCopies(skills.map(file => paths.dirname(file)), { source: options.skillSource }),
     duplicates: ["node", "npm", "pnpm", "claude", "codex"].map(command => ({ command, paths: doctorInstallations(command, options) })).filter(installation => installation.paths.length > 1)
   };
 }

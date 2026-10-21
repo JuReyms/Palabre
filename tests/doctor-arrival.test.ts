@@ -46,7 +46,7 @@ test("les wrappers npm voisins et les alias de dossier ne sont pas comptés comm
   assert.deepEqual(doctorInstallations("node", { ...isolated, env: { PATH: "/bin:/usr/bin" }, canonicalDirectory: () => "/usr/bin", fileExists: () => true }), ["/bin/node"]);
 });
 
-test("le skill est cherché dans les trois emplacements de chaque portée, sans certificat de fraîcheur", () => {
+test("le skill est cherché dans les trois emplacements de chaque portée, sans certificat de chargement", () => {
   const found = inspectDoctorArrival({ ...isolated, fileExists: file => file === "/fixture-project/.claude/skills/palabre/SKILL.md" || file === "/fixture-home/.agents/skills/palabre/SKILL.md" });
   assert.equal(found.skills.length, 2);
   assert.ok(found.skills.includes("/fixture-project/.claude/skills/palabre/SKILL.md"));
@@ -152,7 +152,7 @@ test("profil fictif complet : ordre d'arrivée, CLI déconnectée, gemini, skill
     assert.match(result.output, /auth login/);
     assert.match(result.output, /gemini.*archiv/);
     assert.doesNotMatch(result.output, /gemini.*custom/);
-    assert.match(result.output, /npx skills add/);
+    assert.match(result.output, /palabre skill --install/);
     assert.match(result.output, /Get-Command pnpm -All/);
     assert.doesNotMatch(result.output, /secret|NEVER_CALL_MODEL/);
     assert.equal(await readFile(CONFIG_TRUST_PATH, "utf8"), before);
