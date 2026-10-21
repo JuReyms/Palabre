@@ -3,6 +3,8 @@ import type { Language } from "../types.js";
 
 const texts = {
   fr: {
+    missionBackground: "Mission reste en arrière-plan. Retirez --open ; ce parcours exige une conversation fermée.",
+    busyExplicit: "--background impose l'arrière-plan pour cet appel. Fermez cette conversation dans Codex, ou relancez sans --background pour appliquer la préférence du propriétaire.",
     conflict: "--open et --background sont incompatibles. Choisissez une seule option pour cet appel, ou omettez-les pour laisser PALABRE appliquer la préférence du propriétaire.",
     usage: "Commande : palabre config --relay-view <auto|background> [--config <fichier>] [--language fr|en]. Aucun --yes ni --trust-config ; utilisez cette commande seule.",
     terminal: "Le propriétaire doit lancer palabre config --relay-view <auto|background> dans son terminal visible (entrée et sortie TTY), puis confirmer au clavier. Un agent ne confirme jamais à sa place.",
@@ -18,6 +20,8 @@ const texts = {
     source: (source: string) => `Choix du mode : ${source === "explicit" ? "option explicite pour cet appel" : source === "setting" ? "préférence arrière-plan" : "résolution automatique (état de la conversation ou parcours imposé)"}.`
   },
   en: {
+    missionBackground: "Mission stays in background. Remove --open; this path requires a closed conversation.",
+    busyExplicit: "--background forces background for this call. Close this conversation in Codex, or retry without --background to apply the owner's preference.",
     conflict: "--open and --background are incompatible. Choose one option for this call, or omit both to let PALABRE apply the owner's preference.",
     usage: "Command: palabre config --relay-view <auto|background> [--config <file>] [--language fr|en]. No --yes or --trust-config; use this command on its own.",
     terminal: "The owner must run palabre config --relay-view <auto|background> in their visible terminal (TTY input and output), then confirm using the keyboard. An agent must never confirm for them.",

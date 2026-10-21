@@ -261,7 +261,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const { flags, positionals } = parseRelayTokens(rawArgs.slice(1), messages);
   context.modeSource = flags.open || flags.background ? "explicit" : undefined;
   if (flags.open && flags.background) throw invalid("invalid-arguments", messages.relayView.conflict);
-  if (context.header && context.open) throw invalid("invalid-arguments");
+  if (context.header && context.open) throw invalid("invalid-arguments", messages.relayView.missionBackground);
   context.follow = flags.follow === true;
   // Le suivi ne transporte rien : toute option d'envoi le rendrait trompeur.
   if (context.follow && (!context.open || positionals.length > 0 || flags["message-file"] !== undefined || flags.subject !== undefined
@@ -448,9 +448,12 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     context.targetLocated = true;
     const decision = assessTarget(adapter.probe(located.target));
     if (!decision.allowed) {
-      if (provider === "codex" && decision.status === "target-busy") {
+      if (provider === "codex" && decision.status === "target-busy" && context.modeSource === "setting") {
         context.remedy = relayViewCommand(configPath);
         throw new RelayRefusal({ status: decision.status }, relayViewText(context.language ?? "fr").busy(context.remedy));
+      }
+      if (provider === "codex" && decision.status === "target-busy" && flags.background && !excluded) {
+        throw new RelayRefusal({ status: decision.status }, context.messages.relayView.busyExplicit);
       }
       throw new RelayRefusal({ status: decision.status });
     }

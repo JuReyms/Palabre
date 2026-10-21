@@ -30,7 +30,7 @@ Pour une conversation Codex ouverte, `auto` suit le verrou ; pour l'exiger expli
 palabre relay --open --from claude:<session-expéditeur> --to codex:<session-cible> --subject "Revue du plan" "Relis le plan dans docs/plan.md et liste les risques."
 ```
 
-Avec `--open`, la cible conserve ses propres outils et permissions. Le message peut être traité dans une conversation chargée mais non affichée ; aucun affichage immédiat n'est garanti. Aucun renvoi automatique.
+En mode ouvert (`--open` ou `auto`), la cible conserve ses propres outils et permissions. Le message peut être traité dans une conversation chargée mais non affichée ; aucun affichage immédiat n'est garanti. Aucun renvoi automatique.
 
 Pour une simple relecture ou correction de code depuis Claude Code vers Codex, le [plugin officiel OpenAI `openai/codex-plugin-cc`](https://github.com/openai/codex-plugin-cc) peut suffire. Relay sert à choisir une conversation précise, à échanger dans les deux sens et à joindre Codex déjà ouvert.
 
@@ -84,11 +84,11 @@ palabre config --relay-view auto
 
 Cette commande affiche le fichier résolu et le changement, exige une configuration déjà approuvée, puis une confirmation clavier avec entrée et sortie TTY. Aucun `--yes`, `--trust-config` ou combinaison avec une autre modification ; un refus n'écrit rien. Elle conserve les autres champs et refuse une modification concurrente. Un agent ne change jamais cette préférence et ne confirme jamais à votre place.
 
-Pour **un seul appel**, `--background` force l'arrière-plan et `--open` force le mode ouvert, sans modifier le réglage ; les deux ensemble sont refusés. Avec `background`, une cible ouverte reste refusée (`target-busy`) : fermez-la dans Codex, ou choisissez vous-même le réglage avec la commande affichée. Avec `--open`, une cible fermée reste refusée (`target-not-open`).
+Pour **un seul appel**, `--background` force l'arrière-plan et `--open` force le mode ouvert, sans modifier le réglage ; les deux ensemble sont refusés. Avec la préférence `background`, une cible ouverte reste refusée (`target-busy`) : fermez-la dans Codex, ou choisissez vous-même le réglage avec la commande affichée. Si l'option ponctuelle `--background` impose ce refus, fermez la conversation ou relancez sans cette option ; aucun changement de réglage n'est proposé. Pour un parcours exclu ou une course en `auto`, le message d'origine reste inchangé, sans commande de réglage. En mode ouvert (`--open` ou `auto`), une cible fermée reste refusée (`target-not-open`).
 
 `--new`, Mission, `--task review`, `--write` et Claude Code restent en arrière-plan ; leurs incompatibilités avec `--open` restent des refus. `palabre agents --json` expose le réglage effectif dans `defaults.relayView`. Le résultat Relay et l'export indiquent aussi `modeSource` : `explicit` pour une option ponctuelle, `auto` pour l'état du verrou ou un parcours imposé, `setting` pour la préférence `background`.
 
-L'agent ne choisit plus le mode : il reprend la ligne « Mode » affichée par PALABRE. Si une confirmation dans l'app lance la suite, préparez `palabre relay --open --follow --to codex:<uuid> --json` **avant** la validation, pour recueillir le tour suivant sans renvoyer le message. Un tour déjà terminé n'est pas rendu ; aucune autorisation n'est déduite de cette suite.
+Pour un avis ou une relecture qui doit rester sans modification, passez `--background` : ce choix ponctuel réduit les droits sans changer le réglage. Pour le reste, l'agent ne choisit pas le mode par habitude : il reprend la ligne « Mode » affichée par PALABRE. Si une confirmation dans l'app lance la suite, préparez `palabre relay --open --follow --to codex:<uuid> --json` **avant** la validation, pour recueillir le tour suivant sans renvoyer le message. Un tour déjà terminé n'est pas rendu ; aucune autorisation n'est déduite de cette suite.
 
 Chaque échange annonce où il se passe, sur une ligne « Mode » :
 
@@ -143,7 +143,7 @@ Avec l'option Mission, l'en-tête devient `### 📧 PALABRE Mission <id> · éta
 
 La partie « 🤖 Message pour l'agent » est commune à Relay et `--open`, avec une seule consigne de réponse. Seule la phrase sur les permissions diffère : la reprise classique demande la lecture seule ; `--open` conserve les outils, permissions et règles de la cible sans garantie de lecture seule. Elle ne donne aucun droit supplémentaire.
 
-Message, en-tête, objet et pied de coordination comptent ensemble dans les **64 Kio UTF-8**. Le contexte GitHub de review garde sa borne distincte de 256 Kio, plus les consignes fixes de revue. Avec `--open`, la borne de **8 192 unités UTF-16** porte toujours sur toute l'enveloppe (📧 occupe deux unités), et la ligne Windows reste bornée. Aucun affichage immédiat dans Desktop n'est promis.
+Message, en-tête, objet et pied de coordination comptent ensemble dans les **64 Kio UTF-8**. Le contexte GitHub de review garde sa borne distincte de 256 Kio, plus les consignes fixes de revue. En mode ouvert (`--open` ou `auto`), la borne de **8 192 unités UTF-16** porte toujours sur toute l'enveloppe (📧 occupe deux unités), et la ligne Windows reste bornée. Aucun affichage immédiat dans Desktop n'est promis.
 
 ## L'équipier demande une autorisation
 
@@ -174,7 +174,7 @@ Copiez l'identifiant des informations de la conversation dans l'hôte, ou du nom
 palabre relay --open --from claude:<session-expéditeur> --to codex:<session-cible> "Peux-tu relire ce plan ?"
 ```
 
-Avec `--open`, PALABRE dépose le message dans une conversation Codex **ouverte**, dans le TUI ou dans Codex desktop, avec la commande `codex queue`. Il attend ensuite la réponse de cette conversation dans son historique, puis vous la rend. C'est un **pilote Codex** disponible sous Windows, macOS et Linux.
+En mode ouvert (`--open` ou `auto`), PALABRE dépose le message dans une conversation Codex **ouverte**, dans le TUI ou dans Codex desktop, avec la commande `codex queue`. Il attend ensuite la réponse de cette conversation dans son historique, puis vous la rend. C'est un **pilote Codex** disponible sous Windows, macOS et Linux.
 
 - **La conversation doit être ouverte.** Son verrou d'écriture doit être tenu, sinon rien n'est déposé (`target-not-open`). Le verrou est contrôlé de nouveau juste avant le dépôt.
 - **Sonde POSIX.** Sous macOS et Linux, PALABRE lance `python3` sans shell pour tenter `flock(LOCK_EX | LOCK_NB)`, sans lire le contenu du verrou. Verrou acquis puis relâché : cible fermée ; `EWOULDBLOCK`/`EAGAIN` : cible ouverte. Python absent, timeout ou erreur ambiguë : `target-state-unknown`, sans dépôt.
@@ -397,7 +397,7 @@ PALABRE ne renvoie jamais un message automatiquement. Le statut de délivrance i
 | 0 | `replied` |
 | 1 | `internal-error` |
 | 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large`, `read-unavailable` |
-| 3 | `target-busy`, `target-state-unknown`, `neutralization-failed`, `target-not-open` (avec `--open`) |
+| 3 | `target-busy`, `target-state-unknown`, `neutralization-failed`, `target-not-open` (en mode ouvert : `--open` ou `auto`) |
 | 4 | `timeout` |
 | 5 | `identity-mismatch` (la réponse ne vient pas de la cible et n'est pas rendue) |
 | 6 | `session-not-found` |
@@ -408,9 +408,9 @@ PALABRE ne renvoie jamais un message automatiquement. Le statut de délivrance i
 
 ## Limite d’usage atteinte
 
-En mode arrière-plan, les adapters Codex et Claude classent aussi un diagnostic de limite renvoyé par la CLI en `usage-limit` (code 2). Le champ `retryAfter` de Relay est actuellement propre au parcours `--open`, décrit ci-dessous ; sans ce champ, aucune heure ne doit être inventée.
+En mode arrière-plan, les adapters Codex et Claude classent aussi un diagnostic de limite renvoyé par la CLI en `usage-limit` (code 2). Le champ `retryAfter` de Relay est disponible en mode ouvert (`--open` ou `auto`) et en suivi, décrit ci-dessous ; sans ce champ, aucune heure ne doit être inventée.
 
-Avec `--open`, si le tour corrélé se termine par l’erreur structurée Codex `task_complete.error.codex_error_info: "usage_limit_exceeded"`, PALABRE rend **`usage-limit` (code 2)**. Il ne classe pas une limite depuis une phrase du modèle, un quota restant ou une erreur d’un autre tour. Cette forme a été observée avec Codex 0.163.0 ; les autres formes ne sont pas supposées équivalentes.
+En mode ouvert (`--open` ou `auto`), si le tour corrélé se termine par l’erreur structurée Codex `task_complete.error.codex_error_info: "usage_limit_exceeded"`, PALABRE rend **`usage-limit` (code 2)**. Il ne classe pas une limite depuis une phrase du modèle, un quota restant ou une erreur d’un autre tour. Cette forme a été observée avec Codex 0.163.0 ; les autres formes ne sont pas supposées équivalentes.
 
 Si le message de cette erreur CLI contient une reprise reconnue, le JSON v1 ajoute le champ optionnel `retryAfter` et l’export `.relay.md` le reprend. Par exemple, `try again at 3:16 PM` donne `"retryAfter": "15:16"` et « reprise vers 15 h 16 ». Une heure sans date ni fuseau reste une heure sans date ni fuseau ; aucune échéance exacte n’est inventée. Une durée reconnue est exprimée en secondes (nombre), un horodatage ISO est normalisé en UTC (texte). Sans indication exploitable, le champ est absent et le diagnostic le dit.
 
@@ -455,7 +455,7 @@ Le nonce en bas reste un marqueur dans le message utilisateur ; la corrélation 
 }
 ```
 
-`reply` est présent quand une réponse valide a été reçue, y compris si une lecture bloquée ou un échec de publication rend ensuite l'issue non réussie. Pour toute issue autre que `replied`, `error` contient `kind`, `message` et, pour `invalid-request`, `reason`. `inActiveBranch` est un diagnostic. Avec `--open`, il vaut actuellement `"unknown"` même quand `correlation.reason` vaut `"correlated-final"` : la réponse est bien corrélée au tour déposé, mais PALABRE ne prétend pas reconstruire la branche active d'un historique toujours écrit par Codex Desktop. Fiez-vous à `delivery.status` pour décider d'un renvoi.
+`reply` est présent quand une réponse valide a été reçue, y compris si une lecture bloquée ou un échec de publication rend ensuite l'issue non réussie. Pour toute issue autre que `replied`, `error` contient `kind`, `message` et, pour `invalid-request`, `reason`. `inActiveBranch` est un diagnostic. En mode ouvert (`--open` ou `auto`), il vaut actuellement `"unknown"` même quand `correlation.reason` vaut `"correlated-final"` : la réponse est bien corrélée au tour déposé, mais PALABRE ne prétend pas reconstruire la branche active d'un historique toujours écrit par Codex Desktop. Fiez-vous à `delivery.status` pour décider d'un renvoi.
 
 En mode `open` (explicite ou automatique), l'objet ajoute des champs optionnels :
 

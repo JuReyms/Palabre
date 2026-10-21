@@ -262,6 +262,8 @@ Flags:
   --pr <url>              PR github.com exacte ; obligatoire avec --task review
   --open                  vise une conversation Codex ouverte (TUI ou Codex desktop), pour cet appel
   --background            force l'arrière-plan pour cet appel ; incompatible avec --open
+  Pour un avis ou une relecture devant rester sans modification, passer --background :
+  réduction des droits pour cet appel, sans changer le réglage. Ne pas choisir le mode par habitude ailleurs.
   --follow                avec --open : ne dépose rien, attend le prochain tour terminé
   --timeout <secondes>    délai maximal, de 10 à 3600 (défaut : 600)
   --json                  sortie JSON v1 pour les intégrations
@@ -709,6 +711,8 @@ Flags:
   --pr <url>              exact github.com PR; required with --task review
   --open                  targets an open Codex conversation (TUI or Codex desktop), for this call
   --background            forces background for this call; incompatible with --open
+  For advice or a review that must not change files, pass --background:
+  fewer permissions for this call, without changing the setting. Do not choose the mode out of habit otherwise.
   --follow                with --open: queues nothing, waits for the next completed turn
   --timeout <seconds>     maximum duration, 10 to 3600 (default: 600)
   --json                  JSON v1 output for integrations

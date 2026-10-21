@@ -774,7 +774,12 @@ describe("relay.view (#190)", () => {
         const r = await relay(world, [...(explicit ? ["--background"] : []), ...toCodex, "Bonjour", "--trust-config", "--json"]);
         assert.equal(r.code, 3); assert.equal(r.json.mode, "background"); assert.equal(r.json.status, "target-busy");
         assert.equal(r.json.modeSource, explicit ? "explicit" : "setting"); assert.equal(r.calls.length, 0);
-        assert.match(r.json.error.message, /fermer cette conversation/); assert.match(r.json.remedy, /config --relay-view auto --config/);
+        if (explicit) {
+          assert.match(r.json.error.message, /sans --background/); assert.equal(r.json.remedy, undefined);
+          assert.ok(!r.json.error.message.includes("config --relay-view"));
+        } else {
+          assert.match(r.json.error.message, /fermer cette conversation/); assert.match(r.json.remedy, /config --relay-view auto --config/);
+        }
         assert.equal(readFileSync(file, "utf8"), before);
       } finally { release(); }
     }
