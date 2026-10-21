@@ -153,6 +153,14 @@ With `--open`, PALABRE queues the message into an **open** Codex conversation, i
 
 Verified versions: Windows with Codex CLI 0.151.0 (TUI) and Codex desktop 26.930.7945.0 (app-server 0.160.1); macOS 26.6.1 on Apple Silicon with Codex CLI 0.163.0 and Codex Desktop integrated into ChatGPT.app. The Codex history format is not a public schema: another version is not blocked, but reply correlation is not guaranteed there.
 
+### Reinjected context and input during the turn (#146, partial fix)
+
+Recognized AGENTS.md or environment context before the envelope no longer loses the reply: same-turn metadata, complete blocks, no `UserMessage` binding, no nonce, and at most one block of each kind. Separate forms and AGENTS followed by environment in one message were observed on Windows; this rollout format remains experimental.
+
+Free input recognized by the `user.text` form, after the envelope and before the final reply, stays `no-valid-reply` (2), with `correlation.reason: "user-input-during-turn"`. Check the target conversation before any resend: the work may have been done. This diagnostic proves neither identity, authorization, nor a human click. Agent envelopes, duplicates and unknown formats remain ambiguous.
+
+The actual format of a linked reply to a question was not found in available local histories: that case remains ambiguous and no `humanInput` field is emitted. Agents should still ask no questions during a turn received through Relay, instead reporting questions and blockers in the final reply. #146 remains partly open; this fix does not qualify Desktop as the default choice in #190.
+
 ## Closed conversations by default
 
 Without `--open`, the target conversation must be **closed**: no TUI, desktop, IDE or running exec may be attached to it. Otherwise the relay is refused before anything is sent (`target-busy`). It is also refused when PALABRE cannot verify the conversation state (`target-state-unknown`).
