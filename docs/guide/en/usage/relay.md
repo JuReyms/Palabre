@@ -69,7 +69,22 @@ To continue this conversation: palabre relay --to codex:<uuid> "…"
 
 In JSON, `to.session` contains the received identifier, `cwd` the directory, and root-level `created` indicates whether an identifier was received. `identity` also remains at the root. Before that, `to.session` is `null` and `created` is `false`. JSON and the export do not contain a continuation command: use the documented form `palabre relay --to <agent>:<to.session> "<follow-up>" --json`. The identifier is captured during the call and preserved in the result and export even if the first turn fails: **this does not mean the question was answered**. Check delivery before sending again; no retry is automatic.
 
-The conversation remains in the CLI history and can be resumed through Relay. For Codex, with the verified versions, a conversation created by `--new` through the CLI is not listed in Codex Desktop. This does not prevent Relay from reaching it. To follow the teammate in the app, open the `codex://threads/<identifier>` link that PALABRE shows after creation: the conversation opens in Desktop with its history, even though it is absent from the list. Once open, Desktop holds it: reach it with `--open`, and it then answers with Desktop's permissions instead of closed Relay restrictions. `--new` cannot be used with `--open`. By default, creation supports advice and reading; `--write` remains an experimental, frozen path documented at the end of this page. Opening this Desktop link is verified on Windows only; macOS and Linux remain unverified.
+The conversation remains in the CLI history and can be resumed through Relay. For Codex, with the verified versions, a conversation created by `--new` through the CLI is not listed in Codex Desktop. This does not prevent Relay from reaching it. To follow the teammate in the app, open the `codex://threads/<identifier>` link that PALABRE shows after creation: the conversation opens in Desktop with its history, even though it is absent from the list. Once open, Desktop holds it: reach it with `--open`, and it then answers with this conversation's permissions instead of closed Relay restrictions. A conversation created by `--new` still keeps a restricted profile, even when opened in Desktop. `--new` cannot be used with `--open`. By default, creation supports advice and reading; `--write` remains an experimental, frozen path documented at the end of this page. Opening this Desktop link is verified on Windows only; macOS and Linux remain unverified.
+
+## Background or in the desktop app
+
+Each exchange states where it happens, on a "Mode" line:
+
+- **Background**: the teammate replies with no visible window, read-only. This applies to a closed conversation or one created by `--new`.
+- **In the desktop app**: the conversation is open in Codex Desktop (or in the Codex terminal) and visible; the teammate keeps this conversation's permissions there (`--open`).
+
+In background, a Codex conversation also shows its `codex://threads/<identifier>` link, clickable in a terminal that supports it, and the command to open it yourself:
+
+```text
+To open it yourself: explorer.exe "codex://threads/<identifier>"
+```
+
+The command depends on the system: `explorer.exe` on Windows, `open` on macOS, `xdg-open` on Linux. It helps when the link is not clickable, for example in the Claude app. Run it yourself: an agent never opens it on your behalf. In JSON, `mode` is `background`, `open` or `follow`; no link field is added, an integration builds it from `to.session`.
 
 ## Reading a Relay message
 
@@ -409,6 +424,7 @@ The nonce at the bottom remains a marker in the user message; `--open` correlati
   "type": "relay-result",
   "status": "replied",
   "exitCode": 0,
+  "mode": "background",
   "from": { "agent": "codex", "session": "<uuid>" },
   "to": { "agent": "claude", "session": "<uuid>", "provider": "claude" },
   "reply": "…",

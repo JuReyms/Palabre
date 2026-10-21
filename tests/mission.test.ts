@@ -16,7 +16,7 @@ const FROM = "codex:11111111-1111-4111-8111-111111111111";
 const TO = "claude:22222222-2222-4222-8222-222222222222";
 const pr = "https://github.com/example/project/pull/1";
 function replied(): RelayResultV1 {
-  return { v: 1, type: "relay-result", status: "replied", exitCode: 0, from: null, to: null,
+  return { v: 1, type: "relay-result", mode: "background", status: "replied", exitCode: 0, from: null, to: null,
     reply: "Constat de l'équipier", identity: "same-as-target", delivery: { status: "replied", persisted: true, inActiveBranch: true },
     observedModels: [], error: null, exportPath: null, durationMs: 1 };
 }

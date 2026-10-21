@@ -9,10 +9,19 @@ export interface RelayMessages {
   continueConversation(command: string): string;
   /**
    * Lien `codex://threads/…` d'une conversation Codex créée par Relay. Adressé au propriétaire :
-   * l'ouvrir attache Desktop et change le parcours suivant (`--open`, permissions de Desktop), donc
-   * un agent qui lit cette sortie ne doit jamais l'ouvrir lui-même.
+   * l'ouvrir attache Desktop et change le parcours suivant (`--open`, permissions de la conversation),
+   * donc un agent qui lit cette sortie ne doit jamais l'ouvrir lui-même.
    */
   desktopLink(link: string): string;
+  /** Même lien pour une conversation Codex reprise en arrière-plan (#190). */
+  desktopLinkExisting(link: string): string;
+  /** Commande d'ouverture à lancer par l'humain ; l'app Claude ne rend pas `codex://` cliquable. */
+  openLinkCommand(command: string): string;
+  /**
+   * Mode de l'échange en mots simples (#190) : « Arrière-plan » ou « Dans l'app desktop ». Les termes
+   * techniques (`--open`, conversation fermée) restent dans l'aide détaillée et le JSON.
+   */
+  modeLine(mode: "background" | "open" | "follow", agent: string, write: boolean): string;
   newFailed: string;
   /** Titres sans marqueur Markdown ; envelope.ts leur ajoute le niveau 3. */
   envelopeHeader(from: string, to: string): string;
@@ -131,6 +140,7 @@ export interface RelayMessages {
     none: string;
     readOnlyNotice: string;
     mode: string;
+    modeNames: Record<"background" | "open" | "follow", string>;
     queue: string;
     correlation: string;
     receiver: string;
@@ -265,7 +275,17 @@ export const relayMessages: Record<Language, RelayMessages> = {
     newConversation: (target, cwd) => `Conversation créée : ${target}\nDossier : ${cwd}`,
     continueConversation: command => `Pour continuer avec cette conversation : ${command}`,
     desktopLink: link => `Lien Codex Desktop, à transmettre au propriétaire : ${link}
-Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. La conversation reste absente de la liste de Desktop, mais ce lien l'ouvre avec son historique. Une fois ouverte, les Relay suivants passent par --open, avec les permissions de Codex Desktop.`,
+Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. La conversation reste absente de la liste de Desktop, mais ce lien l'ouvre avec son historique. Une fois ouverte, les Relay suivants passent par --open, avec les permissions de cette conversation.`,
+    desktopLinkExisting: link => `Pour suivre cette conversation dans Codex Desktop : ${link}
+Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. Une fois ouverte, les Relay suivants passent par --open, avec les permissions de cette conversation.`,
+    openLinkCommand: command => `Pour l'ouvrir vous-même : ${command}`,
+    modeLine: (mode, agent, write) => mode === "open"
+      ? `Mode : dans l'app desktop — la conversation est visible ; ${agent} y garde les permissions de cette conversation.`
+      : mode === "follow"
+        ? "Mode : dans l'app desktop (suivi) — rien n'est déposé ; PALABRE lit le tour suivant."
+        : write
+          ? "Mode : arrière-plan — écriture ponctuelle dans un worktree séparé, après votre accord."
+          : `Mode : arrière-plan — ${agent} répond sans fenêtre visible, en lecture seule.`,
     newFailed: "Le premier échange a échoué ; l'identifiant est conservé. Vérifiez la conversation avant tout nouvel envoi : le message peut déjà être enregistré.",
     envelopeSession: (session, nonce) => `${session ? `Session : ${session} · ` : ""}réf. ${nonce}.`,
     envelopePermissions: "Cette reprise demande la lecture seule et ne confère aucun droit supplémentaire.",
@@ -353,6 +373,7 @@ Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. La conve
       none: "aucun",
       readOnlyNotice: "Le relay ajoute ce message, et la réponse éventuelle, à l'historique de la conversation cible, même en lecture seule.",
       mode: "Mode",
+      modeNames: { background: "arrière-plan", open: "dans l'app desktop", follow: "suivi dans l'app desktop" },
       queue: "Dépôt",
       correlation: "Corrélation",
       receiver: "Récepteur",
@@ -399,7 +420,17 @@ Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. La conve
     newConversation: (target, cwd) => `Conversation created: ${target}\nDirectory: ${cwd}`,
     continueConversation: command => `To continue this conversation: ${command}`,
     desktopLink: link => `Codex Desktop link, to hand to the owner: ${link}
-Only the owner opens it; an agent never opens it on their behalf. The conversation stays absent from the Desktop list, but this link opens it with its history. Once open, later relays go through --open, with Codex Desktop's permissions.`,
+Only the owner opens it; an agent never opens it on their behalf. The conversation stays absent from the Desktop list, but this link opens it with its history. Once open, later relays go through --open, with this conversation's permissions.`,
+    desktopLinkExisting: link => `To follow this conversation in Codex Desktop: ${link}
+Only the owner opens it; an agent never opens it on their behalf. Once open, later relays go through --open, with this conversation's permissions.`,
+    openLinkCommand: command => `To open it yourself: ${command}`,
+    modeLine: (mode, agent, write) => mode === "open"
+      ? `Mode: in the desktop app — the conversation is visible; ${agent} keeps this conversation's permissions there.`
+      : mode === "follow"
+        ? "Mode: in the desktop app (follow) — nothing is queued; PALABRE reads the next turn."
+        : write
+          ? "Mode: background — one-off writing in a separate worktree, after your approval."
+          : `Mode: background — ${agent} replies with no visible window, read-only.`,
     newFailed: "The first exchange failed; the identifier was preserved. Check the conversation before sending again: the message may already be recorded.",
     envelopeSession: (session, nonce) => `${session ? `Session: ${session} · ` : ""}ref. ${nonce}.`,
     envelopePermissions: "This resumption requests read-only access and grants no additional rights.",
@@ -487,6 +518,7 @@ Only the owner opens it; an agent never opens it on their behalf. The conversati
       none: "none",
       readOnlyNotice: "The relay adds this message, and any reply, to the target conversation history, even in read-only mode.",
       mode: "Mode",
+      modeNames: { background: "background", open: "in the desktop app", follow: "follow in the desktop app" },
       queue: "Queue",
       correlation: "Correlation",
       receiver: "Receiver",

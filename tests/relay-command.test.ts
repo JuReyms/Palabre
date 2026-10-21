@@ -476,8 +476,9 @@ describe("palabre relay : réponse", () => {
     assert.equal(result.json.status, "replied");
     assert.equal(result.json.reply, "FAKE-OK");
     assert.equal(result.json.exportPath, null);
-    // Sans --open, la sortie JSON v1 reste identique : aucun champ propre à B1.
-    assert.deepEqual(Object.keys(result.json).sort(), ["delivery", "durationMs", "error", "exitCode", "exportPath", "from", "identity", "observedModels", "reply", "status", "to", "type", "v"]);
+    // Sans --open : aucun champ propre à B1 ; seul `mode` (#190) s'ajoute, toujours présent.
+    assert.deepEqual(Object.keys(result.json).sort(), ["delivery", "durationMs", "error", "exitCode", "exportPath", "from", "identity", "mode", "observedModels", "reply", "status", "to", "type", "v"]);
+    assert.equal(result.json.mode, "background");
     assert.deepEqual(result.calls.map((call) => call.argv.slice(0, 2)), [["mcp", "list"], ["exec", "resume"]]);
     const resume = result.calls[1]!.argv;
     assert.ok(resume.includes("mcp_servers.linear.enabled=false"));
@@ -776,7 +777,7 @@ describe("palabre relay --open", () => {
       assert.equal(call!.stdin, "");
       assert.equal(path.resolve(call!.cwd).toLowerCase(), path.resolve(world.workspace).toLowerCase());
       const exported = readFileSync(json.exportPath, "utf8");
-      assert.match(exported, /\| Mode \| open \|/);
+      assert.match(exported, /\| Mode \| open — dans l'app desktop \|/);
       assert.match(exported, /accepted=true/);
       assert.match(exported, /aucune lecture seule n'est garantie/);
     } finally {
@@ -971,7 +972,7 @@ describe('Relay : création et expéditeur facultatif', () => {
       assert.match(text.stderr, /premier échange a échoué/); assert.equal(text.stdout, '');
       if (provider === 'codex') {
         assert.ok(text.stderr.includes(`codex://threads/${NEW_IDS.codex}`));
-        assert.match(text.stderr, /--open/); assert.match(text.stderr, /permissions de Codex Desktop/);
+        assert.match(text.stderr, /--open/); assert.match(text.stderr, /permissions de cette conversation/);
         // Garde-fou sans skill : la sortie réserve l'ouverture au propriétaire.
         assert.match(text.stderr, /un agent ne l'ouvre jamais à sa place/);
       } else assert.ok(!text.stderr.includes('codex://'));
@@ -987,16 +988,35 @@ describe('Relay : création et expéditeur facultatif', () => {
     });
   }
 
-  test('lien Codex Desktop : texte anglais après création, jamais sur une reprise', async () => {
+  test('lien Codex Desktop en arrière-plan : création et reprise, commande d\'ouverture, jamais en JSON (#190)', async () => {
+    const opener = process.platform === 'win32' ? 'explorer.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open';
     const created = await relay(makeWorld(), ['--new', '--to', 'codex', 'Question', '--trust-config', '--language', 'en', '--no-export']);
     assert.equal(created.code, 0, created.stderr);
     assert.ok(created.stderr.includes(`Codex Desktop link, to hand to the owner: codex://threads/${NEW_IDS.codex}`));
-    const w = makeWorld();
-    const resumed = await relay(w, ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--json']);
+    assert.ok(created.stderr.includes(`To open it yourself: ${opener} "codex://threads/${NEW_IDS.codex}"`));
+    assert.ok(created.stderr.includes('Mode: background — codex replies with no visible window, read-only.'));
+    // Sortie non TTY : aucune séquence OSC 8.
+    assert.ok(!created.stderr.includes('\u001b]8;;'));
+    const resumed = await relay(makeWorld(), ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--json']);
     assert.equal(resumed.code, 0, resumed.stdout + resumed.stderr);
-    assert.ok(!readFileSync(resumed.json.exportPath, 'utf8').includes('codex://'));
+    assert.equal(resumed.json.mode, 'background');
+    assert.ok(!JSON.stringify(resumed.json).includes('codex://'), 'aucun champ JSON de lien');
+    assert.match(readFileSync(resumed.json.exportPath, 'utf8'), new RegExp(`\\| Lien Codex Desktop \\| codex://threads/${CODEX_SESSION} \\|`));
     const text = await relay(makeWorld(), ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--no-export']);
-    assert.ok(!text.stderr.includes('codex://'));
+    assert.ok(text.stderr.includes(`Pour suivre cette conversation dans Codex Desktop : codex://threads/${CODEX_SESSION}`));
+    assert.ok(text.stderr.includes(`Pour l'ouvrir vous-même : ${opener} "codex://threads/${CODEX_SESSION}"`));
+    const claude = await relay(makeWorld(), ['--to', `claude:${CLAUDE_SESSION}`, 'Question', '--trust-config', '--no-export']);
+    assert.ok(!claude.stderr.includes('codex://'), 'jamais pour Claude');
+    assert.ok(claude.stderr.includes('Mode : arrière-plan — claude répond sans fenêtre visible, en lecture seule.'));
+  });
+
+  test('refus d\'arguments : mode présent en JSON, aucune ligne Mode ni lien', async () => {
+    const r = await relay(makeWorld(), ['--to', `codex:${CODEX_SESSION}`, '--trust-config']);
+    assert.equal(r.code, 8);
+    assert.ok(!r.stderr.includes('Mode :'));
+    assert.ok(!r.stderr.includes('codex://'));
+    const json = await relay(makeWorld(), ['--to', `codex:${CODEX_SESSION}`, '--trust-config', '--json']);
+    assert.equal(json.json.mode, 'background');
   });
 
   test('expéditeur absent, nom seul et UUID restent déclaratifs en reprise fermée', async () => {
@@ -1119,7 +1139,7 @@ describe("palabre relay --open --follow (#195)", () => {
       assert.equal("queue" in json, false);
       assert.equal(result.calls.length, 0, "aucun processus Codex lancé");
       const exported = readFileSync(json.exportPath, "utf8");
-      assert.match(exported, /\| Mode \| follow \|/);
+      assert.match(exported, /\| Mode \| follow — suivi dans l'app desktop \|/);
       assert.match(exported, /Aucun message déposé/);
       assert.match(exported, /PALABRE ne dépose rien/);
     } finally {
