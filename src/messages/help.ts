@@ -511,7 +511,7 @@ Options :
   Sans --agent-a/--agent-b ni preset, A et B sont les deux premiers de --agents
   (ou de la liste Ask configurée). Si A et B désignent le même participant, --model-a prime.
   Les autres participants gardent leur modèle configuré ; pas d'option de modèle commune aux quatre.
-  --summary-agent <nombre>    agent de synthèse pour ce lancement
+  --summary-agent <nom>       agent de synthèse pour ce lancement
   --summary-model <modèle>    modèle brut de synthèse
   --no-summary                désactive la synthèse
   --ollama-url <url>          adresse Ollama pour cette conversation
@@ -956,7 +956,7 @@ Context and models:
 
 Summary and preparation (Debate/Ask only):
   --summary-agent <name>      summary agent
-  --summary-model <m>         raw summary model
+  --summary-model <model>     raw summary model
   --no-summary                disables the summary
   --no-early-stop             runs every requested Debate turn
   --show-prompt               shows the prompt without calling an agent
@@ -1030,8 +1030,8 @@ Flags:
   Without --agent-a/--agent-b or a preset, A and B are the first two --agents
   (or configured Ask participants). If A and B name the same participant, --model-a takes precedence.
   Other participants keep their configured model; no shared model option for all four.
-  --summary-agent <n>         summary agent for this run
-  --summary-model <m>         raw summary model
+  --summary-agent <name>      summary agent for this run
+  --summary-model <model>     raw summary model
   --no-summary                disables the summary
   --ollama-url <url>          Ollama address for this conversation
   --pull-models               allows downloading a missing Ollama model
@@ -1153,7 +1153,7 @@ Session options (run/ask/chat, depending on mode; see their help):
   -s, --subject <text>        subject (--topic: alias); -t, --turns <n>: Debate responses
   --files <paths...>          specific files; --context <paths...>: files/folders
   --model-a <model>           model for A; --model-b <model>: model for B
-  --summary-agent <n>         Debate/Ask summary; --summary-model <model>: its model
+  --summary-agent <name>      Debate/Ask summary; --summary-model <model>: its model
   --no-summary                no summary; --no-early-stop: every Debate turn
   --checkpoint                resume Debate/Ask; --show-prompt: preview Debate/Ask
   --role-a <role>             role for A; --role-b <role>: B; --ask-role <role>: Ask
