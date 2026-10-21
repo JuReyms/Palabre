@@ -23,7 +23,7 @@ Palabre est open source et utilisé par des personnes de tous niveaux techniques
 - L'aide de la CLI et les messages d'erreur doivent suffire, même sans skill installé.
 - Pour les agents : consignes explicites, ce qu'ils doivent faire et ce qu'ils ne doivent jamais faire (par exemple : ne jamais modifier eux-mêmes une politique qui leur accorde des droits).
 - Pour les humains : pas de jargon inutile, et des images simples quand elles aident (par exemple relay = « appeler un équipier absent »). Le détail technique va dans AGENTS.md.
-- Toute évolution de comportement met à jour, dans la même PR : l'aide CLI, le guide fr et en, et le skill `skills/palabre`. Une copie installée du skill n'est pas mise à jour automatiquement : le dire dans les notes de version.
+- Toute évolution de comportement met à jour, dans la même PR : l'aide CLI, le guide fr et en, et le skill `skills/palabre`. Les copies détectées du skill sont rafraîchies seulement dans un plan explicitement confirmé (`palabre update` ou `palabre skill --sync`) ; rappeler le rechargement du skill dans les notes de version.
 
 ## Identité visible de PALABRE
 
@@ -309,6 +309,14 @@ Le mode avance couvre les options courantes : tours, modeles bruts, synthese, co
 Le wizard affiche une commande equivalente avant execution. Cette sortie est intentionnelle : elle aide l'utilisateur a apprendre la syntaxe directe et sert de recap leger avant de lancer.
 
 ## Update
+
+`src/skillSync.ts` compare les fichiers livrés sous `skills/palabre` à côté du module de la CLI exécutée, jamais avec le cwd, une branche Git ou GitHub. `doctorArrival.ts` conserve les chemins détectés par #176 et expose leur comparaison (CRLF/LF normalisés) ; un écart est « ancien ou personnalisé », pas une preuve de version ancienne. Aucun réseau ni écriture pour cette comparaison. Le JSON `{ ok, output }` de doctor reste inchangé.
+
+`palabre skill` affiche l'état sans écrire ; `--sync` rafraîchit les copies projet/personnelles détectées, `--install codex|claude` choisit explicitement un emplacement personnel. Le plan est affiché avant l'accord unique, y compris avec `--yes`. `--check` et `--dry-run` sont prioritaires et sans effet de bord. L'agent ne change pas ses instructions sans accord humain. Pas de config ni de registre de confiance consommé dans cette commande.
+
+`update` intègre ces mêmes cibles dans son plan et sa confirmation unique, y compris dans la TUI. Les cibles et empreintes sont figées avant accord et vérifiées avant application ; les éditions concurrentes et liens internes sont refusés. Après update CLI, le skill vient du nouveau paquet (via le chemin global stable si pnpm change de store), pas d'un import mis en cache. Une CLI déjà à jour peut encore proposer le rafraîchissement du skill sans appeler le gestionnaire de paquets. Une absence de copie ne provoque pas d'installation implicite.
+
+Chaque copie physique remplacée est sauvegardée en entier dans `~/.palabre/skill-backups/palabre-<date>-<suffixe>`, hors des dossiers de skills. Les jonctions racines restent en place, leurs alias ne sont sauvegardés qu'une fois, les ajouts privés restent dans la copie. La comparaison porte sur tous les fichiers livrés ; elle ne certifie pas le chargement dans l'agent. Source/copie illisible, lien interne ou sauvegarde impossible : refus explicite. Tests exclusivement sur profils fictifs via `scripts/test.mjs`.
 
 `palabre update` detecte le canal de l'installation en cours : checkout Git, package global npm, pnpm, Yarn ou Bun. La detection compare le package execute aux racines globales interrogees localement ; une provenance ambigue reste `unknown` et ne declenche jamais une mutation.
 

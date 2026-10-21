@@ -241,22 +241,24 @@ Si votre aide ne propose pas `--new` dans `palabre relay --help` ou `--prune-tru
 Pour l'installer pour vos agents sur cette machine, dans tous vos projets :
 
 ```text
-npx skills add JuReyms/Palabre --skill palabre --global
+palabre skill --install codex
+palabre skill --install claude
 ```
 
-Cette commande utilise [l'outil skills](https://github.com/vercel-labs/skills), télécharge le skill du dépôt et vous laisse choisir les agents. Relisez les choix avant de confirmer. Pour une installation par copie, suivez [le guide du skill](/fr/get-started/skill) et copiez le dossier complet, références comprises.
+Exécutez seulement la commande de l'agent voulu. Le skill vient du paquet de la CLI exécutée, sans réseau ; relisez le plan puis confirmez. Les personnalisations remplacées sont sauvegardées hors des dossiers de skills. Pour une ancienne CLI sans cette commande, suivez [le guide du skill](/fr/get-started/skill) et copiez le dossier embarqué entier, références comprises.
 
-Sans `-y`, le choix est interactif. Avec `-y`, les confirmations sont sautées et le skill peut être installé pour tous les agents détectés. Pour limiter les cibles, nommez-les explicitement avec `--agent`, par exemple :
+Pour les copies déjà présentes, prévisualisez puis rafraîchissez :
 
 ```text
-npx skills add JuReyms/Palabre --skill palabre --global --agent claude-code codex
+palabre skill --sync --dry-run
+palabre skill --sync
 ```
 
-Un agent qui prépare l'installation ne doit pas ajouter `-y` de lui-même. Vous choisissez les agents et confirmez l'installation.
+Un agent qui prépare l'installation ne doit pas ajouter `--yes` sans votre accord. Vous choisissez les agents et confirmez le plan.
 
-L'outil `skills` a ses propres prérequis Node, qui peuvent être plus élevés que ceux de PALABRE. Si `npx` signale `EBADENGINE`, mettez Node à niveau selon ces prérequis ou utilisez l'installation par copie.
+Les outils externes `npx skills add/update` suivent le dépôt GitHub et non la version installée de la CLI ; ne les utilisez pas pour certifier cette correspondance.
 
-Une copie installée n'est pas mise à jour par `palabre update` : refaites explicitement l'installation ou la copie après une évolution du skill. Vérifiez qu'une seule version reste active pour chaque agent, puis ouvrez une nouvelle conversation pour qu'il la découvre.
+`palabre update` propose aussi le rafraîchissement des copies détectées dans sa confirmation unique, avec sauvegardes et conservation des jonctions. Vérifiez qu'une seule version reste active pour chaque agent, puis rechargez le skill ou reprenez la conversation.
 
 ## 5. Vérifier avec doctor
 

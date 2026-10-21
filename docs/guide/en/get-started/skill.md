@@ -33,7 +33,22 @@ For Codex, `~/.agents/skills/` is the user location given by the [Codex document
 
 For Claude desktop or another agent, follow its own skill-install procedure pointing at this folder.
 
-After updating Palabre, copy the folder again: the installed copy is not updated automatically.
+Install the skill matching your CLI without downloading from GitHub:
+
+```text
+palabre skill --install codex
+palabre skill --install claude
+```
+
+Run only the command for your intended agent. The plan shows the destination and asks for confirmation. For existing copies, `palabre skill --sync` uses the running package's skill without network access. `palabre skill` only displays status; `--check` and `--dry-run` never write, including with `--sync` or `--install`. `--yes` is explicit consent after reviewing the plan; agents must not add it without your consent.
+
+`palabre doctor` compares all bundled files with each detected copy, normalizing line endings. A difference can mean an old skill or customization. Private additions are preserved and do not date the skill. An unreadable copy or internal link remains unverified and cannot be replaced.
+
+`palabre update` includes refreshing detected copies in its plan and single confirmation. After updating, it uses the new package's skill, including when pnpm changes stores. If the CLI is already current, refreshing a different skill is still offered. Missing copies are never installed implicitly.
+
+Before replacement, each physical copy is backed up under `~/.palabre/skill-backups/`, with a timestamp and unique suffix, outside directories loaded by agents. Root junctions remain intact; a directory shared by Claude and Codex is backed up only once. Customized bundled files are replaced after this consent; additional private files are preserved. An edit since the plan was displayed makes the refresh fail. Reload the skill or resume the agent conversation afterwards.
+
+These commands follow the CLI package, not GitHub `main`. External tools such as `npx skills add/update` follow the repository and may provide a different skill from the installed CLI. On an older CLI without the `skill` command, manually copying the bundled folder remains possible.
 
 To start, tell Claude Code or Codex: "Use PALABRE to ask the other agent to review the plan in docs/plan.md without changing files. Keep the conversation for follow-up." You choose the mission lead. From Codex desktop, each command to Claude needs one-time host approval; follow [Your first Relay](/en/get-started/first-relay).
 

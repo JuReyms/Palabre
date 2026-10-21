@@ -6,6 +6,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Added
 
+- Skill lié à la CLI : `palabre skill --install codex|claude` installe le skill embarqué ; `palabre skill --sync` rafraîchit les copies détectées sans réseau après affichage du plan et confirmation. `doctor` compare tous les fichiers livrés, fins de ligne normalisées, et donne l'action exacte. `palabre update` inclut les copies dans sa confirmation unique et utilise le skill du paquet nouvellement installé ; sauvegardes horodatées hors des dossiers de skills, jonctions et ajouts privés conservés. Les aperçus restent sans effet de bord ; les agents attendent l'accord humain avant de changer leurs instructions. Recharger le skill ou reprendre la conversation après rafraîchissement (Refs #179, #176).
+
+### Added
+
 - `palabre doctor` prévient sous Windows, avant tout Relay, quand le seul `pwsh.exe` du PATH est l'alias PowerShell du Microsoft Store : Codex peut alors échouer à démarrer ses commandes, ce que PALABRE ne signalait jusqu'ici qu'après l'échange, dans `readAccess`. Le contrôle réutilise la détection d'alias d'exécution déjà en place, n'exécute pas `pwsh` et ne modifie ni configuration, ni PATH, ni permissions ; il distingue l'absence de tout PowerShell régulier du repli appliqué au seul processus enfant Codex, et nomme ce repli. Avertissement seulement, jamais une erreur : la machine reste utilisable et l'agent lit souvent malgré le refus. Muet hors Windows, sans CLI Codex détectée, quand un vrai `pwsh.exe` reste disponible ou quand l'alias n'est pas confirmé (Refs #171, #128). Guides fr/en et skill actualisés, avec la commande winget qui installe réellement le `.msi` (`--installer-type wix`, vérifié avec winget 1.29.380 ; `--installer-type msi` ne correspond à aucun installeur et `--source winget` seul pose le paquet MSIX) ; la copie installée du skill n'est pas mise à jour automatiquement.
 
 ### Changed

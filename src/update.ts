@@ -1,12 +1,13 @@
 /** @file Détection sûre des installations Palabre et plans de mise à jour structurés. */
 import { spawn } from "node:child_process";
-import { access, realpath } from "node:fs/promises";
+import { access, realpath, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Messages } from "./messages/index.js";
 import { resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePowerShellShim } from "./exec.js";
 import { getLatestPackageVersion, compareSemver } from "./version.js";
+import { applySkillSync, assertSkillPlanUnchanged, planSkillSync, SkillSyncError, type SkillSyncPlan } from "./skillSync.js";
 
 /** Canal d'installation reconnu sans ambiguïté. */
 export type InstallationChannel = "source" | "npm-global" | "pnpm-global" | "yarn-global" | "bun-global" | "unknown";
@@ -29,6 +30,10 @@ export interface UpdateInfo {
   sourceCheckout: boolean;
   channel: InstallationChannel;
   steps: UpdateStep[];
+  /** Copies montrées dans la confirmation, jamais redécouvertes après accord. */
+  skills?: SkillSyncPlan;
+  /** Lien global stable vers le paquet (important quand pnpm change de store). */
+  skillPackageRoot?: string;
 }
 
 /** Détermine si la version npm connue est effectivement plus récente que la version exécutée. */
@@ -38,7 +43,13 @@ export function hasAvailableUpdate(info: UpdateInfo): boolean {
 
 /** Indique si Palabre connaît une stratégie de mutation sûre pour l'installation détectée. */
 export function canApplyUpdate(info: UpdateInfo): boolean {
-  return info.steps.length > 0 && (info.channel === "source" || hasAvailableUpdate(info));
+  return updatesCli(info) ||
+    Boolean(info.skills?.copies.some(copy => copy.state === "different"));
+}
+
+/** Un canal inconnu n'autorise que le rafraîchissement local explicitement présenté, jamais la CLI. */
+function updatesCli(info: UpdateInfo): boolean {
+  return info.channel !== "unknown" && info.steps.length > 0 && (info.channel === "source" || hasAvailableUpdate(info));
 }
 
 /** Rend une commande structurée lisible sans prétendre qu'elle doit être collée dans un shell. */
@@ -52,9 +63,17 @@ export async function getUpdateInfo(version: string): Promise<UpdateInfo> {
   const sourceCheckout = await exists(path.join(projectRoot, ".git"));
   const [latestVersion, roots] = await Promise.all([
     sourceCheckout ? Promise.resolve(undefined) : getLatestPackageVersion(),
-    sourceCheckout ? Promise.resolve({} satisfies GlobalInstallRoots) : discoverGlobalInstallRoots()
+    sourceCheckout ? Promise.resolve({} as GlobalInstallRoots) : discoverGlobalInstallRoots()
   ]);
   const channel = sourceCheckout ? "source" : await detectResolvedInstallationChannel(projectRoot, roots);
+  let skillPackageRoot = projectRoot;
+  if (channel !== "source" && channel !== "unknown") {
+    const physical = await canonicalPath(projectRoot);
+    for (const root of roots[channel] ?? []) {
+      const candidate = path.join(root, "palabre");
+      if (await canonicalPath(candidate) === physical) { skillPackageRoot = candidate; break; }
+    }
+  }
 
   return {
     version,
@@ -62,7 +81,9 @@ export async function getUpdateInfo(version: string): Promise<UpdateInfo> {
     projectRoot,
     sourceCheckout,
     channel,
-    steps: createUpdatePlan(channel, latestVersion)
+    steps: createUpdatePlan(channel, latestVersion),
+    skills: planSkillSync(),
+    skillPackageRoot
   };
 }
 
@@ -135,28 +156,50 @@ export function createUpdatePlan(channel: InstallationChannel, latestVersion?: s
 
 /** Génère le rapport terminal détaillé et localisé du plan de mise à jour. */
 export function formatUpdateInstructions(info: UpdateInfo, messages: Messages): string {
-  return messages.update.instructions({
+  const updatingCli = updatesCli(info);
+  const report = messages.update.instructions({
     version: info.version,
     latestVersion: info.latestVersion,
     projectRoot: info.projectRoot,
     sourceCheckout: info.sourceCheckout,
     channel: info.channel,
-    steps: info.steps.map(formatUpdateStep),
+    steps: updatingCli ? info.steps.map(formatUpdateStep) : [],
     hasAvailableUpdate: hasAvailableUpdate(info)
   });
+  return info.skills ? `${report}\n\n${messages.update.skillPlan(info.skills, updatingCli)}\n${messages.update.skillReload}` : report;
 }
 
 /**
  * Exécute le plan déjà validé. Chaque processus reçoit des arguments structurés ; Windows
  * privilégie un binaire natif ou le shim PowerShell sans passer par `cmd.exe`.
  */
-export async function applyUpdate(info: UpdateInfo, messages: Messages): Promise<void> {
+export async function applyUpdate(info: UpdateInfo, messages: Messages, options: {
+  /** Faux processus pour tester le remplacement du paquet sans installer quoi que ce soit. */
+  run?: (step: UpdateStep, cwd: string, messages: Messages) => Promise<void>;
+} = {}): Promise<void> {
   if (!canApplyUpdate(info)) {
     throw new Error(messages.update.automaticUnavailable);
   }
 
-  for (const step of info.steps) {
-    await runStep(step, info.projectRoot, messages);
+  try {
+    if (info.skills) assertSkillPlanUnchanged(info.skills);
+    const updatingCli = updatesCli(info);
+    if (updatingCli) {
+      for (const step of info.steps) await (options.run ?? runStep)(step, info.projectRoot, messages);
+    }
+    if (info.skills?.copies.length) {
+      const packageRoot = info.skillPackageRoot ?? info.projectRoot;
+      if (updatingCli && info.channel !== "source") {
+        const pkg = JSON.parse(await readFile(path.join(packageRoot, "package.json"), "utf8")) as { name?: string; version?: string };
+        if (pkg.name !== "palabre" || pkg.version !== info.latestVersion) throw new SkillSyncError("source", packageRoot);
+      }
+      const source = updatingCli ? path.join(packageRoot, "skills", "palabre") : info.skills.source;
+      applySkillSync(info.skills, source, backup => console.log(messages.update.skillBackup(backup)));
+      console.log(messages.update.skillReload);
+    }
+  } catch (error) {
+    if (error instanceof SkillSyncError) throw Error(messages.update.skillFailure(error));
+    throw error;
   }
 }
 

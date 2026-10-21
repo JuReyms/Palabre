@@ -133,7 +133,8 @@ export function renderTuiUpdate(info: UpdateInfo, messages: Messages): void {
         : hasAvailableUpdate(info)
           ? messages.tui.updateAvailableStatus
           : messages.tui.updateCurrentStatus;
-  const actionLines = info.steps.length > 0
+  const updatingCli = info.channel !== "unknown" && (info.channel === "source" || hasAvailableUpdate(info));
+  const actionLines = updatingCli && info.steps.length > 0
     ? info.steps.map((step, index) => index === 0
       ? `${accent(messages.tui.updateAction)}${separator}${formatUpdateStep(step)}`
       : `  ${formatUpdateStep(step)}`)
@@ -151,6 +152,7 @@ export function renderTuiUpdate(info: UpdateInfo, messages: Messages): void {
       "",
       status,
       ...(actionLines.length > 0 ? ["", ...actionLines] : []),
+      ...(info.skills ? ["", ...messages.update.skillPlan(info.skills, updatingCli).split("\n"), messages.update.skillReload] : []),
       ...(notes ? ["", notes] : [])
     ], width, messages.tui.updateCardTitle)),
     ""

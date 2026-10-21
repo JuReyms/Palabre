@@ -173,6 +173,9 @@ async function inspectArrival(
     if (isRetiredAgentName(name) || ((agent.type === "cli" || agent.type === "cli-pty") && isRetiredAgentName(normalizeCommandName(agent.command)))) lines.push(warn(m.retiredAgent(name)));
   }
   lines.push(local.skills.length ? info(m.skillPresent(local.skills.join(", "))) : warn(m.skillMissing));
+  for (const copy of local.skillCopies) {
+    lines.push(copy.state === "current" ? ok(m.skillCurrent(copy.directory)) : warn(m.skillDifferent(copy.directory, copy.state === "unreadable")));
+  }
   for (const installation of local.duplicates) {
     const inspect = (options.platform ?? process.platform) === "win32"
       ? `Get-Command ${installation.command} -All | Select-Object Source` : `type -a ${installation.command}`;

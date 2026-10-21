@@ -241,22 +241,24 @@ If your help does not offer `--new` in `palabre relay --help` or `--prune-trust`
 To install it for your agents on this machine, across all your projects:
 
 ```text
-npx skills add JuReyms/Palabre --skill palabre --global
+palabre skill --install codex
+palabre skill --install claude
 ```
 
-This uses the [skills tool](https://github.com/vercel-labs/skills), downloads the skill from the repository and lets you select agents. Review the choices before confirming. For a copy-based installation, follow [the skill guide](/en/get-started/skill) and copy the entire folder, including references.
+Run only the command for the intended agent. The skill comes from the running CLI package without network access; review the plan before confirming. Replaced customizations are backed up outside skill directories. For older CLIs without this command, follow [the skill guide](/en/get-started/skill) and copy the entire bundled folder, including references.
 
-Without `-y`, selection is interactive. With `-y`, confirmations are skipped and the skill may be installed for all detected agents. To limit the targets, name them explicitly with `--agent`, for example:
+For existing copies, preview and then refresh:
 
 ```text
-npx skills add JuReyms/Palabre --skill palabre --global --agent claude-code codex
+palabre skill --sync --dry-run
+palabre skill --sync
 ```
 
-An agent preparing the installation must not add `-y` on its own. You choose the agents and confirm installation.
+An agent preparing installation must not add `--yes` without your consent. You select the agents and confirm the plan.
 
-The `skills` tool has its own Node requirements, which may be higher than PALABRE's. If `npx` reports `EBADENGINE`, update Node to meet those requirements or use copy-based installation.
+External tools such as `npx skills add/update` follow the GitHub repository rather than the installed CLI version; do not use them to certify that correspondence.
 
-An installed copy is not updated by `palabre update`: explicitly reinstall or copy it again after the skill changes. Check that only one version remains active for each agent, then open a new conversation so it can discover the skill.
+`palabre update` also offers refreshing detected copies in its single confirmation, with backups and preserved junctions. Check that only one version remains active for each agent, then reload the skill or resume the conversation.
 
 ## 5. Check with doctor
 

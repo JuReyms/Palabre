@@ -51,6 +51,7 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
   apply: { arity: "boolean" },
   "clear-defaults": { arity: "boolean" },
   "sync-agents": { arity: "boolean" },
+  sync: { arity: "boolean" },
   "sync-ollama-model": { arity: "boolean" },
   "ollama-models": { arity: "boolean" },
   // Valeur unique.
@@ -58,6 +59,7 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
   "agent-b": { arity: "single" },
   config: { arity: "single" },
   interface: { arity: "single" },
+  install: { arity: "single" },
   language: { arity: "single" },
   limit: { arity: "single" },
   "model-a": { arity: "single" },
@@ -93,6 +95,7 @@ const COMMANDS = new Set([
   "help",
   "version",
   "update",
+  "skill",
   "doctor",
   "config",
   "agent",
