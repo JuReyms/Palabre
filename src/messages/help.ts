@@ -275,7 +275,8 @@ Limites :
   palabre relay --to <agent>:<session> "<suite>" ; aucun renvoi automatique après un échec.
   Sans --write, aucune écriture en arrière-plan. Avec les versions Codex vérifiées,
   une cible créée par --new n'est pas listée dans Desktop, mais reste joignable par Relay.
-  Pour la suivre dans l'app, ouvrir le lien codex://threads/<id> affiché ; ensuite, --open.
+  Pour la suivre dans l'app, le propriétaire ouvre le lien codex://threads/<id> affiché
+  (jamais un agent à sa place) ; ensuite, --open.
   --write exige --new, un dépôt Git et une config déjà approuvée. Aucun --open, --task ou --trust-config.
   Le premier appel ne lance pas de modèle : write-approval-required (8), writeRequest et remedy.
   Le propriétaire lance approve-write dans un terminal visible (entrée ET sortie TTY), relit tâche,
@@ -652,8 +653,8 @@ Limits:
   a continuation command. In JSON, use to.session with
   palabre relay --to <agent>:<session> "<follow-up>". No automatic retry.
   Without --write, no background writing. With verified Codex versions, a target created by --new
-  is not listed in Desktop but remains reachable through Relay. To follow it in the app, open the
-  codex://threads/<id> link shown after creation; then use --open.
+  is not listed in Desktop but remains reachable through Relay. To follow it in the app, the owner
+  opens the codex://threads/<id> link shown after creation (never an agent); then use --open.
   --write requires --new, a Git repository and an already trusted config. No --open, --task or --trust-config.
   The first call starts no model: write-approval-required (8), writeRequest and remedy.
   The owner runs approve-write in a visible terminal (both input and output TTY), checks task, agent,

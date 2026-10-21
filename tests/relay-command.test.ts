@@ -972,6 +972,8 @@ describe('Relay : création et expéditeur facultatif', () => {
       if (provider === 'codex') {
         assert.ok(text.stderr.includes(`codex://threads/${NEW_IDS.codex}`));
         assert.match(text.stderr, /--open/); assert.match(text.stderr, /permissions de Codex Desktop/);
+        // Garde-fou sans skill : la sortie réserve l'ouverture au propriétaire.
+        assert.match(text.stderr, /un agent ne l'ouvre jamais à sa place/);
       } else assert.ok(!text.stderr.includes('codex://'));
     });
 
@@ -988,7 +990,7 @@ describe('Relay : création et expéditeur facultatif', () => {
   test('lien Codex Desktop : texte anglais après création, jamais sur une reprise', async () => {
     const created = await relay(makeWorld(), ['--new', '--to', 'codex', 'Question', '--trust-config', '--language', 'en', '--no-export']);
     assert.equal(created.code, 0, created.stderr);
-    assert.ok(created.stderr.includes(`To follow it in Codex Desktop, open this link: codex://threads/${NEW_IDS.codex}`));
+    assert.ok(created.stderr.includes(`Codex Desktop link, to hand to the owner: codex://threads/${NEW_IDS.codex}`));
     const w = makeWorld();
     const resumed = await relay(w, ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--json']);
     assert.equal(resumed.code, 0, resumed.stdout + resumed.stderr);
