@@ -75,7 +75,7 @@ The conversation remains in the CLI history and can be resumed through Relay. Fo
 
 Each exchange states where it happens, on a "Mode" line:
 
-- **Background**: the teammate replies with no visible window, read-only. This applies to a closed conversation or one created by `--new`.
+- **Background**: the teammate replies with no visible window; PALABRE requests read-only access, with the conditional guarantees described below. This applies to a closed conversation or one created by `--new`.
 - **In the desktop app**: the conversation is open in Codex Desktop (or in the Codex terminal) and visible; the teammate keeps this conversation's permissions there (`--open`).
 
 In background, a Codex conversation also shows its `codex://threads/<identifier>` link, clickable in a terminal that supports it, and the command to open it yourself:

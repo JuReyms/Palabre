@@ -994,7 +994,7 @@ describe('Relay : création et expéditeur facultatif', () => {
     assert.equal(created.code, 0, created.stderr);
     assert.ok(created.stderr.includes(`Codex Desktop link, to hand to the owner: codex://threads/${NEW_IDS.codex}`));
     assert.ok(created.stderr.includes(`To open it yourself: ${opener} "codex://threads/${NEW_IDS.codex}"`));
-    assert.ok(created.stderr.includes('Mode: background — codex replies with no visible window, read-only.'));
+    assert.ok(created.stderr.includes('Mode: background — codex replies with no visible window; PALABRE requests read-only access.'));
     // Sortie non TTY : aucune séquence OSC 8.
     assert.ok(!created.stderr.includes('\u001b]8;;'));
     const resumed = await relay(makeWorld(), ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--json']);
@@ -1007,7 +1007,7 @@ describe('Relay : création et expéditeur facultatif', () => {
     assert.ok(text.stderr.includes(`Pour l'ouvrir vous-même : ${opener} "codex://threads/${CODEX_SESSION}"`));
     const claude = await relay(makeWorld(), ['--to', `claude:${CLAUDE_SESSION}`, 'Question', '--trust-config', '--no-export']);
     assert.ok(!claude.stderr.includes('codex://'), 'jamais pour Claude');
-    assert.ok(claude.stderr.includes('Mode : arrière-plan — claude répond sans fenêtre visible, en lecture seule.'));
+    assert.ok(claude.stderr.includes('Mode : arrière-plan — claude répond sans fenêtre visible ; PALABRE demande la lecture seule.'));
   });
 
   test('refus d\'arguments : mode présent en JSON, aucune ligne Mode ni lien', async () => {

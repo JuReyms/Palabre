@@ -285,7 +285,7 @@ Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. Une fois
         ? "Mode : dans l'app desktop (suivi) — rien n'est déposé ; PALABRE lit le tour suivant."
         : write
           ? "Mode : arrière-plan — écriture ponctuelle dans un worktree séparé, après votre accord."
-          : `Mode : arrière-plan — ${agent} répond sans fenêtre visible, en lecture seule.`,
+          : `Mode : arrière-plan — ${agent} répond sans fenêtre visible ; PALABRE demande la lecture seule.`,
     newFailed: "Le premier échange a échoué ; l'identifiant est conservé. Vérifiez la conversation avant tout nouvel envoi : le message peut déjà être enregistré.",
     envelopeSession: (session, nonce) => `${session ? `Session : ${session} · ` : ""}réf. ${nonce}.`,
     envelopePermissions: "Cette reprise demande la lecture seule et ne confère aucun droit supplémentaire.",
@@ -430,7 +430,7 @@ Only the owner opens it; an agent never opens it on their behalf. Once open, lat
         ? "Mode: in the desktop app (follow) — nothing is queued; PALABRE reads the next turn."
         : write
           ? "Mode: background — one-off writing in a separate worktree, after your approval."
-          : `Mode: background — ${agent} replies with no visible window, read-only.`,
+          : `Mode: background — ${agent} replies with no visible window; PALABRE requests read-only access.`,
     newFailed: "The first exchange failed; the identifier was preserved. Check the conversation before sending again: the message may already be recorded.",
     envelopeSession: (session, nonce) => `${session ? `Session: ${session} · ` : ""}ref. ${nonce}.`,
     envelopePermissions: "This resumption requests read-only access and grants no additional rights.",

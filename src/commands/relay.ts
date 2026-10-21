@@ -116,7 +116,8 @@ export interface RelayResultV1 {
   exportPath: string | null;
   durationMs: number;
   /**
-   * Mode de l'échange, toujours présent (#190, ajout v1) : `background` (conversation fermée ou
+   * Mode de l'échange, émis à chaque résultat (#190). Ajout facultatif du contrat v1 : les
+   * consommateurs tolèrent son absence (versions antérieures) ; ce type producteur le garantit. `background` (conversation fermée ou
    * créée, sans fenêtre visible), `open` (conversation ouverte dans l'app) ou `follow` (#195).
    */
   mode: RelayMode;
@@ -942,16 +943,20 @@ export function applyReviewCancellation(result: RelayResultV1, interrupted: bool
   result.error = { kind: "cancelled", message: messages.relay.status("cancelled") };
 }
 
+/** Issues d'une reprise où la présence de la conversation n'est pas établie : pas de lien. */
+const UNPROVEN_TARGET = new Set<RelayStatus>(["session-not-found", "invalid-request", "command-not-found", "cancelled", "internal-error"]);
+
 /**
  * Lien `codex://threads/…` d'une conversation Codex suivie **en arrière-plan** : créée par ce relay
  * dès que son identifiant est connu, même si le premier tour a échoué (#179), ou reprise fermée
  * (#190). Jamais pour Claude, ni en mode `open`/`follow` (la conversation est déjà dans l'app), ni
- * pour une cible introuvable ou un refus d'arguments. Aucun champ JSON n'est ajouté : une
- * intégration construit le même lien depuis `to.session`.
+ * pour une reprise dont la conversation n'est pas établie (cible introuvable, refus, CLI absente,
+ * annulation, défaut interne). Aucun champ JSON n'est ajouté : une intégration construit le même
+ * lien depuis `to.session`.
  */
 export function relayDesktopLink(result: RelayResultV1): string | undefined {
   if (result.mode !== "background" || !result.to?.session || result.to.provider !== "codex") return undefined;
-  if (!result.created && (result.status === "session-not-found" || result.status === "invalid-request")) return undefined;
+  if (!result.created && UNPROVEN_TARGET.has(result.status)) return undefined;
   return codexDesktopThreadLink(result.to.session);
 }
 
