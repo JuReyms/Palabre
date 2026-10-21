@@ -40,6 +40,7 @@ import { runSessionsCommand } from "./commands/sessions.js";
 import { runInitCommand } from "./commands/init.js";
 import { runPresetsCommand } from "./commands/presets.js";
 import { runRelayCommand } from "./commands/relay.js";
+import { runRelayViewCommand } from "./commands/relayView.js";
 import { runMissionCommand } from "./commands/mission.js";
 import { runUpdateCommand } from "./commands/update.js";
 import { runSkillCommand } from "./commands/skill.js";
@@ -113,6 +114,11 @@ async function main(): Promise<void> {
     return;
   }
 
+  // Préférence sensible : aucune autre mutation ni approbation implicite avant son handler strict.
+  if (parsed.command === "config" && parsed.flags["relay-view"] !== undefined) {
+    await runRelayViewCommand([...rawArgs.slice(0, commandIndex), ...rawArgs.slice(commandIndex + 1)]);
+    return;
+  }
   // Maintenance does not consume the project config or grant trust to it.
   if (parsed.command === "config" && parsed.flags["prune-trust"]) {
     await runPruneTrustCommand(parsed.flags, parsed.positionals);

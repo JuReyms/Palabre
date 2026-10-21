@@ -235,6 +235,8 @@ export interface RelayExport {
    * sans ce champ reste un échange en arrière-plan.
    */
   mode?: "background" | "open" | "follow";
+  /** Origine du mode choisi par la CLI, sans autorité supplémentaire. */
+  modeSource?: import("./externalSessions/relayView.js").RelayModeSource;
   /** Suivi `--open --follow` (#195) : aucun dépôt, donc ni référence ni message transmis. */
   follow?: {
     correlation: string | null;
@@ -263,6 +265,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
   const rows = [
     [labels.palabreVersion, metadata.palabreVersion],
     [labels.mode, `${mode} — ${labels.modeNames[mode]}`],
+    ...(report.modeSource ? [["modeSource", report.modeSource]] : []),
     [labels.from, report.from ? `${report.from.agent}${report.from.session ? `:${report.from.session}` : ""}` : messages.relay.terminalSender],
     [labels.to, `${report.to.agent}${report.to.session ? `:${report.to.session}` : ""}`],
     ...(report.created !== undefined ? [[labels.created, formatBoolean(report.created)], [labels.cwd, report.cwd ?? labels.unknown]] : []),

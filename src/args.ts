@@ -59,6 +59,7 @@ const FLAG_SPECS: Record<string, FlagSpec> = {
   "agent-b": { arity: "single" },
   config: { arity: "single" },
   interface: { arity: "single" },
+  "relay-view": { arity: "single" },
   install: { arity: "single" },
   language: { arity: "single" },
   limit: { arity: "single" },

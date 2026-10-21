@@ -104,6 +104,8 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 
 ## `relay`
 
+`view` est facultatif : `auto` (défaut) ou `background`. Un bloc `{ "view": "background" }` est valide sans autoriser de revue. En `auto`, PALABRE suit le verrou d'une conversation Codex existante ; les parcours exclus restent en arrière-plan. Ce réglage peut changer les permissions d'un tour : seul le propriétaire le modifie avec `palabre config --relay-view <auto|background>`, après affichage du fichier et confirmation clavier TTY, sans `--yes` ni `--trust-config`. Voir [Mode Relay](/fr/usage/relay).
+
 | Champ | Type | Description |
 | --- | --- | --- |
 | `allowedTasks` | string[] | Tâche préautorisable : `review` seulement. |

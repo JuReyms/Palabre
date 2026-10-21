@@ -37,6 +37,7 @@ export async function runAgentsCommand(flags: CommandFlags): Promise<void> {
       roles: VALID_AGENT_ROLES,
       agents: listAgentsWithAvailability(config, discovery, messages),
       defaults: {
+        relayView: config.relay?.view ?? "auto",
         askAgents: config.defaults?.askAgents?.length
           ? config.defaults.askAgents.filter((name) => !isRetiredAgentName(name))
           : fallbackAskAgents
