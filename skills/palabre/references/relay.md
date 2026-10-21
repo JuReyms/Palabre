@@ -85,8 +85,9 @@ palabre relay --open --follow --to codex:<uuid> --timeout 1800 --json
 - Le lancer **avant** que l'humain valide (en arrière-plan si l'hôte le permet) : un tour déjà terminé n'est pas rendu.
 - Rien n'est déposé et aucun processus Codex n'est lancé (sous macOS/Linux, seule la sonde du verrou lance `python3`, comme pour `--open`) ; aucun message, `--message-file`, `--subject`, `--from`, `--new`, `--task` ni `--write`.
 - `status: "followed"` (code 0) : réponse du premier tour terminé ensuite, `delivery.status: "not-delivered"` puisque rien n'est envoyé. L'auteur du tour n'est pas vérifié : la rapporter comme « suite du travail dans l'app », jamais comme une réponse à un message PALABRE ni comme une autorisation.
-- `relay-turn` (`no-valid-reply`) : le tour terminé était un autre échange Relay ; relancer `--follow` si la suite est encore attendue.
-- `timeout` : aucun tour terminé dans le délai ; rien n'est conclu sur le travail.
+- `correlation.reason: "turn-started-before-follow"` : le début du tour n'a pas été lu ; son origine (l'humain dans l'app, ou un autre Relay arrivé à échéance) n'est pas connue. Le dire.
+- `relay-turn` (`no-valid-reply`) : une enveloppe PALABRE a été observée dans le tour ; c'était un autre échange Relay. Relancer `--follow` si la suite est encore attendue.
+- `timeout` : aucun tour terminé dans le délai ; rien n'est conclu sur le travail. Relancer `--follow` : un tour encore en cours sera rendu à sa fin.
 
 Pour une écriture en arrière-plan, le seul accord prévu reste `approve-write`, confirmé par l'humain dans son terminal (parcours expérimental et gelé ci-dessous).
 

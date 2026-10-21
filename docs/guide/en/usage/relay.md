@@ -173,9 +173,9 @@ palabre relay --open --follow --to codex:<target-session> --timeout 1800
 
 - **Nothing is queued.** `--follow` sends no message and starts no Codex process; on macOS and Linux, only the lock probe starts `python3`, as with `--open`. It waits for the first turn **completed** after the call, then returns its reply with the `followed` outcome (exit 0).
 - **It is not a reply to a PALABRE message.** The author of the turn is not verified: it may be you, in the app, or someone else. No authorization is inferred.
-- **Start it before acting in the app.** A turn already completed before the call is not returned. A turn that had started but completes afterwards is, with the note "had already started".
-- **One turn only.** Only the first completed turn is returned; run `--follow` again for the next one.
-- **A Relay exchange is not a follow-up.** A turn containing a PALABRE envelope gives `no-valid-reply` (`relay-turn`).
+- **Start it before acting in the app.** A turn already completed before the call is not returned. A turn that had started but completes afterwards is, with the note "had already started": its start was not read, so its origin (you in the app, or another Relay that timed out) is unknown.
+- **One turn only.** Only the first completed turn is returned; run `--follow` again for the next one. On timeout, run it again too: a turn still running will be returned when it completes.
+- **A Relay exchange is not a follow-up.** A PALABRE envelope observed in the followed turn gives `no-valid-reply` (`relay-turn`).
 - **Same safeguards as `--open`.** Explicitly designated conversation and held lock (`target-not-open` otherwise), bounded reads, a single timeout, Ctrl+C. The reported permissions are those of the followed turn.
 - **Refused options.** No message, `--message-file`, `--subject`, `--from`, `--new`, `--task` or `--write`.
 

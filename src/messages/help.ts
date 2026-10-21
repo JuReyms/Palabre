@@ -341,8 +341,10 @@ Avec --open --follow (suivre la suite) :
   --open) : il attend le premier tour terminé après l'appel et rend sa réponse avec
   l'issue followed (code 0). Ce n'est pas la réponse à un message PALABRE, et l'auteur du tour
   n'est pas vérifié ; aucune autorisation n'en est déduite. Lancer --follow avant d'agir dans
-  l'app : un tour déjà terminé n'est pas rendu. Un tour qui contient une enveloppe PALABRE reste
-  no-valid-reply (relay-turn). Interdit avec un message, --message-file, --subject, --from, --new,
+  l'app : un tour déjà terminé n'est pas rendu. Une enveloppe PALABRE observée dans le tour donne
+  no-valid-reply (relay-turn) ; un tour commencé avant l'appel est rendu sans que son origine (app
+  ou autre Relay) soit connue. Échéance : relancer --follow ; un tour encore en cours sera rendu.
+  Interdit avec un message, --message-file, --subject, --from, --new,
   --task ou --write. JSON : mode follow, delivery not-delivered (rien n'est envoyé), sans queue.
 
 Garanties conditionnelles :
@@ -761,8 +763,10 @@ With --open --follow (follow what happens next):
   for the first turn completed after the call and returns its reply with the
   followed outcome (exit 0). This is not the reply to a PALABRE message, and the author of the
   turn is not verified; no authorization is inferred. Start --follow before acting in the app:
-  a turn already completed is not returned. A turn containing a PALABRE envelope stays
-  no-valid-reply (relay-turn). Not allowed with a message, --message-file, --subject, --from,
+  a turn already completed is not returned. A PALABRE envelope observed in the turn gives
+  no-valid-reply (relay-turn); a turn started before the call is returned with its origin (app
+  or another Relay) unknown. On timeout, run --follow again; a turn still running will be returned.
+  Not allowed with a message, --message-file, --subject, --from,
   --new, --task or --write. JSON: mode follow, delivery not-delivered (nothing is sent), no queue.
 
 Conditional guarantees:

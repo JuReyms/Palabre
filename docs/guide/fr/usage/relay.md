@@ -173,9 +173,9 @@ palabre relay --open --follow --to codex:<session-cible> --timeout 1800
 
 - **Rien n'est déposé.** `--follow` n'envoie aucun message et ne lance aucun processus Codex ; sous macOS et Linux, seule la sonde du verrou lance `python3`, comme pour `--open`. Il attend le premier tour **terminé** après l'appel, puis rend sa réponse avec l'issue `followed` (code 0).
 - **Ce n'est pas une réponse à un message PALABRE.** L'auteur du tour n'est pas vérifié : ce peut être vous, dans l'app, ou quelqu'un d'autre. Aucune autorisation n'en est déduite.
-- **Lancez-le avant d'agir dans l'app.** Un tour déjà terminé avant l'appel n'est pas rendu. Un tour déjà commencé mais terminé ensuite l'est, avec la mention « avait déjà commencé ».
-- **Un seul tour.** Seul le premier tour terminé est rendu ; relancez `--follow` pour le suivant.
-- **Un échange Relay n'est pas une suite.** Un tour qui contient une enveloppe PALABRE donne `no-valid-reply` (`relay-turn`).
+- **Lancez-le avant d'agir dans l'app.** Un tour déjà terminé avant l'appel n'est pas rendu. Un tour déjà commencé mais terminé ensuite l'est, avec la mention « avait déjà commencé » : son début n'a pas été lu, donc son origine (vous dans l'app, ou un autre Relay arrivé à échéance) n'est pas connue.
+- **Un seul tour.** Seul le premier tour terminé est rendu ; relancez `--follow` pour le suivant. À l'échéance, relancez-le aussi : un tour encore en cours sera rendu à sa fin.
+- **Un échange Relay n'est pas une suite.** Une enveloppe PALABRE observée dans le tour suivi donne `no-valid-reply` (`relay-turn`).
 - **Mêmes garde-fous que `--open`.** Conversation désignée explicitement et verrou tenu (`target-not-open` sinon), lectures bornées, un seul délai, Ctrl+C. Les permissions relevées sont celles du tour suivi.
 - **Options refusées.** Pas de message, ni `--message-file`, `--subject`, `--from`, `--new`, `--task` ou `--write`.
 
