@@ -125,6 +125,8 @@ Si vous êtes d'accord, validez dans la fenêtre ou le terminal de l'équipier. 
 
 Après votre validation, rien n'est renvoyé automatiquement : continuer est une nouvelle demande explicite. Le premier message est souvent déjà dans la conversation de l'équipier ; il n'est pas renvoyé.
 
+Si l'équipier travaille dans une conversation ouverte, votre validation lance un nouveau tour que le Relay initial n'écoute plus. Pour en récupérer le résultat, le chef de mission lance `--follow` juste avant que vous validiez (section « Suivre la suite d'une conversation ouverte », plus bas).
+
 ## Désigner les conversations
 
 - `--to <agent>:<session>` : `<agent>` est le nom d'un agent CLI Codex ou Claude Code de votre configuration (`codex`, `claude`, `claude-opus`…). `<session>` est l'identifiant de la conversation (un UUID).
@@ -160,6 +162,22 @@ Un contexte AGENTS.md ou d'environnement reconnu avant l'enveloppe ne fait plus 
 Une saisie libre reconnue par la forme `user.text`, après l'enveloppe et avant la réponse finale, reste `no-valid-reply` (2), avec `correlation.reason: "user-input-during-turn"`. Vérifiez la conversation cible avant tout renvoi : le travail a pu être fait. Ce diagnostic ne prouve ni identité, ni autorisation, ni clic humain. Les enveloppes d'agent, doublons et formats inconnus restent ambigus.
 
 Le format réel d'une réponse liée à une question n'a pas été retrouvé dans les historiques locaux disponibles : ce cas reste ambigu et aucun champ `humanInput` n'est émis. La consigne aux agents reste de ne poser aucune question pendant un tour reçu par Relay ; rapporter questions et blocages dans la réponse finale. #146 reste partiellement ouverte ; cette correction ne valide pas le choix Desktop par défaut de #190.
+
+### Suivre la suite d'une conversation ouverte (`--follow`)
+
+Un appel Relay attend la réponse à **son** message, puis s'arrête. Quand cette réponse est « j'attends ta confirmation », la suite se joue dans un nouveau tour, lancé par vous depuis l'app : aucun appel ne l'écoute, et l'équipier ne prévient jamais en retour.
+
+```bash
+palabre relay --open --follow --to codex:<session-cible> --timeout 1800
+```
+
+- **Rien n'est déposé.** `--follow` n'envoie aucun message et ne lance aucun processus Codex ; sous macOS et Linux, seule la sonde du verrou lance `python3`, comme pour `--open`. Il attend le premier tour **terminé** après l'appel, puis rend sa réponse avec l'issue `followed` (code 0).
+- **Ce n'est pas une réponse à un message PALABRE.** L'auteur du tour n'est pas vérifié : ce peut être vous, dans l'app, ou quelqu'un d'autre. Aucune autorisation n'en est déduite.
+- **Lancez-le avant d'agir dans l'app.** Un tour déjà terminé avant l'appel n'est pas rendu. Un tour déjà commencé mais terminé ensuite l'est, avec la mention « avait déjà commencé » : son début n'a pas été lu, donc son origine (vous dans l'app, ou un autre Relay arrivé à échéance) n'est pas connue.
+- **Un seul tour.** Seul le premier tour terminé est rendu ; relancez `--follow` pour le suivant. À l'échéance, relancez-le aussi : un tour encore en cours sera rendu à sa fin.
+- **Un échange Relay n'est pas une suite.** Une enveloppe PALABRE observée dans le tour suivi donne `no-valid-reply` (`relay-turn`).
+- **Mêmes garde-fous que `--open`.** Conversation désignée explicitement et verrou tenu (`target-not-open` sinon), lectures bornées, un seul délai, Ctrl+C. Les permissions relevées sont celles du tour suivi.
+- **Options refusées.** Pas de message, ni `--message-file`, `--subject`, `--from`, `--new`, `--task` ou `--write`.
 
 ## Conversation fermée par défaut
 
@@ -317,6 +335,7 @@ Après une fermeture normale du chef de mission, reprendre avec `status`, puis u
 | `--task review` | **Gelée.** Revue en lecture seule publiée en COMMENT par PALABRE si autorisée ; message facultatif, incompatible avec `--open` et `--trust-config`. |
 | `--pr <url>` | URL exacte d’une PR github.com ; obligatoire avec `--task review`. |
 | `--open` | Vise une conversation Codex ouverte (voir plus haut). |
+| `--follow` | Avec `--open` seulement : ne dépose rien et rend le premier tour terminé après l'appel (`followed`). |
 | `--subject "<objet>"` | Objet facultatif, une ligne non vide de 200 caractères Unicode au plus, sans contrôle ni formatage Unicode ; JSON/export `subject?`. |
 | `--timeout <secondes>` | Délai maximal, de 10 à 3600 secondes (600 par défaut). |
 | `--json` | Un seul objet JSON v1 sur stdout, quelle que soit l'issue. |

@@ -125,6 +125,8 @@ If you agree, approve it in the teammate's window or terminal. In a closed conve
 
 After you approve, nothing is resent automatically: continuing is a new explicit request. The first message is often already in the teammate's conversation; it is not sent again.
 
+If the teammate works in an open conversation, your approval starts a new turn that the initial Relay no longer listens to. To get its result, the mission lead starts `--follow` just before you approve (section "Follow what happens next in an open conversation", below).
+
 ## Designating conversations
 
 - `--to <agent>:<session>`: `<agent>` is the name of a Codex or Claude Code CLI agent from your configuration (`codex`, `claude`, `claude-opus`…). `<session>` is the conversation identifier (a UUID).
@@ -160,6 +162,22 @@ Recognized AGENTS.md or environment context before the envelope no longer loses 
 Free input recognized by the `user.text` form, after the envelope and before the final reply, stays `no-valid-reply` (2), with `correlation.reason: "user-input-during-turn"`. Check the target conversation before any resend: the work may have been done. This diagnostic proves neither identity, authorization, nor a human click. Agent envelopes, duplicates and unknown formats remain ambiguous.
 
 The actual format of a linked reply to a question was not found in available local histories: that case remains ambiguous and no `humanInput` field is emitted. Agents should still ask no questions during a turn received through Relay, instead reporting questions and blockers in the final reply. #146 remains partly open; this fix does not qualify Desktop as the default choice in #190.
+
+### Follow what happens next in an open conversation (`--follow`)
+
+A Relay call waits for the reply to **its** message, then stops. When that reply is "waiting for your confirmation", what follows happens in a new turn that you start from the app: no call is listening to it, and the teammate never reports back.
+
+```bash
+palabre relay --open --follow --to codex:<target-session> --timeout 1800
+```
+
+- **Nothing is queued.** `--follow` sends no message and starts no Codex process; on macOS and Linux, only the lock probe starts `python3`, as with `--open`. It waits for the first turn **completed** after the call, then returns its reply with the `followed` outcome (exit 0).
+- **It is not a reply to a PALABRE message.** The author of the turn is not verified: it may be you, in the app, or someone else. No authorization is inferred.
+- **Start it before acting in the app.** A turn already completed before the call is not returned. A turn that had started but completes afterwards is, with the note "had already started": its start was not read, so its origin (you in the app, or another Relay that timed out) is unknown.
+- **One turn only.** Only the first completed turn is returned; run `--follow` again for the next one. On timeout, run it again too: a turn still running will be returned when it completes.
+- **A Relay exchange is not a follow-up.** A PALABRE envelope observed in the followed turn gives `no-valid-reply` (`relay-turn`).
+- **Same safeguards as `--open`.** Explicitly designated conversation and held lock (`target-not-open` otherwise), bounded reads, a single timeout, Ctrl+C. The reported permissions are those of the followed turn.
+- **Refused options.** No message, `--message-file`, `--subject`, `--from`, `--new`, `--task` or `--write`.
 
 ## Closed conversations by default
 
@@ -317,6 +335,7 @@ After the mission lead exits normally, resume with `status`, then a new `step` u
 | `--task review` | **Frozen.** Read-only review published by PALABRE as COMMENT when authorized; optional message, incompatible with `--open` and `--trust-config`. |
 | `--pr <url>` | Exact github.com PR URL; required with `--task review`. |
 | `--open` | Targets an open Codex conversation (see above). |
+| `--follow` | With `--open` only: queues nothing and returns the first turn completed after the call (`followed`). |
 | `--subject "<subject>"` | Optional subject, one nonblank line of at most 200 Unicode characters, without control or formatting characters; JSON/export `subject?`. |
 | `--timeout <seconds>` | Maximum duration, 10 to 3600 seconds (default 600). |
 | `--json` | A single JSON v1 object on stdout, whatever the outcome. |

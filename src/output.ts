@@ -230,6 +230,11 @@ export interface RelayExport {
     receiver: string;
     targetPermissions: string | null;
   };
+  /** Suivi `--open --follow` (#195) : aucun dépôt, donc ni référence ni message transmis. */
+  follow?: {
+    correlation: string | null;
+    targetPermissions: string | null;
+  };
 }
 
 /**
@@ -262,7 +267,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     [labels.inActiveBranch, formatBoolean(report.delivery.inActiveBranch)],
     [labels.identity, report.identity ?? labels.none],
     [labels.observedModels, report.observedModels.length > 0 ? report.observedModels.join(", ") : labels.none],
-    [labels.nonce, report.nonce],
+    [labels.nonce, report.nonce || labels.none],
     [labels.startedAt, report.startedAt],
     ...(report.readAccess ? [[labels.readAccess, `${report.readAccess.status}; ${report.readAccess.reason}; failedCommands=${report.readAccess.failedCommands}${report.readAccess.succeededCommands === undefined ? "" : `; succeededCommands=${report.readAccess.succeededCommands}`}`]] : []),
     ...(report.retryAfter !== undefined ? [[labels.retryAfter, String(report.retryAfter)]] : []),
@@ -280,6 +285,14 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
         [labels.receiver, report.open.receiver],
         [labels.targetPermissions, report.open.targetPermissions ?? labels.unknown]
       ]
+      : []),
+    ...(report.follow
+      ? [
+        [labels.mode, "follow"],
+        [labels.correlation, report.follow.correlation ?? labels.none],
+        [labels.receiver, "unverified"],
+        [labels.targetPermissions, report.follow.targetPermissions ?? labels.unknown]
+      ]
       : [])
   ];
   const content = [
@@ -289,7 +302,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     "| --- | --- |",
     ...rows.map(([label, value]) => `| ${escapeTableCell(label!)} | ${escapeTableCell(value!)} |`),
     "",
-    `> ${report.write ? relayWriteText(report.write.language).exportNotice : report.open ? labels.openNotice : labels.readOnlyNotice}`,
+    `> ${report.write ? relayWriteText(report.write.language).exportNotice : report.follow ? messages.relay.open.followNotice : report.open ? labels.openNotice : labels.readOnlyNotice}`,
     "",
     // Un relay réussi n'a pas de section Erreur : l'avertissement doit donc exister par lui-même.
     // Une seule copie : quand l'erreur porte déjà l'avertissement (`blocked`, échec enrichi), la

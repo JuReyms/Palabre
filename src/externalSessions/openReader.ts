@@ -1,6 +1,7 @@
 /**
  * @file Relay B1 (`palabre relay --open`) : corrélation d'une réponse Codex dans un rollout (voir
- * AGENTS.md, section "Relay externe", et `scripts/prototypes/relay/CONTRAT-B1.md`).
+ * AGENTS.md, section "Relay externe", et `scripts/prototypes/relay/CONTRAT-B1.md`), et suivi du tour
+ * suivant sans dépôt (`--open --follow`, #195, `inspectFollowedTurn`).
  * Fonctions pures : aucun accès disque, envoi, attente, reprise ni appel de modèle. Le dialecte
  * expérimental utilise les item_completed liés à un thread et à un tour, observés avec Codex 0.151.0
  * (TUI) et 0.160.1 (app-server de Codex desktop) sous Windows ; ce n'est pas un schéma public.
@@ -176,6 +177,41 @@ export function captureOpenBaseline(reference: OpenReference): OpenBaseline {
 }
 
 /**
+ * Contrôles communs au relay et au suivi : référence valide, identité de la conversation, témoin
+ * inchangé, ajout borné et complet. Rend les lignes terminées de l'ajout, ou le code d'une lecture
+ * inexploitable. Une dernière ligne incomplète est ignorée jusqu'au prochain snapshot.
+ */
+function freshRows(snapshot: OpenSnapshot, threadId: string, baseline: OpenBaseline): JsonObject[] | string {
+  if (!Number.isSafeInteger(baseline.bytes) || baseline.bytes <= 0 || !/^[a-f0-9]{64}$/.test(baseline.sha256)
+    || !/^[a-f0-9]{64}$/.test(baseline.firstLineSha256)) return "invalid-baseline";
+  if (!Number.isSafeInteger(snapshot.bytes) || snapshot.bytes < baseline.bytes) return "history-replaced";
+  if (Buffer.byteLength(snapshot.firstLine) > OPEN_READ_LIMITS.firstLineBytes) return "identity-too-large";
+  let identity: JsonObject | undefined;
+  try { identity = object(JSON.parse(snapshot.firstLine)); } catch { return "identity-mismatch"; }
+  if (!snapshot.firstLine.endsWith("\n") || identity?.type !== "session_meta" || object(identity.payload)?.id !== threadId) return "identity-mismatch";
+  if (digest(Buffer.from(snapshot.firstLine)) !== baseline.firstLineSha256
+    || snapshot.witness.byteLength !== Math.min(baseline.bytes, OPEN_READ_LIMITS.witnessBytes)
+    || digest(snapshot.witness) !== baseline.sha256) return "history-replaced";
+  if (snapshot.added.byteLength > OPEN_READ_LIMITS.addedBytes || snapshot.bytes - baseline.bytes > OPEN_READ_LIMITS.addedBytes) return "added-too-large";
+  if (snapshot.added.byteLength !== snapshot.bytes - baseline.bytes) return "incomplete-snapshot";
+  // Décoder seulement les lignes terminées, même si un caractère UTF-8 chevauche la fin lue.
+  const added = Buffer.from(snapshot.added.buffer, snapshot.added.byteOffset, snapshot.added.byteLength);
+  let text: string;
+  try { text = new TextDecoder("utf-8", { fatal: true }).decode(added.subarray(0, added.lastIndexOf(10) + 1)); }
+  catch { return "invalid-utf8"; }
+  const fresh: JsonObject[] = [];
+  for (const line of text.split("\n").slice(0, -1)) {
+    if (!line.trim()) continue;
+    let row: JsonObject | undefined;
+    try { row = object(JSON.parse(line)); } catch { return "invalid-json-line"; }
+    if (!row || typeof row.type !== "string") return "invalid-record";
+    if (row.type === "session_meta") return "identity-mismatch";
+    fresh.push(row);
+  }
+  return fresh;
+}
+
+/**
  * Observe uniquement l'ajout depuis l'offset. Une dernière ligne incomplète est ignorée jusqu'au
  * prochain snapshot ; une ligne terminée invalide ou un témoin changé interdit tout succès.
  *
@@ -191,33 +227,8 @@ export function captureOpenBaseline(reference: OpenReference): OpenBaseline {
 export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): OpenObservation {
   const unreadable = (reason: string): OpenObservation => ({ status: "unreadable", persisted: "unknown", reason });
   if (!request.threadId || !request.nonce || !request.envelope.includes(request.nonce)) return unreadable("invalid-request");
-  const baseline = request.baseline;
-  if (!Number.isSafeInteger(baseline.bytes) || baseline.bytes <= 0 || !/^[a-f0-9]{64}$/.test(baseline.sha256)
-    || !/^[a-f0-9]{64}$/.test(baseline.firstLineSha256)) return unreadable("invalid-baseline");
-  if (!Number.isSafeInteger(snapshot.bytes) || snapshot.bytes < baseline.bytes) return unreadable("history-replaced");
-  if (Buffer.byteLength(snapshot.firstLine) > OPEN_READ_LIMITS.firstLineBytes) return unreadable("identity-too-large");
-  let identity: JsonObject | undefined;
-  try { identity = object(JSON.parse(snapshot.firstLine)); } catch { return unreadable("identity-mismatch"); }
-  if (!snapshot.firstLine.endsWith("\n") || identity?.type !== "session_meta" || object(identity.payload)?.id !== request.threadId) return unreadable("identity-mismatch");
-  if (digest(Buffer.from(snapshot.firstLine)) !== baseline.firstLineSha256
-    || snapshot.witness.byteLength !== Math.min(baseline.bytes, OPEN_READ_LIMITS.witnessBytes)
-    || digest(snapshot.witness) !== baseline.sha256) return unreadable("history-replaced");
-  if (snapshot.added.byteLength > OPEN_READ_LIMITS.addedBytes || snapshot.bytes - baseline.bytes > OPEN_READ_LIMITS.addedBytes) return unreadable("added-too-large");
-  if (snapshot.added.byteLength !== snapshot.bytes - baseline.bytes) return unreadable("incomplete-snapshot");
-  // Décoder seulement les lignes terminées, même si un caractère UTF-8 chevauche la fin lue.
-  const added = Buffer.from(snapshot.added.buffer, snapshot.added.byteOffset, snapshot.added.byteLength);
-  let text: string;
-  try { text = new TextDecoder("utf-8", { fatal: true }).decode(added.subarray(0, added.lastIndexOf(10) + 1)); }
-  catch { return unreadable("invalid-utf8"); }
-  const fresh: JsonObject[] = [];
-  for (const line of text.split("\n").slice(0, -1)) {
-    if (!line.trim()) continue;
-    let row: JsonObject | undefined;
-    try { row = object(JSON.parse(line)); } catch { return unreadable("invalid-json-line"); }
-    if (!row || typeof row.type !== "string") return unreadable("invalid-record");
-    if (row.type === "session_meta") return unreadable("identity-mismatch");
-    fresh.push(row);
-  }
+  const fresh = freshRows(snapshot, request.threadId, request.baseline);
+  if (typeof fresh === "string") return unreadable(fresh);
   const users = fresh.filter((row) => {
     const payload = object(row.payload);
     return row.type === "response_item" && payload?.type === "message" && payload.role === "user" && contentText(payload.content) === request.envelope;
@@ -340,6 +351,103 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
   const reply = contentText(object(final.item)?.content);
   if (reply === undefined || reply.trim() === "" || typeof completion.last_agent_message !== "string" || completion.last_agent_message !== reply) return observation("ambiguous", "completion-text-mismatch", turnId);
   return { status: "replied", persisted: true, reason: "correlated-final", turnId, reply, ...withContext(turnId) };
+}
+
+/** Suivi (#195) : aucun message n'est déposé, seule la référence borne la recherche. */
+export interface OpenFollowRequest {
+  threadId: string;
+  baseline: OpenBaseline;
+}
+
+/**
+ * Observation du premier tour terminé après la référence. `followed` ne relie la réponse à aucun
+ * message PALABRE : le tour a pu être lancé depuis l'app, par un humain ou non, et son auteur n'est
+ * pas vérifié. `startObserved` vaut `false` quand le tour avait commencé avant la référence.
+ */
+export interface FollowObservation {
+  status: "awaiting-turn" | "followed" | "failed" | "ambiguous" | "unreadable";
+  reason: string;
+  turnId?: string;
+  reply?: string;
+  startObserved?: boolean;
+  /** Indication CLI du seul tour suivi, comme pour `--open`. Jamais issue d'un texte de modèle. */
+  retryAfter?: number | string;
+  context?: OpenTurnContext;
+}
+
+/** Fins de tour reconnues ; les formes d'échec restent celles déjà supposées par `inspectOpenReply`. */
+const TURN_ENDS = ["task_complete", "error", "turn_aborted", "task_cancelled", "task_failed"];
+/** Nonce d'une enveloppe PALABRE : un tour qui en contient une est un échange Relay, pas une suite. */
+const RELAY_NONCE = /PR-[a-f0-9]{16}/;
+
+/**
+ * Suivi (`--open --follow`, #195) : rend le **premier** tour qui se termine après la référence, sans
+ * dépôt ni corrélation à une enveloppe. Les tours suivants sont ignorés : un nouvel appel les suivra.
+ *
+ * Succès : une seule fin `task_complete` pour ce tour, sans `error`, une seule réponse `final_answer`
+ * liée à la conversation, placée avant la fin et de texte identique à `last_agent_message`. Un tour
+ * qui contient une enveloppe PALABRE reste ambigu (`relay-turn`) : sa réponse appartient à un autre
+ * relay. Fonction pure ; aucune autorisation, aucun auteur ni aucun clic humain n'en est déduit.
+ */
+export function inspectFollowedTurn(snapshot: OpenSnapshot, request: OpenFollowRequest): FollowObservation {
+  if (!request.threadId) return { status: "unreadable", reason: "invalid-request" };
+  const fresh = freshRows(snapshot, request.threadId, request.baseline);
+  if (typeof fresh === "string") return { status: "unreadable", reason: fresh };
+  const payloadOf = (row: JsonObject) => object(row.payload);
+  const eventRows = fresh.filter((row) => row.type === "event_msg" && payloadOf(row) !== undefined);
+  const end = eventRows.find((row) => {
+    const event = payloadOf(row)!;
+    return TURN_ENDS.includes(String(event.type)) && typeof event.turn_id === "string" && event.turn_id !== "";
+  });
+  if (!end) return { status: "awaiting-turn", reason: "no-completed-turn" };
+  const endEvent = payloadOf(end)!;
+  const turnId = endEvent.turn_id as string;
+  const turnRows = eventRows.filter((row) => payloadOf(row)!.turn_id === turnId);
+  const turn = turnRows.map((row) => payloadOf(row)!);
+  const observation = (status: FollowObservation["status"], reason: string): FollowObservation => {
+    const context = status === "failed" ? turnContextOf(fresh, turnId) : undefined;
+    return { status, reason, turnId, ...(context ? { context } : {}) };
+  };
+  if (turn.some((event) => event.thread_id !== undefined && event.thread_id !== request.threadId)) return observation("ambiguous", "foreign-thread-event");
+  const startRow = turnRows.find((row) => payloadOf(row)!.type === "task_started");
+  const startObserved = startRow !== undefined && fresh.indexOf(startRow) < fresh.indexOf(end);
+  // Un tour qui porte une enveloppe PALABRE est un échange Relay : sa réponse n'est pas une suite.
+  const boundRelay = turn.some((event) => event.type === "item_completed" && object(event.item)?.type === "UserMessage"
+    && RELAY_NONCE.test(contentText(object(event.item)?.content) ?? ""));
+  const rawRelay = fresh.slice(startObserved ? fresh.indexOf(startRow!) : 0, fresh.indexOf(end)).some((row) => {
+    const payload = payloadOf(row);
+    return row.type === "response_item" && payload?.type === "message" && payload.role === "user" && RELAY_NONCE.test(contentText(payload.content) ?? "");
+  });
+  if (boundRelay || rawRelay) return observation("ambiguous", "relay-turn");
+  if (endEvent.type !== "task_complete") return observation("failed", "turn-failed-or-cancelled");
+  if (turn.filter((event) => event.type === "task_complete").length !== 1) return observation("ambiguous", "multiple-completions");
+  const completionError = object(endEvent.error);
+  if (completionError?.codex_error_info === "usage_limit_exceeded") {
+    const retryAfter = typeof completionError.message === "string" ? extractRetryAfter(completionError.message.slice(0, 4096)) : undefined;
+    return { ...observation("failed", "usage-limit"),
+      ...(retryAfter !== undefined && (typeof retryAfter === "string" || Number.isFinite(retryAfter) && retryAfter >= 0) ? { retryAfter } : {}) };
+  }
+  if (endEvent.error !== undefined && endEvent.error !== null) return observation("failed", "completion-error");
+  if (endEvent.status !== undefined && endEvent.status !== "completed") return observation("failed", "unsuccessful-completion");
+  const finals = turnRows.filter((row) => {
+    const event = payloadOf(row)!;
+    return event.type === "item_completed" && object(event.item)?.type === "AgentMessage" && object(event.item)?.phase === "final_answer";
+  });
+  if (finals.length !== 1) return observation("ambiguous", finals.length === 0 ? "final-not-observed" : "multiple-finals");
+  const final = payloadOf(finals[0]!)!;
+  if (fresh.indexOf(finals[0]!) > fresh.indexOf(end)) return observation("ambiguous", "invalid-event-order");
+  if (final.thread_id !== request.threadId) return observation("ambiguous", "unidentified-final-thread");
+  const reply = contentText(object(final.item)?.content);
+  if (reply === undefined || reply.trim() === "" || endEvent.last_agent_message !== reply) return observation("ambiguous", "completion-text-mismatch");
+  const context = turnContextOf(fresh, turnId);
+  return {
+    status: "followed",
+    reason: startObserved ? "turn-completed" : "turn-started-before-follow",
+    turnId,
+    reply,
+    startObserved,
+    ...(context ? { context } : {})
+  };
 }
 
 /**
