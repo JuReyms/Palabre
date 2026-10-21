@@ -14,7 +14,8 @@
  * localisation est bornée et le dépôt passe par `codex queue` (`runOpenRelay`). La cible garde ses
  * outils et permissions ; les champs JSON propres à `--open` n'apparaissent qu'avec cette option.
  *
- * `--open --follow` (#195) ne dépose rien : sans message ni processus lancé, il attend le premier
+ * `--open --follow` (#195) ne dépose rien : sans message ni processus Codex (seule la sonde de
+ * verrou, `python3` sous macOS/Linux, est lancée comme pour `--open`), il attend le premier
  * tour terminé après l'appel dans la conversation ouverte et rend sa réponse en `followed`, avec un
  * auteur non vérifié. Il sert à reprendre la suite d'un tour lancé depuis l'app (confirmation, etc.).
  */
@@ -344,7 +345,8 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const provider = externalSessionProviderForCommand(agent.command);
   if (!provider) throw invalid("unsupported-agent");
   context.provider = provider;
-  // Le suivi ne lance aucun processus : l'exécutable de la cible n'est pas résolu.
+  // Le suivi ne lance aucun processus Codex : l'exécutable de la cible n'est pas résolu. Seule la
+  // sonde de verrou partagée avec `--open` peut lancer `python3` sous macOS/Linux.
   if (context.follow) {
     if (provider !== "codex") throw invalid("unsupported-agent", context.messages.relay.open.unsupportedProvider);
     return relayFollow(context, {
@@ -546,7 +548,8 @@ async function relayOpen(
 }
 
 /**
- * `--open --follow` (#195) : suivi du premier tour terminé après l'appel, sans dépôt ni processus.
+ * `--open --follow` (#195) : suivi du premier tour terminé après l'appel, sans dépôt ni processus
+ * Codex ; sous macOS/Linux, la sonde de verrou lance `python3`, comme pour `--open`.
  * Même localisation bornée et même verrou que `--open`. La délivrance reste `not-delivered` : aucun
  * message n'a été envoyé. Export seulement quand une lecture a eu lieu.
  */

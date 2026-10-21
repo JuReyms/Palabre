@@ -171,7 +171,7 @@ A Relay call waits for the reply to **its** message, then stops. When that reply
 palabre relay --open --follow --to codex:<target-session> --timeout 1800
 ```
 
-- **Nothing is queued.** `--follow` sends no message and starts no Codex process. It waits for the first turn **completed** after the call, then returns its reply with the `followed` outcome (exit 0).
+- **Nothing is queued.** `--follow` sends no message and starts no Codex process; on macOS and Linux, only the lock probe starts `python3`, as with `--open`. It waits for the first turn **completed** after the call, then returns its reply with the `followed` outcome (exit 0).
 - **It is not a reply to a PALABRE message.** The author of the turn is not verified: it may be you, in the app, or someone else. No authorization is inferred.
 - **Start it before acting in the app.** A turn already completed before the call is not returned. A turn that had started but completes afterwards is, with the note "had already started".
 - **One turn only.** Only the first completed turn is returned; run `--follow` again for the next one.

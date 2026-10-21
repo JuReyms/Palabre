@@ -171,7 +171,7 @@ Un appel Relay attend la réponse à **son** message, puis s'arrête. Quand cett
 palabre relay --open --follow --to codex:<session-cible> --timeout 1800
 ```
 
-- **Rien n'est déposé.** `--follow` n'envoie aucun message et ne lance aucun processus Codex. Il attend le premier tour **terminé** après l'appel, puis rend sa réponse avec l'issue `followed` (code 0).
+- **Rien n'est déposé.** `--follow` n'envoie aucun message et ne lance aucun processus Codex ; sous macOS et Linux, seule la sonde du verrou lance `python3`, comme pour `--open`. Il attend le premier tour **terminé** après l'appel, puis rend sa réponse avec l'issue `followed` (code 0).
 - **Ce n'est pas une réponse à un message PALABRE.** L'auteur du tour n'est pas vérifié : ce peut être vous, dans l'app, ou quelqu'un d'autre. Aucune autorisation n'en est déduite.
 - **Lancez-le avant d'agir dans l'app.** Un tour déjà terminé avant l'appel n'est pas rendu. Un tour déjà commencé mais terminé ensuite l'est, avec la mention « avait déjà commencé ».
 - **Un seul tour.** Seul le premier tour terminé est rendu ; relancez `--follow` pour le suivant.

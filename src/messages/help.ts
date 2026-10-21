@@ -337,7 +337,8 @@ Avec --open (pilote Codex ; Windows, macOS et Linux) :
 Avec --open --follow (suivre la suite) :
   Quand la conversation attend une action dans l'app (par exemple une confirmation), la suite se
   joue dans un nouveau tour qu'aucun appel Relay n'écoute. --follow ne dépose rien et ne lance
-  aucun processus : il attend le premier tour terminé après l'appel et rend sa réponse avec
+  aucun processus Codex (sous macOS/Linux, seule la sonde du verrou lance python3, comme pour
+  --open) : il attend le premier tour terminé après l'appel et rend sa réponse avec
   l'issue followed (code 0). Ce n'est pas la réponse à un message PALABRE, et l'auteur du tour
   n'est pas vérifié ; aucune autorisation n'en est déduite. Lancer --follow avant d'agir dans
   l'app : un tour déjà terminé n'est pas rendu. Un tour qui contient une enveloppe PALABRE reste
@@ -756,7 +757,8 @@ With --open (Codex pilot; Windows, macOS, and Linux):
 With --open --follow (follow what happens next):
   When the conversation waits for an action in the app (for example a confirmation), what follows
   happens in a new turn that no Relay call is listening to. --follow queues nothing and starts no
-  process: it waits for the first turn completed after the call and returns its reply with the
+  Codex process (on macOS/Linux, only the lock probe starts python3, as with --open): it waits
+  for the first turn completed after the call and returns its reply with the
   followed outcome (exit 0). This is not the reply to a PALABRE message, and the author of the
   turn is not verified; no authorization is inferred. Start --follow before acting in the app:
   a turn already completed is not returned. A turn containing a PALABRE envelope stays
