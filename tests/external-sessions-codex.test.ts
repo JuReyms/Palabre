@@ -50,6 +50,12 @@ test("erreur 5 de démarrage de commande : diagnostic distinct de la réponse va
   // Relecture indépendante de #174 : une réussite n'en est une qu'avec `exit_code: 0`, et seulement
   // si elle précède la réponse finale.
   const ok = { ...item, status: "completed", exit_code: 0, aggregated_output: "README lu" };
+  // Une réussite explicite reste prioritaire sur un événement ambigu, dans les deux ordres.
+  const ambiguous = { ...ok, exit_code: undefined };
+  for (const later of [[ok, ambiguous], [ambiguous, ok]]) {
+    assert.deepEqual(run([{ type: "item.completed", item }, ...later.map(item => ({ type: "item.completed", item }))]).readAccess,
+      { status: "partial", reason: "windows-process-access-denied", failedCommands: 1, succeededCommands: 1 });
+  }
   const blocked = { status: "blocked", reason: "windows-process-access-denied", failedCommands: 1 };
   assert.deepEqual(run([{ type: "item.completed", item }, { type: "item.completed", item: { ...ok, exit_code: 1 } }]).readAccess, blocked);
   assert.deepEqual(run([{ type: "item.completed", item }, { type: "item.completed", item: { ...ok, exit_code: undefined } }]).readAccess,

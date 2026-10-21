@@ -170,7 +170,8 @@ function isRefusedLaunch(item: JsonObject): boolean {
  *
  * Une commande n'est réussie que si elle est `completed` avec `exit_code: 0`. Un code entier non
  * nul est un échec ordinaire. Un statut inconnu, ou `completed` sans code entier, n'est pas
- * interprétable : une réussite ne pouvant pas être écartée, le repli explicite est `unverified`.
+ * interprétable : sans autre réussite explicite, le repli est `unverified`. Une réussite explicite
+ * donne toujours priorité à `partial`, même si un autre événement est ambigu.
  */
 function diagnoseReadAccess(events: JsonObject[]): ExchangeInterpretation["readAccess"] {
   const items = events.map((event) => (event.type === "item.completed" ? asObject(event.item) : undefined));

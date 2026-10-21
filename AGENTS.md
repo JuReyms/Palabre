@@ -580,8 +580,9 @@ l'adapter qualifie uniquement les événements terminés `command_execution`, `f
 **démarrages de processus refusés, pas des lectures** : il ne prouve ni un accès ni une
 impossibilité de lire, puisque l'agent peut lire autrement. `interpretCodexOutput` examine les
 commandes terminées après le premier refus et avant la réponse finale : une réussite (`completed`, `exit_code: 0`) donne `status: "partial"` avec
-`succeededCommands`, aucune réussite donne `"blocked"`, et un événement non interprétable donne
-`"unverified"`. Relay conserve réponse, identité et délivrance. `partial` et `unverified`
+`succeededCommands`, même si un autre événement est ambigu. Sans réussite explicite, un événement
+non interprétable donne `"unverified"` ; sans réussite ni événement ambigu, le statut est `"blocked"`.
+Relay conserve réponse, identité et délivrance. `partial` et `unverified`
 conservent l'issue ; `blocked` dégrade une réponse reçue en `read-unavailable`/2. Un échange déjà
 en échec garde son propre code, enrichi de l'avertissement. Le rendu texte,
 l'export `.relay.md` et l'export Mission affichent cet avertissement même sans erreur. Mission
@@ -592,8 +593,9 @@ défait pas ; Mission s'y met en pause. Ne jamais contourner ce refus par une pu
 d'agent, une réexécution automatique ou un élargissement du sandbox. La prose du modèle n'est pas
 analysée. L'absence du diagnostic et une autre commande réussie ne prouvent pas les lectures
 nécessaires. `read-unavailable` reste dans `RelayStatus` et `RELAY_EXIT_CODES` et couvre le cas
-`blocked` ; le contrat JSON v1 ajoute seulement la valeur optionnelle `partial` et le champ
-optionnel `succeededCommands`.
+`blocked` ; le contrat JSON v1 ajoute les valeurs `partial` et `unverified` de `readAccess.status`
+et le champ optionnel `succeededCommands` pour `partial`. Les intégrations tolèrent les champs et
+valeurs d'énumération inconnus, sans les assimiler à un succès.
 
 Méthode Relay (#168) : un agent chef de mission propose la délégation de lui-même. Quand un travail se découpe (relecture, recherche, lot indépendant, vérification), il n'attend pas que l'humain y pense. Petite délégation attendue (relecture ou recherche en lecture seule) dans un travail déjà validé : il l'annonce en une ligne, qui fait quoi, puis la fait. Délégation qui engage (écriture, plusieurs équipiers, quota important, nouveau chantier) : une question claire, une seule fois pour tout le lot, dont la réponse vaut pour la suite du lot. Jamais une demande d'autorisation à chaque appel. La mise en garde contre l'usage réflexe vaut pour une question simple que l'hôte traite seul, pas pour ce découpage. Déléguer n'élargit aucun droit. Si l'équipier demande une autorisation (écriture, commande, accès), le chef de mission ne la relaie jamais : l'enveloppe n'accorde aucun droit et le refus de l'équipier est voulu (#187). Il s'arrête et dit à l'humain, en une phrase, où valider ; la relance après validation est une nouvelle demande explicite, jamais un renvoi automatique. Aucun mécanisme d'accord transmis par Relay. Petits lots, résultat concret, corrections regroupées, contexte utile et preuves sans recopier l'historique. Réutiliser les vérifications encore valides, les relancer si un changement ou un doute le justifie, pour réduire coordination et quotas sans perdre en fiabilité. Pour la documentation : CI et contrôles ciblés ; pour les données, la sécurité ou l'écriture : vérification indépendante. Un agent différent de l'auteur relit ; les rôles sont interchangeables. Demande : objet humain via `--subject`, puis objectif, liens, à faire, interdit, preuves attendues, format de réponse. Réponse : cinq lignes Fait, Vérifié, Bloqué, Prochaine action, Décision attendue, puis preuves et détail. Tout texte à valider accompagne la demande de décision. Pendant un tour reçu par Relay, aucune question à l'humain : texte, décisions et blocages dans la réponse finale. Les gabarits sont dans le skill et `references/relay.md` ; la CLI ne les analyse pas, n'ajoute aucun champ JSON et ne déduit jamais une réussite de ces lignes.
 
@@ -1471,7 +1473,9 @@ Ajouter aussi un label de zone quand le perimetre est clair : `area: cli`, `area
 
 `--new --to <agent>` crée une conversation persistante Claude/Codex en reprenant la même politique que Relay fermé. Le dossier est courant par défaut, ou `--dir` (création seulement). Aucun `--last`, aucune reprise implicite, aucun `--open` avec `--new`. Les adapters fournissent `createArgs` et extraient l'identité des événements structurés ; le lanceur les observe pendant stdout. L'identifiant initial est conservé même après erreur/annulation et sert à vérifier la réponse et le nonce dans l'historique. Avant cet événement, ne jamais chercher un historique avec un identifiant vide.
 
-Le JSON v1 ajoute `created` et `cwd` pour `--new` seulement : `created` signifie identifiant reçu, pas succès du tour ; `to.session` est null avant réception. La sortie et l'export conservent ces informations sans retry. `from` vaut null si absent ; un nom seul donne `{ agent }`, une référence donne `{ agent, session }`. `SenderRef` permet cette souplesse, tandis que `SessionRef` garde son UUID strict pour les cibles existantes et Mission. Le terminal est aussi un expéditeur déclaratif, jamais une autorisation humaine. L'affichage Desktop et l'écriture par un équipier ne sont pas établis par ce lot.
+Le JSON v1 ajoute `created` et `cwd` pour `--new` seulement : `created` signifie identifiant reçu, pas succès du tour ; `to.session` est null avant réception. La sortie et l'export conservent ces informations sans retry. `from` vaut null si absent ; un nom seul donne `{ agent }`, une référence donne `{ agent, session }`. `SenderRef` permet cette souplesse, tandis que `SessionRef` garde son UUID strict pour les cibles existantes et Mission. Le terminal est aussi un expéditeur déclaratif, jamais une autorisation humaine. L'écriture par un équipier n'est pas établie par ce lot.
+
+Lien Desktop (#188, après #150) : après création d'une conversation Codex, le texte et l'export `.relay.md` affichent `codex://threads/<id>`. Aucun champ JSON n'est ajouté : une intégration construit le lien depuis `to.session`. La conversation créée par la CLI n'est pas listée dans Desktop avec les versions vérifiées ; seul le propriétaire ouvre le lien, jamais l'agent. L'ouverture avec historique a été vérifiée sous Windows (Codex Desktop 26.1013.40934) seulement ; macOS et Linux restent à vérifier pour ce lien. Une fois ouverte dans Desktop, Relay utilise `--open` et les permissions de Desktop, sans élargissement implicite.
 
 
 ### Codex Windows : alias PowerShell Store (#128)

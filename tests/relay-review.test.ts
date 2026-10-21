@@ -75,6 +75,7 @@ test("lectures bloquées : aucune commande GitHub, réponse et délivrance conse
     assert.equal(result.task!.publication, "not-attempted"); assert.equal(result.task!.error, "read-unavailable");
     assert.equal(result.reply, before.reply); assert.deepEqual(result.delivery, before.delivery);
     assert.ok(result.error!.message.includes(messages.relay.status("read-unavailable")));
+    assert.match(result.error!.message, language === "fr" ? /lectures requises insuffisamment établies/ : /required reads were not established with sufficient certainty/);
     assert.match(renderRelayText(result, messages).stderr, /not-attempted/);
     const guide = `https://palab.re/${language}/troubleshooting`;
     assert.ok(result.error!.message.includes("WindowsApps\\pwsh.exe"));

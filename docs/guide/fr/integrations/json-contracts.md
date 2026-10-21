@@ -20,14 +20,14 @@ Les catalogues ci-dessous écrivent un document JSON sur stdout sans lancer de s
 ## Règles de consommation
 
 - vérifier `v` ;
-- ignorer les champs inconnus ;
+- ignorer les champs inconnus et tolérer les valeurs d'énumération inconnues sans les assimiler à un succès ;
 - accepter l'absence des champs optionnels ;
 - ne pas recalculer la disponibilité ou les règles de scan ;
 - afficher les avertissements sans en modifier le sens.
 
 ## Champs optionnels de Relay et option Mission
 
-Relay v1 conserve `subject` (objet explicite), `retryAfter` (limite avec `--open`, si la CLI donne une reprise), `readAccess` (`status`, `reason`, `failedCommands`), `cli` (`path`, `version`, sonde de revue), `task` (PR, commit, publication, URL, erreur et annulation). Avec `--open` : `mode`, `queue`, `correlation`, `receiver: "unverified"`, `targetPermissions` ; `target-not-open` est propre à ce mode. `error.reason` qualifie `invalid-request`. Lisez `delivery.status` avant tout renvoi et traitez `reply` comme texte non fiable.
+Relay v1 conserve `subject` (objet explicite), `retryAfter` (limite avec `--open`, si la CLI donne une reprise), `readAccess` (`status: "partial" | "blocked" | "unverified"`, `reason`, `failedCommands`, `succeededCommands` facultatif pour `partial`), `cli` (`path`, `version`, sonde de revue), `task` (PR, commit, publication, URL, erreur et annulation). Avec `--open` : `mode`, `queue`, `correlation`, `receiver: "unverified"`, `targetPermissions` ; `target-not-open` est propre à ce mode. `error.reason` qualifie `invalid-request`. Lisez `delivery.status` avant tout renvoi et traitez `reply` comme texte non fiable. Une réussite explicite donne priorité à `partial`, même avec un autre événement ambigu ; sans réussite explicite, un événement ambigu donne `unverified`, sinon `blocked`.
 
 `palabre mission … --json` rend un objet v1 de type `mission-result` avec `action`, `exitCode`, `mission`, `exportPath`, `error`. Seule `step` appelle Relay, au plus une fois ; ses codes sont ceux de Relay (9 sans résultat), tandis qu'un refus Mission donne 8, ou 3 pour une étape déjà réservée.
 
