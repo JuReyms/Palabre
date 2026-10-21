@@ -73,14 +73,14 @@ Le rôle et le cadre ne donnent aucun droit supplémentaire. Aucun plafond de co
 Initialise explicitement une configuration Palabre.
 
 Note:
-  palabre sans argument cree deja la configuration globale au premier lancement TUI.
+  palabre sans argument crée déjà la configuration globale au premier lancement TUI.
 
 Usage:
   palabre init [flags]
 
 Flags:
-  --local              cree ./palabre.config.json
-  --language <fr|en>   definit la langue
+  --local              crée ./palabre.config.json
+  --language <fr|en>   définit la langue
   --config <path>      chemin de config explicite
 `,
   "agent-role": `
@@ -92,11 +92,11 @@ Usage:
 Exemple:
   palabre agent-role claude critic
 
-Roles:
+Rôles:
   implementer, reviewer, architect, scout, critic, summarizer
 `,
   agents: `
-Liste les agents declares dans la config.
+Liste les agents déclarés dans la config.
 
 Usage:
   palabre agents [flags]
@@ -104,7 +104,7 @@ Usage:
 Flags:
   --config <path>      chemin de config explicite
   --language <fr|en>   force la langue
-  --json               sortie JSON pour les integrations
+  --json               sortie JSON pour les intégrations
 `,
   presets: `
 Liste les presets de paires d'agents.
@@ -113,7 +113,7 @@ Usage:
   palabre presets [flags]
 
 Flags:
-  --json               sortie structuree pour integrations
+  --json               sortie structurée pour intégrations
   --config <path>      chemin de config explicite
 `,
   history: `
@@ -124,8 +124,8 @@ Usage:
   palabre historique [flags]
 
 Flags:
-  --json               sortie structuree pour integrations
-  --limit <nombre>     nombre d'exports (1 a 100, defaut: 10)
+  --json               sortie structurée pour intégrations
+  --limit <nombre>     nombre d'exports (1 à 100, défaut : 10)
   --config <path>      chemin de config explicite
 `,
   historique: `
@@ -136,22 +136,22 @@ Usage:
   palabre historique [flags]
 
 Flags:
-  --json               sortie structuree pour integrations
-  --limit <nombre>     nombre d'exports (1 a 100, defaut: 10)
+  --json               sortie structurée pour intégrations
+  --limit <nombre>     nombre d'exports (1 à 100, défaut : 10)
   --config <path>      chemin de config explicite
 `,
   context: `
-Scanne le contexte projet avec les memes regles que --context.
+Scanne le contexte projet avec les mêmes règles que --context.
 
 Usage:
   palabre context scan [paths...] [flags]
 
 Flags:
-  --json               sortie structuree pour integrations
+  --json               sortie structurée pour intégrations
   --language <fr|en>   force la langue des avertissements
 `,
   config: `
-Configure les agents par defaut, la synthese, le nombre de reponses et la langue.
+Configure les agents par défaut, la synthèse, le nombre de réponses et la langue.
 
 Usage:
   palabre config
@@ -160,7 +160,7 @@ Usage:
   palabre config -t <number>
   palabre config --summary-agent <name|none>
   palabre config --ask-summary-agent <name|none>
-  palabre config --mode <debate|ask>
+  palabre config --mode <chat|debate|ask>
   palabre config --ask-agents <names...>
   palabre config --interface <tui|terminal>
   palabre config --relay-view <auto|background> # propriétaire : confirmation clavier TTY, aucun --yes
@@ -175,13 +175,16 @@ Usage:
   À lancer vous-même dans votre terminal ; aucun --yes. Les fichiers existants sont conservés.
 
 Flags:
-  --clear-defaults     supprime les parametres par defaut
-  --sync-agents        ajoute les agents detectes ; conserve les commandes avec chemin absolu
+  --clear-defaults     supprime les paramètres par défaut
+  --sync-agents        ajoute les agents détectés ; conserve les commandes avec chemin absolu
                        Chemin absent : indisponible ; aucun repli vers une autre installation.
+  --ollama-models      liste les modèles Ollama ; --json : sortie structurée
+  --set-ollama-model <modèle> choisit un modèle installé pour ollama-local
+  --sync-ollama-model  remplace le modèle ollama-local absent par un modèle installé
   --config <path>      chemin de config explicite
 `,
   new: `
-Assistant interactif pour preparer un debat.
+Assistant interactif pour préparer un Débat ou un Ask.
 
 Usage:
   palabre new [flags]
@@ -191,8 +194,8 @@ Flags:
   --language <fr|en>   force la langue
 `,
   doctor: `
-Verifie l'approbation, PowerShell Windows, les connexions Claude/Codex et le skill.
-Ne modifie rien. Sondes status bornees sur config approuvee, aucun appel modele.
+Vérifie l'approbation, PowerShell Windows, les connexions Claude/Codex et le skill.
+Ne modifie rien. Sondes status bornées sur configuration approuvée, aucun appel modèle.
 
 Usage:
   palabre doctor [flags]
@@ -203,7 +206,7 @@ Flags:
   --language <fr|en>   force la langue
 `,
   update: `
-Affiche ou execute les etapes de mise a jour.
+Affiche ou exécute les étapes de mise à jour.
 Le même plan et la même confirmation couvrent le skill des copies détectées.
 Après mise à jour, la source est le paquet nouvellement installé, avec sauvegardes
 sous ~/.palabre/skill-backups, jonctions et ajouts privés conservés.
@@ -214,8 +217,8 @@ Usage:
   palabre update [flags]
 
 Flags:
-  --check              verifie canal et version sans modifier
-  --dry-run            previsualise les etapes sans modifier
+  --check              vérifie canal et version sans modifier
+  --dry-run            prévisualise les étapes sans modifier
   --yes                confirme l'application sans prompt
   --apply              alias compatible de --yes
   --config <path>      chemin de config explicite
@@ -403,68 +406,124 @@ Flags:
   --language <fr|en>   force la langue
 `,
   run: `
-Lance un debat entre deux agents.
+Lance un Débat, un Ask ou un Chat selon --mode ou le mode configuré.
 
 Usage:
-  palabre "Sujet"
-  palabre -s "Sujet" -t 4
-  palabre <preset> "Sujet" -t 4
+  palabre run --mode debate --preset codex-claude -s "Sujet" -t 4
+  palabre run --mode ask --agents codex claude -s "Sujet"
+  palabre run --mode chat --agent-a codex -s "Contexte initial"
 
-Flags:
-  -s, --subject <text> sujet du debat
-  -t, --turns <n>      nombre total de reponses
-  --preset <name>      preset d'agents
-  --agent-a <name>     premier agent
-  --agent-b <name>     second agent
-  --ollama-url <url>   surcharge l'adresse Ollama pour cette conversation
-  --tui                force l'interface TUI
-  --terminal           force le rendu terminal brut
-  --renderer <kind>    auto, pretty, plain, tui ou ndjson
-  --show-prompt        affiche le prompt sans appeler d'agent
-  --dry-run            prévisualise la conversation sans appeler d'agent ni écrire d'export
-  --checkpoint         conserve un état de reprise sous .palabre/sessions
+Sans --mode, le mode configuré s'applique aussi aux formes courtes :
+  palabre <preset> "Sujet" ; palabre -s "Sujet"
+Un preset n'est pas utilisable en Chat ; voir palabre chat --help.
+
+Agents et mode :
+  --mode <debate|ask|chat> mode de cette session, sans modifier la configuration
+  -s, --subject <texte>   sujet (--topic : alias compatible)
+  -t, --turns <n>         limite de réponses du Débat (1 à 20)
+  --preset <nom>          paire d'agents (palabre presets)
+  --agent-a <nom>         agent A ; agent actif en Chat
+  --agent-b <nom>         agent B du Débat
+  --agents <noms...>      participants Ask (1 à 4)
+  --role-a <rôle>         rôle temporaire de A ; --role-b <rôle> : rôle de B
+  --ask-role <rôle>       rôle commun temporaire en Ask
+
+Contexte et modèles :
+  --files <chemins...>   fichiers précis (64 Kio chacun, 192 Kio au total)
+  --context <chemins...> fichiers ou dossiers à parcourir avec limites et exclusions
+  --model-a <modèle>     modèle brut de A ; --model-b <modèle> : modèle de B
+  --ollama-url <url>     adresse Ollama pour cette session
+  --pull-models         autorise le téléchargement d'un modèle Ollama manquant
+
+Synthèse et préparation (Débat/Ask seulement) :
+  --summary-agent <nom>  agent de synthèse
+  --summary-model <m>    modèle brut de synthèse
+  --no-summary          désactive la synthèse
+  --no-early-stop       impose tous les tours du Débat
+  --show-prompt         affiche le prompt sans appeler d'agent
+  --dry-run             prévisualise sans appel d'agent ni export
+  --checkpoint          permet une reprise avec palabre resume <id>
+
+Affichage et configuration :
+  --tui                  force l'interface TUI
+  --terminal             force le rendu terminal brut (--plain et --no-tui : alias)
+  --renderer <kind>      auto, pretty, plain, tui ou ndjson ; --json : flux NDJSON
+  --language <fr|en>     langue de cette session
+  --config <chemin>      configuration à utiliser
+  --trust-config        approuve la configuration ; décision du propriétaire
+
 `,
 chat: `
-Discute avec un agent unique dans une conversation locale stateless.
+Discutez avec un agent, et demandez un second avis si nécessaire.
 
-Chaque reponse est generee par un nouvel appel de la CLI de l'agent. Palabre
-reinjecte l'historique accumule dans ce nouvel appel ; aucune conversation persistante
-n'est donc ouverte chez l'agent. Sans sujet initial, le premier message devient simplement le contexte de la conversation.
+Palabre transmet au maximum les six derniers messages à chaque réponse.
+Le sujet et les fichiers fournis restent disponibles. La conversation ne peut pas
+être reprise après fermeture de Palabre. Sans sujet initial, le premier message
+devient le contexte de la conversation.
 
-Pendant la conversation, \`/consult <agent>\` demande un second avis puis \`/use <agent>\` permet de poursuivre avec cet agent. Palabre ne déclenche jamais une consultation seule.
+Pendant la conversation :
+  /consult <agent>      demande un second avis sans remplacer l'agent actif
+  /use <agent>          continue avec cet agent
+  /agents               liste les agents disponibles
+  /end                  enregistre l'export .chat.md et termine
+  /exit, /home          termine sans export ; fin de l'entrée : même effet
 
-\`/end\` enregistre l'export ; \`/exit\`, \`/home\` ou la fin de l'entrée terminent sans export. Une ligne vide est ignorée. \`--dry-run\` est refusé en Chat.
+Une ligne vide est ignorée. --dry-run est refusé en Chat.
+--checkpoint et --show-prompt ne fournissent pas de reprise ni d'aperçu Chat.
 
 Usage:
   palabre chat --agent-a codex
-  palabre chat "Contexte initial" --agent-a codex
+  palabre chat "Contexte initial" --agent-a codex --files src/auth.ts
 
 Flags:
-  --agent-a <name>     agent de conversation (ou agent A par defaut)
-  --role-a <role>      role temporaire de l'agent
-  --model-a <model>    modele temporaire de l'agent
+  --agent-a <name>     agent actif (ou agent A par défaut)
+  --role-a <role>      rôle temporaire de l'agent initial
+  --model-a <model>    modèle brut de l'agent initial
+  --files <chemins...>   fichiers précis (64 Kio chacun, 192 Kio au total)
+  --context <chemins...> fichiers ou dossiers à parcourir avec limites et exclusions
+  --ollama-url <url>   adresse Ollama pour cette conversation
+  --pull-models       autorise le téléchargement d'un modèle Ollama manquant
+  --tui                  force l'interface TUI
+  --terminal             force le rendu terminal brut (--plain et --no-tui : alias)
+  --renderer <kind>      auto, pretty, plain, tui ou ndjson ; --json : flux NDJSON
   --language <fr|en>   force la langue
-  --config <path>      chemin de config explicite
+  --config <path>      chemin de configuration explicite
+Pour une intégration : --renderer ndjson, puis commandes JSON sur stdin, pas de commandes slash.
+Voir https://palab.re/fr/integrations/ndjson
+
 `,
   ask: `
-Lance une demande avec plusieurs reponses independantes.
+Recueille de 1 à 4 avis indépendants, puis une synthèse par défaut.
 
 Usage:
   palabre ask "Sujet" --agents codex claude
-  palabre chat "Parler d'une option" --agent-a codex
+  palabre ask "Sujet" --agents codex claude --files docs/plan.md --no-summary
   palabre run --mode ask --agents codex claude -s "Sujet"
 
 Flags:
-  --agents <names...>  agents qui repondent, 4 maximum
-  --summary-agent <n>  agent de synthese pour ce lancement
-  --ask-role <role>    rôle commun temporaire pour les agents Ask
-  --ollama-url <url>   surcharge l'adresse Ollama pour cette conversation
-  --tui                force l'interface TUI
-  --terminal           force le rendu terminal brut
-  --renderer <kind>    auto, pretty, plain, tui ou ndjson
+  --agents <names...>  agents qui répondent (1 à 4)
+  --files <chemins...>   fichiers précis (64 Kio chacun, 192 Kio au total)
+  --context <chemins...> fichiers ou dossiers à parcourir avec limites et exclusions
+  --ask-role <role>    rôle commun temporaire pour les participants
+  --model-a <model>    modèle brut de l'agent A résolu
+  --model-b <model>    modèle brut de l'agent B résolu
+  Sans --agent-a/--agent-b ni preset, A et B sont les deux premiers de --agents
+  (ou de la liste Ask configurée). Si A et B désignent le même participant, --model-a prime.
+  Les autres participants gardent leur modèle configuré ; pas d'option de modèle commune aux quatre.
+  --summary-agent <n>  agent de synthèse pour ce lancement
+  --summary-model <m>  modèle brut de synthèse
+  --no-summary        désactive la synthèse
+  --ollama-url <url>   adresse Ollama pour cette conversation
+  --pull-models       autorise le téléchargement d'un modèle Ollama manquant
+  --tui                  force l'interface TUI
+  --terminal             force le rendu terminal brut (--plain et --no-tui : alias)
+  --renderer <kind>      auto, pretty, plain, tui ou ndjson ; --json : flux NDJSON
   --show-prompt        affiche le prompt sans appeler d'agent
-  --dry-run            prévisualise la conversation sans appeler d'agent ni écrire d'export
-  --checkpoint         conserve un état de reprise sous .palabre/sessions
+  --dry-run            prévisualise sans appeler d'agent ni écrire d'export
+  --checkpoint         permet une reprise avec palabre resume <id>
+  --language <fr|en>   force la langue
+  --config <path>      chemin de configuration explicite
+
 `
 };
 
@@ -544,6 +603,18 @@ Flags:
   --language <fr|en>   sets the language
   --config <path>      explicit config path
 `,
+  "agent-role": `
+Changes an agent's persistent role in the configuration.
+
+Usage:
+  palabre agent-role <agent> <role>
+
+Example:
+  palabre agent-role claude critic
+
+Roles:
+  implementer, reviewer, architect, scout, critic, summarizer
+`,
   agents: `
 Lists agents declared in the config.
 
@@ -609,7 +680,7 @@ Usage:
   palabre config -t <number>
   palabre config --summary-agent <name|none>
   palabre config --ask-summary-agent <name|none>
-  palabre config --mode <debate|ask>
+  palabre config --mode <chat|debate|ask>
   palabre config --ask-agents <names...>
   palabre config --interface <tui|terminal>
   palabre config --relay-view <auto|background> # owner: TTY keyboard confirmation, no --yes
@@ -627,10 +698,13 @@ Flags:
   --clear-defaults     clears default settings
   --sync-agents        adds missing detected agents; preserves absolute command paths
                        Missing path: unavailable; no fallback to another installation.
+  --ollama-models      lists Ollama models; --json: structured output
+  --set-ollama-model <model> selects an installed model for ollama-local
+  --sync-ollama-model  replaces a missing ollama-local model with an installed model
   --config <path>      explicit config path
 `,
   new: `
-Interactive assistant to prepare a debate.
+Interactive assistant to prepare Debate or Ask.
 
 Usage:
   palabre new [flags]
@@ -850,134 +924,187 @@ Flags:
   --language <fr|en>   forces the language
 `,
   run: `
-Runs a debate between two agents.
+Runs Debate, Ask or Chat according to --mode or the configured mode.
 
 Usage:
-  palabre "Subject"
-  palabre -s "Subject" -t 4
-  palabre <preset> "Subject" -t 4
+  palabre run --mode debate --preset codex-claude -s "Subject" -t 4
+  palabre run --mode ask --agents codex claude -s "Subject"
+  palabre run --mode chat --agent-a codex -s "Initial context"
 
-Flags:
-  -s, --subject <text> debate subject
-  -t, --turns <n>      total number of responses
-  --preset <name>      agent preset
-  --agent-a <name>     first agent
-  --agent-b <name>     second agent
-  --ollama-url <url>   overrides the Ollama address for this conversation
-  --tui                forces the TUI interface
-  --terminal           forces raw terminal rendering
-  --renderer <kind>    auto, pretty, plain, tui, or ndjson
-  --show-prompt        shows the prompt without calling an agent
-  --dry-run            previews the conversation without calling agents or writing an export
-  --checkpoint         saves resumable state under .palabre/sessions
+Without --mode, the configured mode also applies to short forms:
+  palabre <preset> "Subject"; palabre -s "Subject"
+A preset cannot be used in Chat; see palabre chat --help.
+
+Agents and mode:
+  --mode <debate|ask|chat> mode for this session, without changing configuration
+  -s, --subject <text>    subject (--topic: compatible alias)
+  -t, --turns <n>         Debate response limit (1 to 20)
+  --preset <name>         agent pair (palabre presets)
+  --agent-a <name>        agent A; active agent in Chat
+  --agent-b <name>        Debate agent B
+  --agents <names...>     Ask participants (1 to 4)
+  --role-a <role>         temporary role for A; --role-b <role>: role for B
+  --ask-role <role>       temporary shared role in Ask
+
+Context and models:
+  --files <paths...>     specific files (64 KiB each, 192 KiB total)
+  --context <paths...>   files or folders to scan with limits and exclusions
+  --model-a <model>      raw model for A; --model-b <model>: model for B
+  --ollama-url <url>     Ollama address for this session
+  --pull-models         allows downloading a missing Ollama model
+
+Summary and preparation (Debate/Ask only):
+  --summary-agent <name> summary agent
+  --summary-model <m>    raw summary model
+  --no-summary          disables the summary
+  --no-early-stop       runs every requested Debate turn
+  --show-prompt         shows the prompt without calling an agent
+  --dry-run             previews without agent calls or an export
+  --checkpoint          enables resumption with palabre resume <id>
+
+Display and configuration:
+  --tui                  forces the TUI interface
+  --terminal             forces raw terminal rendering (--plain and --no-tui: aliases)
+  --renderer <kind>      auto, pretty, plain, tui or ndjson; --json: NDJSON stream
+  --language <fr|en>     language for this session
+  --config <path>       configuration to use
+  --trust-config        trusts the configuration; the owner's decision
+
 `,
 
 chat: `
-Talk with a single agent in a local stateless conversation.
+Talk with one agent, and request a second opinion when needed.
 
-Every answer is generated by a new call to the agent CLI. Palabre injects the
-accumulated history into that new call, so no persistent agent conversation is open. Without an initial subject, the first message simply becomes the conversation context.
+Palabre sends at most the six most recent messages with each reply.
+The subject and supplied files remain available. You cannot resume the conversation
+after closing Palabre. Without an initial subject, the first message becomes
+the conversation context.
 
-During the conversation, \`/consult <agent>\` asks for a second opinion and \`/use <agent>\` continues with that agent. Palabre never triggers a consultation on its own.
+During the conversation:
+  /consult <agent>      asks for a second opinion without replacing the active agent
+  /use <agent>          continues with that agent
+  /agents               lists available agents
+  /end                  saves the .chat.md export and ends
+  /exit, /home          ends without an export; end of input does the same
 
-\`/end\` saves the export; \`/exit\`, \`/home\`, or the end of input finish without an export. A blank line is ignored. \`--dry-run\` is refused in Chat.
+A blank line is ignored. --dry-run is refused in Chat.
+--checkpoint and --show-prompt do not provide Chat resumption or a preview.
 
 Usage:
-  palabre chat "Subject" --agent-a codex
+  palabre chat --agent-a codex
+  palabre chat "Initial context" --agent-a codex --files src/auth.ts
 
 Flags:
-  --agent-a <name>     conversation agent (or default agent A)
-  --role-a <role>      temporary agent role
-  --model-a <model>    temporary agent model
+  --agent-a <name>     active agent (or default agent A)
+  --role-a <role>      temporary role for the initial agent
+  --model-a <model>    raw model for the initial agent
+  --files <paths...>     specific files (64 KiB each, 192 KiB total)
+  --context <paths...>   files or folders to scan with limits and exclusions
+  --ollama-url <url>   Ollama address for this conversation
+  --pull-models       allows downloading a missing Ollama model
+  --tui                  forces the TUI interface
+  --terminal             forces raw terminal rendering (--plain and --no-tui: aliases)
+  --renderer <kind>      auto, pretty, plain, tui or ndjson; --json: NDJSON stream
   --language <fr|en>   forces the language
-  --config <path>      explicit config path
+  --config <path>      explicit configuration path
+For integrations: --renderer ndjson, then JSON commands on stdin, not slash commands.
+See https://palab.re/en/integrations/ndjson
+
 `,
   ask: `
-Runs a request with several independent responses.
+Collects 1 to 4 independent opinions, followed by a summary by default.
 
 Usage:
   palabre ask "Subject" --agents codex claude
-  palabre chat "Discuss an option" --agent-a codex
+  palabre ask "Subject" --agents codex claude --files docs/plan.md --no-summary
   palabre run --mode ask --agents codex claude -s "Subject"
 
 Flags:
-  --agents <names...>  responding agents, 4 maximum
+  --agents <names...>  responding agents (1 to 4)
+  --files <paths...>     specific files (64 KiB each, 192 KiB total)
+  --context <paths...>   files or folders to scan with limits and exclusions
+  --ask-role <role>    temporary shared role for participants
+  --model-a <model>    raw model for resolved agent A
+  --model-b <model>    raw model for resolved agent B
+  Without --agent-a/--agent-b or a preset, A and B are the first two --agents
+  (or configured Ask participants). If A and B name the same participant, --model-a takes precedence.
+  Other participants keep their configured model; no shared model option for all four.
   --summary-agent <n>  summary agent for this run
-  --ask-role <role>    temporary shared role for Ask agents
-  --ollama-url <url>   overrides the Ollama address for this conversation
-  --tui                forces the TUI interface
-  --terminal           forces raw terminal rendering
-  --renderer <kind>    auto, pretty, plain, tui, or ndjson
+  --summary-model <m>  raw summary model
+  --no-summary        disables the summary
+  --ollama-url <url>   Ollama address for this conversation
+  --pull-models       allows downloading a missing Ollama model
+  --tui                  forces the TUI interface
+  --terminal             forces raw terminal rendering (--plain and --no-tui: aliases)
+  --renderer <kind>      auto, pretty, plain, tui or ndjson; --json: NDJSON stream
   --show-prompt        shows the prompt without calling an agent
-  --dry-run            previews the conversation without calling agents or writing an export
-  --checkpoint         saves resumable state under .palabre/sessions
+  --dry-run            previews without agent calls or an export
+  --checkpoint         enables resumption with palabre resume <id>
+  --language <fr|en>   forces the language
+  --config <path>      explicit configuration path
+
 `
 };
 
+/** Textes d'aide localisés ; une commande inconnue laisse le choix du repli à l'appelant. */
 export const helpMessages: Record<Language, HelpMessages> = {
   fr: {
     render: () => `
 PALABRE
 
-Debats entre agents IA dans votre terminal.
+Débat, Relay, Ask et Chat : faites coopérer vos agents IA.
 
 Usage:
-  palabre
-  palabre [flags]
-  palabre [command]
-  palabre "Sujet"
-  palabre <preset> "Sujet"
-  palabre ask "Sujet" --agents codex claude
-  palabre chat "Parler d'une option" --agent-a codex
+  palabre                         accueil interactif
+  palabre [commande] --help        aide détaillée de chaque commande
 
-Demarrage rapide:
+Démarrage rapide:
+  palabre doctor
   palabre
-  palabre new
-  palabre "Faut-il ajouter une TUI a Palabre ?"
-  palabre codex-claude "Comparer deux solutions" -t 4
+  palabre run --mode debate --preset codex-claude -s "Comparer deux solutions" -t 4
+  palabre relay --new --to codex "Relis le plan, sans modifier de fichier"
 
 Commandes:
-  init       Creer explicitement une configuration
-  new        Assistant interactif de debat
-  ask        Demande multi-agents independante
-  chat       Conversation suivie avec un agent
-  agents     Lister les agents configures
-  agent-role Modifier le role durable d'un agent
-  presets    Lister les presets disponibles
-  history    Lister les derniers exports
-  resume     Reprendre une conversation interrompue
+  run        Débat entre deux agents ; --mode choisit debate, ask ou chat
+  relay      Relier des conversations ; --open impose une Codex ouverte
+  ask        Recueillir 1 à 4 avis indépendants, puis une synthèse
+  chat       Discuter avec un agent et demander un second avis
+  init       Créer explicitement une configuration
+  new        Assistant interactif de Débat ou d'Ask
+  agents     Lister les agents configurés
+  agent-role Modifier le rôle durable d'un agent
+  presets    Lister les paires d'agents
+  history    Lister les exports
+  resume     Reprendre un Débat ou un Ask avec checkpoint
   sessions   Lister ou supprimer les checkpoints
-  relay      Relier des conversations Codex ou Claude Code
-  mission    Option gelee : etapes en lecture seule, correctifs de securite seulement
-  context    Scanner le contexte projet
-  config     Modifier les parametres par defaut
-  doctor     Verifier la config et les outils locaux
-  update     Afficher ou appliquer les etapes de mise a jour
-  skill      Installer ou rafraîchir le skill livré par cette CLI
+  context    Scanner les fichiers du projet
+  config     Modifier les paramètres par défaut
+  doctor     Vérifier la configuration et les outils locaux
+  update     Afficher ou appliquer le plan de mise à jour
+  skill      Installer ou rafraîchir le skill livré avec la CLI
+  mission    Fonction gelée : étapes en lecture seule, sécurité seulement
   help       Afficher l'aide
   version    Afficher la version
 
-Flags:
-  -h, --help              aide pour Palabre
-  -v, --version           affiche la version
-  -s, --subject <text>    sujet du debat
-  -t, --turns <number>    nombre total de reponses
-  --role-a <role>         role temporaire de l'agent A
-  --role-b <role>         role temporaire de l'agent B
-  --ask-role <role>       role commun temporaire en Ask
-  --tui                   force l'interface TUI
-  --terminal              force le rendu terminal brut
-  --language <fr|en>      force la langue
-  --config <path>         chemin de config explicite
-  --trust-config          approuve l'empreinte de la config locale
+Options de session (run/ask/chat, selon le mode ; détail dans leur aide) :
+  --mode <debate|ask|chat> mode de la session ; --preset <nom> : paire d'agents
+  --agent-a <nom>        agent A ; --agent-b <nom> : agent B
+  -s, --subject <texte>  sujet (--topic : alias) ; -t, --turns <n> : réponses du Débat
+  --files <chemins...>   fichiers précis ; --context <chemins...> : fichiers/dossiers
+  --model-a <modèle>     modèle de A ; --model-b <modèle> : modèle de B
+  --summary-agent <nom>  synthèse Débat/Ask ; --summary-model <modèle> : son modèle
+  --no-summary          sans synthèse ; --no-early-stop : tous les tours du Débat
+  --checkpoint          reprise Débat/Ask ; --show-prompt : aperçu Débat/Ask
+  --role-a <rôle>        rôle de A ; --role-b <rôle> : B ; --ask-role <rôle> : Ask
+  --tui / --terminal    interface interactive / rendu brut
+  --language <fr|en>     langue ; --config <chemin> : configuration
+  --trust-config        approbation de configuration : décision du propriétaire
+  -h, --help            aide ; -v, --version : version
 
-Un agent qui termine avec un code non nul reste en echec. Si stderr est vide,
-Palabre affiche seulement un extrait nettoye et borne de stdout comme diagnostic.
+Relay a ses propres options : palabre relay --help.
+Un agent qui sort en erreur reste en échec ; un extrait de sortie n'est qu'un diagnostic.
 
-Documentation complete:
-  https://palab.re/fr
-
-Utilisez "palabre [command] --help" pour plus d'informations sur une commande.
+Documentation complète : https://palab.re/fr
 `,
     renderCommand: (command) => frCommandHelp[command]
   },
@@ -985,65 +1112,59 @@ Utilisez "palabre [command] --help" pour plus d'informations sur une commande.
     render: () => `
 PALABRE
 
-Debates between AI agents in your terminal.
+Debate, Relay, Ask and Chat: make your AI agents work together.
 
 Usage:
-  palabre
-  palabre [flags]
-  palabre [command]
-  palabre "Subject"
-  palabre <preset> "Subject"
-  palabre ask "Subject" --agents codex claude
-  palabre chat "Discuss an option" --agent-a codex
+  palabre                         interactive home
+  palabre [command] --help         detailed help for each command
 
 Quick start:
+  palabre doctor
   palabre
-  palabre new
-  palabre "Should Palabre add a TUI?"
-  palabre codex-claude "Compare two solutions" -t 4
+  palabre run --mode debate --preset codex-claude -s "Compare two solutions" -t 4
+  palabre relay --new --to codex "Review the plan without changing files"
 
 Commands:
+  run        Debate with two agents; --mode selects debate, ask or chat
+  relay      Connect conversations; --open requires an open Codex conversation
+  ask        Collect 1 to 4 independent opinions, then a summary
+  chat       Talk with one agent and request a second opinion
   init       Explicitly create a configuration
-  new        Interactive debate assistant
-  ask        Independent multi-agent request
-  chat       Continued conversation with one agent
+  new        Interactive Debate or Ask assistant
   agents     List configured agents
-  agent-role Update one agent persistent role
-  presets    List available presets
-  history    List recent exports
-  resume     Resume an interrupted conversation
+  agent-role Update an agent's persistent role
+  presets    List agent pairs
+  history    List exports
+  resume     Resume a Debate or Ask checkpoint
   sessions   List or delete checkpoints
-  relay      Connect Codex or Claude Code conversations
-  mission    Frozen option: read-only steps, security fixes only
-  context    Scan project context
+  context    Scan project files
   config     Edit default settings
-  doctor     Check config and local tools
-  update     Show or apply update steps
-  skill      Install or refresh the skill bundled with this CLI
+  doctor     Check configuration and local tools
+  update     Show or apply the update plan
+  skill      Install or refresh the skill bundled with the CLI
+  mission    Frozen feature: read-only steps, security fixes only
   help       Show help
   version    Show version
 
-Flags:
-  -h, --help              help for Palabre
-  -v, --version           show version
-  -s, --subject <text>    debate subject
-  -t, --turns <number>    total number of responses
-  --role-a <role>         temporary role for agent A
-  --role-b <role>         temporary role for agent B
-  --ask-role <role>       temporary shared role in Ask
-  --tui                   forces the TUI interface
-  --terminal              forces raw terminal rendering
-  --language <fr|en>      force language
-  --config <path>         explicit config path
-  --trust-config          trusts the local config fingerprint
+Session options (run/ask/chat, depending on mode; see their help):
+  --mode <debate|ask|chat> session mode; --preset <name>: agent pair
+  --agent-a <name>       agent A; --agent-b <name>: agent B
+  -s, --subject <text>   subject (--topic: alias); -t, --turns <n>: Debate responses
+  --files <paths...>     specific files; --context <paths...>: files/folders
+  --model-a <model>      model for A; --model-b <model>: model for B
+  --summary-agent <n>    Debate/Ask summary; --summary-model <model>: its model
+  --no-summary          no summary; --no-early-stop: every Debate turn
+  --checkpoint          resume Debate/Ask; --show-prompt: preview Debate/Ask
+  --role-a <role>        role for A; --role-b <role>: B; --ask-role <role>: Ask
+  --tui / --terminal    interactive interface / raw rendering
+  --language <fr|en>     language; --config <path>: configuration
+  --trust-config        configuration approval: the owner's decision
+  -h, --help            help; -v, --version: version
 
-An agent that exits with a non-zero code still fails. If stderr is empty,
-Palabre only shows a sanitized, bounded stdout excerpt as a diagnostic.
+Relay has its own options: palabre relay --help.
+A non-zero agent exit remains a failure; an output excerpt is only a diagnostic.
 
-Full documentation:
-  https://palab.re/en
-
-Use "palabre [command] --help" for more information about a command.
+Full documentation: https://palab.re/en
 `,
     renderCommand: (command) => enCommandHelp[command]
   }
