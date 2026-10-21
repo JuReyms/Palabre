@@ -12,6 +12,8 @@ palabre doctor --terminal
 
 Lire ces contrats plutôt que deviner : la disponibilité est calculée par le CLI.
 
+`doctor` guide l'arrivée sur une machine : approbation, alias PowerShell du Store sous Windows (paragraphe suivant), connexions Claude/Codex, agents archivés, skill, emplacements multiples. Il ne répare rien. Sans approbation, il n'exécute aucune commande d'agent et ne contacte pas les URLs configurées. Après approbation, seules les sondes `auth status --json` ou `login status` sont lancées (3 s, 32 Kio, aucun modèle) ; « non vérifié » ne signifie pas « déconnecté ». Une CLI présente n'est pas une connexion, un skill présent n'est pas une copie à jour, un état connecté ne prouve pas la validité future du jeton. Proposer à l'humain l'action affichée ; ne pas approuver une configuration, installer ni reconnecter à sa place. Les copies installées du skill se mettent à jour manuellement.
+
 Sous Windows, si la CLI Codex est détectée, `doctor` avertit (`WARN`) quand le seul `pwsh.exe` du PATH est l'alias du Microsoft Store : Codex peut alors échouer à démarrer ses commandes (`readAccess`, revue de PR refusée). Le contrôle ne lance jamais `pwsh` et ne modifie rien : il lit seulement le type de lien avec `fsutil`. Il reconnaît l'alias directement sous `WindowsApps` comme dans le dossier du paquet (`WindowsApps\Microsoft.PowerShell_…`). Signaler ce message au propriétaire, avec la commande qu'il contient (`winget install --id Microsoft.PowerShell --source winget --installer-type wix`, ou le `.msi` des releases GitHub de PowerShell) ; ne jamais installer ni modifier le PATH à sa place.
 
 ## Approbations de configurations disparues

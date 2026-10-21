@@ -12,7 +12,7 @@ Start by running the diagnostic:
 palabre doctor
 ```
 
-`doctor` does not launch any AI agent. It displays a diagnostic by sections: configuration, local tools, agents, and items to check. It verifies declared agents, default settings, number of responses, `outputDir`, available CLIs, Ollama, and configured models.
+`doctor` makes no model calls and does not change your configuration. It puts arrival actions first: approval, Store PowerShell alias on Windows (detailed below), Claude Code/Codex sign-in, archived agent, skill and multiple locations. Sign-in probes are limited to `status` commands from an approved configuration; without approval, no agent command or configured URL is probed. It also checks defaults, `outputDir`, CLIs and Ollama. See [Change machines](/en/get-started/change-machine) for limits and actions you perform yourself.
 
 To get raw output suitable for logs or scripts:
 

@@ -1,4 +1,6 @@
+/** @file Messages localisés de doctor pour les configurations, outils et étapes d'arrivée. */
 import type { Language } from "../types.js";
+import { doctorArrivalMessages, type DoctorArrivalMessages } from "./doctorArrival.js";
 
 type LevelLabels = {
   ok: string;
@@ -7,7 +9,9 @@ type LevelLabels = {
   info: string;
 };
 
+/** Contrat textuel de doctor ; aucune sortie brute de compte n'y est insérée. */
 export interface DoctorMessages {
+  arrival: DoctorArrivalMessages;
   title: string;
   cliVersion(version: string): string;
   updateCurrent(version: string): string;
@@ -77,8 +81,10 @@ export interface DoctorMessages {
   prettyLevelLabels: LevelLabels;
 }
 
+/** Dictionnaires FR/EN ; les valeurs terminal sont assainies au rendu par doctor. */
 export const doctorMessages: Record<Language, DoctorMessages> = {
   fr: {
+    arrival: doctorArrivalMessages.fr,
     title: "PALABRE doctor",
     cliVersion: (version) => `Version CLI: ${version}`,
     updateCurrent: (version) => `Mise à jour: CLI à jour (${version}).`,
@@ -125,7 +131,7 @@ export const doctorMessages: Record<Language, DoctorMessages> = {
     customCommand: (prefix) => `${prefix} (commande custom non vérifiée par doctor)`,
     cliDetected: (prefix, path) => `${prefix} détectée (${path})`,
     cliMissing: (prefix) => `${prefix} non détectée dans PATH. Action: installe/authentifie la CLI ou corrige command dans la config.`,
-    cliPinnedFound: prefix => `${prefix} : fichier configuré présent ; exécution non sondée, aucune autre CLI du PATH utilisée pour ce diagnostic.`,
+    cliPinnedFound: prefix => `${prefix} : fichier configuré présent ; aucune autre CLI du PATH utilisée pour ce diagnostic.`,
     cliPinnedMissing: prefix => `${prefix} : chemin de CLI configuré introuvable ou inaccessible. Le propriétaire vérifie cette installation et le champ command ; aucun repli vers le PATH.`,
     ollamaNotVerifiable: (prefix) => `${prefix} non vérifiable: API Ollama non joignable. Action: démarre Ollama ou corrige baseUrl.`,
     ollamaValidateFalse: (prefix) => `${prefix} non validé car validateModel=false.`,
@@ -150,6 +156,7 @@ export const doctorMessages: Record<Language, DoctorMessages> = {
     prettyLevelLabels: { ok: "OK    ", warn: "WARN  ", error: "ERREUR", info: "INFO  " }
   },
   en: {
+    arrival: doctorArrivalMessages.en,
     title: "PALABRE doctor",
     cliVersion: (version) => `CLI version: ${version}`,
     updateCurrent: (version) => `Update: CLI is up to date (${version}).`,
@@ -196,7 +203,7 @@ export const doctorMessages: Record<Language, DoctorMessages> = {
     customCommand: (prefix) => `${prefix} (custom command not checked by doctor)`,
     cliDetected: (prefix, path) => `${prefix} detected (${path})`,
     cliMissing: (prefix) => `${prefix} not detected in PATH. Action: install/authenticate the CLI or fix command in the config.`,
-    cliPinnedFound: prefix => `${prefix}: configured file exists; execution not probed, no other PATH CLI used for this check.`,
+    cliPinnedFound: prefix => `${prefix}: configured file exists; no other PATH CLI used for this check.`,
     cliPinnedMissing: prefix => `${prefix}: configured CLI path missing or inaccessible. The owner checks this installation and command field; no PATH fallback.`,
     ollamaNotVerifiable: (prefix) => `${prefix} cannot be verified: Ollama API is unreachable. Action: start Ollama or fix baseUrl.`,
     ollamaValidateFalse: (prefix) => `${prefix} not validated because validateModel=false.`,
