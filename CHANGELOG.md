@@ -4,6 +4,14 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-10-21
+
+### Changed
+
+- **Relay vers une conversation Codex ouverte : changement de comportement par défaut.** Jusqu'ici, sans `--open`, un relais vers une conversation Codex ouverte était refusé (`target-busy`, code 3). Avec le réglage par défaut `relay.view: auto`, il arrive désormais dans cette conversation, visible dans l'app, avec les permissions de cette conversation (y compris l'écriture si elle les a). Une conversation fermée part toujours en arrière-plan ; un état invérifiable refuse l'envoi. Pour retrouver l'ancien comportement : `palabre config --relay-view background`, lancé et confirmé au clavier par le propriétaire. Pour un avis ou une relecture qui doit rester sans modification, passer `--background` sur l'appel. Agents et intégrations : reprendre le mode affiché par PALABRE (`mode`, `modeSource`), sans le deviner (#190).
+
+- Skill : les consignes Relay changent (mode choisi par PALABRE, `--background` pour les avis sans modification, `--follow` après une confirmation dans l'app). Copies installées : `palabre skill --sync` après accord humain, puis recharger le skill dans l'agent.
+
 ### Added
 
 - Préférence du mode Relay (#190, lot B) : `relay.view` vaut `auto` par défaut (verrou Codex tenu : dans l'app desktop avec les permissions de la conversation ; libre : arrière-plan ; invérifiable : refus sans envoi). `background` impose l'arrière-plan, avec refus si la cible est ouverte. `--background` et `--open` choisissent un mode pour un seul appel, sans modifier le réglage ; ensemble, ils sont refusés. `--new`, Mission, review, `--write` et Claude Code restent en arrière-plan, sans élargissement de leurs permissions. Le propriétaire seul change la préférence avec `palabre config --relay-view <auto|background>` : fichier/changement affichés, configuration déjà approuvée, confirmation clavier en entrée/sortie TTY, aucun `--yes` ni `--trust-config`. `agents --json` ajoute `defaults.relayView` ; Relay JSON v1 et export ajoutent `modeSource` facultatif (`explicit`, `auto`, `setting`). Aucun repli après refus ni renvoi automatique. Pour un avis ou une relecture devant rester sans modification, le skill demande `--background`, réduction ponctuelle des droits sans modifier le réglage. Sur cible occupée, une commande de réglage n'est proposée que si la préférence est la cause du refus ; option explicite, parcours exclus et course en auto ont leurs consignes adaptées. Aide, guides fr/en, skill et AGENTS.md actualisés ; copies installées : `palabre skill --sync`, après accord humain, puis recharger le skill (Refs #190).
