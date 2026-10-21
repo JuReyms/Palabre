@@ -69,6 +69,18 @@ describe("#195 : lecteur du tour suivi", () => {
     assert.equal(observation.startObserved, false);
     assert.equal(observation.context, undefined);
   });
+  test("échange Relay commencé avant le suivi : seule la finale suit, origine inconnue et non présentée comme Relay", async () => {
+    const envelope = "### 📧 PALABRE Relay\n\nréf. PR-0123456789abcdef.";
+    const file = rollout();
+    appendRows(file, [started(), context(), user(envelope), item("UserMessage", envelope)]);
+    const baseline = await captureOpenRollout(file);
+    appendRows(file, [item("AgentMessage", "Réponse au relais.", "final_answer"), complete("Réponse au relais.")]);
+    const observation = inspectFollowedTurn(await readOpenRollout(file, baseline), { threadId: THREAD, baseline });
+    assert.equal(observation.status, "followed");
+    assert.equal(observation.reason, "turn-started-before-follow");
+    assert.equal(observation.startObserved, false);
+    assert.equal(observation.context, undefined);
+  });
   test("deux tours terminés : seul le premier est rendu", async () => {
     const observation = await observe([...appTurn("turn-1", "Premier."), ...appTurn("turn-2", "Second.")]);
     assert.equal(observation.reply, "Premier.");

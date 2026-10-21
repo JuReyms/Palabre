@@ -1062,7 +1062,12 @@ describe("palabre relay --open --follow (#195)", () => {
       [...followCodex, "Bonjour"],
       [...followCodex, "--from", "claude"],
       [...followCodex, "--subject", "Objet"],
-      [...followCodex, "--message-file", "message.md"]
+      [...followCodex, "--message-file", "message.md"],
+      [...followCodex, "--new"],
+      [...followCodex, "--dir", "."],
+      [...followCodex, "--task", "review"],
+      [...followCodex, "--pr", "https://github.com/owner/repo/pull/1"],
+      [...followCodex, "--write"]
     ]) {
       const world = makeWorld();
       const result = await relay(world, [...args, "--trust-config", "--json"]);
@@ -1071,6 +1076,7 @@ describe("palabre relay --open --follow (#195)", () => {
       assert.match(result.json.error.message, /--follow s'utilise seulement avec --open/);
       assert.equal(result.json.mode, "follow");
       assert.equal(result.calls.length, 0);
+      assert.equal(existsSync(path.join(world.home, ".palabre", "relay-write")), false, args.join(" "));
     }
   });
 

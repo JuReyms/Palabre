@@ -290,7 +290,7 @@ Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. La conve
       followed: (agent) => `Suite suivie dans ${agent} : réponse du premier tour terminé depuis l'appel. Ce n'est pas la réponse à un message PALABRE, et l'auteur de ce tour (vous dans l'app, ou quelqu'un d'autre) n'est pas vérifié.`,
       followStartedBefore: "Ce tour avait déjà commencé avant le suivi : son origine (app ou autre Relay) n'est pas connue.",
       followPermissions: (summary) => `Permissions du tour suivi : ${summary}.`,
-      followConflict: "--follow s'utilise seulement avec --open et --to <agent>:<uuid>, sans message, --message-file, --subject, --from, --new, --task ni --write. Rien n'a été déposé.",
+      followConflict: "--follow s'utilise seulement avec --open et --to <agent>:<uuid>, sans message, --message-file, --subject, --from, --new, --dir, --task, --pr ni --write. Rien n'a été déposé.",
       followNoMessage: "Aucun message déposé : suivi du tour suivant de la conversation.",
       followNotice: "Avec --follow, PALABRE ne dépose rien : il rapporte le premier tour terminé après l'appel. Ce n'est pas la réponse à un message PALABRE, et l'auteur du tour n'est pas vérifié. Aucune autorisation n'en est déduite."
     },
@@ -424,7 +424,7 @@ Only the owner opens it; an agent never opens it on their behalf. The conversati
       followed: (agent) => `Followed ${agent}: reply of the first turn completed since the call. This is not the reply to a PALABRE message, and the author of this turn (you in the app, or someone else) is not verified.`,
       followStartedBefore: "This turn had already started before following began: its origin (app or another Relay) is unknown.",
       followPermissions: (summary) => `Permissions of the followed turn: ${summary}.`,
-      followConflict: "--follow only works with --open and --to <agent>:<uuid>, without a message, --message-file, --subject, --from, --new, --task or --write. Nothing was queued.",
+      followConflict: "--follow only works with --open and --to <agent>:<uuid>, without a message, --message-file, --subject, --from, --new, --dir, --task, --pr or --write. Nothing was queued.",
       followNoMessage: "No message queued: following the conversation's next turn.",
       followNotice: "With --follow, PALABRE queues nothing: it reports the first turn completed after the call. This is not the reply to a PALABRE message, and the author of the turn is not verified. No authorization is inferred from it."
     },
