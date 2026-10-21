@@ -10,7 +10,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Changed
 
-- Documentation Relay : avec les versions Codex vérifiées, une conversation créée par `relay --new` via la CLI reste joignable et réutilisable par Relay, mais n'est pas listée dans Codex Desktop. Pour la suivre dans l'application, la créer d'abord dans Desktop puis viser son identifiant (`--open` tant qu'elle est ouverte). Aide, guides fr/en et skill alignés (Refs #179, point 10) ; une copie installée du skill doit être mise à jour manuellement.
+- Relay : après `relay --new --to codex`, la sortie texte et l'export `.relay.md` donnent le lien `codex://threads/<identifiant>`. Une conversation créée par la CLI reste absente de la liste de Codex Desktop, mais ce lien l'ouvre avec son historique, sans ajouter de message ni élargir ses permissions (essai Windows, Codex Desktop 26.1013.40934). Une fois ouverte, Desktop la tient : Relay la joint alors avec `--open`, avec les permissions de Desktop. Aucun champ JSON ajouté : une intégration construit le lien depuis `to.session`. Remplace le conseil de créer d'abord la conversation dans Desktop. Aide, guides fr/en et skill alignés (Refs #179, point 10) ; une copie installée du skill doit être mise à jour manuellement.
 
 ### Fixed
 

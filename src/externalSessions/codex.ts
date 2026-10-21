@@ -234,6 +234,17 @@ export function interpretCodexOutput(stdout: string, exitCode: number | null, ta
 }
 
 /**
+ * Lien d'ouverture d'une conversation locale dans Codex Desktop (lien profond documenté par
+ * OpenAI). Une conversation créée par `codex exec` (`source: exec`) est absente de la liste de
+ * Desktop, mais ce lien l'ouvre avec son historique : essai Windows de l'issue #179, Desktop
+ * 26.1013.40934. Une fois ouverte, Desktop tient le verrou : Relay ne la joint plus qu'avec
+ * `--open`, avec les permissions de Desktop. `undefined` si l'identifiant n'est pas un UUID.
+ */
+export function codexDesktopThreadLink(sessionId: string): string | undefined {
+  return isSessionId(sessionId) ? `codex://threads/${sessionId.toLowerCase()}` : undefined;
+}
+
+/**
  * Le rollout Codex a un seul écrivain et reste linéaire dans les cas observés : un nonce trouvé
  * dans un message utilisateur est considéré sur la branche active.
  */

@@ -211,6 +211,8 @@ export interface RelayExport {
   /** Création Relay : l'identifiant peut manquer si la CLI n'a rien annoncé. */
   created?: boolean;
   cwd?: string;
+  /** Lien `codex://threads/…` d'une conversation Codex créée ; absent sinon (#179). */
+  desktopLink?: string;
   status: string;
   delivery: { status: string; persisted: boolean | "unknown"; inActiveBranch: boolean | "unknown" };
   identity: string | null;
@@ -252,6 +254,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     [labels.from, report.from ? `${report.from.agent}${report.from.session ? `:${report.from.session}` : ""}` : messages.relay.terminalSender],
     [labels.to, `${report.to.agent}${report.to.session ? `:${report.to.session}` : ""}`],
     ...(report.created !== undefined ? [[labels.created, formatBoolean(report.created)], [labels.cwd, report.cwd ?? labels.unknown]] : []),
+    ...(report.desktopLink ? [[labels.desktopLink, report.desktopLink]] : []),
     [labels.provider, report.to.provider],
     [labels.status, report.status],
     [labels.delivery, report.delivery.status],

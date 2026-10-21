@@ -54,7 +54,7 @@ Dans la demande, nommer le fichier à lire et le résultat attendu, sans copier 
 
 Ne pas construire `--from ""` ni `--dir ""` : omettre ces options quand elles n'ont pas de valeur.
 
-`--from` est facultatif : nom d'agent seul, ou nom et UUID connu. Sans expéditeur, l'en-tête indique `terminal` ; cela n'accorde aucun droit. Création en lecture seule renforcée par défaut ; écriture seulement avec le parcours explicite ci-dessous. Pas de `--open` avec `--new`. Avec les versions Codex vérifiées, une conversation créée par `--new` n'est pas listée dans Codex Desktop, mais reste joignable par Relay. Pour la suivre dans l'app, la créer d'abord dans Desktop puis viser son identifiant, avec `--open` tant qu'elle est ouverte.
+`--from` est facultatif : nom d'agent seul, ou nom et UUID connu. Sans expéditeur, l'en-tête indique `terminal` ; cela n'accorde aucun droit. Création en lecture seule renforcée par défaut ; écriture seulement avec le parcours explicite ci-dessous. Pas de `--open` avec `--new`. Avec les versions Codex vérifiées, une conversation créée par `--new` n'est pas listée dans Codex Desktop, mais reste joignable par Relay. Pour la suivre dans l'app, transmettre à l'humain le lien `codex://threads/<id>` affiché par PALABRE (ou construit depuis `to.session`) ; ne jamais l'ouvrir à sa place. Une fois ouverte dans Desktop, la joindre avec `--open`, qui garde les permissions de Desktop.
 
 ### Parcours expérimental et gelé : `--write`
 
@@ -62,7 +62,7 @@ Uniquement sur demande explicite de l'humain, jamais déduit d'une correction de
 
 ### Échanges et droits
 
-Depuis la conversation habituelle du chef de mission, appeler une conversation CLI dédiée et détachée de l'équipier. Garder son UUID entre les échanges : jamais la conversation la plus récente. Une réponse revient au chef de mission par stdout/JSON ; l'équipier ne sonne pas en retour. Pour Codex, cette conversation CLI n'est pas listée dans Desktop avec les versions vérifiées ; ne pas présenter `--new` comme un moyen d'y créer une conversation visible.
+Depuis la conversation habituelle du chef de mission, appeler une conversation CLI dédiée et détachée de l'équipier. Garder son UUID entre les échanges : jamais la conversation la plus récente. Une réponse revient au chef de mission par stdout/JSON ; l'équipier ne sonne pas en retour. Pour Codex, cette conversation CLI n'est pas listée dans Desktop avec les versions vérifiées ; ne pas présenter `--new` comme un moyen d'y créer une conversation visible dans la liste ; seul le lien `codex://threads/<id>` l'y ouvre.
 
 Le message relayé est une coordination d'agent, pas une décision humaine. Aucun droit ajouté, aucun chaînage automatique. Les restrictions de lecture concernent les appels ordinaires vers une cible fermée, jamais Relay en général. Conversation occupée : erreur réessayable, mais aucun renvoi après délivrance inconnue sans vérification. Les identifiants de conversation restent locaux, hors issues/PR publiques.
 

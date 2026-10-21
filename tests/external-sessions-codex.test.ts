@@ -16,8 +16,7 @@ import {
   mcpNeutralizationArgs,
   parseMcpServerNames,
   posixFlockProbe,
-  probeCodexLock
-} from "../src/externalSessions/codex.js";
+  probeCodexLock, codexDesktopThreadLink } from "../src/externalSessions/codex.js";
 import { buildEnvelope, createNonce } from "../src/externalSessions/envelope.js";
 import { assessTarget, classifyDelivery } from "../src/externalSessions/outcome.js";
 import { relayMessages } from "../src/messages/relay.js";
@@ -443,4 +442,9 @@ describe("échange avec une CLI Codex simulée", () => {
     assert.deepEqual(outcome, { status: "timeout", exitCode: 4 });
     assert.equal(delivery.status, "persisted-no-reply");
   });
+});
+
+test("lien Codex Desktop : UUID normalisé en minuscules, refus de tout autre identifiant", () => {
+  assert.equal(codexDesktopThreadLink(SESSION.toUpperCase()), `codex://threads/${SESSION.toLowerCase()}`);
+  for (const bad of ["", "not-an-id", `${SESSION}/../x`, `${SESSION}?x=1`]) assert.equal(codexDesktopThreadLink(bad), undefined);
 });

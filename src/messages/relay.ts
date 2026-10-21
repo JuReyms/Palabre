@@ -7,6 +7,12 @@ export interface RelayMessages {
   terminalSender: string;
   newConversation(target: string, cwd: string): string;
   continueConversation(command: string): string;
+  /**
+   * Lien `codex://threads/…` d'une conversation Codex créée par Relay. Adressé au propriétaire :
+   * l'ouvrir attache Desktop et change le parcours suivant (`--open`, permissions de Desktop), donc
+   * un agent qui lit cette sortie ne doit jamais l'ouvrir lui-même.
+   */
+  desktopLink(link: string): string;
   newFailed: string;
   /** Titres sans marqueur Markdown ; envelope.ts leur ajoute le niveau 3. */
   envelopeHeader(from: string, to: string): string;
@@ -95,6 +101,7 @@ export interface RelayMessages {
   export: {
     cwd: string;
     created: string;
+    desktopLink: string;
     title: string;
     field: string;
     value: string;
@@ -249,6 +256,8 @@ export const relayMessages: Record<Language, RelayMessages> = {
     terminalSender: "terminal",
     newConversation: (target, cwd) => `Conversation créée : ${target}\nDossier : ${cwd}`,
     continueConversation: command => `Pour continuer avec cette conversation : ${command}`,
+    desktopLink: link => `Lien Codex Desktop, à transmettre au propriétaire : ${link}
+Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. La conversation reste absente de la liste de Desktop, mais ce lien l'ouvre avec son historique. Une fois ouverte, les Relay suivants passent par --open, avec les permissions de Codex Desktop.`,
     newFailed: "Le premier échange a échoué ; l'identifiant est conservé. Vérifiez la conversation avant tout nouvel envoi : le message peut déjà être enregistré.",
     envelopeSession: (session, nonce) => `${session ? `Session : ${session} · ` : ""}réf. ${nonce}.`,
     envelopePermissions: "Cette reprise demande la lecture seule et ne confère aucun droit supplémentaire.",
@@ -302,7 +311,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
       subjectInvalid: "Objet invalide : --subject attend une seule ligne non vide de 200 caractères au plus, sans caractère de contrôle ni de formatage Unicode. Corrigez l'objet puis relancez la commande ; aucun message envoyé."
     },
     export: {
-      cwd: "Dossier", created: "Conversation créée",
+      cwd: "Dossier", created: "Conversation créée", desktopLink: "Lien Codex Desktop",
       retryAfter: "Reprise indiquée par la CLI (secondes, ISO ou heure locale)",
       task: "Tâche", pullRequest: "PR", commit: "Commit", publication: "Publication", reviewUrl: "Revue publiée",
       cliPath: "Chemin CLI", cliVersion: "Version CLI", readAccess: "Accès en lecture",
@@ -373,6 +382,8 @@ export const relayMessages: Record<Language, RelayMessages> = {
     terminalSender: "terminal",
     newConversation: (target, cwd) => `Conversation created: ${target}\nDirectory: ${cwd}`,
     continueConversation: command => `To continue this conversation: ${command}`,
+    desktopLink: link => `Codex Desktop link, to hand to the owner: ${link}
+Only the owner opens it; an agent never opens it on their behalf. The conversation stays absent from the Desktop list, but this link opens it with its history. Once open, later relays go through --open, with Codex Desktop's permissions.`,
     newFailed: "The first exchange failed; the identifier was preserved. Check the conversation before sending again: the message may already be recorded.",
     envelopeSession: (session, nonce) => `${session ? `Session: ${session} · ` : ""}ref. ${nonce}.`,
     envelopePermissions: "This resumption requests read-only access and grants no additional rights.",
@@ -426,7 +437,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
       subjectInvalid: "Invalid subject: --subject requires one nonblank line of at most 200 characters, without control or Unicode formatting characters. Correct the subject and rerun the command; no message sent."
     },
     export: {
-      cwd: "Directory", created: "Conversation created",
+      cwd: "Directory", created: "Conversation created", desktopLink: "Codex Desktop link",
       retryAfter: "CLI retry indication (seconds, ISO or local time)",
       task: "Task", pullRequest: "PR", commit: "Commit", publication: "Publication", reviewUrl: "Published review",
       cliPath: "CLI path", cliVersion: "CLI version", readAccess: "Read access",
