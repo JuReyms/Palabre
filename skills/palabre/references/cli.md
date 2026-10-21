@@ -12,6 +12,8 @@ palabre doctor --terminal
 
 Lire ces contrats plutôt que deviner : la disponibilité est calculée par le CLI.
 
+Sous Windows, si la CLI Codex est détectée, `doctor` avertit (`WARN`) quand le seul `pwsh.exe` du PATH est l'alias du Microsoft Store : Codex peut alors échouer à démarrer ses commandes (`readAccess`, revue de PR refusée). Le contrôle ne lance jamais `pwsh` et ne modifie rien : il lit seulement le type de lien avec `fsutil`. Il reconnaît l'alias directement sous `WindowsApps` comme dans le dossier du paquet (`WindowsApps\Microsoft.PowerShell_…`). Signaler ce message au propriétaire, avec la commande qu'il contient (`winget install --id Microsoft.PowerShell --source winget --installer-type wix`, ou le `.msi` des releases GitHub de PowerShell) ; ne jamais installer ni modifier le PATH à sa place.
+
 ## Approbations de configurations disparues
 
 `palabre config --prune-trust --dry-run` affiche les approbations de fichiers disparus, sans rien modifier. Pour les retirer, proposez à l'humain de lancer lui-même `palabre config --prune-trust` dans son terminal : liste, confirmation au clavier et sauvegarde horodatée. Ne confirmez jamais à sa place ; aucun `--yes` n'est admis. Les configurations existantes ou inaccessibles sont conservées et aucun nouveau droit n'est accordé.
