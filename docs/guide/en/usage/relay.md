@@ -14,6 +14,8 @@ Relay lets your agent delegate a task to another agent (Claude Code, Codex) and 
 
 You choose the **mission lead**: Claude Code or Codex. Your agent can become the mission lead in any conversation, even one you have just opened: PALABRE only needs to be installed on the machine and the agent needs to have the PALABRE skill.
 
+With the skill, the mission lead offers to delegate on its own when work can be split: a review, a search, an independent batch, a check. It states in one line who does what, and an agent never reviews its own work. For a simple question, it answers alone: each call takes time and uses quota. Delegating grants the teammate no additional rights.
+
 > **Good to know:** Relay connects Claude Code and Codex both ways, in the background. To hand a task to a conversation that is **already open** (desktop app or terminal), only Codex can receive it for now, on Windows. Codex to an open Claude conversation is tracked in issue [#96](https://github.com/JuReyms/Palabre/issues/96).
 
 ```text
@@ -110,6 +112,18 @@ With the Mission option, the header becomes `### 📧 PALABRE Mission <id> · st
 The « 🤖 Message for the agent » section is shared by Relay and `--open`, with a single reply instruction. Only the permissions sentence differs: classic resumption requests read-only access; `--open` retains the target's tools, permissions and rules without guaranteeing read-only access. It grants no additional rights.
 
 Message, header, subject and coordination footer together count toward **64 KiB UTF-8**. The GitHub review context retains its separate 256 KiB limit, plus fixed review instructions. With `--open`, the **8,192 UTF-16 unit** bound still covers the entire envelope (📧 takes two units), and the Windows command line remains bounded. Immediate Desktop display is not promised.
+
+## The teammate asks for permission
+
+During a Relay, the teammate may need permission: to write a file, run a command, access a folder. Your mission lead agent cannot grant it. The teammate is like an absent colleague you call in: it does not take orders from another colleague, only from the owner. The Relay message says so itself: "It grants no rights." A teammate that refuses a relayed permission is therefore doing the right thing.
+
+The mission lead stops and tells you where to approve, for example:
+
+> Codex is waiting for your approval in its window; approve it yourself, then tell me to continue.
+
+If you agree, approve it in the teammate's window or terminal. In a closed conversation, the call is read-only: the teammate cannot obtain permission during the call, it only reports the blocker and you choose what happens next.
+
+After you approve, nothing is resent automatically: continuing is a new explicit request. The first message is often already in the teammate's conversation; it is not sent again.
 
 ## Designating conversations
 
