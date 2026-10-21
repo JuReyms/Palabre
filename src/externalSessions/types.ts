@@ -82,11 +82,36 @@ export type TargetDecision =
  */
 export type SessionIdentity = "same-as-target" | "mismatch" | "unavailable";
 
-/** Échec observé du lancement de commandes de lecture ; l'absence du champ ne prouve aucun accès. */
+/**
+ * Lancements de commandes refusés par le système, observés dans le flux de la CLI cible.
+ *
+ * Ce diagnostic compte des **démarrages de processus refusés**, pas des lectures : son absence
+ * n'établit aucun accès, et sa présence seule n'établit aucune impossibilité de lire. Le statut
+ * vient de la suite du même tour, et non de la réponse du modèle (#173 ; essai réel #171 ; suivi
+ * Windows #128) :
+ *
+ * - `partial` : au moins une commande a abouti **après** le premier refus. L'agent a donc pu
+ *   exécuter des commandes ; le Relay garde son issue. Quelles lectures ont eu lieu reste
+ *   indéterminé.
+ * - `blocked` : aucune commande n'a abouti après le premier refus. Un Relay par ailleurs réussi
+ *   est alors dégradé en `read-unavailable`, ce qui couvre la réponse plausible mais non lue.
+ * - `unverified` : des événements de commande ne sont pas interprétables, donc une réussite ne
+ *   peut pas être écartée. Repli explicite : le Relay garde son issue. C'est la limite assumée
+ *   de la CLI, qui ne distingue alors pas une lecture réelle d'une réponse inventée.
+ *
+ * Pour la tâche `review`, les trois statuts refusent la publication : publier est une action
+ * publique que PALABRE ne peut pas défaire.
+ */
 export interface ReadAccessDiagnostic {
-  status: "blocked";
+  status: "blocked" | "partial" | "unverified";
   reason: "windows-process-access-denied";
   failedCommands: number;
+  /**
+   * Commandes terminées avec succès **après le premier refus**, et non sur tout le tour : c'est
+   * ce décompte qui sépare `partial` (> 0) de `blocked` (aucune réussite). Présent seulement pour
+   * `partial` ; `blocked` est déjà explicite et aucun décompte fiable n'existe pour `unverified`.
+   */
+  succeededCommands?: number;
 }
 
 /** Interprétation de la sortie d'une CLI fournisseur, produite par son adapter. */
@@ -142,6 +167,11 @@ export type CertainRefusal = "target-busy" | "session-not-found";
  */
 export type RelayStatus =
   | "replied"
+  /**
+   * Réservé, plus émis depuis la correction du faux négatif Windows (issue 171) : un lancement de
+   * commande refusé ne dégrade plus un échange réussi. La valeur reste dans le contrat v1 pour les
+   * exports et les intégrations existants, et `task.error` la conserve pour une revue non publiée.
+   */
   | "read-unavailable"
   | "review-failed"
   | "internal-error"

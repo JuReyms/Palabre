@@ -95,8 +95,10 @@ describe("runExternalProcess : environnement explicite", () => {
 describe("runExternalProcess : arrêts et timers", () => {
   test("aucun kill après une terminaison normale, même après l'échéance du timeout", async () => {
     const kills: number[] = [];
-    const result = await runExternalProcess(spec("process.exit(0)", { timeoutMs: 200, killTree: (pid) => kills.push(pid) }));
-    await sleep(400);
+    // Sous la charge de la suite complète, Windows peut mettre plus de 200 ms à démarrer Node.
+    // Le délai doit tester l'annulation du timer après `exit`, pas la vitesse de spawn de l'hôte.
+    const result = await runExternalProcess(spec("process.exit(0)", { timeoutMs: 1_000, killTree: (pid) => kills.push(pid) }));
+    await sleep(1_200);
     assert.equal(result.stopReason, undefined);
     assert.deepEqual(kills, []);
   });

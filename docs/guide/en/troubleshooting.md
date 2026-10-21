@@ -12,7 +12,7 @@ Start by running the diagnostic:
 palabre doctor
 ```
 
-`doctor` makes no model calls and does not change your configuration. It puts arrival actions first: approval, Windows PowerShell 7, Claude Code/Codex sign-in, archived agent, skill and multiple locations. Sign-in probes are limited to `status` commands from an approved configuration; without approval, no agent command or configured URL is probed. It also checks defaults, `outputDir`, CLIs and Ollama. See [Change machines](/en/get-started/change-machine) for limits and actions you perform yourself.
+`doctor` makes no model calls and does not change your configuration. It puts arrival actions first: approval, Store PowerShell alias on Windows (detailed below), Claude Code/Codex sign-in, archived agent, skill and multiple locations. Sign-in probes are limited to `status` commands from an approved configuration; without approval, no agent command or configured URL is probed. It also checks defaults, `outputDir`, CLIs and Ollama. See [Change machines](/en/get-started/change-machine) for limits and actions you perform yourself.
 
 To get raw output suitable for logs or scripts:
 
@@ -22,27 +22,36 @@ palabre doctor --terminal
 
 ## Codex on Windows: error 5 despite read-only access
 
-**What happened:** Codex cannot start a read command (`CreateProcessAsUserW failed: 5`). PALABRE preserves its reply but returns `read-unavailable` (2); with review, no review is published.
+**What happened:** Codex cannot start a command (`CreateProcessAsUserW failed: 5`). PALABRE reports it in `readAccess`. If a command succeeds afterwards, the relay stays `replied` (0) with `status: "partial"` and `succeededCommands`. With no later success, a received reply becomes `read-unavailable` (2) with `status: "blocked"`, while preserving the reply and delivery. An ambiguous event gives `unverified` without degrading the outcome. With review, no review is published (`review-failed`, 9), because publishing cannot be undone.
 
-**Confirmed cause on the tested machine:** the Microsoft Store PowerShell alias, `WindowsApps\pwsh.exe`. Under the same `:read-only` policy, the alias fails, native PowerShell reads the file, and writes remain denied.
+**Confirmed cause on the tested machine:** the Microsoft Store PowerShell alias, `WindowsApps\pwsh.exe` or, after an update through winget or the Store, `WindowsApps\Microsoft.PowerShell_8wekyb3d8bbwe\pwsh.exe`. Both locations may coexist in PATH. Under the same `:read-only` policy, the alias fails, native PowerShell reads the file, and writes remain denied.
+
+### What `doctor` reports first
+
+When the Codex CLI is detected, `palabre doctor` looks at the preferred `pwsh.exe` on PATH, without launching it, and warns (`WARN`) when it is the Microsoft Store alias:
+
+- **no safe fallback** (no regular PowerShell, or another unconfirmed alias still takes priority): the workaround below cannot apply;
+- **a regular PowerShell remains available**: PALABRE will use it for its Codex child process only, and the message names it.
+
+This is a warning, never an error: the machine stays usable, and the agent often reads anyway despite the refusal. `doctor` does not launch `pwsh`, changes no config, PATH or permission, and stays silent outside Windows, without a detected Codex CLI, or when a real `pwsh.exe` remains available.
 
 ### What PALABRE does automatically
 
-For closed Relay, `--new`, Mission and the review task targeting Codex, PALABRE checks the preferred shell. On Windows it removes the `WindowsApps` directory from **its child process only** if that directory's `pwsh.exe` is a confirmed execution alias and native PowerShell remains available. A native PowerShell already taking priority causes no change. An unavailable check or uncertain fallback leaves PATH unchanged.
+For closed Relay, `--new`, Mission and the review task targeting Codex, PALABRE checks the preferred shell. On Windows it removes from **its child process only** each alias directory that takes priority — `WindowsApps` or the package directory `WindowsApps\Microsoft.PowerShell_…` — if its `pwsh.exe` is a confirmed execution alias and native PowerShell remains available. A native PowerShell already taking priority causes no change. An unavailable check or uncertain fallback leaves PATH unchanged.
 
-No user setting, global PATH or write permission is changed. The `read-unavailable` diagnostic stays active if reads are blocked. No automatic resend or sandbox change. `--open` keeps the Desktop conversation's behavior and does not use this fix.
+No user setting, global PATH or write permission is changed. The `readAccess` diagnostic is still reported while a launch is refused. No automatic resend or sandbox change. `--open` keeps the Desktop conversation's behavior and does not use this fix.
 
 **Limit:** other aliases in the removed directory (for example Python or Windows Terminal) can no longer be found by name through that directory, for this child only. PALABRE resolves the Codex CLI before filtering; its own terminal, GitHub commands and other agents keep their environment. This does not fix every possible cause of error 5.
 
 ### Owner option: install PowerShell 7 outside the Store
 
-This is optional: native Windows PowerShell may be enough for the fix. If you prefer PowerShell 7, the [Microsoft documentation](https://learn.microsoft.com/en-us/powershell/scripting/install/install-powershell-on-windows) gives this command to select the **MSI** package, when available:
+This is optional: native Windows PowerShell may be enough for the fix. If you prefer PowerShell 7, ask for the **MSI** package explicitly:
 
 ```powershell
 winget install --id Microsoft.PowerShell --source winget --installer-type wix
 ```
 
-Choosing MSI matters: `--source winget` alone may install an MSIX package. If MSI is unavailable, follow Microsoft's MSI or ZIP instructions. PALABRE does not install anything for you. Reopen your terminal and app after installation; check the proposed path with:
+The selector matters. `--source winget` alone installs the Store MSIX package: in the [real test of #171](https://github.com/JuReyms/Palabre/issues/171), `winget list` reports the new version while `C:\Program Files\PowerShell\` still does not exist. `--installer-type msi` matches no installer, because PowerShell's winget manifest declares its `.msi` files under the `wix` type: `wix` is what you must ask for. Verified with winget 1.29.380: `winget show --id Microsoft.PowerShell --source winget --installer-type wix` does show a `.msi` URL, while the same command with `msi` answers "No applicable installer found". If your winget version does not offer that choice, download the `.msi` from [PowerShell's GitHub releases](https://github.com/PowerShell/PowerShell/releases). PALABRE does not install anything for you. Reopen your terminal and app after installation; check the proposed path with:
 
 ```powershell
 Get-Command pwsh -All | Select-Object Source
@@ -312,6 +321,6 @@ pnpm add --global palabre@latest
 
 Manual edits invalidate the approved fingerprint. For an implicit project configuration or a Relay call, read the file then run `palabre config --config <file> --trust-config` yourself. Agents wait for your action; they do not grant themselves rights.
 
-Refusals before sending (`not-delivered`): `config-untrusted` (8), `task-not-allowed` (8, owner: run `remedy` in your terminal), `review-cli-unsupported` (8, Claude ≥ 2.1.292 and `--safe-mode` required), `target-busy` (3, close the target or choose `--open` for Codex on Windows), `target-not-open` (3, open the Codex target). See [Relay](/en/usage/relay).
+Refusals before sending (`not-delivered`): `config-untrusted` (8), `task-not-allowed` (8, owner: run `remedy` in your terminal), `review-cli-unsupported` (8, Claude ≥ 2.1.292 and `--safe-mode` required), `target-busy` (3, close the target or choose `--open` for Codex on Windows, macOS, or Linux), `target-not-open` (3, open the Codex target). On macOS/Linux, `target-state-unknown` asks you to check `python3 --version`. See [Relay](/en/usage/relay).
 
 A recognized limit gives `usage-limit`. Retry information is shown only when supplied: `retryAfter` in NDJSON errors, or Relay with `--open`. Without `--open`, Relay classifies the limit but does not expose that field. No automatic resend even after the stated time; no date or time zone is inferred from a time alone. With Relay, check delivery before any new request. Mission preserves the result and pauses on a known failure; unknown delivery needs human verification. With `--checkpoint`, `resume` preserves accepted answers.

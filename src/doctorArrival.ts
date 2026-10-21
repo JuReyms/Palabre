@@ -26,10 +26,11 @@ export interface DoctorInstallation {
   paths: string[];
 }
 
-/** Constats physiques : présence, pas chargement du skill ni validité d'une installation. */
+/**
+ * Constats physiques : présence, pas chargement du skill ni validité d'une installation.
+ * PowerShell n'y figure pas : doctor réutilise `inspectWindowsPowerShell` (#175).
+ */
 export interface DoctorLocalArrival {
-  shell: "not-windows" | "native" | "store-only" | "missing" | "unverified";
-  shellPaths: string[];
   skills: string[];
   duplicates: DoctorInstallation[];
 }
@@ -71,22 +72,11 @@ export function doctorInstallations(command: string, options: DoctorArrivalOptio
 export function inspectDoctorArrival(options: DoctorArrivalOptions = {}): DoctorLocalArrival {
   const windows = (options.platform ?? process.platform) === "win32";
   const paths = windows ? path.win32 : path.posix;
-  const env = options.env ?? process.env;
   const home = options.home ?? os.homedir();
   const cwd = options.cwd ?? process.cwd();
   const exists = options.fileExists ?? entryExists;
-  const shellPaths = windows ? doctorInstallations("pwsh", options) : [];
-  const programFiles = environmentValue(env, "ProgramFiles");
-  if (windows && programFiles && paths.isAbsolute(programFiles)) {
-    const standard = paths.join(programFiles, "PowerShell", "7", "pwsh.exe");
-    if (exists(standard) && !shellPaths.some(file => file.toLowerCase() === standard.toLowerCase())) shellPaths.push(standard);
-  }
-  const native = shellPaths.some(file => !/[\\/]WindowsApps[\\/]/i.test(file) && /\.exe$/i.test(file));
   const skills = [...new Set([home, cwd].flatMap(root => [".agents", ".claude", ".codex"].map(agent => paths.join(root, agent, "skills", "palabre", "SKILL.md"))))].filter(exists);
   return {
-    shell: !windows ? "not-windows" : native ? "native" : !shellPaths.length ? "missing"
-      : shellPaths.every(file => /[\\/]WindowsApps[\\/]/i.test(file)) ? "store-only" : "unverified",
-    shellPaths,
     skills,
     duplicates: ["node", "npm", "pnpm", "claude", "codex"].map(command => ({ command, paths: doctorInstallations(command, options) })).filter(installation => installation.paths.length > 1)
   };

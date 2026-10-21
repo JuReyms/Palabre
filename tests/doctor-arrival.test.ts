@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { runDoctor } from "../src/doctor.js";
+import { runDoctor, type DoctorWindowsPowerShellProbes } from "../src/doctor.js";
 import { CONFIG_TRUST_PATH, trustConfig } from "../src/configTrust.js";
 import { doctorInstallations, inspectDoctorArrival, parseDoctorAuth, probeDoctorAuth, type DoctorArrivalOptions } from "../src/doctorArrival.js";
 import type { ExternalProcessResult, ExternalProcessSpec } from "../src/externalSessions/process.js";
@@ -15,6 +15,7 @@ const discovery: ToolDiscovery = {
   codex: absent, claude: absent, antigravity: absent, opencode: absent, vibe: absent,
   ollama: { available: false, commandAvailable: false, baseUrl: "http://localhost:11434", models: [] }
 };
+const codexDetected: ToolDiscovery = { ...discovery, codex: { available: true, command: "codex", path: "C:\\tools\\codex.exe" } };
 const finished: ExternalProcessResult = { started: true, exitCode: 0, signal: null, stdout: "", stderr: "", forcedReturn: false, outputBytes: 0, durationMs: 1 };
 const isolated: DoctorArrivalOptions = { platform: "linux", env: { PATH: "" }, home: "/fixture-home", cwd: "/fixture-project", fileExists: () => false };
 
@@ -36,17 +37,6 @@ test("doctor distingue contrats de connexion, sorties partielles et formats inco
     ["codex", 0, "CLI missing", "", "unknown"]
   ];
   for (const [provider, code, stdout, stderr, expected] of cases) assert.equal(parseDoctorAuth(provider, code, stdout, stderr), expected);
-});
-
-test("PowerShell Store seul, hors Store, absent et wrapper non vérifiable sont distingués sans exécuter", () => {
-  const store = "C:\\Users\\fixture\\WindowsApps\\pwsh.exe";
-  const native = "C:\\Program Files\\PowerShell\\7\\pwsh.exe";
-  const options = { platform: "win32" as const, env: { PATH: "C:\\Users\\fixture\\WindowsApps", ProgramFiles: "C:\\Program Files" }, home: "C:\\fixture-home", cwd: "C:\\fixture-project" };
-  assert.equal(inspectDoctorArrival({ ...options, fileExists: file => file === store }).shell, "store-only");
-  assert.equal(inspectDoctorArrival({ ...options, fileExists: file => file === store || file === native }).shell, "native");
-  assert.equal(inspectDoctorArrival({ ...options, fileExists: () => false }).shell, "missing");
-  assert.equal(inspectDoctorArrival({ ...options, env: { PATH: "C:\\custom" }, fileExists: file => file === "C:\\custom\\pwsh.cmd" }).shell, "unverified");
-  assert.equal(inspectDoctorArrival(isolated).shell, "not-windows");
 });
 
 test("les wrappers npm voisins et les alias de dossier ne sont pas comptés comme installations distinctes", () => {
@@ -138,16 +128,27 @@ test("profil fictif complet : ordre d'arrivée, CLI déconnectée, gemini, skill
   await trustConfig(file);
   const before = await readFile(CONFIG_TRUST_PATH, "utf8");
   const commands: ExternalProcessSpec[] = [];
+  // PowerShell vient du contrôle de #175 (alias confirmé, sondes injectées) : une seule ligne, pas de seconde détection.
+  const alias = "C:\\WindowsApps\\pwsh.exe";
+  const windowsPowerShell: DoctorWindowsPowerShellProbes = {
+    platform: "win32", env: { PATH: "C:\\WindowsApps", PATHEXT: ".COM;.EXE;.BAT;.CMD" },
+    exists: candidate => candidate.toLowerCase() === alias.toLowerCase(), regularFile: () => false, appExecutionAlias: async candidate => candidate.toLowerCase() === alias.toLowerCase()
+  };
   for (const language of ["fr", "en"] as const) {
-    const result = await runDoctor(file, true, language, { checkVersion: false, discovery, arrival: {
+    const result = await runDoctor(file, true, language, { checkVersion: false, discovery: codexDetected, windowsPowerShell, arrival: {
       platform: "win32", env: { PATH: "C:\\WindowsApps;C:\\npm;C:\\standalone" }, home: "C:\\fixture-home", cwd: "C:\\fixture-project", canonicalDirectory: dir => dir,
-      fileExists: candidate => ["C:\\WindowsApps\\pwsh.exe", "C:\\npm\\pnpm.cmd", "C:\\standalone\\pnpm.exe"].includes(candidate),
+      fileExists: candidate => [alias, "C:\\npm\\pnpm.cmd", "C:\\standalone\\pnpm.exe"].includes(candidate),
       resolve: command => { assert.equal(command, "claude"); return { status: "resolved", kind: "native", executable: { command: "C:\\pinned\\claude.exe", prefixArgs: [] } }; },
       run: async spec => { commands.push(spec); return { ...finished, exitCode: 1, stdout: '{"loggedIn":false,"email":"secret@example.invalid"}', stderr: "secret" }; }
     } });
     assert.equal(result.ok, true);
-    assert.ok(result.output.indexOf("WindowsApps") < result.output.indexOf("chosen : CLI non connectée") || language === "en");
-    assert.match(result.output, /winget install --id Microsoft.PowerShell --source winget/);
+    const shellLines = result.output.split("\n").filter(line => /pwsh\.exe/.test(line));
+    assert.equal(shellLines.length, 1, "une seule ligne PowerShell");
+    assert.match(shellLines[0], /^\[WARN\].*Microsoft Store.*--installer-type wix/);
+    const approved = result.output.indexOf(language === "fr" ? "Configuration approuvée" : "Configuration approved");
+    const shell = result.output.indexOf(shellLines[0]);
+    const auth = result.output.indexOf(language === "fr" ? "chosen : CLI non connectée" : "chosen: CLI is not signed in");
+    assert.ok(approved >= 0 && approved < shell && shell < auth, "ordre : approbation, PowerShell, connexion");
     assert.match(result.output, /auth login/);
     assert.match(result.output, /gemini.*archiv/);
     assert.doesNotMatch(result.output, /gemini.*custom/);
@@ -156,7 +157,7 @@ test("profil fictif complet : ordre d'arrivée, CLI déconnectée, gemini, skill
     assert.doesNotMatch(result.output, /secret|NEVER_CALL_MODEL/);
     assert.equal(await readFile(CONFIG_TRUST_PATH, "utf8"), before);
     assert.deepEqual(Object.keys(result).sort(), ["ok", "output"]);
-    if (language === "fr") console.log(result.output.split("\n").filter(line => /Configuration approuvée|PowerShell 7 trouvé|chosen : CLI|gemini : agent|Skill PALABRE non trouvé|pnpm : plusieurs/.test(line)).join("\n"));
+    if (language === "fr") console.log(result.output.split("\n").filter(line => /Configuration approuvée|PowerShell :|chosen : CLI|gemini : agent|Skill PALABRE non trouvé|pnpm : plusieurs/.test(line)).join("\n"));
   }
   assert.equal(commands.length, 2, "une seule sonde par commande et par diagnostic");
   assert.deepEqual(commands[0].args, ["auth", "status", "--json"]);

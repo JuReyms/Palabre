@@ -15,6 +15,8 @@ export interface AdapterErrorMessages {
   ollamaOutputTooLarge(adapterName: string, maxBytes: number): string;
   /** Repli du résumé d'erreur CLI quand le process n'a rien écrit sur stderr. */
   noStderrCaptured: string;
+  /** Diagnostic borné issu de stdout quand un exit non nul n'a produit aucun stderr. */
+  stdoutDiagnostic(detail: string): string;
   /** Repli du résumé d'erreur PTY quand le flux fusionné est vide. */
   noPtyOutputCaptured: string;
   /** Message `model-unavailable` : modèle Ollama absent et pull non autorisé. */
@@ -76,6 +78,7 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
     ollamaOutputTooLarge: (adapterName, maxBytes) =>
       `${adapterName} a reçu plus de ${maxBytes} octets depuis Ollama.`,
     noStderrCaptured: "aucun stderr capturé.",
+    stdoutDiagnostic: (detail) => `stderr vide ; diagnostic stdout : ${detail}`,
     noPtyOutputCaptured: "aucune sortie PTY capturée.",
     ollamaModelUnavailable: (model, installedModels) =>
       `Modèle Ollama indisponible: ${model}. Modèles détectés: ${installedModels.join(", ") || "aucun"}. ` +
@@ -99,6 +102,7 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
     ollamaOutputTooLarge: (adapterName, maxBytes) =>
       `${adapterName} received more than ${maxBytes} bytes from Ollama.`,
     noStderrCaptured: "no stderr captured.",
+    stdoutDiagnostic: (detail) => `stderr was empty; stdout diagnostic: ${detail}`,
     noPtyOutputCaptured: "no PTY output captured.",
     ollamaModelUnavailable: (model, installedModels) =>
       `Ollama model unavailable: ${model}. Detected models: ${installedModels.join(", ") || "none"}. ` +

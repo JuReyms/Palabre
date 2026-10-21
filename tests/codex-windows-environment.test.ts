@@ -1,7 +1,7 @@
 /** @file #128 : filtrage du PATH enfant seulement, sans élargir la lecture seule. */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { codexWindowsEnvironment, type CodexWindowsEnvironmentOptions } from '../src/externalSessions/codexWindowsEnvironment.js';
+import { codexWindowsEnvironment, inspectWindowsPowerShell, type CodexWindowsEnvironmentOptions } from '../src/externalSessions/codexWindowsEnvironment.js';
 const apps='C:\\Users\\fixture\\WindowsApps', native='C:\\Windows\\System32\\WindowsPowerShell\\v1.0', pwsh='C:\\Program Files\\PowerShell\\7';
 const key=(s:string)=>s.replaceAll('/','\\').toLowerCase();
 function probes(files:string[], aliases:string[]=[apps+'\\pwsh.exe']): CodexWindowsEnvironmentOptions {
@@ -31,6 +31,28 @@ test('pas de repli réel, autre alias, paquet Store ou script : PATH inchangé',
   assert.deepEqual(await codexWindowsEnvironment(env,probes(files,[apps+'\\pwsh.exe',...aliases])),env);
  }
  const env={PATH:`${apps};${native}`};assert.deepEqual(await codexWindowsEnvironment(env,probes([apps+'\\pwsh.exe',native+'\\powershell.cmd'])),env);
+});
+// Essai réel #171 (Windows, Store 7.6.7) : l'alias du dossier propre au paquet passe en tête, suivi
+// d'un dossier d'installation versionné sans pwsh, puis de l'alias de WindowsApps lui-même.
+const pkg=apps+'\\Microsoft.PowerShell_8wekyb3d8bbwe', installed='C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.2.0_x64__8wekyb3d8bbwe';
+test('alias du dossier de paquet puis alias de WindowsApps : les deux sont écartés, repli natif',async()=>{
+ const env={PATH:`${pkg};${installed};${apps};${native}`};
+ const deps=probes([pkg+'\\pwsh.exe',apps+'\\pwsh.exe',native+'\\powershell.exe'],[pkg+'\\pwsh.exe',apps+'\\pwsh.exe']);
+ assert.equal((await codexWindowsEnvironment(env,deps)).PATH,`${installed};${native}`);
+ const report=await inspectWindowsPowerShell(env,deps);
+ assert.equal(report.status,'store-alias-with-fallback');assert.equal(report.alias,pkg+'\\pwsh.exe');assert.equal(report.fallback,native+'\\powershell.exe');
+});
+test('second alias non confirmé : il resterait choisi par Codex, donc aucun contournement',async()=>{
+ const env={PATH:`${pkg};${apps};${native}`};
+ const deps=probes([pkg+'\\pwsh.exe',apps+'\\pwsh.exe',native+'\\powershell.exe'],[pkg+'\\pwsh.exe']);
+ deps.regularFile=file=>key(file)===key(native+'\\powershell.exe');
+ assert.deepEqual(await codexWindowsEnvironment(env,deps),env);
+ assert.equal((await inspectWindowsPowerShell(env,deps)).status,'store-alias-only');
+});
+test('dossier d\'installation versionné en tête : jamais traité comme un emplacement d\'alias',async()=>{
+ let calls=0;const env={PATH:`${installed};${native}`};
+ const deps=probes([installed+'\\pwsh.exe',native+'\\powershell.exe'],[]);deps.appExecutionAlias=async()=>{calls++;return true;};
+ assert.equal((await inspectWindowsPowerShell(env,deps)).status,'not-applicable');assert.equal(calls,0);
 });
 test('sonde négative ou indisponible : pas de filtrage',async()=>{
  const env={PATH:`${apps};${native}`};

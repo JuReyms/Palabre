@@ -211,6 +211,8 @@ export interface RelayExport {
   /** Création Relay : l'identifiant peut manquer si la CLI n'a rien annoncé. */
   created?: boolean;
   cwd?: string;
+  /** Lien `codex://threads/…` d'une conversation Codex créée ; absent sinon (#179). */
+  desktopLink?: string;
   status: string;
   delivery: { status: string; persisted: boolean | "unknown"; inActiveBranch: boolean | "unknown" };
   identity: string | null;
@@ -252,6 +254,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     [labels.from, report.from ? `${report.from.agent}${report.from.session ? `:${report.from.session}` : ""}` : messages.relay.terminalSender],
     [labels.to, `${report.to.agent}${report.to.session ? `:${report.to.session}` : ""}`],
     ...(report.created !== undefined ? [[labels.created, formatBoolean(report.created)], [labels.cwd, report.cwd ?? labels.unknown]] : []),
+    ...(report.desktopLink ? [[labels.desktopLink, report.desktopLink]] : []),
     [labels.provider, report.to.provider],
     [labels.status, report.status],
     [labels.delivery, report.delivery.status],
@@ -261,7 +264,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     [labels.observedModels, report.observedModels.length > 0 ? report.observedModels.join(", ") : labels.none],
     [labels.nonce, report.nonce],
     [labels.startedAt, report.startedAt],
-    ...(report.readAccess ? [[labels.readAccess, `${report.readAccess.status}; ${report.readAccess.reason}; failedCommands=${report.readAccess.failedCommands}`]] : []),
+    ...(report.readAccess ? [[labels.readAccess, `${report.readAccess.status}; ${report.readAccess.reason}; failedCommands=${report.readAccess.failedCommands}${report.readAccess.succeededCommands === undefined ? "" : `; succeededCommands=${report.readAccess.succeededCommands}`}`]] : []),
     ...(report.retryAfter !== undefined ? [[labels.retryAfter, String(report.retryAfter)]] : []),
     ...(report.subject !== undefined ? [[labels.subject, report.subject]] : []),
     ...(report.cli ? [[labels.cliPath, report.cli.path], [labels.cliVersion, report.cli.version ?? labels.unknown]] : []),
@@ -288,6 +291,11 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     "",
     `> ${report.write ? relayWriteText(report.write.language).exportNotice : report.open ? labels.openNotice : labels.readOnlyNotice}`,
     "",
+    // Un relay réussi n'a pas de section Erreur : l'avertissement doit donc exister par lui-même.
+    // Une seule copie : quand l'erreur porte déjà l'avertissement (`blocked`, échec enrichi), la
+    // section Erreur suffit.
+    ...(report.readAccess && !report.error?.includes(messages.relay.readAccess(report.readAccess))
+      ? [`> ${messages.relay.readAccess(report.readAccess)}`, ""] : []),
     `## ${labels.message}`,
     "",
     report.message,

@@ -189,7 +189,13 @@ export class CliAdapter implements AgentAdapter {
         }
 
         if (code !== 0) {
-          finish(createCliExitError(this.name, code, decodeCliBytes(stderrChunks), errorMessages));
+          finish(createCliExitError(
+            this.name,
+            code,
+            decodeCliBytes(stdoutChunks),
+            decodeCliBytes(stderrChunks),
+            errorMessages
+          ));
           return;
         }
 
@@ -346,15 +352,29 @@ function normalizeForWindowsStatus(line: string): string {
  * Construit une `AdapterError` typée depuis un exit code non nul.
  * Élève en `usage-limit` si le stderr contient un signal de quota/rate-limit connu.
  */
-function createCliExitError(adapterName: string, exitCode: number, stderr: string, messages: AdapterErrorMessages): AdapterError {
-  return createKnownCliError(adapterName, exitCode, stderr, messages)
+function createCliExitError(
+  adapterName: string,
+  exitCode: number,
+  stdout: string,
+  stderr: string,
+  messages: AdapterErrorMessages
+): AdapterError {
+  const cleanedStderr = cleanCliOutput(stderr);
+  const cleanedStdout = cleanCliOutput(stdout);
+  const diagnostic = cleanedStderr
+    ? summarizeCliDiagnostic(cleanedStderr, messages)
+    : cleanedStdout
+      ? messages.stdoutDiagnostic(summarizeCliDiagnostic(cleanedStdout, messages))
+      : messages.noStderrCaptured;
+
+  return createKnownCliError(adapterName, exitCode, cleanedStderr, messages)
     ?? new AdapterError(
       "non-zero-exit",
       adapterName,
-      `${adapterName} exited with code ${exitCode}: ${summarizeCliError(cleanCliOutput(stderr), messages)}`,
+      `${adapterName} exited with code ${exitCode}: ${diagnostic}`,
       {
         exitCode,
-        stderr: cleanCliOutput(stderr)
+        stderr: cleanedStderr
       }
     );
 }
@@ -447,8 +467,8 @@ function extractJsonErrorMessage(line: string): string | undefined {
   }
 }
 
-function summarizeCliError(stderr: string, messages: AdapterErrorMessages): string {
-  const lines = uniqueNonEmptyLines(stderr).map(stripLogPrefix);
+function summarizeCliDiagnostic(output: string, messages: AdapterErrorMessages): string {
+  const lines = uniqueNonEmptyLines(output).map(stripLogPrefix);
 
   if (lines.length === 0) {
     return messages.noStderrCaptured;

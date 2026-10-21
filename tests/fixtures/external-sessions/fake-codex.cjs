@@ -4,7 +4,8 @@
  *
  * Variables :
  *   FAKE_CODEX_MODE      comportement de `exec resume` : ok, mismatch, active-writer, not-found,
- *                        turn-failed, no-message, blank, two-completed, usage-limit, read-blocked, hang ;
+ *                        turn-failed, no-message, blank, two-completed, usage-limit, read-blocked,
+ *                        read-partial, read-uninterpretable, read-reply-first, hang ;
  *   FAKE_CODEX_MCP       sortie brute de `codex mcp list --json` (défaut `[]`, peut être invalide) ;
  *   FAKE_CODEX_MCP_EXIT  code de sortie non nul simulé pour `codex mcp list` ;
  *   FAKE_CODEX_ROLLOUT   rollout de la cible, où le message reçu est ajouté (modes qui jouent un tour) ;
@@ -107,11 +108,39 @@ process.stdin.on("end", () => {
     process.exitCode = 1;
     return;
   }
+  // Un lancement refusé, sans aucune commande aboutie ensuite : rien n'étaye la réponse.
   if (mode === "read-blocked") {
     turn(argv.at(-2), stdin, ["Constat partiel : lectures bloquées."]);
     emit({ type: "item.completed", item: { id: "read-1", type: "command_execution", status: "failed", exit_code: -1,
       command: "powershell -Command Get-Content package.json",
       aggregated_output: "Failed to create unified exec process: CreateProcessAsUserW failed: 5 (Access denied.)" } });
+    emit({ type: "turn.completed", usage: {} });
+    return;
+  }
+  // Trace observée dans l'essai réel de l'issue 171 : deux refus sur pwsh, puis repli de l'agent
+  // sur cmd.exe et deux commandes abouties, dont la lecture demandée.
+  // `read-reply-first` : la réponse précède toutes les commandes, donc aucune lecture n'a pu la
+  // nourrir, même si une commande réussit ensuite (relecture indépendante de #174).
+  if (mode === "read-partial" || mode === "read-uninterpretable" || mode === "read-reply-first") {
+    const reply = { type: "item.completed", item: { id: "reply", type: "agent_message", text: "La livraison est prévue le 12 mars." } };
+    turn(argv.at(-2), stdin, []);
+    if (mode === "read-reply-first") emit(reply);
+    for (const id of ["read-1", "read-2"]) {
+      emit({ type: "item.completed", item: { id, type: "command_execution", status: "failed", exit_code: -1,
+        command: "pwsh -Command Get-Content note.md",
+        aggregated_output: "Failed to create unified exec process: CreateProcessAsUserW failed: 5 (Access denied.)" } });
+    }
+    if (mode === "read-partial" || mode === "read-reply-first") {
+      emit({ type: "item.completed", item: { id: "read-3", type: "command_execution", status: "completed", exit_code: 0,
+        command: "cmd.exe /c type SKILL.md", aggregated_output: "---" } });
+      emit({ type: "item.completed", item: { id: "read-4", type: "command_execution", status: "completed", exit_code: 0,
+        command: "cmd.exe /c type note.md", aggregated_output: "12 mars" } });
+    } else {
+      // Statut inconnu : une réussite ne peut pas être écartée.
+      emit({ type: "item.completed", item: { id: "read-3", type: "command_execution", status: "interrupted",
+        command: "cmd.exe /c type note.md" } });
+    }
+    if (mode !== "read-reply-first") emit(reply);
     emit({ type: "turn.completed", usage: {} });
     return;
   }

@@ -12,7 +12,7 @@ Commencez par lancer le diagnostic :
 palabre doctor
 ```
 
-`doctor` n'appelle aucun modèle et ne modifie pas votre configuration. Il place les actions d'arrivée en premier : approbation, PowerShell 7 sous Windows, connexion Claude Code/Codex, agent archivé, skill et emplacements multiples. Les sondes de connexion sont limitées aux commandes `status` d'une configuration approuvée ; sans approbation, aucune commande d'agent ni URL configurée n'est sondée. Il contrôle aussi les paramètres par défaut, `outputDir`, les CLIs et Ollama. Voir [Changer de machine](/fr/get-started/change-machine) pour les limites et les actions à effectuer vous-même.
+`doctor` n'appelle aucun modèle et ne modifie pas votre configuration. Il place les actions d'arrivée en premier : approbation, alias PowerShell du Store sous Windows (détaillé plus bas), connexion Claude Code/Codex, agent archivé, skill et emplacements multiples. Les sondes de connexion sont limitées aux commandes `status` d'une configuration approuvée ; sans approbation, aucune commande d'agent ni URL configurée n'est sondée. Il contrôle aussi les paramètres par défaut, `outputDir`, les CLIs et Ollama. Voir [Changer de machine](/fr/get-started/change-machine) pour les limites et les actions à effectuer vous-même.
 
 Pour obtenir une sortie brute adaptée aux logs ou aux scripts :
 
@@ -22,27 +22,36 @@ palabre doctor --terminal
 
 ## Codex sous Windows : erreur 5 malgré la lecture seule
 
-**Ce qui se passe :** Codex ne peut pas démarrer une commande de lecture (`CreateProcessAsUserW failed: 5`). PALABRE conserve sa réponse mais rend `read-unavailable` (2) ; avec review, aucune revue n'est publiée.
+**Ce qui se passe :** Codex ne peut pas démarrer une commande (`CreateProcessAsUserW failed: 5`). PALABRE le signale dans `readAccess`. Si une commande aboutit ensuite, le relay reste `replied` (0) avec `status: "partial"` et `succeededCommands`. Sans réussite ultérieure, une réponse reçue devient `read-unavailable` (2) avec `status: "blocked"`, mais la réponse et la délivrance sont conservées. Un événement ambigu donne `unverified` sans dégrader l'issue. Avec review, aucune revue n'est publiée (`review-failed`, 9), car une publication ne se défait pas.
 
-**Cause confirmée sur la machine testée :** l'alias PowerShell du Microsoft Store, `WindowsApps\pwsh.exe`. Sous la même politique `:read-only`, cet alias échoue, PowerShell natif lit le fichier, et les écritures restent refusées.
+**Cause confirmée sur la machine testée :** l'alias PowerShell du Microsoft Store, `WindowsApps\pwsh.exe` ou, après une mise à jour par winget ou le Store, `WindowsApps\Microsoft.PowerShell_8wekyb3d8bbwe\pwsh.exe`. Les deux emplacements peuvent coexister dans le PATH. Sous la même politique `:read-only`, cet alias échoue, PowerShell natif lit le fichier, et les écritures restent refusées.
+
+### Ce que `doctor` signale avant
+
+Quand la CLI Codex est détectée, `palabre doctor` regarde le `pwsh.exe` prioritaire du PATH, sans le lancer, et avertit (`WARN`) s'il s'agit de l'alias du Microsoft Store :
+
+- **aucun repli sûr** (pas de PowerShell régulier, ou un autre alias non confirmé reste en tête) : le contournement décrit ci-dessous ne peut pas s'appliquer ;
+- **un PowerShell régulier reste disponible** : PALABRE l'utilisera pour son seul processus enfant Codex, et le message le nomme.
+
+C'est un avertissement, jamais une erreur : la machine reste utilisable, et l'agent lit souvent malgré le refus. `doctor` ne lance pas `pwsh`, ne modifie ni configuration, ni PATH, ni permissions, et reste muet hors Windows, sans CLI Codex détectée, ou quand un vrai `pwsh.exe` reste disponible.
 
 ### Ce que PALABRE fait automatiquement
 
-Pour Relay fermé, `--new`, Mission et la tâche review vers Codex, PALABRE examine le shell prioritaire. Sous Windows, il écarte de son **seul processus enfant** le dossier `WindowsApps` si son `pwsh.exe` est un alias d'exécution confirmé et qu'un PowerShell natif reste disponible. Un vrai PowerShell déjà prioritaire n'entraîne aucun changement. Une vérification impossible ou un repli incertain laisse le PATH inchangé.
+Pour Relay fermé, `--new`, Mission et la tâche review vers Codex, PALABRE examine le shell prioritaire. Sous Windows, il écarte de son **seul processus enfant** chaque dossier d'alias qui passe en tête — `WindowsApps` ou le dossier du paquet `WindowsApps\Microsoft.PowerShell_…` — si son `pwsh.exe` est un alias d'exécution confirmé et qu'un PowerShell natif reste disponible. Un vrai PowerShell déjà prioritaire n'entraîne aucun changement. Une vérification impossible ou un repli incertain laisse le PATH inchangé.
 
-Aucun réglage utilisateur, PATH global ou droit d'écriture n'est modifié. Le diagnostic `read-unavailable` reste actif si une lecture est bloquée. Ni renvoi automatique ni changement de bac à sable. `--open` garde le comportement de la conversation Desktop et n'utilise pas ce correctif.
+Aucun réglage utilisateur, PATH global ou droit d'écriture n'est modifié. Le diagnostic `readAccess` reste émis tant qu'un lancement est refusé. Ni renvoi automatique ni changement de bac à sable. `--open` garde le comportement de la conversation Desktop et n'utilise pas ce correctif.
 
 **Limite :** les autres alias présents dans le dossier écarté (par exemple Python ou Windows Terminal) ne sont plus trouvés par leur nom via ce dossier, pour cet enfant seulement. PALABRE résout la CLI Codex avant ce filtrage ; son propre terminal, les commandes GitHub et les autres agents conservent leur environnement. Cela ne règle pas toutes les causes possibles d'erreur 5.
 
 ### Option pour le propriétaire : installer PowerShell 7 hors Store
 
-Ce n'est pas obligatoire : Windows PowerShell natif peut suffire au correctif. Si vous préférez PowerShell 7, la [documentation Microsoft](https://learn.microsoft.com/en-us/powershell/scripting/install/install-powershell-on-windows) propose cette commande pour choisir le paquet **MSI**, s'il est disponible :
+Ce n'est pas obligatoire : Windows PowerShell natif peut suffire au correctif. Si vous préférez PowerShell 7, demandez explicitement le paquet **MSI** :
 
 ```powershell
 winget install --id Microsoft.PowerShell --source winget --installer-type wix
 ```
 
-Le choix MSI est important : `--source winget` seul peut installer un paquet MSIX. Si le paquet MSI n'est pas proposé, utilisez les instructions MSI ou ZIP de Microsoft. PALABRE n'installe rien à votre place. Rouvrez le terminal et l'application après installation ; vérifiez le chemin proposé avec :
+Le sélecteur compte. `--source winget` seul installe le paquet MSIX du Store : dans l'[essai réel de #171](https://github.com/JuReyms/Palabre/issues/171), `winget list` annonce la nouvelle version alors que `C:\Program Files\PowerShell\` n'existe toujours pas. `--installer-type msi` ne correspond à aucun installeur, car le manifeste winget de PowerShell déclare ses `.msi` sous le type `wix` : c'est donc `wix` qu'il faut demander. Vérifié avec winget 1.29.380 : `winget show --id Microsoft.PowerShell --source winget --installer-type wix` montre bien une URL `.msi`, tandis que la même commande avec `msi` répond « No applicable installer found ». Si votre version de winget ne propose pas ce choix, téléchargez le `.msi` depuis les [releases GitHub de PowerShell](https://github.com/PowerShell/PowerShell/releases). PALABRE n'installe rien à votre place. Rouvrez le terminal et l'application après installation ; vérifiez le chemin proposé avec :
 
 ```powershell
 Get-Command pwsh -All | Select-Object Source
@@ -312,6 +321,6 @@ pnpm add --global palabre@latest
 
 Une édition manuelle invalide l'empreinte approuvée. Pour une configuration projet implicite ou un appel Relay, vous relisez le fichier puis lancez `palabre config --config <fichier> --trust-config`. Les agents attendent votre action ; ils ne s'accordent pas de droits.
 
-Refus avant envoi (`not-delivered`) : `config-untrusted` (8), `task-not-allowed` (8, propriétaire : lancer la commande `remedy` dans son terminal), `review-cli-unsupported` (8, Claude ≥ 2.1.292 et `--safe-mode` requis), `target-busy` (3, fermer la cible ou choisir `--open` pour Codex sous Windows), `target-not-open` (3, ouvrir la cible Codex). Voir [Relay](/fr/usage/relay).
+Refus avant envoi (`not-delivered`) : `config-untrusted` (8), `task-not-allowed` (8, propriétaire : lancer la commande `remedy` dans son terminal), `review-cli-unsupported` (8, Claude ≥ 2.1.292 et `--safe-mode` requis), `target-busy` (3, fermer la cible ou choisir `--open` pour Codex sous Windows, macOS ou Linux), `target-not-open` (3, ouvrir la cible Codex). Sur macOS/Linux, `target-state-unknown` invite à vérifier `python3 --version`. Voir [Relay](/fr/usage/relay).
 
 Une limite reconnue donne `usage-limit`. Une indication de reprise n'est affichée que si fournie : `retryAfter` dans les erreurs NDJSON, ou Relay avec `--open`. Sans `--open`, Relay classe la limite mais n'expose pas ce champ. Aucun renvoi automatique, même après l'heure indiquée ; une heure seule n'a pas de date ni fuseau déduits. Avec Relay, vérifiez la délivrance avant toute nouvelle demande. Mission garde le résultat et se met en pause sur un échec connu ; une délivrance inconnue exige une vérification humaine. Avec `--checkpoint`, `resume` conserve les réponses déjà acceptées.

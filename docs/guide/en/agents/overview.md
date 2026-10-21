@@ -19,6 +19,8 @@ A CLI agent is launched as a terminal command. Palabre sends it a prompt, retrie
 
 Each CLI keeps its own rules: authentication, default model, subscription, usage limits, and configuration options. Some CLIs can work with a free tier, a subscription, a local provider, or a cloud provider; in all cases, quotas and rate limit errors come from the agent being used, not from Palabre.
 
+If a CLI exits with an error without writing to stderr, Palabre shows a sanitized, bounded stdout excerpt to help diagnose the failure, for example an authentication error. The session still fails: this excerpt is never accepted as a response. Fix authentication or configuration in the affected CLI first, then run Palabre again.
+
 ## Local agents
 
 A local agent like Ollama uses a model installed on your machine. This is useful for critic, exploration, or lightweight summary roles. If you configure Ollama with a cloud offer or a paid service, the associated limits remain those of Ollama or the chosen provider.
@@ -90,7 +92,7 @@ When you use `--model-a`, `--model-b`, or `--summary-model`, Palabre does not ve
 
 ## Agents and Relay
 
-[Relay](/en/usage/relay) targets Codex or Claude Code conversations: closed by default; `--open` targets only Codex on Windows (pilot). Mission, a Relay option, uses closed conversations. Antigravity, OpenCode, Mistral Vibe and Ollama participate in Debate, Ask and Chat, not as Relay targets.
+[Relay](/en/usage/relay) targets Codex or Claude Code conversations: closed by default; `--open` targets only Codex on Windows, macOS, or Linux (pilot, with `python3` required on POSIX). Mission, a Relay option, uses closed conversations. Antigravity, OpenCode, Mistral Vibe and Ollama participate in Debate, Ask and Chat, not as Relay targets.
 
 CLI agents run from the current directory. Defaults request read-only tools where available: Claude `Read,Glob,Grep`, Codex `--sandbox read-only`, Vibe `read,grep`. OpenCode `--pure` disables plugins **without guaranteeing a read-only tool allowlist**. Custom arguments remain under your control; migrations replace only exact old defaults. A recognized limit gives `usage-limit`, without automatic resend.
 

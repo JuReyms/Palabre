@@ -18,6 +18,8 @@ Attendez toujours la fermeture du processus. `error` décrit l'échec métier ; 
 
 Un événement `error` peut contenir la phase, l'agent, le rôle, le tour, un `kind` stable, un message et des détails. Les kinds incluent notamment `command-not-found`, `spawn-failed`, `timeout`, `idle-timeout`, `output-too-large`, `empty-output`, `non-zero-exit`, `usage-limit`, `unsupported-model`, `model-unavailable`, `model-pull-failed`, `http-error` et `cancelled`. Pour un `usage-limit`, `retryAfter` est parfois présent : durée en secondes, timestamp ISO ou heure locale `HH:mm`. Il est best-effort ; branchez la logique sur `kind`, pas sur le texte du message.
 
+Un agent CLI qui termine avec un code non nul reste un échec, même s'il a écrit sur stdout. Palabre donne la priorité à stderr ; si stderr est vide, le message `non-zero-exit` inclut seulement un extrait nettoyé et borné de stdout pour le diagnostic. Cet extrait ne constitue jamais une réponse de l'agent et ne sert pas à reclasser automatiquement l'erreur.
+
 Palabre tente de conserver les réponses dans un export partiel après un échec. Acceptez donc `done` avec un chemin suivi d'un code non nul. Une annulation doit rester distincte d'une erreur.
 
 ## Identité du client
@@ -29,4 +31,4 @@ PALABRE_CLIENT_VERSION=2.3.0
 
 Le nom est libre. Palabre nettoie ces valeurs et les inscrit avec sa propre version dans les exports. Sans déclaration, la source est `direct-cli`. Ces champs sont diagnostiques, pas une frontière de sécurité.
 
-Relay a ses propres issues : `usage-limit` et `read-unavailable` (2), `target-not-open` (3), `review-failed` (9), `invalid-request` avec `error.reason` (8). `retryAfter` peut n’être qu’une heure, sans date ni fuseau : présentez-la telle quelle et attendez une décision humaine, sans renvoi programmé. Les champs de provenance client décrits ici concernent les exports Débat/Ask/Chat ; Relay expose sa propre version de PALABRE.
+Relay a ses propres issues : `usage-limit` (2), `read-unavailable` (2), `target-not-open` (3), `review-failed` (9), `invalid-request` avec `error.reason` (8). Des lancements de commandes refusés sous Windows remplissent `readAccess` : `partial` et `unverified` conservent l'issue ; `blocked` peut donner `read-unavailable` sans effacer réponse ni délivrance. `retryAfter` peut n’être qu’une heure, sans date ni fuseau : présentez-la telle quelle et attendez une décision humaine, sans renvoi programmé. Les champs de provenance client décrits ici concernent les exports Débat/Ask/Chat ; Relay expose sa propre version de PALABRE.

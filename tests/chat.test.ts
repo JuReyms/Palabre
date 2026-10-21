@@ -76,7 +76,7 @@ test("CLI chat continues an interactive stateless conversation", async () => {
   assert.ok(exported);
   const markdown = await readFile(path.join(dir, exported), "utf8");
   assert.match(markdown, /\| --- \| --- \|/);
-  assert.match(markdown, /\| Palabre CLI version \| \d+\.\d+\.\d+ \|/);
+  assert.match(markdown, /\| Palabre CLI version \| \d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)? \|/);
   assert.match(markdown, /\| Invocation source \| palabre-vscode \|/);
   assert.match(markdown, /\| Client version \| 1\.7\.1 \|/);
   assert.match(markdown, /Ended by the user with \/end/);

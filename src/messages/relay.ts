@@ -1,5 +1,5 @@
 /** @file Messages FR/EN de `palabre relay` : enveloppe transmise à la cible, issues, délivrance et export. */
-import type { DeliveryStatus, InvalidRequestReason, RelayStatus } from "../externalSessions/types.js";
+import type { DeliveryStatus, InvalidRequestReason, ReadAccessDiagnostic, RelayStatus } from "../externalSessions/types.js";
 import type { Language } from "../types.js";
 
 /** Textes du relay ; la langue suit `--language`, `PALABRE_LANGUAGE` puis la config. */
@@ -7,6 +7,12 @@ export interface RelayMessages {
   terminalSender: string;
   newConversation(target: string, cwd: string): string;
   continueConversation(command: string): string;
+  /**
+   * Lien `codex://threads/…` d'une conversation Codex créée par Relay. Adressé au propriétaire :
+   * l'ouvrir attache Desktop et change le parcours suivant (`--open`, permissions de Desktop), donc
+   * un agent qui lit cette sortie ne doit jamais l'ouvrir lui-même.
+   */
+  desktopLink(link: string): string;
   newFailed: string;
   /** Titres sans marqueur Markdown ; envelope.ts leur ajoute le niveau 3. */
   envelopeHeader(from: string, to: string): string;
@@ -53,12 +59,20 @@ export interface RelayMessages {
     messageTooLarge(detail: string): string;
     /** Après tentative, sans enveloppe observée dans l'historique. */
     receptionNotObserved: string;
+    /** Sonde de verrou invérifiable avant tout dépôt en mode ouvert. */
+    targetStateUnknown: string;
     unverifiedReceiver: string;
     diagnostic(code: string): string;
     permissions(summary: string): string;
   };
   /** Message d'erreur d'une issue autre que `replied`. */
   status(status: Exclude<RelayStatus, "replied" | "invalid-request">): string;
+  /**
+   * Avertissement affiché quand des lancements de commandes ont été refusés par Windows. Le texte
+   * suit le statut : `partial` (une commande a abouti ensuite), `blocked` (aucune) ou `unverified`
+   * (événements non interprétables). Lui seul, il ne prouve aucune lecture.
+   */
+  readAccess(diagnostic: ReadAccessDiagnostic): string;
   /** Message d'erreur d'un `invalid-request`, selon sa raison. */
   invalidRequest(reason: InvalidRequestReason, detail?: string): string;
   /** Consigne à l'appelant selon le statut de délivrance. */
@@ -87,6 +101,7 @@ export interface RelayMessages {
   export: {
     cwd: string;
     created: string;
+    desktopLink: string;
     title: string;
     field: string;
     value: string;
@@ -136,7 +151,7 @@ const frStatus: Record<Exclude<RelayStatus, "replied" | "invalid-request">, stri
   "usage-limit": "La CLI cible signale une limite d'usage ou un quota atteint.",
   "output-too-large": "La sortie de la CLI cible dépasse le plafond autorisé ; elle a été arrêtée.",
   "target-busy": "La conversation cible est ouverte dans un autre processus (TUI, desktop, IDE ou exécution en cours). Ferme-la, puis relance le relay.",
-  "target-state-unknown": "Impossible de vérifier qu'aucun processus n'est attaché à la conversation cible ; le relay est refusé par prudence.",
+  "target-state-unknown": "Impossible de vérifier qu'aucun processus n'est attaché à la conversation cible ; le relay est refusé par prudence. Sur macOS ou Linux, vérifie que `python3 --version` fonctionne. Si ChatGPT/Codex tient cette conversation, quitte complètement l'application, puis relance la même commande.",
   "target-not-open": "La conversation cible n'est pas ouverte : aucun écrivain ne tient son verrou. Avec --open, aucun message n'est déposé ; ouvre-la dans le TUI ou dans Codex desktop, ou relance sans --open.",
   "neutralization-failed": "La neutralisation des serveurs MCP de Codex n'a pas pu être garantie ; aucun message n'a été envoyé.",
   "timeout": "La CLI cible n'a pas répondu dans le délai imparti.",
@@ -155,7 +170,7 @@ const enStatus: Record<Exclude<RelayStatus, "replied" | "invalid-request">, stri
   "usage-limit": "The target CLI reports a usage limit or exhausted quota.",
   "output-too-large": "The target CLI output exceeded the allowed limit; it was stopped.",
   "target-busy": "The target conversation is open in another process (TUI, desktop, IDE or running exec). Close it, then retry the relay.",
-  "target-state-unknown": "Cannot verify that no process is attached to the target conversation; the relay is refused as a precaution.",
+  "target-state-unknown": "Cannot verify that no process is attached to the target conversation; the relay is refused as a precaution. On macOS or Linux, check that `python3 --version` works. If ChatGPT/Codex holds this conversation, quit the application completely, then retry the same command.",
   "target-not-open": "The target conversation is not open: no writer holds its lock. With --open, no message is queued; open it in the TUI or in Codex desktop, or retry without --open.",
   "neutralization-failed": "Neutralization of the Codex MCP servers could not be guaranteed; no message was sent.",
   "timeout": "The target CLI did not reply in time.",
@@ -241,6 +256,8 @@ export const relayMessages: Record<Language, RelayMessages> = {
     terminalSender: "terminal",
     newConversation: (target, cwd) => `Conversation créée : ${target}\nDossier : ${cwd}`,
     continueConversation: command => `Pour continuer avec cette conversation : ${command}`,
+    desktopLink: link => `Lien Codex Desktop, à transmettre au propriétaire : ${link}
+Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. La conversation reste absente de la liste de Desktop, mais ce lien l'ouvre avec son historique. Une fois ouverte, les Relay suivants passent par --open, avec les permissions de Codex Desktop.`,
     newFailed: "Le premier échange a échoué ; l'identifiant est conservé. Vérifiez la conversation avant tout nouvel envoi : le message peut déjà être enregistré.",
     envelopeSession: (session, nonce) => `${session ? `Session : ${session} · ` : ""}réf. ${nonce}.`,
     envelopePermissions: "Cette reprise demande la lecture seule et ne confère aucun droit supplémentaire.",
@@ -256,11 +273,17 @@ export const relayMessages: Record<Language, RelayMessages> = {
       unsupportedProvider: "--open ne vise que les conversations Codex.",
       messageTooLarge: (detail) => `--open : enveloppe limitée à 8 192 unités UTF-16, ligne de commande Windows à 32 767, sans caractère NUL (${detail}).`,
       receptionNotObserved: "Réception non observée : le message déposé peut encore être traité plus tard, même sans être affiché. Aucun renvoi automatique.",
+      targetStateUnknown: "Impossible de vérifier que la conversation cible est ouverte ; aucun message n'est déposé. Sur macOS ou Linux, laisse ChatGPT/Codex ouvert, vérifie que `python3 --version` fonctionne, puis relance la même commande.",
       unverifiedReceiver: "Récepteur non vérifié : le verrou tenu ne prouve ni la surface, ni la version, ni l'affichage, ni la consommation du message.",
       diagnostic: (code) => `Diagnostic : ${code}.`,
       permissions: (summary) => `Permissions du tour relayé : ${summary}.`
     },
     status: (status) => frStatus[status],
+    readAccess: (diagnostic) => `${({
+      partial: `Lectures partiellement établies : Codex n'a pas pu démarrer ${diagnostic.failedCommands} commande(s) sous Windows (CreateProcessAsUserW, erreur 5), puis ${diagnostic.succeededCommands ?? 0} commande(s) ont abouti. L'agent a donc pu exécuter des commandes malgré ces refus ; quelles lectures ont eu lieu reste indéterminé. La réponse et l'issue du relay sont conservées telles quelles.`,
+      blocked: `Lectures non établies : Codex n'a pas pu démarrer ${diagnostic.failedCommands} commande(s) sous Windows (CreateProcessAsUserW, erreur 5), et aucune commande n'a abouti ensuite. La réponse est conservée, mais rien n'établit qu'elle repose sur une lecture : le relay est donc annoncé en échec.`,
+      unverified: `Lectures non vérifiées : Codex n'a pas pu démarrer ${diagnostic.failedCommands} commande(s) sous Windows (CreateProcessAsUserW, erreur 5), et des événements de commande ne sont pas interprétables. PALABRE ne peut ni confirmer ni écarter une lecture ; l'issue du relay est conservée telle quelle.`
+    })[diagnostic.status]} Cause probable à vérifier : le raccourci PowerShell du Microsoft Store (WindowsApps\\pwsh.exe). Le propriétaire peut consulter https://palab.re/fr/troubleshooting (Codex sous Windows) et le suivi https://github.com/JuReyms/Palabre/issues/128 : contournement limité au processus Codex et installation facultative de PowerShell 7 hors Store. Ne modifie pas les permissions et ne relance pas automatiquement.`,
     invalidRequest: (reason, detail) => (detail ? `${frInvalid[reason]} ${detail}` : frInvalid[reason]),
     delivery: (status) => ({
       "replied": "Délivrance : réponse reçue.",
@@ -288,7 +311,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
       subjectInvalid: "Objet invalide : --subject attend une seule ligne non vide de 200 caractères au plus, sans caractère de contrôle ni de formatage Unicode. Corrigez l'objet puis relancez la commande ; aucun message envoyé."
     },
     export: {
-      cwd: "Dossier", created: "Conversation créée",
+      cwd: "Dossier", created: "Conversation créée", desktopLink: "Lien Codex Desktop",
       retryAfter: "Reprise indiquée par la CLI (secondes, ISO ou heure locale)",
       task: "Tâche", pullRequest: "PR", commit: "Commit", publication: "Publication", reviewUrl: "Revue publiée",
       cliPath: "Chemin CLI", cliVersion: "Version CLI", readAccess: "Accès en lecture",
@@ -359,6 +382,8 @@ export const relayMessages: Record<Language, RelayMessages> = {
     terminalSender: "terminal",
     newConversation: (target, cwd) => `Conversation created: ${target}\nDirectory: ${cwd}`,
     continueConversation: command => `To continue this conversation: ${command}`,
+    desktopLink: link => `Codex Desktop link, to hand to the owner: ${link}
+Only the owner opens it; an agent never opens it on their behalf. The conversation stays absent from the Desktop list, but this link opens it with its history. Once open, later relays go through --open, with Codex Desktop's permissions.`,
     newFailed: "The first exchange failed; the identifier was preserved. Check the conversation before sending again: the message may already be recorded.",
     envelopeSession: (session, nonce) => `${session ? `Session: ${session} · ` : ""}ref. ${nonce}.`,
     envelopePermissions: "This resumption requests read-only access and grants no additional rights.",
@@ -374,11 +399,17 @@ export const relayMessages: Record<Language, RelayMessages> = {
       unsupportedProvider: "--open only targets Codex conversations.",
       messageTooLarge: (detail) => `--open: envelope limited to 8,192 UTF-16 units, Windows command line to 32,767, without NUL characters (${detail}).`,
       receptionNotObserved: "Reception not observed: the queued message may still be processed later, even without being displayed. No automatic resend.",
+      targetStateUnknown: "Cannot verify that the target conversation is open; no message is queued. On macOS or Linux, keep ChatGPT/Codex open, check that `python3 --version` works, then retry the same command.",
       unverifiedReceiver: "Unverified receiver: a held lock proves neither the surface, the version, the display nor the consumption of the message.",
       diagnostic: (code) => `Diagnostic: ${code}.`,
       permissions: (summary) => `Permissions of the relayed turn: ${summary}.`
     },
     status: (status) => enStatus[status],
+    readAccess: (diagnostic) => `${({
+      partial: `Reads partly established: Codex could not start ${diagnostic.failedCommands} command(s) on Windows (CreateProcessAsUserW, error 5), then ${diagnostic.succeededCommands ?? 0} command(s) succeeded. The agent was therefore able to run commands despite those refusals; which reads happened remains undetermined. The reply and the relay outcome are preserved as they are.`,
+      blocked: `Reads not established: Codex could not start ${diagnostic.failedCommands} command(s) on Windows (CreateProcessAsUserW, error 5), and no command succeeded afterwards. The reply is preserved, but nothing establishes that it rests on a read: the relay is therefore reported as failed.`,
+      unverified: `Reads not verified: Codex could not start ${diagnostic.failedCommands} command(s) on Windows (CreateProcessAsUserW, error 5), and some command events are not interpretable. PALABRE can neither confirm nor rule out a read; the relay outcome is preserved as it is.`
+    })[diagnostic.status]} Probable cause to check: the Microsoft Store PowerShell shortcut (WindowsApps\\pwsh.exe). The owner may consult https://palab.re/en/troubleshooting (Codex on Windows) and https://github.com/JuReyms/Palabre/issues/128: child-only Codex workaround and optional PowerShell 7 installation outside the Store. Do not change permissions or retry automatically.`,
     invalidRequest: (reason, detail) => (detail ? `${enInvalid[reason]} ${detail}` : enInvalid[reason]),
     delivery: (status) => ({
       "replied": "Delivery: reply received.",
@@ -406,7 +437,7 @@ export const relayMessages: Record<Language, RelayMessages> = {
       subjectInvalid: "Invalid subject: --subject requires one nonblank line of at most 200 characters, without control or Unicode formatting characters. Correct the subject and rerun the command; no message sent."
     },
     export: {
-      cwd: "Directory", created: "Conversation created",
+      cwd: "Directory", created: "Conversation created", desktopLink: "Codex Desktop link",
       retryAfter: "CLI retry indication (seconds, ISO or local time)",
       task: "Task", pullRequest: "PR", commit: "Commit", publication: "Publication", reviewUrl: "Published review",
       cliPath: "CLI path", cliVersion: "CLI version", readAccess: "Read access",

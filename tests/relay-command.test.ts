@@ -12,6 +12,7 @@ import path from "node:path";
 import { after, describe, test } from "node:test";
 import { relayMessages } from "../src/messages/relay.js";
 import { buildEnvelope, MAX_RELAY_MESSAGE_BYTES } from "../src/externalSessions/envelope.js";
+import type { ReadAccessDiagnostic } from "../src/externalSessions/types.js";
 import { npmPowerShellShim } from "./fixtures/external-sessions/npm-shim.js";
 import { trustConfig } from "../src/configTrust.js";
 
@@ -150,29 +151,73 @@ test("approve-write : une demande existante ne permet pas de confirmer en termin
   assert.equal(yes.code, 8); assert.equal(existsSync(path.join(directory, "approval.json")), false);
 });
 
-test("Codex répond mais les lectures échouent : JSON, texte et export signalent l'échec sans renvoi", async () => {
+test("Codex se replie après des lancements refusés : issue conservée, diagnostic visible, aucun renvoi", async () => {
   const w = makeWorld();
-  const r = await relay(w, [...toCodex, "Lis le dépôt", "--subject", "Revue du dépôt", "--trust-config", "--json"], { FAKE_CODEX_MODE: "read-blocked" });
-  assert.equal(r.code, 2); assert.equal(r.json.status, "read-unavailable");
-  assert.equal(r.json.reply, "Constat partiel : lectures bloquées.");
+  const r = await relay(w, [...toCodex, "Lis note.md", "--subject", "Revue du dépôt", "--trust-config", "--json"], { FAKE_CODEX_MODE: "read-partial" });
+  // Faux négatif corrigé (#173, essai réel #171) : deux refus puis un repli réussi sur un autre
+  // shell ne dégradent plus un relay dont la réponse est arrivée.
+  assert.equal(r.code, 0); assert.equal(r.json.status, "replied"); assert.equal(r.json.error, null);
+  assert.equal(r.json.reply, "La livraison est prévue le 12 mars.");
   assert.equal(r.json.delivery.status, "replied"); assert.equal(r.json.identity, "same-as-target");
-  assert.deepEqual(r.json.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 1 });
+  assert.deepEqual(r.json.readAccess, { status: "partial", reason: "windows-process-access-denied", failedCommands: 2, succeededCommands: 2 });
   assert.equal(r.json.subject, "Revue du dépôt");
   const sent = r.calls.find(call => call.argv[0] === "exec")!.stdin as string;
   assert.equal(sent.split("\n")[0], `### ${relayMessages.fr.envelopeHeader("claude", "codex")}`);
   assert.equal(sent.split("\n")[6], relayMessages.fr.subjectLine("Revue du dépôt"));
-  assert.match(r.json.error.message, /WindowsApps\\pwsh\.exe/);
-  assert.match(r.json.error.message, /propriétaire.*https:\/\/palab\.re\/fr\/troubleshooting/);
-  assert.match(r.json.error.message, /issues\/128/);
   assert.equal(r.calls.filter(c => c.argv[0] === "exec").length, 1);
+  const warning = relayMessages.fr.readAccess(r.json.readAccess as ReadAccessDiagnostic);
+  assert.match(warning, /WindowsApps\\pwsh\.exe/);
+  assert.match(warning, /propriétaire.*https:\/\/palab\.re\/fr\/troubleshooting/);
+  assert.match(warning, /issues\/128/);
   const md = readFileSync(r.json.exportPath, "utf8");
-  assert.match(md, /Accès en lecture.*blocked/); assert.ok(!md.includes("| readAccess |"));
+  assert.match(md, /Accès en lecture.*partial/); assert.match(md, /succeededCommands=2/);
+  assert.ok(!md.includes("| readAccess |"));
   assert.ok(md.includes("| Objet | Revue du dépôt |"));
-  assert.ok(md.includes(r.json.reply)); assert.ok(md.includes(r.json.error.message));
-  const text = await relay(makeWorld(), [...toCodex, "Lis le dépôt", "--trust-config", "--language", "en", "--no-export"], { FAKE_CODEX_MODE: "read-blocked" });
-  assert.equal(text.code, 2); assert.match(text.stdout, /Constat partiel/);
+  assert.ok(md.includes(r.json.reply)); assert.ok(md.includes(warning));
+  const text = await relay(makeWorld(), [...toCodex, "Lis note.md", "--trust-config", "--language", "en", "--no-export"], { FAKE_CODEX_MODE: "read-partial" });
+  assert.equal(text.code, 0); assert.match(text.stdout, /12 mars/);
   assert.match(text.stderr, /WindowsApps\\pwsh\.exe/);
   assert.match(text.stderr, /owner.*https:\/\/palab\.re\/en\/troubleshooting/);
+  assert.match(text.stderr, /Reads partly established/);
+});
+
+test("aucune commande aboutie après le refus : relay dégradé en read-unavailable, réponse conservée", async () => {
+  const w = makeWorld();
+  const r = await relay(w, [...toCodex, "Lis le dépôt", "--trust-config", "--json"], { FAKE_CODEX_MODE: "read-blocked" });
+  // `blocked` est le seul statut qui dégrade : rien n'étaye la réponse, qui pourrait être
+  // plausible sans aucune lecture.
+  assert.equal(r.code, 2); assert.equal(r.json.status, "read-unavailable");
+  assert.equal(r.json.error.kind, "read-unavailable");
+  assert.match(r.json.error.message, /Lectures non établies/);
+  // La réponse et la délivrance survivent à la dégradation : on ne perd pas le travail reçu.
+  assert.equal(r.json.reply, "Constat partiel : lectures bloquées.");
+  assert.equal(r.json.delivery.status, "replied");
+  assert.deepEqual(r.json.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 1 });
+  assert.equal(r.calls.filter(c => c.argv[0] === "exec").length, 1);
+  // Une seule copie de l'avertissement, en texte comme dans l'export, même s'il est dans l'erreur.
+  const warning = relayMessages.fr.readAccess(r.json.readAccess as ReadAccessDiagnostic);
+  assert.equal(readFileSync(r.json.exportPath, "utf8").split(warning).length - 1, 1);
+  const text = await relay(makeWorld(), [...toCodex, "Lis le dépôt", "--trust-config", "--no-export"], { FAKE_CODEX_MODE: "read-blocked" });
+  assert.equal(text.code, 2); assert.equal(text.stderr.split(warning).length - 1, 1);
+});
+
+test("réponse écrite avant toute commande : une réussite ultérieure ne la fait pas passer pour partial", async () => {
+  const w = makeWorld();
+  const r = await relay(w, [...toCodex, "Lis note.md", "--trust-config", "--json"], { FAKE_CODEX_MODE: "read-reply-first" });
+  // Relecture indépendante de #174 : la commande réussie vient après la réponse, qui n'a donc pu
+  // s'appuyer sur aucune lecture.
+  assert.equal(r.code, 2); assert.equal(r.json.status, "read-unavailable");
+  assert.equal(r.json.reply, "La livraison est prévue le 12 mars.");
+  assert.deepEqual(r.json.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 2 });
+});
+
+test("événements de commande non interprétables : repli unverified, issue conservée", async () => {
+  const w = makeWorld();
+  const r = await relay(w, [...toCodex, "Lis note.md", "--trust-config", "--json"], { FAKE_CODEX_MODE: "read-uninterpretable" });
+  // Une réussite ne peut pas être écartée : PALABRE le dit, sans dégrader l'issue. Limite assumée.
+  assert.equal(r.code, 0); assert.equal(r.json.status, "replied"); assert.equal(r.json.error, null);
+  assert.deepEqual(r.json.readAccess, { status: "unverified", reason: "windows-process-access-denied", failedCommands: 2 });
+  assert.match(relayMessages.fr.readAccess(r.json.readAccess as ReadAccessDiagnostic), /ni confirmer ni écarter/);
 });
 
 test("objet explicite, en-tête traduit et métadonnées JSON/export ; absence sans objet", async () => {
@@ -240,23 +285,25 @@ test("mission CLI : création, une étape Relay factice, status après reprise e
   assert.equal(refused.code, 8); assert.equal(refused.json.error.kind, "stopped"); assert.equal(refused.calls.length, 1);
 });
 
-test("mission CLI : en-tête compact conservé avec lecture bloquée, réponse et diagnostic en pause", async () => {
+test("mission CLI : en-tête compact conservé avec lancements refusés, réponse et diagnostic gardés", async () => {
   const w = makeWorld();
   assert.equal((await palabre(w, ["config", "--trust-config", "--json"])).code, 0);
   const start = await palabre(w, ["mission", "start", ...toCodex,
     "--criteria", "Lectures vérifiables", "Lire le dépôt", "--json"]);
   assert.equal(start.code, 0, start.stderr);
   const id = start.json.mission.id;
-  const step = await palabre(w, ["mission", "step", id, "Lis le dépôt", "--json"], { FAKE_CODEX_MODE: "read-blocked" });
-  assert.equal(step.code, 2); assert.equal(step.json.mission.status, "paused");
+  const step = await palabre(w, ["mission", "step", id, "Lis note.md", "--json"], { FAKE_CODEX_MODE: "read-partial" });
+  // Issue 171 : l'étape a reçu sa réponse, la mission reste prête pour la suivante.
+  assert.equal(step.code, 0); assert.equal(step.json.mission.status, "ready");
   const result = step.json.mission.steps[0].result;
-  assert.equal(result.status, "read-unavailable"); assert.equal(result.delivery.status, "replied");
-  assert.equal(result.reply, "Constat partiel : lectures bloquées."); assert.equal(result.readAccess.status, "blocked");
+  assert.equal(result.status, "replied"); assert.equal(result.delivery.status, "replied");
+  assert.equal(result.reply, "La livraison est prévue le 12 mars."); assert.equal(result.readAccess.status, "partial");
   const calls = step.calls.filter(c => c.argv[0] === "exec");
   assert.equal(calls.length, 1);
   assert.equal(calls[0]!.stdin.split("\n")[0], `### ${relayMessages.fr.missionHeader(id, 1, "claude", "codex")}`);
   const exported = readFileSync(step.json.exportPath, "utf8");
-  assert.ok(exported.includes(result.reply)); assert.ok(exported.includes(result.error.message));
+  assert.ok(exported.includes(result.reply));
+  assert.ok(exported.includes(relayMessages.fr.readAccess(result.readAccess).split("\n")[0]!));
 });
 
 test("mission CLI : review conserve le refus de politique, arguments d'écriture refusés", async () => {
@@ -672,6 +719,23 @@ describe("palabre relay --open", () => {
     assert.equal(result.calls.length, 0);
   });
 
+  test("POSIX sans python3 : diagnostic distinct avec et sans --open, aucun dépôt", { skip: process.platform === "win32" }, async () => {
+    for (const open of [false, true]) {
+      const world = makeWorld();
+      const directory = path.join(world.home, ".codex", "thread-writer-locks");
+      mkdirSync(directory, { recursive: true });
+      writeFileSync(path.join(directory, `${CODEX_SESSION}.lock`), "");
+      const args = [...(open ? toOpenCodex : toCodex), "Bonjour", "--trust-config", "--json"];
+      const result = await relay(world, args, { PATH: world.bin });
+      assert.equal(result.code, 3, result.stderr);
+      assert.equal(result.json.status, "target-state-unknown");
+      assert.equal(result.json.delivery.status, "not-delivered");
+      assert.match(result.json.error.message, /python3 --version/);
+      assert.match(result.json.error.message, open ? /laisse ChatGPT\/Codex ouvert/ : /quitte complètement l'application/);
+      assert.equal(result.calls.length, 0);
+    }
+  });
+
   test("cible Claude : invalid-request / unsupported-agent, sans lancement", async () => {
     const world = makeWorld();
     const result = await relay(world, ["--open", ...toClaude, "Bonjour", "--trust-config", "--json"]);
@@ -876,6 +940,11 @@ describe('Relay : création et expéditeur facultatif', () => {
       const md = readFileSync(r.json.exportPath, 'utf8');
       assert.ok(md.includes(`${provider}:${NEW_IDS[provider]}`)); assert.ok(md.includes(w.workspace));
       assert.ok(md.includes('| Expéditeur | terminal |'));
+      // #179 : Codex seulement ; aucun champ JSON ajouté, l'intégration le construit depuis to.session.
+      const link = `codex://threads/${NEW_IDS[provider]}`;
+      if (provider === 'codex') assert.ok(md.includes(`| Lien Codex Desktop | ${link} |`));
+      else assert.ok(!md.includes('codex://') && !md.includes('Lien Codex Desktop'));
+      assert.ok(!r.stdout.includes('codex://')); assert.equal(r.json.desktopLink, undefined);
       assert.deepEqual([readFileSync(w.transcript, 'utf8'), readFileSync(w.rollout, 'utf8')], before);
     });
 
@@ -900,6 +969,12 @@ describe('Relay : création et expéditeur facultatif', () => {
       const text = await relay(makeWorld(), ['--new', '--to', provider, 'Question', '--trust-config', '--no-export'], env);
       assert.equal(text.code, 2); assert.match(text.stderr, /Pour continuer.*palabre relay --to/);
       assert.match(text.stderr, /premier échange a échoué/); assert.equal(text.stdout, '');
+      if (provider === 'codex') {
+        assert.ok(text.stderr.includes(`codex://threads/${NEW_IDS.codex}`));
+        assert.match(text.stderr, /--open/); assert.match(text.stderr, /permissions de Codex Desktop/);
+        // Garde-fou sans skill : la sortie réserve l'ouverture au propriétaire.
+        assert.match(text.stderr, /un agent ne l'ouvre jamais à sa place/);
+      } else assert.ok(!text.stderr.includes('codex://'));
     });
 
     test(`${provider} : un identifiant mal formé n'est jamais proposé pour continuer`, async () => {
@@ -908,8 +983,21 @@ describe('Relay : création et expéditeur facultatif', () => {
       const r = await relay(w, ['--new', '--to', provider, 'Question', '--trust-config', '--json'], env);
       assert.notEqual(r.code, 0); assert.equal(r.json.to.session, null); assert.equal(r.json.created, false);
       assert.equal(r.json.reply, undefined);
+      assert.ok(!readFileSync(r.json.exportPath ?? w.transcript, 'utf8').includes('codex://'));
     });
   }
+
+  test('lien Codex Desktop : texte anglais après création, jamais sur une reprise', async () => {
+    const created = await relay(makeWorld(), ['--new', '--to', 'codex', 'Question', '--trust-config', '--language', 'en', '--no-export']);
+    assert.equal(created.code, 0, created.stderr);
+    assert.ok(created.stderr.includes(`Codex Desktop link, to hand to the owner: codex://threads/${NEW_IDS.codex}`));
+    const w = makeWorld();
+    const resumed = await relay(w, ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--json']);
+    assert.equal(resumed.code, 0, resumed.stdout + resumed.stderr);
+    assert.ok(!readFileSync(resumed.json.exportPath, 'utf8').includes('codex://'));
+    const text = await relay(makeWorld(), ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--no-export']);
+    assert.ok(!text.stderr.includes('codex://'));
+  });
 
   test('expéditeur absent, nom seul et UUID restent déclaratifs en reprise fermée', async () => {
     for (const sender of [undefined, 'claude', `codex:${CODEX_SESSION}`]) {

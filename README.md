@@ -35,7 +35,7 @@ PALABRE does not replace your tools: it drives them. You keep your subscriptions
 | **Ask** | "I want several independent opinions." 1 to 4 agents answer without seeing each other's answers, then a summary compares them. | `palabre ask "Compare these two approaches" --agents codex claude` |
 | **Chat** | "I'm chatting with an agent, and sometimes need a second opinion to double-check an answer." Ask another agent with `/consult`, without leaving the conversation. | `palabre chat --agent-a codex` |
 
-*From Codex desktop, the path to closed Claude has been verified on Windows with host approval for each command. Codex CLI and macOS still need testing. Only open Codex on Windows can receive a task (`--open`); two terminals still have limited testing. No automatic resend.*
+*From Codex desktop, the path to closed Claude has been verified on Windows with host approval for each command. Codex CLI as sender still needs testing. Open Codex can receive a task with `--open` on Windows, macOS and Linux; POSIX systems require `python3` to probe the conversation lock, and the two-terminal path still has limited testing. No automatic resend.*
 
 The **Mission** option is frozen: it remains available and documented, with no scope expansion.
 
@@ -203,7 +203,7 @@ PALABRE ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements,
 | **Ask** | « Je veux plusieurs avis indépendants. » De 1 à 4 agents répondent sans voir les réponses des autres, puis une synthèse les compare. | `palabre ask "Compare ces deux approches" --agents codex claude` |
 | **Chat** | « Je discute avec un agent, et j'ai parfois besoin d'un second avis pour vérifier une réponse. » Consultez un autre agent avec `/consult`, sans quitter la conversation. | `palabre chat --agent-a codex` |
 
-*Depuis Codex desktop, le parcours vers Claude fermée est vérifié sous Windows avec une autorisation de l’hôte pour chaque commande. Depuis Codex CLI et sur macOS, il reste à éprouver. Vers une conversation ouverte, seul Codex sous Windows peut recevoir la tâche (`--open`) ; les deux terminaux restent peu testés. Aucun renvoi automatique.*
+*Depuis Codex desktop, le parcours vers Claude fermée est vérifié sous Windows avec une autorisation de l’hôte pour chaque commande. Codex CLI comme expéditeur reste à éprouver. Une conversation Codex ouverte peut recevoir la tâche avec `--open` sous Windows, macOS et Linux ; les systèmes POSIX exigent `python3` pour éprouver le verrou de conversation, et le parcours à deux terminaux reste peu testé. Aucun renvoi automatique.*
 
 L'option **Mission** est gelée : elle reste disponible et documentée, sans extension de périmètre.
 

@@ -55,6 +55,13 @@ test("lectures bloquées : aucune commande GitHub, réponse et délivrance conse
     calls++; return meta();
   }, async () => { assert.fail("autorisation de publication interdite"); }, diagnostic), /read-unavailable/);
   assert.equal(calls, 0);
+  // Plus strict que le relay simple : un diagnostic « non vérifié » refuse aussi la publication,
+  // parce qu'une revue publiée ne se défait pas (issue 171).
+  await assert.rejects(publishReview(input, "Revue provisoire", "codex", [], async () => {
+    calls++; return meta();
+  }, async () => { assert.fail("autorisation de publication interdite"); },
+  { ...diagnostic, status: "unverified" }), /read-unavailable/);
+  assert.equal(calls, 0);
   for (const language of ["fr", "en"] as const) {
     const messages = createTranslator(language);
     const result: RelayResultV1 = { v: 1, type: "relay-result", status: "replied", exitCode: 0,
@@ -89,6 +96,29 @@ test("lectures bloquées : aucune commande GitHub, réponse et délivrance conse
     assert.equal(timedOut.status, "timeout"); assert.equal(timedOut.exitCode, 4);
     assert.ok(timedOut.error.message.includes(messages.relay.status("timeout")));
     assert.ok(timedOut.error.message.includes(messages.relay.status("read-unavailable")));
+    // Sans tâche de revue, un échange réussi garde son issue dès qu'une commande a abouti après
+    // le refus : la sonde constate des lancements refusés, pas une lecture impossible (#173).
+    const { task: _task, ...plain } = before;
+    const partial = { ...diagnostic, status: "partial" as const, succeededCommands: 1 };
+    const replied = structuredClone(plain) as RelayResultV1;
+    applyReadAccessDiagnostic(replied, partial, messages);
+    assert.equal(replied.status, "replied"); assert.equal(replied.exitCode, 0);
+    assert.equal(replied.error, null); assert.equal(replied.reply, before.reply);
+    assert.equal(replied.readAccess!.status, "partial");
+    const warning = messages.relay.readAccess(partial);
+    assert.ok(warning.includes("WindowsApps\\pwsh.exe")); assert.ok(warning.includes(guide));
+    assert.ok(renderRelayText(replied, messages).stderr.includes(warning));
+    // Aucune réussite après le refus : l'issue est dégradée, mais la réponse reste rendue.
+    const blocked = structuredClone(plain) as RelayResultV1;
+    applyReadAccessDiagnostic(blocked, { ...diagnostic, status: "blocked" }, messages);
+    assert.equal(blocked.status, "read-unavailable"); assert.equal(blocked.exitCode, 2);
+    assert.equal(blocked.error!.kind, "read-unavailable"); assert.equal(blocked.reply, before.reply);
+    // Un échec garde sa propre issue, enrichie du diagnostic.
+    const failed = { ...replied, status: "timeout" as const, exitCode: 4, reply: undefined,
+      error: { kind: "timeout" as const, message: messages.relay.status("timeout") } };
+    applyReadAccessDiagnostic(failed, partial, messages);
+    assert.equal(failed.status, "timeout"); assert.equal(failed.exitCode, 4);
+    assert.ok(failed.error.message.includes(warning));
   }
 });
 
