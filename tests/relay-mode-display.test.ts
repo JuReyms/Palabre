@@ -14,10 +14,10 @@ describe("#190 : libellés du mode", () => {
   test("arrière-plan, écriture, dans l'app desktop et suivi, en fr et en en", () => {
     assert.equal(relayMessages.fr.modeLine("background", "codex", false), "Mode : arrière-plan — sans fenêtre visible ; PALABRE demande la lecture seule.");
     assert.equal(relayMessages.fr.modeLine("background", "codex", true), "Mode : arrière-plan — écriture ponctuelle dans un worktree séparé, après votre accord.");
-    assert.match(relayMessages.fr.modeLine("open", "codex", false), /^Mode : dans l'app desktop — vers une conversation ouverte ; codex y garde les permissions de cette conversation\.$/);
-    assert.match(relayMessages.fr.modeLine("follow", "codex", false), /^Mode : dans l'app desktop \(suivi\) — rien n'est déposé/);
+    assert.match(relayMessages.fr.modeLine("open", "codex", false), /^Mode : dans l'app desktop — la conversation doit être ouverte ; codex y garde les permissions de cette conversation\.$/);
+    assert.match(relayMessages.fr.modeLine("follow", "codex", false), /^Mode : dans l'app desktop \(suivi\) — suivi demandé du prochain tour terminé, sans dépôt\.$/);
     assert.equal(relayMessages.en.modeLine("background", "claude", false), "Mode: background — no visible window; PALABRE requests read-only access.");
-    assert.match(relayMessages.en.modeLine("open", "codex", false), /^Mode: in the desktop app — to an open conversation/);
+    assert.match(relayMessages.en.modeLine("open", "codex", false), /^Mode: in the desktop app — the conversation must be open/);
     assert.deepEqual(Object.keys(relayMessages.fr.export.modeNames).sort(), Object.keys(relayMessages.en.export.modeNames).sort());
   });
 });

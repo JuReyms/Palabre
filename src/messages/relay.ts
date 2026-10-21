@@ -280,9 +280,9 @@ Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. La conve
 Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. Une fois ouverte, les Relay suivants passent par --open, avec les permissions de cette conversation.`,
     openLinkCommand: command => `Pour l'ouvrir vous-même : ${command}`,
     modeLine: (mode, agent, write) => mode === "open"
-      ? `Mode : dans l'app desktop — vers une conversation ouverte ; ${agent} y garde les permissions de cette conversation.`
+      ? `Mode : dans l'app desktop — la conversation doit être ouverte ; ${agent} y garde les permissions de cette conversation.`
       : mode === "follow"
-        ? "Mode : dans l'app desktop (suivi) — rien n'est déposé ; seul le tour suivant est lu."
+        ? "Mode : dans l'app desktop (suivi) — suivi demandé du prochain tour terminé, sans dépôt."
         : write
           ? "Mode : arrière-plan — écriture ponctuelle dans un worktree séparé, après votre accord."
           : "Mode : arrière-plan — sans fenêtre visible ; PALABRE demande la lecture seule.",
@@ -425,9 +425,9 @@ Only the owner opens it; an agent never opens it on their behalf. The conversati
 Only the owner opens it; an agent never opens it on their behalf. Once open, later relays go through --open, with this conversation's permissions.`,
     openLinkCommand: command => `To open it yourself: ${command}`,
     modeLine: (mode, agent, write) => mode === "open"
-      ? `Mode: in the desktop app — to an open conversation; ${agent} keeps this conversation's permissions there.`
+      ? `Mode: in the desktop app — the conversation must be open; ${agent} keeps this conversation's permissions there.`
       : mode === "follow"
-        ? "Mode: in the desktop app (follow) — nothing is queued; only the next turn is read."
+        ? "Mode: in the desktop app (follow) — follow of the next completed turn requested, nothing queued."
         : write
           ? "Mode: background — one-off writing in a separate worktree, after your approval."
           : "Mode: background — no visible window; PALABRE requests read-only access.",

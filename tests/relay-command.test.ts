@@ -652,6 +652,20 @@ describe("palabre relay : refus avant lancement", () => {
     assert.equal(result.json.exportPath, null, "aucun export sans exécution");
   });
 
+  test("Codex attachée : refus après localisation, lien Desktop donné quand même (#190)", { skip: process.platform !== "win32" }, async () => {
+    const world = makeWorld();
+    const release = holdCodexLock(world);
+    try {
+      const result = await relay(world, [...toCodex, "x", "--trust-config", "--no-export"]);
+      assert.equal(result.code, 3, result.stderr);
+      assert.match(result.stderr, /target-busy/);
+      assert.ok(result.stderr.includes(`codex://threads/${CODEX_SESSION}`), "conversation retrouvée : lien attendu");
+      assert.equal(result.calls.length, 0);
+    } finally {
+      release();
+    }
+  });
+
   test("cible attachée : target-busy, code 3, aucune CLI lancée", async () => {
     const world = makeWorld();
     writeFileSync(path.join(world.home, ".claude", "sessions", `${process.pid}.json`), JSON.stringify({ pid: process.pid, sessionId: CLAUDE_SESSION, status: "idle" }));
@@ -718,6 +732,12 @@ describe("palabre relay --open", () => {
     assert.deepEqual(result.json.delivery, { status: "not-delivered", persisted: false, inActiveBranch: false });
     assert.equal(result.json.exportPath, null);
     assert.equal(result.calls.length, 0);
+    // La ligne Mode reste vraie alors que la conversation n'est pas ouverte (#190).
+    const text = await relay(makeWorld(), [...toOpenCodex, "Bonjour", "--trust-config"]);
+    assert.ok(text.stderr.includes("Mode : dans l'app desktop — la conversation doit être ouverte ; codex y garde les permissions de cette conversation."), text.stderr);
+    const followed = await relay(makeWorld(), ["--open", "--follow", "--to", `codex:${CODEX_SESSION}`, "--trust-config"]);
+    assert.equal(followed.code, 3, followed.stderr);
+    assert.ok(followed.stderr.includes("Mode : dans l'app desktop (suivi) — suivi demandé du prochain tour terminé, sans dépôt."), followed.stderr);
   });
 
   test("POSIX sans python3 : diagnostic distinct avec et sans --open, aucun dépôt", { skip: process.platform === "win32" }, async () => {
