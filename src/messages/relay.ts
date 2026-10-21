@@ -64,9 +64,16 @@ export interface RelayMessages {
     unverifiedReceiver: string;
     diagnostic(code: string): string;
     permissions(summary: string): string;
+    /** `--open --follow` (#195) : aucun dépôt ; le tour suivi n'a pas d'auteur vérifié. */
+    followed(agent: string): string;
+    followStartedBefore: string;
+    followPermissions(summary: string): string;
+    followConflict: string;
+    followNoMessage: string;
+    followNotice: string;
   };
-  /** Message d'erreur d'une issue autre que `replied`. */
-  status(status: Exclude<RelayStatus, "replied" | "invalid-request">): string;
+  /** Message d'erreur d'une issue autre que `replied` ou `followed`. */
+  status(status: Exclude<RelayStatus, "replied" | "followed" | "invalid-request">): string;
   /**
    * Avertissement affiché quand des lancements de commandes ont été refusés par Windows. Le texte
    * suit le statut : `partial` (réussite explicite prioritaire, même avec un événement ambigu),
@@ -143,7 +150,7 @@ export interface RelayMessages {
   };
 }
 
-const frStatus: Record<Exclude<RelayStatus, "replied" | "invalid-request">, string> = {
+const frStatus: Record<Exclude<RelayStatus, "replied" | "followed" | "invalid-request">, string> = {
   "read-unavailable": "Codex n'a pas pu démarrer une commande de lecture sous Windows (CreateProcessAsUserW, erreur 5). Cause probable à vérifier : le raccourci PowerShell du Microsoft Store (WindowsApps\\pwsh.exe). Réponse conservée ; lectures nécessaires non établies. Le propriétaire doit consulter https://palab.re/fr/troubleshooting (Codex sous Windows) et le suivi https://github.com/JuReyms/Palabre/issues/128 : contournement limité au processus Codex et installation facultative de PowerShell 7 hors Store. Ne modifie pas les permissions et ne relance pas automatiquement.",
   "review-failed": "La réponse de l'agent est conservée, mais la publication de la revue n'est pas confirmée. Ne relance pas automatiquement.",
   "internal-error": "Erreur interne de Palabre pendant le relay.",
@@ -162,7 +169,7 @@ const frStatus: Record<Exclude<RelayStatus, "replied" | "invalid-request">, stri
   "cancelled": "Relay annulé."
 };
 
-const enStatus: Record<Exclude<RelayStatus, "replied" | "invalid-request">, string> = {
+const enStatus: Record<Exclude<RelayStatus, "replied" | "followed" | "invalid-request">, string> = {
   "read-unavailable": "Codex could not start a read command on Windows (CreateProcessAsUserW, error 5). Probable cause to check: the Microsoft Store PowerShell shortcut (WindowsApps\\pwsh.exe). Reply preserved; required reads not established. The owner must consult https://palab.re/en/troubleshooting (Codex on Windows) and https://github.com/JuReyms/Palabre/issues/128: child-only Codex workaround and optional PowerShell 7 installation outside the Store. Do not change permissions or retry automatically.",
   "review-failed": "The agent reply is preserved, but review publication is not confirmed. Do not retry automatically.",
   "internal-error": "Palabre internal error during the relay.",
@@ -279,7 +286,13 @@ Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. La conve
       diagnostic: (code) => code === "user-input-during-turn"
         ? "Diagnostic : user-input-during-turn. Une saisie utilisateur a été ajoutée pendant le tour ; aucune réponse n'est attribuée avec certitude. Vérifiez la conversation cible avant tout renvoi. Ce diagnostic n'établit aucune autorisation ni identité."
         : `Diagnostic : ${code}.`,
-      permissions: (summary) => `Permissions du tour relayé : ${summary}.`
+      permissions: (summary) => `Permissions du tour relayé : ${summary}.`,
+      followed: (agent) => `Suite suivie dans ${agent} : réponse du premier tour terminé depuis l'appel. Ce n'est pas la réponse à un message PALABRE, et l'auteur de ce tour (vous dans l'app, ou quelqu'un d'autre) n'est pas vérifié.`,
+      followStartedBefore: "Ce tour avait déjà commencé avant le suivi.",
+      followPermissions: (summary) => `Permissions du tour suivi : ${summary}.`,
+      followConflict: "--follow s'utilise seulement avec --open et --to <agent>:<uuid>, sans message, --message-file, --subject, --from, --new, --task ni --write. Rien n'a été déposé.",
+      followNoMessage: "Aucun message déposé : suivi du tour suivant de la conversation.",
+      followNotice: "Avec --follow, PALABRE ne dépose rien : il rapporte le premier tour terminé après l'appel. Ce n'est pas la réponse à un message PALABRE, et l'auteur du tour n'est pas vérifié. Aucune autorisation n'en est déduite."
     },
     status: (status) => frStatus[status],
     readAccess: (diagnostic) => `${({
@@ -407,7 +420,13 @@ Only the owner opens it; an agent never opens it on their behalf. The conversati
       diagnostic: (code) => code === "user-input-during-turn"
         ? "Diagnostic: user-input-during-turn. User input was added during the turn; no reply can be attributed with certainty. Check the target conversation before any resend. This diagnostic establishes neither authorization nor identity."
         : `Diagnostic: ${code}.`,
-      permissions: (summary) => `Permissions of the relayed turn: ${summary}.`
+      permissions: (summary) => `Permissions of the relayed turn: ${summary}.`,
+      followed: (agent) => `Followed ${agent}: reply of the first turn completed since the call. This is not the reply to a PALABRE message, and the author of this turn (you in the app, or someone else) is not verified.`,
+      followStartedBefore: "This turn had already started before following began.",
+      followPermissions: (summary) => `Permissions of the followed turn: ${summary}.`,
+      followConflict: "--follow only works with --open and --to <agent>:<uuid>, without a message, --message-file, --subject, --from, --new, --task or --write. Nothing was queued.",
+      followNoMessage: "No message queued: following the conversation's next turn.",
+      followNotice: "With --follow, PALABRE queues nothing: it reports the first turn completed after the call. This is not the reply to a PALABRE message, and the author of the turn is not verified. No authorization is inferred from it."
     },
     status: (status) => enStatus[status],
     readAccess: (diagnostic) => `${({

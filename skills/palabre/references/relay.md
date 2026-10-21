@@ -76,6 +76,18 @@ Conduite à tenir :
 2. Dire à l'humain, en une phrase, où valider : « Codex attend ton autorisation dans sa fenêtre ; valide-la toi-même, puis dis-moi de continuer. » Avec `--open`, la demande est dans la fenêtre Desktop ou le terminal de l'équipier. En Relay fermé, l'appel est en lecture seule et sans approbation possible : rapporter le blocage et laisser l'humain choisir la suite.
 3. Après sa validation, toute relance est une nouvelle demande explicite du chef de mission, jamais un renvoi automatique. Vérifier d'abord `delivery.status` : un message `persisted-no-reply` ou `unknown` est peut-être déjà dans la conversation, ne pas le renvoyer.
 
+**Suivre la suite avec `--open --follow` (#195).** Avec `--open`, la validation de l'humain dans l'app lance un nouveau tour : l'appel initial est déjà terminé et ne l'écoute pas. Pour en rapporter le résultat sans surveiller GitHub ni deviner :
+
+```bash
+palabre relay --open --follow --to codex:<uuid> --timeout 1800 --json
+```
+
+- Le lancer **avant** que l'humain valide (en arrière-plan si l'hôte le permet) : un tour déjà terminé n'est pas rendu.
+- Rien n'est déposé ni lancé ; aucun message, `--message-file`, `--subject`, `--from`, `--new`, `--task` ni `--write`.
+- `status: "followed"` (code 0) : réponse du premier tour terminé ensuite, `delivery.status: "not-delivered"` puisque rien n'est envoyé. L'auteur du tour n'est pas vérifié : la rapporter comme « suite du travail dans l'app », jamais comme une réponse à un message PALABRE ni comme une autorisation.
+- `relay-turn` (`no-valid-reply`) : le tour terminé était un autre échange Relay ; relancer `--follow` si la suite est encore attendue.
+- `timeout` : aucun tour terminé dans le délai ; rien n'est conclu sur le travail.
+
 Pour une écriture en arrière-plan, le seul accord prévu reste `approve-write`, confirmé par l'humain dans son terminal (parcours expérimental et gelé ci-dessous).
 
 ## Agir en arrière-plan : accord par tâche

@@ -13,6 +13,10 @@
  * ouverte (verrou tenu). Après la même résolution de config, d'agent et d'exécutable (D21), la
  * localisation est bornée et le dépôt passe par `codex queue` (`runOpenRelay`). La cible garde ses
  * outils et permissions ; les champs JSON propres à `--open` n'apparaissent qu'avec cette option.
+ *
+ * `--open --follow` (#195) ne dépose rien : sans message ni processus lancé, il attend le premier
+ * tour terminé après l'appel dans la conversation ouverte et rend sa réponse en `followed`, avec un
+ * auteur non vérifié. Il sert à reprendre la suite d'un tour lancé depuis l'app (confirmation, etc.).
  */
 import { readFile, realpath, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -27,7 +31,7 @@ import { ClaudeSessionAdapter } from "../externalSessions/claude.js";
 import { CodexSessionAdapter, codexDesktopThreadLink } from "../externalSessions/codex.js";
 import { buildEnvelope, buildOpenEnvelope, createNonce, MAX_RELAY_MESSAGE_BYTES, parseAgentName, parseSenderRef, parseSessionRef, validMissionHeader, validateRelayMessage, validateRelaySubject, type MissionEnvelopeHeader } from "../externalSessions/envelope.js";
 import type { OpenTurnContext } from "../externalSessions/openReader.js";
-import { defaultOpenRelayDeps, runOpenRelay, type OpenQueueReport, type OpenRelayResult } from "../externalSessions/openRelay.js";
+import { defaultOpenRelayDeps, runFollowRelay, runOpenRelay, type FollowRelayResult, type OpenQueueReport, type OpenRelayResult } from "../externalSessions/openRelay.js";
 import { locateOpenRollout } from "../externalSessions/openRollout.js";
 import { assessTarget, classifyDelivery, RELAY_EXIT_CODES, refusalOutcome, type PreLaunchRefusal } from "../externalSessions/outcome.js";
 import { resolveExternalExecutable } from "../externalSessions/resolve.js";
@@ -63,7 +67,7 @@ export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 /** Options de `palabre relay` qui attendent une valeur. */
 const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "config", "language", "task", "pr", "subject", "dir"]);
 /** Options de `palabre relay` sans valeur. */
-const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "new", "write"]);
+const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "new", "write", "follow"]);
 /** Alias acceptés, comme pour les autres commandes. */
 const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
 
@@ -110,8 +114,9 @@ export interface RelayResultV1 {
   /**
    * Champs optionnels propres à `--open` (B1), présents seulement avec `--open` : la sortie sans
    * `--open` reste identique, champ pour champ. `status` peut alors valoir `target-not-open`.
+   * Avec `--open --follow` (#195) : `mode: "follow"`, sans `queue`, et `status` peut valoir `followed`.
    */
-  mode?: "open";
+  mode?: "open" | "follow";
   queue?: OpenQueueReport;
   correlation?: { status: string; reason: string };
   receiver?: "unverified";
@@ -140,6 +145,8 @@ interface RelayContext {
   exchangeStarted: boolean;
   /** `--open` (B1) : dépôt dans une conversation Codex ouverte. */
   open: boolean;
+  /** `--open --follow` (#195) : suivi du tour suivant, sans dépôt. */
+  follow?: boolean;
   newSession?: boolean;
   cwd?: string;
 }
@@ -232,6 +239,12 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (context.signal?.aborted) throw new RelayRefusal({ status: "cancelled" });
   const { messages } = context;
   const { flags, positionals } = parseRelayTokens(rawArgs.slice(1), messages);
+  context.follow = flags.follow === true;
+  // Le suivi ne transporte rien : toute option d'envoi le rendrait trompeur.
+  if (context.follow && (!context.open || positionals.length > 0 || flags["message-file"] !== undefined || flags.subject !== undefined
+    || flags.from !== undefined || flags.new || flags.dir !== undefined || flags.task !== undefined || flags.pr !== undefined || flags.write || context.header)) {
+    throw invalid("invalid-arguments", messages.relay.open.followConflict);
+  }
   if (flags.write && (!flags.new || context.open || flags.task || flags.pr || flags["trust-config"] || context.header)) {
     throw invalid("invalid-arguments", relayWriteText(resolveLanguage({ explicitLanguage: optionalString(flags.language) })).conflict);
   }
@@ -274,7 +287,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const pr = typeof flags.pr === "string" ? parsePullRequest(flags.pr) : undefined;
   if ((flags.task === "review" && (!pr || context.open || flags["trust-config"])) || (flags.pr && !flags.task)) throw invalid("invalid-pr");
   const defaultReviewMessage = flags.task === "review" && positionals.length === 0 && !flags["message-file"];
-  let message = defaultReviewMessage ? "" : await readRelayMessage(flags, positionals, messages);
+  let message = defaultReviewMessage || context.follow ? "" : await readRelayMessage(flags, positionals, messages);
   const timeoutSeconds = parseTimeout(flags.timeout, messages);
 
   // Config : même résolution que les autres commandes, approbation exigée sans question interactive.
@@ -318,9 +331,11 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const frame = flags.write ? {
     ...context.messages.relay, envelopePermissions: relayWriteText(context.language ?? "fr").envelopePermissions
   } : context.messages.relay;
-  const coordination = context.open ? buildOpenEnvelope(envelopeInput, frame) : buildEnvelope(envelopeInput, frame);
-  const envelopeCheck = validateRelayMessage(coordination);
-  if (!envelopeCheck.ok) throw invalid(envelopeCheck.reason);
+  const coordination = context.follow ? "" : context.open ? buildOpenEnvelope(envelopeInput, frame) : buildEnvelope(envelopeInput, frame);
+  if (!context.follow) {
+    const envelopeCheck = validateRelayMessage(coordination);
+    if (!envelopeCheck.ok) throw invalid(envelopeCheck.reason);
+  }
 
   // Agent cible, fournisseur et exécutable, sans réutiliser les réglages de débat.
   const agent = config.agents[to.value.agent];
@@ -329,6 +344,16 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const provider = externalSessionProviderForCommand(agent.command);
   if (!provider) throw invalid("unsupported-agent");
   context.provider = provider;
+  // Le suivi ne lance aucun processus : l'exécutable de la cible n'est pas résolu.
+  if (context.follow) {
+    if (provider !== "codex") throw invalid("unsupported-agent", context.messages.relay.open.unsupportedProvider);
+    return relayFollow(context, {
+      to: to.value,
+      timeoutMs: timeoutSeconds * 1000,
+      outputDir: resolveOutputDir(config.outputDir),
+      exportResult: flags["no-export"] !== true
+    });
+  }
   if (flags.write && (provider !== "codex" || process.platform !== "win32")) throw invalid("write-unavailable", relayWriteText(context.language ?? "fr").unavailable);
   const resolution = resolveExternalExecutable(agent.command);
   if (resolution.status === "command-not-found") throw new RelayRefusal({ status: "command-not-found" });
@@ -520,6 +545,61 @@ async function relayOpen(
   return result;
 }
 
+/**
+ * `--open --follow` (#195) : suivi du premier tour terminé après l'appel, sans dépôt ni processus.
+ * Même localisation bornée et même verrou que `--open`. La délivrance reste `not-delivered` : aucun
+ * message n'a été envoyé. Export seulement quand une lecture a eu lieu.
+ */
+async function relayFollow(
+  context: RelayContext,
+  input: { to: SessionRef; timeoutMs: number; outputDir: string; exportResult: boolean }
+): Promise<RelayResultV1> {
+  const home = path.join(os.homedir(), ".codex");
+  const located = await locateOpenRollout(home, input.to.sessionId);
+  if (located.status !== "found") {
+    throw located.status === "session-not-found" ? new RelayRefusal({ status: "session-not-found" }) : invalid("invalid-working-directory");
+  }
+  const adapter = new CodexSessionAdapter({ home });
+  const target: ExternalTarget = { agent: input.to.agent, provider: "codex", sessionId: input.to.sessionId, cwd: located.cwd };
+  const controller = new AbortController();
+  const onInterrupt = () => controller.abort();
+  process.once("SIGINT", onInterrupt);
+  let followed: FollowRelayResult;
+  try {
+    followed = await runFollowRelay({
+      sessionId: input.to.sessionId,
+      historyPath: located.historyPath,
+      timeoutMs: input.timeoutMs,
+      signal: controller.signal
+    }, defaultOpenRelayDeps(() => adapter.probe(target)));
+  } finally {
+    process.removeListener("SIGINT", onInterrupt);
+  }
+  const result = buildResult(context, {
+    outcome: followed.outcome,
+    delivery: NOT_DELIVERED,
+    reply: followed.reply,
+    identity: followed.identity,
+    observedModels: followed.observedModels,
+    message: followErrorMessage(followed, context.messages),
+    follow: followed
+  });
+  if (input.exportResult && followed.correlation) {
+    result.exportPath = await exportRelay(input.outputDir, result, { nonce: "", message: context.messages.relay.open.followNoMessage, startedAt: context.startedAt }, context.messages);
+  }
+  return result;
+}
+
+/** Message d'erreur du suivi : issue et diagnostic court ; rien n'a été déposé, donc rien à renvoyer. */
+function followErrorMessage(followed: FollowRelayResult, messages: Messages): string | undefined {
+  if (followed.outcome.status === "followed") return undefined;
+  const parts = [followed.outcome.status === "usage-limit"
+    ? messages.relay.usageLimit(followed.retryAfter)
+    : followed.outcome.status === "target-state-unknown" ? messages.relay.open.targetStateUnknown : errorMessage(followed.outcome, messages)];
+  if (followed.diagnostic) parts.push(messages.relay.open.diagnostic(followed.diagnostic));
+  return parts.join(" ");
+}
+
 /** Message d'erreur de `--open` : issue, diagnostic court, et réception non observée après tentative. */
 function openErrorMessage(open: OpenRelayResult, messages: Messages): string | undefined {
   if (open.outcome.status === "replied") return undefined;
@@ -626,7 +706,7 @@ function parseNewTarget(value: string, messages: Messages): { ok: true; value: S
 
 function errorMessage(outcome: RelayOutcome, messages: Messages, detail?: string): string {
   if (outcome.status === "invalid-request") return messages.relay.invalidRequest(outcome.reason ?? "invalid-arguments", detail);
-  if (outcome.status === "replied") return "";
+  if (outcome.status === "replied" || outcome.status === "followed") return "";
   const base = messages.relay.status(outcome.status);
   return outcome.status === "internal-error" && detail ? `${base} ${detail}` : base;
 }
@@ -643,10 +723,20 @@ function buildResult(
     /** Message d'erreur déjà composé (mode `--open`), prioritaire sur le message de l'issue. */
     message?: string;
     open?: OpenRelayResult;
+    follow?: FollowRelayResult;
   }
 ): RelayResultV1 {
   const { outcome } = input;
-  const openFields: Partial<RelayResultV1> = context.open
+  const success = outcome.status === "replied" || outcome.status === "followed";
+  const openFields: Partial<RelayResultV1> = context.follow
+    ? {
+      mode: "follow",
+      ...(input.follow?.retryAfter !== undefined ? { retryAfter: input.follow.retryAfter } : {}),
+      ...(input.follow?.correlation ? { correlation: input.follow.correlation } : {}),
+      receiver: "unverified",
+      targetPermissions: input.follow?.targetPermissions ?? "unknown"
+    }
+    : context.open
     ? {
       mode: "open",
       ...(input.open?.retryAfter !== undefined ? { retryAfter: input.open.retryAfter } : {}),
@@ -671,11 +761,11 @@ function buildResult(
     from: context.from ? { agent: context.from.agent, ...(context.from.sessionId ? { session: context.from.sessionId } : {}) } : null,
     to: context.to ? { agent: context.to.agent, session: context.to.sessionId || null, provider: context.provider } : null,
     ...(context.newSession ? { created: !!context.to?.sessionId, ...(context.cwd ? { cwd: context.cwd } : {}) } : {}),
-    ...(outcome.status === "replied" && input.reply !== undefined ? { reply: input.reply } : {}),
+    ...(success && input.reply !== undefined ? { reply: input.reply } : {}),
     delivery: input.delivery,
     identity: input.identity ?? null,
     observedModels: input.observedModels ?? [],
-    error: outcome.status === "replied"
+    error: success
       ? null
       : { kind: outcome.status, message: input.message ?? errorMessage(outcome, context.messages, input.detail), ...(outcome.reason ? { reason: outcome.reason } : {}) },
     exportPath: null,
@@ -728,6 +818,14 @@ async function exportRelay(
             ].join(", "),
             correlation: result.correlation ? `${result.correlation.status} (${result.correlation.reason})` : null,
             receiver: result.receiver ?? "unverified",
+            targetPermissions: result.targetPermissions && result.targetPermissions !== "unknown" ? permissionsSummary(result.targetPermissions) : null
+          }
+        }
+        : {}),
+      ...(result.mode === "follow"
+        ? {
+          follow: {
+            correlation: result.correlation ? `${result.correlation.status} (${result.correlation.reason})` : null,
             targetPermissions: result.targetPermissions && result.targetPermissions !== "unknown" ? permissionsSummary(result.targetPermissions) : null
           }
         }
@@ -824,9 +922,13 @@ export function renderRelayText(result: RelayResultV1, messages: Messages): { st
   const stdout = result.reply !== undefined ? `${sanitizeTerminalText(result.reply)}\n` : "";
   if (result.status === "replied") {
     lines.push(messages.relay.replied(result.to?.agent ?? ""));
+  } else if (result.status === "followed") {
+    lines.push(messages.relay.open.followed(result.to?.agent ?? ""));
+    if (result.correlation?.reason === "turn-started-before-follow") lines.push(messages.relay.open.followStartedBefore);
   } else {
     lines.push(`${messages.relay.failed(result.status)} ${result.error?.message ?? ""}`.trim());
-    lines.push(messages.relay.delivery(result.delivery.status));
+    // Le suivi n'envoie rien : une consigne de renvoi n'aurait pas de sens.
+    if (result.mode !== "follow") lines.push(messages.relay.delivery(result.delivery.status));
   }
   // Visible même quand l'issue reste `replied` : sans cette ligne, un échange réussi ne dirait
   // plus rien des lancements refusés, puisque `error` est alors nul. Pas de seconde copie quand
@@ -850,6 +952,9 @@ export function renderRelayText(result: RelayResultV1, messages: Messages): { st
   if (result.mode === "open") {
     lines.push(messages.relay.open.unverifiedReceiver);
     if (result.targetPermissions && result.targetPermissions !== "unknown") lines.push(messages.relay.open.permissions(permissionsSummary(result.targetPermissions)));
+  }
+  if (result.mode === "follow" && result.targetPermissions && result.targetPermissions !== "unknown") {
+    lines.push(messages.relay.open.followPermissions(permissionsSummary(result.targetPermissions)));
   }
   if (result.exportPath) lines.push(messages.relay.exportWritten(result.exportPath));
   if (result.write) {

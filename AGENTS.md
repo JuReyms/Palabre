@@ -853,7 +853,7 @@ Un échec de lancement donne `cli-failure` pour la reprise, et `neutralization-f
 
 | Code | Issue (`status`) | Délivrance |
 | --- | --- | --- |
-| 0 | `replied` | `replied` |
+| 0 | `replied` ; `followed` (avec `--open --follow` seulement, #195) | `replied` ; `not-delivered` pour `followed`, rien n'étant envoyé |
 | 1 | `internal-error` (défaut de Palabre) | `not-delivered` avant lancement, sinon `unknown` |
 | 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large`, `read-unavailable` | `persisted-no-reply` ou `unknown` ; `not-delivered` si aucun processus n'a été lancé |
 | 3 | `target-busy`, `target-state-unknown`, `neutralization-failed`, `target-not-open` (avec `--open` seulement) | `not-delivered` |
@@ -965,6 +965,17 @@ Une saisie libre de forme `user.text` du même tour, après l'enveloppe et avant
 - Un message déposé peut être traité après le délai, même sans être affiché : Codex desktop garde un fil chargé après qu'on l'a quitté. Ni l'échéance, ni Ctrl+C, ni la fermeture de Palabre ne retirent un message de la file.
 - Le format du rollout est expérimental (Codex 0.151.0 en TUI, app-server 0.160.1 de Codex desktop 26.930.7945.0), pas un schéma public.
 - L'export `.relay.md` ajoute le mode, le dépôt, la corrélation, le récepteur et les permissions relevées, avec un avertissement propre à `--open`. Un refus avant tentative n'écrit pas d'export.
+
+### Suivre la suite d'une conversation ouverte (`--open --follow`, #195)
+
+Un appel `--open` attend la réponse à son enveloppe, puis s'arrête. Quand l'équipier attend une action dans l'app (confirmation d'un lot qui écrit, #187), la suite se joue dans un tour lancé depuis l'app, qu'aucun appel n'écoute. `--follow` comble ce trou **sans dépôt** :
+
+- `relay()` refuse `--follow` sans `--open`, ou avec un message, `--message-file`, `--subject`, `--from`, `--new`, `--dir`, `--task`, `--pr`, `--write` ou un en-tête Mission (`invalid-arguments`). Aucune enveloppe n'est construite et l'exécutable de la cible n'est pas résolu : rien n'est lancé.
+- `runFollowRelay` (`openRelay.ts`) partage avec `runOpenRelay` la localisation bornée, le verrou tenu (`target-not-open` / `target-state-unknown`), la référence (`captureReference`, fin de ligne partielle réessayée 2 s), les lectures bornées, l'échéance unique et le contrôle d'annulation avant et après chaque lecture.
+- `inspectFollowedTurn` (`openReader.ts`, fonction pure, contrôles d'ajout communs `freshRows`) rend le **premier** tour terminé après la référence. Succès : une seule fin `task_complete` sans `error`, une seule `final_answer` liée à la conversation, placée avant la fin, de texte égal à `last_agent_message`. Tour commencé avant la référence : rendu, `turn-started-before-follow`. Tour portant un nonce PALABRE : `relay-turn` (ambigu), jamais présenté comme une suite. Échecs : `usage-limit` (code structuré seulement, `retryAfter`), sinon `cli-failure`.
+- Issue `followed` (code 0) : `reply`, `identity: same-as-target` (fil vérifié), `delivery: not-delivered` (rien n'est envoyé), `mode: "follow"`, sans `queue`, `correlation`, `receiver: "unverified"`, `targetPermissions` du seul tour suivi. `followed` et `mode: "follow"` sont des ajouts v1 propres à cette option ; une intégration qui ne les connaît pas ne doit pas les traiter comme un succès de relay.
+- **L'auteur du tour n'est pas vérifié** (l'humain dans l'app, ou autre) : ni autorisation, ni clic humain, ni décision n'en sont déduits. Le texte, l'export et le JSON le disent ; la sortie texte n'affiche aucune consigne de renvoi.
+- Un tour terminé avant l'appel n'est pas rendu : le chef de mission lance le suivi avant que l'humain agisse dans l'app. Les tests (`tests/external-sessions-open-follow.test.ts`, `tests/relay-command.test.ts`) utilisent des rollouts factices et un verrou tenu par le test : aucun Codex réel.
 
 ### Hors périmètre de cette version
 

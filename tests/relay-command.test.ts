@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmodSync, closeSync, constants, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, closeSync, constants, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
@@ -1042,4 +1042,100 @@ test('options vides : message traduit avec prochaine étape, sans lancement ni a
     assert.ok(r.json.error.message.includes(flag === '--from' ? '--from claude' : '--new --dir'));
     assert.equal(existsSync(path.join(w.home, '.palabre', 'trusted-configs.json')), false);
   }
+});
+
+describe("palabre relay --open --follow (#195)", () => {
+  const followCodex = ["--open", "--follow", "--to", `codex:${CODEX_SESSION}`];
+  /** Tour lancé depuis l'app, ajouté au rollout pendant que la CLI suit la conversation. */
+  const appTurn = (reply: string) => [
+    { type: "event_msg", payload: { type: "task_started", turn_id: "turn-app" } },
+    { type: "turn_context", payload: { turn_id: "turn-app", model: "gpt-fake", approval_policy: "on-request", sandbox_policy: { type: "workspace-write", network_access: false } } },
+    { type: "response_item", payload: { type: "message", role: "user", content: [{ type: "input_text", text: "oui" }] } },
+    { type: "event_msg", payload: { type: "item_completed", thread_id: CODEX_SESSION, turn_id: "turn-app", item: { type: "UserMessage", content: [{ type: "text", text: "oui" }] } } },
+    { type: "event_msg", payload: { type: "item_completed", thread_id: CODEX_SESSION, turn_id: "turn-app", item: { type: "AgentMessage", content: [{ type: "text", text: reply }], phase: "final_answer" } } },
+    { type: "event_msg", payload: { type: "task_complete", turn_id: "turn-app", last_agent_message: reply } }
+  ].map((row) => `${JSON.stringify(row)}\n`).join("");
+
+  test("options d'envoi ou sans --open : invalid-arguments, code 8, rien de déposé ni lu", async () => {
+    for (const args of [
+      ["--follow", "--to", `codex:${CODEX_SESSION}`],
+      [...followCodex, "Bonjour"],
+      [...followCodex, "--from", "claude"],
+      [...followCodex, "--subject", "Objet"],
+      [...followCodex, "--message-file", "message.md"]
+    ]) {
+      const world = makeWorld();
+      const result = await relay(world, [...args, "--trust-config", "--json"]);
+      assert.equal(result.code, 8, args.join(" "));
+      assert.equal(result.json.error.reason, "invalid-arguments");
+      assert.match(result.json.error.message, /--follow s'utilise seulement avec --open/);
+      assert.equal(result.json.mode, "follow");
+      assert.equal(result.calls.length, 0);
+    }
+  });
+
+  test("conversation non ouverte : target-not-open, code 3, ni dépôt, ni export, ni queue", async () => {
+    const world = makeWorld();
+    const result = await relay(world, [...followCodex, "--trust-config", "--json"]);
+    assert.equal(result.code, 3, result.stderr);
+    assert.equal(result.json.status, "target-not-open");
+    assert.equal(result.json.mode, "follow");
+    assert.equal("queue" in result.json, false);
+    assert.equal(result.json.exportPath, null);
+    assert.equal(result.calls.length, 0);
+  });
+
+  test("cible Claude : unsupported-agent, sans lancement", async () => {
+    const world = makeWorld();
+    const result = await relay(world, ["--open", "--follow", "--to", `claude:${CLAUDE_SESSION}`, "--trust-config", "--json"]);
+    assert.equal(result.code, 8);
+    assert.equal(result.json.error.reason, "unsupported-agent");
+    assert.equal(result.calls.length, 0);
+  });
+
+  test("tour lancé depuis l'app pendant le suivi : followed, code 0, aucun dépôt, export", { skip: process.platform !== "win32" }, async () => {
+    const world = makeWorld();
+    const release = holdCodexLock(world);
+    const timer = setTimeout(() => appendFileSync(world.rollout, appTurn("Lot terminé « été ».")), 1_500);
+    try {
+      const result = await relay(world, [...followCodex, "--timeout", "30", "--trust-config", "--json"]);
+      assert.equal(result.code, 0, result.stderr);
+      const { json } = result;
+      assert.equal(json.status, "followed");
+      assert.equal(json.mode, "follow");
+      assert.equal(json.reply, "Lot terminé « été ».");
+      assert.equal(json.error, null);
+      assert.equal(json.identity, "same-as-target");
+      assert.equal(json.from, null);
+      assert.deepEqual(json.delivery, { status: "not-delivered", persisted: false, inActiveBranch: false });
+      assert.deepEqual(json.correlation, { status: "followed", reason: "turn-completed" });
+      assert.deepEqual(json.targetPermissions, { approvalPolicy: "on-request", sandbox: "workspace-write", network: "restricted" });
+      assert.equal("queue" in json, false);
+      assert.equal(result.calls.length, 0, "aucun processus Codex lancé");
+      const exported = readFileSync(json.exportPath, "utf8");
+      assert.match(exported, /\| Mode \| follow \|/);
+      assert.match(exported, /Aucun message déposé/);
+      assert.match(exported, /PALABRE ne dépose rien/);
+    } finally {
+      clearTimeout(timer);
+      release();
+    }
+  });
+
+  test("sortie texte : réponse sur stdout, suite non corrélée et permissions sur stderr", { skip: process.platform !== "win32" }, async () => {
+    const world = makeWorld();
+    const release = holdCodexLock(world);
+    const timer = setTimeout(() => appendFileSync(world.rollout, appTurn("Fait.")), 1_000);
+    try {
+      const result = await relay(world, [...followCodex, "--timeout", "30", "--trust-config", "--no-export"]);
+      assert.equal(result.code, 0, result.stderr);
+      assert.equal(result.stdout, "Fait.\n");
+      assert.match(result.stderr, /Ce n'est pas la réponse à un message PALABRE/);
+      assert.match(result.stderr, /Permissions du tour suivi : approval=on-request, sandbox=workspace-write, network=restricted\./);
+      assert.doesNotMatch(result.stderr, /Délivrance/);
+    } finally {
+      clearTimeout(timer);
+      release();
+    }
+  });
 });

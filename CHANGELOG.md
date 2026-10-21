@@ -4,6 +4,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Added
+
+- `palabre relay --open --follow --to codex:<session>` suit la suite d'une conversation Codex ouverte. Quand l'équipier attend une action dans l'app (une confirmation, par exemple), la suite se joue dans un nouveau tour que l'appel Relay initial n'écoutait plus : il fallait la deviner, par exemple en surveillant GitHub. `--follow` ne dépose rien et ne lance aucun processus. Il attend le premier tour terminé après l'appel et rend sa réponse avec le nouveau statut `followed` (code 0). Cette réponse n'est liée à aucun message PALABRE et son auteur n'est pas vérifié : aucune autorisation n'en est déduite. Mêmes garde-fous que `--open` : conversation désignée, verrou tenu, lectures bornées, un seul délai. Un tour qui contient une enveloppe PALABRE reste `no-valid-reply` (`relay-turn`). JSON v1 : `mode: "follow"` et la valeur `followed`, deux ajouts propres à cette option. Aide, guides fr/en, skill et AGENTS.md à jour ; copies installées : `palabre skill --sync`, après accord humain (Fixes #195).
+
 ### Fixed
 
 - Relay `--open` : le contexte AGENTS.md réinjecté avant l'enveloppe n'empêche plus une réponse corrélée lorsque sa forme et sa métadonnée sont reconnues ; un bloc AGENTS et un bloc d'environnement au plus par tour, séparés ou regroupés, sans liaison utilisateur ni nonce. Une saisie concurrente de forme `user.text` reste `no-valid-reply`, avec `user-input-during-turn` et invitation à vérifier la conversation avant tout renvoi. Aucun droit ni auteur n'en est déduit. Lot partiel : la réponse liée à une question reste ambiguë, sa forme réelle n'ayant pas été observée localement ; aucun champ `humanInput` n'est émis (Refs #146). Copies installées : `palabre skill --sync`, après accord humain.

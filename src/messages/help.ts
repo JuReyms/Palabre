@@ -242,6 +242,7 @@ Usage:
   palabre relay allow-repo proprietaire/depot [--config <path>]
   palabre relay allow-repo 'proprietaire/*' [--config <path>]
   palabre relay --open --from <agent>:<session> --to <agent-codex>:<session> "<message>"
+  palabre relay --open --follow --to <agent-codex>:<session>   # suite d'un tour lancé depuis l'app
 
 Flags:
   --from <agent>[:<uuid>] expéditeur facultatif, déclaré et non authentifié ; terminal si absent
@@ -255,6 +256,7 @@ Flags:
   --task review           gelé : rédige et publie une revue COMMENT si la config l'autorise
   --pr <url>              PR github.com exacte ; obligatoire avec --task review
   --open                  vise une conversation Codex ouverte (TUI ou Codex desktop)
+  --follow                avec --open : ne dépose rien, attend le prochain tour terminé
   --timeout <secondes>    délai maximal, de 10 à 3600 (défaut : 600)
   --json                  sortie JSON v1 pour les intégrations
   --no-export             n'écrit pas l'export .relay.md
@@ -331,6 +333,16 @@ Avec --open (pilote Codex ; Windows, macOS et Linux) :
   pas. Un message déposé peut être traité après le délai, même sans être affiché ; Ctrl+C
   n'annule pas un dépôt, et il n'y a aucun renvoi automatique. Sur macOS/Linux, python3 est requis
   pour éprouver le verrou POSIX ; outil absent, timeout ou erreur ambiguë = target-state-unknown.
+
+Avec --open --follow (suivre la suite) :
+  Quand la conversation attend une action dans l'app (par exemple une confirmation), la suite se
+  joue dans un nouveau tour qu'aucun appel Relay n'écoute. --follow ne dépose rien et ne lance
+  aucun processus : il attend le premier tour terminé après l'appel et rend sa réponse avec
+  l'issue followed (code 0). Ce n'est pas la réponse à un message PALABRE, et l'auteur du tour
+  n'est pas vérifié ; aucune autorisation n'en est déduite. Lancer --follow avant d'agir dans
+  l'app : un tour déjà terminé n'est pas rendu. Un tour qui contient une enveloppe PALABRE reste
+  no-valid-reply (relay-turn). Interdit avec un message, --message-file, --subject, --from, --new,
+  --task ou --write. JSON : mode follow, delivery not-delivered (rien n'est envoyé), sans queue.
 
 Garanties conditionnelles :
   Avec les options imposées par Palabre et sur les versions de CLI vérifiées, la cible ne
@@ -650,6 +662,7 @@ Usage:
   palabre relay allow-repo owner/repository [--config <path>]
   palabre relay allow-repo 'owner/*' [--config <path>]
   palabre relay --open --from <agent>:<session> --to <codex-agent>:<session> "<message>"
+  palabre relay --open --follow --to <codex-agent>:<session>   # follow a turn started in the app
 
 Flags:
   --from <agent>[:<uuid>] optional, declared and unauthenticated sender; terminal when omitted
@@ -663,6 +676,7 @@ Flags:
   --task review           frozen: draft and publish a COMMENT review if allowed by configuration
   --pr <url>              exact github.com PR; required with --task review
   --open                  targets an open Codex conversation (TUI or Codex desktop)
+  --follow                with --open: queues nothing, waits for the next completed turn
   --timeout <seconds>     maximum duration, 10 to 3600 (default: 600)
   --json                  JSON v1 output for integrations
   --no-export             does not write the .relay.md export
@@ -738,6 +752,16 @@ With --open (Codex pilot; Windows, macOS, and Linux):
   A queued message may be processed after the timeout, even without being displayed; Ctrl+C
   does not cancel a queued message, and there is no automatic resend. On macOS/Linux, python3 is
   required to probe the POSIX lock; missing tool, timeout, or ambiguous error = target-state-unknown.
+
+With --open --follow (follow what happens next):
+  When the conversation waits for an action in the app (for example a confirmation), what follows
+  happens in a new turn that no Relay call is listening to. --follow queues nothing and starts no
+  process: it waits for the first turn completed after the call and returns its reply with the
+  followed outcome (exit 0). This is not the reply to a PALABRE message, and the author of the
+  turn is not verified; no authorization is inferred. Start --follow before acting in the app:
+  a turn already completed is not returned. A turn containing a PALABRE envelope stays
+  no-valid-reply (relay-turn). Not allowed with a message, --message-file, --subject, --from,
+  --new, --task or --write. JSON: mode follow, delivery not-delivered (nothing is sent), no queue.
 
 Conditional guarantees:
   With the options enforced by Palabre and on verified CLI versions, the target has no
