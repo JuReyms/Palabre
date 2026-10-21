@@ -775,7 +775,9 @@ describe("relay.view (#190)", () => {
         assert.equal(r.code, 3); assert.equal(r.json.mode, "background"); assert.equal(r.json.status, "target-busy");
         assert.equal(r.json.modeSource, explicit ? "explicit" : "setting"); assert.equal(r.calls.length, 0);
         if (explicit) {
-          assert.match(r.json.error.message, /sans --background/); assert.equal(r.json.remedy, undefined);
+          assert.match(r.json.error.message, /Fermez-la dans Codex, puis relancez/);
+          assert.match(r.json.error.message, /Sans --background, avec auto.*permissions.*à ne faire que si/);
+          assert.equal(r.json.remedy, undefined);
           assert.ok(!r.json.error.message.includes("config --relay-view"));
         } else {
           assert.match(r.json.error.message, /fermer cette conversation/); assert.match(r.json.remedy, /config --relay-view auto --config/);

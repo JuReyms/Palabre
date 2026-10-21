@@ -44,7 +44,11 @@ for (const kind of cases) for (const language of ["fr", "en"] as const) test(`ta
     assert.ok(result.error!.message.includes(result.remedy!)); assert.ok(text.includes(result.remedy!));
   } else {
     assert.equal(result.remedy, undefined); assert.ok(!text.includes("config --relay-view"));
-    if (kind === "explicit") assert.match(text, language === "fr" ? /sans --background/ : /without --background/);
+    if (kind === "explicit") {
+      assert.match(text, language === "fr" ? /Fermez-la dans Codex, puis relancez/ : /Close it in Codex, then retry/);
+      assert.match(text, language === "fr" ? /Sans --background, avec auto.*permissions.*à ne faire que si/ : /Without --background, with auto.*permissions.*only do so if/);
+      assert.doesNotMatch(text, /ou relancez sans --background|or retry without --background/);
+    }
     else assert.equal(result.error!.message, createTranslator(language).relay.status("target-busy"));
   }
   if (kind === "auto-race") assert.equal(probes, 2);
