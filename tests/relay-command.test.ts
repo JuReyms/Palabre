@@ -994,7 +994,7 @@ describe('Relay : création et expéditeur facultatif', () => {
     assert.equal(created.code, 0, created.stderr);
     assert.ok(created.stderr.includes(`Codex Desktop link, to hand to the owner: codex://threads/${NEW_IDS.codex}`));
     assert.ok(created.stderr.includes(`To open it yourself: ${opener} "codex://threads/${NEW_IDS.codex}"`));
-    assert.ok(created.stderr.includes('Mode: background — codex replies with no visible window; PALABRE requests read-only access.'));
+    assert.ok(created.stderr.includes('Mode: background — no visible window; PALABRE requests read-only access.'));
     // Sortie non TTY : aucune séquence OSC 8.
     assert.ok(!created.stderr.includes('\u001b]8;;'));
     const resumed = await relay(makeWorld(), ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--json']);
@@ -1007,7 +1007,12 @@ describe('Relay : création et expéditeur facultatif', () => {
     assert.ok(text.stderr.includes(`Pour l'ouvrir vous-même : ${opener} "codex://threads/${CODEX_SESSION}"`));
     const claude = await relay(makeWorld(), ['--to', `claude:${CLAUDE_SESSION}`, 'Question', '--trust-config', '--no-export']);
     assert.ok(!claude.stderr.includes('codex://'), 'jamais pour Claude');
-    assert.ok(claude.stderr.includes('Mode : arrière-plan — claude répond sans fenêtre visible ; PALABRE demande la lecture seule.'));
+    assert.ok(claude.stderr.includes('Mode : arrière-plan — sans fenêtre visible ; PALABRE demande la lecture seule.'));
+    // Conversation introuvable : arrêt avant la localisation, donc ni lien ni commande.
+    const missing = await relay(makeWorld(), ['--to', 'codex:0199bbbb-bbbb-7bbb-8bbb-bbbbbbbbbbbb', 'Question', '--trust-config', '--no-export']);
+    assert.equal(missing.code, 6, missing.stderr);
+    assert.ok(!missing.stderr.includes('codex://'), 'jamais pour une conversation introuvable');
+    assert.ok(missing.stderr.includes('Mode : arrière-plan — sans fenêtre visible'));
   });
 
   test('refus d\'arguments : mode présent en JSON, aucune ligne Mode ni lien', async () => {
@@ -1076,7 +1081,7 @@ describe("palabre relay --open --follow (#195)", () => {
     { type: "event_msg", payload: { type: "task_complete", turn_id: "turn-app", last_agent_message: reply } }
   ].map((row) => `${JSON.stringify(row)}\n`).join("");
 
-  test("options d'envoi ou sans --open : invalid-arguments, code 8, rien de déposé ni lu", async () => {
+  test("options d'envoi ou sans --open : invalid-arguments, code 8, rien de lancé ni d'accord d'écriture", async () => {
     for (const args of [
       ["--follow", "--to", `codex:${CODEX_SESSION}`],
       [...followCodex, "Bonjour"],

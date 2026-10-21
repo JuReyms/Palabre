@@ -78,7 +78,7 @@ Chaque échange annonce où il se passe, sur une ligne « Mode » :
 - **Arrière-plan** : l'équipier répond sans fenêtre visible ; PALABRE demande la lecture seule, avec les garanties conditionnelles décrites plus bas. C'est le cas d'une conversation fermée ou créée par `--new`.
 - **Dans l'app desktop** : la conversation est ouverte dans Codex Desktop (ou dans le terminal de Codex) et visible ; l'équipier y garde les permissions de cette conversation (`--open`).
 
-En arrière-plan, une conversation Codex donne aussi son lien `codex://threads/<identifiant>`, cliquable dans un terminal qui le permet, et la commande pour l'ouvrir vous-même :
+En arrière-plan, une conversation Codex créée, ou reprise et retrouvée par PALABRE, donne aussi son lien `codex://threads/<identifiant>`, cliquable dans un terminal qui le permet, et la commande pour l'ouvrir vous-même :
 
 ```text
 Pour l'ouvrir vous-même : explorer.exe "codex://threads/<identifiant>"

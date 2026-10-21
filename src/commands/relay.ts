@@ -158,6 +158,11 @@ interface RelayContext {
   follow?: boolean;
   newSession?: boolean;
   cwd?: string;
+  /**
+   * Vrai dès que l'historique de la conversation reprise a été trouvé : seule preuve qu'elle existe,
+   * donc que son lien Desktop a un sens (#190). Jamais déduit du statut final.
+   */
+  targetLocated?: boolean;
 }
 
 /** Erreur de validation : arrête le relay avec un refus avant lancement. */
@@ -201,8 +206,8 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
     }
     return;
   }
-  const { result, messages: resolvedMessages } = await executeRelayWithMessages(rawArgs);
-  writeResult(result, rawArgs.includes("--json"), resolvedMessages);
+  const { result, messages: resolvedMessages, targetLocated } = await executeRelayWithMessages(rawArgs);
+  writeResult(result, rawArgs.includes("--json"), resolvedMessages, targetLocated);
   process.exitCode = result.exitCode;
 }
 
@@ -212,7 +217,7 @@ export async function executeRelay(rawArgs: string[], options: { signal?: AbortS
 }
 
 /** Préserve la langue résolue dans la config pour le rendu de la commande historique. */
-async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader; approvedWrite?: WriteRequest } = {}): Promise<{ result: RelayResultV1; messages: Messages }> {
+async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader; approvedWrite?: WriteRequest } = {}): Promise<{ result: RelayResultV1; messages: Messages; targetLocated: boolean }> {
   const context: RelayContext = {
     signal: options.signal,
     startedAt: Date.now(),
@@ -241,7 +246,7 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
         detail: error instanceof Error ? error.message : String(error)
       });
   }
-  return { result, messages: context.messages };
+  return { result, messages: context.messages, targetLocated: context.targetLocated === true };
 }
 
 async function relay(rawArgs: string[], context: RelayContext): Promise<RelayResultV1> {
@@ -416,6 +421,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
       : invalid("invalid-working-directory");
   }
   if (!context.newSession) {
+    context.targetLocated = true;
     const decision = assessTarget(adapter.probe(located.target));
     if (!decision.allowed) throw new RelayRefusal({ status: decision.status });
   }
@@ -494,7 +500,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     applyReviewCancellation(result, controller.signal.aborted, context.messages);
     result.durationMs = Date.now() - context.startedAt;
     if (flags["no-export"] !== true) {
-      result.exportPath = await exportRelay(resolveOutputDir(config.outputDir), result, { nonce, message, startedAt: context.startedAt }, context.messages);
+      result.exportPath = await exportRelay(resolveOutputDir(config.outputDir), result, { nonce, message, startedAt: context.startedAt }, context.messages, context.targetLocated === true);
     }
     return result;
   } finally {
@@ -550,7 +556,7 @@ async function relayOpen(
   });
   // Un refus avant tentative n'a rien exécuté : pas d'export, comme pour Relay A.
   if (input.exportResult && open.queue.attempted) {
-    result.exportPath = await exportRelay(input.outputDir, result, { nonce, message: input.message, startedAt: context.startedAt }, context.messages);
+    result.exportPath = await exportRelay(input.outputDir, result, { nonce, message: input.message, startedAt: context.startedAt }, context.messages, false);
   }
   return result;
 }
@@ -596,7 +602,7 @@ async function relayFollow(
     follow: followed
   });
   if (input.exportResult && followed.correlation) {
-    result.exportPath = await exportRelay(input.outputDir, result, { nonce: "", message: context.messages.relay.open.followNoMessage, startedAt: context.startedAt }, context.messages);
+    result.exportPath = await exportRelay(input.outputDir, result, { nonce: "", message: context.messages.relay.open.followNoMessage, startedAt: context.startedAt }, context.messages, false);
   }
   return result;
 }
@@ -794,7 +800,8 @@ async function exportRelay(
   outputDir: string,
   result: RelayResultV1,
   input: { nonce: string; message: string; startedAt: number },
-  messages: Messages
+  messages: Messages,
+  targetLocated: boolean
 ): Promise<string | null> {
   if (!result.to || !result.to.provider) return null;
   try {
@@ -803,7 +810,7 @@ async function exportRelay(
       from: result.from,
       ...(result.write ? { write: result.write } : {}),
       ...(result.created !== undefined ? { created: result.created, cwd: result.cwd } : {}),
-      ...(relayDesktopLink(result) ? { desktopLink: relayDesktopLink(result) } : {}),
+      ...(relayDesktopLink(result, targetLocated) ? { desktopLink: relayDesktopLink(result, targetLocated) } : {}),
       to: { agent: result.to.agent, session: result.to.session, provider: result.to.provider },
       status: result.status,
       delivery: result.delivery,
@@ -851,13 +858,13 @@ async function exportRelay(
  * Sortie : `--json` écrit un seul objet sur stdout. En texte, la réponse va seule sur stdout ;
  * l'issue, la délivrance et l'export vont sur stderr. Tout texte affiché est assaini.
  */
-function writeResult(result: RelayResultV1, json: boolean, messages: Messages): void {
+function writeResult(result: RelayResultV1, json: boolean, messages: Messages, targetLocated = false): void {
   if (json) {
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }
-  const text = renderRelayText(result, messages);
-  const link = relayDesktopLink(result);
+  const text = renderRelayText(result, messages, { targetLocated });
+  const link = relayDesktopLink(result, targetLocated);
   process.stdout.write(text.stdout);
   process.stderr.write(link && terminalHyperlinksEnabled(process.stderr.isTTY, process.env) ? withTerminalHyperlink(text.stderr, link) : text.stderr);
 }
@@ -943,25 +950,23 @@ export function applyReviewCancellation(result: RelayResultV1, interrupted: bool
   result.error = { kind: "cancelled", message: messages.relay.status("cancelled") };
 }
 
-/** Issues d'une reprise où la présence de la conversation n'est pas établie : pas de lien. */
-const UNPROVEN_TARGET = new Set<RelayStatus>(["session-not-found", "invalid-request", "command-not-found", "cancelled", "internal-error"]);
-
 /**
  * Lien `codex://threads/…` d'une conversation Codex suivie **en arrière-plan** : créée par ce relay
  * dès que son identifiant est connu, même si le premier tour a échoué (#179), ou reprise fermée
- * (#190). Jamais pour Claude, ni en mode `open`/`follow` (la conversation est déjà dans l'app), ni
- * pour une reprise dont la conversation n'est pas établie (cible introuvable, refus, CLI absente,
- * annulation, défaut interne). Aucun champ JSON n'est ajouté : une intégration construit le même
- * lien depuis `to.session`.
+ * (#190) dont l'historique a été trouvé (`targetLocated`), quelle que soit l'issue ensuite. Jamais
+ * pour Claude, ni en mode `open`/`follow` (la conversation est déjà dans l'app), ni pour une reprise
+ * arrêtée avant la localisation (argument, CLI absente, cible introuvable, annulation précoce) : un
+ * statut ne prouve pas à lui seul l'existence de la conversation. Aucun champ JSON n'est ajouté : une
+ * intégration construit le même lien depuis `to.session`.
  */
-export function relayDesktopLink(result: RelayResultV1): string | undefined {
+export function relayDesktopLink(result: RelayResultV1, targetLocated: boolean): string | undefined {
   if (result.mode !== "background" || !result.to?.session || result.to.provider !== "codex") return undefined;
-  if (!result.created && UNPROVEN_TARGET.has(result.status)) return undefined;
+  if (!result.created && !targetLocated) return undefined;
   return codexDesktopThreadLink(result.to.session);
 }
 
 /** Même réponse en texte qu'en JSON, y compris après une publication refusée ou interrompue. */
-export function renderRelayText(result: RelayResultV1, messages: Messages): { stdout: string; stderr: string } {
+export function renderRelayText(result: RelayResultV1, messages: Messages, options: { targetLocated?: boolean } = {}): { stdout: string; stderr: string } {
   const lines: string[] = [];
   const stdout = result.reply !== undefined ? `${sanitizeTerminalText(result.reply)}\n` : "";
   if (result.status === "replied") {
@@ -993,7 +998,7 @@ export function renderRelayText(result: RelayResultV1, messages: Messages): { st
     lines.push(messages.relay.continueConversation(`palabre relay --to ${result.to.agent}:${result.to.session} "…"`));
     if (result.status !== "replied") lines.push(messages.relay.newFailed);
   }
-  const link = relayDesktopLink(result);
+  const link = relayDesktopLink(result, options.targetLocated === true);
   if (link) {
     lines.push(result.created ? messages.relay.desktopLink(link) : messages.relay.desktopLinkExisting(link));
     lines.push(messages.relay.openLinkCommand(desktopOpenCommand(link)));
@@ -1043,8 +1048,8 @@ async function manageWrite(rawArgs: string[]): Promise<void> {
       console.log(text.approved(id));
       return;
     }
-    const { result, messages } = await executeRelayWithMessages(request.args, { approvedWrite: request });
-    writeResult(result, rawArgs.includes("--json"), messages); process.exitCode = result.exitCode;
+    const { result, messages, targetLocated } = await executeRelayWithMessages(request.args, { approvedWrite: request });
+    writeResult(result, rawArgs.includes("--json"), messages, targetLocated); process.exitCode = result.exitCode;
   } catch (error) {
     const text = relayWriteText(language);
     const detail = error instanceof Error && error.message === "human-terminal-required" ? text.terminal + ` palabre relay approve-write ${rawArgs[2]}` : text.failure(error instanceof Error ? error.message : "invalid-request");
