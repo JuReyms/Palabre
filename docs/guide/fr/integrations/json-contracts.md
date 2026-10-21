@@ -36,3 +36,6 @@ Avec `--open --follow` (#195), rien n'est déposé : `mode: "follow"`, sans `que
 `palabre mission … --json` rend un objet v1 de type `mission-result` avec `action`, `exitCode`, `mission`, `exportPath`, `error`. Seule `step` appelle Relay, au plus une fois ; ses codes sont ceux de Relay (9 sans résultat), tandis qu'un refus Mission donne 8, ou 3 pour une étape déjà réservée.
 
 `palabre config --ollama-models --json` expose `v`, `agent`, `available`, `baseUrl`, `currentModel`, `currentModelInstalled`, `installedModels`, sans génération de modèle.
+
+
+`palabre agents --json` ajoute `defaults.relayView` (`auto` par défaut, ou `background`), issu de `relay.view`. Une intégration ne choisit ni ne déduit le mode. Relay v1 ajoute `modeSource?` : `explicit` (option `--open`/`--background`, y compris suivi explicite), `auto` (verrou ou parcours imposé), `setting` (préférence `background`). Absent si la validation s'arrête avant résolution, ainsi que dans les versions antérieures. Les champs du mode `open` existent aussi quand `auto` l'a sélectionné. `mode` décrit le transport retenu ou demandé, pas une preuve d'envoi ; une sonde inconnue refuse sans envoi et ne donne jamais `open`. Les exclusions restent en arrière-plan, `modeSource: "auto"`, sauf option explicite compatible.

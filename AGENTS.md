@@ -219,7 +219,7 @@ palabre agents --json
 
 Le schéma JSON v1 exclut les agents retirés encore présents dans les anciennes configs (actuellement Gemini) et expose `agents[]` avec `name`, `type`, `role`,
 `available` et `unavailableReason` quand nécessaire, ainsi que
-`defaults.askAgents`. La disponibilité vient de la même logique CLI que les
+`defaults.askAgents` et `defaults.relayView` (préférence effective `auto` ou `background`). La disponibilité vient de la même logique CLI que les
 presets ; une intégration ne doit pas la recalculer.
 
 Liste les presets disponibles.
@@ -573,6 +573,16 @@ et la version du client quand elle est fournie.
 
 ## Relay externe
 
+### Préférence de mode (#190, lot B)
+
+`src/externalSessions/relayView.ts` résout le mode avant l'enveloppe. `relay.view` est facultatif : `auto` par défaut ou `background`. Une reprise Codex ordinaire en auto utilise la localisation bornée puis le verrou : tenu → open ; libre/absent → background ; inconnu → target-state-unknown sans envoi. Les transports revérifient leurs préconditions ; aucun changement d'état ne déclenche de basculement ni de renvoi automatique. Aucun détecteur d'installation Desktop ni pilote de fenêtres.
+
+`--open` et `--background` priment pour un appel sans changer la config ; ensemble ils sont refusés. `--new`, Mission (en-tête interne), review, `--write` et Claude Code restent en arrière-plan ; leurs incompatibilités avec --open restent des refus. Un background vers Codex attaché donne target-busy avec commande destinée au propriétaire. `--open --follow` reste explicite, sans message ni dépôt, même avec une préférence background.
+
+`palabre config --relay-view <auto|background>` a un handler strict avant les mutations/accords implicites : aucun fichier créé, config déjà approuvée, chemin/changement et portée de l'approbation affichés, entrée ET sortie TTY, confirmation clavier obligatoire. Aucun --yes, --trust-config ou mélange de mutations. Le JSON brut conserve les autres champs ; dérive du contenu ou retrait de confiance pendant l'accord → refus ; écriture atomique et approbation liée aux octets écrits. Le TTY est une règle opérateur, pas une authentification contre un processus ayant déjà ses droits. L'agent ne lance ni ne confirme ce réglage pour lui-même. Tests uniquement via scripts/test.mjs sur profils fictifs.
+
+validateRelayPolicy accepte un bloc limité à view sans accorder de revue ; relay allow-repo conserve view. agents --json expose defaults.relayView. JSON v1 ajoute modeSource facultatif : explicit (flag de mode, dont le suivi), setting (background imposé par préférence), auto (sonde ou exclusion). Une erreur avant résolution peut l'omettre. Une sonde inconnue laisse mode background mais n'autorise aucun transport. Texte/export reprennent mode et source sans preuve d'envoi implicite. Le skill reprend PALABRE sans choisir le mode. Pour suivre une confirmation dans l'app, lancer --open --follow avant la validation : le tour doit se terminer après la référence.
+
 Lancements de commandes refusés Windows/Codex (#128, faux négatif corrigé par l'issue 171) :
 l'adapter qualifie uniquement les événements terminés `command_execution`, `failed`,
 `exit_code: -1` dont la sortie commence par l'erreur de démarrage `CreateProcessAsUserW failed: 5`
@@ -631,7 +641,7 @@ Budget : tentatives (1–100), durée murale depuis start (10–86400 s, attente
 
 ### Relay v1 : coordination et tâche revue
 
-`palabre relay` est un service discret, sans écran dédié. Une requête d'agent est marquée comme coordination non authentifiée, jamais comme autorisation humaine ; aucun chaînage automatique. La v1 utilise les reprises CLI officielles sur sessions détachées. Une cible attachée même au repos est refusée (`target-busy`, code 3, `retryable: true`) ; ne pas confondre l'état d'une génération avec la possession de la session. Aucun affichage immédiat Desktop promis. Le pilote Codex `--open` est distinct, hors v1 ; B2/B3 restent une recherche séparée.
+`palabre relay` est un service discret, sans écran dédié. Une requête d'agent est marquée comme coordination non authentifiée, jamais comme autorisation humaine ; aucun chaînage automatique. Le transport arrière-plan utilise les reprises CLI officielles sur sessions détachées. Une cible attachée même au repos est refusée (`target-busy`, code 3, `retryable: true`) ; ne pas confondre l'état d'une génération avec la possession de la session. Aucun affichage immédiat Desktop promis. Le pilote Codex `--open` est distinct, hors v1 ; B2/B3 restent une recherche séparée.
 
 La seule tâche est `--task review --pr https://github.com/owner/repo/pull/123`. La configuration déjà approuvée doit contenir `relay.allowedTasks: ["review"]` et le dépôt exact ou le motif explicite `owner/*` dans `relay.reviewRepositories`. Une tâche inconnue ou hors liste est refusée avant les appels GitHub/modèle ; `--trust-config` et `--open` sont refusés avec cette tâche. Un agent ne peut pas transformer le message relayé en extension de sa politique.
 
@@ -653,7 +663,7 @@ L'approbation de configuration est une frontière opérateur, pas un isolement c
 
 État : la commande `palabre relay` est disponible (lots A0 à A4, non publiée). Elle vit dans `src/commands/relay.ts`, le socle et les adapters dans `src/externalSessions/`. Le smoke réel avec de vrais agents (A5) reste à faire avant publication.
 
-`palabre relay` transmet **un** message à une conversation Codex ou Claude Code existante, récupère **une** réponse, puis termine. Sans `--open`, il vise les conversations **fermées** : aucun processus (TUI, desktop, IDE, `exec`, `-p`) n'y est attaché.
+`palabre relay` transmet **un** message à une conversation Codex ou Claude Code existante, récupère **une** réponse, puis termine. En mode arrière-plan, il vise les conversations **fermées** : aucun processus (TUI, desktop, IDE, `exec`, `-p`) n'y est attaché.
 
 Avec `--open` (lot B1, pilote Codex sous Windows, macOS et Linux), il dépose le message dans une conversation Codex **ouverte** (TUI ou Codex desktop) par `codex queue`, puis attend la réponse corrélée dans le rollout. Sur POSIX, `python3` est requis pour éprouver le verrou de la conversation. La cible garde ses outils et permissions. Voir la section « Relay vers une conversation ouverte » plus bas. Claude Code (B2) et Codex desktop comme expéditeur restent hors de ce lot : l'objectif de l'issue #96 n'est pas entièrement résolu.
 
@@ -811,7 +821,7 @@ Un échec de lancement donne `cli-failure` pour la reprise, et `neutralization-f
 
 ### Engagements et limites
 
-- **Cible fermée seulement.** Le relay est refusé si un processus est attaché à la cible, ou si l'attachement ne peut pas être vérifié. `target-busy` veut dire « cible attachée », pas seulement « génération en cours ».
+- **Transport arrière-plan : cible fermée seulement.** Le relay est refusé si un processus est attaché à la cible, ou si l'attachement ne peut pas être vérifié. `target-busy` veut dire « cible attachée », pas seulement « génération en cours ».
 - **Réponse renvoyée à l'appelant, sans relay inverse.** La réponse sort seulement par le même appel : stdout ou `reply`, plus l'export. Palabre n'écrit rien dans la conversation de l'expéditeur. Un aller-retour est une suite d'appels explicites.
 - **Perte d'outils pendant la reprise.** Ces options ne valent que pour le tour relayé, et aucune config n'est modifiée. La réponse peut donc différer de celle de la conversation habituelle.
   - Codex est relancé avec `--disable plugins --disable apps` et `mcp_servers.<nom>.enabled=false` : il perd ses plugins, ses connecteurs et ses serveurs MCP.
@@ -900,7 +910,7 @@ Un seul objet JSON est écrit sur stdout, quelle que soit l'issue :
 - La politique de version est celle du renderer NDJSON.
 - En sortie texte, la réponse va sur stdout. L'issue et les erreurs vont sur stderr, assainies par `sanitizeTerminalText`.
 - L'export `.relay.md` contient l'expéditeur, la cible (avec les identifiants de session), le message, la réponse ou l'issue, et la délivrance.
-- Avec `--open` seulement, l'objet ajoute des champs optionnels (décrits plus bas) et `status` peut valoir `target-not-open`. Cette valeur d'énumération et ces champs ne concernent que l'opt-in `--open`, et les consommateurs sans `--open` ne rencontrent pas le nouveau statut.
+- En mode `open` (explicite ou automatique), l'objet ajoute des champs optionnels décrits plus bas et `status` peut valoir `target-not-open` après un changement du verrou. Les intégrations lisent le mode résolu, pas la seule présence de `--open`.
 - **Mode (#190, lot A).** `mode` est émis à chaque résultat ; dans le contrat v1, c'est un ajout facultatif (absent des versions antérieures, les consommateurs tolèrent son absence ; seul le type producteur `RelayResultV1` le rend obligatoire) : `background` (conversation fermée ou créée), `open` ou `follow`. La sortie texte affiche une ligne « Mode » (`messages.relay.modeLine`) en mots simples, « arrière-plan » ou « dans l'app desktop », sauf pour un refus `invalid-request`. L'export porte la même valeur. En arrière-plan, une conversation Codex créée (identifiant reçu), ou reprise dont l'historique a été trouvé, affiche son lien `codex://threads/<id>` (`relayDesktopLink`) et la commande d'ouverture à lancer par l'humain (`desktopOpenCommand` : `explorer.exe`, `open`, `xdg-open`), quelle que soit l'issue ensuite. Jamais pour Claude, ni en `open`/`follow`, ni pour une reprise arrêtée avant la localisation. La preuve est `RelayContext.targetLocated`, posé après `locate` ; elle n'est jamais déduite du statut final, car `cancelled`, `invalid-request` ou `internal-error` peuvent survenir avant comme après la localisation. La ligne « Mode » décrit le mode demandé et ses conditions (« la conversation doit être ouverte », « suivi demandé »), jamais un événement : elle reste vraie quand rien n'a été envoyé, y compris pour `target-not-open`. Mission (`executeRelay`) n'affiche ni n'exporte ce lien : pas de rendu texte, `--no-export` imposé, et `targetLocated` n'est pas transmis. Le lien devient cliquable (OSC 8, `withTerminalHyperlink`, première occurrence seulement) uniquement sur stderr TTY, sans `NO_COLOR` ni `TERM=dumb`. Aucun champ JSON de lien : une intégration le construit depuis `to.session`.
 
 ### Relay vers une conversation ouverte (`--open`, B1)
@@ -950,7 +960,7 @@ Après un échec du déposant (code non nul, accusé absent ou étranger, plafon
 
 Une saisie libre de forme `user.text` du même tour, après l'enveloppe et avant la finale, ne devient pas une réponse liée : `no-valid-reply` / 2, `correlation.reason: user-input-during-turn`, vérification de la conversation avant tout renvoi. Une enveloppe d'agent ou un format inconnu conserve l'ambiguïté générique. Aucun auteur humain, clic, accord ou droit n'en est déduit. La forme réelle d'une réponse liée à une question n'a pas été observée localement : aucune exemption supposée ni champ `humanInput`. #146 reste partielle ; #190 n'est pas validée par ce lot. Les fixtures ne contiennent que structures relevées et textes factices ; leur provenance et les variations négatives sont précisées dans `tests/fixtures/external-sessions/open-user-context.md`. Le skill conserve la consigne de ne pas poser de question pendant un tour relayé.
 
-**Champs JSON v1 optionnels, avec `--open` seulement :**
+**Champs JSON v1 optionnels, en mode `open` (explicite ou automatique) :**
 
 - `mode: "open"` (le champ `mode` lui-même est désormais émis à chaque résultat, voir #190 plus haut) ;
 - `queue` : `{ attempted, accepted?, itemId?, diagnostic? }`. `accepted` vaut `true` pour un accusé reconnu et lié à la cible, `false` seulement pour le refus certain d'une CLI sans `queue`, `"unknown"` sinon : une absence d'accusé n'est pas un refus. `itemId` n'est présent que pour un accusé reconnu, et ne prouve pas la réception du texte exact ;
@@ -983,7 +993,7 @@ Un appel `--open` attend la réponse à son enveloppe, puis s'arrête. Quand l'�
 - Le fork d'une conversation.
 - La détection automatique de l'expéditeur.
 - Avec `--open` : Claude Code (lot B2), Codex desktop comme expéditeur (bloqué par son bac à sable), l'app-server `--remote` et les IDE.
-- Sans `--open` : les desktops, IDE et conversations ouvertes.
+- En mode arrière-plan imposé : les conversations ouvertes restent refusées.
 - Les chaînes de relay et le retry.
 - Palabre-vscode, qui consommera `--json` sans recalculer l'état.
 

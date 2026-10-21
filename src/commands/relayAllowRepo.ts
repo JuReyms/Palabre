@@ -1,4 +1,4 @@
-/** Human-facing authorization command; reuses the config trust store and atomic writer. */
+/** @file Human-facing review authorization; preserves relay.view and reuses trust and atomic writes. */
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import path from "node:path";
@@ -76,7 +76,7 @@ export async function runRelayAllowRepo(tokens: readonly string[], io: AllowRepo
   io.print(text.trustNotice);
   if (!(await io.confirm(text.confirm))) throw new Error(text.declined);
   if (await readFile(file, "utf8") !== original) throw new Error(text.changed(file));
-  config.relay = { allowedTasks: ["review"], reviewRepositories: [...new Set([...policy.reviewRepositories, repository])] };
+  config.relay = { ...policy, allowedTasks: ["review"], reviewRepositories: [...new Set([...policy.reviewRepositories, repository])] };
   const updated = `${JSON.stringify(config, null, 2)}\n`;
   try {
     await writeTextFileAtomically(file, updated);

@@ -59,7 +59,7 @@ From your conversation with Claude Code, say for example:
 
 The skill creates a conversation if you have not designated one. If you choose an existing conversation, it keeps that specific target, never "the latest".
 
-To work in an already open Codex conversation on Windows, macOS, or Linux, identify it and describe the task. The mission lead uses `--open`; on POSIX, `python3` must be available. The teammate keeps its permissions, with no rights added by the message.
+To work in an already open Codex conversation on Windows, macOS, or Linux, identify it and describe the task. PALABRE chooses the mode with `auto` based on the lock; on POSIX, `python3` must be available. The teammate keeps its permissions, with no rights added by the message.
 
 ### Codex as mission lead
 
@@ -114,3 +114,6 @@ Mission and `--task review` are frozen: retained and documented, with no scope e
 - To create the teammate in another project, use `--dir "../other-project"` with `--new`. The experimental writing path requires the root of a Git repository.
 
 Details, statuses and limits for each path are in the [full Relay guide](/en/usage/relay).
+
+
+PALABRE chooses the mode, not the agent: by default `auto` follows the Codex lock; a closed conversation runs in background, an open one keeps its own permissions. An unverifiable state refuses sending, without a more permissive fallback. To require background, run `palabre config --relay-view background` yourself; to restore the default, use `palabre config --relay-view auto`. The file and change are displayed before keyboard confirmation in a visible terminal (TTY input/output), without `--yes` or `--trust-config`, using an already trusted configuration. An agent must not choose or confirm this setting. Per-call `--background` and `--open` do not change it. See [Relay mode](/en/usage/relay).

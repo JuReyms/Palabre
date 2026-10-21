@@ -14,6 +14,7 @@ import { OPEN_BASELINE_RETRY, OPEN_POLL_MS, runOpenRelay, type OpenRelayDeps, ty
 import { captureOpenRollout, locateOpenRollout, readOpenRollout, type OpenFile } from "../src/externalSessions/openRollout.js";
 import type { ExternalProcessResult, ExternalProcessSpec } from "../src/externalSessions/process.js";
 import type { TargetProbe } from "../src/externalSessions/types.js";
+import { resolveRelayView } from "../src/externalSessions/relayView.js";
 
 const root = mkdtempSync(path.join(os.tmpdir(), "palabre-open-relay-"));
 after(() => rmSync(root, { recursive: true, force: true }));
@@ -90,6 +91,17 @@ function input(file: string, fields: Partial<OpenRelayInput> = {}): OpenRelayInp
 const appendRows = (file: string, rows: Row[]) => appendFileSync(file, rows.map(line).join(""));
 
 describe("B1 : parcours nominal", () => {
+  test("auto choisit open puis perd le verrou : refus sans dépôt ni repli arrière-plan", async () => {
+    for (const remaining of ["detached", "unknown"] as const) {
+      const file = rollout(), h = harness(file, { probes: ["attached", remaining] });
+      const mode = resolveRelayView({ open: false, background: false, excluded: false, provider: "codex" }, h.deps.probe);
+      assert.equal(mode.mode, "open");
+      const result = await runOpenRelay(input(file), h.deps);
+      assert.equal(result.outcome.status, remaining === "detached" ? "target-not-open" : "target-state-unknown");
+      assert.equal(result.delivery.status, "not-delivered"); assert.equal(h.calls.run.length, 0);
+      assert.deepEqual(result.queue, { attempted: false });
+    }
+  });
   test("verrou tenu, dépôt accusé, réponse corrélée : replied, permissions et modèle du seul tour corrélé", async () => {
     const file = rollout();
     const h = harness(file, { onRun: () => { appendRows(file, fullTurn()); return queued(); } });

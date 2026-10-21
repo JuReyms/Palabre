@@ -1,4 +1,4 @@
-/** Revue Relay : lecture GitHub et publication ciblée par l'hôte ; aucun droit d'écriture du modèle. */
+/** @file Revue Relay : politique (dont view), lecture GitHub et publication ciblée, sans droit d'écriture du modèle. */
 import { execFile } from "node:child_process";
 import { resolveExecutablePath } from "../exec.js";
 import type { PalabreConfig } from "../types.js";
@@ -23,15 +23,21 @@ export function normalizeReviewRepository(value: string): string | undefined {
   return (repoName.test(value) || /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\/\*$/.test(value)) ? value.toLowerCase() : undefined;
 }
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+/** Valide préférence et politique ; un bloc limité à view n'accorde aucune tâche de revue. */
 export function validateRelayPolicy(value: unknown): NonNullable<PalabreConfig["relay"]> {
-  if (!object(value) || Object.keys(value).some(k => !["allowedTasks", "reviewRepositories"].includes(k))
+  if (object(value) && value.view !== undefined && value.allowedTasks === undefined && value.reviewRepositories === undefined) {
+    value = { ...value, allowedTasks: [], reviewRepositories: [] };
+  }
+  if (!object(value) || Object.keys(value).some(k => !["allowedTasks", "reviewRepositories", "view"].includes(k))
+    || (value.view !== undefined && value.view !== "auto" && value.view !== "background")
     || !Array.isArray(value.allowedTasks) || value.allowedTasks.some(x => x !== "review")
     || new Set(value.allowedTasks).size !== value.allowedTasks.length
     || !Array.isArray(value.reviewRepositories) || value.reviewRepositories.some(x => typeof x !== "string" || !normalizeReviewRepository(x))
     || (value.allowedTasks.includes("review") && value.reviewRepositories.length === 0)) {
     throw new Error("Invalid relay policy: allowedTasks=[review] requires explicit owner/repository or owner/* entries.");
   }
-  return { allowedTasks: value.allowedTasks as "review"[], reviewRepositories: [...new Set((value.reviewRepositories as string[]).map(r => r.toLowerCase()))] };
+  return { allowedTasks: value.allowedTasks as "review"[], reviewRepositories: [...new Set((value.reviewRepositories as string[]).map(r => r.toLowerCase()))],
+    ...(value.view !== undefined ? { view: value.view as "auto" | "background" } : {}) };
 }
 export function parsePullRequest(value: string): PullRequestRef | undefined {
   const m = /^https:\/\/github\.com\/([A-Za-z0-9][A-Za-z0-9_.-]{0,99}\/[A-Za-z0-9][A-Za-z0-9_.-]{0,99})\/pull\/([1-9]\d{0,9})$/.exec(value);

@@ -36,3 +36,6 @@ With `--open --follow` (#195), nothing is queued: `mode: "follow"`, no `queue`, 
 `palabre mission … --json` returns a v1 `mission-result` object with `action`, `exitCode`, `mission`, `exportPath`, `error`. Only `step` calls Relay, at most once; its exits are Relay's (9 without a result), while a Mission refusal gives 8, or 3 for an already reserved step.
 
 `palabre config --ollama-models --json` exposes `v`, `agent`, `available`, `baseUrl`, `currentModel`, `currentModelInstalled`, `installedModels`, without model generation.
+
+
+`palabre agents --json` adds `defaults.relayView` (`auto` by default, or `background`), from `relay.view`. An integration must not choose or infer the mode. Relay v1 adds `modeSource?`: `explicit` (`--open`/`--background`, including explicit follow), `auto` (lock or required path), `setting` (`background` preference). Absent when validation stops before resolution, and in earlier versions. Open-mode fields also exist when `auto` selected it. `mode` describes the selected or requested transport, not proof of sending; an unknown probe refuses without sending and never selects `open`. Excluded paths stay in background with `modeSource: "auto"`, unless a compatible explicit option is supplied.

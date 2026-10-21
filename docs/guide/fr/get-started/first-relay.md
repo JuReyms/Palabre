@@ -59,7 +59,7 @@ Depuis votre conversation avec Claude Code, dites par exemple :
 
 Le skill crée une conversation si vous n'en avez pas désigné une. Si vous choisissez une conversation existante, il garde cette cible précise, jamais « la dernière ».
 
-Pour travailler dans une conversation Codex déjà ouverte sous Windows, macOS ou Linux, désignez-la et dites le travail attendu. Le chef de mission emploie `--open` ; sur POSIX, `python3` doit être disponible. L'équipier conserve ses permissions, sans droit ajouté par le message.
+Pour travailler dans une conversation Codex déjà ouverte sous Windows, macOS ou Linux, désignez-la et dites le travail attendu. PALABRE choisit le mode avec `auto` selon le verrou ; sur POSIX, `python3` doit être disponible. L'équipier conserve ses permissions, sans droit ajouté par le message.
 
 ### Codex chef de mission
 
@@ -114,3 +114,6 @@ Mission et `--task review` sont gelés : conservés et documentés, sans extensi
 - Pour créer l'équipier dans un autre projet, utilisez `--dir "../autre-projet"` avec `--new`. Le parcours expérimental d'écriture exige la racine d'un dépôt Git.
 
 Les détails, les statuts et les limites de chaque parcours sont dans le [guide Relay complet](/fr/usage/relay).
+
+
+PALABRE choisit le mode, pas l'agent : par défaut `auto` suit le verrou de Codex ; une conversation fermée part en arrière-plan, une conversation ouverte garde ses permissions propres. Un état invérifiable refuse l'envoi, sans repli plus permissif. Pour imposer l'arrière-plan, lancez vous-même `palabre config --relay-view background` ; pour revenir au défaut, `palabre config --relay-view auto`. Le fichier et le changement sont affichés avant votre confirmation clavier dans un terminal visible (entrée/sortie TTY), sans `--yes` ni `--trust-config`, sur une config déjà approuvée. Un agent ne choisit ni ne confirme ce réglage. Les options ponctuelles `--background` et `--open` ne le changent pas. Voir [Mode Relay](/fr/usage/relay).

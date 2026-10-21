@@ -163,6 +163,11 @@ Usage:
   palabre config --mode <debate|ask>
   palabre config --ask-agents <names...>
   palabre config --interface <tui|terminal>
+  palabre config --relay-view <auto|background> # propriétaire : confirmation clavier TTY, aucun --yes
+  auto suit le verrou Codex (tenu : permissions de la conversation ouverte ; libre : arrière-plan).
+  background impose l'arrière-plan. État invérifiable : aucun envoi.
+  Config déjà approuvée, fichier/changement affichés ; entrée ET sortie TTY requises.
+  Aucun --yes, --trust-config ou mélange de mutations. L'agent ne confirme jamais à votre place.
   palabre config --language <fr|en>
 
   --prune-trust retire seulement les approbations de fichiers disparus : liste,
@@ -229,7 +234,7 @@ Flags:
   --pull-models        autorise le téléchargement d'un modèle Ollama manquant
 `,
   relay: `
-Transmet un message à une conversation Codex ou Claude Code fermée et renvoie sa réponse.
+Transmet un message à une conversation précise et renvoie sa réponse ; PALABRE choisit le mode.
 Avec --open, dépose le message dans une conversation Codex ouverte et attend sa réponse.
 
 Usage:
@@ -255,7 +260,8 @@ Flags:
   --subject <objet>       objet facultatif : une ligne non vide, 200 caractères au plus, sans contrôle
   --task review           gelé : rédige et publie une revue COMMENT si la config l'autorise
   --pr <url>              PR github.com exacte ; obligatoire avec --task review
-  --open                  vise une conversation Codex ouverte (TUI ou Codex desktop)
+  --open                  vise une conversation Codex ouverte (TUI ou Codex desktop), pour cet appel
+  --background            force l'arrière-plan pour cet appel ; incompatible avec --open
   --follow                avec --open : ne dépose rien, attend le prochain tour terminé
   --timeout <secondes>    délai maximal, de 10 à 3600 (défaut : 600)
   --json                  sortie JSON v1 pour les intégrations
@@ -263,6 +269,18 @@ Flags:
   --config <path>         chemin de config explicite
   --trust-config          approuve la config résolue (aucune question n'est posée)
   --language <fr|en>      force la langue
+
+Préférence du propriétaire :
+  relay.view = auto (défaut) : Codex existant, verrou tenu -> dans l'app desktop ; libre -> arrière-plan.
+  Verrou invérifiable : target-state-unknown, aucun envoi. Aucun repli après refus.
+  relay.view = background : arrière-plan toujours ; cible ouverte refusée (target-busy).
+  --open et --background priment sur le réglage sans le changer ; ensemble, refusés.
+  --new, Mission, --task review, --write et Claude Code restent en arrière-plan.
+  Le propriétaire lance palabre config --relay-view <auto|background> : chemin/changement affichés,
+  config déjà approuvée, confirmation clavier avec entrée ET sortie TTY ; aucun --yes ni --trust-config.
+  Un agent ne modifie jamais ce réglage et ne confirme jamais à sa place.
+  agents --json expose defaults.relayView ; Relay JSON v1 : modeSource facultatif,
+  explicit (option), auto (verrou ou parcours imposé), setting (préférence background).
 
 Limites :
   Codex desktop chef de mission : autoriser chaque commande vers Claude hors du bac à sable,
@@ -306,7 +324,7 @@ Limites :
   Sans --write, aucune écriture en arrière-plan. Avec les versions Codex vérifiées,
   une cible créée par --new n'est pas listée dans Desktop, mais reste joignable par Relay.
   Pour la suivre dans l'app, le propriétaire ouvre le lien codex://threads/<id> affiché
-  (jamais un agent à sa place) ; ensuite, --open. Ouverture vérifiée sous Windows seulement ;
+  (jamais un agent à sa place) ; ensuite, auto suit le verrou. Ouverture vérifiée sous Windows seulement ;
   macOS et Linux restent à vérifier pour ce lien Desktop.
   Mode annoncé à chaque échange : « arrière-plan » (sans fenêtre visible, lecture seule
   demandée) ou « dans l'app desktop » (conversation ouverte, avec ses permissions). JSON : mode
@@ -327,7 +345,7 @@ Limites :
   Windows seulement ; Claude natif refusé. Métadonnées CLI/Git nécessaires hors du worktree.
   JSON/export : write donne branche, dossier, fichiers/diff Git, commandes observées avec codes/sorties.
   Aucun succès de test déduit de la prose ; spawn EPERM reste un blocage, sans repli non confiné.
-  Sans --open, une conversation existante doit être fermée : aucun TUI, desktop, IDE ni exécution
+  En mode arrière-plan, une conversation existante doit être fermée : aucun TUI, desktop, IDE ni exécution
   en cours.
 
 Avec --open (pilote Codex ; Windows, macOS et Linux) :
@@ -592,6 +610,11 @@ Usage:
   palabre config --mode <debate|ask>
   palabre config --ask-agents <names...>
   palabre config --interface <tui|terminal>
+  palabre config --relay-view <auto|background> # owner: TTY keyboard confirmation, no --yes
+  auto follows the Codex lock (held: open conversation permissions; free: background).
+  background requires background operation. Unverifiable state: nothing sent.
+  Already trusted config, file/change displayed; TTY input AND output required.
+  No --yes, --trust-config or combined mutations. An agent must never confirm for you.
   palabre config --language <fr|en>
 
   --prune-trust removes approvals only for missing files: preview, keyboard
@@ -658,7 +681,7 @@ Flags:
   --pull-models        allows downloading a missing Ollama model
 `,
   relay: `
-Sends one message to a closed Codex or Claude Code conversation and returns its reply.
+Sends one message to a specific conversation and returns its reply; PALABRE chooses the mode.
 With --open, queues the message into an open Codex conversation and waits for its reply.
 
 Usage:
@@ -684,7 +707,8 @@ Flags:
   --subject <subject>     optional subject: one nonblank line, at most 200 characters, no controls
   --task review           frozen: draft and publish a COMMENT review if allowed by configuration
   --pr <url>              exact github.com PR; required with --task review
-  --open                  targets an open Codex conversation (TUI or Codex desktop)
+  --open                  targets an open Codex conversation (TUI or Codex desktop), for this call
+  --background            forces background for this call; incompatible with --open
   --follow                with --open: queues nothing, waits for the next completed turn
   --timeout <seconds>     maximum duration, 10 to 3600 (default: 600)
   --json                  JSON v1 output for integrations
@@ -692,6 +716,18 @@ Flags:
   --config <path>         explicit config path
   --trust-config          trusts the resolved config (no question is asked)
   --language <fr|en>      force language
+
+Owner's preference:
+  relay.view = auto (default): existing Codex, held lock -> in the desktop app; free -> background.
+  Unverifiable lock: target-state-unknown, nothing sent. No fallback after refusal.
+  relay.view = background: always background; an open target is refused (target-busy).
+  --open and --background override the setting without changing it; both together are refused.
+  --new, Mission, --task review, --write and Claude Code remain in background.
+  The owner runs palabre config --relay-view <auto|background>: file/change displayed,
+  already trusted config, keyboard confirmation with TTY input AND output; no --yes or --trust-config.
+  An agent must never change this preference or confirm for the owner.
+  agents --json exposes defaults.relayView; Relay JSON v1: optional modeSource,
+  explicit (option), auto (lock or required path), setting (background preference).
 
 Limits:
   Codex desktop as mission lead: approve each command to Claude outside the sandbox,
@@ -755,7 +791,7 @@ Limits:
   CLI/Git metadata writes remain necessary outside the worktree.
   JSON/export: write contains branch, folder, Git files/diff and observed commands with codes/output.
   No test success inferred from prose. spawn EPERM stays blocked; no unsandboxed fallback.
-  Without --open, an existing target conversation must be closed: no TUI, desktop, IDE or running
+  In background mode, an existing target conversation must be closed: no TUI, desktop, IDE or running
   exec.
 
 With --open (Codex pilot; Windows, macOS, and Linux):
