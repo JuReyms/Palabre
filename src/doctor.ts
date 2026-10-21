@@ -5,6 +5,7 @@ import { configExists, DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH, loadConfig, reso
 import { isConfigTrusted, isImplicitProjectConfig } from "./configTrust.js";
 import { detectedAgentNames, detectionForCommand, isAbsoluteCommand } from "./agentRegistry.js";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
+import { inspectWindowsPowerShell, type CodexWindowsEnvironmentOptions } from "./externalSessions/codexWindowsEnvironment.js";
 import { createTranslator, resolveLanguage } from "./i18n.js";
 import { DEFAULT_TURNS, MAX_TURNS } from "./limits.js";
 import { configuredOllamaTargets, normalizeOllamaBaseUrl } from "./ollamaUrl.js";
@@ -23,6 +24,17 @@ export interface DoctorOptions {
   checkVersion?: boolean;
   /** Injected tool inventory for tests; the CLI always performs its own discovery. */
   discovery?: ToolDiscovery;
+  /**
+   * Sondes injectées pour les tests du contrôle PowerShell Windows ; la CLI inspecte l'environnement
+   * réel. L'inspection reste en lecture seule : aucun `pwsh` lancé, aucun environnement modifié.
+   */
+  windowsPowerShell?: DoctorWindowsPowerShellProbes;
+}
+
+/** Sondes et environnement injectés pour le contrôle PowerShell Windows (tests seulement). */
+export interface DoctorWindowsPowerShellProbes extends CodexWindowsEnvironmentOptions {
+  /** Environnement inspecté ; la CLI lit celui du processus. */
+  env?: NodeJS.ProcessEnv;
 }
 
 interface DiagnosticLine {
@@ -95,6 +107,7 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
   lines.push(formatCommand("Antigravity CLI", discovery.antigravity.available, discovery.antigravity.command, discovery.antigravity.path, t));
   lines.push(formatCommand("OpenCode CLI", discovery.opencode.available, discovery.opencode.command, discovery.opencode.path, t));
   lines.push(formatCommand("Mistral Vibe CLI", discovery.vibe.available, discovery.vibe.command, discovery.vibe.path, t));
+  await inspectWindowsShell(discovery, lines, t, options.windowsPowerShell);
   lines.push(discovery.ollama.available
     ? ok(t.doctor.ollamaReachable(discovery.ollama.baseUrl, discovery.ollama.models.length))
     : warn(discovery.ollama.commandAvailable
@@ -105,6 +118,34 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
   inspectAgents(config, discovery, lines, t);
 
   return render(lines, plain, t);
+}
+
+/**
+ * Prévient, avant tout Relay, quand `pwsh.exe` n'est que l'alias PowerShell du Microsoft Store
+ * (#128, remonté par l'essai réel de #171) : Codex peut alors échouer à démarrer ses commandes.
+ *
+ * WARN seulement, jamais une erreur : la machine reste utilisable et l'agent lit souvent malgré tout.
+ * Muet hors Windows, sans CLI Codex détectée, quand un vrai `pwsh.exe` reste disponible, ou quand
+ * l'alias n'est pas confirmé. Ne lance pas `pwsh` et ne modifie ni config, ni PATH, ni permissions.
+ */
+async function inspectWindowsShell(
+  discovery: ToolDiscovery,
+  lines: DiagnosticLine[],
+  t: Messages,
+  probes: DoctorWindowsPowerShellProbes | undefined
+): Promise<void> {
+  if (!discovery.codex.available) return;
+
+  const report = await inspectWindowsPowerShell(probes?.env ?? process.env, probes ?? {});
+
+  if (report.status === "store-alias-only" && report.alias) {
+    lines.push(warn(t.doctor.windowsStorePowerShellOnly(report.alias)));
+    return;
+  }
+
+  if (report.status === "store-alias-with-fallback" && report.alias && report.fallback) {
+    lines.push(warn(t.doctor.windowsStorePowerShellFallback(report.alias, report.fallback)));
+  }
 }
 
 async function inspectCliVersion(lines: DiagnosticLine[], t: Messages): Promise<void> {

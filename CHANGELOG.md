@@ -4,6 +4,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Added
+
+- `palabre doctor` prévient sous Windows, avant tout Relay, quand le seul `pwsh.exe` du PATH est l'alias PowerShell du Microsoft Store : Codex peut alors échouer à démarrer ses commandes, ce que PALABRE ne signalait jusqu'ici qu'après l'échange, dans `readAccess`. Le contrôle réutilise la détection d'alias d'exécution déjà en place, n'exécute pas `pwsh` et ne modifie ni configuration, ni PATH, ni permissions ; il distingue l'absence de tout PowerShell régulier du repli appliqué au seul processus enfant Codex, et nomme ce repli. Avertissement seulement, jamais une erreur : la machine reste utilisable et l'agent lit souvent malgré le refus. Muet hors Windows, sans CLI Codex détectée, quand un vrai `pwsh.exe` reste disponible ou quand l'alias n'est pas confirmé (Refs #171, #128). Guides fr/en et skill actualisés, avec la commande winget qui installe réellement le `.msi` (`--installer-type wix`, vérifié avec winget 1.29.380 ; `--installer-type msi` ne correspond à aucun installeur et `--source winget` seul pose le paquet MSIX) ; la copie installée du skill n'est pas mise à jour automatiquement.
+
 ### Changed
 
 - Documentation Relay : avec les versions Codex vérifiées, une conversation créée par `relay --new` via la CLI reste joignable et réutilisable par Relay, mais n'est pas listée dans Codex Desktop. Pour la suivre dans l'application, la créer d'abord dans Desktop puis viser son identifiant (`--open` tant qu'elle est ouverte). Aide, guides fr/en et skill alignés (Refs #179, point 10) ; une copie installée du skill doit être mise à jour manuellement.
@@ -12,6 +16,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 - Relay sous Windows : PALABRE distingue désormais les lancements de commandes refusés (`CreateProcessAsUserW, erreur 5`) d'un blocage durable. Si une commande aboutit (code 0) après le premier refus et avant la réponse finale, la réponse reste `replied`/0 avec `readAccess.status: "partial"` et `succeededCommands` ; sans réussite ultérieure, `blocked` donne `read-unavailable`/2 tout en conservant réponse et délivrance ; un événement de commande ambigu donne `unverified` sans dégrader l'issue. L'essai réel #171 a ainsi vu Codex se replier après deux refus et lire correctement un fichier. La tâche `--task review` reste volontairement stricte : tout diagnostic refuse la publication (`review-failed`, code 9), car une revue publiée ne se défait pas. Mission poursuit une étape `consult` répondue seulement si son Relay reste réussi (Fixes #173, Refs #171, #128).
   Contrat JSON v1 sans suppression ni renommage : `readAccess.status` accepte `partial` et `unverified`, et `succeededCommands` est ajouté seulement pour `partial`. Les consommateurs doivent ignorer les valeurs et champs optionnels inconnus. Aide, guides fr/en et skill actualisés ; la copie installée du skill n'est pas mise à jour automatiquement.
+
+- Codex sous Windows : le contournement de l'alias PowerShell Store (#128, 0.18.0) ne s'appliquait pas quand l'alias se trouve dans le dossier du paquet (`WindowsApps\Microsoft.PowerShell_<éditeur>\pwsh.exe`), emplacement créé par une mise à jour winget ou Store et réellement lancé par Codex dans l'essai #171. Cet emplacement est désormais reconnu, toujours après confirmation AppExecLink, et un second alias confirmé qui passe ensuite en tête est écarté à son tour ; un alias suivant non confirmé laisse l'environnement inchangé. `palabre doctor` en bénéficie. Aucun changement de permission, de sandbox ni de PATH global (Refs #128, #171). Guides fr/en, skill et consignes contributeurs actualisés ; la copie installée du skill doit être mise à jour manuellement.
 
 ## [0.18.0] - 2026-10-20
 
