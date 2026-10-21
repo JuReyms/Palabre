@@ -3,13 +3,31 @@ import type { Language } from "../types.js";
 import type { SkillSyncError, SkillSyncPlan } from "../skillSync.js";
 import { sanitizeTerminalText } from "../adapters/terminal.js";
 
+/** Textes de la commande dédiée, séparés du déroulé et de la confirmation. */
+export const skillCommandMessages = {
+  fr: {
+    usage: "Usage : palabre skill [--sync | --install codex|claude] [--check | --dry-run] [--yes].",
+    confirmationRequired: "Aucune écriture : relancez dans un terminal pour confirmer, ou utilisez explicitement --yes après lecture du plan.",
+    confirm: "Installer ces instructions pour les agents ? [o/N] ",
+    backup: (directory: string) => `Sauvegarde : ${sanitizeTerminalText(directory)}`,
+    complete: "Copies vérifiables du skill alignées sur la CLI exécutée. Rechargez le skill ou reprenez la conversation de l'agent. Les copies non vérifiées restent intactes."
+  },
+  en: {
+    usage: "Usage: palabre skill [--sync | --install codex|claude] [--check | --dry-run] [--yes].",
+    confirmationRequired: "Nothing written: run in a terminal to confirm, or explicitly use --yes after reading the plan.",
+    confirm: "Install these agent instructions? [y/N] ",
+    backup: (directory: string) => `Backup: ${sanitizeTerminalText(directory)}`,
+    complete: "Verifiable skill copies match the running CLI. Reload the skill or resume the agent conversation. Unverified copies remain untouched."
+  }
+} satisfies Record<Language, unknown>;
+
 /** Affiche toutes les cibles avant confirmation, y compris les copies personnalisées à sauvegarder. */
 export function formatSkillPlan(plan: SkillSyncPlan, language: Language, afterUpdate = false): string {
   const fr = language === "fr";
   const clean = sanitizeTerminalText;
   return [
     fr ? `Skill livré par la CLI ${afterUpdate ? "après sa mise à jour" : "exécutée"} (aucun téléchargement GitHub).` : `Skill bundled with the ${afterUpdate ? "updated" : "running"} CLI (no GitHub download).`,
-    ...plan.copies.map(copy => `  ${clean(copy.directory)} — ${fr ? ({ current: "identique à la CLI actuelle", different: "différent ou absent", unreadable: "comparaison impossible : rafraîchissement refusé" })[copy.state] : ({ current: "matches the current CLI", different: "different or absent", unreadable: "cannot compare: refresh refused" })[copy.state]}`),
+    ...plan.copies.map(copy => `  ${clean(copy.directory)} — ${fr ? ({ current: "identique à la CLI actuelle", different: "différent ou absent", unreadable: "AVERTISSEMENT : comparaison impossible ; copie ignorée et laissée intacte" })[copy.state] : ({ current: "matches the current CLI", different: "different or absent", unreadable: "WARNING: cannot compare; copy skipped and left untouched" })[copy.state]}`),
     ...(plan.copies.length ? [
       fr ? "Les fichiers livrés seront remplacés après sauvegarde des copies existantes ; les ajouts privés et les jonctions seront conservés." : "Bundled files will be replaced after backing up existing copies; private additions and junctions will be preserved.",
       `${fr ? "Sauvegardes hors des dossiers de skills" : "Backups outside skill directories"}: ${clean(plan.backupRoot)}`

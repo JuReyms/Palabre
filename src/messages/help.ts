@@ -18,6 +18,9 @@ Garde le skill installé aligné sur le paquet de la CLI exécutée, sans résea
   --yes                                accord explicite sans question, plan toujours affiché
 Les fichiers personnalisés remplacés sont sauvegardés hors des dossiers de skills.
 Les jonctions et ajouts privés sont conservés. Les liens internes sont refusés.
+Les copies illisibles sont signalées et ignorées, sans bloquer update ni les autres copies.
+Sans copie différente, --sync et --install ne demandent aucun accord et n'écrivent rien.
+Si la CLI est mise à jour mais pas le skill, le message le précise : palabre skill --sync.
 La source est skills/palabre du paquet courant ; aucun suivi de GitHub main.
 L'agent ne lance pas --sync, --install ou update sans accord humain sur ces instructions.
 Après rafraîchissement, rechargez le skill ou reprenez la conversation de l'agent.
@@ -429,6 +432,9 @@ Keeps installed skills aligned with the running CLI package, without network or 
   --yes                                explicit consent without a prompt; plan still displayed
 Replaced customized files are backed up outside skill directories.
 Junctions and private additions are preserved. Internal links are refused.
+Unreadable copies are reported and skipped without blocking update or other copies.
+Without a different copy, --sync and --install do not ask for consent or write anything.
+If the CLI updates but the skill fails, the message says so: palabre skill --sync.
 The source is the running package's skills/palabre, never GitHub main.
 Agents must not run --sync, --install or update without human consent for these instructions.
 Reload the skill or resume the agent conversation after refreshing it.

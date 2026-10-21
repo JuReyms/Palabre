@@ -93,7 +93,69 @@ test("source absente, lien interne, sauvegarde dans skills ou édition après co
   mkdirSync(external);
   symlinkSync(external, path.join(target, "linked"), process.platform === "win32" ? "junction" : "dir");
   assert.equal(planSkillSync(options).copies[0].state, "unreadable");
-  assert.throws(() => applySkillSync(planSkillSync(options)), SkillSyncError);
+  assert.deepEqual(applySkillSync(planSkillSync(options)), []);
+  assert.equal(readFileSync(path.join(target, "SKILL.md"), "utf8"), "edited");
+});
+
+test("update disponible : copie illisible ignorée et intacte, avertissement affiché, CLI et autre copie mises à jour", async t => {
+  const { root, options, target } = fixture(t);
+  skill(target, "custom unreadable");
+  const external = path.join(root, "external");
+  mkdirSync(external);
+  symlinkSync(external, path.join(target, "linked"), process.platform === "win32" ? "junction" : "dir");
+  const other = path.join(options.home, ".claude", "skills", "palabre");
+  skill(other, "custom readable");
+  const projectRoot = path.dirname(path.dirname(options.source));
+  const info: UpdateInfo = { version: "0.18.0", latestVersion: "0.19.0", channel: "npm-global", sourceCheckout: false, projectRoot, steps: createUpdatePlan("npm-global", "0.19.0"), skills: planSkillSync(options) };
+  assert.deepEqual(info.skills!.copies.map(copy => copy.state), ["unreadable", "different"]);
+  const reports: string[] = [];
+  let installs = 0;
+  await runUpdateCommand({ yes: true, language: "fr" }, {
+    getInfo: async () => info, write: report => { reports.push(report); },
+    apply: (plan, messages) => applyUpdate(plan, messages, { run: async () => {
+      installs++;
+      writeFileSync(path.join(projectRoot, "package.json"), JSON.stringify({ name: "palabre", version: "0.19.0" }));
+      skill(options.source, "updated package");
+    } })
+  });
+  assert.equal(installs, 1);
+  assert.equal(JSON.parse(readFileSync(path.join(projectRoot, "package.json"), "utf8")).version, "0.19.0");
+  assert.ok(reports.some(report => report.includes(target) && report.includes("AVERTISSEMENT") && report.includes("copie ignorée")));
+  assert.equal(readFileSync(path.join(target, "SKILL.md"), "utf8"), "custom unreadable");
+  assert.ok(lstatSync(path.join(target, "linked")).isSymbolicLink());
+  assert.equal(readFileSync(path.join(other, "SKILL.md"), "utf8"), "updated package");
+});
+
+test("source illisible : copies non vérifiées intactes sans bloquer le processus CLI", async t => {
+  const { options, target } = fixture(t);
+  skill(target, "custom");
+  const info: UpdateInfo = { version: "0.18.0", latestVersion: "0.19.0", channel: "npm-global", sourceCheckout: false, projectRoot: path.dirname(path.dirname(options.source)), steps: createUpdatePlan("npm-global", "0.19.0"), skills: planSkillSync({ ...options, source: path.join(options.source, "absent") }) };
+  let installs = 0;
+  await applyUpdate(info, createTranslator("fr"), { run: async () => { installs++; } });
+  assert.equal(installs, 1);
+  assert.equal(readFileSync(path.join(target, "SKILL.md"), "utf8"), "custom");
+  assert.equal(existsSync(info.skills!.backupRoot), false);
+});
+
+test("CLI mise à jour puis skill incomplet : erreur limitée au skill avec la commande de reprise fr/en", async t => {
+  for (const language of ["fr", "en"] as const) {
+    const { options, target } = fixture(t);
+    skill(target, "custom");
+    const projectRoot = path.dirname(path.dirname(options.source));
+    const info: UpdateInfo = { version: "0.18.0", latestVersion: "0.19.0", channel: "npm-global", sourceCheckout: false, projectRoot, steps: createUpdatePlan("npm-global", "0.19.0"), skills: planSkillSync(options) };
+    await assert.rejects(applyUpdate(info, createTranslator(language), { run: async () => {
+      writeFileSync(path.join(projectRoot, "package.json"), JSON.stringify({ name: "palabre", version: "0.19.0" }));
+      rmSync(path.join(options.source, "references", "relay.md"));
+    } }), error => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, language === "fr" ? /CLI a été mise à jour avec succès/ : /CLI was updated successfully/);
+      assert.match(error.message, /palabre skill --sync/);
+      assert.doesNotMatch(error.message, /Réinstallez|Reinstall/);
+      return true;
+    });
+    assert.equal(JSON.parse(readFileSync(path.join(projectRoot, "package.json"), "utf8")).version, "0.19.0");
+    assert.equal(readFileSync(path.join(target, "SKILL.md"), "utf8"), "custom");
+  }
 });
 
 test("copies projet/personnelles inventoriées, référence absente détectée", t => {
@@ -186,4 +248,21 @@ test("commande skill : absence de confirmation, check, dry-run et options invali
   assert.match(approved.stdout, /custom|personnalis|différent/);
   assert.equal(readFileSync(path.join(target, "SKILL.md"), "utf8"), readFileSync(fileURLToPath(new URL("../skills/palabre/SKILL.md", import.meta.url)), "utf8"));
   assert.equal(existsSync(path.join(home, ".palabre", "trusted-configs.json")), false);
+  for (const flags of [["--sync"], ["--install", "codex"]]) {
+    const unchanged = spawnSync(process.execPath, [cli, "skill", ...flags], { cwd: root, encoding: "utf8", env: process.env });
+    assert.equal(unchanged.status, 0, unchanged.stderr); // Pas de TTY ni --yes : aucun accord demandé si identique.
+  }
+  const external = path.join(root, "external");
+  mkdirSync(external);
+  symlinkSync(external, path.join(target, "linked"), process.platform === "win32" ? "junction" : "dir");
+  const skipped = spawnSync(process.execPath, [cli, "skill", "--sync"], { cwd: root, encoding: "utf8", env: process.env });
+  assert.equal(skipped.status, 0, skipped.stderr); // Une copie uniquement illisible ne demande pas non plus d'accord.
+  assert.match(skipped.stdout, /AVERTISSEMENT|WARNING/);
+  const other = path.join(home, ".codex", "skills", "palabre");
+  skill(other, "custom readable");
+  const mixed = spawnSync(process.execPath, [cli, "skill", "--sync", "--yes"], { cwd: root, encoding: "utf8", env: process.env });
+  assert.equal(mixed.status, 0, mixed.stderr);
+  assert.match(mixed.stdout, /AVERTISSEMENT|WARNING/);
+  assert.ok(lstatSync(path.join(target, "linked")).isSymbolicLink());
+  assert.equal(readFileSync(path.join(other, "SKILL.md"), "utf8"), readFileSync(path.join(target, "SKILL.md"), "utf8"));
 });

@@ -52,6 +52,8 @@ These commands follow the CLI package, not GitHub `main`. External tools such as
 
 To start, tell Claude Code or Codex: "Use PALABRE to ask the other agent to review the plan in docs/plan.md without changing files. Keep the conversation for follow-up." You choose the mission lead. From Codex desktop, each command to Claude needs one-time host approval; follow [Your first Relay](/en/get-started/first-relay).
 
+An unverified copy is displayed with a warning and left untouched: it blocks neither the CLI update nor other skill copies. If no copy differs, `--sync` and `--install` do not ask for consent or write anything. If the CLI updates successfully but the skill refresh then fails, the message distinguishes these outcomes: restart Palabre, then run `palabre skill --sync` to inspect the new plan.
+
 ## When the agent sees the skill
 
 An agent loads its skill list when a conversation starts or resumes. After installing, open a new conversation or resume one: a conversation that is already running may not see the skill.

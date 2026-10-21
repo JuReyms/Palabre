@@ -105,6 +105,7 @@ export function planSkillInstall(agent: "codex" | "claude", options: SkillSyncOp
 /** Valide encore l'état et la destination physique présentés au propriétaire avant toute écriture. */
 export function assertSkillPlanUnchanged(plan: SkillSyncPlan): void {
   for (const copy of plan.copies) {
+    if (copy.state === "unreadable") continue;
     if (copy.fingerprint === "absent") {
       try { lstatSync(copy.directory); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") continue; }
       throw new SkillSyncError("changed", copy.directory);
@@ -127,11 +128,13 @@ function inside(root: string, candidate: string): boolean {
  * Après mise à jour CLI, source désigne le paquet nouvellement installé, même si pnpm a changé de store.
  */
 export function applySkillSync(plan: SkillSyncPlan, source = plan.source, onBackup?: (directory: string) => void): string[] {
+  const readable = plan.copies.filter(copy => copy.state !== "unreadable");
+  if (!readable.length) return [];
   const bundled = sourceFiles(source);
   assertSkillPlanUnchanged(plan);
   const backups: string[] = [];
   const seen = new Set<string>();
-  for (const copy of plan.copies) {
+  for (const copy of readable) {
     const destination = copy.canonical ?? copy.directory;
     const key = process.platform === "win32" ? destination.toLowerCase() : destination;
     if (seen.has(key)) continue;

@@ -15,6 +15,7 @@ export interface UpdateMessages {
   skillFailure(error: SkillSyncError): string;
   skillBackup(directory: string): string;
   skillReload: string;
+  skillAfterCliFailure: string;
   instructions(options: {
     version: string;
     latestVersion?: string;
@@ -38,6 +39,7 @@ export const updateMessages: Record<Language, UpdateMessages> = {
     skillFailure: error => skillSyncFailure(error, "fr"),
     skillBackup: directory => `Sauvegarde du skill : ${directory}`,
     skillReload: "Rechargez le skill ou reprenez la conversation de l'agent après le rafraîchissement.",
+    skillAfterCliFailure: "La CLI a été mise à jour avec succès. Seul le rafraîchissement du skill a échoué : relancez Palabre, puis palabre skill --sync pour examiner un nouveau plan. Les copies illisibles restent intactes.",
     stepFailed: (command, args, exitCode) => `${command} ${args} a echoue avec le code ${exitCode}.`,
     instructions: (options) => formatInstructions("fr", options)
   },
@@ -52,6 +54,7 @@ export const updateMessages: Record<Language, UpdateMessages> = {
     skillFailure: error => skillSyncFailure(error, "en"),
     skillBackup: directory => `Skill backup: ${directory}`,
     skillReload: "Reload the skill or resume the agent conversation after refreshing it.",
+    skillAfterCliFailure: "The CLI was updated successfully. Only the skill refresh failed: restart Palabre, then run palabre skill --sync to inspect a new plan. Unreadable copies remain untouched.",
     stepFailed: (command, args, exitCode) => `${command} ${args} failed with exit code ${exitCode}.`,
     instructions: (options) => formatInstructions("en", options)
   }

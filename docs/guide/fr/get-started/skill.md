@@ -52,6 +52,8 @@ Ces commandes suivent le paquet de la CLI, pas GitHub `main`. Un outil externe c
 
 Pour commencer, dites à Claude Code ou à Codex : « Passe par PALABRE pour demander à l’autre agent de relire le plan dans docs/plan.md, sans modifier de fichier. Garde la conversation pour la suite. » Vous choisissez le chef de mission. Depuis Codex desktop, chaque commande vers Claude demande une autorisation ponctuelle de l’hôte ; suivez [Premier Relay](/fr/get-started/first-relay).
 
+Une copie non vérifiable est affichée avec un avertissement et laissée intacte : elle ne bloque ni la mise à jour CLI ni les autres copies du skill. Si aucune copie n'est différente, `--sync` et `--install` ne demandent pas d'accord et n'écrivent rien. Si la CLI est mise à jour mais que le rafraîchissement du skill échoue ensuite, le message distingue les deux résultats : relancez Palabre, puis `palabre skill --sync` pour examiner le nouveau plan.
+
 ## Quand l'agent voit le skill
 
 Un agent charge la liste des skills quand une conversation démarre ou reprend. Après l'installation, ouvrez une nouvelle conversation ou reprenez-en une : une conversation déjà en cours ne voit pas forcément le skill.

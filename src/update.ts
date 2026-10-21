@@ -48,7 +48,7 @@ export function canApplyUpdate(info: UpdateInfo): boolean {
 }
 
 /** Un canal inconnu n'autorise que le rafraîchissement local explicitement présenté, jamais la CLI. */
-function updatesCli(info: UpdateInfo): boolean {
+export function updatesCli(info: UpdateInfo): boolean {
   return info.channel !== "unknown" && info.steps.length > 0 && (info.channel === "source" || hasAvailableUpdate(info));
 }
 
@@ -181,13 +181,15 @@ export async function applyUpdate(info: UpdateInfo, messages: Messages, options:
     throw new Error(messages.update.automaticUnavailable);
   }
 
+  let cliUpdated = false;
   try {
     if (info.skills) assertSkillPlanUnchanged(info.skills);
     const updatingCli = updatesCli(info);
     if (updatingCli) {
       for (const step of info.steps) await (options.run ?? runStep)(step, info.projectRoot, messages);
+      cliUpdated = true;
     }
-    if (info.skills?.copies.length) {
+    if (info.skills?.copies.some(copy => copy.state !== "unreadable")) {
       const packageRoot = info.skillPackageRoot ?? info.projectRoot;
       if (updatingCli && info.channel !== "source") {
         const pkg = JSON.parse(await readFile(path.join(packageRoot, "package.json"), "utf8")) as { name?: string; version?: string };
@@ -198,6 +200,10 @@ export async function applyUpdate(info: UpdateInfo, messages: Messages, options:
       console.log(messages.update.skillReload);
     }
   } catch (error) {
+    if (cliUpdated) {
+      const detail = error instanceof SkillSyncError && error.kind !== "source" ? `\n${messages.update.skillFailure(error)}` : "";
+      throw Error(messages.update.skillAfterCliFailure + detail);
+    }
     if (error instanceof SkillSyncError) throw Error(messages.update.skillFailure(error));
     throw error;
   }

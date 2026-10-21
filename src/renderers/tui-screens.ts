@@ -12,7 +12,7 @@ import type { ToolDiscovery } from "../discovery.js";
 import { sanitizeTerminalText } from "../adapters/terminal.js";
 import { isRetiredAgentName } from "../agentRegistry.js";
 import { listAgentsWithAvailability } from "../presets.js";
-import { formatUpdateStep, hasAvailableUpdate, type UpdateInfo } from "../update.js";
+import { formatUpdateStep, hasAvailableUpdate, updatesCli, type UpdateInfo } from "../update.js";
 import {
   accent,
   bold,
@@ -133,7 +133,7 @@ export function renderTuiUpdate(info: UpdateInfo, messages: Messages): void {
         : hasAvailableUpdate(info)
           ? messages.tui.updateAvailableStatus
           : messages.tui.updateCurrentStatus;
-  const updatingCli = info.channel !== "unknown" && (info.channel === "source" || hasAvailableUpdate(info));
+  const updatingCli = updatesCli(info);
   const actionLines = updatingCli && info.steps.length > 0
     ? info.steps.map((step, index) => index === 0
       ? `${accent(messages.tui.updateAction)}${separator}${formatUpdateStep(step)}`
