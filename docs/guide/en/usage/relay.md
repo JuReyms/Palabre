@@ -14,7 +14,7 @@ Relay lets your agent delegate a task to another agent (Claude Code, Codex) and 
 
 You choose the **mission lead**: Claude Code or Codex. Your agent can become the mission lead in any conversation, even one you have just opened: PALABRE only needs to be installed on the machine and the agent needs to have the PALABRE skill.
 
-With the skill, the mission lead offers to delegate on its own when work can be split: a review, a search, an independent batch, a check. It states in one line who does what, and an agent never reviews its own work. For a simple question, it answers alone: each call takes time and uses quota. Delegating grants the teammate no additional rights.
+With the skill, the mission lead offers to delegate on its own when work can be split: a review, a search, an independent batch, a check. For a small expected task, such as a review without changes in work you have already approved, it announces it in one line and then does it. For delegation that commits more (writing, several teammates, a lot of quota, a new piece of work), it asks you one clear question, once for the whole batch: it does not ask again at every call. An agent never reviews its own work. For a simple question, it answers alone: each call takes time and uses quota. Delegating grants the teammate no additional rights.
 
 > **Good to know:** Relay connects Claude Code and Codex both ways, in the background. To hand a task to a conversation that is **already open** (desktop app or terminal), only Codex can receive it for now, on Windows. Codex to an open Claude conversation is tracked in issue [#96](https://github.com/JuReyms/Palabre/issues/96).
 

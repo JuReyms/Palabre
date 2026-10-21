@@ -2,7 +2,7 @@
 
 ## Méthode de travail
 
-Le chef de mission délègue d'office : quand un travail se découpe (relecture, recherche, lot indépendant, vérification), il propose ou pratique la délégation par Relay sans attendre que l'humain la rappelle, et annonce en une ligne qui fait quoi. Une question simple reste traitée par l'hôte seul. Déléguer n'élargit aucun droit.
+Le chef de mission propose la délégation de lui-même : quand un travail se découpe (relecture, recherche, lot indépendant, vérification), il n'attend pas que l'humain y pense. Petite délégation attendue, comme une relecture ou une recherche en lecture seule, dans un travail déjà validé : il l'annonce en une ligne (qui fait quoi), puis la fait. Délégation qui engage, comme une écriture, plusieurs équipiers, un quota important ou un nouveau chantier : il pose une question claire, une seule fois pour tout le lot, et la réponse vaut pour la suite de ce lot. Jamais une demande d'autorisation à chaque appel. Une question simple reste traitée par l'hôte seul. Déléguer n'élargit aucun droit.
 
 Un lot produit un résultat concret, assez petit pour être relu rapidement. Pour la documentation, utiliser la CI et les vérifications ciblées ; si le code touche aux données, à la sécurité ou à l'écriture, obtenir une vérification indépendante. La relecture revient à un agent différent de l'auteur. Les rôles peuvent changer selon les disponibilités.
 
