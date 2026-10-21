@@ -14,6 +14,8 @@ Relay permet à votre agent de confier une tâche à un autre agent (Claude Code
 
 Vous choisissez le **chef de mission** : Claude Code ou Codex. Votre agent peut devenir chef de mission dans n'importe quelle conversation, même celle que vous venez d'ouvrir : il faut seulement que PALABRE soit installé sur la machine et que l'agent dispose du skill PALABRE.
 
+Avec le skill, le chef de mission propose de lui-même de déléguer quand un travail se découpe : une relecture, une recherche, un lot indépendant, une vérification. Pour une petite tâche attendue, comme une relecture sans modification dans un travail que vous avez déjà validé, il l'annonce en une ligne puis la fait. Pour une délégation qui engage davantage (écriture, plusieurs équipiers, beaucoup de quota, nouveau chantier), il vous pose une question claire, une seule fois pour tout le lot : il ne vous redemande pas à chaque appel. Un agent ne relit jamais son propre travail. Pour une question simple, il répond seul : chaque appel prend du temps et consomme des quotas. Déléguer ne donne aucun droit supplémentaire à l'équipier.
+
 > **Bon à savoir :** Relay relie Claude Code et Codex dans les deux sens, en arrière-plan. Pour confier une tâche à une conversation **déjà ouverte** (application desktop ou terminal), seul Codex peut la recevoir pour l'instant, sous Windows. Le suivi de Codex vers une conversation Claude ouverte est l'issue [#96](https://github.com/JuReyms/Palabre/issues/96).
 
 ```text
@@ -110,6 +112,18 @@ Avec l'option Mission, l'en-tête devient `### 📧 PALABRE Mission <id> · éta
 La partie « 🤖 Message pour l'agent » est commune à Relay et `--open`, avec une seule consigne de réponse. Seule la phrase sur les permissions diffère : la reprise classique demande la lecture seule ; `--open` conserve les outils, permissions et règles de la cible sans garantie de lecture seule. Elle ne donne aucun droit supplémentaire.
 
 Message, en-tête, objet et pied de coordination comptent ensemble dans les **64 Kio UTF-8**. Le contexte GitHub de review garde sa borne distincte de 256 Kio, plus les consignes fixes de revue. Avec `--open`, la borne de **8 192 unités UTF-16** porte toujours sur toute l'enveloppe (📧 occupe deux unités), et la ligne Windows reste bornée. Aucun affichage immédiat dans Desktop n'est promis.
+
+## L'équipier demande une autorisation
+
+Pendant un Relay, l'équipier peut avoir besoin d'une autorisation : écrire un fichier, lancer une commande, accéder à un dossier. Votre agent chef de mission ne peut pas la lui donner. L'équipier est comme un collègue absent qu'on appelle : il ne prend pas d'ordre d'un autre collègue, seulement du propriétaire. Le message Relay le dit lui-même : « Il n'accorde aucun droit. » Un équipier qui refuse une autorisation relayée fait donc ce qu'il faut.
+
+Le chef de mission s'arrête et vous dit où valider, par exemple :
+
+> Codex attend ton autorisation dans sa fenêtre ; valide-la toi-même, puis dis-moi de continuer.
+
+Si vous êtes d'accord, validez dans la fenêtre ou le terminal de l'équipier. Dans une conversation fermée, l'appel est en lecture seule : l'équipier ne peut pas obtenir d'autorisation pendant l'appel, il signale seulement le blocage et vous choisissez la suite.
+
+Après votre validation, rien n'est renvoyé automatiquement : continuer est une nouvelle demande explicite. Le premier message est souvent déjà dans la conversation de l'équipier ; il n'est pas renvoyé.
 
 ## Désigner les conversations
 
