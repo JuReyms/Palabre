@@ -8,6 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { runDoctor, type DoctorWindowsPowerShellProbes } from "../src/doctor.js";
+import { trustConfig } from "../src/configTrust.js";
 import type { ToolDiscovery } from "../src/discovery.js";
 
 const apps = "C:\\Users\\fixture\\AppData\\Local\\Microsoft\\WindowsApps";
@@ -44,8 +45,11 @@ async function doctorOutput(language: "fr" | "en", windowsPowerShell: DoctorWind
     agents: { codex: { type: "cli", command: "codex", role: "implementer" }, claude: { type: "cli", command: "claude", role: "reviewer" } },
     defaults: { agentA: "codex", agentB: "claude", summaryAgent: "claude" }
   }), "utf8");
+  // Approuvée dans le profil isolé des tests, sinon doctor échoue sur l'approbation (#176) ; aucune sonde de connexion lancée.
+  await trustConfig(config);
   try {
-    return await runDoctor(config, true, language, { checkVersion: false, discovery: discoveryWith(codex), windowsPowerShell });
+    return await runDoctor(config, true, language, { checkVersion: false, discovery: discoveryWith(codex), windowsPowerShell,
+      arrival: { env: { PATH: "" }, fileExists: () => false, resolve: () => ({ status: "unsupported-executable", detail: "test" }) } });
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

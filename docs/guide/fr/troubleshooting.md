@@ -12,7 +12,7 @@ Commencez par lancer le diagnostic :
 palabre doctor
 ```
 
-`doctor` ne lance aucun agent IA. Il affiche un diagnostic par sections : configuration, outils locaux, agents et points à vérifier. Il contrôle les agents déclarés, les paramètres par défaut, le nombre de réponses, `outputDir`, les CLIs disponibles, Ollama et les modèles configurés.
+`doctor` n'appelle aucun modèle et ne modifie pas votre configuration. Il place les actions d'arrivée en premier : approbation, alias PowerShell du Store sous Windows (détaillé plus bas), connexion Claude Code/Codex, agent archivé, skill et emplacements multiples. Les sondes de connexion sont limitées aux commandes `status` d'une configuration approuvée ; sans approbation, aucune commande d'agent ni URL configurée n'est sondée. Il contrôle aussi les paramètres par défaut, `outputDir`, les CLIs et Ollama. Voir [Changer de machine](/fr/get-started/change-machine) pour les limites et les actions à effectuer vous-même.
 
 Pour obtenir une sortie brute adaptée aux logs ou aux scripts :
 

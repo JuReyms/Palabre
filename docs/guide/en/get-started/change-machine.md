@@ -266,7 +266,13 @@ From the project:
 palabre doctor --terminal
 ```
 
-Follow the displayed diagnostics. Today, `doctor` checks the configuration and tool availability, among other things; it may contact configured Ollama servers. It does not certify agent sign-in, skill installation or freshness, or the absence of duplicates. An old readable configuration can therefore pass this check without being suitable for the new machine.
+Follow the actions in order: unapproved configuration, Microsoft Store PowerShell alias on Windows (reported when Codex is detected, see [Troubleshooting](/en/troubleshooting)), Claude Code or Codex sign-in, archived agent, skill and multiple locations. `doctor` does not approve, install or sign in. An unapproved configuration remains inspectable, but returns code 1 and permits no agent command or configured URL.
+
+For an approved configuration, `claude auth status --json` and `codex login status` probes use the configured command, without its model arguments, without a shell and without a model call. Each probe is limited to 3 seconds and 32 KiB; an older CLI, unsupported wrapper, timeout or unknown output gives “not verified”. The reported state does not guarantee that an expired token can be refreshed or that a future call will succeed. No account data is displayed.
+
+The skill is sought in `.agents/skills/palabre/`, `.claude/skills/palabre/` and `.codex/skills/palabre/`, in the project and personal directory. Presence does not mean loaded or up to date; a skill installed through the application may not be found. Duplicate diagnostics cover distinct PATH locations for Node, npm, pnpm, Claude Code and Codex, without reading versions or uninstalling anything. Neighboring wrappers count once; complete diagnostics remain tracked in [#153](https://github.com/JuReyms/Palabre/issues/153).
+
+`doctor` may still check PALABRE's version with npm and contact Ollama servers from an approved configuration. It does not prove that Codex can read the project: the first Relay must still provide that evidence.
 
 ## 6. Find the project and create a new teammate
 

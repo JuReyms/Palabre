@@ -266,7 +266,13 @@ Depuis le projet :
 palabre doctor --terminal
 ```
 
-Suivez les diagnostics affichés. Aujourd'hui, `doctor` vérifie notamment la configuration et la disponibilité des outils ; il peut contacter les serveurs Ollama configurés. Il ne certifie ni la connexion des agents, ni l'installation ou la fraîcheur du skill, ni l'absence de doublons. Une ancienne configuration lisible peut donc passer ce contrôle sans être adaptée à la nouvelle machine.
+Suivez les actions dans l'ordre : configuration non approuvée, alias PowerShell du Microsoft Store sous Windows (signalé quand Codex est détecté, voir [Dépannage](/fr/troubleshooting)), connexion Claude Code ou Codex, agent archivé, skill et emplacements multiples. `doctor` n'approuve, n'installe et ne reconnecte rien. Une configuration non approuvée reste inspectable, mais donne le code 1 et n'autorise aucune commande d'agent ni URL configurée.
+
+Pour une configuration approuvée, les sondes `claude auth status --json` et `codex login status` utilisent la commande configurée, sans ses arguments de modèle, sans shell et sans appel modèle. Chaque sonde est limitée à 3 secondes et 32 Kio ; CLI ancienne, wrapper non pris en charge, délai ou sortie inconnue donnent « non vérifié ». L'état déclaré ne garantit pas qu'un jeton expiré pourra être renouvelé ni qu'un appel futur réussira. Aucune donnée de compte n'est affichée.
+
+Le skill est cherché dans `.agents/skills/palabre/`, `.claude/skills/palabre/` et `.codex/skills/palabre/`, dans le projet et le dossier personnel. Présence ne veut pas dire chargé ou à jour ; un skill installé dans l'application peut échapper à cette recherche. Les doublons sont des emplacements distincts du PATH pour Node, npm, pnpm, Claude Code et Codex, sans lecture de version ni désinstallation. Les wrappers voisins ne comptent qu'une fois ; le diagnostic complet reste suivi dans [#153](https://github.com/JuReyms/Palabre/issues/153).
+
+`doctor` peut encore vérifier la version de PALABRE auprès de npm et contacter les serveurs Ollama d'une configuration approuvée. Il ne prouve pas que Codex peut lire le projet : le premier Relay doit toujours apporter cette preuve.
 
 ## 6. Retrouver le projet et créer un nouvel équipier
 

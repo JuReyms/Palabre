@@ -10,6 +10,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Changed
 
+- Doctor : guide d'arrivée sur une machine, actions dans l'ordre : approbation de la configuration (vérifiée avant toute sonde d'agent ou URL configurée ; non approuvée, code 1 et commande `--trust-config` à lancer par le propriétaire), alias PowerShell du Store sous Windows (avertissement ajouté plus haut, réutilisé sans seconde détection), état de connexion Claude Code/Codex déclaré par `auth status --json` ou `login status` (sans shell ni appel modèle, 3 s et 32 Kio, « non vérifié » sinon), agent archivé encore déclaré, présence du skill dans six emplacements connus et emplacements multiples de node/npm/pnpm/claude/codex dans PATH. Actions explicites laissées au propriétaire, aucune réparation ni donnée de compte affichée ; contrat `{ ok, output }` inchangé. Aide, guides fr/en et référence du skill actualisés ; les copies installées du skill doivent être mises à jour manuellement (Refs #151, #153).
+
 - Relay : après `relay --new --to codex`, la sortie texte et l'export `.relay.md` donnent le lien `codex://threads/<identifiant>`. Une conversation créée par la CLI reste absente de la liste de Codex Desktop, mais ce lien l'ouvre avec son historique, sans ajouter de message ni élargir ses permissions (essai Windows, Codex Desktop 26.1013.40934). Une fois ouverte, Desktop la tient : Relay la joint alors avec `--open`, avec les permissions de Desktop. Aucun champ JSON ajouté : une intégration construit le lien depuis `to.session`. Remplace le conseil de créer d'abord la conversation dans Desktop. Aide, guides fr/en et skill alignés (Refs #179, point 10) ; une copie installée du skill doit être mise à jour manuellement.
 
 ### Fixed
