@@ -308,6 +308,11 @@ Limites :
   Pour la suivre dans l'app, le propriétaire ouvre le lien codex://threads/<id> affiché
   (jamais un agent à sa place) ; ensuite, --open. Ouverture vérifiée sous Windows seulement ;
   macOS et Linux restent à vérifier pour ce lien Desktop.
+  Mode annoncé à chaque échange : « arrière-plan » (sans fenêtre visible, lecture seule demandée) ou
+  « dans l'app desktop » (conversation ouverte, avec ses permissions). JSON : mode émis à chaque résultat
+  (background, open ou follow ; absent des versions antérieures). En arrière-plan, une conversation Codex donne son lien
+  codex://threads/<id>, cliquable dans un terminal, et la commande pour l'ouvrir soi-même
+  (explorer.exe, open ou xdg-open) ; un agent ne la lance jamais.
   --write exige --new, un dépôt Git et une config déjà approuvée. Aucun --open, --task ou --trust-config.
   Le premier appel ne lance pas de modèle : write-approval-required (8), writeRequest et remedy.
   Le propriétaire lance approve-write dans un terminal visible (entrée ET sortie TTY), relit tâche,
@@ -730,6 +735,11 @@ Limits:
   is not listed in Desktop but remains reachable through Relay. To follow it in the app, the owner
   opens the codex://threads/<id> link shown after creation (never an agent); then use --open.
   Opening this Desktop link is verified on Windows only; macOS and Linux remain unverified.
+  Each exchange states its mode: "background" (no visible window, read-only requested) or "in the desktop
+  app" (open conversation, with its permissions). JSON: mode is emitted with every result (background,
+  open or follow; absent from earlier versions). In background, a Codex conversation shows its codex://threads/<id> link, clickable
+  in a terminal, and the command to open it yourself (explorer.exe, open or xdg-open); an agent
+  never runs it.
   --write requires --new, a Git repository and an already trusted config. No --open, --task or --trust-config.
   The first call starts no model: write-approval-required (8), writeRequest and remedy.
   The owner runs approve-write in a visible terminal (both input and output TTY), checks task, agent,

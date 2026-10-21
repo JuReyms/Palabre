@@ -230,6 +230,11 @@ export interface RelayExport {
     receiver: string;
     targetPermissions: string | null;
   };
+  /**
+   * Mode de l'échange (#190). Déduit de `open`/`follow` quand il est absent : un export antérieur
+   * sans ce champ reste un échange en arrière-plan.
+   */
+  mode?: "background" | "open" | "follow";
   /** Suivi `--open --follow` (#195) : aucun dépôt, donc ni référence ni message transmis. */
   follow?: {
     correlation: string | null;
@@ -254,8 +259,10 @@ export async function writeRelayMarkdown(outputDir: string, report: RelayExport,
 export function renderRelayMarkdown(report: RelayExport, messages: Messages, metadata: ReportMetadata): string {
   const labels = messages.relay.export;
   const formatBoolean = (value: boolean | "unknown") => (value === "unknown" ? "unknown" : value ? messages.output.yes : messages.output.no);
+  const mode = report.mode ?? (report.follow ? "follow" : report.open ? "open" : "background");
   const rows = [
     [labels.palabreVersion, metadata.palabreVersion],
+    [labels.mode, `${mode} — ${labels.modeNames[mode]}`],
     [labels.from, report.from ? `${report.from.agent}${report.from.session ? `:${report.from.session}` : ""}` : messages.relay.terminalSender],
     [labels.to, `${report.to.agent}${report.to.session ? `:${report.to.session}` : ""}`],
     ...(report.created !== undefined ? [[labels.created, formatBoolean(report.created)], [labels.cwd, report.cwd ?? labels.unknown]] : []),
@@ -279,7 +286,6 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     ] : []),
     ...(report.open
       ? [
-        [labels.mode, "open"],
         [labels.queue, report.open.queue],
         [labels.correlation, report.open.correlation ?? labels.none],
         [labels.receiver, report.open.receiver],
@@ -288,7 +294,6 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
       : []),
     ...(report.follow
       ? [
-        [labels.mode, "follow"],
         [labels.correlation, report.follow.correlation ?? labels.none],
         [labels.receiver, "unverified"],
         [labels.targetPermissions, report.follow.targetPermissions ?? labels.unknown]

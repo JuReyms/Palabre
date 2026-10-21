@@ -900,7 +900,8 @@ Un seul objet JSON est écrit sur stdout, quelle que soit l'issue :
 - La politique de version est celle du renderer NDJSON.
 - En sortie texte, la réponse va sur stdout. L'issue et les erreurs vont sur stderr, assainies par `sanitizeTerminalText`.
 - L'export `.relay.md` contient l'expéditeur, la cible (avec les identifiants de session), le message, la réponse ou l'issue, et la délivrance.
-- Avec `--open` seulement, l'objet ajoute des champs optionnels (décrits plus bas) et `status` peut valoir `target-not-open`. Cette valeur d'énumération et ces champs ne concernent que l'opt-in `--open` : la sortie sans `--open` est identique, champ pour champ, et ses consommateurs ne rencontrent pas le nouveau statut.
+- Avec `--open` seulement, l'objet ajoute des champs optionnels (décrits plus bas) et `status` peut valoir `target-not-open`. Cette valeur d'énumération et ces champs ne concernent que l'opt-in `--open`, et les consommateurs sans `--open` ne rencontrent pas le nouveau statut.
+- **Mode (#190, lot A).** `mode` est émis à chaque résultat ; dans le contrat v1, c'est un ajout facultatif (absent des versions antérieures, les consommateurs tolèrent son absence ; seul le type producteur `RelayResultV1` le rend obligatoire) : `background` (conversation fermée ou créée), `open` ou `follow`. La sortie texte affiche une ligne « Mode » (`messages.relay.modeLine`) en mots simples, « arrière-plan » ou « dans l'app desktop », sauf pour un refus `invalid-request`. L'export porte la même valeur. En arrière-plan, une conversation Codex créée ou reprise affiche son lien `codex://threads/<id>` (`relayDesktopLink`) et la commande d'ouverture à lancer par l'humain (`desktopOpenCommand` : `explorer.exe`, `open`, `xdg-open`), jamais pour Claude, ni en `open`/`follow`, ni pour une conversation reprise dont la présence n'est pas établie (`session-not-found`, `invalid-request`, `command-not-found`, `cancelled`, `internal-error`). Le lien devient cliquable (OSC 8, `withTerminalHyperlink`, première occurrence seulement) uniquement sur stderr TTY, sans `NO_COLOR` ni `TERM=dumb`. Aucun champ JSON de lien : une intégration le construit depuis `to.session`.
 
 ### Relay vers une conversation ouverte (`--open`, B1)
 
@@ -951,7 +952,7 @@ Une saisie libre de forme `user.text` du même tour, après l'enveloppe et avant
 
 **Champs JSON v1 optionnels, avec `--open` seulement :**
 
-- `mode: "open"` ;
+- `mode: "open"` (le champ `mode` lui-même est désormais émis à chaque résultat, voir #190 plus haut) ;
 - `queue` : `{ attempted, accepted?, itemId?, diagnostic? }`. `accepted` vaut `true` pour un accusé reconnu et lié à la cible, `false` seulement pour le refus certain d'une CLI sans `queue`, `"unknown"` sinon : une absence d'accusé n'est pas un refus. `itemId` n'est présent que pour un accusé reconnu, et ne prouve pas la réception du texte exact ;
 - `correlation` : `{ status, reason }`, statut et raison exacts du lecteur. Absent tant que rien n'a été inspecté ;
 - `receiver: "unverified"` : le verrou tenu ne prouve ni la surface, ni la version, ni l'affichage, ni la consommation du message. La version de la CLI qui dépose n'est pas celle du récepteur, et aucun binaire desktop n'est recherché ni exécuté. Une version inconnue n'est pas bloquée dans ce pilote explicite ;

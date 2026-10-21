@@ -64,7 +64,7 @@ test("lectures bloquées : aucune commande GitHub, réponse et délivrance conse
   assert.equal(calls, 0);
   for (const language of ["fr", "en"] as const) {
     const messages = createTranslator(language);
-    const result: RelayResultV1 = { v: 1, type: "relay-result", status: "replied", exitCode: 0,
+    const result: RelayResultV1 = { v: 1, type: "relay-result", mode: "background", status: "replied", exitCode: 0,
       from: null, to: null, reply: "Revue provisoire", delivery: { status: "replied", persisted: true, inActiveBranch: true },
       identity: "same-as-target", observedModels: [], error: null, exportPath: null, durationMs: 1,
       task: { name: "review", pr: pr.url, publication: "not-attempted" } };
@@ -215,7 +215,7 @@ test("corps vide ou trop long : aucune commande GitHub", async () => {
 });
 
 test("texte et export gardent la revue sans --json ni export, même si la publication échoue", () => {
-  const result: RelayResultV1 = { v: 1, type: "relay-result", status: "review-failed", exitCode: 9,
+  const result: RelayResultV1 = { v: 1, type: "relay-result", mode: "background", status: "review-failed", exitCode: 9,
     from: { agent: "codex", session: "local-from" }, to: { agent: "claude", session: "local-to", provider: "claude" },
     reply: "Revue conservée", delivery: { status: "replied", persisted: true, inActiveBranch: true }, identity: "same-as-target",
     observedModels: [], error: { kind: "review-failed", message: "échec" }, exportPath: null, durationMs: 1,
@@ -249,7 +249,7 @@ test("annulation avant POST dans le dernier contrôle : aucune publication", asy
 test("Ctrl+C conserve l'issue d'une publication confirmée ou inconnue, annule seulement avant POST", () => {
   const messages = createTranslator("fr");
   for (const publication of ["not-attempted", "published", "unknown"] as const) {
-    const result: RelayResultV1 = { v: 1, type: "relay-result", status: publication === "unknown" ? "review-failed" : "replied",
+    const result: RelayResultV1 = { v: 1, type: "relay-result", mode: "background", status: publication === "unknown" ? "review-failed" : "replied",
       exitCode: publication === "unknown" ? 9 : 0, from: null, to: null, reply: "Revue conservée",
       delivery: { status: "replied", persisted: true, inActiveBranch: true }, identity: "same-as-target", observedModels: [],
       error: null, exportPath: null, durationMs: 1, task: { name: "review", pr: pr.url, publication } };

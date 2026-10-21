@@ -69,7 +69,22 @@ Pour continuer avec cette conversation : palabre relay --to codex:<uuid> "…"
 
 En JSON, `to.session` contient l'identifiant reçu, `cwd` le dossier et `created`, à la racine, indique si un identifiant a été reçu. `identity` reste lui aussi à la racine. Avant réception, `to.session` vaut `null` et `created` vaut `false`. Le JSON et l'export ne contiennent pas de commande de continuation : utilisez la forme documentée `palabre relay --to <agent>:<to.session> "<suite>" --json`. L'identifiant est capturé pendant l'appel et conservé dans le résultat et l'export même si le premier tour échoue : **cela ne signifie pas que la question a reçu une réponse**. Vérifiez alors la délivrance avant de renvoyer ; aucun nouvel essai n'est automatique.
 
-La conversation reste dans l'historique de la CLI et peut être reprise par Relay. Pour Codex, avec les versions vérifiées, une conversation créée par `--new` via la CLI n'est pas listée dans Codex Desktop. Cela n'empêche pas Relay de la joindre. Pour suivre l'équipier dans l'application, ouvrez le lien `codex://threads/<identifiant>` que PALABRE affiche après la création : la conversation s'ouvre dans Desktop avec son historique, même absente de la liste. Une fois ouverte, Desktop la garde : joignez-la alors avec `--open`, et elle répond avec les permissions de Desktop, plus avec les restrictions du Relay fermé. `--new` ne s'utilise pas avec `--open`. Par défaut, la création sert aux avis et lectures ; `--write` reste un parcours expérimental et gelé, décrit en fin de page. L'ouverture de ce lien Desktop est vérifiée sous Windows seulement ; macOS et Linux restent à vérifier.
+La conversation reste dans l'historique de la CLI et peut être reprise par Relay. Pour Codex, avec les versions vérifiées, une conversation créée par `--new` via la CLI n'est pas listée dans Codex Desktop. Cela n'empêche pas Relay de la joindre. Pour suivre l'équipier dans l'application, ouvrez le lien `codex://threads/<identifiant>` que PALABRE affiche après la création : la conversation s'ouvre dans Desktop avec son historique, même absente de la liste. Une fois ouverte, Desktop la garde : joignez-la alors avec `--open`, et elle répond avec les permissions de cette conversation, plus avec les restrictions du Relay fermé. Une conversation créée par `--new` garde toutefois un profil restreint, même ouverte dans Desktop. `--new` ne s'utilise pas avec `--open`. Par défaut, la création sert aux avis et lectures ; `--write` reste un parcours expérimental et gelé, décrit en fin de page. L'ouverture de ce lien Desktop est vérifiée sous Windows seulement ; macOS et Linux restent à vérifier.
+
+## Arrière-plan ou dans l'app desktop
+
+Chaque échange annonce où il se passe, sur une ligne « Mode » :
+
+- **Arrière-plan** : l'équipier répond sans fenêtre visible ; PALABRE demande la lecture seule, avec les garanties conditionnelles décrites plus bas. C'est le cas d'une conversation fermée ou créée par `--new`.
+- **Dans l'app desktop** : la conversation est ouverte dans Codex Desktop (ou dans le terminal de Codex) et visible ; l'équipier y garde les permissions de cette conversation (`--open`).
+
+En arrière-plan, une conversation Codex donne aussi son lien `codex://threads/<identifiant>`, cliquable dans un terminal qui le permet, et la commande pour l'ouvrir vous-même :
+
+```text
+Pour l'ouvrir vous-même : explorer.exe "codex://threads/<identifiant>"
+```
+
+La commande dépend du système : `explorer.exe` sous Windows, `open` sous macOS, `xdg-open` sous Linux. Elle sert quand le lien n'est pas cliquable, par exemple dans l'app Claude. Lancez-la vous-même : un agent ne l'ouvre jamais à votre place. En JSON, `mode` vaut `background`, `open` ou `follow` ; aucun champ de lien n'est ajouté, une intégration le construit depuis `to.session`.
 
 ## Lire un message Relay
 
@@ -409,6 +424,7 @@ Le nonce en bas reste un marqueur dans le message utilisateur ; la corrélation 
   "type": "relay-result",
   "status": "replied",
   "exitCode": 0,
+  "mode": "background",
   "from": { "agent": "codex", "session": "<uuid>" },
   "to": { "agent": "claude", "session": "<uuid>", "provider": "claude" },
   "reply": "…",

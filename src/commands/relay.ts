@@ -72,6 +72,9 @@ const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help"
 /** Alias acceptés, comme pour les autres commandes. */
 const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
 
+/** Mode d'un échange Relay, tel qu'annoncé à l'utilisateur (#190). */
+export type RelayMode = "background" | "open" | "follow";
+
 /**
  * Sortie `--json` v1 : un seul objet, quelle que soit l'issue. Politique de version du renderer
  * NDJSON : un ajout optionnel ne change pas `v`.
@@ -113,11 +116,16 @@ export interface RelayResultV1 {
   exportPath: string | null;
   durationMs: number;
   /**
-   * Champs optionnels propres à `--open` (B1), présents seulement avec `--open` : la sortie sans
-   * `--open` reste identique, champ pour champ. `status` peut alors valoir `target-not-open`.
-   * Avec `--open --follow` (#195) : `mode: "follow"`, sans `queue`, et `status` peut valoir `followed`.
+   * Mode de l'échange, émis à chaque résultat (#190). Ajout facultatif du contrat v1 : les
+   * consommateurs tolèrent son absence (versions antérieures) ; ce type producteur le garantit. `background` (conversation fermée ou
+   * créée, sans fenêtre visible), `open` (conversation ouverte dans l'app) ou `follow` (#195).
    */
-  mode?: "open" | "follow";
+  mode: RelayMode;
+  /**
+   * Champs optionnels propres à `--open` (B1), présents seulement avec `--open` : `status` peut
+   * alors valoir `target-not-open`. Avec `--open --follow` (#195) : sans `queue`, et `status` peut
+   * valoir `followed`.
+   */
   queue?: OpenQueueReport;
   correlation?: { status: string; reason: string };
   receiver?: "unverified";
@@ -733,7 +741,6 @@ function buildResult(
   const success = outcome.status === "replied" || outcome.status === "followed";
   const openFields: Partial<RelayResultV1> = context.follow
     ? {
-      mode: "follow",
       ...(input.follow?.retryAfter !== undefined ? { retryAfter: input.follow.retryAfter } : {}),
       ...(input.follow?.correlation ? { correlation: input.follow.correlation } : {}),
       receiver: "unverified",
@@ -741,7 +748,6 @@ function buildResult(
     }
     : context.open
     ? {
-      mode: "open",
       ...(input.open?.retryAfter !== undefined ? { retryAfter: input.open.retryAfter } : {}),
       queue: input.open?.queue ?? { attempted: false },
       ...(input.open?.correlation ? { correlation: input.open.correlation } : {}),
@@ -773,6 +779,7 @@ function buildResult(
       : { kind: outcome.status, message: input.message ?? errorMessage(outcome, context.messages, input.detail), ...(outcome.reason ? { reason: outcome.reason } : {}) },
     exportPath: null,
     durationMs: Date.now() - context.startedAt,
+    mode: context.follow ? "follow" : context.open ? "open" : "background",
     ...openFields
   };
 }
@@ -792,6 +799,7 @@ async function exportRelay(
   if (!result.to || !result.to.provider) return null;
   try {
     return await writeRelayMarkdown(outputDir, {
+      mode: result.mode,
       from: result.from,
       ...(result.write ? { write: result.write } : {}),
       ...(result.created !== undefined ? { created: result.created, cwd: result.cwd } : {}),
@@ -849,8 +857,35 @@ function writeResult(result: RelayResultV1, json: boolean, messages: Messages): 
     return;
   }
   const text = renderRelayText(result, messages);
+  const link = relayDesktopLink(result);
   process.stdout.write(text.stdout);
-  process.stderr.write(text.stderr);
+  process.stderr.write(link && terminalHyperlinksEnabled(process.stderr.isTTY, process.env) ? withTerminalHyperlink(text.stderr, link) : text.stderr);
+}
+
+/** Liens OSC 8 réservés à un terminal interactif, sans `NO_COLOR` ni `TERM=dumb` (voir AGENTS.md). */
+export function terminalHyperlinksEnabled(isTTY: boolean | undefined, env: NodeJS.ProcessEnv): boolean {
+  return Boolean(isTTY) && !env.NO_COLOR && env.TERM !== "dumb";
+}
+
+/**
+ * Rend cliquable la **première** occurrence du lien dans un texte déjà assaini. Le lien est
+ * construit par PALABRE depuis un UUID validé, jamais repris d'un texte libre ; les occurrences
+ * suivantes (dans la commande d'ouverture) restent en texte brut pour un copier-coller fiable.
+ */
+export function withTerminalHyperlink(text: string, link: string): string {
+  const index = text.indexOf(link);
+  if (index < 0) return text;
+  return `${text.slice(0, index)}\u001b]8;;${link}\u001b\\${link}\u001b]8;;\u001b\\${text.slice(index + link.length)}`;
+}
+
+/**
+ * Commande que **l'humain** peut lancer pour ouvrir un lien `codex://` : l'app Claude, par
+ * exemple, ne le rend pas cliquable (#190). Un agent ne la lance jamais à sa place.
+ */
+export function desktopOpenCommand(link: string, platform: NodeJS.Platform = process.platform): string {
+  if (platform === "win32") return `explorer.exe "${link}"`;
+  if (platform === "darwin") return `open "${link}"`;
+  return `xdg-open "${link}"`;
 }
 
 /**
@@ -908,14 +943,20 @@ export function applyReviewCancellation(result: RelayResultV1, interrupted: bool
   result.error = { kind: "cancelled", message: messages.relay.status("cancelled") };
 }
 
+/** Issues d'une reprise où la présence de la conversation n'est pas établie : pas de lien. */
+const UNPROVEN_TARGET = new Set<RelayStatus>(["session-not-found", "invalid-request", "command-not-found", "cancelled", "internal-error"]);
+
 /**
- * Lien `codex://threads/…` d'une conversation **Codex créée** par ce relay, dès que son identifiant
- * est connu, même si le premier tour a échoué : la conversation existe. Absente de la liste de
- * Desktop, elle s'ouvre par ce lien (#179). Jamais pour Claude, ni pour une reprise. Aucun champ JSON
- * n'est ajouté : une intégration construit le même lien depuis `to.session`.
+ * Lien `codex://threads/…` d'une conversation Codex suivie **en arrière-plan** : créée par ce relay
+ * dès que son identifiant est connu, même si le premier tour a échoué (#179), ou reprise fermée
+ * (#190). Jamais pour Claude, ni en mode `open`/`follow` (la conversation est déjà dans l'app), ni
+ * pour une reprise dont la conversation n'est pas établie (cible introuvable, refus, CLI absente,
+ * annulation, défaut interne). Aucun champ JSON n'est ajouté : une intégration construit le même
+ * lien depuis `to.session`.
  */
 export function relayDesktopLink(result: RelayResultV1): string | undefined {
-  if (!result.created || !result.to?.session || result.to.provider !== "codex") return undefined;
+  if (result.mode !== "background" || !result.to?.session || result.to.provider !== "codex") return undefined;
+  if (!result.created && UNPROVEN_TARGET.has(result.status)) return undefined;
   return codexDesktopThreadLink(result.to.session);
 }
 
@@ -933,6 +974,8 @@ export function renderRelayText(result: RelayResultV1, messages: Messages): { st
     // Le suivi n'envoie rien : une consigne de renvoi n'aurait pas de sens.
     if (result.mode !== "follow") lines.push(messages.relay.delivery(result.delivery.status));
   }
+  // Mode annoncé à chaque échange (#190), sauf refus d'arguments ou de configuration : rien n'a eu lieu.
+  if (result.status !== "invalid-request") lines.push(messages.relay.modeLine(result.mode, result.to?.agent ?? "", Boolean(result.write)));
   // Visible même quand l'issue reste `replied` : sans cette ligne, un échange réussi ne dirait
   // plus rien des lancements refusés, puisque `error` est alors nul. Pas de seconde copie quand
   // `applyReadAccessDiagnostic` l'a déjà placé dans le message d'erreur (`blocked`, échec enrichi).
@@ -948,9 +991,12 @@ export function renderRelayText(result: RelayResultV1, messages: Messages): { st
     lines.push(messages.relay.newConversation(`${result.to.agent}:${result.to.session}`, result.cwd ?? ""));
     if (result.write) lines.push(relayWriteText(result.write.language).continueReadOnly);
     lines.push(messages.relay.continueConversation(`palabre relay --to ${result.to.agent}:${result.to.session} "…"`));
-    const link = relayDesktopLink(result);
-    if (link) lines.push(messages.relay.desktopLink(link));
     if (result.status !== "replied") lines.push(messages.relay.newFailed);
+  }
+  const link = relayDesktopLink(result);
+  if (link) {
+    lines.push(result.created ? messages.relay.desktopLink(link) : messages.relay.desktopLinkExisting(link));
+    lines.push(messages.relay.openLinkCommand(desktopOpenCommand(link)));
   }
   if (result.mode === "open") {
     lines.push(messages.relay.open.unverifiedReceiver);
