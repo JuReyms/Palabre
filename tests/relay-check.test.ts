@@ -170,7 +170,15 @@ describe("relay --check (#203)", () => {
   test("--trust-config refusé : le registre de confiance n'est pas réécrit", async (t) => {
     const w = await world(t, { attachment: "attached" });
     const registry = CONFIG_TRUST_PATH;
+    // Date d'approbation ancienne et fixe : toute réécriture par trustConfig la remplacerait par
+    // l'heure courante, même si le reste du registre restait identique.
+    const store = JSON.parse(await readFile(registry, "utf8"));
+    for (const entry of Object.values(store.configs ?? store) as Array<{ trustedAt?: string }>) {
+      if (entry && typeof entry === "object" && "trustedAt" in entry) entry.trustedAt = "2000-01-01T00:00:00.000Z";
+    }
+    await writeFile(registry, `${JSON.stringify(store, null, 2)}\n`);
     const before = await readFile(registry);
+    assert.match(before.toString("utf8"), /2000-01-01T00:00:00\.000Z/);
     const result = await check(w.file, "--to", `codex:${CODEX}`, "--trust-config");
     assert.equal(result.error!.reason, "invalid-arguments");
     assert.match(result.error!.message, /--trust-config/);

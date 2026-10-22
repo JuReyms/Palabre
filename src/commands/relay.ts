@@ -142,7 +142,10 @@ export interface RelayResultV1 {
   mode: RelayMode;
   /** Origine du choix ; absent si la validation s'arrête avant toute résolution. */
   modeSource?: RelayModeSource;
-  /** Présent seulement avec `--check` (#203) : rien n'a été envoyé ni lancé. */
+  /**
+   * Présent seulement avec `--check` (#203) : rien n'a été envoyé ni écrit, aucune CLI de
+   * l'équipier n'a été lancée (sous macOS/Linux, seule la sonde du verrou lance `python3`).
+   */
   check?: RelayCheckReport;
   /**
    * Champs propres au mode ouvert (B1), explicite ou automatique : `status` peut
