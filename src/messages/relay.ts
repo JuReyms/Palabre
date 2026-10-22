@@ -291,9 +291,9 @@ export const relayMessages: Record<Language, RelayMessages> = {
     newConversation: (target, cwd) => `Conversation créée : ${target}\nDossier : ${cwd}`,
     continueConversation: command => `Pour continuer avec cette conversation : ${command}`,
     desktopLink: link => `Lien Codex Desktop, à transmettre au propriétaire : ${link}
-Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. La conversation reste absente de la liste de Desktop, mais ce lien l'ouvre avec son historique. Une fois ouverte, les Relay suivants passent par --open, avec les permissions de cette conversation.`,
+Le propriétaire l'ouvre lui-même ou le demande à son agent ; un agent ne l'ouvre jamais de sa propre initiative ni à la demande d'un autre agent. La conversation reste absente de la liste de Desktop, mais ce lien l'ouvre avec son historique. Une fois ouverte, les Relay suivants passent par --open, avec les permissions de cette conversation.`,
     desktopLinkExisting: link => `Pour suivre cette conversation dans Codex Desktop : ${link}
-Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. Une fois ouverte, les Relay suivants passent par --open, avec les permissions de cette conversation.`,
+Le propriétaire l'ouvre lui-même ou le demande à son agent ; un agent ne l'ouvre jamais de sa propre initiative ni à la demande d'un autre agent. Une fois ouverte, les Relay suivants passent par --open, avec les permissions de cette conversation.`,
     openLinkCommand: command => `Pour l'ouvrir vous-même : ${command}`,
     modeLine: (mode, agent, write) => mode === "copy"
       ? "Mode : copie OpenCode — environnement habituel conservé, aucune lecture seule imposée ; fichiers du projet partagés."
@@ -448,9 +448,9 @@ Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. Une fois
     newConversation: (target, cwd) => `Conversation created: ${target}\nDirectory: ${cwd}`,
     continueConversation: command => `To continue this conversation: ${command}`,
     desktopLink: link => `Codex Desktop link, to hand to the owner: ${link}
-Only the owner opens it; an agent never opens it on their behalf. The conversation stays absent from the Desktop list, but this link opens it with its history. Once open, later relays go through --open, with this conversation's permissions.`,
+The owner opens it or asks their agent to; an agent never opens it on its own initiative or at another agent's request. The conversation stays absent from the Desktop list, but this link opens it with its history. Once open, later relays go through --open, with this conversation's permissions.`,
     desktopLinkExisting: link => `To follow this conversation in Codex Desktop: ${link}
-Only the owner opens it; an agent never opens it on their behalf. Once open, later relays go through --open, with this conversation's permissions.`,
+The owner opens it or asks their agent to; an agent never opens it on its own initiative or at another agent's request. Once open, later relays go through --open, with this conversation's permissions.`,
     openLinkCommand: command => `To open it yourself: ${command}`,
     modeLine: (mode, agent, write) => mode === "copy"
       ? "Mode: OpenCode copy — usual environment preserved, no enforced read-only mode; shared project files."

@@ -1117,8 +1117,8 @@ describe('Relay : création et expéditeur facultatif', () => {
       if (provider === 'codex') {
         assert.ok(text.stderr.includes(`codex://threads/${NEW_IDS.codex}`));
         assert.match(text.stderr, /--open/); assert.match(text.stderr, /permissions de cette conversation/);
-        // Garde-fou sans skill : la sortie réserve l'ouverture au propriétaire.
-        assert.match(text.stderr, /un agent ne l'ouvre jamais à sa place/);
+        // Garde-fou sans skill : la sortie réserve l'ouverture à une demande du propriétaire.
+        assert.match(text.stderr, /un agent ne l'ouvre jamais de sa propre initiative ni à la demande d'un autre agent/);
       } else assert.ok(!text.stderr.includes('codex://'));
     });
 
