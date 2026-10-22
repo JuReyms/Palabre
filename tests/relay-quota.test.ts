@@ -24,6 +24,14 @@ test("forme reconnue, pourcentages utilisés et dates ISO, sans estimation", () 
   assert.equal(lastCodexQuota(line({ type: "response_item", payload: quotaEvent.payload }), false), undefined);
 });
 
+test("rate_limits null : aucun relevé, conserver le précédent sans masquer un schéma inconnu", () => {
+  const empty = { ...quotaEvent, payload: { type: "token_count", rate_limits: null } };
+  assert.deepEqual(lastCodexQuota(line(quotaEvent) + line(empty), false), known());
+  assert.equal(lastCodexQuota(line(empty), false), undefined);
+  const unknown = { ...empty, payload: { type: "token_count", rate_limits: {} } };
+  assert.equal(lastCodexQuota(line(quotaEvent) + line(unknown) + line(empty), false), undefined);
+});
+
 test("dernier candidat inconnu : pas de repli vers un ancien relevé", () => {
   const changed = structuredClone(quotaEvent); changed.payload.rate_limits.limit_id = "autre";
   assert.equal(lastCodexQuota(line(quotaEvent) + line(changed), false), undefined);

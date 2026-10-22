@@ -1149,7 +1149,6 @@ export function relayDesktopLink(result: RelayResultV1, targetLocated: boolean):
 export function renderRelayText(result: RelayResultV1, messages: Messages, options: { targetLocated?: boolean; primaryPrinted?: boolean } = {}): { stdout: string; stderr: string } {
   const lines: string[] = [];
   const quota = result.check?.quota ?? result.quota;
-  if (quota) lines.push(messages.relayQuota(quota));
   let stdout = result.reply !== undefined && !options.primaryPrinted ? `${sanitizeTerminalText(result.reply)}\n` : "";
   if (result.nextTurn) {
     const label = messages.relayThenFollow.label;
@@ -1178,6 +1177,7 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
   // Mode annoncé à chaque échange (#190), sauf refus d'arguments ou de configuration : rien n'a eu lieu.
   if (result.status !== "invalid-request") lines.push(messages.relay.modeLine(result.mode, result.to?.agent ?? "", Boolean(result.write)));
   if (result.status !== "invalid-request" && result.modeSource) lines.push(messages.relayView.source(result.modeSource));
+  if (quota) lines.push(messages.relayQuota(quota));
   // Visible même quand l'issue reste `replied` : sans cette ligne, un échange réussi ne dirait
   // plus rien des lancements refusés, puisque `error` est alors nul. Pas de seconde copie quand
   // `applyReadAccessDiagnostic` l'a déjà placé dans le message d'erreur (`blocked`, échec enrichi).

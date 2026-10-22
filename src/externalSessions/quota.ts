@@ -43,7 +43,8 @@ function window(value: unknown): CodexQuotaWindow | undefined {
 
 /**
  * Dernier token_count portant rate_limits dans une fin de rollout déjà bornée. Les lignes de
- * bord incomplètes sont ignorées. Un dernier candidat inconnu/invalide masque les précédents :
+ * bord incomplètes sont ignorées. null signifie aucun relevé ; on cherche le précédent.
+ * Un dernier candidat non nul inconnu/invalide masque les précédents :
  * ne jamais présenter un ancien schéma valide comme le dernier relevé après un changement.
  * La forme connue exige les deux fenêtres et un timestamp ISO avec fuseau ; sinon undefined.
  */
@@ -56,6 +57,7 @@ export function lastCodexQuota(text: string, partialStart: boolean): CodexQuota 
     try { row = object(JSON.parse(lines[i]!)); } catch { continue; }
     const payload = row?.type === "event_msg" ? object(row.payload) : undefined;
     if (payload?.type !== "token_count" || !("rate_limits" in payload)) continue;
+    if (payload.rate_limits === null) continue;
     const limits = object(payload.rate_limits);
     const at = recordedAt(row!.timestamp);
     const primary = window(limits?.primary), secondary = window(limits?.secondary);

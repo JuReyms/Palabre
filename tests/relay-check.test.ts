@@ -64,7 +64,8 @@ const fr = createTranslator("fr");
 describe("relay --check (#203)", () => {
   test("quota Codex daté dans check, ouverte ou fermée ; jamais pour Claude", async t => {
     for (const attachment of ["attached", "detached"] as const) {
-      const w = await world(t, { attachment, rolloutLines: [JSON.stringify(quotaEvent)] });
+      const w = await world(t, { attachment, rolloutLines: [JSON.stringify(quotaEvent),
+        JSON.stringify({ ...quotaEvent, payload: { type: "token_count", rate_limits: null } })] });
       const result = await check(w.file, "--to", `codex:${CODEX}`);
       assert.equal(result.status, "checked"); assert.equal(result.exitCode, 0);
       assert.equal(result.check?.quota?.primary.usedPercent, 52); assert.equal(result.check?.quota?.secondary.usedPercent, 88);
@@ -72,6 +73,14 @@ describe("relay --check (#203)", () => {
       assert.equal(result.delivery.status, "not-delivered"); assert.equal(result.exportPath, null);
       assert.match(renderRelayText(result, createTranslator("fr")).stderr, /Dernier quota Codex connu \(indicatif/);
       assert.match(renderRelayText(result, createTranslator("en")).stderr, /Last known Codex quota \(indicative/);
+      for (const language of ["fr", "en"] as const) {
+        const messages = createTranslator(language);
+        const text = renderRelayText(result, messages).stderr;
+        const verdict = messages.relay.check.done(result.to!.agent, result.check!.target!);
+        const mode = messages.relay.modeLine(result.mode, result.to!.agent, false);
+        assert.ok(text.indexOf(verdict) >= 0 && text.indexOf(verdict) < text.indexOf(mode));
+        assert.ok(text.indexOf(mode) < text.indexOf(messages.relayQuota(result.check!.quota!)));
+      }
       const claude = await check(w.file, "--to", `claude:${CLAUDE}`);
       assert.equal(claude.check?.quota, undefined); assert.equal(claude.quota, undefined);
       assert.doesNotMatch(renderRelayText(claude, fr).stderr, /quota/);
