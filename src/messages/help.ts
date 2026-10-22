@@ -383,8 +383,9 @@ Avec --open (pilote Codex ; Windows, macOS et Linux) :
   pour éprouver le verrou POSIX ; outil absent, timeout ou erreur ambiguë = target-state-unknown.
 
 Avec --then-follow <secondes> (envoi puis écoute, mode ouvert explicite ou auto) :
-  Seulement si une validation humaine dans l'app est attendue : l'écoute dure tout le délai, même
-  sans suite, et en JSON la réponse liée n'est rendue qu'à la fin. Préférer un délai court (120 s).
+  Seulement si une validation humaine dans l'app est attendue : le suivi attend le premier tour
+  suivant terminé, au plus pendant le délai ; sans suite, jusqu'à l'échéance. En JSON, la réponse
+  liée n'est rendue qu'à la fin de ce suivi. Préférer un délai court (120 s).
   Un seul dépôt. --timeout borne la réponse liée ; le second délai explicite (10 à 3600 s)
   commence à sa réception. La référence suit exactement sa ligne de fin, sans perdre une suite rapide.
   En texte, réponse liée immédiate puis suite séparée ; en JSON, un seul objet final sur stdout,
@@ -959,8 +960,9 @@ With --open (Codex pilot; Windows, macOS, and Linux):
   required to probe the POSIX lock; missing tool, timeout, or ambiguous error = target-state-unknown.
 
 With --then-follow <seconds> (send then listen, explicit or auto open mode):
-  Only when a human approval in the app is expected: listening lasts the whole budget, even with
-  no continuation, and in JSON the correlated reply is only returned at the end. Prefer a short budget (120 s).
+  Only when a human approval in the app is expected: following waits for the first next turn to
+  complete, at most for the budget; with no continuation, until the deadline. In JSON, the correlated
+  reply is only returned when following ends. Prefer a short budget (120 s).
   One queue call only. --timeout bounds the correlated reply; the explicit second budget (10 to
   3600 s) starts when it is received. The reference follows its exact end line, retaining fast continuations.
   Text: immediate correlated reply, then a separate continuation. JSON: one final stdout object,

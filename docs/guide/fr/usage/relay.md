@@ -276,7 +276,7 @@ Le format réel d'une réponse liée à une question n'a pas été retrouvé dan
 
 ### Écouter la suite dès l'envoi (`--then-follow`)
 
-Pas par défaut : un envoi ordinaire rend la réponse dès que l'équipier a fini, alors que `--then-follow` écoute un tour de plus jusqu'au bout de son délai, même si rien ne vient (et avec `--json`, la réponse principale n'est rendue qu'à la fin). Utilisez-le seulement quand l'équipier vous demandera, c'est attendu d'avance, une validation dans l'app, avec un délai court (120 s pour commencer, ajusté à la tâche). Si la demande de validation n'apparaît que dans sa réponse, lancez plutôt `--open --follow` juste avant de valider. Mode ouvert seulement (explicite `--open` ou `auto` résolu en ouvert). Cette option n'accorde aucun droit d'écriture ; les permissions restent celles de la conversation.
+Pas par défaut : un envoi ordinaire rend la réponse dès que l'équipier a fini, alors que `--then-follow` attend ensuite le premier tour suivant terminé, jusqu'à l'échéance si rien ne vient (et avec `--json`, la réponse principale n'est rendue qu'à la fin de ce suivi). Utilisez-le seulement quand l'équipier vous demandera, c'est attendu d'avance, une validation dans l'app, avec un délai court (120 s pour commencer, ajusté à la tâche). Si la demande de validation n'apparaît que dans sa réponse, lancez plutôt `--open --follow` juste avant de valider. Mode ouvert seulement (explicite `--open` ou `auto` résolu en ouvert). Cette option n'accorde aucun droit d'écriture ; les permissions restent celles de la conversation.
 
 ```powershell
 palabre relay --open --to codex:<session-cible> --then-follow 120 --timeout 600 "<tâche autorisée>" --json

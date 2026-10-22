@@ -275,7 +275,7 @@ The actual format of a linked reply to a question was not found in available loc
 
 ### Listen for the continuation from the initial send (`--then-follow`)
 
-Not by default: an ordinary send returns the reply as soon as the teammate is done, whereas `--then-follow` listens for one more turn until its budget runs out, even if nothing comes (and with `--json`, the main reply is only returned at the end). Use it only when the teammate is expected in advance to ask you for an approval in the app, with a short budget (120 s to start with, adjusted to the task). If the approval request only shows up in its reply, start `--open --follow` just before you approve instead. Open mode only (explicit `--open` or `auto` resolved to open). This grants no write permission: the conversation keeps its own permissions.
+Not by default: an ordinary send returns the reply as soon as the teammate is done, whereas `--then-follow` then waits for the first next turn to complete, until the deadline if nothing comes (and with `--json`, the main reply is only returned when following ends). Use it only when the teammate is expected in advance to ask you for an approval in the app, with a short budget (120 s to start with, adjusted to the task). If the approval request only shows up in its reply, start `--open --follow` just before you approve instead. Open mode only (explicit `--open` or `auto` resolved to open). This grants no write permission: the conversation keeps its own permissions.
 
 ```powershell
 palabre relay --open --to codex:<target-session> --then-follow 120 --timeout 600 "<authorized task>" --json
