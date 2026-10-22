@@ -10,6 +10,7 @@ import { applySkillSync, assertSkillPlanUnchanged, inspectSkillCopies, installed
 import { inspectDoctorArrival } from "../src/doctorArrival.js";
 import { applyUpdate, canApplyUpdate, createUpdatePlan, formatUpdateInstructions, type UpdateInfo } from "../src/update.js";
 import { createTranslator } from "../src/i18n.js";
+import { formatSkillPlan } from "../src/messages/skillSync.js";
 import { runUpdateCommand } from "../src/commands/update.js";
 import type { CommandFlags } from "../src/commands/shared.js";
 
@@ -228,6 +229,30 @@ test("update : même plan CLI/skill, une seule confirmation ; refus, check et dr
   assert.equal(applications, 1);
   assert.ok(reports.some(report => report.includes("palabre@0.19.0") && report.includes(target) && report.includes(info.skills!.backupRoot)));
   assert.equal(readFileSync(path.join(target, "SKILL.md"), "utf8"), "custom");
+});
+
+test("plan affiché fr/en : remplacement et sauvegarde annoncés seulement si une copie peut être remplacée", () => {
+  const copy = (state: "current" | "different" | "unreadable") => ({ directory: `/fictif/${state}`, state });
+  const plan = (...states: ("current" | "different" | "unreadable")[]) => ({ source: "/fictif/source", backupRoot: "/fictif/backups", copies: states.map(copy) });
+  for (const language of ["fr", "en"] as const) {
+    const replacement = language === "fr" ? /seront remplacés/ : /will be replaced/;
+    const nothing = language === "fr" ? /Rien à remplacer/ : /Nothing to replace/;
+    const none = language === "fr" ? /Aucune copie détectée/ : /No copy detected/;
+    const announces = (text: string) => { assert.match(text, replacement); assert.ok(text.includes("/fictif/backups")); assert.doesNotMatch(text, nothing); };
+    const quiet = (text: string) => { assert.match(text, nothing); assert.doesNotMatch(text, replacement); assert.ok(!text.includes("/fictif/backups")); };
+    for (const states of [["different"], ["current", "different"], ["different", "unreadable"]] as const) {
+      announces(formatSkillPlan(plan(...states), language));
+      announces(formatSkillPlan(plan(...states), language, true));
+    }
+    for (const states of [["current"], ["current", "current"], ["unreadable"], ["current", "unreadable"]] as const) quiet(formatSkillPlan(plan(...states), language));
+    // Après mise à jour de la CLI, une copie aujourd'hui identique sera comparée au nouveau paquet (applyUpdate).
+    for (const states of [["current"], ["current", "unreadable"]] as const) announces(formatSkillPlan(plan(...states), language, true));
+    quiet(formatSkillPlan(plan("unreadable"), language, true));
+    for (const afterUpdate of [false, true]) {
+      const empty = formatSkillPlan(plan(), language, afterUpdate);
+      assert.match(empty, none); assert.doesNotMatch(empty, replacement); assert.doesNotMatch(empty, nothing);
+    }
+  }
 });
 
 test("commande skill : absence de confirmation, check, dry-run et options invalides ne changent rien au profil", t => {
