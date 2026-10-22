@@ -129,10 +129,10 @@ Conduite à tenir :
 
 ### Écouter la suite dès l'envoi (`--then-follow`)
 
-Pour un lot qui écrit dans une conversation Codex Desktop existante, joindre `--then-follow 3600` à l'envoi, en mode ouvert (explicite `--open` ou `auto` résolu en ouvert). Cette option n'accorde aucun droit d'écriture ; les permissions restent celles de la conversation.
+**Pas par défaut.** Un envoi ordinaire n'en a pas besoin : la réponse revient dès que l'équipier a fini. `--then-follow` écoute un tour de plus jusqu'au bout de son délai, même quand rien ne vient, et avec `--json` la réponse principale n'est rendue qu'à la fin de cette écoute. L'utiliser seulement quand on sait d'avance que l'équipier demandera une validation à l'humain dans l'app, avec un délai court annoncé à l'humain (120 s pour commencer, ajusté à la tâche), jamais 3600 par habitude. Quand la demande de validation n'apparaît que dans la réponse, lancer plutôt `--open --follow` aussitôt (ci-dessous), puis dire à l'humain de valider. Mode ouvert seulement (explicite `--open` ou `auto` résolu en ouvert). Cette option n'accorde aucun droit d'écriture ; les permissions restent celles de la conversation.
 
 ```powershell
-palabre relay --open --to codex:<session-cible> --then-follow 3600 --timeout 600 "<tâche autorisée>" --json
+palabre relay --open --to codex:<session-cible> --then-follow 120 --timeout 600 "<tâche autorisée>" --json
 ```
 
 Un seul message est déposé. `--timeout` borne la réponse liée ; `--then-follow <secondes>` fixe un second budget de 10 à 3600 secondes, démarrant à sa réception. Le suivi part de la fin de ligne exacte du tour corrélé, pas de la fin courante du fichier : une suite immédiate n'est pas sautée, même déjà terminée dans la même lecture. L'humain peut valider dans l'app sans attendre le lancement manuel d'un autre appel.
@@ -327,7 +327,7 @@ Pour un avis ou une relecture sans modification, `palabre relay --new --to codex
 explorer.exe "codex://threads/<id>"
 ```
 
-`open` sous macOS, `xdg-open` sous Linux. L'app Claude ne rend pas `codex://` cliquable ; sous Windows, une conversation déjà affichée met seulement Codex au premier plan (macOS et Linux non vérifiés). Une fois ouverte, Desktop tient le verrou : après `--check --open` réussi, la joindre avec `--open` explicite, qui garde ses permissions courantes et refuse une conversation relâchée entre-temps (avec `auto`, l'envoi partirait alors en arrière-plan) ; l'arrière-plan imposé répondrait `target-busy`. Uniquement si l'humain demande explicitement `--write` expérimental, utiliser le parcours d'accord ponctuel : nouvelle demande, nouvelle conversation et nouvel accord pour chaque tâche ; ne pas convertir une reprise d'avis en reprise d'écriture.
+`open` sous macOS, `xdg-open` sous Linux. L'app Claude ne rend pas `codex://` cliquable ; sous Windows, une conversation déjà affichée met seulement Codex au premier plan (macOS et Linux non vérifiés). Une fois ouverte, Desktop tient le verrou : après `--check --open` réussi, la joindre avec `--open` explicite, qui garde ses permissions courantes. Pour une conversation créée par `--new`, ce sont celles de sa création : lecture seule, même dans Desktop (constaté avec les versions vérifiées). Pour faire écrire Codex, l'humain crée lui-même la conversation dans Desktop avec les permissions qu'il choisit et refuse une conversation relâchée entre-temps (avec `auto`, l'envoi partirait alors en arrière-plan) ; l'arrière-plan imposé répondrait `target-busy`. Uniquement si l'humain demande explicitement `--write` expérimental, utiliser le parcours d'accord ponctuel : nouvelle demande, nouvelle conversation et nouvel accord pour chaque tâche ; ne pas convertir une reprise d'avis en reprise d'écriture.
 
 ## Dernier quota Codex connu
 
