@@ -5,13 +5,17 @@
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { createServer } from "node:http";
 import { createHash } from "node:crypto";
-import { chmodSync, closeSync, constants, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, closeSync, constants, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
 import { relayMessages } from "../src/messages/relay.js";
+import { quotaEvent } from "./fixtures/external-sessions/quota.js";
+import { relayThenFollowText } from "../src/messages/relayThenFollow.js";
 import { buildEnvelope, MAX_RELAY_MESSAGE_BYTES } from "../src/externalSessions/envelope.js";
+import type { ReadAccessDiagnostic } from "../src/externalSessions/types.js";
 import { npmPowerShellShim } from "./fixtures/external-sessions/npm-shim.js";
 import { trustConfig } from "../src/configTrust.js";
 
@@ -150,29 +154,73 @@ test("approve-write : une demande existante ne permet pas de confirmer en termin
   assert.equal(yes.code, 8); assert.equal(existsSync(path.join(directory, "approval.json")), false);
 });
 
-test("Codex répond mais les lectures échouent : JSON, texte et export signalent l'échec sans renvoi", async () => {
+test("Codex se replie après des lancements refusés : issue conservée, diagnostic visible, aucun renvoi", async () => {
   const w = makeWorld();
-  const r = await relay(w, [...toCodex, "Lis le dépôt", "--subject", "Revue du dépôt", "--trust-config", "--json"], { FAKE_CODEX_MODE: "read-blocked" });
-  assert.equal(r.code, 2); assert.equal(r.json.status, "read-unavailable");
-  assert.equal(r.json.reply, "Constat partiel : lectures bloquées.");
+  const r = await relay(w, [...toCodex, "Lis note.md", "--subject", "Revue du dépôt", "--trust-config", "--json"], { FAKE_CODEX_MODE: "read-partial" });
+  // Faux négatif corrigé (#173, essai réel #171) : deux refus puis un repli réussi sur un autre
+  // shell ne dégradent plus un relay dont la réponse est arrivée.
+  assert.equal(r.code, 0); assert.equal(r.json.status, "replied"); assert.equal(r.json.error, null);
+  assert.equal(r.json.reply, "La livraison est prévue le 12 mars.");
   assert.equal(r.json.delivery.status, "replied"); assert.equal(r.json.identity, "same-as-target");
-  assert.deepEqual(r.json.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 1 });
+  assert.deepEqual(r.json.readAccess, { status: "partial", reason: "windows-process-access-denied", failedCommands: 2, succeededCommands: 2 });
   assert.equal(r.json.subject, "Revue du dépôt");
   const sent = r.calls.find(call => call.argv[0] === "exec")!.stdin as string;
   assert.equal(sent.split("\n")[0], `### ${relayMessages.fr.envelopeHeader("claude", "codex")}`);
   assert.equal(sent.split("\n")[6], relayMessages.fr.subjectLine("Revue du dépôt"));
-  assert.match(r.json.error.message, /WindowsApps\\pwsh\.exe/);
-  assert.match(r.json.error.message, /propriétaire.*https:\/\/palab\.re\/fr\/troubleshooting/);
-  assert.match(r.json.error.message, /issues\/128/);
   assert.equal(r.calls.filter(c => c.argv[0] === "exec").length, 1);
+  const warning = relayMessages.fr.readAccess(r.json.readAccess as ReadAccessDiagnostic);
+  assert.match(warning, /WindowsApps\\pwsh\.exe/);
+  assert.match(warning, /propriétaire.*https:\/\/palab\.re\/fr\/troubleshooting/);
+  assert.match(warning, /issues\/128/);
   const md = readFileSync(r.json.exportPath, "utf8");
-  assert.match(md, /Accès en lecture.*blocked/); assert.ok(!md.includes("| readAccess |"));
+  assert.match(md, /Accès en lecture.*partial/); assert.match(md, /succeededCommands=2/);
+  assert.ok(!md.includes("| readAccess |"));
   assert.ok(md.includes("| Objet | Revue du dépôt |"));
-  assert.ok(md.includes(r.json.reply)); assert.ok(md.includes(r.json.error.message));
-  const text = await relay(makeWorld(), [...toCodex, "Lis le dépôt", "--trust-config", "--language", "en", "--no-export"], { FAKE_CODEX_MODE: "read-blocked" });
-  assert.equal(text.code, 2); assert.match(text.stdout, /Constat partiel/);
+  assert.ok(md.includes(r.json.reply)); assert.ok(md.includes(warning));
+  const text = await relay(makeWorld(), [...toCodex, "Lis note.md", "--trust-config", "--language", "en", "--no-export"], { FAKE_CODEX_MODE: "read-partial" });
+  assert.equal(text.code, 0); assert.match(text.stdout, /12 mars/);
   assert.match(text.stderr, /WindowsApps\\pwsh\.exe/);
   assert.match(text.stderr, /owner.*https:\/\/palab\.re\/en\/troubleshooting/);
+  assert.match(text.stderr, /Reads partly established/);
+});
+
+test("aucune commande aboutie après le refus : relay dégradé en read-unavailable, réponse conservée", async () => {
+  const w = makeWorld();
+  const r = await relay(w, [...toCodex, "Lis le dépôt", "--trust-config", "--json"], { FAKE_CODEX_MODE: "read-blocked" });
+  // `blocked` est le seul statut qui dégrade : rien n'étaye la réponse, qui pourrait être
+  // plausible sans aucune lecture.
+  assert.equal(r.code, 2); assert.equal(r.json.status, "read-unavailable");
+  assert.equal(r.json.error.kind, "read-unavailable");
+  assert.match(r.json.error.message, /Lectures non établies/);
+  // La réponse et la délivrance survivent à la dégradation : on ne perd pas le travail reçu.
+  assert.equal(r.json.reply, "Constat partiel : lectures bloquées.");
+  assert.equal(r.json.delivery.status, "replied");
+  assert.deepEqual(r.json.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 1 });
+  assert.equal(r.calls.filter(c => c.argv[0] === "exec").length, 1);
+  // Une seule copie de l'avertissement, en texte comme dans l'export, même s'il est dans l'erreur.
+  const warning = relayMessages.fr.readAccess(r.json.readAccess as ReadAccessDiagnostic);
+  assert.equal(readFileSync(r.json.exportPath, "utf8").split(warning).length - 1, 1);
+  const text = await relay(makeWorld(), [...toCodex, "Lis le dépôt", "--trust-config", "--no-export"], { FAKE_CODEX_MODE: "read-blocked" });
+  assert.equal(text.code, 2); assert.equal(text.stderr.split(warning).length - 1, 1);
+});
+
+test("réponse écrite avant toute commande : une réussite ultérieure ne la fait pas passer pour partial", async () => {
+  const w = makeWorld();
+  const r = await relay(w, [...toCodex, "Lis note.md", "--trust-config", "--json"], { FAKE_CODEX_MODE: "read-reply-first" });
+  // Relecture indépendante de #174 : la commande réussie vient après la réponse, qui n'a donc pu
+  // s'appuyer sur aucune lecture.
+  assert.equal(r.code, 2); assert.equal(r.json.status, "read-unavailable");
+  assert.equal(r.json.reply, "La livraison est prévue le 12 mars.");
+  assert.deepEqual(r.json.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 2 });
+});
+
+test("événements de commande non interprétables : repli unverified, issue conservée", async () => {
+  const w = makeWorld();
+  const r = await relay(w, [...toCodex, "Lis note.md", "--trust-config", "--json"], { FAKE_CODEX_MODE: "read-uninterpretable" });
+  // Une réussite ne peut pas être écartée : PALABRE le dit, sans dégrader l'issue. Limite assumée.
+  assert.equal(r.code, 0); assert.equal(r.json.status, "replied"); assert.equal(r.json.error, null);
+  assert.deepEqual(r.json.readAccess, { status: "unverified", reason: "windows-process-access-denied", failedCommands: 2 });
+  assert.match(relayMessages.fr.readAccess(r.json.readAccess as ReadAccessDiagnostic), /ni confirmer ni écarter/);
 });
 
 test("objet explicite, en-tête traduit et métadonnées JSON/export ; absence sans objet", async () => {
@@ -240,23 +288,25 @@ test("mission CLI : création, une étape Relay factice, status après reprise e
   assert.equal(refused.code, 8); assert.equal(refused.json.error.kind, "stopped"); assert.equal(refused.calls.length, 1);
 });
 
-test("mission CLI : en-tête compact conservé avec lecture bloquée, réponse et diagnostic en pause", async () => {
+test("mission CLI : en-tête compact conservé avec lancements refusés, réponse et diagnostic gardés", async () => {
   const w = makeWorld();
   assert.equal((await palabre(w, ["config", "--trust-config", "--json"])).code, 0);
   const start = await palabre(w, ["mission", "start", ...toCodex,
     "--criteria", "Lectures vérifiables", "Lire le dépôt", "--json"]);
   assert.equal(start.code, 0, start.stderr);
   const id = start.json.mission.id;
-  const step = await palabre(w, ["mission", "step", id, "Lis le dépôt", "--json"], { FAKE_CODEX_MODE: "read-blocked" });
-  assert.equal(step.code, 2); assert.equal(step.json.mission.status, "paused");
+  const step = await palabre(w, ["mission", "step", id, "Lis note.md", "--json"], { FAKE_CODEX_MODE: "read-partial" });
+  // Issue 171 : l'étape a reçu sa réponse, la mission reste prête pour la suivante.
+  assert.equal(step.code, 0); assert.equal(step.json.mission.status, "ready");
   const result = step.json.mission.steps[0].result;
-  assert.equal(result.status, "read-unavailable"); assert.equal(result.delivery.status, "replied");
-  assert.equal(result.reply, "Constat partiel : lectures bloquées."); assert.equal(result.readAccess.status, "blocked");
+  assert.equal(result.status, "replied"); assert.equal(result.delivery.status, "replied");
+  assert.equal(result.reply, "La livraison est prévue le 12 mars."); assert.equal(result.readAccess.status, "partial");
   const calls = step.calls.filter(c => c.argv[0] === "exec");
   assert.equal(calls.length, 1);
   assert.equal(calls[0]!.stdin.split("\n")[0], `### ${relayMessages.fr.missionHeader(id, 1, "claude", "codex")}`);
   const exported = readFileSync(step.json.exportPath, "utf8");
-  assert.ok(exported.includes(result.reply)); assert.ok(exported.includes(result.error.message));
+  assert.ok(exported.includes(result.reply));
+  assert.ok(exported.includes(relayMessages.fr.readAccess(result.readAccess).split("\n")[0]!));
 });
 
 test("mission CLI : review conserve le refus de politique, arguments d'écriture refusés", async () => {
@@ -429,8 +479,9 @@ describe("palabre relay : réponse", () => {
     assert.equal(result.json.status, "replied");
     assert.equal(result.json.reply, "FAKE-OK");
     assert.equal(result.json.exportPath, null);
-    // Sans --open, la sortie JSON v1 reste identique : aucun champ propre à B1.
-    assert.deepEqual(Object.keys(result.json).sort(), ["delivery", "durationMs", "error", "exitCode", "exportPath", "from", "identity", "observedModels", "reply", "status", "to", "type", "v"]);
+    // Mode arrière-plan : aucun champ propre à B1 ; modeSource explicite sa résolution (#190).
+    assert.deepEqual(Object.keys(result.json).sort(), ["delivery", "durationMs", "error", "exitCode", "exportPath", "from", "identity", "mode", "modeSource", "observedModels", "reply", "status", "to", "type", "v"]);
+    assert.equal(result.json.mode, "background");
     assert.deepEqual(result.calls.map((call) => call.argv.slice(0, 2)), [["mcp", "list"], ["exec", "resume"]]);
     const resume = result.calls[1]!.argv;
     assert.ok(resume.includes("mcp_servers.linear.enabled=false"));
@@ -604,6 +655,20 @@ describe("palabre relay : refus avant lancement", () => {
     assert.equal(result.json.exportPath, null, "aucun export sans exécution");
   });
 
+  test("Codex attachée : refus après localisation, lien Desktop donné quand même (#190)", { skip: process.platform !== "win32" }, async () => {
+    const world = makeWorld();
+    const release = holdCodexLock(world);
+    try {
+      const result = await relay(world, ["--background", ...toCodex, "x", "--trust-config", "--no-export"]);
+      assert.equal(result.code, 3, result.stderr);
+      assert.match(result.stderr, /target-busy/);
+      assert.ok(result.stderr.includes(`codex://threads/${CODEX_SESSION}`), "conversation retrouvée : lien attendu");
+      assert.equal(result.calls.length, 0);
+    } finally {
+      release();
+    }
+  });
+
   test("cible attachée : target-busy, code 3, aucune CLI lancée", async () => {
     const world = makeWorld();
     writeFileSync(path.join(world.home, ".claude", "sessions", `${process.pid}.json`), JSON.stringify({ pid: process.pid, sessionId: CLAUDE_SESSION, status: "idle" }));
@@ -655,6 +720,108 @@ function holdCodexLock(world: World): () => void {
   return () => closeSync(fd);
 }
 
+describe("relay.view (#190)", () => {
+  function setting(world: World, view: "auto" | "background") {
+    const file = path.join(world.workspace, "palabre.config.json");
+    const config = JSON.parse(readFileSync(file, "utf8"));
+    config.relay = { view }; writeFileSync(file, JSON.stringify(config));
+  }
+
+  test("agents JSON expose la préférence effective sans lancer un agent", async () => {
+    const server = createServer((_req, res) => { res.setHeader("content-type", "application/json"); res.end('{"models":[]}'); });
+    await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+    try {
+      const port = (server.address() as { port: number }).port;
+      for (const view of [undefined, "auto", "background"] as const) {
+        const world = makeWorld(); if (view) setting(world, view);
+        const r = await palabre(world, ["agents", "--json", "--trust-config"], { OLLAMA_HOST: `http://127.0.0.1:${port}` });
+        assert.equal(r.code, 0, r.stderr); assert.equal(r.json.defaults.relayView, view ?? "auto");
+        assert.equal(r.json.v, 1); assert.equal(r.calls.length, 0);
+      }
+    } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
+  });
+
+  test("auto par défaut, auto explicite et --background : cible fermée, reprise sans queue", async () => {
+    for (const view of [undefined, "auto", "background"] as const) {
+      const world = makeWorld(); if (view) setting(world, view);
+      const r = await relay(world, [...toCodex, "Bonjour", "--trust-config", "--json"]);
+      assert.equal(r.code, 0, r.stderr); assert.equal(r.json.mode, "background");
+      assert.equal(r.json.modeSource, view === "background" ? "setting" : "auto");
+      assert.equal(r.calls.filter(x => x.argv[0] === "queue").length, 0);
+      assert.equal(r.calls.filter(x => x.argv[0] === "exec").length, 1);
+      assert.ok(r.calls.find(x => x.argv[0] === "exec")!.stdin.includes(relayMessages.fr.envelopePermissions));
+      assert.match(readFileSync(r.json.exportPath, "utf8"), new RegExp(`\\| modeSource \\| ${r.json.modeSource} \\|`));
+    }
+    const r = await relay(makeWorld(), ["--background", ...toCodex, "Bonjour", "--trust-config", "--json"]);
+    assert.equal(r.code, 0); assert.equal(r.json.modeSource, "explicit");
+  });
+
+  test("auto : verrou tenu, un seul dépôt et enveloppe avec permissions de la conversation", { skip: process.platform !== "win32" }, async () => {
+    const world = makeWorld(), release = holdCodexLock(world);
+    try {
+      const r = await relay(world, [...toCodex, "Bonjour", "--trust-config", "--json"]);
+      assert.equal(r.code, 0, r.stderr); assert.equal(r.json.mode, "open"); assert.equal(r.json.modeSource, "auto");
+      assert.equal(r.calls.length, 1); assert.equal(r.calls[0]!.argv[0], "queue");
+      assert.ok(r.calls[0]!.argv[4]!.includes(relayMessages.fr.openPermissions));
+      assert.match(readFileSync(r.json.exportPath, "utf8"), /\| modeSource \| auto \|/);
+    } finally { release(); }
+  });
+
+  test("background imposé : cible ouverte refusée sans CLI ; --open ponctuel n'écrit pas le réglage", { skip: process.platform !== "win32" }, async () => {
+    for (const explicit of [false, true]) {
+      const world = makeWorld(); setting(world, explicit ? "auto" : "background");
+      const file = path.join(world.workspace, "palabre.config.json"), before = readFileSync(file, "utf8");
+      const release = holdCodexLock(world);
+      try {
+        const r = await relay(world, [...(explicit ? ["--background"] : []), ...toCodex, "Bonjour", "--trust-config", "--json"]);
+        assert.equal(r.code, 3); assert.equal(r.json.mode, "background"); assert.equal(r.json.status, "target-busy");
+        assert.equal(r.json.modeSource, explicit ? "explicit" : "setting"); assert.equal(r.calls.length, 0);
+        if (explicit) {
+          assert.match(r.json.error.message, /Fermez-la dans Codex, puis relancez/);
+          assert.match(r.json.error.message, /Sans --background, avec auto.*permissions.*à ne faire que si/);
+          assert.equal(r.json.remedy, undefined);
+          assert.ok(!r.json.error.message.includes("config --relay-view"));
+        } else {
+          assert.match(r.json.error.message, /fermer cette conversation/); assert.match(r.json.remedy, /config --relay-view auto --config/);
+        }
+        assert.equal(readFileSync(file, "utf8"), before);
+      } finally { release(); }
+    }
+    const world = makeWorld(); setting(world, "background");
+    const file = path.join(world.workspace, "palabre.config.json"), before = readFileSync(file, "utf8"), release = holdCodexLock(world);
+    try {
+      const r = await relay(world, ["--open", ...toCodex, "Bonjour", "--trust-config", "--json"]);
+      assert.equal(r.code, 0); assert.equal(r.json.mode, "open"); assert.equal(r.json.modeSource, "explicit");
+      assert.equal(readFileSync(file, "utf8"), before);
+    } finally { release(); }
+  });
+
+  test("conflit explicite et follow/background refusés avant toute configuration", async () => {
+    for (const flags of [["--open", "--background"], ["--open", "--follow", "--background"]]) {
+      const r = await relay(makeWorld(), [...flags, ...toCodex, "Bonjour", "--json"]);
+      assert.equal(r.code, 8); assert.equal(r.json.error.reason, "invalid-arguments"); assert.equal(r.calls.length, 0);
+    }
+  });
+
+  test("--new et Claude restent en arrière-plan même avec auto", async () => {
+    for (const args of [[...toClaude, "Bonjour"], ["--new", "--to", "codex", "Bonjour"]]) {
+      const r = await relay(makeWorld(), [...args, "--trust-config", "--json"]);
+      assert.equal(r.code, 0, r.stderr); assert.equal(r.json.mode, "background"); assert.equal(r.json.modeSource, "auto");
+      assert.equal(r.calls.filter(x => x.argv[0] === "queue").length, 0);
+    }
+  });
+
+  test("config --relay-view hors TTY et options combinées ne créent ni config ni approbation", async () => {
+    for (const extra of [[], ["--yes"], ["--trust-config"], ["--prune-trust"], ["--sync-agents"]]) {
+      const world = makeWorld(), file = path.join(world.workspace, "palabre.config.json"), before = readFileSync(file, "utf8");
+      const r = await palabre(world, ["config", "--relay-view", "background", ...extra]);
+      assert.notEqual(r.code, 0); assert.equal(readFileSync(file, "utf8"), before);
+      assert.equal(existsSync(path.join(world.home, ".palabre", "trusted-configs.json")), false);
+      assert.equal(r.calls.length, 0);
+    }
+  });
+});
+
 describe("palabre relay --open", () => {
   const toOpenCodex = ["--open", ...toCodex];
 
@@ -670,6 +837,29 @@ describe("palabre relay --open", () => {
     assert.deepEqual(result.json.delivery, { status: "not-delivered", persisted: false, inActiveBranch: false });
     assert.equal(result.json.exportPath, null);
     assert.equal(result.calls.length, 0);
+    // La ligne Mode reste vraie alors que la conversation n'est pas ouverte (#190).
+    const text = await relay(makeWorld(), [...toOpenCodex, "Bonjour", "--trust-config"]);
+    assert.ok(text.stderr.includes("Mode : dans l'app desktop — la conversation doit être ouverte ; codex y garde les permissions de cette conversation."), text.stderr);
+    const followed = await relay(makeWorld(), ["--open", "--follow", "--to", `codex:${CODEX_SESSION}`, "--trust-config"]);
+    assert.equal(followed.code, 3, followed.stderr);
+    assert.ok(followed.stderr.includes("Mode : dans l'app desktop (suivi) — suivi demandé du prochain tour terminé, sans dépôt."), followed.stderr);
+  });
+
+  test("POSIX sans python3 : diagnostic distinct avec et sans --open, aucun dépôt", { skip: process.platform === "win32" }, async () => {
+    for (const open of [false, true]) {
+      const world = makeWorld();
+      const directory = path.join(world.home, ".codex", "thread-writer-locks");
+      mkdirSync(directory, { recursive: true });
+      writeFileSync(path.join(directory, `${CODEX_SESSION}.lock`), "");
+      const args = [...(open ? toOpenCodex : toCodex), "Bonjour", "--trust-config", "--json"];
+      const result = await relay(world, args, { PATH: world.bin });
+      assert.equal(result.code, 3, result.stderr);
+      assert.equal(result.json.status, "target-state-unknown");
+      assert.equal(result.json.delivery.status, "not-delivered");
+      assert.match(result.json.error.message, /python3 --version/);
+      assert.match(result.json.error.message, open ? /laisse ChatGPT\/Codex ouvert/ : /quitte complètement l'application/);
+      assert.equal(result.calls.length, 0);
+    }
   });
 
   test("cible Claude : invalid-request / unsupported-agent, sans lancement", async () => {
@@ -680,6 +870,25 @@ describe("palabre relay --open", () => {
     assert.match(result.json.error.message, /--open ne vise que les conversations Codex/);
     assert.equal(result.json.mode, "open");
     assert.equal(result.calls.length, 0);
+  });
+
+  test("envoi ouvert : quota indicatif au résultat fr/en, JSON ou texte", { skip: process.platform !== "win32" }, async () => {
+    for (const language of ["fr", "en"]) for (const json of [true, false]) {
+      const world = makeWorld(), release = holdCodexLock(world);
+      appendFileSync(world.rollout, JSON.stringify(quotaEvent) + "\n");
+      try {
+        const result = await relay(world, [...toOpenCodex, "Question", "--language", language, "--trust-config", ...(json ? ["--json"] : [])]);
+        assert.equal(result.code, 0, result.stderr);
+        if (json) {
+          assert.equal(result.json.status, "replied"); assert.equal(result.json.quota.indicative, true);
+          assert.equal(result.json.quota.primary.usedPercent, 52); assert.equal(result.json.check, undefined);
+          assert.equal(result.json.quota.recordedAt, "2026-10-22T12:00:00.000Z");
+        } else assert.match(result.stderr, language === "fr" ? /Dernier quota Codex connu \(indicatif/ : /Last known Codex quota \(indicative/);
+      } finally { release(); }
+    }
+    const world = makeWorld(); appendFileSync(world.rollout, JSON.stringify(quotaEvent) + "\n");
+    const background = await relay(world, [...toCodex, "Question", "--trust-config", "--json"]);
+    assert.equal(background.json.quota, undefined, "pas de recherche après un envoi arrière-plan");
   });
 
   test("conversation ouverte : dépôt par codex queue, réponse corrélée, diagnostics B1 et export", { skip: process.platform !== "win32" }, async () => {
@@ -712,7 +921,7 @@ describe("palabre relay --open", () => {
       assert.equal(call!.stdin, "");
       assert.equal(path.resolve(call!.cwd).toLowerCase(), path.resolve(world.workspace).toLowerCase());
       const exported = readFileSync(json.exportPath, "utf8");
-      assert.match(exported, /\| Mode \| open \|/);
+      assert.match(exported, /\| Mode \| open — dans l'app desktop \|/);
       assert.match(exported, /accepted=true/);
       assert.match(exported, /aucune lecture seule n'est garantie/);
     } finally {
@@ -876,6 +1085,11 @@ describe('Relay : création et expéditeur facultatif', () => {
       const md = readFileSync(r.json.exportPath, 'utf8');
       assert.ok(md.includes(`${provider}:${NEW_IDS[provider]}`)); assert.ok(md.includes(w.workspace));
       assert.ok(md.includes('| Expéditeur | terminal |'));
+      // #179 : Codex seulement ; aucun champ JSON ajouté, l'intégration le construit depuis to.session.
+      const link = `codex://threads/${NEW_IDS[provider]}`;
+      if (provider === 'codex') assert.ok(md.includes(`| Lien Codex Desktop | ${link} |`));
+      else assert.ok(!md.includes('codex://') && !md.includes('Lien Codex Desktop'));
+      assert.ok(!r.stdout.includes('codex://')); assert.equal(r.json.desktopLink, undefined);
       assert.deepEqual([readFileSync(w.transcript, 'utf8'), readFileSync(w.rollout, 'utf8')], before);
     });
 
@@ -900,6 +1114,12 @@ describe('Relay : création et expéditeur facultatif', () => {
       const text = await relay(makeWorld(), ['--new', '--to', provider, 'Question', '--trust-config', '--no-export'], env);
       assert.equal(text.code, 2); assert.match(text.stderr, /Pour continuer.*palabre relay --to/);
       assert.match(text.stderr, /premier échange a échoué/); assert.equal(text.stdout, '');
+      if (provider === 'codex') {
+        assert.ok(text.stderr.includes(`codex://threads/${NEW_IDS.codex}`));
+        assert.match(text.stderr, /--open/); assert.match(text.stderr, /permissions de cette conversation/);
+        // Garde-fou sans skill : la sortie réserve l'ouverture au propriétaire.
+        assert.match(text.stderr, /un agent ne l'ouvre jamais à sa place/);
+      } else assert.ok(!text.stderr.includes('codex://'));
     });
 
     test(`${provider} : un identifiant mal formé n'est jamais proposé pour continuer`, async () => {
@@ -908,8 +1128,45 @@ describe('Relay : création et expéditeur facultatif', () => {
       const r = await relay(w, ['--new', '--to', provider, 'Question', '--trust-config', '--json'], env);
       assert.notEqual(r.code, 0); assert.equal(r.json.to.session, null); assert.equal(r.json.created, false);
       assert.equal(r.json.reply, undefined);
+      assert.ok(!readFileSync(r.json.exportPath ?? w.transcript, 'utf8').includes('codex://'));
     });
   }
+
+  test('lien Codex Desktop en arrière-plan : création et reprise, commande d\'ouverture, jamais en JSON (#190)', async () => {
+    const opener = process.platform === 'win32' ? 'explorer.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+    const created = await relay(makeWorld(), ['--new', '--to', 'codex', 'Question', '--trust-config', '--language', 'en', '--no-export']);
+    assert.equal(created.code, 0, created.stderr);
+    assert.ok(created.stderr.includes(`Codex Desktop link, to hand to the owner: codex://threads/${NEW_IDS.codex}`));
+    assert.ok(created.stderr.includes(`To open it yourself: ${opener} "codex://threads/${NEW_IDS.codex}"`));
+    assert.ok(created.stderr.includes('Mode: background — no visible window; PALABRE requests read-only access.'));
+    // Sortie non TTY : aucune séquence OSC 8.
+    assert.ok(!created.stderr.includes('\u001b]8;;'));
+    const resumed = await relay(makeWorld(), ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--json']);
+    assert.equal(resumed.code, 0, resumed.stdout + resumed.stderr);
+    assert.equal(resumed.json.mode, 'background');
+    assert.ok(!JSON.stringify(resumed.json).includes('codex://'), 'aucun champ JSON de lien');
+    assert.match(readFileSync(resumed.json.exportPath, 'utf8'), new RegExp(`\\| Lien Codex Desktop \\| codex://threads/${CODEX_SESSION} \\|`));
+    const text = await relay(makeWorld(), ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--no-export']);
+    assert.ok(text.stderr.includes(`Pour suivre cette conversation dans Codex Desktop : codex://threads/${CODEX_SESSION}`));
+    assert.ok(text.stderr.includes(`Pour l'ouvrir vous-même : ${opener} "codex://threads/${CODEX_SESSION}"`));
+    const claude = await relay(makeWorld(), ['--to', `claude:${CLAUDE_SESSION}`, 'Question', '--trust-config', '--no-export']);
+    assert.ok(!claude.stderr.includes('codex://'), 'jamais pour Claude');
+    assert.ok(claude.stderr.includes('Mode : arrière-plan — sans fenêtre visible ; PALABRE demande la lecture seule.'));
+    // Conversation introuvable : arrêt avant la localisation, donc ni lien ni commande.
+    const missing = await relay(makeWorld(), ['--to', 'codex:0199bbbb-bbbb-7bbb-8bbb-bbbbbbbbbbbb', 'Question', '--trust-config', '--no-export']);
+    assert.equal(missing.code, 6, missing.stderr);
+    assert.ok(!missing.stderr.includes('codex://'), 'jamais pour une conversation introuvable');
+    assert.ok(missing.stderr.includes('Mode : arrière-plan — sans fenêtre visible'));
+  });
+
+  test('refus d\'arguments : mode présent en JSON, aucune ligne Mode ni lien', async () => {
+    const r = await relay(makeWorld(), ['--to', `codex:${CODEX_SESSION}`, '--trust-config']);
+    assert.equal(r.code, 8);
+    assert.ok(!r.stderr.includes('Mode :'));
+    assert.ok(!r.stderr.includes('codex://'));
+    const json = await relay(makeWorld(), ['--to', `codex:${CODEX_SESSION}`, '--trust-config', '--json']);
+    assert.equal(json.json.mode, 'background');
+  });
 
   test('expéditeur absent, nom seul et UUID restent déclaratifs en reprise fermée', async () => {
     for (const sender of [undefined, 'claude', `codex:${CODEX_SESSION}`]) {
@@ -954,4 +1211,162 @@ test('options vides : message traduit avec prochaine étape, sans lancement ni a
     assert.ok(r.json.error.message.includes(flag === '--from' ? '--from claude' : '--new --dir'));
     assert.equal(existsSync(path.join(w.home, '.palabre', 'trusted-configs.json')), false);
   }
+});
+
+describe("palabre relay --then-follow (#204)", () => {
+  test("ponctuation du statut de la suite en français et en anglais", () => {
+    assert.equal(relayThenFollowText("fr").statusLine("Suite", "followed"), "Suite : followed");
+    assert.equal(relayThenFollowText("en").statusLine("Next turn", "followed"), "Next turn: followed");
+    assert.equal(relayThenFollowText("en").statusLine("Next turn", "awaiting-turn", "timeout"), "Next turn: awaiting-turn (timeout)");
+  });
+
+  test("exclusions et durées invalides : refus sans dépôt", async () => {
+    for (const suffix of [
+      ["--background"], ["--new"], ["--follow", "--open"], ["--check"], ["--write"], ["--task", "review"],
+      ["--then-follow", "9"], ["--then-follow", "3601"], ["--then-follow", "abc"], ["--then-follow"]
+    ]) {
+      const world = makeWorld();
+      const duration = suffix[0] === "--then-follow" ? [] : ["--then-follow", "10"];
+      const result = await relay(world, ["--to", `codex:${CODEX_SESSION}`, "Question", ...duration, ...suffix, "--json"]);
+      assert.equal(result.code, 8, suffix.join(" ")); assert.equal(result.calls.length, 0);
+      assert.equal(result.json.delivery.status, "not-delivered");
+    }
+  });
+
+  test("auto fermé et Claude refusés, sans reprise ni dépôt", async () => {
+    for (const to of [`codex:${CODEX_SESSION}`, `claude:${CLAUDE_SESSION}`]) {
+      const result = await relay(makeWorld(), ["--to", to, "Question", "--then-follow", "10", "--trust-config", "--json"]);
+      assert.equal(result.code, 8, result.stderr); assert.equal(result.calls.length, 0);
+    }
+  });
+
+  test("ouvert explicite/auto, fr/en, JSON/texte/export : deux réponses et un seul dépôt", { skip: process.platform !== "win32" }, async () => {
+    for (const language of ["fr", "en"]) for (const json of [true, false]) for (const explicit of [true, false]) {
+      const world = makeWorld(), release = holdCodexLock(world);
+      try {
+        const result = await relay(world, [...(explicit ? ["--open"] : []), "--to", `codex:${CODEX_SESSION}`, "Question", "--then-follow", "10", "--language", language, "--trust-config", ...(json ? ["--json"] : [])], { FAKE_CODEX_QUEUE: "then-follow" });
+        assert.equal(result.code, 0, result.stderr); assert.equal(result.calls.length, 1);
+        if (json) {
+          assert.equal(result.json.status, "replied"); assert.equal(result.json.reply, "FAKE-OPEN « été »");
+          assert.equal(result.json.nextTurn.status, "followed"); assert.equal(result.json.nextTurn.reply, "FAKE-SUITE été 🐈");
+          assert.equal("follow" in result.json, false); assert.equal("thenFollow" in result.json, false);
+          assert.equal(result.json.nextTurn.receiver, "unverified"); assert.deepEqual(result.json.observedModels, ["gpt-fake"]);
+          assert.deepEqual(result.json.nextTurn.observedModels, ["gpt-next"]);
+          const exported = readFileSync(result.json.exportPath, "utf8");
+          assert.ok(exported.includes(result.json.reply)); assert.ok(exported.includes(result.json.nextTurn.reply));
+          assert.match(exported, /^## nextTurn — /m);
+        } else {
+          assert.equal(result.stdout.split("FAKE-OPEN").length, 2, "réponse primaire non dupliquée");
+          assert.ok(result.stdout.includes("FAKE-SUITE été 🐈"));
+          assert.match(result.stdout, /auteur non vérifié|unverified author/);
+          const text = relayThenFollowText(language as "fr" | "en");
+          assert.ok(result.stderr.includes(text.statusLine(text.label, "followed")));
+          assert.ok(result.stderr.includes(text.followed));
+          if (language === "en") assert.ok(!result.stderr.includes(`${text.label} :`));
+        }
+      } finally { release(); }
+    }
+  });
+});
+
+describe("palabre relay --open --follow (#195)", () => {
+  const followCodex = ["--open", "--follow", "--to", `codex:${CODEX_SESSION}`];
+  /** Tour lancé depuis l'app, ajouté au rollout pendant que la CLI suit la conversation. */
+  const appTurn = (reply: string) => [
+    { type: "event_msg", payload: { type: "task_started", turn_id: "turn-app" } },
+    { type: "turn_context", payload: { turn_id: "turn-app", model: "gpt-fake", approval_policy: "on-request", sandbox_policy: { type: "workspace-write", network_access: false } } },
+    { type: "response_item", payload: { type: "message", role: "user", content: [{ type: "input_text", text: "oui" }] } },
+    { type: "event_msg", payload: { type: "item_completed", thread_id: CODEX_SESSION, turn_id: "turn-app", item: { type: "UserMessage", content: [{ type: "text", text: "oui" }] } } },
+    { type: "event_msg", payload: { type: "item_completed", thread_id: CODEX_SESSION, turn_id: "turn-app", item: { type: "AgentMessage", content: [{ type: "text", text: reply }], phase: "final_answer" } } },
+    { type: "event_msg", payload: { type: "task_complete", turn_id: "turn-app", last_agent_message: reply } }
+  ].map((row) => `${JSON.stringify(row)}\n`).join("");
+
+  test("options d'envoi ou sans --open : invalid-arguments, code 8, rien de lancé ni d'accord d'écriture", async () => {
+    for (const args of [
+      ["--follow", "--to", `codex:${CODEX_SESSION}`],
+      [...followCodex, "Bonjour"],
+      [...followCodex, "--from", "claude"],
+      [...followCodex, "--subject", "Objet"],
+      [...followCodex, "--message-file", "message.md"],
+      [...followCodex, "--new"],
+      [...followCodex, "--dir", "."],
+      [...followCodex, "--task", "review"],
+      [...followCodex, "--pr", "https://github.com/owner/repo/pull/1"],
+      [...followCodex, "--write"]
+    ]) {
+      const world = makeWorld();
+      const result = await relay(world, [...args, "--trust-config", "--json"]);
+      assert.equal(result.code, 8, args.join(" "));
+      assert.equal(result.json.error.reason, "invalid-arguments");
+      assert.match(result.json.error.message, /--follow s'utilise seulement avec --open/);
+      assert.equal(result.json.mode, "follow");
+      assert.equal(result.calls.length, 0);
+      assert.equal(existsSync(path.join(world.home, ".palabre", "relay-write")), false, args.join(" "));
+    }
+  });
+
+  test("conversation non ouverte : target-not-open, code 3, ni dépôt, ni export, ni queue", async () => {
+    const world = makeWorld();
+    const result = await relay(world, [...followCodex, "--trust-config", "--json"]);
+    assert.equal(result.code, 3, result.stderr);
+    assert.equal(result.json.status, "target-not-open");
+    assert.equal(result.json.mode, "follow");
+    assert.equal("queue" in result.json, false);
+    assert.equal(result.json.exportPath, null);
+    assert.equal(result.calls.length, 0);
+  });
+
+  test("cible Claude : unsupported-agent, sans lancement", async () => {
+    const world = makeWorld();
+    const result = await relay(world, ["--open", "--follow", "--to", `claude:${CLAUDE_SESSION}`, "--trust-config", "--json"]);
+    assert.equal(result.code, 8);
+    assert.equal(result.json.error.reason, "unsupported-agent");
+    assert.equal(result.calls.length, 0);
+  });
+
+  test("tour lancé depuis l'app pendant le suivi : followed, code 0, aucun dépôt, export", { skip: process.platform !== "win32" }, async () => {
+    const world = makeWorld();
+    const release = holdCodexLock(world);
+    const timer = setTimeout(() => appendFileSync(world.rollout, appTurn("Lot terminé « été ».")), 1_500);
+    try {
+      const result = await relay(world, [...followCodex, "--timeout", "30", "--trust-config", "--json"]);
+      assert.equal(result.code, 0, result.stderr);
+      const { json } = result;
+      assert.equal(json.status, "followed");
+      assert.equal(json.mode, "follow");
+      assert.equal(json.reply, "Lot terminé « été ».");
+      assert.equal(json.error, null);
+      assert.equal(json.identity, "same-as-target");
+      assert.equal(json.from, null);
+      assert.deepEqual(json.delivery, { status: "not-delivered", persisted: false, inActiveBranch: false });
+      assert.deepEqual(json.correlation, { status: "followed", reason: "turn-completed" });
+      assert.deepEqual(json.targetPermissions, { approvalPolicy: "on-request", sandbox: "workspace-write", network: "restricted" });
+      assert.equal("queue" in json, false);
+      assert.equal(result.calls.length, 0, "aucun processus Codex lancé");
+      const exported = readFileSync(json.exportPath, "utf8");
+      assert.match(exported, /\| Mode \| follow — suivi dans l'app desktop \|/);
+      assert.match(exported, /Aucun message déposé/);
+      assert.match(exported, /PALABRE ne dépose rien/);
+    } finally {
+      clearTimeout(timer);
+      release();
+    }
+  });
+
+  test("sortie texte : réponse sur stdout, suite non corrélée et permissions sur stderr", { skip: process.platform !== "win32" }, async () => {
+    const world = makeWorld();
+    const release = holdCodexLock(world);
+    const timer = setTimeout(() => appendFileSync(world.rollout, appTurn("Fait.")), 1_000);
+    try {
+      const result = await relay(world, [...followCodex, "--timeout", "30", "--trust-config", "--no-export"]);
+      assert.equal(result.code, 0, result.stderr);
+      assert.equal(result.stdout, "Fait.\n");
+      assert.match(result.stderr, /Ce n'est pas la réponse à un message PALABRE/);
+      assert.match(result.stderr, /Permissions du tour suivi : approval=on-request, sandbox=workspace-write, network=restricted\./);
+      assert.doesNotMatch(result.stderr, /Délivrance/);
+    } finally {
+      clearTimeout(timer);
+      release();
+    }
+  });
 });

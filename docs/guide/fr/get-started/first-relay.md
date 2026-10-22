@@ -16,11 +16,11 @@ Le chef de mission est l'agent à qui vous parlez. L'**équipier** est celui qui
 
 | Votre façon de travailler | Sens des échanges et possibilités actuelles |
 | --- | --- |
-| Deux applications Desktop | Claude Code peut joindre une conversation Codex ouverte sous Windows avec `--open`. Codex desktop peut joindre une conversation Claude fermée, avec une autorisation ponctuelle de son hôte par commande. Vers Claude ouvert : pas encore disponible. |
-| Deux terminaux CLI | Claude vers Codex ouvert sous Windows avec `--open` reste un parcours pilote, peu testé. Codex CLI vers Claude fermée reste à éprouver. |
+| Deux applications Desktop | Claude Code peut joindre une conversation Codex ouverte sous Windows, macOS ou Linux avec `--open` (`python3` requis sur POSIX). Codex desktop peut joindre une conversation Claude fermée, avec une autorisation ponctuelle de son hôte par commande. Vers Claude ouvert : pas encore disponible. |
+| Deux terminaux CLI | Claude vers Codex ouvert avec `--open` reste un parcours pilote, peu testé. Codex CLI vers Claude fermée reste à éprouver. |
 | Un équipier en arrière-plan, sans fenêtre à ouvrir | Une nouvelle conversation ou une conversation existante fermée peut recevoir une demande d’avis ou de relecture. Le parcours Codex desktop vers Claude fermée et le parcours Claude vers Codex fermée ont été vérifiés sous Windows. |
 
-Dans une conversation Codex ouverte, l'équipier peut agir avec ses permissions habituelles. Les appels ordinaires vers une conversation fermée servent aux avis et relectures, avec des outils limités pendant l'appel. Relay n'accorde aucun droit supplémentaire. macOS reste à tester.
+Dans une conversation Codex ouverte, l'équipier peut agir avec ses permissions habituelles. Les appels ordinaires vers une conversation fermée servent aux avis et relectures, avec des outils limités pendant l'appel. Relay n'accorde aucun droit supplémentaire. Le verrou Codex est pris en charge sous Windows et, avec `python3`, sous macOS/Linux.
 
 ## Les mots de Relay
 
@@ -59,7 +59,7 @@ Depuis votre conversation avec Claude Code, dites par exemple :
 
 Le skill crée une conversation si vous n'en avez pas désigné une. Si vous choisissez une conversation existante, il garde cette cible précise, jamais « la dernière ».
 
-Pour travailler dans une conversation Codex déjà ouverte sous Windows, désignez-la et dites le travail attendu. Le chef de mission emploie `--open` ; l'équipier conserve ses permissions, sans droit ajouté par le message.
+Pour travailler dans une conversation Codex déjà ouverte sous Windows, macOS ou Linux, désignez-la et dites le travail attendu. PALABRE choisit le mode avec `auto` selon le verrou ; sur POSIX, `python3` doit être disponible. L'équipier conserve ses permissions, sans droit ajouté par le message.
 
 ### Codex chef de mission
 
@@ -77,7 +77,7 @@ Ce parcours a été vérifié sous Windows depuis Codex desktop. Depuis Codex CL
 
 > Continue avec le même Claude pour préciser le risque principal, sans modifier de fichier.
 
-Le chef de mission réutilise l'identifiant, lit la réponse et vous en rend compte. L'échange reste dans la conversation de l'équipier ; PALABRE donne aussi le chemin de l'export `.relay.md`. Son apparition immédiate dans Desktop n'est pas garantie. La réponse revient à l'appelant, sans être ajoutée automatiquement à la conversation de l'expéditeur.
+Le chef de mission réutilise l'identifiant, lit la réponse et vous en rend compte. L'échange reste dans la conversation de l'équipier ; PALABRE donne aussi le chemin de l'export `.relay.md`. Avec les versions Codex vérifiées, une conversation créée par `--new` n'est pas listée dans Codex Desktop, mais Relay peut continuer à la joindre. Pour la suivre dans l'application, ouvrez le lien `codex://threads/<identifiant>` affiché après la création ; une fois ouverte dans Desktop, joignez-la avec `--open`. La réponse revient à l'appelant, sans être ajoutée automatiquement à la conversation de l'expéditeur. L'ouverture de ce lien Desktop est vérifiée sous Windows seulement ; macOS et Linux restent à vérifier.
 
 Si l'équipier modifie des fichiers dans une conversation ouverte, ils restent dans son dossier de travail. Ils apparaissent sur GitHub seulement après un commit et un push autorisés séparément. Une réponse reçue ne prouve pas que le travail ou les tests ont réussi.
 
@@ -108,9 +108,12 @@ Ce parcours conserve une copie Git séparée, ou **worktree**, sans vos changeme
 Mission et `--task review` sont gelés : conservés et documentés, sans extension de périmètre ; seuls les correctifs de sécurité sont acceptés.
 
 - Gardez l'identifiant rendu pour continuer explicitement un avis ou une relecture avec `--to codex:<identifiant>` ou `--to claude:<identifiant>`, sans `--new`. Ne choisissez jamais « la dernière conversation » à la place de la cible.
-- Sans `--open`, une conversation existante doit être fermée pendant l'appel. Avec `--open`, seul Codex sous Windows est pris en charge ; le parcours à deux terminaux reste à éprouver davantage.
+- Sans `--open`, une conversation existante doit être fermée pendant l'appel. Avec `--open`, seul Codex est pris en charge, sous Windows, macOS ou Linux (`python3` sur POSIX) ; le parcours à deux terminaux reste à éprouver davantage.
 - Un identifiant reçu ne prouve pas que la tâche a réussi. Lisez le statut, la délivrance et les preuves du compte rendu. En cas d'échec, ne renvoyez pas automatiquement la demande.
 - Dans le parcours expérimental, `--write` ne permet ni commit, ni push, ni fusion, ni installation de dépendances par l'équipier. Un test bloqué reste signalé ; PALABRE n'élargit pas les permissions pour le faire passer. L'accord est consommé même en échec.
 - Pour créer l'équipier dans un autre projet, utilisez `--dir "../autre-projet"` avec `--new`. Le parcours expérimental d'écriture exige la racine d'un dépôt Git.
 
 Les détails, les statuts et les limites de chaque parcours sont dans le [guide Relay complet](/fr/usage/relay).
+
+
+Pour un avis ou une relecture qui doit rester sans modification, passez `--background` : ce choix ponctuel réduit les droits sans changer le réglage. Pour le reste, PALABRE choisit le mode, pas l'agent : par défaut `auto` suit le verrou de Codex ; une conversation fermée part en arrière-plan, une conversation ouverte garde ses permissions propres. Un état invérifiable refuse l'envoi, sans repli plus permissif. Pour imposer l'arrière-plan, lancez vous-même `palabre config --relay-view background` ; pour revenir au défaut, `palabre config --relay-view auto`. Le fichier et le changement sont affichés avant votre confirmation clavier dans un terminal visible (entrée/sortie TTY), sans `--yes` ni `--trust-config`, sur une config déjà approuvée. Un agent ne choisit ni ne confirme ce réglage. Les options ponctuelles `--background` et `--open` ne le changent pas. Voir [Mode Relay](/fr/usage/relay).

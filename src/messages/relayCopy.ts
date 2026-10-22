@@ -3,7 +3,7 @@ import type { Language } from "../types.js";
 
 const texts = {
   fr: {
-    conflict: "--copy est réservé à une consultation OpenCode existante, sans --new, --open, --write, --task, --pr ou Mission.",
+    conflict: "--copy est réservé à une consultation OpenCode existante, sans --new, --open, --background, --check, --follow, --then-follow, --write, --task, --pr ou Mission. Retirez ces options et gardez --copy --to <agent>:ses_... --dir <projet> avec votre question. Le profil habituel est conservé, sans lecture seule imposée.",
     directory: "Indiquez le dossier exact de la source : palabre relay --copy --to opencode:ses_... --dir \"C:\\chemin\\projet\" \"Votre question\".",
     required: "OpenCode exige une copie et un dossier explicites : palabre relay --copy --to opencode:ses_... --dir \"C:\\chemin\\projet\" \"Votre question\". Fermez la source pendant l'appel.",
     unsupported: "Ce pilote exige Windows et OpenCode CLI 2.0.32. Aucun serveur ou modèle lancé. Le propriétaire vérifie avec opencode --version ; ne mettez pas à jour ou ne relancez pas automatiquement.",
@@ -15,7 +15,7 @@ const texts = {
     exportFailed: "L'export local n'a pas pu être écrit. Les identifiants, la réponse et la délivrance restent dans ce résultat ; vérifiez les droits du dossier de sortie, sans renvoyer le message."
   },
   en: {
-    conflict: "--copy is reserved for an existing OpenCode consultation, without --new, --open, --write, --task, --pr or Mission.",
+    conflict: "--copy is reserved for an existing OpenCode consultation, without --new, --open, --background, --check, --follow, --then-follow, --write, --task, --pr or Mission. Remove these options and keep --copy --to <agent>:ses_... --dir <project> with your question. The usual profile is preserved, with no enforced read-only mode.",
     directory: "Provide the exact source directory: palabre relay --copy --to opencode:ses_... --dir \"C:\\path\\project\" \"Your question\".",
     required: "OpenCode requires an explicit copy and directory: palabre relay --copy --to opencode:ses_... --dir \"C:\\path\\project\" \"Your question\". Close the source during the call.",
     unsupported: "This pilot requires Windows and OpenCode CLI 2.0.32. No server or model started. The owner checks with opencode --version; do not update or retry automatically.",

@@ -26,9 +26,11 @@ import type {
   TargetProbe
 } from "./types.js";
 
-/** Code de sortie de chaque issue. Toute issue autre que `replied` sort en non nul. */
+/** Code de sortie de chaque issue. Toute issue autre que `replied`, `followed` (#195) ou `checked` (#203) sort en non nul. */
 export const RELAY_EXIT_CODES: Readonly<Record<RelayStatus, number>> = {
   "replied": 0,
+  "followed": 0,
+  "checked": 0,
   "read-unavailable": 2,
   "review-failed": 9,
   "internal-error": 1,

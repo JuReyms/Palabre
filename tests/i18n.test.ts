@@ -1,3 +1,4 @@
+/** @file Vérifie la résolution des langues et les messages localisés, dont l'aide CLI. */
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createTranslator, parseLanguage, resolveLanguage } from "../src/i18n.js";
@@ -49,7 +50,7 @@ test("createTranslator returns localized common errors", () => {
 });
 
 test("createTranslator returns localized help text", () => {
-  assert.match(createTranslator("fr").help.render("codex-claude"), /Demarrage rapide/);
+  assert.match(createTranslator("fr").help.render("codex-claude"), /Démarrage rapide/);
   assert.match(createTranslator("en").help.render("codex-claude"), /Quick start/);
   assert.match(createTranslator("fr").help.render("codex-claude"), /https:\/\/palab\.re\/fr/);
   assert.match(createTranslator("en").help.render("codex-claude"), /https:\/\/palab\.re\/en/);

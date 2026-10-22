@@ -77,7 +77,7 @@ La reprise conserve les réponses complètes et relance uniquement le prochain t
 | Commande | Description |
 | --- | --- |
 | `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> "Message"` | Conversation fermée Codex ou Claude Code, reprise en lecture seule. |
-| `palabre relay --open --from <agent>:<uuid> --to codex:<uuid> "Message"` | Conversation Codex ouverte, pilote Windows ; outils et permissions propres à la cible. |
+| `palabre relay --open --from <agent>:<uuid> --to codex:<uuid> "Message"` | Conversation Codex ouverte, pilote Windows/macOS/Linux (`python3` sur POSIX) ; outils et permissions propres à la cible. |
 | `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> --task review --pr https://github.com/proprietaire/depot/pull/123` | Rédige et publie une revue COMMENT si autorisée. |
 | `palabre relay allow-repo proprietaire/depot` | Autorise la tâche review après confirmation au clavier par le propriétaire. |
 
@@ -219,5 +219,11 @@ supporter de futures intégrations. Sans déclaration, la source indiquée est
 | `palabre update --dry-run` | Affiche les étapes exactes sans les lancer. |
 | `palabre update --yes` | Applique un plan sûr sans confirmation interactive. |
 | `palabre update --apply` | Alias compatible de `--yes`. |
+| `palabre skill` | Compare les copies du skill avec le paquet exécuté, sans écrire ni contacter le réseau. |
+| `palabre skill --sync` | Affiche les copies à rafraîchir et demande confirmation ; sauvegardes hors des dossiers de skills et jonctions conservées. |
+| `palabre skill --install codex` | Installe le skill de cette CLI dans `~/.agents/skills/palabre`, après confirmation. Utiliser `--install claude` pour Claude Code. |
+| `palabre skill --sync --dry-run` | Aperçu sans écriture ; `--check` est aussi sans effet de bord. |
+
+La confirmation unique de `palabre update` couvre aussi les copies du skill détectées, rafraîchies depuis le paquet nouvellement installé. Voir [Skill Palabre](/fr/get-started/skill) pour les personnalisations, sauvegardes et le rechargement dans l'agent.
 
 `palabre mission status <id> --json` rend un objet `mission-result` v1 sans appel d’agent. Les exports Relay indiquent la version de PALABRE, mais ne portent pas les champs de provenance `PALABRE_CLIENT` des exports Débat, Ask et Chat.

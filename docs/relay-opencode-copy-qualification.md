@@ -116,6 +116,40 @@ Les 27 tests OpenCode passent après ce second correctif, ainsi que le typage,
 le build et la validation du skill. La relecture indépendante confirme les
 priorités et les ordres d'événements ; le garde-profil reste inchangé.
 
+## Reprise du 22 octobre 2026 après 0.20.0
+
+La branche reprend `main` au commit `ec8969c` : release 0.20.0 et ajouts déjà
+fusionnés depuis (vérification sans envoi, suivi après réponse, quota indicatif).
+Intégration sans réécriture des commits antérieurs, dans le worktree dédié.
+
+Le parcours OpenCode reste distinct : `mode: copy`, `modeSource: explicit`, sans
+résolution `relay.view`, sonde Codex, quota, lien Desktop ou champ de suivi.
+`--background`, `--check`, `--follow` et `--then-follow` sont refusés avec `--copy`
+avant lecture du message/configuration ou lancement. Les adaptations de rendu
+FR/EN et d'export ne doivent jamais annoncer la lecture seule de l'arrière-plan.
+Doctor ne réutilise pas les commandes d'authentification Codex/Claude pour OpenCode.
+Les notes OpenCode restent dans Unreleased, pas dans une release déjà publiée.
+
+Vérifications locales :
+
+- `pnpm check`, `pnpm build`, `pnpm validate:skill` et synchronisation documentaire
+  locale via `python scripts/sync_docs.py` : réussis.
+- 57 tests ciblés copie/transport/serveur/doctor/aide : réussis. Un premier passage
+  exigeait à tort le message sans le préfixe générique de refus ; assertion corrigée.
+  Ce passage a aussi été rejeté par le garde-profil et n'est pas une preuve valide.
+- Dernier `pnpm test` complet : 1 057 tests, 1 052 réussis, 5 ignorés, aucun échec.
+  Le vrai profil Palabre reste inchangé (contenus et métadonnées), garde actif.
+- La matrice fictive commande croise FR/EN et préférences auto/background ; elle
+  vérifie refus sans lancement, absence de champs Codex, mode et réponse conservée.
+  Un test pur d'export vérifie aussi le repli vers copy quand le mode est omis.
+- Relecture indépendante des frontières de modes, de doctor et des exports :
+  aucun blocage relevé. Adapters Claude/Codex, Mission, review et write inchangés
+  contre la nouvelle base.
+
+Aucun nouvel appel réel OpenCode, changement de profil ou synchronisation de
+skill installé pendant cette reprise. La preuve fournisseur reste celle du
+19 octobre, pas une nouvelle qualification ; version et plateformes inchangées.
+
 ## Limites conservées
 
 Cette preuve concerne cette CLI, cette version Windows et ce contexte textuel
@@ -129,4 +163,5 @@ restent celles choisies par l'utilisateur ; aucune lecture seule imposée ni
 neutralisation générale. Les relevés ne sont pas un verrou global. Pas de
 retry, suppression automatique, changement de modèle ou extrapolation à Claude
 Code. Mission, review et `--write` restent gelés ; #136 n'est pas résolue par ce
-seul lot CLI. Les copies installées du skill nécessitent une mise à jour manuelle.
+seul lot CLI. Copies installées : `palabre skill --sync` après accord humain,
+puis recharger le skill ; aucune copie installée n'est modifiée ici.

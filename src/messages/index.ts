@@ -17,6 +17,9 @@ import { promptMessages, type PromptMessages } from "./prompt.js";
 import { presetsMessages, type PresetsMessages } from "./presets.js";
 import { previewMessages, type PreviewMessages } from "./preview.js";
 import { relayMessages, type RelayMessages } from "./relay.js";
+import { relayViewText } from "./relayView.js";
+import { relayQuotaText } from "./relayQuota.js";
+import { relayThenFollowText } from "./relayThenFollow.js";
 import { rendererMessages, type RendererMessages } from "./renderers.js";
 import { resumeMessages, type ResumeMessages } from "./resume.js";
 import { sessionsMessages, type SessionsMessages } from "./sessions.js";
@@ -42,6 +45,9 @@ export interface Messages {
   presets: PresetsMessages;
   preview: PreviewMessages;
   relay: RelayMessages;
+  relayView: ReturnType<typeof relayViewText>;
+  relayQuota: ReturnType<typeof relayQuotaText>;
+  relayThenFollow: ReturnType<typeof relayThenFollowText>;
   renderers: RendererMessages;
   resume: ResumeMessages;
   sessions: SessionsMessages;
@@ -69,6 +75,9 @@ export function createTranslator(language: Language): Messages {
     presets: presetsMessages[language],
     preview: previewMessages[language],
     relay: relayMessages[language],
+    relayView: relayViewText(language),
+    relayQuota: relayQuotaText(language),
+    relayThenFollow: relayThenFollowText(language),
     renderers: rendererMessages[language],
     resume: resumeMessages[language],
     sessions: sessionsMessages[language],

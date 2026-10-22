@@ -116,7 +116,7 @@ Le lecteur exige :
   même tour rendent la réponse ambiguë) ;
 - toute autre saisie utilisateur apparue après le début du tour et avant sa terminaison doit
   être explicitement liée à un autre tour ; une saisie sans liaison identifiable interdit
-  l'attribution, sauf le contexte d'environnement strictement délimité plus bas ;
+  l'attribution, sauf les contextes AGENTS/environnement strictement délimités plus bas ;
 - une seule réponse `AgentMessage`, `phase: final_answer`, de ce thread et de ce tour ;
 - un `task_complete` du même tour, après la réponse, avec `last_agent_message` identique, sans
   `error` non nul, et aucun échec ou abandon de ce tour.
@@ -147,7 +147,7 @@ Il n'est toléré que si **toutes** ces conditions sont réunies :
   sans autre texte ;
 - aucune liaison `UserMessage` de ce texte ;
 - aucune occurrence du nonce de la demande dans ce texte ;
-- une seule exemption par tour.
+- une seule exemption de cette sorte par tour.
 
 Une balise seule, une métadonnée absente, d'un autre tour ou mêlée à d'autres types, un texte
 hors du bloc, un contexte après le message relayé ou lié dans le même tour restent ambigus
@@ -156,6 +156,30 @@ hors du bloc, un contexte après le message relayé ou lié dans le même tour r
 distinct, donne `multiple-environment-contexts`. Dans tous ces cas, aucune réponse n'est rendue
 et la preuve de réception est conservée (`persisted-no-reply` à l'arrêt). Aucun autre préfixe
 textuel n'est une preuve de provenance système.
+
+**Extension #146 partielle, formes relevées localement le 21 octobre 2026 sous Windows.**
+AGENTS est également reconnu sous la forme `# AGENTS.md instructions for <dossier>`, puis un bloc
+complet `<INSTRUCTIONS>…</INSTRUCTIONS>`, dans une partie `input_text` avec métadonnée du même
+tour et `content_item_kinds: ["agents_md.instructions"]`. Un message regroupé est observé avec
+deux parties `input_text`, AGENTS puis environnement, et exactement les deux sortes dans cet
+ordre. Les mêmes bornes s'appliquent : après le début du tour, avant l'enveloppe, sans liaison
+UserMessage, sans nonce ; un bloc de chaque sorte au plus, même si les deux sont regroupés.
+Les doublons donnent `multiple-agents-contexts` ou `multiple-environment-contexts` ; un nonce
+dans un contexte AGENTS donne `nonce-in-agents-context`. Aucun contenu privé, chemin réel ou
+identifiant local n'est repris dans les fixtures. Les métadonnées ne prouvent pas la provenance.
+
+La forme ordinaire `user.text` (une partie `input_text` et métadonnée du tour) est observée ;
+son placement concurrent est simulé dans les tests. Après l'enveloppe et avant la finale, elle
+reste ambiguë avec `user-input-during-turn` : `no-valid-reply`, sans réponse, réception conservée,
+et un message demandant de vérifier la conversation avant tout renvoi. Les enveloppes d'agent,
+formats structurés inconnus et doublons ne sont pas assimilés à une saisie libre reconnue.
+Ce diagnostic n'établit ni identité humaine, ni clic, ni autorisation.
+
+La forme réelle de la réponse à une question n'a pas été retrouvée dans les historiques locaux
+disponibles. Une mention de `send_user_message_question_reply` dans une demande d'agent n'est
+pas une observation. Aucune reconnaissance ni champ `humanInput` n'est ajouté par supposition.
+Ce lot référence #146 sans la fermer et ne valide pas #190. Les fixtures et leur provenance sont
+dans `tests/fixtures/external-sessions/open-user-context.{json,md}`.
 
 **Formats d'échec.** Dans les traces réelles sont observés `task_started`, les deux
 `item_completed` et `task_complete` avec `last_agent_message`, sans `thread_id` ni `status`.

@@ -77,7 +77,7 @@ Resume keeps every complete response and calls only the next Debate turn, remain
 | Command | Description |
 | --- | --- |
 | `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> "Message"` | Closed Codex or Claude Code conversation, resumed read-only. |
-| `palabre relay --open --from <agent>:<uuid> --to codex:<uuid> "Message"` | Open Codex conversation, Windows pilot; target's own tools and permissions. |
+| `palabre relay --open --from <agent>:<uuid> --to codex:<uuid> "Message"` | Open Codex conversation, Windows/macOS/Linux pilot (`python3` on POSIX); target's own tools and permissions. |
 | `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> --task review --pr https://github.com/owner/repository/pull/123` | Writes and publishes a COMMENT review when authorized. |
 | `palabre relay allow-repo owner/repository` | Authorizes review after the owner's keyboard confirmation. |
 
@@ -219,5 +219,11 @@ When no client is declared, the invocation source is `direct-cli`.
 | `palabre update --dry-run` | Displays the exact steps without running them. |
 | `palabre update --yes` | Applies a safe plan without interactive confirmation. |
 | `palabre update --apply` | Compatible alias for `--yes`. |
+| `palabre skill` | Compares skill copies with the running package, without writing or network access. |
+| `palabre skill --sync` | Displays the copies to refresh and asks for confirmation; backups stay outside skill directories and junctions are preserved. |
+| `palabre skill --install codex` | Installs this CLI's skill into `~/.agents/skills/palabre`, after confirmation. Use `--install claude` for Claude Code. |
+| `palabre skill --sync --dry-run` | Preview without writes; `--check` is also read-only. |
+
+The single `palabre update` confirmation also covers detected skill copies, refreshed from the newly installed package. See [Palabre skill](/en/get-started/skill) for customization, backups and reloading in the agent.
 
 `palabre mission status <id> --json` returns a `mission-result` v1 object without calling an agent. Relay exports include the PALABRE version, but not the `PALABRE_CLIENT` provenance fields present in Debate, Ask and Chat exports.

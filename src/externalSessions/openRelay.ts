@@ -15,10 +15,15 @@
  * Aucun renvoi, aucune reprise `exec resume`. Ni l'échéance ni l'annulation ne retirent un message
  * de la file : il peut être traité plus tard. Les dépendances (sonde, lectures, lancement, horloge)
  * sont injectables pour les tests.
+ *
+ * `runFollowRelay` (`--open --follow`, #195) partage verrou, référence, lectures et échéance, sans
+ * dépôt : il rend le premier tour terminé ensuite, lancé depuis l'app par un auteur non vérifié.
+ * --then-follow réutilise ce suivi après un unique dépôt réussi, à sa frontière exacte, sous un
+ * second budget explicite. Son résultat secondaire ne remplace jamais la réponse primaire.
  */
 import type { ExternalExecutable } from "./adapter.js";
 import { checkQueueCommand, codexQueueArgs, isQueueUnsupported, parseQueueAck, QUEUE_LIMITS } from "./codexQueue.js";
-import { inspectOpenReply, settleOpenDelivery, type OpenBaseline, type OpenObservation, type OpenSnapshot, type OpenTurnContext } from "./openReader.js";
+import { inspectFollowedTurn, inspectOpenReply, settleOpenDelivery, type FollowObservation, type OpenBaseline, type OpenObservation, type OpenSnapshot, type OpenTurnContext } from "./openReader.js";
 import { captureOpenRollout, readOpenRollout } from "./openRollout.js";
 import { RELAY_EXIT_CODES } from "./outcome.js";
 import { runExternalProcess, type ExternalProcessResult, type ExternalProcessSpec } from "./process.js";
@@ -55,6 +60,10 @@ export interface OpenRelayInput {
   signal: AbortSignal;
   /** Appelé dès qu'un processus de dépôt a été créé (pour qualifier une erreur interne ultérieure). */
   onAttempt?: () => void;
+  /** Second budget explicite, indépendant du dépôt et de la réponse corrélée. */
+  thenFollowMs?: number;
+  /** Notification de la réponse primaire avant l'écoute ; aucune autorisation déduite. */
+  onReply?: (reply: string) => void;
 }
 
 /**
@@ -73,6 +82,10 @@ export interface OpenQueueReport {
 
 /** Résultat d'un relay B1, avant mise en forme par la commande. */
 export interface OpenRelayResult {
+  /** Suite séparée, sans altérer l'issue primaire ni sa délivrance. */
+  nextTurn?: ThenFollowReport;
+  /** Référence interne ; jamais sérialisée par la commande. */
+  followBaseline?: OpenBaseline;
   outcome: RelayOutcome;
   /** Reprise fournie par l'erreur structurée du seul tour corrélé, sans planifier de renvoi. */
   retryAfter?: number | string;
@@ -129,6 +142,34 @@ export function abortableSleep(ms: number, signal: AbortSignal): Promise<void> {
   });
 }
 
+/**
+ * Référence du rollout avant dépôt ou suivi : une fin de ligne partielle est réessayée au plus
+ * `OPEN_BASELINE_RETRY.totalMs`, dans l'échéance et annulable ; toute autre erreur est un refus.
+ */
+async function captureReference(
+  deps: Pick<OpenRelayDeps, "capture" | "now" | "sleep">,
+  historyPath: string,
+  signal: AbortSignal,
+  deadline: number
+): Promise<{ baseline: OpenBaseline } | { refusal: RelayOutcome; diagnostic?: string }> {
+  const retryUntil = Math.min(deadline, deps.now() + OPEN_BASELINE_RETRY.totalMs);
+  for (;;) {
+    if (signal.aborted) return { refusal: outcome("cancelled") };
+    try {
+      return { baseline: await deps.capture(historyPath) };
+    } catch (error) {
+      const code = errorCode(error);
+      if (code === "baseline-incomplete" && deps.now() + OPEN_BASELINE_RETRY.stepMs <= retryUntil) {
+        await deps.sleep(OPEN_BASELINE_RETRY.stepMs, signal);
+        continue;
+      }
+      if (signal.aborted) return { refusal: outcome("cancelled") };
+      if (deadline - deps.now() <= 0) return { refusal: outcome("timeout"), diagnostic: `reference-${code}` };
+      return { refusal: outcome("no-valid-reply"), diagnostic: `reference-${code}` };
+    }
+  }
+}
+
 /** Dépendances réelles : verrou par `probe`, lectures bornées, lancement sans shell. */
 export function defaultOpenRelayDeps(probe: () => TargetProbe): OpenRelayDeps {
   return { probe, capture: captureOpenRollout, read: readOpenRollout, run: runExternalProcess, now: () => performance.now(), sleep: abortableSleep };
@@ -136,6 +177,28 @@ export function defaultOpenRelayDeps(probe: () => TargetProbe): OpenRelayDeps {
 
 /** Exécute un relay B1 ; ne lève pas pour les échecs prévus (refus, lancement, lecture). */
 export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): Promise<OpenRelayResult> {
+  const primary = await runOpenRelayOnce(input, deps);
+  if (input.thenFollowMs === undefined) return primary;
+  const { followBaseline, ...result } = primary;
+  if (primary.outcome.status !== "replied") return { ...result, nextTurn: { status: "not-started", reason: "primary-not-replied", receiver: "unverified" } };
+  const deadline = deps.now() + input.thenFollowMs;
+  try {
+    input.onReply?.(primary.reply!);
+    if (!followBaseline) throw new Error("completion-boundary-missing");
+    const next = await runFollowRelay({ sessionId: input.sessionId, historyPath: input.historyPath,
+      timeoutMs: Math.max(0, deadline - deps.now()), deadline, signal: input.signal, baseline: followBaseline }, deps);
+    return { ...result, nextTurn: { status: next.outcome.status === "timeout" ? "awaiting-turn" : next.outcome.status,
+      ...(next.outcome.status === "timeout" ? { reason: "timeout" } : next.diagnostic ? { reason: next.diagnostic } : {}),
+      ...(next.reply !== undefined ? { reply: next.reply } : {}), receiver: "unverified",
+      observedModels: next.observedModels, targetPermissions: next.targetPermissions,
+      ...(next.correlation ? { correlation: next.correlation } : {}), ...(next.retryAfter !== undefined ? { retryAfter: next.retryAfter } : {}) } };
+  } catch (error) {
+    return { ...result, nextTurn: { status: "internal-error", reason: errorCode(error), receiver: "unverified" } };
+  }
+}
+
+/** Une seule tentative de dépôt ; conserve les priorités d'erreur B1 sans lancer le suivi. */
+async function runOpenRelayOnce(input: OpenRelayInput, deps: OpenRelayDeps): Promise<OpenRelayResult> {
   const deadline = deps.now() + input.timeoutMs;
   const remaining = () => Math.max(0, deadline - deps.now());
   const base = {
@@ -156,23 +219,9 @@ export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): 
   if (!check.ok) return refuse(outcome("invalid-request", "message-too-large"), check.detail);
 
   // 3. Référence, avec nouvelles tentatives bornées sur une fin de ligne partielle.
-  const retryUntil = Math.min(deadline, deps.now() + OPEN_BASELINE_RETRY.totalMs);
-  let baseline: OpenBaseline | undefined;
-  while (!baseline) {
-    if (input.signal.aborted) return refuse(outcome("cancelled"));
-    try {
-      baseline = await deps.capture(input.historyPath);
-    } catch (error) {
-      const code = errorCode(error);
-      if (code === "baseline-incomplete" && deps.now() + OPEN_BASELINE_RETRY.stepMs <= retryUntil) {
-        await deps.sleep(OPEN_BASELINE_RETRY.stepMs, input.signal);
-        continue;
-      }
-      if (input.signal.aborted) return refuse(outcome("cancelled"));
-      if (remaining() <= 0) return refuse(outcome("timeout"), `reference-${code}`);
-      return refuse(outcome("no-valid-reply"), `reference-${code}`);
-    }
-  }
+  const reference = await captureReference(deps, input.historyPath, input.signal, deadline);
+  if ("refusal" in reference) return refuse(reference.refusal, reference.diagnostic);
+  const baseline = reference.baseline;
 
   // 4. Nouveau contrôle du verrou juste avant le seul dépôt (réduit la course, sans l'annuler).
   if (input.signal.aborted) return refuse(outcome("cancelled"));
@@ -208,7 +257,7 @@ export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): 
   let persisted = false;
   const inspect = async () => {
     try {
-      observation = inspectOpenReply(await deps.read(input.historyPath, baseline!), request);
+      observation = inspectOpenReply(await deps.read(input.historyPath, baseline!), request, input.thenFollowMs !== undefined);
     } catch (error) {
       observation = { status: "unreadable", persisted: "unknown", reason: errorCode(error) };
     }
@@ -226,6 +275,7 @@ export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): 
     const { model, ...permissions } = context ?? {};
     return {
       outcome: final,
+      ...(final.status === "replied" && current.followBaseline ? { followBaseline: current.followBaseline } : {}),
       ...(final.status === "usage-limit" && current.retryAfter !== undefined ? { retryAfter: current.retryAfter } : {}),
       delivery: { status: settled.status, persisted: settled.persisted, inActiveBranch: "unknown" },
       ...(final.status === "replied" && settled.reply !== undefined ? { reply: settled.reply } : {}),
@@ -283,6 +333,103 @@ export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): 
   }
   const terminal = observation!;
   if (terminal.status === "replied") return finish(outcome("replied"));
+  if (terminal.status === "failed" && terminal.reason === "usage-limit") return finish(outcome("usage-limit"));
+  return finish(outcome(terminal.status === "failed" ? "cli-failure" : "no-valid-reply"));
+}
+
+export interface FollowRelayInput {
+  /** Échéance monotone interne déjà fixée à la réponse ; jamais renouvelée par le suivi. */
+  deadline?: number;
+  /** Référence déjà validée pour --then-follow ; --follow seul capture sa propre référence. */
+  baseline?: OpenBaseline;
+  sessionId: string;
+  historyPath: string;
+  /** Budget total : référence et attente. */
+  timeoutMs: number;
+  signal: AbortSignal;
+}
+
+/** Résultat d'un suivi (#195), avant mise en forme par la commande. Aucun message n'est déposé. */
+export interface FollowRelayResult {
+  outcome: RelayOutcome;
+  retryAfter?: number | string;
+  reply?: string;
+  identity: SessionIdentity;
+  /** Modèle du seul tour suivi. */
+  observedModels: string[];
+  correlation?: { status: FollowObservation["status"]; reason: string };
+  /** Permissions du seul tour suivi, ou `"unknown"`. */
+  targetPermissions: Omit<OpenTurnContext, "model"> | "unknown";
+  receiver: "unverified";
+  diagnostic?: string;
+}
+
+/** Ajout JSON v1 de --then-follow : résultat secondaire, auteur non vérifié, aucune délivrance. */
+export interface ThenFollowReport {
+  status: RelayStatus | "awaiting-turn" | "not-started";
+  reason?: string;
+  reply?: string;
+  receiver: "unverified";
+  observedModels?: string[];
+  targetPermissions?: FollowRelayResult["targetPermissions"];
+  correlation?: FollowRelayResult["correlation"];
+  retryAfter?: number | string;
+}
+
+/**
+ * Suivi d'une conversation ouverte (`--open --follow`, #195), sous **une seule échéance** :
+ * 1. verrou tenu, sinon `target-not-open` ou `target-state-unknown`, sans lecture de l'ajout ;
+ * 2. référence du rollout (fin de ligne partielle réessayée au plus 2 s) ;
+ * 3. lectures bornées jusqu'au premier tour terminé après la référence, l'échéance ou l'annulation.
+ *
+ * Rien n'est déposé ni lancé. Un tour terminé avant l'appel n'est pas rendu : lancer le suivi dès
+ * que la conversation attend une action dans l'app. Issue `followed` : réponse d'un tour dont
+ * l'auteur n'est pas vérifié, jamais la réponse à un message PALABRE.
+ */
+export async function runFollowRelay(input: FollowRelayInput, deps: Pick<OpenRelayDeps, "probe" | "capture" | "read" | "now" | "sleep">): Promise<FollowRelayResult> {
+  const deadline = input.deadline ?? deps.now() + input.timeoutMs;
+  const remaining = () => Math.max(0, deadline - deps.now());
+  let observation: FollowObservation | undefined;
+  const finish = (final: RelayOutcome, diagnostic?: string): FollowRelayResult => {
+    // Relevé du tour seulement quand l'issue repose sur lui : jamais après annulation ou échéance.
+    const context = ["followed", "cli-failure", "usage-limit"].includes(final.status) ? observation?.context : undefined;
+    const { model, ...permissions } = context ?? {};
+    const reason = diagnostic ?? (observation && final.status !== "followed" ? observation.reason : undefined);
+    return {
+      outcome: final,
+      ...(final.status === "usage-limit" && observation?.retryAfter !== undefined ? { retryAfter: observation.retryAfter } : {}),
+      ...(final.status === "followed" && observation?.reply !== undefined ? { reply: observation.reply } : {}),
+      identity: final.status === "followed" ? "same-as-target" : "unavailable",
+      observedModels: model ? [model] : [],
+      ...(observation ? { correlation: { status: observation.status, reason: observation.reason } } : {}),
+      targetPermissions: Object.keys(permissions).length > 0 ? permissions : "unknown",
+      receiver: "unverified",
+      ...(reason ? { diagnostic: reason } : {})
+    };
+  };
+
+  const lock = lockRefusal(deps.probe());
+  if (lock) return finish(outcome(lock));
+  const reference = input.baseline ? { baseline: input.baseline } : await captureReference(deps, input.historyPath, input.signal, deadline);
+  if ("refusal" in reference) return finish(reference.refusal, reference.diagnostic);
+  const request = { threadId: input.sessionId, baseline: reference.baseline };
+
+  // Même discipline que `--open` : annulation et échéance contrôlées avant et après chaque lecture.
+  for (;;) {
+    if (input.signal.aborted) return finish(outcome("cancelled"));
+    if (remaining() <= 0) return finish(outcome("timeout"));
+    try {
+      observation = inspectFollowedTurn(await deps.read(input.historyPath, reference.baseline), request);
+    } catch (error) {
+      observation = { status: "unreadable", reason: errorCode(error) };
+    }
+    if (input.signal.aborted) return finish(outcome("cancelled"));
+    if (remaining() <= 0) return finish(outcome("timeout"));
+    if (observation.status !== "awaiting-turn") break;
+    await deps.sleep(Math.min(OPEN_POLL_MS, remaining()), input.signal);
+  }
+  const terminal = observation!;
+  if (terminal.status === "followed") return finish(outcome("followed"));
   if (terminal.status === "failed" && terminal.reason === "usage-limit") return finish(outcome("usage-limit"));
   return finish(outcome(terminal.status === "failed" ? "cli-failure" : "no-valid-reply"));
 }

@@ -33,11 +33,15 @@ copie, arrêt du serveur possédé (10 s de nettoyage maximum), aucun retrait pr
 Pour inspecter une copie connue depuis le dossier du projet :
 `opencode --session ses_IdentifiantCopie`. Une nouvelle consultation Relay exige
 encore `--copy --dir` et crée une autre copie ; ne jamais donner une commande de
-reprise directe. Aucun --new, --open, --write, --task, --pr ou Mission ici.
+reprise directe. Aucun --new, --open, --background, --check, --follow, --then-follow,
+--write, --task, --pr ou Mission ici. La préférence relay.view ne s'applique pas :
+mode: copy et modeSource: explicit, sans quota/lien Codex ni champ de suivi.
 Version inconnue : le propriétaire vérifie `opencode --version` ; aucun contournement,
 mise à jour ou repli automatique. La config Palabre doit être approuvée normalement.
 
 ## Méthode de travail
+
+Le chef de mission propose la délégation de lui-même : quand un travail se découpe (relecture, recherche, lot indépendant, vérification), il n'attend pas que l'humain y pense. Petite délégation attendue, comme une relecture ou une recherche en lecture seule, dans un travail déjà validé : il l'annonce en une ligne (qui fait quoi), puis la fait. Délégation qui engage, comme une écriture, plusieurs équipiers, un quota important ou un nouveau chantier : il pose une question claire, une seule fois pour tout le lot, et la réponse vaut pour la suite de ce lot. Jamais une demande d'autorisation à chaque appel. Une question simple reste traitée par l'hôte seul. Déléguer n'élargit aucun droit.
 
 Un lot produit un résultat concret, assez petit pour être relu rapidement. Pour la documentation, utiliser la CI et les vérifications ciblées ; si le code touche aux données, à la sécurité ou à l'écriture, obtenir une vérification indépendante. La relecture revient à un agent différent de l'auteur. Les rôles peuvent changer selon les disponibilités.
 
@@ -81,11 +85,17 @@ Pour le chef de mission : docs/plan.md, lignes 12 et 28. Lecture seulement, aucu
 
 Le chef de mission conserve aussi l'identifiant de conversation, le dossier et l'export pour continuer avec le même équipier, selon les règles de restitution du skill. Un échec ou une délivrance inconnue n'autorise aucun renvoi automatique.
 
+## Mode choisi par PALABRE
+
+**Mode Relay (#190)** : pour un avis ou une relecture qui doit rester sans modification, passe `--background` pour Codex/Claude : ce choix ponctuel réduit les droits sans changer le réglage. Pour le reste, ne choisis pas le mode par habitude. Désigne la conversation précise ; PALABRE applique `relay.view` (`auto` par défaut : verrou Codex tenu → ouvert, libre → arrière-plan ; invérifiable → refus). `background` impose l'arrière-plan. Reprends la ligne « Mode » rendue par PALABRE et ses permissions, sans annoncer un envoi sur un refus. `defaults.relayView` dans `palabre agents --json` donne la préférence ; `modeSource?` dit `explicit`, `auto` ou `setting`. `--open`/`--background` sont des choix ponctuels explicites, incompatibles entre eux, jamais une modification du réglage. `--new`, Mission, review, `--write` et Claude Code restent en arrière-plan. Seul le propriétaire lance `palabre config --relay-view <auto|background>` et confirme au clavier dans son terminal visible (entrée/sortie TTY), config déjà approuvée, sans `--yes` ni `--trust-config`. L'agent ne change ni ne confirme jamais ce réglage qui affecte les permissions. Sans `--then-follow` à l'envoi, après une demande de confirmation dans l'app, prépare `--open --follow` avant la validation pour recueillir le tour suivant, sans renvoi ; un tour déjà terminé n'est pas rendu.
+
+**Vérifier avant d'envoyer (#203)** : `palabre relay --check --to <agent>:<uuid> --json` fait les contrôles d'un envoi (configuration, agent, mode, conversation, verrou) puis s'arrête : rien n'est envoyé ni écrit, aucune CLI de l'équipier n'est lancée (sous macOS/Linux, seule la sonde du verrou lance `python3`), aucun export. `checked` (code 0) avec `check.target` (`open` ou `closed`) ; en mode ouvert, `check.lastPermissions` du dernier tour connu, indicatives. Un envoi refusé donne le même statut et le même code. Refusé avec un message, `--from`, `--subject`, `--new`, `--follow`, `--task`, `--write`, `--timeout`, `--no-export` ou `--trust-config` (config déjà approuvée exigée). L'état peut changer avant l'envoi : l'envoi revérifie toujours. Ne pas présenter `checked` comme une délivrance.
+
 ## Choisir le parcours pour la tâche
 
-- **Deux Desktop** : Claude Code vers Codex ouvert sous Windows, `--open`, permissions habituelles de la cible. L'envoi vers Claude Code ouvert reste indisponible.
-- **Deux terminaux CLI** : même direction vers Codex ouvert sous Windows avec `--open`, pilote peu testé ; pas d'envoi vers Claude Code ouvert.
-- **Arrière-plan** : nouvelle conversation (`--new`) ou conversation existante fermée, pour les avis et relectures avec outils limités pendant l'appel. Codex desktop vers Claude fermée et Claude vers Codex fermée sont vérifiés sous Windows. Codex CLI vers Claude et macOS restent à éprouver. `--write` est expérimental et gelé, hors parcours par défaut, uniquement sur demande explicite de l'humain.
+- **Deux Desktop** : Claude Code vers Codex ouvert sous Windows, macOS ou Linux, mode ouvert choisi en `auto`, permissions de cette conversation. Sur POSIX, `python3` doit être disponible pour éprouver le verrou. L'envoi vers Claude Code ouvert reste indisponible.
+- **Deux terminaux CLI** : même direction vers Codex ouvert, mode choisi en `auto`, pilote peu testé ; pas d'envoi vers Claude Code ouvert.
+- **Arrière-plan** : nouvelle conversation (`--new`) ou conversation existante fermée, pour les avis et relectures avec outils limités pendant l'appel. Codex desktop vers Claude fermée et Claude vers Codex fermée sont vérifiés sous Windows ; la cible Codex fermée est aussi vérifiée sur macOS. Codex CLI comme expéditeur reste à éprouver. `--write` est expérimental et gelé, hors parcours par défaut, uniquement sur demande explicite de l'humain.
 
 Pour l'humain, renvoyer au [guide Premier Relay](https://palab.re/fr/get-started/first-relay). Il choisit Claude Code ou Codex comme chef de mission. Ne pas lui imposer d'apprendre les options : choisir sa conversation précise, lire le résultat et rendre compte. Le retour CLI n'est jamais ajouté automatiquement à la conversation de l'expéditeur. L'affichage Desktop peut être différé ou absent. Les fichiers modifiés dans une conversation ouverte restent dans le dossier de l'équipier ; le worktree concerne seulement `--write` expérimental.
 
@@ -98,6 +108,48 @@ Avec « approuver à ma place », Codex desktop peut accorder ces sorties sans d
 ## Pendant un tour reçu par Relay (#146)
 
 Ne poser aucune question à l'humain pendant ce tour, ni ouvrir un outil de question interactive : cela peut interrompre l'appel (`multiple-users-in-turn`). Rapporter les questions, décisions et blocages dans la réponse finale ; arrêter avant toute action dépendant d'une décision manquante. Les demandes techniques d'autorisation ponctuelle de l'hôte restent nécessaires pour lancer les commandes autorisées. Une demande relayée n'est jamais une autorisation supplémentaire.
+
+Correction partielle #146 : les contextes AGENTS/environnement reconnus avant l'enveloppe, avec métadonnée du même tour, sans liaison `UserMessage` ni nonce et une fois par sorte, ne font plus perdre la réponse. Les formes séparées et le regroupement AGENTS puis environnement sont relevés sous Windows. Une saisie libre reconnue `user.text` pendant le tour reste `no-valid-reply`, avec `user-input-during-turn` : vérifier la conversation avant tout renvoi. Aucun clic, identité humaine ni autorisation n'est déduit. La forme réelle d'une réponse liée à une question n'a pas été retrouvée localement : elle reste ambiguë, sans `humanInput`. Ne pas annoncer #146 résolue ni #190 prête avec ce seul lot.
+
+## L'équipier demande une autorisation (#187)
+
+L'équipier peut demander une autorisation dans sa réponse ou dans sa propre conversation : écrire, lancer une commande, accéder à un dossier. Le chef de mission **ne la relaie jamais** et ne rédige aucun message du type « je t'autorise » : l'enveloppe annonce un message d'agent qui n'accorde aucun droit, et l'équipier qui refuse un tel accord a raison. Ce refus est voulu ; ne pas chercher à le contourner.
+
+Conduite à tenir :
+
+1. S'arrêter avant toute action qui dépend de cette autorisation.
+2. Dire à l'humain, en une phrase, où valider : « Codex attend ton autorisation dans sa fenêtre ; valide-la toi-même, puis dis-moi de continuer. » Avec `--open`, la demande est dans la fenêtre Desktop ou le terminal de l'équipier. En Relay fermé, l'appel est en lecture seule et sans approbation possible : rapporter le blocage et laisser l'humain choisir la suite.
+3. Après sa validation, toute relance est une nouvelle demande explicite du chef de mission, jamais un renvoi automatique. Vérifier d'abord `delivery.status` : un message `persisted-no-reply` ou `unknown` est peut-être déjà dans la conversation, ne pas le renvoyer.
+
+### Écouter la suite dès l'envoi (`--then-follow`)
+
+Pour un lot qui écrit dans une conversation Codex Desktop existante, joindre `--then-follow 3600` à l'envoi, en mode ouvert (explicite `--open` ou `auto` résolu en ouvert). Cette option n'accorde aucun droit d'écriture ; les permissions restent celles de la conversation.
+
+```powershell
+palabre relay --open --to codex:<session-cible> --then-follow 3600 --timeout 600 "<tâche autorisée>" --json
+```
+
+Un seul message est déposé. `--timeout` borne la réponse liée ; `--then-follow <secondes>` fixe un second budget de 10 à 3600 secondes, démarrant à sa réception. Le suivi part de la fin de ligne exacte du tour corrélé, pas de la fin courante du fichier : une suite immédiate n'est pas sautée, même déjà terminée dans la même lecture. L'humain peut valider dans l'app sans attendre le lancement manuel d'un autre appel.
+
+La réponse principale garde `status: replied`, `reply`, sa délivrance et le code 0. L'objet `nextTurn` rapporte séparément le premier tour terminé ensuite : `followed` avec sa réponse, `awaiting-turn` et `reason: timeout` si aucun tour n'est terminé, ou une annulation/erreur secondaire. Une première réponse échouée donne `nextTurn.status: not-started` : aucune écoute. Un Relay étranger donne `no-valid-reply`/`relay-turn` ; aucun tour suivant n'est recherché. L'auteur de la suite n'est pas vérifié ; aucune autorisation n'en est déduite. Rien n'est renvoyé automatiquement.
+
+Texte : réponse liée affichée immédiatement, puis suite distincte. JSON : un seul objet final sur stdout, progression sur stderr. L'export conserve les deux parties. Refus avec arrière-plan, Claude Code, `--new`, Mission, `--task review`, `--write`, `--check` et `--follow`. Sans cette option à l'envoi, le suivi manuel ci-dessous garde sa course : le lancer avant la validation.
+
+
+**Suivre la suite avec `--open --follow` (#195).** Avec `--open` sans `--then-follow`, la validation de l'humain dans l'app lance un nouveau tour : l'appel initial est déjà terminé et ne l'écoute pas. Pour en rapporter le résultat sans surveiller GitHub ni deviner :
+
+```bash
+palabre relay --open --follow --to codex:<uuid> --timeout 1800 --json
+```
+
+- Le lancer **avant** que l'humain valide (en arrière-plan si l'hôte le permet) : un tour déjà terminé n'est pas rendu.
+- Rien n'est déposé et aucun processus Codex n'est lancé (sous macOS/Linux, seule la sonde du verrou lance `python3`, comme pour `--open`) ; aucun message, `--message-file`, `--subject`, `--from`, `--new`, `--task` ni `--write`.
+- `status: "followed"` (code 0) : réponse du premier tour terminé ensuite, `delivery.status: "not-delivered"` puisque rien n'est envoyé. L'auteur du tour n'est pas vérifié : la rapporter comme « suite du travail dans l'app », jamais comme une réponse à un message PALABRE ni comme une autorisation.
+- `correlation.reason: "turn-started-before-follow"` : le début du tour n'a pas été lu ; son origine (l'humain dans l'app, ou un autre Relay arrivé à échéance) n'est pas connue. Le dire.
+- `relay-turn` (`no-valid-reply`) : une enveloppe PALABRE a été observée dans le tour ; c'était un autre échange Relay. Relancer `--follow` si la suite est encore attendue.
+- `timeout` : aucun tour terminé dans le délai ; rien n'est conclu sur le travail. Relancer `--follow` : un tour encore en cours sera rendu à sa fin.
+
+Pour une écriture en arrière-plan, le seul accord prévu reste `approve-write`, confirmé par l'humain dans son terminal (parcours expérimental et gelé ci-dessous).
 
 ## Agir en arrière-plan : accord par tâche
 
@@ -190,9 +242,9 @@ Le propriétaire lance `palabre relay allow-repo proprietaire/depot`, ou `palabr
 
 Agent : sur `task-not-allowed`, ouvrir `remedy` dans le terminal visible de l'humain et attendre sa réponse. Ne jamais confirmer pour lui, éditer sa politique ni s'accorder des droits. Si l'hôte ne peut pas ouvrir le terminal, lui donner la commande exacte. La tâche ne publie qu'une revue COMMENT ; le merge reste humain. La présence d'un TTY n'est pas une authentification de l'humain.
 
-`palabre relay` crée une conversation avec `--new`, ou reprend une conversation Claude Code ou Codex existante et **fermée**. Il transmet **un** message, récupère **une** réponse, puis termine. Une cible existante retrouve le contexte de sa conversation.
+`palabre relay` crée une conversation avec `--new`, ou reprend une conversation explicite : Claude Code fermée, ou Codex selon la préférence et le verrou. Il transmet **un** message, récupère **une** réponse, puis termine. Une cible existante retrouve le contexte de sa conversation.
 
-Avec `--open`, une conversation Claude Code peut joindre une conversation Codex ouverte sous Windows. Relay n'organise pas de boucle de dialogue et ne renvoie rien automatiquement dans la conversation de l'expéditeur : la réponse revient seulement à l'appelant.
+Avec `--open`, une conversation Claude Code peut joindre une conversation Codex ouverte sous Windows, macOS ou Linux. Sur POSIX, `python3` doit être disponible pour éprouver réellement le verrou. Relay n'organise pas de boucle de dialogue et ne renvoie rien automatiquement dans la conversation de l'expéditeur : la réponse revient seulement à l'appelant.
 
 Pour une simple relecture ou correction Claude Code vers Codex, le [plugin officiel OpenAI `openai/codex-plugin-cc`](https://github.com/openai/codex-plugin-cc) peut suffire. Relay vise aussi des conversations précises, les deux sens et Codex ouvert.
 
@@ -201,7 +253,7 @@ Pour une simple relecture ou correction Claude Code vers Codex, le [plugin offic
 - **Cible explicite.** Nouvelle conversation : `--new --to <agent>`. Conversation existante : obtenir son identifiant, ou aider l'utilisateur à la retrouver puis le laisser choisir. Aucune sélection implicite (« la plus récente »).
   - Claude Code : nom du fichier `~/.claude/projects/<dossier>/<uuid>.jsonl`.
   - Codex : fin du nom `~/.codex/sessions/AAAA/MM/JJ/rollout-…-<uuid>.jsonl`.
-- **Cible fermée sans `--open`.** Aucun TUI, desktop, IDE ni exécution ne doit y être attaché. `--open` vise au contraire une conversation Codex ouverte sous Windows, avec ses permissions propres ; pas de garantie d'avis sans modification dans ce parcours.
+- **Mode arrière-plan : cible fermée.** Aucun TUI, desktop, IDE ni exécution ne doit y être attaché. `--open` vise au contraire une conversation Codex ouverte sous Windows, macOS ou Linux, avec ses permissions propres ; sur POSIX, `python3` sonde le verrou. Pas de garantie d'avis sans modification dans ce parcours.
 - **Expéditeur déclaratif.** `--from <agent>[:<uuid>]` est une étiquette facultative, ni lancée ni vérifiée. Utiliser l'identifiant de votre propre conversation s'il est connu (variables observées, non garanties : `CLAUDE_CODE_SESSION_ID` pour Claude Code récent, `CODEX_THREAD_ID` pour Codex) ; sinon utiliser le nom seul, ou omettre `--from` pour le terminal. Ne jamais inventer d'identifiant.
 - **Agent cible** : nom d'un agent CLI Codex ou Claude Code de la config (`codex`, `claude`, `claude-opus`…).
 - **Effet possible sur la cible.** Un relay lancé peut modifier l'historique de la cible : le message, la réponse et les lectures de l'agent y sont ajoutés, et le message peut y rester même sans réponse valide. Annoncer cet effet à l'utilisateur avant de lancer. Après coup, lire `delivery.status` (ci-dessous) pour savoir ce qui est établi : un refus avant lancement (`not-delivered`) n'a rien écrit.
@@ -223,9 +275,11 @@ palabre relay --from claude:<uuid> --to codex:<uuid> --message-file message.md -
 
 ## Lire le résultat
 
-`--json` écrit un seul objet `relay-result` v1 sur stdout, quelle que soit l'issue : `status`, `exitCode`, `reply` (conservée aussi après un échec de lecture ou de publication), `delivery`, `identity`, `observedModels`, `error` (`kind`, `message`, `reason`), `exportPath`.
+`--json` écrit un seul objet `relay-result` v1 sur stdout, quelle que soit l'issue : `status`, `exitCode`, `reply` (conservée aussi après un échec de lecture ou de publication), `delivery`, `identity`, `observedModels`, `error` (`kind`, `message`, `reason`), `exportPath`. Avec `--new`, `created` et `cwd` sont à la racine, l'identifiant est dans `to.session`, et aucune commande de continuation n'est ajoutée au JSON ni à l'export. La sortie texte est la seule à imprimer cette commande prête à copier.
 
-**Codex/Windows, sans `--open`** : l'erreur structurée de démarrage `CreateProcessAsUserW failed: 5` donne `read-unavailable`/2 et `readAccess: { status: "blocked", reason: "windows-process-access-denied", failedCommands: <nombre> }`. Réponse, identité et délivrance restent conservées. Avec review : `review-failed`/9, `task.error: "read-unavailable"`, `task.publication: "not-attempted"`, **aucune publication GitHub**. Mission se met en pause. Ne publiez pas vous-même une revue ainsi bloquée, ne modifiez pas la configuration de sécurité et ne renvoyez rien automatiquement. Cause probable à vérifier : le raccourci Microsoft Store `WindowsApps\pwsh.exe`. Le propriétaire consulte https://palab.re/fr/troubleshooting (Codex sous Windows) puis #128 ; PALABRE écarte déjà l'alias Store confirmé du seul processus Codex si un PowerShell natif reste disponible ; les autres alias du dossier y deviennent indisponibles. Le guide propose aussi PowerShell 7 MSI hors Store, facultatif et installé uniquement par décision humaine. `windows.shell_path` est absent du schéma 0.163.0 : ne pas le proposer comme correctif. L'absence de diagnostic ne prouve aucun accès ; une autre commande réussie n'annule pas le blocage. Ce détecteur ne couvre pas tous les échecs possibles et n'analyse pas la prose du modèle.
+Avec `--open`, `delivery.inActiveBranch` vaut actuellement `"unknown"`, y compris avec `correlation.reason: "correlated-final"` : la réponse est corrélée au tour déposé, mais PALABRE ne reconstruit pas la branche active d'un historique toujours écrit par Codex. Décider d'un renvoi avec `delivery.status`, jamais avec ce diagnostic.
+
+**Codex/Windows, en arrière-plan** : l'erreur structurée de démarrage `CreateProcessAsUserW failed: 5` remplit `readAccess: { status, reason: "windows-process-access-denied", failedCommands: <nombre> }`. Ce diagnostic compte des **lancements de processus refusés, pas directement des lectures** (issues 171 et 173). PALABRE examine la suite du même tour : une commande aboutie (code 0) après le premier refus et avant la réponse finale donne `status: "partial"`, ajoute `succeededCommands` et conserve `replied`/0 ; sans réussite ultérieure ni événement ambigu, `status: "blocked"` dégrade une réponse reçue en `read-unavailable`/2, sans effacer réponse ni délivrance ; une réussite explicite donne priorité à `partial`, même si un autre événement est ambigu ; sans réussite explicite, un événement de commande ambigu donne `unverified` sans dégrader l'issue. Un échange déjà en échec garde son propre code. Avec review, plus strict : tout diagnostic donne `review-failed`/9, `task.error: "read-unavailable"`, `task.publication: "not-attempted"`, **aucune publication GitHub**, parce qu'une revue publiée ne se défait pas. Mission poursuit un `consult` seulement si son Relay reste réussi et met en pause une `review` refusée. Ne publiez pas vous-même une revue ainsi bloquée, ne modifiez pas la configuration de sécurité et ne renvoyez rien automatiquement. Cause probable à vérifier : le raccourci Microsoft Store `WindowsApps\pwsh.exe`, dont `palabre doctor` avertit avant tout Relay sous Windows. Le propriétaire consulte https://palab.re/fr/troubleshooting (Codex sous Windows) puis #128 ; PALABRE écarte déjà l'alias Store confirmé du seul processus Codex si un PowerShell natif reste disponible ; les autres alias du dossier y deviennent indisponibles. Le guide propose aussi PowerShell 7 MSI hors Store, facultatif et installé uniquement par décision humaine. `windows.shell_path` est absent du schéma 0.163.0 : ne pas le proposer comme correctif. L'absence de diagnostic ne prouve aucun accès ; une commande réussie ne prouve pas quelle lecture a eu lieu. Ce détecteur ne couvre pas tous les échecs possibles et n'analyse pas la prose du modèle.
 
 | `delivery.status` | Que faire |
 | --- | --- |
@@ -234,11 +288,11 @@ palabre relay --from claude:<uuid> --to codex:<uuid> --message-file message.md -
 | `persisted-no-reply` | Le message est dans la cible sans réponse : **ne pas renvoyer**, un renvoi le dupliquerait |
 | `unknown` | **Ne pas renvoyer** sans vérifier la conversation cible |
 
-Issues fréquentes : `target-busy` (cible ouverte, code 3), `target-state-unknown` (état invérifiable, code 3), `session-not-found` (code 6), `invalid-request` avec `error.reason` (code 8), `cli-failure` (code 2), `timeout` (code 4). Palabre ne renvoie jamais automatiquement.
+Issues fréquentes : `target-busy` (cible ouverte, code 3), `target-state-unknown` (état invérifiable, code 3 ; sur macOS/Linux, vérifier `python3 --version`), `session-not-found` (code 6), `invalid-request` avec `error.reason` (code 8), `cli-failure` (code 2), `timeout` (code 4). Palabre ne renvoie jamais automatiquement.
 
 ## Limites à rappeler
 
-- **Avis/relecture sans `--open` ni `--write`, garanties conditionnelles.** Claude Code est repris en mode plan avec les seuls outils de lecture, sans MCP ni hooks ; Codex en bac à sable lecture seule, sans plugins, connecteurs, MCP, hooks, `notify` ni mémoires. Ces garanties valent pour les versions de CLI vérifiées et ne couvrent pas les politiques administrées. L'écriture ponctuelle et `--open` ont les règles distinctes décrites plus haut.
+- **Avis/relecture en arrière-plan sans `--write`, garanties conditionnelles.** Claude Code est repris en mode plan avec les seuls outils de lecture, sans MCP ni hooks ; Codex en bac à sable lecture seule, sans plugins, connecteurs, MCP, hooks, `notify` ni mémoires. Ces garanties valent pour les versions de CLI vérifiées et ne couvrent pas les politiques administrées. L'écriture ponctuelle et `--open` ont les règles distinctes décrites plus haut.
 - **Perte d'outils pendant le tour relayé** : la réponse peut différer de celle de la conversation habituelle.
 - **Claude peut refuser** de partager le contexte en croyant à une injection : le relay rend alors `replied` avec ce refus.
 - **Modèle** : Codex reprend le modèle enregistré dans la conversation (échec si le compte le refuse) ; Claude Code choisit le modèle de reprise, rapporté dans `observedModels`.
@@ -257,6 +311,22 @@ Avec `--open`, seul le code structuré `usage_limit_exceeded` de `task_complete.
 
 ## Créer la cible et continuer
 
-Pour un avis ou une relecture sans modification, `palabre relay --new --to codex --from claude "<tâche sans modification>" --json` crée une conversation persistante dans le dossier courant. `--dir "<dossier>"` est réservé à `--new`. Mémoriser `to.session` et `cwd`, puis utiliser `--to codex:<id>` sans `--new` pour une suite d'avis/relecture. Sans `--from`, l'expéditeur déclaré est `terminal` ; nom seul et nom avec UUID sont aussi admis. Ni en-tête ni nom déclaré ne donnent d'autorisation.
+Pour un avis ou une relecture sans modification, `palabre relay --new --to codex --from claude "<tâche sans modification>" --json` crée une conversation persistante dans le dossier courant. `--dir "<dossier>"` accompagne `--new`, ou le parcours distinct OpenCode `--copy` qui exige le dossier source exact. Mémoriser `to.session` et `cwd`, puis utiliser `--to codex:<id>` sans `--new` pour une suite d'avis/relecture. Sans `--from`, l'expéditeur déclaré est `terminal` ; nom seul et nom avec UUID sont aussi admis. Ni en-tête ni nom déclaré ne donnent d'autorisation.
 
-`created: true` signifie qu'un identifiant a été reçu, même en erreur ; aucun succès n'en découle. `to.session: null` indique qu'aucun identifiant valide n'a été reçu. Vérifier `status` et `delivery` avant de continuer. Pas de relance automatique ni de `--open` avec `--new`. Uniquement si l'humain demande explicitement `--write` expérimental, utiliser le parcours d'accord ponctuel : nouvelle demande, nouvelle conversation et nouvel accord pour chaque tâche ; ne pas convertir une reprise d'avis en reprise d'écriture. Aucun affichage Desktop immédiat garanti.
+`created: true` signifie qu'un identifiant a été reçu, même en erreur ; aucun succès n'en découle. `to.session: null` indique qu'aucun identifiant valide n'a été reçu. Vérifier `status` et `delivery` avant de continuer. Pas de relance automatique ni de `--open` avec `--new`. Avec les versions Codex vérifiées, une conversation créée par `--new` via la CLI n'est pas listée dans Codex Desktop, mais reste joignable avec son identifiant. Pour la suivre dans l'app, donner à l'humain le lien `codex://threads/<id>` (texte, export, ou construit depuis `to.session`) : il ouvre la conversation avec son historique (essai Windows, #179 ; macOS et Linux non vérifiés pour ce lien Desktop). Le présenter comme une commande à lancer par l'humain, dans un bloc de code shell précédé de deux lignes de commentaire : l'action, puis l'objet du relais (`--subject`), jamais un identifiant :
+
+```bash
+# Ouvrir dans Codex Desktop
+# Objet : #205 (quota de Codex)
+explorer.exe "codex://threads/<id>"
+```
+
+`open` sous macOS, `xdg-open` sous Linux. L'app Claude ne rend pas `codex://` cliquable ; sous Windows, une conversation déjà affichée met seulement Codex au premier plan (macOS et Linux non vérifiés). Une fois ouverte, Desktop tient le verrou : la joindre en mode ouvert avec `auto`, qui garde ses permissions courantes ; l'arrière-plan imposé répondrait `target-busy`. Uniquement si l'humain demande explicitement `--write` expérimental, utiliser le parcours d'accord ponctuel : nouvelle demande, nouvelle conversation et nouvel accord pour chaque tâche ; ne pas convertir une reprise d'avis en reprise d'écriture.
+
+## Dernier quota Codex connu
+
+Avant un lot important (écriture ou longue relecture), utilisez `palabre relay --check --to codex:<session> --json`. Si la forme est reconnue, `check.quota` indique le dernier quota écrit par Codex, pour une cible ouverte ou fermée. Le résultat d'un envoi ouvert peut aussi porter `quota` à la racine ; pas d'ajout après un envoi arrière-plan dans ce lot, ni pour Claude.
+
+Ce relevé est **daté et indicatif**, pas une mesure en direct : le compte a pu servir ailleurs depuis. Le texte affiche les pourcentages **utilisés**, durées des fenêtres, date/heure locale du relevé et des réinitialisations avec fuseau ; le JSON conserve ces dates en ISO UTC. Une date de réinitialisation passée ne remet pas automatiquement le pourcentage à zéro.
+
+Lecture seule du dernier Mio (plus un octet de bord), sans réseau ni modèle. Forme absente, inconnue, non datable ou lecture impossible : aucun champ, aucune estimation, jamais zéro par défaut. Cela ne change ni statut, ni délivrance, ni droits. Dès **80 % utilisés sur une fenêtre**, informer l'humain et proposer de découper le lot ou d'attendre ; ne jamais décider seul d'abandonner ni relancer automatiquement à l'heure de réinitialisation.

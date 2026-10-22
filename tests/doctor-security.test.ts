@@ -18,7 +18,7 @@ test("doctor décrit le chemin configuré, présent ou absent, sans lui substitu
       const command = exists ? present : path.join(dir, "missing", "claude.exe");
       const config = path.join(dir, `${language}-${exists}.json`);
       await writeFile(config, JSON.stringify({ agents: { chosen: { type: "cli", command, role: "reviewer" } } }));
-      const result = await runDoctor(config, true, language, { checkVersion: false, discovery });
+      const result = await runDoctor(config, true, language, { checkVersion: false, discovery, windowsPowerShell: { platform: "linux" } });
       const line = result.output.split("\n").find(line => line.includes("chosen [cli:reviewer]"));
       assert.ok(line); assert.ok(line.includes(command)); assert.ok(!line.includes("/other/claude.exe"));
       assert.match(line, exists ? /fichier configuré présent|configured file exists/ : /introuvable ou inaccessible|missing or inaccessible/);
@@ -55,7 +55,8 @@ test("doctor inspects an untrusted project config without contacting its Ollama 
 
   try {
     process.chdir(dir);
-    const result = await runDoctor(undefined, true, "en", { checkVersion: false });
+    // platform injecté : le contrôle PowerShell Windows ne doit lancer aucun fsutil pendant les tests.
+    const result = await runDoctor(undefined, true, "en", { checkVersion: false, windowsPowerShell: { platform: "linux" } });
     assert.match(result.output, /Untrusted project config/);
     assert.equal(requested.some((url) => url.includes("hostile.invalid")), false);
     assert.doesNotMatch(result.output, /\u001b\]52|payload/);

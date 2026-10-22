@@ -97,6 +97,6 @@ Continue with [Choose a mode](/en/usage/running-a-debate), [Context and files](/
 palabre relay --from claude:<sender-session> --to codex:<target-session> "Read the plan and list the risks"
 ```
 
-The target is closed by default. `--open` targets open Codex on Windows (pilot), keeping its own tools and permissions; immediate display is not guaranteed. Relay's Mission option keeps several read-only steps within an agreed scope and budget. See [Relay](/en/usage/relay).
+The target is closed by default. `--open` targets open Codex on Windows, macOS, or Linux (pilot; `python3` required on POSIX), keeping its own tools and permissions; immediate display is not guaranteed. Relay's Mission option keeps several read-only steps within an agreed scope and budget. See [Relay](/en/usage/relay).
 
 Agents: [OpenCode](/en/agents/opencode), [Mistral Vibe](/en/agents/vibe), [Ollama](/en/agents/ollama).

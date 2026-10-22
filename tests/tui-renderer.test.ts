@@ -297,7 +297,8 @@ test("renderTuiUpdate renders a dedicated update card inside the TUI", () => {
       projectRoot: "C:\\repo\\Palabre",
       sourceCheckout: false,
       channel: "pnpm-global",
-      steps: [{ command: "pnpm", args: ["add", "--global", "palabre@0.8.0"] }]
+      steps: [{ command: "pnpm", args: ["add", "--global", "palabre@0.8.0"] }],
+      skills: { source: "/package/skills/palabre", backupRoot: "/profile/backups", copies: [{ directory: "/profile/skill-cible", state: "different", fingerprint: "fixture" }] }
     };
     renderTuiUpdate(info, createTranslator("en"));
   } finally {
@@ -312,6 +313,9 @@ test("renderTuiUpdate renders a dedicated update card inside the TUI", () => {
   assert.match(text, /Channel\s+.*global pnpm/);
   assert.match(text, /pnpm add --global palabre@0\.8\.0/);
   assert.match(text, /releases\/tag\/v0\.8\.0/);
+  assert.match(text, /skill-cible/);
+  assert.match(text, /profile\/backups/);
+  assert.match(text, /backing up existing copies/);
 });
 
 test("renderTuiUpdate keeps a source checkout separate from npm releases", () => {

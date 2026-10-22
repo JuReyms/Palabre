@@ -35,7 +35,7 @@ PALABRE does not replace your tools: it drives them. You keep your subscriptions
 | **Ask** | "I want several independent opinions." 1 to 4 agents answer without seeing each other's answers, then a summary compares them. | `palabre ask "Compare these two approaches" --agents codex claude` |
 | **Chat** | "I'm chatting with an agent, and sometimes need a second opinion to double-check an answer." Ask another agent with `/consult`, without leaving the conversation. | `palabre chat --agent-a codex` |
 
-*From Codex desktop, the path to closed Claude has been verified on Windows with host approval for each command. Codex CLI and macOS still need testing. Only open Codex on Windows can receive a task (`--open`); two terminals still have limited testing. No automatic resend.*
+*From Codex desktop, the path to closed Claude has been verified on Windows with host approval for each command. Codex CLI as sender still needs testing. Open Codex can receive a task with `--open` on Windows, macOS and Linux; POSIX systems require `python3` to probe the conversation lock, and the two-terminal path still has limited testing. No automatic resend.*
 
 The **Mission** option is frozen: it remains available and documented, with no scope expansion.
 
@@ -145,7 +145,7 @@ For one conversation: `--role-a`, `--role-b`, or `/roles` in the TUI. To change 
 
 - **VS Code extension.** [PALABRE for VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode) adds a sidebar to run Debate, Chat or Ask, attach workspace context, follow each conversation live and open its export. In Chat, you can switch the active agent or ask another agent for a one-off opinion. It stays a thin client: it launches the local `palabre` CLI and uses the public JSON/NDJSON contracts.
 - **Integrations.** Versioned JSON outputs: `palabre agents --json`, `palabre presets --json`, `palabre context scan --json`, and `--renderer ndjson` or `--json` to follow a debate event by event. The NDJSON v1 stream is a public integration API: compatible additions do not break v1, breaking changes change the `v` field.
-- **Skill for AI agents.** A ready-to-use skill teaches an AI agent when to use PALABRE and which mode to choose. It follows the open [agentskills.io](https://agentskills.io) standard. Copy the `skills/palabre` folder to `~/.claude/skills/` (Claude Code) or `~/.agents/skills/` (Codex), or run `hermes skills install JuReyms/Palabre/skills/palabre` (Hermes Agent). After a PALABRE update, copy the folder again. Details: [PALABRE skill](https://palab.re/en/get-started/skill).
+- **Skill for AI agents.** A ready-to-use skill teaches an AI agent when to use PALABRE and which mode to choose. It follows the open [agentskills.io](https://agentskills.io) standard. Install the running CLI's bundled skill with `palabre skill --install claude` or `palabre skill --install codex`. `palabre skill --sync` refreshes detected copies without network access; `palabre update` includes them in its single confirmation, with backups and preserved junctions. Reload the skill afterwards. Details and other agents: [PALABRE skill](https://palab.re/en/get-started/skill).
 
 ### Relay: experimental path and frozen features
 
@@ -205,7 +205,7 @@ PALABRE ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements,
 | **Ask** | « Je veux plusieurs avis indépendants. » De 1 à 4 agents répondent sans voir les réponses des autres, puis une synthèse les compare. | `palabre ask "Compare ces deux approches" --agents codex claude` |
 | **Chat** | « Je discute avec un agent, et j'ai parfois besoin d'un second avis pour vérifier une réponse. » Consultez un autre agent avec `/consult`, sans quitter la conversation. | `palabre chat --agent-a codex` |
 
-*Depuis Codex desktop, le parcours vers Claude fermée est vérifié sous Windows avec une autorisation de l’hôte pour chaque commande. Depuis Codex CLI et sur macOS, il reste à éprouver. Vers une conversation ouverte, seul Codex sous Windows peut recevoir la tâche (`--open`) ; les deux terminaux restent peu testés. Aucun renvoi automatique.*
+*Depuis Codex desktop, le parcours vers Claude fermée est vérifié sous Windows avec une autorisation de l’hôte pour chaque commande. Codex CLI comme expéditeur reste à éprouver. Une conversation Codex ouverte peut recevoir la tâche avec `--open` sous Windows, macOS et Linux ; les systèmes POSIX exigent `python3` pour éprouver le verrou de conversation, et le parcours à deux terminaux reste peu testé. Aucun renvoi automatique.*
 
 L'option **Mission** est gelée : elle reste disponible et documentée, sans extension de périmètre.
 
@@ -315,7 +315,7 @@ Pour une conversation : `--role-a`, `--role-b`, ou `/roles` dans la TUI. Pour ch
 
 - **Extension VS Code.** [PALABRE pour VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode) ajoute une barre latérale pour lancer Débat, Chat ou Ask, ajouter du contexte de workspace, suivre chaque conversation en direct et ouvrir son export. En Chat, vous pouvez changer l'agent actif ou demander ponctuellement l'avis d'un autre agent. Elle reste un client mince : elle lance le CLI local `palabre` et utilise les contrats JSON/NDJSON publics.
 - **Intégrations.** Sorties JSON versionnées : `palabre agents --json`, `palabre presets --json`, `palabre context scan --json`, et `--renderer ndjson` ou `--json` pour suivre un débat événement par événement. Le flux NDJSON v1 est une API publique d'intégration : les ajouts compatibles ne cassent pas v1, les changements cassants changent le champ `v`.
-- **Skill pour agents IA.** Un skill prêt à l'emploi apprend à un agent IA quand utiliser PALABRE et quel mode choisir. Il suit le standard ouvert [agentskills.io](https://agentskills.io). Copiez le dossier `skills/palabre` dans `~/.claude/skills/` (Claude Code) ou `~/.agents/skills/` (Codex), ou lancez `hermes skills install JuReyms/Palabre/skills/palabre` (Hermes Agent). Après une mise à jour de PALABRE, recopiez le dossier. Détails : [Skill PALABRE](https://palab.re/fr/get-started/skill).
+- **Skill pour agents IA.** Un skill prêt à l'emploi apprend à un agent IA quand utiliser PALABRE et quel mode choisir. Il suit le standard ouvert [agentskills.io](https://agentskills.io). Installez celui du paquet CLI exécuté avec `palabre skill --install claude` ou `palabre skill --install codex`. `palabre skill --sync` rafraîchit les copies détectées sans réseau ; `palabre update` les inclut dans sa confirmation unique, avec sauvegardes et jonctions conservées. Rechargez ensuite le skill. Détails et autres agents : [Skill PALABRE](https://palab.re/fr/get-started/skill).
 
 ### Relay : parcours expérimental et fonctions gelées
 

@@ -1,5 +1,7 @@
 /** @file Messages localisés du diagnostic, de la confirmation et du plan de mise à jour. */
 import type { Language } from "../types.js";
+import type { SkillSyncPlan, SkillSyncError } from "../skillSync.js";
+import { formatSkillPlan, skillSyncFailure } from "./skillSync.js";
 
 export interface UpdateMessages {
   upToDate: string;
@@ -9,6 +11,11 @@ export interface UpdateMessages {
   confirmApply: string;
   updateComplete: string;
   stepFailed(command: string, args: string, exitCode: string): string;
+  skillPlan(plan: SkillSyncPlan, afterUpdate: boolean): string;
+  skillFailure(error: SkillSyncError): string;
+  skillBackup(directory: string): string;
+  skillReload: string;
+  skillAfterCliFailure: string;
   instructions(options: {
     version: string;
     latestVersion?: string;
@@ -28,6 +35,11 @@ export const updateMessages: Record<Language, UpdateMessages> = {
     confirmationRequired: "La mise a jour modifie une installation globale. Relance avec --yes en mode non interactif.",
     confirmApply: "Appliquer cette mise a jour ? [o/N] ",
     updateComplete: "Mise a jour terminee. Relance Palabre pour utiliser la nouvelle version.",
+    skillPlan: (plan, afterUpdate) => formatSkillPlan(plan, "fr", afterUpdate),
+    skillFailure: error => skillSyncFailure(error, "fr"),
+    skillBackup: directory => `Sauvegarde du skill : ${directory}`,
+    skillReload: "Rechargez le skill ou reprenez la conversation de l'agent après le rafraîchissement.",
+    skillAfterCliFailure: "La CLI a été mise à jour avec succès. Seul le rafraîchissement du skill a échoué : relancez Palabre, puis palabre skill --sync pour examiner un nouveau plan. Les copies illisibles restent intactes.",
     stepFailed: (command, args, exitCode) => `${command} ${args} a echoue avec le code ${exitCode}.`,
     instructions: (options) => formatInstructions("fr", options)
   },
@@ -38,6 +50,11 @@ export const updateMessages: Record<Language, UpdateMessages> = {
     confirmationRequired: "Updating changes a global installation. Re-run with --yes in non-interactive mode.",
     confirmApply: "Apply this update? [y/N] ",
     updateComplete: "Update complete. Restart Palabre to use the new version.",
+    skillPlan: (plan, afterUpdate) => formatSkillPlan(plan, "en", afterUpdate),
+    skillFailure: error => skillSyncFailure(error, "en"),
+    skillBackup: directory => `Skill backup: ${directory}`,
+    skillReload: "Reload the skill or resume the agent conversation after refreshing it.",
+    skillAfterCliFailure: "The CLI was updated successfully. Only the skill refresh failed: restart Palabre, then run palabre skill --sync to inspect a new plan. Unreadable copies remain untouched.",
     stepFailed: (command, args, exitCode) => `${command} ${args} failed with exit code ${exitCode}.`,
     instructions: (options) => formatInstructions("en", options)
   }
@@ -78,7 +95,7 @@ function formatInstructions(
   } else {
     lines.push(
       "",
-      french ? "Provenance ambigue: aucune modification automatique ne sera lancee." : "Ambiguous origin: no automatic change will run.",
+      french ? "Provenance ambigue: aucune modification automatique de la CLI." : "Ambiguous origin: no automatic CLI change will run.",
       french ? "Installe Palabre avec le gestionnaire utilise initialement, par exemple:" : "Install Palabre with the package manager used initially, for example:",
       "  pnpm add --global palabre@latest"
     );

@@ -33,9 +33,26 @@ Pour Codex, `~/.agents/skills/` est l'emplacement utilisateur indiqué par la [d
 
 Pour Claude desktop ou un autre agent, suivez sa procédure d'installation de skills en pointant vers ce dossier.
 
-Après une mise à jour de Palabre, recopiez le dossier : la copie installée n'est pas mise à jour automatiquement.
+Pour installer le skill correspondant à votre CLI, sans téléchargement GitHub :
+
+```text
+palabre skill --install codex
+palabre skill --install claude
+```
+
+Exécutez seulement la commande correspondant à l'agent voulu. Le plan affiche la cible et demande confirmation. Pour les copies déjà installées, `palabre skill --sync` utilise le skill du paquet exécuté, sans réseau. `palabre skill` affiche seulement l'état ; `--check` et `--dry-run` n'écrivent rien, même avec `--sync` ou `--install`. `--yes` vaut accord explicite après lecture du plan ; un agent ne l'ajoute pas sans votre accord.
+
+`palabre doctor` compare tous les fichiers livrés avec chaque copie détectée, en normalisant les fins de ligne. Une différence peut signaler un ancien skill ou une personnalisation. Les ajouts privés sont conservés et ne servent pas à dater le skill. Une copie illisible ou comportant un lien interne reste non vérifiée et son remplacement est refusé.
+
+`palabre update` inclut le rafraîchissement des copies détectées dans son plan et sa confirmation unique. Après mise à jour, il utilise le skill du nouveau paquet, y compris avec un store pnpm différent. Si la CLI est déjà à jour, le rafraîchissement d'un skill différent reste proposé. Une copie absente n'est jamais installée implicitement.
+
+Avant remplacement, chaque copie physique est sauvegardée sous `~/.palabre/skill-backups/`, avec date et suffixe unique, hors des dossiers chargés par les agents. Les jonctions racines restent en place ; un même dossier visé par Claude et Codex n'est sauvegardé qu'une fois. Les fichiers personnalisés livrés sont remplacés après cet accord ; les fichiers supplémentaires sont conservés. Une édition depuis l'affichage du plan fait refuser le rafraîchissement. Rechargez ensuite le skill ou reprenez la conversation de l'agent.
+
+Ces commandes suivent le paquet de la CLI, pas GitHub `main`. Un outil externe comme `npx skills add/update` suit le dépôt et peut donc fournir un skill différent de la version CLI installée. Sur une ancienne CLI sans commande `skill`, la copie manuelle du dossier embarqué reste possible.
 
 Pour commencer, dites à Claude Code ou à Codex : « Passe par PALABRE pour demander à l’autre agent de relire le plan dans docs/plan.md, sans modifier de fichier. Garde la conversation pour la suite. » Vous choisissez le chef de mission. Depuis Codex desktop, chaque commande vers Claude demande une autorisation ponctuelle de l’hôte ; suivez [Premier Relay](/fr/get-started/first-relay).
+
+Une copie non vérifiable est affichée avec un avertissement et laissée intacte : elle ne bloque ni la mise à jour CLI ni les autres copies du skill. Si aucune copie n'est différente, `--sync` et `--install` ne demandent pas d'accord et n'écrivent rien. Si la CLI est mise à jour mais que le rafraîchissement du skill échoue ensuite, le message distingue les deux résultats : relancez Palabre, puis `palabre skill --sync` pour examiner le nouveau plan.
 
 ## Quand l'agent voit le skill
 
@@ -77,7 +94,7 @@ Dans un terminal, PALABRE affiche son nom et son mode dans le titre de la fenêt
 - **Choix du parcours** : Débat, Relay, Ask ou Chat selon le besoin, sans lancer Palabre pour une tâche simple ni imposer un Débat à chaque demande de second avis.
 - **Chat piloté proprement** : l'agent utilise le [flux NDJSON](/fr/integrations/ndjson) et les commandes JSON sur stdin (`chat-send`, `chat-consult`, `chat-use`, `chat-agents`, `chat-end`), jamais une imitation de la TUI. Il connaît la mémoire bornée de Chat : six messages récents, aucune reprise après arrêt.
 - **Trois reprises distinguées** : la conversation de l'agent hôte, les [checkpoints Palabre](/fr/reference/cli#reprendre-une-session) de Débat et Ask, et la reprise d'une conversation externe par Relay.
-- **Relay prudent** : cible désignée par vous ; en-tête PALABRE, avertissement ℹ️ et « 🤖 Message pour l'agent » ; objet facultatif `--subject`, expéditeur non authentifié, historique modifié, aucun renvoi automatique ; diagnostic `usage-limit` ou `read-unavailable` conservé.
+- **Relay prudent** : cible désignée par vous ; en-tête PALABRE, avertissement ℹ️ et « 🤖 Message pour l'agent » ; objet facultatif `--subject`, expéditeur non authentifié, historique modifié, aucun renvoi automatique ; diagnostic `usage-limit` conservé, et `readAccess` distingue un repli partiel d'un blocage sans effacer réponse ni délivrance.
 - **Contexte maîtrisé** : `--files` ou `--context`, avec un avertissement avant d'envoyer du contenu sensible ; Ollama pour rester en local.
 - **Vous gardez la main** : installation, authentification, configuration, approbation de config et mises à jour restent vos décisions. Le rôle `implementer` est une consigne de proposition, pas une autorisation d'écrire.
 - **Restitution** : l'agent lit l'export (`.chat.md`, `.debate.md`, `.ask.md` ou `.relay.md`, ainsi que `.mission.md` pour l’option Mission) et vous rend décisions, désaccords, limites et prochaines étapes.

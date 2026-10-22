@@ -4,7 +4,7 @@ import { buildOpenEnvelope } from "../src/externalSessions/envelope.js";
 import { relayMessages } from "../src/messages/relay.js";
 import { checkQueueCommand, codexQueueArgs, MAX_OPEN_ENVELOPE_UTF16 } from "../src/externalSessions/codexQueue.js";
 import { describe, test } from "node:test";
-import { mkdtemp, open, appendFile, writeFile, rm, truncate } from "node:fs/promises";
+import { mkdtemp, open, appendFile, writeFile, readFile, rm, truncate } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { captureOpenBaseline as captureReference, inspectOpenReply as inspectWindow, OPEN_READ_LIMITS, settleOpenDelivery, type OpenRequest, type OpenBaseline } from "../src/externalSessions/openReader.js";
@@ -55,6 +55,85 @@ function complete(turnId = "turn-a", reply = "Réponse finale.\nÉté « intact 
 }
 const observe = (rows: Row[], input = request) => inspectOpenReply(prefix + lines([started(), ...rows]), input);
 const success = () => [user(), bound(), final(), complete()];
+
+// Structures relevées localement, textes/identifiants remplacés. Aucune copie de contenu privé.
+const observedContexts: Record<string, Row> = JSON.parse(await readFile(path.resolve("tests/fixtures/external-sessions/open-user-context.json"), "utf8"));
+const contextFixture = (kind: string): Row => structuredClone(observedContexts[kind]!);
+const payloadOf = (row: Row) => row.payload as Row;
+const textOf = (row: Row) => ((payloadOf(row).content as Row[])[0]!).text as string;
+
+describe("B1 #146 : formes de contexte observées et saisies concurrentes", () => {
+  for (const kinds of [["agents"], ["combined"], ["agents", "environment"], ["environment", "agents"]]) {
+    test(`contextes avant l'enveloppe : ${kinds.join(" puis ")}`, () => {
+      const result = observe([...kinds.map(contextFixture), ...success()]);
+      assert.equal(result.status, "replied");
+      assert.equal(result.reply, "Réponse finale.\nÉté « intact ».");
+      assert.equal("humanInput" in result, false);
+    });
+  }
+  for (const kinds of [["agents", "agents"], ["combined", "agents"], ["agents", "combined"], ["combined", "environment"]]) {
+    test(`chaque sorte ne peut être exemptée qu'une fois : ${kinds.join(" puis ")}`, () => {
+      const result = observe([...kinds.map(contextFixture), ...success()]);
+      assert.equal(result.status, "ambiguous");
+      assert.match(result.reason, /multiple-(agents|environment)-contexts/);
+      assert.equal(result.reply, undefined);
+      assert.equal(settleOpenDelivery(result, true).status, "persisted-no-reply");
+    });
+  }
+  const invalid: Array<[string, (row: Row) => void]> = [
+    ["métadonnée absente", row => { delete payloadOf(row).internal_chat_message_metadata_passthrough; }],
+    ["autre tour", row => { (payloadOf(row).internal_chat_message_metadata_passthrough as Row).turn_id = "other"; }],
+    ["sorte inconnue", row => { (payloadOf(row).internal_chat_message_metadata_passthrough as Row).content_item_kinds = ["other.instructions"]; }],
+    ["types mêlés", row => { (payloadOf(row).internal_chat_message_metadata_passthrough as Row).content_item_kinds = ["agents_md.instructions", "user.text"]; }],
+    ["texte hors bloc", row => { ((payloadOf(row).content as Row[])[0]!).text = textOf(row) + "\nautre consigne"; }],
+    ["bloc incomplet", row => { ((payloadOf(row).content as Row[])[0]!).text = textOf(row).replace("</INSTRUCTIONS>", ""); }],
+    ["bloc imbriqué", row => { ((payloadOf(row).content as Row[])[0]!).text = textOf(row).replace("Consigne factice.", "<INSTRUCTIONS>autre</INSTRUCTIONS>"); }],
+    ["type de partie inconnu", row => { ((payloadOf(row).content as Row[])[0]!).type = "text"; }]
+  ];
+  for (const [name, mutate] of invalid) test(`AGENTS non exempté : ${name}`, () => {
+    const row = contextFixture("agents"); mutate(row);
+    assert.equal(observe([row, ...success()]).reason, "unbound-concurrent-user");
+  });
+  test("AGENTS avec nonce, lié à un utilisateur ou après l'enveloppe : refus prudent", () => {
+    const row = contextFixture("agents");
+    ((payloadOf(row).content as Row[])[0]!).text = textOf(row).replace("Consigne factice.", NONCE);
+    assert.equal(observe([row, ...success()]).reason, "nonce-in-agents-context");
+    const linked = contextFixture("agents");
+    assert.equal(observe([linked, bound("turn-a", textOf(linked)), ...success()]).reason, "multiple-users-in-turn");
+    assert.equal(observe([user(), bound(), linked, final(), complete()]).reason, "unbound-concurrent-user");
+  });
+  test("regroupement inconnu ou liaison d'une seule partie : pas d'exemption de contexte", () => {
+    const row = contextFixture("combined");
+    assert.equal(observe([row, bound("other", textOf(row)), ...success()]).reason, "unbound-concurrent-user");
+    const reversed = contextFixture("combined");
+    (payloadOf(reversed).content as Row[]).reverse();
+    ((payloadOf(reversed).internal_chat_message_metadata_passthrough as Row).content_item_kinds as string[]).reverse();
+    assert.equal(observe([reversed, ...success()]).reason, "unbound-concurrent-user");
+  });
+  for (const boundInput of [false, true]) test(`saisie user.text après l'enveloppe, ${boundInput ? "liée" : "sans liaison"} : diagnostic distinct sans réponse`, () => {
+    const free = contextFixture("free");
+    const result = observe([user(), bound(), free, ...(boundInput ? [bound("turn-a", textOf(free))] : []), final(), complete()]);
+    assert.equal(result.status, "ambiguous");
+    assert.equal(result.reason, "user-input-during-turn");
+    assert.equal(result.reply, undefined);
+    assert.equal(settleOpenDelivery(result, true).status, "persisted-no-reply");
+    assert.equal("humanInput" in result, false);
+  });
+  test("saisie sans métadonnée ou format inconnu : ambiguïté générique conservée", () => {
+    for (const text of ["<unknown_reply>texte</unknown_reply>", ENVELOPE.replace(NONCE, "PR-aaaaaaaaaaaaaaaa")]) {
+      const row = contextFixture("free"); ((payloadOf(row).content as Row[])[0]!).text = text;
+      assert.equal(observe([user(), bound(), row, bound("turn-a", text), final(), complete()]).reason, "multiple-users-in-turn");
+    }
+    const row = contextFixture("free"); delete payloadOf(row).internal_chat_message_metadata_passthrough;
+    assert.equal(observe([user(), bound(), row, bound("turn-a", textOf(row)), final(), complete()]).reason, "multiple-users-in-turn");
+  });
+  test("saisie d'un autre tour, après la finale, ou liaison dupliquée : aucune exemption nouvelle", () => {
+    const row = contextFixture("free");
+    assert.equal(observe([user(), bound(), row, bound("other", textOf(row)), final(), complete()]).status, "replied");
+    assert.equal(observe([user(), bound(), final(), row, complete()]).reason, "unbound-concurrent-user");
+    assert.equal(observe([user(), bound(), row, bound("turn-a", textOf(row)), bound("turn-a", textOf(row)), final(), complete()]).reason, "multiple-users-in-turn");
+  });
+});
 
 describe("B1 : le tour doit commencer après la référence", () => {
   test("régression : un tour humain en cours avant dépôt ne donne aucun replied", () => {

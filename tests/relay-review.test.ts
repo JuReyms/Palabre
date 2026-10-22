@@ -55,9 +55,16 @@ test("lectures bloquées : aucune commande GitHub, réponse et délivrance conse
     calls++; return meta();
   }, async () => { assert.fail("autorisation de publication interdite"); }, diagnostic), /read-unavailable/);
   assert.equal(calls, 0);
+  // Plus strict que le relay simple : un diagnostic « non vérifié » refuse aussi la publication,
+  // parce qu'une revue publiée ne se défait pas (issue 171).
+  await assert.rejects(publishReview(input, "Revue provisoire", "codex", [], async () => {
+    calls++; return meta();
+  }, async () => { assert.fail("autorisation de publication interdite"); },
+  { ...diagnostic, status: "unverified" }), /read-unavailable/);
+  assert.equal(calls, 0);
   for (const language of ["fr", "en"] as const) {
     const messages = createTranslator(language);
-    const result: RelayResultV1 = { v: 1, type: "relay-result", status: "replied", exitCode: 0,
+    const result: RelayResultV1 = { v: 1, type: "relay-result", mode: "background", status: "replied", exitCode: 0,
       from: null, to: null, reply: "Revue provisoire", delivery: { status: "replied", persisted: true, inActiveBranch: true },
       identity: "same-as-target", observedModels: [], error: null, exportPath: null, durationMs: 1,
       task: { name: "review", pr: pr.url, publication: "not-attempted" } };
@@ -68,6 +75,7 @@ test("lectures bloquées : aucune commande GitHub, réponse et délivrance conse
     assert.equal(result.task!.publication, "not-attempted"); assert.equal(result.task!.error, "read-unavailable");
     assert.equal(result.reply, before.reply); assert.deepEqual(result.delivery, before.delivery);
     assert.ok(result.error!.message.includes(messages.relay.status("read-unavailable")));
+    assert.match(result.error!.message, language === "fr" ? /lectures requises insuffisamment établies/ : /required reads were not established with sufficient certainty/);
     assert.match(renderRelayText(result, messages).stderr, /not-attempted/);
     const guide = `https://palab.re/${language}/troubleshooting`;
     assert.ok(result.error!.message.includes("WindowsApps\\pwsh.exe"));
@@ -89,6 +97,29 @@ test("lectures bloquées : aucune commande GitHub, réponse et délivrance conse
     assert.equal(timedOut.status, "timeout"); assert.equal(timedOut.exitCode, 4);
     assert.ok(timedOut.error.message.includes(messages.relay.status("timeout")));
     assert.ok(timedOut.error.message.includes(messages.relay.status("read-unavailable")));
+    // Sans tâche de revue, un échange réussi garde son issue dès qu'une commande a abouti après
+    // le refus : la sonde constate des lancements refusés, pas une lecture impossible (#173).
+    const { task: _task, ...plain } = before;
+    const partial = { ...diagnostic, status: "partial" as const, succeededCommands: 1 };
+    const replied = structuredClone(plain) as RelayResultV1;
+    applyReadAccessDiagnostic(replied, partial, messages);
+    assert.equal(replied.status, "replied"); assert.equal(replied.exitCode, 0);
+    assert.equal(replied.error, null); assert.equal(replied.reply, before.reply);
+    assert.equal(replied.readAccess!.status, "partial");
+    const warning = messages.relay.readAccess(partial);
+    assert.ok(warning.includes("WindowsApps\\pwsh.exe")); assert.ok(warning.includes(guide));
+    assert.ok(renderRelayText(replied, messages).stderr.includes(warning));
+    // Aucune réussite après le refus : l'issue est dégradée, mais la réponse reste rendue.
+    const blocked = structuredClone(plain) as RelayResultV1;
+    applyReadAccessDiagnostic(blocked, { ...diagnostic, status: "blocked" }, messages);
+    assert.equal(blocked.status, "read-unavailable"); assert.equal(blocked.exitCode, 2);
+    assert.equal(blocked.error!.kind, "read-unavailable"); assert.equal(blocked.reply, before.reply);
+    // Un échec garde sa propre issue, enrichie du diagnostic.
+    const failed = { ...replied, status: "timeout" as const, exitCode: 4, reply: undefined,
+      error: { kind: "timeout" as const, message: messages.relay.status("timeout") } };
+    applyReadAccessDiagnostic(failed, partial, messages);
+    assert.equal(failed.status, "timeout"); assert.equal(failed.exitCode, 4);
+    assert.ok(failed.error.message.includes(warning));
   }
 });
 
@@ -184,7 +215,7 @@ test("corps vide ou trop long : aucune commande GitHub", async () => {
 });
 
 test("texte et export gardent la revue sans --json ni export, même si la publication échoue", () => {
-  const result: RelayResultV1 = { v: 1, type: "relay-result", status: "review-failed", exitCode: 9,
+  const result: RelayResultV1 = { v: 1, type: "relay-result", mode: "background", status: "review-failed", exitCode: 9,
     from: { agent: "codex", session: "local-from" }, to: { agent: "claude", session: "local-to", provider: "claude" },
     reply: "Revue conservée", delivery: { status: "replied", persisted: true, inActiveBranch: true }, identity: "same-as-target",
     observedModels: [], error: { kind: "review-failed", message: "échec" }, exportPath: null, durationMs: 1,
@@ -218,7 +249,7 @@ test("annulation avant POST dans le dernier contrôle : aucune publication", asy
 test("Ctrl+C conserve l'issue d'une publication confirmée ou inconnue, annule seulement avant POST", () => {
   const messages = createTranslator("fr");
   for (const publication of ["not-attempted", "published", "unknown"] as const) {
-    const result: RelayResultV1 = { v: 1, type: "relay-result", status: publication === "unknown" ? "review-failed" : "replied",
+    const result: RelayResultV1 = { v: 1, type: "relay-result", mode: "background", status: publication === "unknown" ? "review-failed" : "replied",
       exitCode: publication === "unknown" ? 9 : 0, from: null, to: null, reply: "Revue conservée",
       delivery: { status: "replied", persisted: true, inActiveBranch: true }, identity: "same-as-target", observedModels: [],
       error: null, exportPath: null, durationMs: 1, task: { name: "review", pr: pr.url, publication } };

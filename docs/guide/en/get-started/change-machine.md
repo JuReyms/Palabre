@@ -241,22 +241,24 @@ If your help does not offer `--new` in `palabre relay --help` or `--prune-trust`
 To install it for your agents on this machine, across all your projects:
 
 ```text
-npx skills add JuReyms/Palabre --skill palabre --global
+palabre skill --install codex
+palabre skill --install claude
 ```
 
-This uses the [skills tool](https://github.com/vercel-labs/skills), downloads the skill from the repository and lets you select agents. Review the choices before confirming. For a copy-based installation, follow [the skill guide](/en/get-started/skill) and copy the entire folder, including references.
+Run only the command for the intended agent. The skill comes from the running CLI package without network access; review the plan before confirming. Replaced customizations are backed up outside skill directories. For older CLIs without this command, follow [the skill guide](/en/get-started/skill) and copy the entire bundled folder, including references.
 
-Without `-y`, selection is interactive. With `-y`, confirmations are skipped and the skill may be installed for all detected agents. To limit the targets, name them explicitly with `--agent`, for example:
+For existing copies, preview and then refresh:
 
 ```text
-npx skills add JuReyms/Palabre --skill palabre --global --agent claude-code codex
+palabre skill --sync --dry-run
+palabre skill --sync
 ```
 
-An agent preparing the installation must not add `-y` on its own. You choose the agents and confirm installation.
+An agent preparing installation must not add `--yes` without your consent. You select the agents and confirm the plan.
 
-The `skills` tool has its own Node requirements, which may be higher than PALABRE's. If `npx` reports `EBADENGINE`, update Node to meet those requirements or use copy-based installation.
+External tools such as `npx skills add/update` follow the GitHub repository rather than the installed CLI version; do not use them to certify that correspondence.
 
-An installed copy is not updated by `palabre update`: explicitly reinstall or copy it again after the skill changes. Check that only one version remains active for each agent, then open a new conversation so it can discover the skill.
+`palabre update` also offers refreshing detected copies in its single confirmation, with backups and preserved junctions. Check that only one version remains active for each agent, then reload the skill or resume the conversation.
 
 ## 5. Check with doctor
 
@@ -266,7 +268,13 @@ From the project:
 palabre doctor --terminal
 ```
 
-Follow the displayed diagnostics. Today, `doctor` checks the configuration and tool availability, among other things; it may contact configured Ollama servers. It does not certify agent sign-in, skill installation or freshness, or the absence of duplicates. An old readable configuration can therefore pass this check without being suitable for the new machine.
+Follow the actions in order: unapproved configuration, Microsoft Store PowerShell alias on Windows (reported when Codex is detected, see [Troubleshooting](/en/troubleshooting)), Claude Code or Codex sign-in, archived agent, skill and multiple locations. `doctor` does not approve, install or sign in. An unapproved configuration remains inspectable, but returns code 1 and permits no agent command or configured URL.
+
+For an approved configuration, `claude auth status --json` and `codex login status` probes use the configured command, without its model arguments, without a shell and without a model call. Each probe is limited to 3 seconds and 32 KiB; an older CLI, unsupported wrapper, timeout or unknown output gives “not verified”. The reported state does not guarantee that an expired token can be refreshed or that a future call will succeed. No account data is displayed.
+
+The skill is sought in `.agents/skills/palabre/`, `.claude/skills/palabre/` and `.codex/skills/palabre/`, in the project and personal directory. Presence does not mean loaded or up to date; a skill installed through the application may not be found. Duplicate diagnostics cover distinct PATH locations for Node, npm, pnpm, Claude Code and Codex, without reading versions or uninstalling anything. Neighboring wrappers count once; complete diagnostics remain tracked in [#153](https://github.com/JuReyms/Palabre/issues/153).
+
+`doctor` may still check PALABRE's version with npm and contact Ollama servers from an approved configuration. It does not prove that Codex can read the project: the first Relay must still provide that evidence.
 
 ## 6. Find the project and create a new teammate
 

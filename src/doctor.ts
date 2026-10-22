@@ -1,10 +1,12 @@
-/** @file Diagnostic `palabre doctor` : vérifie config, agents détectés et connectivité Ollama. */
+/** @file Doctor : guide d'arrivée sans réparation, approbation vérifiée avant toute sonde d'agent ou URL configurée. */
 import path from "node:path";
 import { stat } from "node:fs/promises";
 import { configExists, DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir } from "./config.js";
 import { isConfigTrusted, isImplicitProjectConfig } from "./configTrust.js";
-import { detectedAgentNames, detectionForCommand, isAbsoluteCommand } from "./agentRegistry.js";
+import { detectedAgentNames, detectionForCommand, isAbsoluteCommand, isRetiredAgentName, normalizeCommandName, externalSessionProviderForCommand } from "./agentRegistry.js";
+import { inspectDoctorArrival, probeDoctorAuth, type DoctorArrivalOptions, type DoctorAuthState } from "./doctorArrival.js";
 import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
+import { inspectWindowsPowerShell, type CodexWindowsEnvironmentOptions } from "./externalSessions/codexWindowsEnvironment.js";
 import { createTranslator, resolveLanguage } from "./i18n.js";
 import { DEFAULT_TURNS, MAX_TURNS } from "./limits.js";
 import { configuredOllamaTargets, normalizeOllamaBaseUrl } from "./ollamaUrl.js";
@@ -19,10 +21,23 @@ export interface DoctorResult {
   output: string;
 }
 
+/** Sondes injectables : les tests utilisent des profils fictifs et ne lancent aucun agent réel. */
 export interface DoctorOptions {
   checkVersion?: boolean;
   /** Injected tool inventory for tests; the CLI always performs its own discovery. */
   discovery?: ToolDiscovery;
+  arrival?: DoctorArrivalOptions;
+  /**
+   * Sondes injectées pour les tests du contrôle PowerShell Windows ; la CLI inspecte l'environnement
+   * réel. L'inspection reste en lecture seule : aucun `pwsh` lancé, aucun environnement modifié.
+   */
+  windowsPowerShell?: DoctorWindowsPowerShellProbes;
+}
+
+/** Sondes et environnement injectés pour le contrôle PowerShell Windows (tests seulement). */
+export interface DoctorWindowsPowerShellProbes extends CodexWindowsEnvironmentOptions {
+  /** Environnement inspecté ; la CLI lit celui du processus. */
+  env?: NodeJS.ProcessEnv;
 }
 
 interface DiagnosticLine {
@@ -32,7 +47,9 @@ interface DiagnosticLine {
 }
 
 /**
- * Exécute le diagnostic complet : config, outils locaux et agents.
+ * Exécute le diagnostic complet : approbation, arrivée, outils locaux et agents.
+ * Les sondes auth/status sont bornées et limitées aux commandes connues d'une configuration approuvée.
+ * Aucun modèle, login, changement de configuration ou installation n'est lancé.
  * Retourne toujours un résultat (pas de throw) ; les erreurs de config sont reportées comme lignes `error`.
  */
 export async function runDoctor(explicitConfigPath?: string, plain = false, explicitLanguage?: string, options: DoctorOptions = {}): Promise<DoctorResult> {
@@ -71,24 +88,29 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
   lines.push(ok(t.doctor.configReadable));
   lines.push(ok(t.doctor.interfaceLanguage(language)));
 
+  const trusted = await isConfigTrusted(configPath).catch(() => false);
+  const approve = `palabre config --config ${quoteCommandArgument(path.resolve(configPath), options.arrival?.platform)} --trust-config`;
+  lines.push(trusted ? ok(t.doctor.arrival.configTrusted) : error(t.doctor.arrival.configUntrusted(approve)));
   const untrustedProjectConfig = isImplicitProjectConfig(
     configPath,
     process.cwd(),
     [DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH]
-  ) && !(await isConfigTrusted(configPath));
+  ) && !trusted;
   if (untrustedProjectConfig) {
     lines.push(warn(t.doctor.untrustedConfigInspection));
   }
 
-  await inspectConfig(config, lines, t);
-
-  const ollamaTargets = untrustedProjectConfig ? {} : Object.fromEntries(
+  const ollamaTargets = !trusted ? {} : Object.fromEntries(
     Object.entries(configuredOllamaTargets(config))
       .map(([name, value]) => [name, value && isValidOllamaBaseUrl(value) ? value : undefined])
   );
   const discovery = options.discovery ?? await discoverLocalTools({
     ollamaTargets
   });
+
+  await inspectArrival(config, trusted, discovery, lines, t, options);
+  await inspectConfig(config, lines, t);
+
   lines.push(info(t.doctor.localTools, "tools"));
   lines.push(formatCommand("Codex CLI", discovery.codex.available, discovery.codex.command, discovery.codex.path, t));
   lines.push(formatCommand("Claude CLI", discovery.claude.available, discovery.claude.command, discovery.claude.path, t));
@@ -105,6 +127,90 @@ export async function runDoctor(explicitConfigPath?: string, plain = false, expl
   inspectAgents(config, discovery, lines, t);
 
   return render(lines, plain, t);
+}
+
+/** Citation pour la commande à copier ; aucune interpolation d'un chemin n'est exécutée. */
+function quoteCommandArgument(value: string, platform = process.platform): string {
+  return `'${value.replaceAll("'", platform === "win32" ? "''" : "'\\''")}'`;
+}
+
+/**
+ * Priorité des actions après l'approbation : PowerShell hors Store, connexion, agents archivés,
+ * skill, puis doublons. PowerShell passe par `inspectWindowsShell` (#175), sans seconde détection.
+ */
+async function inspectArrival(
+  config: PalabreConfig,
+  trusted: boolean,
+  discovery: ToolDiscovery,
+  lines: DiagnosticLine[],
+  t: Messages,
+  doctorOptions: DoctorOptions
+): Promise<void> {
+  const options = doctorOptions.arrival ?? {};
+  await inspectWindowsShell(discovery, lines, t, doctorOptions.windowsPowerShell);
+  const local = inspectDoctorArrival(options);
+  const m = t.doctor.arrival;
+
+  const auth = new Map<string, DoctorAuthState>();
+  if (!trusted) lines.push(info(m.authSkipped));
+  for (const [name, agent] of Object.entries(config.agents)) {
+    if (agent.type !== "cli" && agent.type !== "cli-pty") continue;
+    if (isRetiredAgentName(name) || isRetiredAgentName(normalizeCommandName(agent.command))) continue;
+    const provider = externalSessionProviderForCommand(agent.command);
+    // Les sondes d'authentification qualifiées ne concernent que Claude et Codex.
+    // Un fournisseur Relay sur copie n'hérite jamais de leurs sous-commandes.
+    if (!trusted || (provider !== "claude" && provider !== "codex")) continue;
+    let state = auth.get(agent.command);
+    if (!state) {
+      state = await probeDoctorAuth(provider, agent.command, options);
+      auth.set(agent.command, state);
+    }
+    const command = quoteCommandArgument(agent.command, options.platform);
+    const invocation = (options.platform ?? process.platform) === "win32" ? `& ${command}` : command;
+    if (state === "connected") lines.push(ok(m.authConnected(name)));
+    else if (state === "disconnected") lines.push(warn(m.authDisconnected(name, `${invocation} ${provider === "claude" ? "auth login" : "login"}`)));
+    else lines.push(warn(m.authUnknown(name, `${invocation} ${provider === "claude" ? "auth status --json" : "login status"}`)));
+  }
+  for (const [name, agent] of Object.entries(config.agents)) {
+    if (isRetiredAgentName(name) || ((agent.type === "cli" || agent.type === "cli-pty") && isRetiredAgentName(normalizeCommandName(agent.command)))) lines.push(warn(m.retiredAgent(name)));
+  }
+  lines.push(local.skills.length ? info(m.skillPresent(local.skills.join(", "))) : warn(m.skillMissing));
+  for (const copy of local.skillCopies) {
+    lines.push(copy.state === "current" ? ok(m.skillCurrent(copy.directory)) : warn(m.skillDifferent(copy.directory, copy.state === "unreadable")));
+  }
+  for (const installation of local.duplicates) {
+    const inspect = (options.platform ?? process.platform) === "win32"
+      ? `Get-Command ${installation.command} -All | Select-Object Source` : `type -a ${installation.command}`;
+    lines.push(warn(m.duplicateInstallations(installation.command, installation.paths.join(", "), inspect)));
+  }
+}
+
+/**
+ * Prévient, avant tout Relay, quand `pwsh.exe` n'est que l'alias PowerShell du Microsoft Store
+ * (#128, remonté par l'essai réel de #171) : Codex peut alors échouer à démarrer ses commandes.
+ *
+ * WARN seulement, jamais une erreur : la machine reste utilisable et l'agent lit souvent malgré tout.
+ * Muet hors Windows, sans CLI Codex détectée, quand un vrai `pwsh.exe` reste disponible, ou quand
+ * l'alias n'est pas confirmé. Ne lance pas `pwsh` et ne modifie ni config, ni PATH, ni permissions.
+ */
+async function inspectWindowsShell(
+  discovery: ToolDiscovery,
+  lines: DiagnosticLine[],
+  t: Messages,
+  probes: DoctorWindowsPowerShellProbes | undefined
+): Promise<void> {
+  if (!discovery.codex.available) return;
+
+  const report = await inspectWindowsPowerShell(probes?.env ?? process.env, probes ?? {});
+
+  if (report.status === "store-alias-only" && report.alias) {
+    lines.push(warn(t.doctor.windowsStorePowerShellOnly(report.alias)));
+    return;
+  }
+
+  if (report.status === "store-alias-with-fallback" && report.alias && report.fallback) {
+    lines.push(warn(t.doctor.windowsStorePowerShellFallback(report.alias, report.fallback)));
+  }
 }
 
 async function inspectCliVersion(lines: DiagnosticLine[], t: Messages): Promise<void> {
@@ -260,6 +366,7 @@ function inspectAgents(
   lines.push(info(t.doctor.configuredAgents, "agents"));
 
   for (const [name, agent] of Object.entries(config.agents)) {
+    if (isRetiredAgentName(name) || ((agent.type === "cli" || agent.type === "cli-pty") && isRetiredAgentName(normalizeCommandName(agent.command)))) continue;
     inspectAgentShape(name, agent, lines, t);
 
     if (agent.type === "cli" || agent.type === "cli-pty") {

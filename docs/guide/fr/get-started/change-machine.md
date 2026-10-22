@@ -241,22 +241,24 @@ Si votre aide ne propose pas `--new` dans `palabre relay --help` ou `--prune-tru
 Pour l'installer pour vos agents sur cette machine, dans tous vos projets :
 
 ```text
-npx skills add JuReyms/Palabre --skill palabre --global
+palabre skill --install codex
+palabre skill --install claude
 ```
 
-Cette commande utilise [l'outil skills](https://github.com/vercel-labs/skills), télécharge le skill du dépôt et vous laisse choisir les agents. Relisez les choix avant de confirmer. Pour une installation par copie, suivez [le guide du skill](/fr/get-started/skill) et copiez le dossier complet, références comprises.
+Exécutez seulement la commande de l'agent voulu. Le skill vient du paquet de la CLI exécutée, sans réseau ; relisez le plan puis confirmez. Les personnalisations remplacées sont sauvegardées hors des dossiers de skills. Pour une ancienne CLI sans cette commande, suivez [le guide du skill](/fr/get-started/skill) et copiez le dossier embarqué entier, références comprises.
 
-Sans `-y`, le choix est interactif. Avec `-y`, les confirmations sont sautées et le skill peut être installé pour tous les agents détectés. Pour limiter les cibles, nommez-les explicitement avec `--agent`, par exemple :
+Pour les copies déjà présentes, prévisualisez puis rafraîchissez :
 
 ```text
-npx skills add JuReyms/Palabre --skill palabre --global --agent claude-code codex
+palabre skill --sync --dry-run
+palabre skill --sync
 ```
 
-Un agent qui prépare l'installation ne doit pas ajouter `-y` de lui-même. Vous choisissez les agents et confirmez l'installation.
+Un agent qui prépare l'installation ne doit pas ajouter `--yes` sans votre accord. Vous choisissez les agents et confirmez le plan.
 
-L'outil `skills` a ses propres prérequis Node, qui peuvent être plus élevés que ceux de PALABRE. Si `npx` signale `EBADENGINE`, mettez Node à niveau selon ces prérequis ou utilisez l'installation par copie.
+Les outils externes `npx skills add/update` suivent le dépôt GitHub et non la version installée de la CLI ; ne les utilisez pas pour certifier cette correspondance.
 
-Une copie installée n'est pas mise à jour par `palabre update` : refaites explicitement l'installation ou la copie après une évolution du skill. Vérifiez qu'une seule version reste active pour chaque agent, puis ouvrez une nouvelle conversation pour qu'il la découvre.
+`palabre update` propose aussi le rafraîchissement des copies détectées dans sa confirmation unique, avec sauvegardes et conservation des jonctions. Vérifiez qu'une seule version reste active pour chaque agent, puis rechargez le skill ou reprenez la conversation.
 
 ## 5. Vérifier avec doctor
 
@@ -266,7 +268,13 @@ Depuis le projet :
 palabre doctor --terminal
 ```
 
-Suivez les diagnostics affichés. Aujourd'hui, `doctor` vérifie notamment la configuration et la disponibilité des outils ; il peut contacter les serveurs Ollama configurés. Il ne certifie ni la connexion des agents, ni l'installation ou la fraîcheur du skill, ni l'absence de doublons. Une ancienne configuration lisible peut donc passer ce contrôle sans être adaptée à la nouvelle machine.
+Suivez les actions dans l'ordre : configuration non approuvée, alias PowerShell du Microsoft Store sous Windows (signalé quand Codex est détecté, voir [Dépannage](/fr/troubleshooting)), connexion Claude Code ou Codex, agent archivé, skill et emplacements multiples. `doctor` n'approuve, n'installe et ne reconnecte rien. Une configuration non approuvée reste inspectable, mais donne le code 1 et n'autorise aucune commande d'agent ni URL configurée.
+
+Pour une configuration approuvée, les sondes `claude auth status --json` et `codex login status` utilisent la commande configurée, sans ses arguments de modèle, sans shell et sans appel modèle. Chaque sonde est limitée à 3 secondes et 32 Kio ; CLI ancienne, wrapper non pris en charge, délai ou sortie inconnue donnent « non vérifié ». L'état déclaré ne garantit pas qu'un jeton expiré pourra être renouvelé ni qu'un appel futur réussira. Aucune donnée de compte n'est affichée.
+
+Le skill est cherché dans `.agents/skills/palabre/`, `.claude/skills/palabre/` et `.codex/skills/palabre/`, dans le projet et le dossier personnel. Présence ne veut pas dire chargé ou à jour ; un skill installé dans l'application peut échapper à cette recherche. Les doublons sont des emplacements distincts du PATH pour Node, npm, pnpm, Claude Code et Codex, sans lecture de version ni désinstallation. Les wrappers voisins ne comptent qu'une fois ; le diagnostic complet reste suivi dans [#153](https://github.com/JuReyms/Palabre/issues/153).
+
+`doctor` peut encore vérifier la version de PALABRE auprès de npm et contacter les serveurs Ollama d'une configuration approuvée. Il ne prouve pas que Codex peut lire le projet : le premier Relay doit toujours apporter cette preuve.
 
 ## 6. Retrouver le projet et créer un nouvel équipier
 

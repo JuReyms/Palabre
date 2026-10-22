@@ -1,6 +1,8 @@
 /** @file Tests de l'adapter de session externe Codex : rollouts, verrou, liste MCP, sortie et échange avec une CLI simulée. */
 import assert from "node:assert/strict";
-import { closeSync, constants, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
+import { closeSync, constants, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
@@ -13,8 +15,8 @@ import {
   interpretCodexOutput,
   mcpNeutralizationArgs,
   parseMcpServerNames,
-  probeCodexLock
-} from "../src/externalSessions/codex.js";
+  posixFlockProbe,
+  probeCodexLock, codexDesktopThreadLink } from "../src/externalSessions/codex.js";
 import { buildEnvelope, createNonce } from "../src/externalSessions/envelope.js";
 import { assessTarget, classifyDelivery } from "../src/externalSessions/outcome.js";
 import { relayMessages } from "../src/messages/relay.js";
@@ -39,11 +41,38 @@ test("erreur 5 de démarrage de commande : diagnostic distinct de la réponse va
   const parsed = run([{ type: "item.completed", item }, { type: "item.completed", item }]);
   assert.equal(parsed.isError, false); assert.equal(parsed.reply, output);
   assert.equal(parsed.identity, "same-as-target");
+  // Deux refus sans commande aboutie ensuite restent bloqués, même si le modèle a répondu.
   assert.deepEqual(parsed.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 2 });
   assert.ok(!JSON.stringify(parsed.readAccess).includes("PRIVATE"));
   assert.deepEqual(run([{ type: "item.completed", item }, { type: "item.completed", item: {
     ...item, status: "completed", exit_code: 0, aggregated_output: "README lu"
-  } }]).readAccess, { ...parsed.readAccess!, failedCommands: 1 });
+  } }]).readAccess, { status: "partial", reason: "windows-process-access-denied", failedCommands: 1, succeededCommands: 1 });
+  // Relecture indépendante de #174 : une réussite n'en est une qu'avec `exit_code: 0`, et seulement
+  // si elle précède la réponse finale.
+  const ok = { ...item, status: "completed", exit_code: 0, aggregated_output: "README lu" };
+  // Une réussite explicite reste prioritaire sur un événement ambigu, dans les deux ordres.
+  const ambiguous = { ...ok, exit_code: undefined };
+  for (const later of [[ok, ambiguous], [ambiguous, ok]]) {
+    assert.deepEqual(run([{ type: "item.completed", item }, ...later.map(item => ({ type: "item.completed", item }))]).readAccess,
+      { status: "partial", reason: "windows-process-access-denied", failedCommands: 1, succeededCommands: 1 });
+  }
+  const blocked = { status: "blocked", reason: "windows-process-access-denied", failedCommands: 1 };
+  assert.deepEqual(run([{ type: "item.completed", item }, { type: "item.completed", item: { ...ok, exit_code: 1 } }]).readAccess, blocked);
+  assert.deepEqual(run([{ type: "item.completed", item }, { type: "item.completed", item: { ...ok, exit_code: undefined } }]).readAccess,
+    { status: "unverified", reason: "windows-process-access-denied", failedCommands: 1 });
+  const replyFirst = interpretCodexOutput(jsonl([
+    { type: "thread.started", thread_id: SESSION },
+    { type: "item.completed", item: { type: "agent_message", text: "Réponse inventée" } },
+    { type: "item.completed", item }, { type: "item.completed", item: ok }, { type: "turn.completed" }
+  ]), 0, SESSION);
+  assert.equal(replyFirst.reply, "Réponse inventée");
+  assert.deepEqual(replyFirst.readAccess, blocked);
+  // Sans réponse valide, le diagnostic reste `blocked` et n'invente aucune issue.
+  const noReply = interpretCodexOutput(jsonl([
+    { type: "thread.started", thread_id: SESSION }, { type: "item.completed", item }, { type: "turn.failed" }
+  ]), 1, SESSION);
+  assert.equal(noReply.isError, true); assert.equal(noReply.reply, undefined);
+  assert.deepEqual(noReply.readAccess, { status: "blocked", reason: "windows-process-access-denied", failedCommands: 1 });
   // Ni citation par le modèle, ni sortie d'une commande exécutée, ni outil tiers.
   for (const changed of [undefined, { ...item, status: "completed" }, { ...item, exit_code: 1 },
     { ...item, type: "mcp_tool_call" }, { ...item, aggregated_output: "Quoted: " + output },
@@ -180,10 +209,46 @@ describe("verrou d'écriture", () => {
     assert.deepEqual(exclusiveOpenProbe(lock), { exists: true, held: false });
   });
 
-  test("hors Windows : verrou présent invérifiable", { skip: process.platform === "win32" }, () => {
+  test("sonde POSIX injectée : libre, tenu, disparu et erreurs prudentes", () => {
     const lock = path.join(root, `verrou-${++counter}.lock`);
     writeFileSync(lock, "");
-    assert.equal(exclusiveOpenProbe(lock).held, undefined);
+    assert.deepEqual(posixFlockProbe(lock, () => ({ status: 0 })), { exists: true, held: false });
+    assert.deepEqual(posixFlockProbe(lock, () => ({ status: 2 })), { exists: true, held: true });
+    assert.deepEqual(posixFlockProbe(lock, () => ({ status: 3 })), { exists: false });
+    assert.deepEqual(posixFlockProbe(lock, () => ({ status: null, errorCode: "ENOENT" })), { exists: true, code: "python3-unavailable" });
+    assert.deepEqual(posixFlockProbe(lock, () => ({ status: null, errorCode: "ETIMEDOUT" })), { exists: true, code: "posix-flock-timeout" });
+    assert.deepEqual(posixFlockProbe(lock, () => ({ status: 4 })), { exists: true, code: "posix-flock-failed" });
+    assert.deepEqual(posixFlockProbe(path.join(root, "absent"), () => assert.fail("aucun lancement")), { exists: false });
+  });
+
+  test("POSIX réel : verrou libre puis tenu par flock", { skip: process.platform === "win32", timeout: 10_000 }, async () => {
+    const lock = path.join(root, `verrou-${++counter}.lock`);
+    writeFileSync(lock, "");
+    assert.deepEqual(exclusiveOpenProbe(lock), { exists: true, held: false });
+    const holder = spawn("python3", ["-c", [
+      "import fcntl, os, sys, time",
+      "fd = os.open(sys.argv[1], os.O_RDWR)",
+      "fcntl.flock(fd, fcntl.LOCK_EX)",
+      "print('ready', flush=True)",
+      "time.sleep(30)"
+    ].join("\n"), lock], { stdio: ["ignore", "pipe", "pipe"], shell: false });
+    let readyTimer: NodeJS.Timeout | undefined;
+    try {
+      const ready = Promise.race([
+        once(holder.stdout!, "data").then(([chunk]) => String(chunk)),
+        once(holder, "error").then(([error]) => Promise.reject(error)),
+        new Promise<never>((_, reject) => {
+          readyTimer = setTimeout(() => reject(new Error("python3 lock holder timeout")), 5_000);
+        })
+      ]);
+      assert.match(await ready, /ready/);
+      assert.deepEqual(exclusiveOpenProbe(lock), { exists: true, held: true });
+    } finally {
+      if (readyTimer) clearTimeout(readyTimer);
+      holder.kill("SIGKILL");
+      if (holder.exitCode === null && holder.signalCode === null) await once(holder, "exit");
+    }
+    assert.deepEqual(exclusiveOpenProbe(lock), { exists: true, held: false });
   });
 });
 
@@ -295,7 +360,7 @@ describe("échange avec une CLI Codex simulée", () => {
       assert.deepEqual(list!.argv, ["mcp", "list", "--json", "--disable", "plugins", "--disable", "apps"]);
       assert.deepEqual(resume!.argv, codexResumeArgs(SESSION, mcpNeutralizationArgs(["linear", "node_repl"]), "gpt-test"));
       for (const call of calls) {
-        assert.equal(path.resolve(call.cwd).toLowerCase(), path.resolve(home.cwd).toLowerCase());
+        assert.equal(realpathSync.native(call.cwd), realpathSync.native(home.cwd));
         assert.equal(call.envKeys.some((key) => key.toUpperCase() === "CODEX_THREAD_ID"), false);
       }
       assert.equal(list!.stdin, "");
@@ -383,4 +448,9 @@ describe("échange avec une CLI Codex simulée", () => {
     assert.deepEqual(outcome, { status: "timeout", exitCode: 4 });
     assert.equal(delivery.status, "persisted-no-reply");
   });
+});
+
+test("lien Codex Desktop : UUID normalisé en minuscules, refus de tout autre identifiant", () => {
+  assert.equal(codexDesktopThreadLink(SESSION.toUpperCase()), `codex://threads/${SESSION.toLowerCase()}`);
+  for (const bad of ["", "not-an-id", `${SESSION}/../x`, `${SESSION}?x=1`]) assert.equal(codexDesktopThreadLink(bad), undefined);
 });

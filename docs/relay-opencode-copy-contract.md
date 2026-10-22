@@ -59,7 +59,8 @@ palabre relay --copy --to <agent-opencode>:<ses_...> --dir <dossier>
   comprise. Aucun override de modèle, sélection gratuite automatique ou repli
   payant ; un modèle absent ou indisponible arrête le parcours. Les arguments de
   l'adapter de débat ne sont pas repris.
-- Refuser `--new`, `--open`, `--write`, `--task`, `--pr` et l'en-tête interne Mission
+- Refuser `--new`, `--open`, `--background`, `--check`, `--follow`, `--then-follow`,
+  `--write`, `--task`, `--pr` et l'en-tête interne Mission
   avant serveur ou modèle. Pas de retour automatique vers l'expéditeur.
 - Pilote initial : Windows et CLI 2.0.32. Toute autre version ou plateforme est
   refusée avant le serveur avec un diagnostic de version non qualifiée ; ne pas
@@ -146,7 +147,10 @@ Une réponse attribuable n'est pas une preuve de justesse de l'avis ou d'absence
 d'effets externes. Ne pas scanner ni restaurer arbitrairement le projet utilisateur
 pour promettre « aucun fichier modifié ».
 
-Le JSON v1 ajoute `mode: "copy"` et un bloc optionnel `copy`. **`to.session`
+Le JSON v1 ajoute la valeur `copy` au mode émis sur chaque résultat, avec
+`modeSource: "explicit"` dès la résolution de `--copy`, et un bloc optionnel `copy`.
+La préférence `relay.view` n'est pas consultée ; aucun champ de quota, de lien
+Codex ou de suivi n'est ajouté dans ce parcours. **`to.session`
 désigne la copie exécutée**, ou `null` tant qu'elle n'est pas vérifiée. La référence
 demandée reste dans `copy.source`. `identity: same-as-target` compare donc réellement
 la réponse à `to.session`, pas la copie à son original. Les sorties Claude/Codex ne
@@ -242,7 +246,8 @@ sans compte, réseau externe ni modèle :
 
 Avant publication : revue indépendante, `pnpm check`, `pnpm test`, `pnpm build`,
 aide CLI et guides FR/EN, skill et notes de rétention cohérents dans la même PR.
-Dire que les copies installées du skill nécessitent une mise à jour manuelle.
+Copies installées : proposer `palabre skill --sync` après accord humain, puis
+recharger le skill ; aucune modification des instructions installées dans ce lot.
 Qualifier une fois la **commande produit** depuis l'hôte avec des données
 fictives ; le succès du lanceur de recherche ne remplace pas cette preuve.
 Ne pas annoncer #136 résolue ni mettre Desktop au vert avec ce seul lot CLI.

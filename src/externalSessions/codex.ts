@@ -17,6 +17,7 @@
  * documentés comme stables : toute ambiguïté est traitée prudemment (refus ou `unknown`).
  */
 import { closeSync, constants, existsSync, openSync, readdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { extractUsageLimitMessage } from "../adapters/cli-shared.js";
@@ -41,6 +42,15 @@ export interface LockProbe {
   held?: boolean;
   code?: string;
 }
+
+/** Résultat minimal injectable de la sonde Python POSIX. */
+export interface PosixFlockRun {
+  status: number | null;
+  errorCode?: string;
+  signal?: NodeJS.Signals | null;
+}
+
+export type PosixFlockRunner = (file: string) => PosixFlockRun;
 
 type JsonObject = Record<string, unknown>;
 
@@ -138,9 +148,63 @@ function resolveIdentity(reported: readonly string[], targetSessionId: string, i
 }
 
 /**
+ * Lancement de commande refusé par Windows avant toute exécution du shell, dans la forme observée
+ * avec Codex 0.163.0. Ne jamais chercher ce signal dans la prose du modèle, dans la sortie d'une
+ * commande réussie ou dans les outils MCP.
+ */
+function isRefusedLaunch(item: JsonObject): boolean {
+  return item.status === "failed" && item.exit_code === -1 && typeof item.aggregated_output === "string"
+    && /^(?:Failed to create unified exec process: |windows sandbox failed: )CreateProcessAsUserW failed: 5(?:\s|\()/u.test(item.aggregated_output);
+}
+
+/**
+ * Classe les lancements refusés d'après **la suite du même tour**, jamais d'après la réponse du
+ * modèle (#173 ; essai réel #171). Seules les commandes postérieures au premier refus comptent :
+ * l'essai a montré un agent qui se replie seul sur un autre shell après deux refus, puis lit ce
+ * qui lui était demandé. Compter les refus sans regarder ce qui suit dégradait donc des relays
+ * réussis, parfois à cause de refus étrangers à la demande.
+ *
+ * Une réussite doit aussi **précéder la réponse finale** (le dernier `agent_message`) : une
+ * commande lancée après coup ne peut pas avoir nourri la réponse, qui serait alors plausible sans
+ * aucune lecture (relecture indépendante de #174). Les refus, eux, sont comptés sur tout le tour.
+ *
+ * Une commande n'est réussie que si elle est `completed` avec `exit_code: 0`. Un code entier non
+ * nul est un échec ordinaire. Un statut inconnu, ou `completed` sans code entier, n'est pas
+ * interprétable : sans autre réussite explicite, le repli est `unverified`. Une réussite explicite
+ * donne toujours priorité à `partial`, même si un autre événement est ambigu.
+ */
+function diagnoseReadAccess(events: JsonObject[]): ExchangeInterpretation["readAccess"] {
+  const items = events.map((event) => (event.type === "item.completed" ? asObject(event.item) : undefined));
+  let replyIndex = -1;
+  items.forEach((item, index) => { if (item?.type === "agent_message") replyIndex = index; });
+  let failedCommands = 0;
+  let succeededCommands = 0;
+  let uninterpretable = 0;
+  items.forEach((item, index) => {
+    if (item?.type !== "command_execution") return;
+    if (isRefusedLaunch(item)) { failedCommands += 1; return; }
+    // Avant le premier refus, une réussite ne prouve rien sur ce qui a suivi ; après la réponse,
+    // elle ne l'a pas nourrie. Sans réponse, tout le tour reste examiné.
+    if (failedCommands === 0 || (replyIndex >= 0 && index > replyIndex)) return;
+    if (item.status === "completed") {
+      if (item.exit_code === 0) succeededCommands += 1;
+      else if (!Number.isInteger(item.exit_code)) uninterpretable += 1;
+    } else if (item.status !== "failed") uninterpretable += 1;
+  });
+  if (failedCommands === 0) return undefined;
+  const reason = "windows-process-access-denied" as const;
+  if (succeededCommands > 0) return { status: "partial", reason, failedCommands, succeededCommands };
+  if (uninterpretable > 0) return { status: "unverified", reason, failedCommands };
+  return { status: "blocked", reason, failedCommands };
+}
+
+/**
  * Interprète le flux `codex exec --json`. Succès : exit 0, exactement un `turn.completed`, aucun
  * `turn.failed` ni `error`, et un dernier `agent_message` textuel non blanc, rendu tel quel.
  * L'identité est vérifiée sur `thread.started`. Toute autre forme est un échec, sans réponse.
+ *
+ * Les lancements de commandes refusés par Windows sont comptés à part, dans `readAccess` : ils
+ * ne changent ni `isError`, ni la réponse, ni l'identité.
  */
 export function interpretCodexOutput(stdout: string, exitCode: number | null, targetSessionId: string): ExchangeInterpretation {
   const events = parseJsonLines(stdout);
@@ -158,16 +222,9 @@ export function interpretCodexOutput(stdout: string, exitCode: number | null, ta
   const errors = events
     .filter((event) => event.type === "error" || event.type === "turn.failed")
     .map((event) => asString(event.message) ?? asString(asObject(event.error)?.message) ?? "");
-  // Codex 0.163.0 : erreur de démarrage avant toute exécution du shell. Ne pas chercher dans
-  // la prose du modèle, les sorties de commandes réussies ou les outils MCP.
-  const failedCommands = events.filter((event) => {
-    const item = event.type === "item.completed" ? asObject(event.item) : undefined;
-    return item?.type === "command_execution" && item.status === "failed" && item.exit_code === -1
-      && typeof item.aggregated_output === "string"
-      && /^(?:Failed to create unified exec process: |windows sandbox failed: )CreateProcessAsUserW failed: 5(?:\s|\()/u.test(item.aggregated_output);
-  }).length;
+  const readAccess = diagnoseReadAccess(events);
   return {
-    ...(failedCommands ? { readAccess: { status: "blocked" as const, reason: "windows-process-access-denied" as const, failedCommands } } : {}),
+    ...(readAccess ? { readAccess } : {}),
     isError,
     reply: isError ? undefined : lastText,
     identity: resolveIdentity(reported, targetSessionId, isError),
@@ -175,6 +232,17 @@ export function interpretCodexOutput(stdout: string, exitCode: number | null, ta
     observedModels: [],
     errors
   };
+}
+
+/**
+ * Lien d'ouverture d'une conversation locale dans Codex Desktop (lien profond documenté par
+ * OpenAI). Une conversation créée par `codex exec` (`source: exec`) est absente de la liste de
+ * Desktop, mais ce lien l'ouvre avec son historique : essai Windows de l'issue #179, Desktop
+ * 26.1013.40934. Une fois ouverte, Desktop tient le verrou : Relay ne la joint plus qu'avec
+ * `--open`, avec les permissions de Desktop. `undefined` si l'identifiant n'est pas un UUID.
+ */
+export function codexDesktopThreadLink(sessionId: string): string | undefined {
+  return isSessionId(sessionId) ? `codex://threads/${sessionId.toLowerCase()}` : undefined;
 }
 
 /**
@@ -192,14 +260,71 @@ export function findNonceInCodexRollout(content: string, nonce: string): Deliver
   return { persisted: false, inActiveBranch: "unknown", detail: "nonce absent du rollout" };
 }
 
+const POSIX_FLOCK_SCRIPT = [
+  "import errno, fcntl, os, sys",
+  "try:",
+  "    fd = os.open(sys.argv[1], os.O_RDWR)",
+  "except FileNotFoundError:",
+  "    raise SystemExit(3)",
+  "except OSError:",
+  "    raise SystemExit(4)",
+  "try:",
+  "    try:",
+  "        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)",
+  "    except BlockingIOError as error:",
+  "        if error.errno in (errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK):",
+  "            raise SystemExit(2)",
+  "        raise SystemExit(4)",
+  "    except OSError:",
+  "        raise SystemExit(4)",
+  "    else:",
+  "        fcntl.flock(fd, fcntl.LOCK_UN)",
+  "finally:",
+  "    os.close(fd)"
+].join("\n");
+
+/** Lance le probe POSIX borné, sans shell et sans lire le contenu du verrou. */
+function runPosixFlock(file: string): PosixFlockRun {
+  const result = spawnSync("python3", ["-c", POSIX_FLOCK_SCRIPT, file], {
+    stdio: "ignore",
+    shell: false,
+    timeout: 2_000,
+    killSignal: "SIGKILL",
+    windowsHide: true
+  });
+  const errorCode = (result.error as NodeJS.ErrnoException | undefined)?.code;
+  return {
+    status: result.status,
+    ...(errorCode ? { errorCode } : {}),
+    signal: result.signal
+  };
+}
+
+/**
+ * Test POSIX réel avec `flock(LOCK_EX | LOCK_NB)` via Python 3. Les codes du script sont privés et
+ * stables : 0 libre, 2 tenu, 3 disparu, 4 erreur. Tout outil absent, timeout, signal ou résultat
+ * ambigu reste `unknown` ; l'appelant refuse alors par prudence.
+ */
+export function posixFlockProbe(file: string, run: PosixFlockRunner = runPosixFlock): LockProbe {
+  if (!existsSync(file)) return { exists: false };
+  const result = run(file);
+  if (result.errorCode === "ENOENT") return { exists: true, code: "python3-unavailable" };
+  if (result.errorCode === "ETIMEDOUT") return { exists: true, code: "posix-flock-timeout" };
+  if (result.errorCode || result.signal) return { exists: true, code: "posix-flock-failed" };
+  if (result.status === 0) return { exists: true, held: false };
+  if (result.status === 2) return { exists: true, held: true };
+  if (result.status === 3) return { exists: false };
+  return { exists: true, code: "posix-flock-failed" };
+}
+
 /**
  * Test non destructif du verrou : sous Windows, un fichier ouvert par l'écrivain sans partage
- * refuse l'ouverture exclusive (`EBUSY`). L'ouverture réussie est refermée aussitôt. Hors
- * Windows, le verrou est consultatif et ne peut pas être éprouvé : `held` reste absent.
+ * refuse l'ouverture exclusive (`EBUSY`). Sur POSIX, le verrou consultatif est éprouvé par une
+ * tentative `flock` non bloquante. Toute ambiguïté reste inconnue.
  */
 export function exclusiveOpenProbe(file: string): LockProbe {
   if (!existsSync(file)) return { exists: false };
-  if (process.platform !== "win32") return { exists: true, code: "unsupported-platform" };
+  if (process.platform !== "win32") return posixFlockProbe(file);
   // Node 22 n'expose pas `UV_FS_O_EXLOCK` dans `fs.constants` ; valeur libuv documentée.
   const exlock = (constants as Record<string, number>).UV_FS_O_EXLOCK ?? 0x10000000;
   try {

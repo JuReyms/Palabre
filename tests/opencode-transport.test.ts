@@ -11,12 +11,29 @@ import { trustConfig } from "../src/configTrust.js";
 import { npmPowerShellShim } from "./fixtures/external-sessions/npm-shim.js";
 import { createTranslator } from "../src/i18n.js";
 import type { OpenCodeSnapshot } from "../src/externalSessions/opencodeCopy.js";
+import { renderRelayMarkdown, type RelayExport } from "../src/output.js";
 
 const root = mkdtempSync(path.join(os.tmpdir(), "palabre-opencode-fake-"));
 after(() => rmSync(root, { recursive: true, force: true }));
 const fixture = path.resolve("tests/fixtures/external-sessions/fake-opencode.cjs");
 const sourceId = "ses_SourceABC", copyId = "ses_CopyXYZ";
 let counter = 0;
+
+test("export pur FR/EN : un seul mode copie, même sans mode explicite, jamais l'arrière-plan", () => {
+  const report: RelayExport = { from: null, to: { agent: "laboratoire", session: copyId, provider: "opencode" },
+    copy: { source: sourceId, session: copyId, verified: true, retention: "retained", sourceCheck: "unchanged", serverStop: "confirmed" },
+    status: "cli-failure", delivery: { status: "replied", persisted: true, inActiveBranch: true }, identity: "same-as-target",
+    observedModels: ["fake/test"], nonce: "fictif", startedAt: "2026-10-22T12:00:00Z", message: "Avis fictif", reply: "Réponse conservée" };
+  for (const language of ["fr", "en"] as const) for (const mode of [undefined, "copy"] as const) {
+    const messages = createTranslator(language);
+    const md = renderRelayMarkdown({ ...report, ...(mode ? { mode } : {}) }, messages, { palabreVersion: "test" });
+    assert.equal((md.match(/\| Mode \|/g) ?? []).length, 1);
+    assert.ok(md.includes(`copy — ${messages.relay.export.modeNames.copy}`));
+    assert.ok(md.includes(messages.relay.copy.notice)); assert.ok(md.includes(report.reply!));
+    assert.equal(md.includes(messages.relay.export.readOnlyNotice), false);
+    assert.doesNotMatch(md, /codex:\/\/|undefined/);
+  }
+});
 
 /** Un projet et deux historiques totalement fictifs. */
 function world(mode = "") {
@@ -116,8 +133,8 @@ test("transport : plafond détecté à l'arrêt refuse le succès global sans ef
   } finally { w.restore(); }
 });
 
-test("commande Windows : copie et export FR/EN ; refus incompatibles avant lancement", { skip: process.platform !== "win32" }, async () => {
-  for (const language of ["fr", "en"] as const) {
+test("commande Windows : copie et export FR/EN sous auto/background ; refus avant lancement", { skip: process.platform !== "win32" }, async () => {
+  for (const [language, view] of [["fr", "auto"], ["fr", "background"], ["en", "auto"], ["en", "background"]] as const) {
     const w = world();
     try {
       const bin = path.join(w.cwd, "bin"); mkdirSync(bin);
@@ -125,29 +142,49 @@ test("commande Windows : copie et export FR/EN ; refus incompatibles avant lance
       writeFileSync(path.join(bin, script), `require(${JSON.stringify(fixture)});\n`);
       writeFileSync(path.join(bin, "opencode.ps1"), npmPowerShellShim(script));
       const config = path.join(w.cwd, "palabre.config.json");
-      writeFileSync(config, JSON.stringify({ language, outputDir: path.join(w.cwd, "exports"), agents: {
+      writeFileSync(config, JSON.stringify({ language, relay: { view }, outputDir: path.join(w.cwd, "exports"), agents: {
         laboratoire: { type: "cli", command: path.join(bin, "opencode.ps1"), role: "reviewer" }
       } }));
       await trustConfig(config);
       const args = ["relay", "--copy", "--to", `laboratoire:${sourceId}`, "--dir", w.cwd, "--config", config, "--language", language, "Lis le projet sans le modifier."];
       const r = await executeRelay(args);
       assert.equal(r.status, "replied", JSON.stringify(r)); assert.equal(r.mode, "copy"); assert.equal(r.to?.session, copyId);
+      assert.equal(r.modeSource, "explicit");
+      for (const key of ["check", "nextTurn", "quota", "queue", "correlation", "targetPermissions", "receiver"]) assert.equal(key in r, false, key);
       assert.equal(r.copy?.source, sourceId); assert.equal(r.created, undefined);
       const exported = readFileSync(r.exportPath!, "utf8");
       assert.ok(exported.includes(sourceId)); assert.ok(exported.includes(copyId));
       assert.ok(exported.includes(createTranslator(language).relay.copy.notice));
       assert.equal(exported.includes(createTranslator(language).relay.export.readOnlyNotice), false);
       const rendered = renderRelayText(r, createTranslator(language)); assert.ok(rendered.stderr.includes(sourceId));
+      assert.ok(rendered.stderr.includes(createTranslator(language).relay.modeLine("copy", "laboratoire", false)));
+      assert.equal(rendered.stderr.includes(createTranslator(language).relay.modeLine("background", "laboratoire", false)), false);
+      assert.equal((exported.match(/\| Mode \|/g) ?? []).length, 1);
+      assert.ok(exported.includes(`copy — ${createTranslator(language).relay.export.modeNames.copy}`));
+      assert.doesNotMatch(rendered.stderr + exported, /codex:\/\/|undefined/);
       const stored = JSON.parse(readFileSync(w.state, "utf8"));
       assert.ok(stored.copy.context.find((m: { type: string; text?: string }) => m.type === "user" && m.text?.includes("PALABRE")));
       const count = w.readCalls().length;
-      for (const conflict of ["--new", "--open", "--write", "--task", "--pr"]) {
-        const extra = conflict === "--task" ? [conflict, "review"] : conflict === "--pr" ? [conflict, "https://github.com/o/r/pull/1"] : [conflict];
+      for (const conflict of ["--new", "--open", "--background", "--check", "--follow", "--then-follow", "--write", "--task", "--pr"]) {
+        const extra = conflict === "--then-follow" ? [conflict, "10"] : conflict === "--task" ? [conflict, "review"] : conflict === "--pr" ? [conflict, "https://github.com/o/r/pull/1"] : [conflict];
         const refused = await executeRelay([...args, ...extra]); assert.equal(refused.status, "invalid-request");
       }
       const noCopy = await executeRelay(args.filter(a => a !== "--copy" && a !== "--dir" && a !== w.cwd));
       assert.equal(noCopy.status, "invalid-request"); assert.equal(w.readCalls().length, count);
     } finally { w.restore(); }
+  }
+});
+
+test("options --copy incompatibles : refus avant lecture message/config, même sans projet", async () => {
+  for (const language of ["fr", "en"] as const) {
+    for (const extra of [["--background"], ["--check"], ["--follow"], ["--open", "--follow"], ["--then-follow", "10"]]) {
+      const r = await executeRelay(["relay", "--copy", "--to", `opencode:${sourceId}`, "--language", language,
+        "--config", path.join(root, "absent-config.json"), "--message-file", path.join(root, "absent-message.md"), ...extra]);
+      assert.equal(r.status, "invalid-request"); assert.equal(r.error?.reason, "invalid-arguments");
+      assert.ok(r.error?.message.endsWith(createTranslator(language).relay.copy.conflict));
+      assert.equal(r.delivery.status, "not-delivered"); assert.equal(r.exportPath, null);
+      assert.equal(r.copy, undefined); assert.equal(r.to, null);
+    }
   }
 });
 

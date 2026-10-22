@@ -1,6 +1,7 @@
 /**
  * @file Relay B1 (`palabre relay --open`) : corrélation d'une réponse Codex dans un rollout (voir
- * AGENTS.md, section "Relay externe", et `scripts/prototypes/relay/CONTRAT-B1.md`).
+ * AGENTS.md, section "Relay externe", et `scripts/prototypes/relay/CONTRAT-B1.md`), et suivi du tour
+ * suivant sans dépôt (`--open --follow`, #195, `inspectFollowedTurn`).
  * Fonctions pures : aucun accès disque, envoi, attente, reprise ni appel de modèle. Le dialecte
  * expérimental utilise les item_completed liés à un thread et à un tour, observés avec Codex 0.151.0
  * (TUI) et 0.160.1 (app-server de Codex desktop) sous Windows ; ce n'est pas un schéma public.
@@ -46,6 +47,8 @@ export interface OpenObservation {
   retryAfter?: number | string;
   /** Relevé du `turn_context` du seul tour corrélé ; présent pour `replied` et `failed` quand il est attribuable. */
   context?: OpenTurnContext;
+  /** Référence interne juste après la fin corrélée ; jamais la fin courante du fichier. */
+  followBaseline?: OpenBaseline;
 }
 
 /**
@@ -88,18 +91,48 @@ function contentText(value: unknown): string | undefined {
 }
 
 /**
- * Exception observée avec Codex desktop 0.160.1 : au premier tour après un changement
- * d'environnement ou de permissions, Codex ajoute un message `user` de contexte sans liaison
- * UserMessage. Il n'est toléré que s'il porte la métadonnée interne du tour corrélé et une seule
- * partie textuelle formée d'un seul bloc `<environment_context>`. Une balise seule reste ambiguë.
+ * Contextes observés sous Windows : environnement (desktop 0.160.1), AGENTS seul ou AGENTS puis
+ * environnement en deux parties (rollouts locaux du 21 octobre 2026). Seules les sortes, leur
+ * ordre dans le message et les délimiteurs sont inspectés ; aucun texte privé n'est exporté.
+ * Chaque sorte exige la métadonnée du tour et un bloc complet. Cette exception n'authentifie
+ * pas une origine système et n'ajoute aucun droit ; ses bornes sont vérifiées par l'appelant.
  */
-function isTurnEnvironmentContext(payload: JsonObject, turnId: string): boolean {
+function turnSystemContexts(payload: JsonObject, turnId: string): Array<"environment" | "agents"> | undefined {
   const metadata = object(payload.internal_chat_message_metadata_passthrough);
   const kinds = metadata?.content_item_kinds;
-  if (metadata?.turn_id !== turnId || !Array.isArray(kinds) || kinds.length !== 1 || kinds[0] !== "environments.environment_context") return false;
-  if (!Array.isArray(payload.content) || payload.content.length !== 1) return false;
+  if (metadata?.turn_id !== turnId || !Array.isArray(kinds) || !Array.isArray(payload.content) || payload.content.length !== kinds.length) return undefined;
+  // Formes observées sous Windows : un contexte seul ou AGENTS puis environnement, jamais
+  // une liste arbitraire. Les métadonnées ne sont pas une authentification de leur provenance.
+  const signature = JSON.stringify(kinds);
+  if (![ '["environments.environment_context"]', '["agents_md.instructions"]', '["agents_md.instructions","environments.environment_context"]' ].includes(signature)) return undefined;
+  const result: Array<"environment" | "agents"> = [];
+  for (let i = 0; i < kinds.length; i++) {
+    if ((kinds[i] === "agents_md.instructions" || kinds.length === 2) && object(payload.content[i])?.type !== "input_text") return undefined;
+    const text = contentText([payload.content[i]])?.trim();
+    if (text === undefined) return undefined;
+    if (kinds[i] === "environments.environment_context") {
+      if (!/^<environment_context>(?:(?!<\/?environment_context>)[\s\S])*<\/environment_context>$/.test(text)) return undefined;
+      result.push("environment");
+    } else {
+      if (!/^# AGENTS\.md instructions for [^\r\n]+\r?\n\s*<INSTRUCTIONS>(?:(?!<\/?INSTRUCTIONS>)[\s\S])*<\/INSTRUCTIONS>$/.test(text)) return undefined;
+      result.push("agents");
+    }
+  }
+  return result;
+}
+
+/**
+ * Forme `user.text` observée : diagnostic de saisie concurrente seulement, jamais une preuve
+ * de l'identité du propriétaire ni une réponse liée à une question. Enveloppes, wrappers et
+ * formats inconnus gardent l'ambiguïté générique ; aucun contenu ne devient une autorisation.
+ */
+function isTurnFreeInput(payload: JsonObject, turnId: string, nonce: string): boolean {
+  const metadata = object(payload.internal_chat_message_metadata_passthrough);
+  const kinds = metadata?.content_item_kinds;
+  if (metadata?.turn_id !== turnId || !Array.isArray(kinds) || kinds.length !== 1 || kinds[0] !== "user.text") return false;
+  if (!Array.isArray(payload.content) || payload.content.length !== 1 || object(payload.content[0])?.type !== "input_text") return false;
   const text = contentText(payload.content)?.trim();
-  return text !== undefined && /^<environment_context>(?:(?!<\/?environment_context>)[\s\S])*<\/environment_context>$/.test(text);
+  return Boolean(text && !text.includes(nonce) && !/PR-[a-f0-9]{16}|PALABRE (?:Relay|Mission)|^# AGENTS\.md instructions for |^[<{\[]/.test(text));
 }
 
 /** Valeur courte et sans caractère de contrôle, recopiable dans un diagnostic. */
@@ -113,7 +146,11 @@ const CONTEXT_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/;
 function turnContextOf(fresh: readonly JsonObject[], turnId: string): OpenTurnContext | undefined {
   const contexts = fresh.filter((row) => row.type === "turn_context" && object(row.payload)?.turn_id === turnId);
   if (contexts.length !== 1) return undefined;
-  const payload = object(contexts[0]!.payload)!;
+  return turnContextFromPayload(object(contexts[0]!.payload)!);
+}
+
+/** Champs bornés d'un `turn_context` : modèle, approbation, bac à sable et réseau ; rien d'autre. */
+function turnContextFromPayload(payload: JsonObject): OpenTurnContext | undefined {
   const token = (value: unknown) => (typeof value === "string" && CONTEXT_TOKEN.test(value) ? value : undefined);
   const sandboxPolicy = object(payload.sandbox_policy);
   const profileNetwork = object(payload.permission_profile)?.network;
@@ -127,6 +164,36 @@ function turnContextOf(fresh: readonly JsonObject[], turnId: string): OpenTurnCo
     ...(network ? { network } : {})
   };
   return Object.keys(context).length > 0 ? context : undefined;
+}
+
+/** Dernier `turn_context` connu d'une conversation, relevé pour `relay --check` (#203). */
+export interface LastTurnContext {
+  context: OpenTurnContext;
+  /** Horodatage ISO de la ligne, s'il est présent et valide. */
+  observedAt?: string;
+}
+
+/**
+ * Cherche le dernier `turn_context` lisible dans une fin d'historique déjà bornée par l'appelant.
+ * `partialStart` indique que le texte commence au milieu d'une ligne : cette ligne est ignorée.
+ * Indicatif seulement : le prochain tour peut appliquer d'autres permissions. Une ligne illisible
+ * est sautée ; aucun autre type de ligne n'est interprété.
+ */
+export function lastTurnContext(text: string, partialStart: boolean): LastTurnContext | undefined {
+  const lines = text.split(/\r?\n/);
+  if (partialStart) lines.shift();
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i]!.trim();
+    if (!line.includes("\"turn_context\"")) continue;
+    let row: JsonObject | undefined;
+    try { row = object(JSON.parse(line)); } catch { continue; }
+    const payload = row?.type === "turn_context" ? object(row.payload) : undefined;
+    const context = payload ? turnContextFromPayload(payload) : undefined;
+    if (!context) continue;
+    const at = typeof row!.timestamp === "string" && !Number.isNaN(Date.parse(row!.timestamp)) ? new Date(row!.timestamp).toISOString() : undefined;
+    return { context, ...(at ? { observedAt: at } : {}) };
+  }
+  return undefined;
 }
 
 function digest(value: Uint8Array): string {
@@ -146,46 +213,60 @@ export function captureOpenBaseline(reference: OpenReference): OpenBaseline {
 }
 
 /**
+ * Contrôles communs au relay et au suivi : référence valide, identité de la conversation, témoin
+ * inchangé, ajout borné et complet. Rend les lignes terminées de l'ajout, ou le code d'une lecture
+ * inexploitable. Une dernière ligne incomplète est ignorée jusqu'au prochain snapshot.
+ */
+function freshRows(snapshot: OpenSnapshot, threadId: string, baseline: OpenBaseline): JsonObject[] | string {
+  if (!Number.isSafeInteger(baseline.bytes) || baseline.bytes <= 0 || !/^[a-f0-9]{64}$/.test(baseline.sha256)
+    || !/^[a-f0-9]{64}$/.test(baseline.firstLineSha256)) return "invalid-baseline";
+  if (!Number.isSafeInteger(snapshot.bytes) || snapshot.bytes < baseline.bytes) return "history-replaced";
+  if (Buffer.byteLength(snapshot.firstLine) > OPEN_READ_LIMITS.firstLineBytes) return "identity-too-large";
+  let identity: JsonObject | undefined;
+  try { identity = object(JSON.parse(snapshot.firstLine)); } catch { return "identity-mismatch"; }
+  if (!snapshot.firstLine.endsWith("\n") || identity?.type !== "session_meta" || object(identity.payload)?.id !== threadId) return "identity-mismatch";
+  if (digest(Buffer.from(snapshot.firstLine)) !== baseline.firstLineSha256
+    || snapshot.witness.byteLength !== Math.min(baseline.bytes, OPEN_READ_LIMITS.witnessBytes)
+    || digest(snapshot.witness) !== baseline.sha256) return "history-replaced";
+  if (snapshot.added.byteLength > OPEN_READ_LIMITS.addedBytes || snapshot.bytes - baseline.bytes > OPEN_READ_LIMITS.addedBytes) return "added-too-large";
+  if (snapshot.added.byteLength !== snapshot.bytes - baseline.bytes) return "incomplete-snapshot";
+  // Décoder seulement les lignes terminées, même si un caractère UTF-8 chevauche la fin lue.
+  const added = Buffer.from(snapshot.added.buffer, snapshot.added.byteOffset, snapshot.added.byteLength);
+  let text: string;
+  try { text = new TextDecoder("utf-8", { fatal: true }).decode(added.subarray(0, added.lastIndexOf(10) + 1)); }
+  catch { return "invalid-utf8"; }
+  const fresh: JsonObject[] = [];
+  for (const line of text.split("\n").slice(0, -1)) {
+    if (!line.trim()) continue;
+    let row: JsonObject | undefined;
+    try { row = object(JSON.parse(line)); } catch { return "invalid-json-line"; }
+    if (!row || typeof row.type !== "string") return "invalid-record";
+    if (row.type === "session_meta") return "identity-mismatch";
+    fresh.push(row);
+  }
+  return fresh;
+}
+
+/**
  * Observe uniquement l'ajout depuis l'offset. Une dernière ligne incomplète est ignorée jusqu'au
  * prochain snapshot ; une ligne terminée invalide ou un témoin changé interdit tout succès.
  *
  * Succès : enveloppe exacte dans un message utilisateur neuf, item UserMessage du même texte
  * lié à la cible et à un tour commencé après l'offset, un seul utilisateur et une seule réponse
  * final_answer dans ce tour, puis task_complete sans `error` avec un texte identique. Un seul
- * contexte d'environnement par tour, porteur de la métadonnée du tour, sans le nonce et placé
- * avant le relay, échappe à la règle des saisies non liées. Tout conflit reste explicite.
+ * contexte de chaque sorte (AGENTS/environnement), porteur de la métadonnée du tour, sans le
+ * nonce et placé avant le relay, échappe à la règle des saisies non liées. Une saisie libre de
+ * forme user.text reste ambiguë, avec un diagnostic distinct, jamais une autorisation. Une
+ * réponse à une question n'est pas exemptée tant que sa liaison réelle n'a pas été observée.
  * Les anciens event_msg/user_message et agent_message ne suffisent pas à identifier un tour.
+ * @param captureFollowReference Produit, seulement en succès, une référence après sa ligne de fin
+ * pour --then-follow ; les événements déjà lus après cette frontière ne sont pas sautés.
  */
-export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): OpenObservation {
+export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest, captureFollowReference = false): OpenObservation {
   const unreadable = (reason: string): OpenObservation => ({ status: "unreadable", persisted: "unknown", reason });
   if (!request.threadId || !request.nonce || !request.envelope.includes(request.nonce)) return unreadable("invalid-request");
-  const baseline = request.baseline;
-  if (!Number.isSafeInteger(baseline.bytes) || baseline.bytes <= 0 || !/^[a-f0-9]{64}$/.test(baseline.sha256)
-    || !/^[a-f0-9]{64}$/.test(baseline.firstLineSha256)) return unreadable("invalid-baseline");
-  if (!Number.isSafeInteger(snapshot.bytes) || snapshot.bytes < baseline.bytes) return unreadable("history-replaced");
-  if (Buffer.byteLength(snapshot.firstLine) > OPEN_READ_LIMITS.firstLineBytes) return unreadable("identity-too-large");
-  let identity: JsonObject | undefined;
-  try { identity = object(JSON.parse(snapshot.firstLine)); } catch { return unreadable("identity-mismatch"); }
-  if (!snapshot.firstLine.endsWith("\n") || identity?.type !== "session_meta" || object(identity.payload)?.id !== request.threadId) return unreadable("identity-mismatch");
-  if (digest(Buffer.from(snapshot.firstLine)) !== baseline.firstLineSha256
-    || snapshot.witness.byteLength !== Math.min(baseline.bytes, OPEN_READ_LIMITS.witnessBytes)
-    || digest(snapshot.witness) !== baseline.sha256) return unreadable("history-replaced");
-  if (snapshot.added.byteLength > OPEN_READ_LIMITS.addedBytes || snapshot.bytes - baseline.bytes > OPEN_READ_LIMITS.addedBytes) return unreadable("added-too-large");
-  if (snapshot.added.byteLength !== snapshot.bytes - baseline.bytes) return unreadable("incomplete-snapshot");
-  // Décoder seulement les lignes terminées, même si un caractère UTF-8 chevauche la fin lue.
-  const added = Buffer.from(snapshot.added.buffer, snapshot.added.byteOffset, snapshot.added.byteLength);
-  let text: string;
-  try { text = new TextDecoder("utf-8", { fatal: true }).decode(added.subarray(0, added.lastIndexOf(10) + 1)); }
-  catch { return unreadable("invalid-utf8"); }
-  const fresh: JsonObject[] = [];
-  for (const line of text.split("\n").slice(0, -1)) {
-    if (!line.trim()) continue;
-    let row: JsonObject | undefined;
-    try { row = object(JSON.parse(line)); } catch { return unreadable("invalid-json-line"); }
-    if (!row || typeof row.type !== "string") return unreadable("invalid-record");
-    if (row.type === "session_meta") return unreadable("identity-mismatch");
-    fresh.push(row);
-  }
+  const fresh = freshRows(snapshot, request.threadId, request.baseline);
+  if (typeof fresh === "string") return unreadable(fresh);
   const users = fresh.filter((row) => {
     const payload = object(row.payload);
     return row.type === "response_item" && payload?.type === "message" && payload.role === "user" && contentText(payload.content) === request.envelope;
@@ -225,7 +306,23 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
   if (starts.length !== 1) return observation("ambiguous", "duplicate-turn-start", turnId);
   if (position(starts[0]!) >= userPosition) return observation("ambiguous", "invalid-event-order", turnId);
   const turnUsers = turn.filter((event) => event.type === "item_completed" && object(event.item)?.type === "UserMessage");
-  if (turnUsers.length !== 1) return observation("ambiguous", "multiple-users-in-turn", turnId);
+  if (turnUsers.length !== 1) {
+    const finalPosition = fresh.findIndex(row => row.type === "event_msg" && object(row.payload)?.turn_id === turnId
+      && object(object(row.payload)?.item)?.type === "AgentMessage" && object(object(row.payload)?.item)?.phase === "final_answer");
+    const extras = turnUsers.filter(event => event !== anchor);
+    const freeOnly = extras.length > 0 && extras.every(event => {
+      const text = contentText(object(event.item)?.content);
+      const raw = fresh.filter(row => row.type === "response_item" && object(row.payload)?.type === "message"
+        && object(row.payload)?.role === "user" && contentText(object(row.payload)?.content) === text);
+      return text !== undefined && raw.length === 1 && event.thread_id === request.threadId
+        && turnUsers.filter(candidate => contentText(object(candidate.item)?.content) === text).length === 1
+        && position(event) > position(anchor)
+        && fresh.indexOf(raw[0]!) > userPosition && position(event) >= fresh.indexOf(raw[0]!)
+        && (finalPosition < 0 || position(event) < finalPosition)
+        && isTurnFreeInput(object(raw[0]!.payload)!, turnId, request.nonce);
+    });
+    return observation("ambiguous", freeOnly ? "user-input-during-turn" : "multiple-users-in-turn", turnId);
+  }
   // Hypothèses défensives testées sur fixtures : ces formats d'échec du rollout restent à
   // observer réellement. Une erreur non attribuable au tour ne prouve pas sa terminaison.
   if (turn.some((event) => ["error", "turn_aborted", "task_cancelled", "task_failed"].includes(String(event.type)))) return observation("failed", "turn-failed-or-cancelled", turnId);
@@ -255,8 +352,8 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
   if (final.thread_id !== request.threadId) return observation("ambiguous", "unidentified-final-thread", turnId);
   // Une seconde saisie brute peut manquer d'événement typé. Ne pas supposer alors qu'elle
   // appartient à un autre tour ; seules des liaisons uniques et explicites le démontrent.
-  // Une seule exemption de contexte par tour : un doublon, même identique, reste ambigu.
-  let exemptedContext = false;
+  // Une exemption par sorte de contexte, y compris pour le message regroupant les deux sortes.
+  const exemptedContexts = new Set<"environment" | "agents">();
   for (const row of fresh.slice(position(starts[0]!) + 1, completionPosition)) {
     if (row === users[0]) continue;
     const payload = object(row.payload);
@@ -266,24 +363,148 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
       const item = object(event.item);
       return text !== undefined && event.type === "item_completed" && item?.type === "UserMessage" && contentText(item.content) === text;
     });
-    if (bindings.length === 0 && fresh.indexOf(row) < userPosition && isTurnEnvironmentContext(payload, turnId)) {
+    const contexts = turnSystemContexts(payload, turnId);
+    const contextPartBound = contexts && (payload.content as unknown[]).some(part => events.some(event =>
+      event.type === "item_completed" && object(event.item)?.type === "UserMessage"
+      && contentText(object(event.item)?.content) === contentText([part])));
+    if (bindings.length === 0 && !contextPartBound && fresh.indexOf(row) < userPosition && contexts) {
       // Un contexte qui cite le nonce pourrait porter la demande : il n'est jamais exempté.
-      if (text!.includes(request.nonce)) return observation("ambiguous", "nonce-in-environment-context", turnId);
-      if (exemptedContext) return observation("ambiguous", "multiple-environment-contexts", turnId);
-      exemptedContext = true;
+      if (text!.includes(request.nonce)) return observation("ambiguous", contexts.includes("agents") ? "nonce-in-agents-context" : "nonce-in-environment-context", turnId);
+      for (const kind of contexts) {
+        if (exemptedContexts.has(kind)) return observation("ambiguous", kind === "agents" ? "multiple-agents-contexts" : "multiple-environment-contexts", turnId);
+        exemptedContexts.add(kind);
+      }
       continue;
     }
     const binding = bindings[0];
     if (bindings.length !== 1 || !binding || binding.thread_id !== request.threadId
       || typeof binding.turn_id !== "string" || binding.turn_id === "" || binding.turn_id === turnId
       || position(binding) < fresh.indexOf(row) || position(binding) > completionPosition) {
-      return observation("ambiguous", "unbound-concurrent-user", turnId);
+      const freeInput = bindings.length === 0 && fresh.indexOf(row) > position(anchor) && fresh.indexOf(row) < position(final)
+        && isTurnFreeInput(payload, turnId, request.nonce);
+      return observation("ambiguous", freeInput ? "user-input-during-turn" : "unbound-concurrent-user", turnId);
     }
   }
   if (completion.status !== undefined && completion.status !== "completed") return observation("failed", "unsuccessful-completion", turnId);
   const reply = contentText(object(final.item)?.content);
   if (reply === undefined || reply.trim() === "" || typeof completion.last_agent_message !== "string" || completion.last_agent_message !== reply) return observation("ambiguous", "completion-text-mismatch", turnId);
-  return { status: "replied", persisted: true, reason: "correlated-final", turnId, reply, ...withContext(turnId) };
+  return { status: "replied", persisted: true, reason: "correlated-final", turnId, reply, ...withContext(turnId),
+    ...(captureFollowReference ? { followBaseline: referenceAfterRow(snapshot, request.baseline, completionPosition) } : {}) };
+}
+
+/**
+ * Avance le témoin sur la ligne complète déjà validée par freshRows. Le suffixe historique et
+ * l'ajout suffisent pour les 64 Kio du nouveau témoin, même si deux tours sont lus ensemble.
+ * Comptage en octets (UTF-8), lignes vides ignorées comme dans freshRows ; aucune recapture EOF.
+ */
+function referenceAfterRow(snapshot: OpenSnapshot, baseline: OpenBaseline, rowIndex: number): OpenBaseline {
+  const added = Buffer.from(snapshot.added);
+  let row = 0, start = 0;
+  for (let end = added.indexOf(10); end >= 0; end = added.indexOf(10, start)) {
+    if (added.subarray(start, end).toString("utf8").trim() && row++ === rowIndex) {
+      return captureOpenBaseline({ bytes: baseline.bytes + end + 1, firstLine: snapshot.firstLine,
+        witness: Buffer.concat([Buffer.from(snapshot.witness), added.subarray(0, end + 1)]).subarray(-OPEN_READ_LIMITS.witnessBytes) });
+    }
+    start = end + 1;
+  }
+  throw new Error("completion-boundary-missing");
+}
+
+/** Suivi (#195) : aucun message n'est déposé, seule la référence borne la recherche. */
+export interface OpenFollowRequest {
+  threadId: string;
+  baseline: OpenBaseline;
+}
+
+/**
+ * Observation du premier tour terminé après la référence. `followed` ne relie la réponse à aucun
+ * message PALABRE : le tour a pu être lancé depuis l'app, par un humain ou non, et son auteur n'est
+ * pas vérifié. `startObserved` vaut `false` quand le tour avait commencé avant la référence.
+ */
+export interface FollowObservation {
+  status: "awaiting-turn" | "followed" | "failed" | "ambiguous" | "unreadable";
+  reason: string;
+  turnId?: string;
+  reply?: string;
+  startObserved?: boolean;
+  /** Indication CLI du seul tour suivi, comme pour `--open`. Jamais issue d'un texte de modèle. */
+  retryAfter?: number | string;
+  context?: OpenTurnContext;
+}
+
+/** Fins de tour reconnues ; les formes d'échec restent celles déjà supposées par `inspectOpenReply`. */
+const TURN_ENDS = ["task_complete", "error", "turn_aborted", "task_cancelled", "task_failed"];
+/** Nonce d'une enveloppe PALABRE : un tour qui en contient une est un échange Relay, pas une suite. */
+const RELAY_NONCE = /PR-[a-f0-9]{16}/;
+
+/**
+ * Suivi (`--open --follow`, #195) : rend le **premier** tour qui se termine après la référence, sans
+ * dépôt ni corrélation à une enveloppe. Les tours suivants sont ignorés : un nouvel appel les suivra.
+ *
+ * Succès : une seule fin `task_complete` pour ce tour, sans `error`, une seule réponse `final_answer`
+ * liée à la conversation, placée avant la fin et de texte identique à `last_agent_message`. Un tour
+ * qui contient une enveloppe PALABRE reste ambigu (`relay-turn`) : sa réponse appartient à un autre
+ * relay. Fonction pure ; aucune autorisation, aucun auteur ni aucun clic humain n'en est déduit.
+ */
+export function inspectFollowedTurn(snapshot: OpenSnapshot, request: OpenFollowRequest): FollowObservation {
+  if (!request.threadId) return { status: "unreadable", reason: "invalid-request" };
+  const fresh = freshRows(snapshot, request.threadId, request.baseline);
+  if (typeof fresh === "string") return { status: "unreadable", reason: fresh };
+  const payloadOf = (row: JsonObject) => object(row.payload);
+  const eventRows = fresh.filter((row) => row.type === "event_msg" && payloadOf(row) !== undefined);
+  const end = eventRows.find((row) => {
+    const event = payloadOf(row)!;
+    return TURN_ENDS.includes(String(event.type)) && typeof event.turn_id === "string" && event.turn_id !== "";
+  });
+  if (!end) return { status: "awaiting-turn", reason: "no-completed-turn" };
+  const endEvent = payloadOf(end)!;
+  const turnId = endEvent.turn_id as string;
+  const turnRows = eventRows.filter((row) => payloadOf(row)!.turn_id === turnId);
+  const turn = turnRows.map((row) => payloadOf(row)!);
+  const observation = (status: FollowObservation["status"], reason: string): FollowObservation => {
+    const context = status === "failed" ? turnContextOf(fresh, turnId) : undefined;
+    return { status, reason, turnId, ...(context ? { context } : {}) };
+  };
+  if (turn.some((event) => event.thread_id !== undefined && event.thread_id !== request.threadId)) return observation("ambiguous", "foreign-thread-event");
+  const startRow = turnRows.find((row) => payloadOf(row)!.type === "task_started");
+  const startObserved = startRow !== undefined && fresh.indexOf(startRow) < fresh.indexOf(end);
+  // Un tour qui porte une enveloppe PALABRE est un échange Relay : sa réponse n'est pas une suite.
+  const boundRelay = turn.some((event) => event.type === "item_completed" && object(event.item)?.type === "UserMessage"
+    && RELAY_NONCE.test(contentText(object(event.item)?.content) ?? ""));
+  const rawRelay = fresh.slice(startObserved ? fresh.indexOf(startRow!) : 0, fresh.indexOf(end)).some((row) => {
+    const payload = payloadOf(row);
+    return row.type === "response_item" && payload?.type === "message" && payload.role === "user" && RELAY_NONCE.test(contentText(payload.content) ?? "");
+  });
+  if (boundRelay || rawRelay) return observation("ambiguous", "relay-turn");
+  if (endEvent.type !== "task_complete") return observation("failed", "turn-failed-or-cancelled");
+  if (turn.filter((event) => event.type === "task_complete").length !== 1) return observation("ambiguous", "multiple-completions");
+  const completionError = object(endEvent.error);
+  if (completionError?.codex_error_info === "usage_limit_exceeded") {
+    const retryAfter = typeof completionError.message === "string" ? extractRetryAfter(completionError.message.slice(0, 4096)) : undefined;
+    return { ...observation("failed", "usage-limit"),
+      ...(retryAfter !== undefined && (typeof retryAfter === "string" || Number.isFinite(retryAfter) && retryAfter >= 0) ? { retryAfter } : {}) };
+  }
+  if (endEvent.error !== undefined && endEvent.error !== null) return observation("failed", "completion-error");
+  if (endEvent.status !== undefined && endEvent.status !== "completed") return observation("failed", "unsuccessful-completion");
+  const finals = turnRows.filter((row) => {
+    const event = payloadOf(row)!;
+    return event.type === "item_completed" && object(event.item)?.type === "AgentMessage" && object(event.item)?.phase === "final_answer";
+  });
+  if (finals.length !== 1) return observation("ambiguous", finals.length === 0 ? "final-not-observed" : "multiple-finals");
+  const final = payloadOf(finals[0]!)!;
+  if (fresh.indexOf(finals[0]!) > fresh.indexOf(end)) return observation("ambiguous", "invalid-event-order");
+  if (final.thread_id !== request.threadId) return observation("ambiguous", "unidentified-final-thread");
+  const reply = contentText(object(final.item)?.content);
+  if (reply === undefined || reply.trim() === "" || endEvent.last_agent_message !== reply) return observation("ambiguous", "completion-text-mismatch");
+  const context = turnContextOf(fresh, turnId);
+  return {
+    status: "followed",
+    reason: startObserved ? "turn-completed" : "turn-started-before-follow",
+    turnId,
+    reply,
+    startObserved,
+    ...(context ? { context } : {})
+  };
 }
 
 /**

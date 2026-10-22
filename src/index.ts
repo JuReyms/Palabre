@@ -26,7 +26,7 @@ import { createTuiRenderer, promptTuiHomeTopic, promptTuiNavigation, promptTuiUp
 import { MAX_ASK_AGENTS, runAsk, runDebate } from "./orchestrator.js";
 import { writeDebateMarkdown } from "./output.js";
 import { buildDryRunPreview, printDryRun } from "./dryRun.js";
-import { applyUpdate, getUpdateInfo, hasAvailableUpdate } from "./update.js";
+import { applyUpdate, getUpdateInfo, hasAvailableUpdate, type UpdateInfo } from "./update.js";
 import { findFirstPositionalIndex, getStringListFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { clearTuiRunOverrides } from "./tuiState.js";
 import { formatOllamaUrlError, OllamaUrlError } from "./ollamaUrl.js";
@@ -40,8 +40,10 @@ import { runSessionsCommand } from "./commands/sessions.js";
 import { runInitCommand } from "./commands/init.js";
 import { runPresetsCommand } from "./commands/presets.js";
 import { runRelayCommand } from "./commands/relay.js";
+import { runRelayViewCommand } from "./commands/relayView.js";
 import { runMissionCommand } from "./commands/mission.js";
 import { runUpdateCommand } from "./commands/update.js";
+import { runSkillCommand } from "./commands/skill.js";
 import { runPruneTrustCommand } from "./commands/pruneTrust.js";
 import { optionalString } from "./commands/shared.js";
 import { runTuiAgentsWizard, runTuiConfigLoop, runTuiRolesWizard, syncInteractiveDetectedAgents } from "./tuiController.js";
@@ -112,9 +114,19 @@ async function main(): Promise<void> {
     return;
   }
 
+  // Préférence sensible : aucune autre mutation ni approbation implicite avant son handler strict.
+  if (parsed.command === "config" && parsed.flags["relay-view"] !== undefined) {
+    await runRelayViewCommand([...rawArgs.slice(0, commandIndex), ...rawArgs.slice(commandIndex + 1)]);
+    return;
+  }
   // Maintenance does not consume the project config or grant trust to it.
   if (parsed.command === "config" && parsed.flags["prune-trust"]) {
     await runPruneTrustCommand(parsed.flags, parsed.positionals);
+    return;
+  }
+
+  if (parsed.command === "skill") {
+    await runSkillCommand(parsed.flags, parsed.positionals);
     return;
   }
 
@@ -209,6 +221,7 @@ async function main(): Promise<void> {
 
   const handleTuiHomeInput = async (tuiInput: TuiHomeInput): Promise<"continue" | "run" | "retry" | "quit"> => {
     let input = tuiInput;
+    let confirmedUpdate: UpdateInfo | undefined;
 
     // Les vues informatives (/help, /history) proposent uniquement la navigation
     // minimale. `/update` conserve le même retour, avec une action explicite dédiée.
@@ -236,13 +249,15 @@ async function main(): Promise<void> {
 
       if (input.kind === "update") {
         const info = await getUpdateInfo(tuiVersion);
+        confirmedUpdate = info;
         renderTuiUpdate(info, messages);
         input = await promptTuiUpdate(info, messages);
         continue;
       }
 
       if (input.kind === "apply-update") {
-        await applyUpdate(await getUpdateInfo(tuiVersion), messages);
+        if (!confirmedUpdate) throw Error(messages.update.automaticUnavailable);
+        await applyUpdate(confirmedUpdate, messages);
         tuiNotice = messages.update.updateComplete;
         return "continue";
       }
@@ -1195,10 +1210,11 @@ function printHelp(messages: Messages, command?: string): void {
 /**
  * Résout la commande cible pour l'aide contextuelle (`palabre <cmd> --help`), en normalisant
  * les alias (`agent` -> `agents`, `preset` -> `presets`, `setup` -> `init`).
- * @returns `undefined` pour `help`/`run`, qui utilisent l'aide générale.
+ * @returns `undefined` pour `help` ou un `run` implicite (par exemple `palabre --help`).
+ * Un `run` explicite utilise son aide dédiée, sans changer le lancement des sessions.
  */
 function commandHelpTarget(parsed: ParsedArgs): string | undefined {
-  if (parsed.command === "help" || parsed.command === "run") {
+  if (parsed.command === "help" || (parsed.command === "run" && !parsed.commandExplicit)) {
     return undefined;
   }
 

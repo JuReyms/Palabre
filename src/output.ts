@@ -7,6 +7,7 @@ import type { ReadAccessDiagnostic } from "./externalSessions/types.js";
 import type { DebateFailure, DebateMessage, DebateOptions, DebateSummary } from "./types.js";
 import { getPackageVersion } from "./version.js";
 import { relayWriteText } from "./messages/relayWrite.js";
+import type { ThenFollowReport } from "./externalSessions/openRelay.js";
 
 interface ReportMetadata {
   palabreVersion: string;
@@ -200,6 +201,8 @@ function formatAgentsForHeader(options: DebateOptions): string {
 export interface RelayExport {
   /** Source et copie distinctes, même après erreur ou absence de réponse. */
   copy?: import("./externalSessions/copyRelay.js").CopyReport;
+  /** Suite séparée de --then-follow ; aucune nouvelle délivrance ni autorisation. */
+  nextTurn?: ThenFollowReport;
   /** Rapport Git et commandes observées, uniquement après un accord d'écriture ponctuel. */
   write?: import("./externalSessions/write.js").WriteReport;
   /** Indication de reprise CLI, sans date/fuseau implicites ni relance automatique. */
@@ -213,6 +216,8 @@ export interface RelayExport {
   /** Création Relay : l'identifiant peut manquer si la CLI n'a rien annoncé. */
   created?: boolean;
   cwd?: string;
+  /** Lien `codex://threads/…` d'une conversation Codex créée ; absent sinon (#179). */
+  desktopLink?: string;
   status: string;
   delivery: { status: string; persisted: boolean | "unknown"; inActiveBranch: boolean | "unknown" };
   identity: string | null;
@@ -228,6 +233,18 @@ export interface RelayExport {
     queue: string;
     correlation: string | null;
     receiver: string;
+    targetPermissions: string | null;
+  };
+  /**
+   * Mode de l'échange (#190). Déduit de `copy`/`open`/`follow` quand il est absent ;
+   * sans preuve de ces parcours, un export antérieur reste en arrière-plan.
+   */
+  mode?: "background" | "open" | "follow" | "copy";
+  /** Origine du mode choisi par la CLI, sans autorité supplémentaire. */
+  modeSource?: import("./externalSessions/relayView.js").RelayModeSource;
+  /** Suivi `--open --follow` (#195) : aucun dépôt, donc ni référence ni message transmis. */
+  follow?: {
+    correlation: string | null;
     targetPermissions: string | null;
   };
 }
@@ -249,14 +266,18 @@ export async function writeRelayMarkdown(outputDir: string, report: RelayExport,
 export function renderRelayMarkdown(report: RelayExport, messages: Messages, metadata: ReportMetadata): string {
   const labels = messages.relay.export;
   const formatBoolean = (value: boolean | "unknown") => (value === "unknown" ? "unknown" : value ? messages.output.yes : messages.output.no);
+  const mode = report.mode ?? (report.copy ? "copy" : report.follow ? "follow" : report.open ? "open" : "background");
   const rows = [
     [labels.palabreVersion, metadata.palabreVersion],
+    [labels.mode, `${mode} — ${labels.modeNames[mode]}`],
+    ...(report.modeSource ? [["modeSource", report.modeSource]] : []),
     [labels.from, report.from ? `${report.from.agent}${report.from.session ? `:${report.from.session}` : ""}` : messages.relay.terminalSender],
     [labels.to, `${report.to.agent}${report.to.session ? `:${report.to.session}` : ""}`],
     ...(report.created !== undefined ? [[labels.created, formatBoolean(report.created)], [labels.cwd, report.cwd ?? labels.unknown]] : []),
+    ...(report.desktopLink ? [[labels.desktopLink, report.desktopLink]] : []),
     [labels.provider, report.to.provider],
     ...(report.copy ? [
-      [labels.mode, "copy"], [messages.relay.copy.source, report.copy.source],
+      [messages.relay.copy.source, report.copy.source],
       [messages.relay.copy.copy, report.copy.session ?? (report.copy.retention === "none" ? messages.relay.copy.none : messages.relay.copy.unknown)],
       [messages.relay.copy.verified, formatBoolean(report.copy.verified)], [messages.relay.copy.retention, report.copy.retention],
       ...(report.copy.diagnostic ? [[messages.relay.copy.diagnostic, report.copy.diagnostic]] : []),
@@ -269,9 +290,9 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     [labels.inActiveBranch, formatBoolean(report.delivery.inActiveBranch)],
     [labels.identity, report.identity ?? labels.none],
     [labels.observedModels, report.observedModels.length > 0 ? report.observedModels.join(", ") : labels.none],
-    [labels.nonce, report.nonce],
+    [labels.nonce, report.nonce || labels.none],
     [labels.startedAt, report.startedAt],
-    ...(report.readAccess ? [[labels.readAccess, `${report.readAccess.status}; ${report.readAccess.reason}; failedCommands=${report.readAccess.failedCommands}`]] : []),
+    ...(report.readAccess ? [[labels.readAccess, `${report.readAccess.status}; ${report.readAccess.reason}; failedCommands=${report.readAccess.failedCommands}${report.readAccess.succeededCommands === undefined ? "" : `; succeededCommands=${report.readAccess.succeededCommands}`}`]] : []),
     ...(report.retryAfter !== undefined ? [[labels.retryAfter, String(report.retryAfter)]] : []),
     ...(report.subject !== undefined ? [[labels.subject, report.subject]] : []),
     ...(report.cli ? [[labels.cliPath, report.cli.path], [labels.cliVersion, report.cli.version ?? labels.unknown]] : []),
@@ -281,11 +302,17 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     ] : []),
     ...(report.open
       ? [
-        [labels.mode, "open"],
         [labels.queue, report.open.queue],
         [labels.correlation, report.open.correlation ?? labels.none],
         [labels.receiver, report.open.receiver],
         [labels.targetPermissions, report.open.targetPermissions ?? labels.unknown]
+      ]
+      : []),
+    ...(report.follow
+      ? [
+        [labels.correlation, report.follow.correlation ?? labels.none],
+        [labels.receiver, "unverified"],
+        [labels.targetPermissions, report.follow.targetPermissions ?? labels.unknown]
       ]
       : [])
   ];
@@ -296,8 +323,13 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     "| --- | --- |",
     ...rows.map(([label, value]) => `| ${escapeTableCell(label!)} | ${escapeTableCell(value!)} |`),
     "",
-    `> ${report.copy ? messages.relay.copy.notice : report.write ? relayWriteText(report.write.language).exportNotice : report.open ? labels.openNotice : labels.readOnlyNotice}`,
+    `> ${report.copy ? messages.relay.copy.notice : report.write ? relayWriteText(report.write.language).exportNotice : report.follow ? messages.relay.open.followNotice : report.open ? labels.openNotice : labels.readOnlyNotice}`,
     "",
+    // Un relay réussi n'a pas de section Erreur : l'avertissement doit donc exister par lui-même.
+    // Une seule copie : quand l'erreur porte déjà l'avertissement (`blocked`, échec enrichi), la
+    // section Erreur suffit.
+    ...(report.readAccess && !report.error?.includes(messages.relay.readAccess(report.readAccess))
+      ? [`> ${messages.relay.readAccess(report.readAccess)}`, ""] : []),
     `## ${labels.message}`,
     "",
     report.message,
@@ -306,5 +338,10 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     ...(report.error !== undefined ? [`## ${labels.error}`, "", report.error, ""] : [])
   ];
   if (report.write) content.push(`## ${relayWriteText(report.write.language).exportHeading}`, "", "````json", JSON.stringify(report.write, null, 2), "````", "");
+  if (report.nextTurn) {
+    const next = report.nextTurn;
+    content.push(`## nextTurn — ${messages.relayThenFollow.label}`, "", messages.relayThenFollow.statusLine(labels.status, next.status, next.reason), "",
+      ...(next.reply !== undefined ? [next.reply, ""] : []), "````json", JSON.stringify(next, null, 2), "````", "");
+  }
   return normalizeMarkdownForWindowsPreview(content.join("\n"));
 }

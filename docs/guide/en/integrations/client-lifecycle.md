@@ -18,6 +18,8 @@ Always wait for process termination. `error` describes the business failure; the
 
 An `error` event may include phase, agent, role, turn, a stable `kind`, message, and details. Kinds include `command-not-found`, `spawn-failed`, `timeout`, `idle-timeout`, `output-too-large`, `empty-output`, `non-zero-exit`, `usage-limit`, `unsupported-model`, `model-unavailable`, `model-pull-failed`, `http-error`, and `cancelled`. For a `usage-limit`, `retryAfter` may be present: duration in seconds, ISO timestamp, or local `HH:mm` time. It is best-effort; branch on `kind`, not message text.
 
+A CLI agent that exits with a non-zero code still fails, even if it wrote to stdout. Palabre gives stderr priority; when stderr is empty, the `non-zero-exit` message includes only a sanitized, bounded stdout excerpt for diagnostics. This excerpt is never an agent response and does not automatically reclassify the error.
+
 Palabre attempts to preserve responses in a partial export after failure. Accept `done` with a path followed by a non-zero code. Cancellation must remain distinct from an error.
 
 ## Client identity
@@ -29,4 +31,4 @@ PALABRE_CLIENT_VERSION=2.3.0
 
 The name is open-ended. Palabre sanitizes these values and records them with its own version in exports. Without a declaration, the source is `direct-cli`. These fields are diagnostic, not a security boundary.
 
-Relay has its own outcomes: `usage-limit` and `read-unavailable` (2), `target-not-open` (3), `review-failed` (9), `invalid-request` with `error.reason` (8). `retryAfter` may be only a time, without a date or time zone: show it as supplied and await a human decision, without scheduled resend. Client provenance fields described here apply to Debate/Ask/Chat exports; Relay reports its PALABRE version.
+Relay has its own outcomes: `usage-limit` (2), `read-unavailable` (2), `target-not-open` (3), `review-failed` (9), `invalid-request` with `error.reason` (8). Refused command launches on Windows fill `readAccess`: `partial` and `unverified` preserve the outcome; `blocked` may produce `read-unavailable` without removing reply or delivery. `retryAfter` may be only a time, without a date or time zone: show it as supplied and await a human decision, without scheduled resend. Client provenance fields described here apply to Debate/Ask/Chat exports; Relay reports its PALABRE version.
