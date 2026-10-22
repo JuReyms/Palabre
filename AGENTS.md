@@ -863,7 +863,7 @@ Un échec de lancement donne `cli-failure` pour la reprise, et `neutralization-f
 
 | Code | Issue (`status`) | Délivrance |
 | --- | --- | --- |
-| 0 | `replied` ; `followed` (avec `--open --follow` seulement, #195) | `replied` ; `not-delivered` pour `followed`, rien n'étant envoyé |
+| 0 | `replied` ; `followed` (avec `--open --follow` seulement, #195) ; `checked` (avec `--check` seulement, #203) | `replied` ; `not-delivered` pour `followed` et `checked`, rien n'étant envoyé |
 | 1 | `internal-error` (défaut de Palabre) | `not-delivered` avant lancement, sinon `unknown` |
 | 2 | `cli-failure`, `no-valid-reply`, `usage-limit`, `output-too-large`, `read-unavailable` | `persisted-no-reply` ou `unknown` ; `not-delivered` si aucun processus n'a été lancé |
 | 3 | `target-busy`, `target-state-unknown`, `neutralization-failed`, `target-not-open` (en mode ouvert seulement : `--open` ou `auto`) | `not-delivered` |
@@ -987,6 +987,16 @@ Un appel `--open` attend la réponse à son enveloppe, puis s'arrête. Quand l'�
 - Issue `followed` (code 0) : `reply`, `identity: same-as-target` (fil vérifié), `delivery: not-delivered` (rien n'est envoyé), `mode: "follow"`, sans `queue`, `correlation`, `receiver: "unverified"`, `targetPermissions` du seul tour suivi. `followed` et `mode: "follow"` sont des ajouts v1 propres à cette option ; une intégration qui ne les connaît pas ne doit pas les traiter comme un succès de relay.
 - **L'auteur du tour n'est pas vérifié** (l'humain dans l'app, ou autre) : ni autorisation, ni clic humain, ni décision n'en sont déduits. Le texte, l'export et le JSON le disent ; la sortie texte n'affiche aucune consigne de renvoi.
 - Un tour terminé avant l'appel n'est pas rendu : le chef de mission lance le suivi avant que l'humain agisse dans l'app. Les tests (`tests/external-sessions-open-follow.test.ts`, `tests/relay-command.test.ts`) utilisent des rollouts factices et un verrou tenu par le test : aucun Codex réel.
+
+### Vérifier avant d'envoyer (`--check`, #203)
+
+Avec `relay.view: auto`, le mode n'est connu qu'à l'envoi. `--check` rend ce choix visible avant, sans rien envoyer :
+
+- `relay()` refuse `--check` avec un message, `--message-file`, `--subject`, `--from`, `--new`, `--dir`, `--task`, `--pr`, `--write`, `--follow`, `--timeout`, `--no-export` ou un en-tête Mission (`invalid-arguments`). `--open` et `--background` gardent leur sens.
+- Mêmes étapes qu'un envoi jusqu'à `resolveRelayView` inclus (config approuvée, agent, fournisseur, exécutable résolu, sonde `auto`), puis `relayCheck` : en mode ouvert, `locateOpenRollout` et sonde du verrou (`target-not-open` / `target-state-unknown`) ; en arrière-plan, `assessClosedTarget`, partagé avec l'envoi, donc mêmes refus et mêmes conseils `target-busy` (`setting`, `--background`). Ni enveloppe, ni `codex mcp list`, ni reprise, ni dépôt, ni export ; seule la sonde POSIX du verrou lance `python3`.
+- Issue `checked` (code 0), `delivery: not-delivered`, champ facultatif `check` sur tout résultat de `--check` : `target` (`open` | `closed`) et, en mode ouvert, `lastPermissions` (`approvalPolicy`, `sandbox`, `network` ou `"unknown"`) et `lastPermissionsAt`. Les champs de dépôt (`queue`, `correlation`, `receiver`, `targetPermissions`) sont absents.
+- `readLastTurnContext` (`openRollout.ts`) lit au plus le dernier Mio du rollout ; `lastTurnContext` (`openReader.ts`, pur) prend le dernier `turn_context` lisible, ligne partielle ignorée. Ces permissions sont **indicatives** : le tour suivant peut en appliquer d'autres. Absentes de cette fin : `"unknown"`.
+- L'état peut changer entre `--check` et l'envoi ; l'envoi revérifie toujours, sans repli plus permissif. `neutralization-failed` reste possible à l'envoi. Tests : `tests/relay-check.test.ts`, profil fictif et sonde simulée.
 
 ### Hors périmètre de cette version
 

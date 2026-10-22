@@ -103,6 +103,23 @@ Pour l'ouvrir vous-même : explorer.exe "codex://threads/<identifiant>"
 
 La commande dépend du système : `explorer.exe` sous Windows, `open` sous macOS, `xdg-open` sous Linux. Elle sert quand le lien n'est pas cliquable, par exemple dans l'app Claude. Lancez-la vous-même : un agent ne l'ouvre jamais à votre place. En JSON, `mode` vaut `background`, `open` ou `follow` ; aucun champ de lien n'est ajouté, une intégration le construit depuis `to.session`.
 
+### Vérifier avant d'envoyer (`--check`)
+
+Avec `auto`, le mode n'est connu qu'au moment de l'envoi. Pour le savoir avant, sans rien envoyer :
+
+```text
+palabre relay --check --to codex:<identifiant>
+```
+
+PALABRE fait les mêmes contrôles qu'un envoi (configuration, agent, mode, conversation retrouvée, verrou), puis s'arrête. Rien n'est envoyé, aucune CLI de l'équipier n'est lancée et aucun export n'est écrit ; sous macOS et Linux, la sonde du verrou Codex lance seulement `python3`, comme pour un envoi.
+
+- Contrôles passés : issue `checked` (code 0). PALABRE dit si la conversation est ouverte ou fermée, donc si un envoi irait dans l'app desktop ou en arrière-plan.
+- Conversation ouverte : PALABRE affiche aussi les permissions du **dernier tour connu**, lues à la fin de son historique. C'est une indication, pas une garantie : le prochain tour peut en appliquer d'autres.
+- Un envoi serait refusé : `--check` rend le même refus, avec le même code (`target-busy`, `target-not-open`, `session-not-found`…), et précise que rien n'a été envoyé.
+- `--open` et `--background` s'utilisent comme pour un envoi. Le message, `--from`, `--subject`, `--new`, `--follow`, `--task`, `--write`, `--timeout` et `--no-export` sont refusés.
+
+L'état peut changer entre la vérification et l'envoi : l'envoi revérifie toujours, sans repli vers plus de droits. La liste MCP de Codex n'est pas consultée : un échec `neutralization-failed` reste possible à l'envoi.
+
 ## Lire un message Relay
 
 Le titre indique qui parle à qui, puis l'avertissement rappelle que le message vient d'un agent et n'accorde aucun droit. L'objet et le corps, écrits par l'agent, sont entre deux séparateurs. La partie « 🤖 Message pour l'agent » regroupe la provenance et la consigne de réponse. Le skill demande aux agents de commencer leur réponse par cinq lignes : **Fait · Vérifié · Bloqué · Prochaine action · Décision attendue**, avec une ligne vide entre chaque ligne, puis de donner les preuves et le détail. Ces lignes aident à lire ; la CLI ne les analyse pas. Le statut, la délivrance et l'export restent les preuves de l'échange, pas de la réussite de la tâche.
@@ -369,6 +386,7 @@ Après une fermeture normale du chef de mission, reprendre avec `status`, puis u
 | `--background` | Force l'arrière-plan pour cet appel ; incompatible avec `--open`, sans changer le réglage. |
 | `--open` | Vise une conversation Codex ouverte (voir plus haut). |
 | `--follow` | Avec `--open` seulement : ne dépose rien et rend le premier tour terminé après l'appel (`followed`). |
+| `--check` | Vérifie le mode, la conversation et les dernières permissions connues, sans rien envoyer (`checked`, ou le refus qu'aurait l'envoi). |
 | `--subject "<objet>"` | Objet facultatif, une ligne non vide de 200 caractères Unicode au plus, sans contrôle ni formatage Unicode ; JSON/export `subject?`. |
 | `--timeout <secondes>` | Délai maximal, de 10 à 3600 secondes (600 par défaut). |
 | `--json` | Un seul objet JSON v1 sur stdout, quelle que soit l'issue. |

@@ -81,8 +81,18 @@ export interface RelayMessages {
     followNoMessage: string;
     followNotice: string;
   };
-  /** Message d'erreur d'une issue autre que `replied` ou `followed`. */
-  status(status: Exclude<RelayStatus, "replied" | "followed" | "invalid-request">): string;
+  /** Textes propres à `--check` (#203) : vérification sans envoi. */
+  check: {
+    /** Contrôles passés ; la conversation est fermée (arrière-plan) ou ouverte (app desktop). */
+    done(agent: string, target: "open" | "closed"): string;
+    /** Refus : rien n'a été envoyé, puisque `--check` n'envoie jamais. */
+    nothingSent: string;
+    lastPermissions(summary: string, at?: string): string;
+    permissionsUnknown: string;
+    conflict: string;
+  };
+  /** Message d'erreur d'une issue autre que `replied`, `followed` ou `checked`. */
+  status(status: Exclude<RelayStatus, "replied" | "followed" | "checked" | "invalid-request">): string;
   /**
    * Avertissement affiché quand des lancements de commandes ont été refusés par Windows. Le texte
    * suit le statut : `partial` (réussite explicite prioritaire, même avec un événement ambigu),
@@ -160,7 +170,7 @@ export interface RelayMessages {
   };
 }
 
-const frStatus: Record<Exclude<RelayStatus, "replied" | "followed" | "invalid-request">, string> = {
+const frStatus: Record<Exclude<RelayStatus, "replied" | "followed" | "checked" | "invalid-request">, string> = {
   "read-unavailable": "Codex n'a pas pu démarrer une commande de lecture sous Windows (CreateProcessAsUserW, erreur 5). Cause probable à vérifier : le raccourci PowerShell du Microsoft Store (WindowsApps\\pwsh.exe). Réponse conservée ; lectures nécessaires non établies. Le propriétaire doit consulter https://palab.re/fr/troubleshooting (Codex sous Windows) et le suivi https://github.com/JuReyms/Palabre/issues/128 : contournement limité au processus Codex et installation facultative de PowerShell 7 hors Store. Ne modifie pas les permissions et ne relance pas automatiquement.",
   "review-failed": "La réponse de l'agent est conservée, mais la publication de la revue n'est pas confirmée. Ne relance pas automatiquement.",
   "internal-error": "Erreur interne de Palabre pendant le relay.",
@@ -179,7 +189,7 @@ const frStatus: Record<Exclude<RelayStatus, "replied" | "followed" | "invalid-re
   "cancelled": "Relay annulé."
 };
 
-const enStatus: Record<Exclude<RelayStatus, "replied" | "followed" | "invalid-request">, string> = {
+const enStatus: Record<Exclude<RelayStatus, "replied" | "followed" | "checked" | "invalid-request">, string> = {
   "read-unavailable": "Codex could not start a read command on Windows (CreateProcessAsUserW, error 5). Probable cause to check: the Microsoft Store PowerShell shortcut (WindowsApps\\pwsh.exe). Reply preserved; required reads not established. The owner must consult https://palab.re/en/troubleshooting (Codex on Windows) and https://github.com/JuReyms/Palabre/issues/128: child-only Codex workaround and optional PowerShell 7 installation outside the Store. Do not change permissions or retry automatically.",
   "review-failed": "The agent reply is preserved, but review publication is not confirmed. Do not retry automatically.",
   "internal-error": "Palabre internal error during the relay.",
@@ -313,6 +323,15 @@ Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. Une fois
       followConflict: "--follow s'utilise seulement avec --open et --to <agent>:<uuid>, sans message, --message-file, --subject, --from, --new, --dir, --task, --pr ni --write. Rien n'a été déposé.",
       followNoMessage: "Aucun message déposé : suivi du tour suivant de la conversation.",
       followNotice: "Avec --follow, PALABRE ne dépose rien : il rapporte le premier tour terminé après l'appel. Ce n'est pas la réponse à un message PALABRE, et l'auteur du tour n'est pas vérifié. Aucune autorisation n'en est déduite."
+    },
+    check: {
+      done: (agent, target) => target === "open"
+        ? `Vérification seulement, rien n'a été envoyé : la conversation ${agent} est ouverte. Un envoi irait dans l'app desktop, avec les permissions de cette conversation.`
+        : `Vérification seulement, rien n'a été envoyé : la conversation ${agent} est fermée. Un envoi partirait en arrière-plan.`,
+      nothingSent: "Vérification seulement : rien n'a été envoyé. Un envoi recevrait ce même refus.",
+      lastPermissions: (summary, at) => `Permissions du dernier tour connu${at ? ` (${at})` : ""} : ${summary}. C'est une indication : le prochain tour peut en appliquer d'autres.`,
+      permissionsUnknown: "Permissions du dernier tour : inconnues, aucune trouvée à la fin de l'historique.",
+      conflict: "--check vérifie seulement : utilisez --to <agent>:<uuid>, avec --open ou --background si besoin, sans message, --message-file, --subject, --from, --new, --dir, --task, --pr, --write, --follow, --timeout ni --no-export. Rien n'a été envoyé."
     },
     status: (status) => frStatus[status],
     readAccess: (diagnostic) => `${({
@@ -458,6 +477,15 @@ Only the owner opens it; an agent never opens it on their behalf. Once open, lat
       followConflict: "--follow only works with --open and --to <agent>:<uuid>, without a message, --message-file, --subject, --from, --new, --dir, --task, --pr or --write. Nothing was queued.",
       followNoMessage: "No message queued: following the conversation's next turn.",
       followNotice: "With --follow, PALABRE queues nothing: it reports the first turn completed after the call. This is not the reply to a PALABRE message, and the author of the turn is not verified. No authorization is inferred from it."
+    },
+    check: {
+      done: (agent, target) => target === "open"
+        ? `Check only, nothing was sent: the ${agent} conversation is open. A send would go to the desktop app, with this conversation's permissions.`
+        : `Check only, nothing was sent: the ${agent} conversation is closed. A send would run in background.`,
+      nothingSent: "Check only: nothing was sent. A send would get this same refusal.",
+      lastPermissions: (summary, at) => `Permissions of the last known turn${at ? ` (${at})` : ""}: ${summary}. This is an indication: the next turn may apply different ones.`,
+      permissionsUnknown: "Permissions of the last turn: unknown, none found at the end of the history.",
+      conflict: "--check only checks: use --to <agent>:<uuid>, with --open or --background if needed, without a message, --message-file, --subject, --from, --new, --dir, --task, --pr, --write, --follow, --timeout or --no-export. Nothing was sent."
     },
     status: (status) => enStatus[status],
     readAccess: (diagnostic) => `${({

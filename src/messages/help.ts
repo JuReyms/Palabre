@@ -252,6 +252,7 @@ Utilisation :
   palabre relay allow-repo 'proprietaire/*' [--config <chemin>]
   palabre relay --open --from <agent>:<session> --to <agent-codex>:<session> "<message>"
   palabre relay --open --follow --to <agent-codex>:<session>   # suite d'un tour lancé depuis l'app
+  palabre relay --check --to <agent>:<session>   # vérifie le mode et la conversation, sans rien envoyer
 
 Options :
   --from <agent>[:<uuid>]     expéditeur facultatif, déclaré et non authentifié ; terminal si absent
@@ -269,6 +270,7 @@ Options :
   Pour un avis ou une relecture devant rester sans modification, passer --background :
   réduction des droits pour cet appel, sans changer le réglage. Ne pas choisir le mode par habitude ailleurs.
   --follow                    avec --open : ne dépose rien, attend le prochain tour terminé
+  --check                     vérifie mode, conversation et permissions connues, sans rien envoyer
   --timeout <secondes>        délai maximal, de 10 à 3600 (défaut : 600)
   --json                      sortie JSON v1 pour les intégrations
   --no-export                 n'écrit pas l'export .relay.md
@@ -783,6 +785,7 @@ Usage:
   palabre relay allow-repo 'owner/*' [--config <path>]
   palabre relay --open --from <agent>:<session> --to <codex-agent>:<session> "<message>"
   palabre relay --open --follow --to <codex-agent>:<session>   # follow a turn started in the app
+  palabre relay --check --to <agent>:<session>   # checks the mode and the conversation, sends nothing
 
 Flags:
   --from <agent>[:<uuid>]     optional, declared and unauthenticated sender; terminal when omitted
@@ -800,6 +803,7 @@ Flags:
   For advice or a review that must not change files, pass --background:
   fewer permissions for this call, without changing the setting. Do not choose the mode out of habit otherwise.
   --follow                    with --open: queues nothing, waits for the next completed turn
+  --check                     checks mode, conversation and known permissions, sends nothing
   --timeout <seconds>         maximum duration, 10 to 3600 (default: 600)
   --json                      JSON v1 output for integrations
   --no-export                 does not write the .relay.md export

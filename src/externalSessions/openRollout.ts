@@ -2,13 +2,14 @@
  * @file Relay B1 (`palabre relay --open`) : accès disque bornés au rollout Codex de la cible.
  * `locateOpenRollout` retrouve le rollout par UUID et ne lit que sa première ligne ;
  * `captureOpenRollout` et `readOpenRollout` lisent la première ligne, un témoin borné et l'ajout
- * depuis l'offset. Aucun historique complet n'est chargé, quelle que soit sa taille. Lecture seule,
- * aucun agent ni transport.
+ * depuis l'offset ; `readLastTurnContext` lit seulement la fin du fichier (`relay --check`, #203).
+ * Aucun historique complet n'est chargé, quelle que soit sa taille. Lecture seule, aucun agent ni
+ * transport.
  */
 import { open, type FileHandle } from "node:fs/promises";
 import { findCodexRollouts } from "./codex.js";
 import { isUsableDirectory } from "./process.js";
-import { captureOpenBaseline, OPEN_READ_LIMITS, type OpenBaseline, type OpenSnapshot } from "./openReader.js";
+import { captureOpenBaseline, lastTurnContext, OPEN_READ_LIMITS, type LastTurnContext, type OpenBaseline, type OpenSnapshot } from "./openReader.js";
 
 /** Ouverture en lecture seule ; injectable pour mesurer les lectures dans les tests. */
 export type OpenFile = (filename: string, flags: "r") => Promise<FileHandle>;
@@ -124,4 +125,27 @@ export async function readOpenRollout(filename: string, baseline: OpenBaseline, 
       || firstLine !== await readIdentity(file, after.size)) throw new Error("history-replaced");
     return { bytes: stat.size, firstLine, witness, added };
   } finally { await file.close(); }
+}
+
+/** Fin d'historique lue par `readLastTurnContext` : au plus 1 Mio. */
+export const LAST_CONTEXT_TAIL_BYTES = 1024 * 1024;
+
+/**
+ * Dernières permissions connues pour `relay --check` (#203) : lit au plus le dernier Mio du rollout,
+ * sans charger le reste, puis cherche le dernier `turn_context`. Absent de cette fin, ou fichier
+ * illisible : `undefined` (inconnu). Le résultat est indicatif, jamais une garantie pour le tour suivant.
+ */
+export async function readLastTurnContext(filename: string, openFile: OpenFile = open): Promise<LastTurnContext | undefined> {
+  try {
+    const file = await openFile(filename, "r");
+    try {
+      const stat = await file.stat();
+      if (!stat.isFile() || !Number.isSafeInteger(stat.size) || stat.size === 0) return undefined;
+      const length = Math.min(stat.size, LAST_CONTEXT_TAIL_BYTES);
+      const tail = await readRange(file, stat.size - length, length);
+      return lastTurnContext(new TextDecoder("utf-8").decode(tail), stat.size > length);
+    } finally { await file.close(); }
+  } catch {
+    return undefined;
+  }
 }
