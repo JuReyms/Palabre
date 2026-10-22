@@ -4,6 +4,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Fixed
+
+- Aide CLI : `palabre run --help` affiche maintenant son aide dédiée en français et en anglais, avec les options de lancement, leurs limites et les renvois vers Ask et Chat. L'aide générale reste courte et renvoie à cette aide ; `palabre --help` et `palabre help` conservent l'aide générale. Tests de couverture des options, d'alignement et des sorties réelles sans lancement d'agent ni export (Fixes #212).
+
 ## [0.20.0] - 2026-10-21
 
 ### Changed
