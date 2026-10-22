@@ -18,6 +18,9 @@
  * verrou, `python3` sous macOS/Linux, est lancée comme pour `--open`), il attend le premier
  * tour terminé après l'appel dans la conversation ouverte et rend sa réponse en `followed`, avec un
  * auteur non vérifié. Il sert à reprendre la suite d'un tour lancé depuis l'app (confirmation, etc.).
+ *
+ * `--check` (#203) fait les mêmes contrôles qu'un envoi jusqu'à l'état de la conversation, puis
+ * s'arrête : ni enveloppe, ni processus de la CLI cible, ni export. Issue `checked` ou refus identique.
  */
 import { readFile, realpath, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -33,7 +36,7 @@ import { CodexSessionAdapter, codexDesktopThreadLink } from "../externalSessions
 import { buildEnvelope, buildOpenEnvelope, createNonce, MAX_RELAY_MESSAGE_BYTES, parseAgentName, parseSenderRef, parseSessionRef, validMissionHeader, validateRelayMessage, validateRelaySubject, type MissionEnvelopeHeader } from "../externalSessions/envelope.js";
 import type { OpenTurnContext } from "../externalSessions/openReader.js";
 import { defaultOpenRelayDeps, runFollowRelay, runOpenRelay, type FollowRelayResult, type OpenQueueReport, type OpenRelayResult } from "../externalSessions/openRelay.js";
-import { locateOpenRollout } from "../externalSessions/openRollout.js";
+import { locateOpenRollout, readLastTurnContext } from "../externalSessions/openRollout.js";
 import { assessTarget, classifyDelivery, RELAY_EXIT_CODES, refusalOutcome, type PreLaunchRefusal } from "../externalSessions/outcome.js";
 import { resolveExternalExecutable } from "../externalSessions/resolve.js";
 import { isUsableDirectory } from "../externalSessions/process.js";
@@ -71,12 +74,25 @@ export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 /** Options de `palabre relay` qui attendent une valeur. */
 const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "config", "language", "task", "pr", "subject", "dir"]);
 /** Options de `palabre relay` sans valeur. */
-const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "background", "new", "write", "follow"]);
+const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "background", "new", "write", "follow", "check"]);
 /** Alias acceptés, comme pour les autres commandes. */
 const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
 
 /** Mode d'un échange Relay, tel qu'annoncé à l'utilisateur (#190). */
 export type RelayMode = "background" | "open" | "follow";
+
+/**
+ * Rapport de `--check` (#203), présent sur tout résultat de vérification, réussi ou refusé.
+ * `target` n'est connu qu'une fois la conversation retrouvée et sondée. En mode ouvert,
+ * `lastPermissions` vient du dernier `turn_context` lisible à la fin de l'historique : c'est
+ * une indication, pas une garantie pour le tour suivant.
+ */
+export interface RelayCheckReport {
+  target?: "open" | "closed";
+  lastPermissions?: Omit<OpenTurnContext, "model"> | "unknown";
+  /** Horodatage ISO du relevé, quand l'historique le fournit. */
+  lastPermissionsAt?: string;
+}
 
 /**
  * Sortie `--json` v1 : un seul objet, quelle que soit l'issue. Politique de version du renderer
@@ -127,6 +143,11 @@ export interface RelayResultV1 {
   /** Origine du choix ; absent si la validation s'arrête avant toute résolution. */
   modeSource?: RelayModeSource;
   /**
+   * Présent seulement avec `--check` (#203) : rien n'a été envoyé ni écrit, aucune CLI de
+   * l'équipier n'a été lancée (sous macOS/Linux, seule la sonde du verrou lance `python3`).
+   */
+  check?: RelayCheckReport;
+  /**
    * Champs propres au mode ouvert (B1), explicite ou automatique : `status` peut
    * alors valoir `target-not-open`. Avec `--open --follow` (#195) : sans `queue`, et `status` peut
    * valoir `followed`.
@@ -162,6 +183,9 @@ interface RelayContext {
   modeSource?: RelayModeSource;
   /** `--open --follow` (#195) : suivi du tour suivant, sans dépôt. */
   follow?: boolean;
+  /** `--check` (#203) : contrôles d'avant envoi seulement, et leur rapport. */
+  check?: boolean;
+  checkReport?: RelayCheckReport;
   newSession?: boolean;
   cwd?: string;
   /**
@@ -232,7 +256,9 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
     to: null,
     provider: null,
     exchangeStarted: false,
-    open: rawArgs.includes("--open")
+    open: rawArgs.includes("--open"),
+    // Connu dès les arguments bruts : tout résultat de --check porte son rapport, refus précoce compris.
+    check: rawArgs.includes("--check")
   };
   context.approvedWrite = options.approvedWrite;
   let result: RelayResultV1;
@@ -262,6 +288,14 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   context.modeSource = flags.open || flags.background ? "explicit" : undefined;
   if (flags.open && flags.background) throw invalid("invalid-arguments", messages.relayView.conflict);
   if (context.header && context.open) throw invalid("invalid-arguments", messages.relayView.missionBackground);
+  context.check = flags.check === true;
+  // La vérification n'envoie rien et n'écrit rien : une option d'envoi, de suivi ou d'approbation
+  // (`--trust-config` réécrirait le registre de confiance) la rendrait trompeuse.
+  if (context.check && (positionals.length > 0 || flags["message-file"] !== undefined || flags.subject !== undefined || flags.from !== undefined
+    || flags.new || flags.dir !== undefined || flags.task !== undefined || flags.pr !== undefined || flags.write || flags.follow
+    || flags.timeout !== undefined || flags["no-export"] || flags["trust-config"] || context.header)) {
+    throw invalid("invalid-arguments", messages.relay.check.conflict);
+  }
   context.follow = flags.follow === true;
   // Le suivi ne transporte rien : toute option d'envoi le rendrait trompeur.
   if (context.follow && (!context.open || positionals.length > 0 || flags["message-file"] !== undefined || flags.subject !== undefined
@@ -310,7 +344,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const pr = typeof flags.pr === "string" ? parsePullRequest(flags.pr) : undefined;
   if ((flags.task === "review" && (!pr || context.open || flags["trust-config"])) || (flags.pr && !flags.task)) throw invalid("invalid-pr");
   const defaultReviewMessage = flags.task === "review" && positionals.length === 0 && !flags["message-file"];
-  let message = defaultReviewMessage || context.follow ? "" : await readRelayMessage(flags, positionals, messages);
+  let message = defaultReviewMessage || context.follow || context.check ? "" : await readRelayMessage(flags, positionals, messages);
   const timeoutSeconds = parseTimeout(flags.timeout, messages);
 
   // Config : même résolution que les autres commandes, approbation exigée sans question interactive.
@@ -394,6 +428,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   context.modeSource = mode.modeSource;
   context.open = mode.mode === "open";
   if (mode.refusal) throw new RelayRefusal({ status: mode.refusal });
+  if (context.check) return relayCheck(context, { to: to.value, provider, configPath, explicitBackground: flags.background === true });
   const coordination = context.open ? buildOpenEnvelope(envelopeInput, frame) : buildEnvelope(envelopeInput, frame);
   const envelopeCheck = validateRelayMessage(coordination);
   if (!envelopeCheck.ok) throw invalid(envelopeCheck.reason);
@@ -436,31 +471,12 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const adapter: ExternalSessionAdapter = provider === "claude"
     ? new ClaudeSessionAdapter({ operatorFrame: context.messages.relay.operatorFrame, safeMode: flags.task === "review" })
     : context.approvedWrite ? new WriteCodexAdapter(context.approvedWrite) : new CodexSessionAdapter();
-  const located = context.newSession
-    ? { status: "found" as const, target: { ...to.value, provider, cwd: context.cwd! } }
-    : adapter.locate(to.value);
-  if (located.status !== "found") {
-    throw located.status === "session-not-found"
-      ? new RelayRefusal({ status: "session-not-found" })
-      : invalid("invalid-working-directory");
-  }
-  if (!context.newSession) {
-    context.targetLocated = true;
-    const decision = assessTarget(adapter.probe(located.target));
-    if (!decision.allowed) {
-      if (provider === "codex" && decision.status === "target-busy" && context.modeSource === "setting") {
-        context.remedy = relayViewCommand(configPath);
-        throw new RelayRefusal({ status: decision.status }, relayViewText(context.language ?? "fr").busy(context.remedy));
-      }
-      if (provider === "codex" && decision.status === "target-busy" && flags.background && !excluded) {
-        throw new RelayRefusal({ status: decision.status }, context.messages.relayView.busyExplicit);
-      }
-      throw new RelayRefusal({ status: decision.status });
-    }
-  }
+  const target: ExternalTarget = context.newSession
+    ? { ...to.value, provider, cwd: context.cwd! }
+    : assessClosedTarget(context, adapter, to.value, configPath, flags.background === true && !excluded);
 
   if (pr && provider === "claude") {
-    const checked = await checkClaudeReviewCli(resolution.executable, located.target.cwd);
+    const checked = await checkClaudeReviewCli(resolution.executable, target.cwd);
     context.cli = checked.cli;
     if (!checked.supported) throw invalid("review-cli-unsupported",
       `version=${checked.cli.version ?? "unknown"}; minimum=${MIN_CLAUDE_REVIEW_VERSION}; path=${checked.cli.path}`);
@@ -485,13 +501,13 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   process.once("SIGINT", onInterrupt);
   context.exchangeStarted = true;
   try {
-    const exchanged = await exchange(adapter, resolution.executable, located.target, envelope, {
+    const exchanged = await exchange(adapter, resolution.executable, target, envelope, {
       timeoutMs: timeoutSeconds * 1000,
       signal: controller.signal,
       ...(context.newSession ? { onCreatedSession: (id: string) => { context.to = { agent: to.value.agent, sessionId: id }; } } : {})
     });
     const { outcome, launched } = exchangeOutcome(exchanged);
-    const evidence = launched && located.target.sessionId ? adapter.findNonce(located.target, nonce) : undefined;
+    const evidence = launched && target.sessionId ? adapter.findNonce(target, nonce) : undefined;
     const delivery = classifyDelivery({ outcome, launched, evidence });
     const reply = outcome.status === "replied" ? exchanged.verdict?.interpretation.reply : undefined;
     const result = buildResult(context, {
@@ -513,7 +529,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     applyReadAccessDiagnostic(result, exchanged.verdict?.interpretation.readAccess, context.messages);
     if (review && reply !== undefined && outcome.status === "replied") {
       try {
-        const reviewUrl = await publishReview(review, reply, to.value.agent, [context.from?.sessionId, located.target.sessionId, nonce].filter((id): id is string => !!id), undefined, async () => {
+        const reviewUrl = await publishReview(review, reply, to.value.agent, [context.from?.sessionId, target.sessionId, nonce].filter((id): id is string => !!id), undefined, async () => {
           if (!(await isConfigTrusted(configPath))
             || createHash("sha256").update(await readFile(configPath)).digest("hex") !== configFingerprint) throw new Error("review-authorization-changed");
           if (controller.signal.aborted) throw new Error("review-cancelled");
@@ -540,6 +556,85 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     context.signal?.removeEventListener("abort", onInterrupt);
     process.removeListener("SIGINT", onInterrupt);
   }
+}
+
+/**
+ * Arrière-plan : localise la conversation reprise, puis refuse une cible attachée ou invérifiable.
+ * Sur une Codex attachée, le conseil dépend de la cause : préférence `background` (commande de
+ * réglage) ou `--background` explicite (fermer la conversation) ; sinon, message d'origine.
+ * Partagé par l'envoi et par `--check` (#203), qui doivent rendre les mêmes refus.
+ */
+function assessClosedTarget(context: RelayContext, adapter: ExternalSessionAdapter, to: SessionRef, configPath: string, explicitBackground: boolean): ExternalTarget {
+  const located = adapter.locate(to);
+  if (located.status !== "found") {
+    throw located.status === "session-not-found"
+      ? new RelayRefusal({ status: "session-not-found" })
+      : invalid("invalid-working-directory");
+  }
+  context.targetLocated = true;
+  const decision = assessTarget(adapter.probe(located.target));
+  if (!decision.allowed) {
+    if (context.provider === "codex" && decision.status === "target-busy" && context.modeSource === "setting") {
+      context.remedy = relayViewCommand(configPath);
+      throw new RelayRefusal({ status: decision.status }, relayViewText(context.language ?? "fr").busy(context.remedy));
+    }
+    if (context.provider === "codex" && decision.status === "target-busy" && explicitBackground) {
+      throw new RelayRefusal({ status: decision.status }, context.messages.relayView.busyExplicit);
+    }
+    throw new RelayRefusal({ status: decision.status });
+  }
+  return located.target;
+}
+
+/**
+ * `--check` (#203) : mêmes contrôles qu'un envoi jusqu'à l'état de la conversation, puis arrêt.
+ * `check.target` est renseigné dès que l'état est connu, y compris avant `target-busy` (ouverte)
+ * ou `target-not-open` (fermée) ; il reste absent pour un état invérifiable.
+ * Ni enveloppe, ni processus de la CLI cible, ni export ; sous macOS/Linux, la sonde de verrou
+ * Codex lance `python3`, comme pour un envoi. Un refus garde le statut qu'aurait l'envoi. En mode
+ * ouvert, les permissions du dernier tour connu sont relevées, à titre indicatif. La liste MCP de
+ * Codex (arrière-plan) n'est pas lancée : un échec `neutralization-failed` reste possible à l'envoi.
+ */
+async function relayCheck(
+  context: RelayContext,
+  input: { to: SessionRef; provider: ExternalProvider; configPath: string; explicitBackground: boolean }
+): Promise<RelayResultV1> {
+  if (context.open) {
+    if (input.provider !== "codex") throw invalid("unsupported-agent", context.messages.relay.open.unsupportedProvider);
+    const home = path.join(os.homedir(), ".codex");
+    const located = await locateOpenRollout(home, input.to.sessionId);
+    if (located.status !== "found") {
+      throw located.status === "session-not-found" ? new RelayRefusal({ status: "session-not-found" }) : invalid("invalid-working-directory");
+    }
+    context.targetLocated = true;
+    const attachment = new CodexSessionAdapter({ home }).probe({ ...input.to, provider: "codex", cwd: located.cwd }).attachment;
+    if (attachment === "unknown") throw new RelayRefusal({ status: "target-state-unknown" });
+    if (attachment !== "attached") {
+      context.checkReport = { target: "closed" };
+      throw new RelayRefusal({ status: "target-not-open" });
+    }
+    const last = await readLastTurnContext(located.historyPath);
+    const { model: _model, ...permissions } = last?.context ?? {};
+    const known = Object.keys(permissions).length > 0;
+    context.checkReport = {
+      target: "open",
+      lastPermissions: known ? permissions : "unknown",
+      ...(known && last?.observedAt ? { lastPermissionsAt: last.observedAt } : {})
+    };
+  } else {
+    const adapter: ExternalSessionAdapter = input.provider === "claude"
+      ? new ClaudeSessionAdapter({ operatorFrame: context.messages.relay.operatorFrame, safeMode: false })
+      : new CodexSessionAdapter();
+    try {
+      assessClosedTarget(context, adapter, input.to, input.configPath, input.explicitBackground);
+    } catch (error) {
+      // Une cible attachée est ouverte : l'état est connu, même si l'envoi serait refusé.
+      if (error instanceof RelayRefusal && error.refusal.status === "target-busy") context.checkReport = { target: "open" };
+      throw error;
+    }
+    context.checkReport = { target: "closed" };
+  }
+  return buildResult(context, { outcome: { status: "checked", exitCode: RELAY_EXIT_CODES.checked }, delivery: NOT_DELIVERED });
 }
 
 /**
@@ -756,7 +851,7 @@ function parseNewTarget(value: string, messages: Messages): { ok: true; value: S
 
 function errorMessage(outcome: RelayOutcome, messages: Messages, detail?: string): string {
   if (outcome.status === "invalid-request") return messages.relay.invalidRequest(outcome.reason ?? "invalid-arguments", detail);
-  if (outcome.status === "replied" || outcome.status === "followed") return "";
+  if (outcome.status === "replied" || outcome.status === "followed" || outcome.status === "checked") return "";
   const base = messages.relay.status(outcome.status);
   return outcome.status === "internal-error" && detail ? `${base} ${detail}` : base;
 }
@@ -777,8 +872,9 @@ function buildResult(
   }
 ): RelayResultV1 {
   const { outcome } = input;
-  const success = outcome.status === "replied" || outcome.status === "followed";
-  const openFields: Partial<RelayResultV1> = context.follow
+  const success = outcome.status === "replied" || outcome.status === "followed" || outcome.status === "checked";
+  // Une vérification n'a rien déposé ni lu de tour : pas de champs de dépôt ou de corrélation.
+  const openFields: Partial<RelayResultV1> = context.check ? {} : context.follow
     ? {
       ...(input.follow?.retryAfter !== undefined ? { retryAfter: input.follow.retryAfter } : {}),
       ...(input.follow?.correlation ? { correlation: input.follow.correlation } : {}),
@@ -820,6 +916,7 @@ function buildResult(
     durationMs: Date.now() - context.startedAt,
     mode: context.follow ? "follow" : context.open ? "open" : "background",
     ...(context.modeSource ? { modeSource: context.modeSource } : {}),
+    ...(context.check ? { check: context.checkReport ?? {} } : {}),
     ...openFields
   };
 }
@@ -1010,10 +1107,13 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
   } else if (result.status === "followed") {
     lines.push(messages.relay.open.followed(result.to?.agent ?? ""));
     if (result.correlation?.reason === "turn-started-before-follow") lines.push(messages.relay.open.followStartedBefore);
+  } else if (result.status === "checked") {
+    lines.push(messages.relay.check.done(result.to?.agent ?? "", result.check?.target ?? "closed"));
   } else {
     lines.push(`${messages.relay.failed(result.status)} ${result.error?.message ?? ""}`.trim());
-    // Le suivi n'envoie rien : une consigne de renvoi n'aurait pas de sens.
-    if (result.mode !== "follow") lines.push(messages.relay.delivery(result.delivery.status));
+    // Le suivi et la vérification n'envoient rien : une consigne de renvoi n'aurait pas de sens.
+    if (result.check) lines.push(messages.relay.check.nothingSent);
+    else if (result.mode !== "follow") lines.push(messages.relay.delivery(result.delivery.status));
   }
   // Mode annoncé à chaque échange (#190), sauf refus d'arguments ou de configuration : rien n'a eu lieu.
   if (result.status !== "invalid-request") lines.push(messages.relay.modeLine(result.mode, result.to?.agent ?? "", Boolean(result.write)));
@@ -1040,7 +1140,12 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
     lines.push(result.created ? messages.relay.desktopLink(link) : messages.relay.desktopLinkExisting(link));
     lines.push(messages.relay.openLinkCommand(desktopOpenCommand(link)));
   }
-  if (result.mode === "open") {
+  if (result.check?.lastPermissions) {
+    lines.push(result.check.lastPermissions === "unknown"
+      ? messages.relay.check.permissionsUnknown
+      : messages.relay.check.lastPermissions(permissionsSummary(result.check.lastPermissions), result.check.lastPermissionsAt));
+  }
+  if (result.mode === "open" && !result.check) {
     lines.push(messages.relay.open.unverifiedReceiver);
     if (result.targetPermissions && result.targetPermissions !== "unknown") lines.push(messages.relay.open.permissions(permissionsSummary(result.targetPermissions)));
   }

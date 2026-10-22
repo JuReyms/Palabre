@@ -164,7 +164,7 @@ export type CertainRefusal = "target-busy" | "session-not-found";
 /**
  * Issue d'un relay ; le code de sortie associé est dans `RELAY_EXIT_CODES` (`outcome.ts`).
  * `target-not-open` n'est produit qu'avec `--open` (B1) : la sortie sans `--open` ne le rencontre pas.
- * `followed` n'est produit qu'avec `--open --follow` (#195).
+ * `followed` n'est produit qu'avec `--open --follow` (#195), `checked` qu'avec `--check` (#203).
  */
 export type RelayStatus =
   | "replied"
@@ -173,6 +173,12 @@ export type RelayStatus =
    * message déposé. Ce n'est pas la réponse à un message PALABRE et son auteur n'est pas vérifié.
    */
   | "followed"
+  /**
+   * Vérification seulement (`--check`, #203) : les contrôles d'avant envoi sont passés, rien n'a été
+   * envoyé ni écrit, aucune CLI de l'équipier n'a été lancée (sous macOS/Linux, seule la sonde du
+   * verrou lance `python3`). Un refus que l'envoi aurait reçu garde son propre statut et son code.
+   */
+  | "checked"
   /**
    * Réservé, plus émis depuis la correction du faux négatif Windows (issue 171) : un lancement de
    * commande refusé ne dégrade plus un échange réussi. La valeur reste dans le contrat v1 pour les

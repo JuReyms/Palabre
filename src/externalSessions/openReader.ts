@@ -144,7 +144,11 @@ const CONTEXT_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/;
 function turnContextOf(fresh: readonly JsonObject[], turnId: string): OpenTurnContext | undefined {
   const contexts = fresh.filter((row) => row.type === "turn_context" && object(row.payload)?.turn_id === turnId);
   if (contexts.length !== 1) return undefined;
-  const payload = object(contexts[0]!.payload)!;
+  return turnContextFromPayload(object(contexts[0]!.payload)!);
+}
+
+/** Champs bornés d'un `turn_context` : modèle, approbation, bac à sable et réseau ; rien d'autre. */
+function turnContextFromPayload(payload: JsonObject): OpenTurnContext | undefined {
   const token = (value: unknown) => (typeof value === "string" && CONTEXT_TOKEN.test(value) ? value : undefined);
   const sandboxPolicy = object(payload.sandbox_policy);
   const profileNetwork = object(payload.permission_profile)?.network;
@@ -158,6 +162,36 @@ function turnContextOf(fresh: readonly JsonObject[], turnId: string): OpenTurnCo
     ...(network ? { network } : {})
   };
   return Object.keys(context).length > 0 ? context : undefined;
+}
+
+/** Dernier `turn_context` connu d'une conversation, relevé pour `relay --check` (#203). */
+export interface LastTurnContext {
+  context: OpenTurnContext;
+  /** Horodatage ISO de la ligne, s'il est présent et valide. */
+  observedAt?: string;
+}
+
+/**
+ * Cherche le dernier `turn_context` lisible dans une fin d'historique déjà bornée par l'appelant.
+ * `partialStart` indique que le texte commence au milieu d'une ligne : cette ligne est ignorée.
+ * Indicatif seulement : le prochain tour peut appliquer d'autres permissions. Une ligne illisible
+ * est sautée ; aucun autre type de ligne n'est interprété.
+ */
+export function lastTurnContext(text: string, partialStart: boolean): LastTurnContext | undefined {
+  const lines = text.split(/\r?\n/);
+  if (partialStart) lines.shift();
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i]!.trim();
+    if (!line.includes("\"turn_context\"")) continue;
+    let row: JsonObject | undefined;
+    try { row = object(JSON.parse(line)); } catch { continue; }
+    const payload = row?.type === "turn_context" ? object(row.payload) : undefined;
+    const context = payload ? turnContextFromPayload(payload) : undefined;
+    if (!context) continue;
+    const at = typeof row!.timestamp === "string" && !Number.isNaN(Date.parse(row!.timestamp)) ? new Date(row!.timestamp).toISOString() : undefined;
+    return { context, ...(at ? { observedAt: at } : {}) };
+  }
+  return undefined;
 }
 
 function digest(value: Uint8Array): string {

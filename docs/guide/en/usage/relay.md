@@ -103,6 +103,23 @@ To open it yourself: explorer.exe "codex://threads/<identifier>"
 
 The command depends on the system: `explorer.exe` on Windows, `open` on macOS, `xdg-open` on Linux. It helps when the link is not clickable, for example in the Claude app. Run it yourself: an agent never opens it on your behalf. In JSON, `mode` is `background`, `open` or `follow`; no link field is added, an integration builds it from `to.session`.
 
+### Check before sending (`--check`)
+
+With `auto`, the mode is only known when sending. To know it beforehand, without sending anything:
+
+```text
+palabre relay --check --to codex:<identifier>
+```
+
+PALABRE runs the same checks as a send (configuration, agent, mode, conversation found, lock), then stops. Nothing is sent, no teammate CLI is started and no export is written; on macOS and Linux, the Codex lock probe only starts `python3`, as for a send.
+
+- Checks passed: `checked` outcome (exit 0). PALABRE says whether the conversation is open or closed, so whether a send would go to the desktop app or run in background.
+- Open conversation: PALABRE also shows the permissions of the **last known turn**, read from the end of its history. This is an indication, not a guarantee: the next turn may apply different ones.
+- A send would be refused: `--check` returns the same refusal, with the same exit code (`target-busy`, `target-not-open`, `session-not-found`…), and states that nothing was sent.
+- `--open` and `--background` work as for a send. The message, `--from`, `--subject`, `--new`, `--follow`, `--task`, `--write`, `--timeout`, `--no-export` and `--trust-config` are refused: the configuration must already be trusted, since `--check` writes nothing.
+
+The state may change between the check and the send: the send always checks again, with no fallback to more permissions. Codex's MCP list is not queried: a `neutralization-failed` failure remains possible when sending.
+
 ## Reading a Relay message
 
 The heading shows who is talking to whom, then the warning explains that the message comes from an agent and grants no rights. The subject and body, written by the agent, sit between two separators. The "🤖 Message for the agent" section groups provenance and the reply instruction. The skill asks agents to start their reply with five lines: **Done · Verified · Blocked · Next action · Decision needed**, with a blank line between each line, followed by evidence and details. These lines help readers; the CLI does not parse them. Status, delivery and the export remain evidence of the exchange, not of task success.
@@ -369,6 +386,7 @@ After the mission lead exits normally, resume with `status`, then a new `step` u
 | `--background` | Forces background for this call; incompatible with `--open`, without changing the setting. |
 | `--open` | Targets an open Codex conversation (see above). |
 | `--follow` | With `--open` only: queues nothing and returns the first turn completed after the call (`followed`). |
+| `--check` | Checks the mode, the conversation and the last known permissions, sending nothing (`checked`, or the refusal a send would get). |
 | `--subject "<subject>"` | Optional subject, one nonblank line of at most 200 Unicode characters, without control or formatting characters; JSON/export `subject?`. |
 | `--timeout <seconds>` | Maximum duration, 10 to 3600 seconds (default 600). |
 | `--json` | A single JSON v1 object on stdout, whatever the outcome. |

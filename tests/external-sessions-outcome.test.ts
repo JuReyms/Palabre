@@ -41,6 +41,7 @@ describe("codes de sortie", () => {
     assert.deepEqual({ ...RELAY_EXIT_CODES }, {
       "replied": 0,
       "followed": 0,
+      "checked": 0,
       "read-unavailable": 2,
       "review-failed": 9,
       "internal-error": 1,

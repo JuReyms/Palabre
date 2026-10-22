@@ -4,6 +4,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Added
+
+- `palabre relay --check --to <agent>:<session>` vérifie, sans rien envoyer, ce qu'un envoi ferait : mode appliqué (arrière-plan ou dans l'app desktop), conversation ouverte ou fermée et, pour une conversation ouverte, les permissions du dernier tour connu, présentées comme indicatives. Mêmes contrôles qu'un envoi, puis arrêt : ni message, ni CLI de l'équipier lancée, ni export, ni écriture (`--trust-config` est refusé) ; sous macOS/Linux, seule la sonde du verrou lance `python3`. Nouveau statut `checked` (code 0) ; un envoi qui serait refusé donne le même refus et le même code. JSON v1 : champ facultatif `check` (`target`, `lastPermissions`, `lastPermissionsAt`). Le skill demande de vérifier ainsi avant un envoi dont le mode compte, et d'annoncer le résultat à l'humain. Aide, guides fr/en, contrats JSON, skill et AGENTS.md à jour ; copies installées : `palabre skill --sync` après accord humain, puis recharger le skill (Fixes #203).
+
 ### Fixed
 
 - Aide CLI : `palabre run --help` affiche maintenant son aide dédiée en français et en anglais, avec les options de lancement, leurs limites et les renvois vers Ask et Chat. L'aide générale reste courte et renvoie à cette aide ; `palabre --help` et `palabre help` conservent l'aide générale. Tests de couverture des options, d'alignement et des sorties réelles sans lancement d'agent ni export (Fixes #212).
