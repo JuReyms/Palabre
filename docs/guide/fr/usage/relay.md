@@ -618,3 +618,11 @@ Ces commandes retirent le worktree et sa branche locale. Si Git refuse, gardez-l
 L'expéditeur est facultatif : sans `--from`, l'en-tête indique `terminal`. Un agent peut préciser `--from claude`, ou `--from claude:<uuid>` s'il connaît son identifiant. Il reste déclaré et non authentifié ; **aucune de ces formes ne transmet une autorisation humaine**. Le JSON donne `from: null` sans expéditeur, ou `{ "agent": "claude" }` pour un nom seul.
 
 Omettez les options sans valeur : ne passez pas `--from ""` ni `--dir ""`. Si une option est vide, PALABRE explique comment l'omettre ou la compléter, sans envoyer de message.
+
+## Dernier quota Codex connu
+
+Avant un lot important (écriture ou longue relecture), utilisez `palabre relay --check --to codex:<session> --json`. Si la forme est reconnue, `check.quota` indique le dernier quota écrit par Codex, pour une cible ouverte ou fermée. Le résultat d'un envoi ouvert peut aussi porter `quota` à la racine ; pas d'ajout après un envoi arrière-plan dans ce lot, ni pour Claude.
+
+Ce relevé est **daté et indicatif**, pas une mesure en direct : le compte a pu servir ailleurs depuis. Le texte affiche les pourcentages **utilisés**, durées des fenêtres, date/heure locale du relevé et des réinitialisations avec fuseau ; le JSON conserve ces dates en ISO UTC. Une date de réinitialisation passée ne remet pas automatiquement le pourcentage à zéro.
+
+Lecture seule du dernier Mio (plus un octet de bord), sans réseau ni modèle. Forme absente, inconnue, non datable ou lecture impossible : aucun champ, aucune estimation, jamais zéro par défaut. Cela ne change ni statut, ni délivrance, ni droits. Dès **80 % utilisés sur une fenêtre**, informer l'humain et proposer de découper le lot ou d'attendre ; ne jamais décider seul d'abandonner ni relancer automatiquement à l'heure de réinitialisation.

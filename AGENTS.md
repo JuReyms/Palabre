@@ -1107,6 +1107,12 @@ Ces formes courtes suivent le mode effectif, `--mode` puis `defaults.mode`, exac
 
 ## Aide CLI
 
+### Dernier quota Codex connu (#205)
+
+`quota.ts` analyse seulement les événements `event_msg` / `token_count` portant `rate_limits` dans la fin déjà bornée d'un rollout. Forme expérimentale fournie dans #205 : `limit_id: codex`, deux fenêtres complètes `primary`/`secondary` (`used_percent` fini entre 0 et 100, `window_minutes` entier positif, `resets_at` secondes Unix entières représentables) et `timestamp` ISO avec fuseau et date réelle. Un dernier candidat inconnu ou invalide masque les anciens : aucune estimation, aucune lecture de prose. Lignes de bord incomplètes ignorées. `readLastCodexQuota` lit au plus 1 Mio + un octet, en lecture seule, sans réseau ni modèle ; absence, forme inconnue, fichier illisible, UTF-8 invalide ou taille/mtime changées pendant la lecture = champ absent, sans effet sur l'issue.
+
+Ajouts facultatifs JSON v1 : `check.quota` pour `relay --check` vers Codex ouverte ou fermée ; `quota` à la racine après un envoi en mode ouvert, dont le rollout est déjà localisé. Aucun ajout après un envoi arrière-plan ou pour Claude. Même type : `source: codex-rollout`, `indicative: true`, `recordedAt` ISO UTC, `limitId: codex`, `primary` et `secondary` avec `usedPercent`, `windowMinutes`, `resetsAt` ISO UTC. Ce n'est pas une mesure en direct ni un coût attribué au tour : le compte peut avoir servi ailleurs depuis. Les valeurs historiques restent datées même si une réinitialisation est déjà passée ; ne jamais les remettre à zéro. Texte fr/en : dates locales et fuseau pour relevé et réinitialisations. Ne changer ni permissions, ni statut, ni délivrance, ni code de sortie pour un quota absent ou élevé. Avant un lot important, le skill demande `relay --check` ; dès 80 % utilisés sur une fenêtre, informer l'humain et proposer découpage/attente, jamais abandon ni relance automatique.
+
 ### Relay : envoi puis suivi (#204)
 
 `--then-follow <10..3600>` est une option à valeur d'un envoi vers une Codex existante en mode ouvert (`--open` ou `auto` résolu en ouvert). Refuser avant dépôt avec arrière-plan, Claude Code, `--new`, Mission, `--task`, `--write`, `--check`, `--follow`. Un seul dépôt ; aucune nouvelle enveloppe, aucun renvoi. `--timeout` garde son budget ; le suivi dispose d'un second budget explicite, démarrant à la réponse corrélée, chacun plafonné à 3600 s. L'échéance ne se renouvelle jamais.

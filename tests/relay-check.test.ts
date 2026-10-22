@@ -14,6 +14,7 @@ import { lastTurnContext } from "../src/externalSessions/openReader.js";
 import { LAST_CONTEXT_TAIL_BYTES, readLastTurnContext } from "../src/externalSessions/openRollout.js";
 import { CONFIG_TRUST_PATH, trustConfig } from "../src/configTrust.js";
 import { createTranslator } from "../src/i18n.js";
+import { quotaEvent } from "./fixtures/external-sessions/quota.js";
 
 const CODEX = "0199aaaa-bbbb-7ccc-8ddd-eeeeeeeeeeee";
 const CLAUDE = "44444444-4444-4444-8444-444444444444";
@@ -61,6 +62,22 @@ const check = (file: string, ...args: string[]) => executeRelay(["relay", "--che
 const fr = createTranslator("fr");
 
 describe("relay --check (#203)", () => {
+  test("quota Codex daté dans check, ouverte ou fermée ; jamais pour Claude", async t => {
+    for (const attachment of ["attached", "detached"] as const) {
+      const w = await world(t, { attachment, rolloutLines: [JSON.stringify(quotaEvent)] });
+      const result = await check(w.file, "--to", `codex:${CODEX}`);
+      assert.equal(result.status, "checked"); assert.equal(result.exitCode, 0);
+      assert.equal(result.check?.quota?.primary.usedPercent, 52); assert.equal(result.check?.quota?.secondary.usedPercent, 88);
+      assert.equal(result.check?.quota?.recordedAt, "2026-10-22T12:00:00.000Z"); assert.equal(result.quota, undefined);
+      assert.equal(result.delivery.status, "not-delivered"); assert.equal(result.exportPath, null);
+      assert.match(renderRelayText(result, createTranslator("fr")).stderr, /Dernier quota Codex connu \(indicatif/);
+      assert.match(renderRelayText(result, createTranslator("en")).stderr, /Last known Codex quota \(indicative/);
+      const claude = await check(w.file, "--to", `claude:${CLAUDE}`);
+      assert.equal(claude.check?.quota, undefined); assert.equal(claude.quota, undefined);
+      assert.doesNotMatch(renderRelayText(claude, fr).stderr, /quota/);
+    }
+  });
+
   test("Codex ouverte en auto : checked, mode ouvert, dernières permissions indicatives, rien d'envoyé", async (t) => {
     const w = await world(t, { attachment: "attached", rolloutLines: [
       turnContext("never", "read-only", false, "2026-10-22T08:00:00Z"),
