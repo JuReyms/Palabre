@@ -1107,6 +1107,14 @@ Ces formes courtes suivent le mode effectif, `--mode` puis `defaults.mode`, exac
 
 ## Aide CLI
 
+### Relay : envoi puis suivi (#204)
+
+`--then-follow <10..3600>` est une option à valeur d'un envoi vers une Codex existante en mode ouvert (`--open` ou `auto` résolu en ouvert). Refuser avant dépôt avec arrière-plan, Claude Code, `--new`, Mission, `--task`, `--write`, `--check`, `--follow`. Un seul dépôt ; aucune nouvelle enveloppe, aucun renvoi. `--timeout` garde son budget ; le suivi dispose d'un second budget explicite, démarrant à la réponse corrélée, chacun plafonné à 3600 s. L'échéance ne se renouvelle jamais.
+
+`inspectOpenReply` peut produire une référence interne après la ligne complète du `task_complete` corrélé : offset UTF-8, identité et témoin borné construits à partir du snapshot validé. Ne jamais recapturer EOF entre les tours : une suite peut déjà y être terminée. La boucle de `runFollowRelay` accepte cette référence et réutilise `inspectFollowedTurn`, ses limites et refus (`relay-turn` pour un Relay étranger). `--follow` seul conserve sa capture initiale. Les références internes ne vont pas dans le JSON.
+
+Ajout facultatif v1 `follow` : `status`, `reason?`, `reply?`, `receiver: unverified`, `observedModels?`, `targetPermissions?`, `correlation?`, `retryAfter?`. Statuts secondaires : `followed`, `awaiting-turn` avec `reason: timeout`, `not-started` avec `reason: primary-not-replied`, ou échec/annulation du suivi. Jamais de délivrance secondaire. L'issue, le code, la réponse et la délivrance primaires restent ceux du premier échange, même après Ctrl+C pendant le suivi. Aucun auteur humain ni accord déduit. Texte : première réponse immédiate, puis suite distincte sans duplication. JSON : un seul résultat final sur stdout, progression sur stderr. Export : deux parties séparées. Les tests utilisent seulement des historiques et profils fictifs via `scripts/test.mjs`.
+
 L'aide principale (`palabre -h`, `palabre help`) doit rester minimaliste, inspiree de l'aide Ollama : description courte, usage, demarrage rapide, commandes principales, flags essentiels, lien vers la documentation publique localisee (`https://palab.re/fr` ou `/en`) et mention `palabre [command] --help`.
 
 Ne pas transformer l'aide principale en reference complete. Les details doivent aller dans l'aide de commande (`palabre config --help`, `palabre init --help`, etc.) ou dans la documentation du site.

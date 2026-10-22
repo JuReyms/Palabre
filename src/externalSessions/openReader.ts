@@ -47,6 +47,8 @@ export interface OpenObservation {
   retryAfter?: number | string;
   /** Relevé du `turn_context` du seul tour corrélé ; présent pour `replied` et `failed` quand il est attribuable. */
   context?: OpenTurnContext;
+  /** Référence interne juste après la fin corrélée ; jamais la fin courante du fichier. */
+  followBaseline?: OpenBaseline;
 }
 
 /**
@@ -257,8 +259,10 @@ function freshRows(snapshot: OpenSnapshot, threadId: string, baseline: OpenBasel
  * forme user.text reste ambiguë, avec un diagnostic distinct, jamais une autorisation. Une
  * réponse à une question n'est pas exemptée tant que sa liaison réelle n'a pas été observée.
  * Les anciens event_msg/user_message et agent_message ne suffisent pas à identifier un tour.
+ * @param captureFollowReference Produit, seulement en succès, une référence après sa ligne de fin
+ * pour --then-follow ; les événements déjà lus après cette frontière ne sont pas sautés.
  */
-export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): OpenObservation {
+export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest, captureFollowReference = false): OpenObservation {
   const unreadable = (reason: string): OpenObservation => ({ status: "unreadable", persisted: "unknown", reason });
   if (!request.threadId || !request.nonce || !request.envelope.includes(request.nonce)) return unreadable("invalid-request");
   const fresh = freshRows(snapshot, request.threadId, request.baseline);
@@ -384,7 +388,26 @@ export function inspectOpenReply(snapshot: OpenSnapshot, request: OpenRequest): 
   if (completion.status !== undefined && completion.status !== "completed") return observation("failed", "unsuccessful-completion", turnId);
   const reply = contentText(object(final.item)?.content);
   if (reply === undefined || reply.trim() === "" || typeof completion.last_agent_message !== "string" || completion.last_agent_message !== reply) return observation("ambiguous", "completion-text-mismatch", turnId);
-  return { status: "replied", persisted: true, reason: "correlated-final", turnId, reply, ...withContext(turnId) };
+  return { status: "replied", persisted: true, reason: "correlated-final", turnId, reply, ...withContext(turnId),
+    ...(captureFollowReference ? { followBaseline: referenceAfterRow(snapshot, request.baseline, completionPosition) } : {}) };
+}
+
+/**
+ * Avance le témoin sur la ligne complète déjà validée par freshRows. Le suffixe historique et
+ * l'ajout suffisent pour les 64 Kio du nouveau témoin, même si deux tours sont lus ensemble.
+ * Comptage en octets (UTF-8), lignes vides ignorées comme dans freshRows ; aucune recapture EOF.
+ */
+function referenceAfterRow(snapshot: OpenSnapshot, baseline: OpenBaseline, rowIndex: number): OpenBaseline {
+  const added = Buffer.from(snapshot.added);
+  let row = 0, start = 0;
+  for (let end = added.indexOf(10); end >= 0; end = added.indexOf(10, start)) {
+    if (added.subarray(start, end).toString("utf8").trim() && row++ === rowIndex) {
+      return captureOpenBaseline({ bytes: baseline.bytes + end + 1, firstLine: snapshot.firstLine,
+        witness: Buffer.concat([Buffer.from(snapshot.witness), added.subarray(0, end + 1)]).subarray(-OPEN_READ_LIMITS.witnessBytes) });
+    }
+    start = end + 1;
+  }
+  throw new Error("completion-boundary-missing");
 }
 
 /** Suivi (#195) : aucun message n'est déposé, seule la référence borne la recherche. */

@@ -88,7 +88,7 @@ Pour **un seul appel**, `--background` force l'arrière-plan et `--open` force l
 
 `--new`, Mission, `--task review`, `--write` et Claude Code restent en arrière-plan ; leurs incompatibilités avec `--open` restent des refus. `palabre agents --json` expose le réglage effectif dans `defaults.relayView`. Le résultat Relay et l'export indiquent aussi `modeSource` : `explicit` pour une option ponctuelle, `auto` pour l'état du verrou ou un parcours imposé, `setting` pour la préférence `background`.
 
-Pour un avis ou une relecture qui doit rester sans modification, passez `--background` : ce choix ponctuel réduit les droits sans changer le réglage. Pour le reste, l'agent ne choisit pas le mode par habitude : il reprend la ligne « Mode » affichée par PALABRE. Si une confirmation dans l'app lance la suite, préparez `palabre relay --open --follow --to codex:<uuid> --json` **avant** la validation, pour recueillir le tour suivant sans renvoyer le message. Un tour déjà terminé n'est pas rendu ; aucune autorisation n'est déduite de cette suite.
+Pour un avis ou une relecture qui doit rester sans modification, passez `--background` : ce choix ponctuel réduit les droits sans changer le réglage. Pour le reste, l'agent ne choisit pas le mode par habitude : il reprend la ligne « Mode » affichée par PALABRE. Sans `--then-follow` à l'envoi, si une confirmation dans l'app lance la suite, préparez `palabre relay --open --follow --to codex:<uuid> --json` **avant** la validation, pour recueillir le tour suivant sans renvoyer le message. Un tour déjà terminé n'est pas rendu ; aucune autorisation n'est déduite de cette suite.
 
 Chaque échange annonce où il se passe, sur une ligne « Mode » :
 
@@ -174,7 +174,7 @@ Si vous êtes d'accord, validez dans la fenêtre ou le terminal de l'équipier. 
 
 Après votre validation, rien n'est renvoyé automatiquement : continuer est une nouvelle demande explicite. Le premier message est souvent déjà dans la conversation de l'équipier ; il n'est pas renvoyé.
 
-Si l'équipier travaille dans une conversation ouverte, votre validation lance un nouveau tour que le Relay initial n'écoute plus. Pour en récupérer le résultat, le chef de mission lance `--follow` juste avant que vous validiez (section « Suivre la suite d'une conversation ouverte », plus bas).
+Si l'équipier travaille dans une conversation ouverte, votre validation lance un nouveau tour ; sans `--then-follow`, le Relay initial ne l'écoute plus. Pour en récupérer le résultat, le chef de mission lance `--follow` juste avant que vous validiez (section « Suivre la suite d'une conversation ouverte », plus bas).
 
 ## Désigner les conversations
 
@@ -211,6 +211,20 @@ Un contexte AGENTS.md ou d'environnement reconnu avant l'enveloppe ne fait plus 
 Une saisie libre reconnue par la forme `user.text`, après l'enveloppe et avant la réponse finale, reste `no-valid-reply` (2), avec `correlation.reason: "user-input-during-turn"`. Vérifiez la conversation cible avant tout renvoi : le travail a pu être fait. Ce diagnostic ne prouve ni identité, ni autorisation, ni clic humain. Les enveloppes d'agent, doublons et formats inconnus restent ambigus.
 
 Le format réel d'une réponse liée à une question n'a pas été retrouvé dans les historiques locaux disponibles : ce cas reste ambigu et aucun champ `humanInput` n'est émis. La consigne aux agents reste de ne poser aucune question pendant un tour reçu par Relay ; rapporter questions et blocages dans la réponse finale. #146 reste partiellement ouverte ; cette correction ne valide pas le choix Desktop par défaut de #190.
+
+### Écouter la suite dès l'envoi (`--then-follow`)
+
+Pour un lot qui écrit dans une conversation Codex Desktop existante, joindre `--then-follow 3600` à l'envoi, en mode ouvert (explicite `--open` ou `auto` résolu en ouvert). Cette option n'accorde aucun droit d'écriture ; les permissions restent celles de la conversation.
+
+```powershell
+palabre relay --open --to codex:<session-cible> --then-follow 3600 --timeout 600 "<tâche autorisée>" --json
+```
+
+Un seul message est déposé. `--timeout` borne la réponse liée ; `--then-follow <secondes>` fixe un second budget de 10 à 3600 secondes, démarrant à sa réception. Le suivi part de la fin de ligne exacte du tour corrélé, pas de la fin courante du fichier : une suite immédiate n'est pas sautée, même déjà terminée dans la même lecture. L'humain peut valider dans l'app sans attendre le lancement manuel d'un autre appel.
+
+La réponse principale garde `status: replied`, `reply`, sa délivrance et le code 0. L'objet `follow` rapporte séparément le premier tour terminé ensuite : `followed` avec sa réponse, `awaiting-turn` et `reason: timeout` si aucun tour n'est terminé, ou une annulation/erreur secondaire. Une première réponse échouée donne `follow.status: not-started` : aucune écoute. Un Relay étranger donne `no-valid-reply`/`relay-turn` ; aucun tour suivant n'est recherché. L'auteur de la suite n'est pas vérifié ; aucune autorisation n'en est déduite. Rien n'est renvoyé automatiquement.
+
+Texte : réponse liée affichée immédiatement, puis suite distincte. JSON : un seul objet final sur stdout, progression sur stderr. L'export conserve les deux parties. Refus avec arrière-plan, Claude Code, `--new`, Mission, `--task review`, `--write`, `--check` et `--follow`. Sans cette option à l'envoi, le suivi manuel ci-dessous garde sa course : le lancer avant la validation.
 
 ### Suivre la suite d'une conversation ouverte (`--follow`)
 

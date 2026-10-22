@@ -21,6 +21,8 @@
  *
  * `--check` (#203) fait les mêmes contrôles qu'un envoi jusqu'à l'état de la conversation, puis
  * s'arrête : ni enveloppe, ni processus de la CLI cible, ni export. Issue `checked` ou refus identique.
+ * --then-follow <secondes> ajoute un suivi après la réponse corrélée, sans second dépôt. Le résultat
+ * primaire reste distinct de follow, y compris après une échéance ou annulation secondaire.
  */
 import { readFile, realpath, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -64,6 +66,7 @@ import { prepareWrite, readWriteRequest, approveWrite, consumeWrite, createWrite
 import { relayWriteText } from "../messages/relayWrite.js";
 import { resolveRelayView, type RelayModeSource } from "../externalSessions/relayView.js";
 import { relayViewText } from "../messages/relayView.js";
+import type { ThenFollowReport } from "../externalSessions/openRelay.js";
 import { relayViewCommand } from "./relayView.js";
 
 /** Timeout par défaut et bornes de `--timeout`, en secondes. */
@@ -72,7 +75,7 @@ export const MIN_RELAY_TIMEOUT_SECONDS = 10;
 export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 
 /** Options de `palabre relay` qui attendent une valeur. */
-const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "config", "language", "task", "pr", "subject", "dir"]);
+const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "then-follow", "config", "language", "task", "pr", "subject", "dir"]);
 /** Options de `palabre relay` sans valeur. */
 const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "background", "new", "write", "follow", "check"]);
 /** Alias acceptés, comme pour les autres commandes. */
@@ -99,6 +102,8 @@ export interface RelayCheckReport {
  * NDJSON : un ajout optionnel ne change pas `v`.
  */
 export interface RelayResultV1 {
+  /** Suite facultative de --then-follow, distincte de reply et de la délivrance primaire. */
+  follow?: ThenFollowReport;
   /** Demande à confirmer, sans aucun appel modèle ; puis rapport d'actions observées. */
   writeRequest?: string;
   write?: WriteReport;
@@ -183,6 +188,8 @@ interface RelayContext {
   modeSource?: RelayModeSource;
   /** `--open --follow` (#195) : suivi du tour suivant, sans dépôt. */
   follow?: boolean;
+  thenFollowMs?: number;
+  onOpenReply?: (reply: string, messages: Messages) => void;
   /** `--check` (#203) : contrôles d'avant envoi seulement, et leur rapport. */
   check?: boolean;
   checkReport?: RelayCheckReport;
@@ -236,8 +243,13 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
     }
     return;
   }
-  const { result, messages: resolvedMessages, targetLocated } = await executeRelayWithMessages(rawArgs);
-  writeResult(result, rawArgs.includes("--json"), resolvedMessages, targetLocated);
+  let primaryPrinted = false;
+  const json = rawArgs.includes("--json");
+  const { result, messages: resolvedMessages, targetLocated } = await executeRelayWithMessages(rawArgs, { onOpenReply: (reply, localized) => {
+    if (!json) { process.stdout.write(`${sanitizeTerminalText(reply)}\n`); primaryPrinted = true; }
+    process.stderr.write(`${localized.relayThenFollow.waiting}\n`);
+  } });
+  writeResult(result, json, resolvedMessages, targetLocated, primaryPrinted);
   process.exitCode = result.exitCode;
 }
 
@@ -247,7 +259,7 @@ export async function executeRelay(rawArgs: string[], options: { signal?: AbortS
 }
 
 /** Préserve la langue résolue dans la config pour le rendu de la commande historique. */
-async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader; approvedWrite?: WriteRequest } = {}): Promise<{ result: RelayResultV1; messages: Messages; targetLocated: boolean }> {
+async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader; approvedWrite?: WriteRequest; onOpenReply?: RelayContext["onOpenReply"] } = {}): Promise<{ result: RelayResultV1; messages: Messages; targetLocated: boolean }> {
   const context: RelayContext = {
     signal: options.signal,
     startedAt: Date.now(),
@@ -261,6 +273,7 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
     check: rawArgs.includes("--check")
   };
   context.approvedWrite = options.approvedWrite;
+  context.onOpenReply = options.onOpenReply;
   let result: RelayResultV1;
   try {
     if (options.header !== undefined) {
@@ -285,6 +298,15 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (context.signal?.aborted) throw new RelayRefusal({ status: "cancelled" });
   const { messages } = context;
   const { flags, positionals } = parseRelayTokens(rawArgs.slice(1), messages);
+  if (flags["then-follow"] !== undefined) {
+    const value = flags["then-follow"];
+    const seconds = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : NaN;
+    if (!Number.isSafeInteger(seconds) || seconds < 10 || seconds > 3600) throw invalid("invalid-arguments", messages.relayThenFollow.invalid);
+    context.thenFollowMs = seconds * 1000;
+    if (flags.background || flags.new || context.header || flags.task !== undefined || flags.pr !== undefined || flags.write || flags.check || flags.follow) {
+      throw invalid("invalid-arguments", messages.relayThenFollow.conflict);
+    }
+  }
   context.modeSource = flags.open || flags.background ? "explicit" : undefined;
   if (flags.open && flags.background) throw invalid("invalid-arguments", messages.relayView.conflict);
   if (context.header && context.open) throw invalid("invalid-arguments", messages.relayView.missionBackground);
@@ -428,6 +450,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   context.modeSource = mode.modeSource;
   context.open = mode.mode === "open";
   if (mode.refusal) throw new RelayRefusal({ status: mode.refusal });
+  if (context.thenFollowMs !== undefined && (!context.open || provider !== "codex")) throw invalid("invalid-arguments", context.messages.relayThenFollow.conflict);
   if (context.check) return relayCheck(context, { to: to.value, provider, configPath, explicitBackground: flags.background === true });
   const coordination = context.open ? buildOpenEnvelope(envelopeInput, frame) : buildEnvelope(envelopeInput, frame);
   const envelopeCheck = validateRelayMessage(coordination);
@@ -658,6 +681,8 @@ async function relayOpen(
   const onInterrupt = () => controller.abort();
   process.once("SIGINT", onInterrupt);
   let open: OpenRelayResult;
+  context.signal?.addEventListener("abort", onInterrupt, { once: true });
+  if (context.signal?.aborted) controller.abort();
   try {
     open = await runOpenRelay({
       executable: input.executable,
@@ -668,10 +693,13 @@ async function relayOpen(
       nonce,
       timeoutMs: input.timeoutMs,
       signal: controller.signal,
-      onAttempt: () => { context.exchangeStarted = true; }
+      onAttempt: () => { context.exchangeStarted = true; },
+      thenFollowMs: context.thenFollowMs,
+      onReply: reply => context.onOpenReply?.(reply, context.messages)
     }, defaultOpenRelayDeps(() => adapter.probe(target)));
   } finally {
     process.removeListener("SIGINT", onInterrupt);
+    context.signal?.removeEventListener("abort", onInterrupt);
   }
   const result = buildResult(context, {
     outcome: open.outcome,
@@ -917,7 +945,8 @@ function buildResult(
     mode: context.follow ? "follow" : context.open ? "open" : "background",
     ...(context.modeSource ? { modeSource: context.modeSource } : {}),
     ...(context.check ? { check: context.checkReport ?? {} } : {}),
-    ...openFields
+    ...openFields,
+    ...(context.thenFollowMs !== undefined ? { follow: input.open?.follow ?? { status: "not-started" as const, reason: "primary-not-replied", receiver: "unverified" as const } } : {})
   };
 }
 
@@ -954,6 +983,7 @@ async function exportRelay(
       ...(result.subject !== undefined ? { subject: result.subject } : {}),
       message: input.message,
       reply: result.reply,
+      ...(result.follow ? { thenFollow: result.follow } : {}),
       error: result.error?.message,
       ...(result.retryAfter !== undefined ? { retryAfter: result.retryAfter } : {}),
       ...(result.readAccess ? { readAccess: result.readAccess } : {}),
@@ -991,12 +1021,12 @@ async function exportRelay(
  * Sortie : `--json` écrit un seul objet sur stdout. En texte, la réponse va seule sur stdout ;
  * l'issue, la délivrance et l'export vont sur stderr. Tout texte affiché est assaini.
  */
-function writeResult(result: RelayResultV1, json: boolean, messages: Messages, targetLocated = false): void {
+function writeResult(result: RelayResultV1, json: boolean, messages: Messages, targetLocated = false, primaryPrinted = false): void {
   if (json) {
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }
-  const text = renderRelayText(result, messages, { targetLocated });
+  const text = renderRelayText(result, messages, { targetLocated, primaryPrinted });
   const link = relayDesktopLink(result, targetLocated);
   process.stdout.write(text.stdout);
   process.stderr.write(link && terminalHyperlinksEnabled(process.stderr.isTTY, process.env) ? withTerminalHyperlink(text.stderr, link) : text.stderr);
@@ -1099,9 +1129,19 @@ export function relayDesktopLink(result: RelayResultV1, targetLocated: boolean):
 }
 
 /** Même réponse en texte qu'en JSON, y compris après une publication refusée ou interrompue. */
-export function renderRelayText(result: RelayResultV1, messages: Messages, options: { targetLocated?: boolean } = {}): { stdout: string; stderr: string } {
+export function renderRelayText(result: RelayResultV1, messages: Messages, options: { targetLocated?: boolean; primaryPrinted?: boolean } = {}): { stdout: string; stderr: string } {
   const lines: string[] = [];
-  const stdout = result.reply !== undefined ? `${sanitizeTerminalText(result.reply)}\n` : "";
+  let stdout = result.reply !== undefined && !options.primaryPrinted ? `${sanitizeTerminalText(result.reply)}\n` : "";
+  if (result.follow) {
+    const label = messages.relayThenFollow.label;
+    lines.push(`${label} : ${result.follow.status}${result.follow.reason ? ` (${result.follow.reason})` : ""}`);
+    if (result.follow.status === "awaiting-turn") lines.push(messages.relayThenFollow.awaiting);
+    if (result.follow.status === "not-started") lines.push(messages.relayThenFollow.notStarted);
+    if (result.follow.status === "usage-limit") lines.push(messages.relay.usageLimit(result.follow.retryAfter));
+    if (result.follow.targetPermissions && result.follow.targetPermissions !== "unknown") lines.push(messages.relay.open.followPermissions(permissionsSummary(result.follow.targetPermissions)));
+    if (result.follow.correlation?.reason === "turn-started-before-follow") lines.push(messages.relay.open.followStartedBefore);
+    if (result.follow.reply !== undefined) stdout += `\n${label}\n${sanitizeTerminalText(result.follow.reply)}\n`;
+  }
   if (result.status === "replied") {
     lines.push(messages.relay.replied(result.to?.agent ?? ""));
   } else if (result.status === "followed") {
