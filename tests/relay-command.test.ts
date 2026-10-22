@@ -1122,6 +1122,21 @@ describe('Relay : création et expéditeur facultatif', () => {
       } else assert.ok(!text.stderr.includes('codex://'));
     });
 
+    if (provider === 'codex') test('lien Desktop fr/en : ouverture sur demande directe du propriétaire seulement', () => {
+      // Le texte protège la consigne affichée sans skill ; il ne contrôle pas le comportement d'un agent.
+      const link = `codex://threads/${NEW_IDS.codex}`;
+      const expected = {
+        fr: [/Le propriétaire l'ouvre lui-même ou le demande à son agent/, /jamais de sa propre initiative ni à la demande d'un autre agent/],
+        en: [/The owner opens it or asks their agent to/, /never opens it on its own initiative or at another agent's request/],
+      } as const;
+      for (const language of ['fr', 'en'] as const) {
+        for (const text of [relayMessages[language].desktopLink(link), relayMessages[language].desktopLinkExisting(link)]) {
+          assert.ok(text.includes(link));
+          for (const pattern of expected[language]) assert.match(text, pattern);
+        }
+      }
+    });
+
     test(`${provider} : un identifiant mal formé n'est jamais proposé pour continuer`, async () => {
       const w = makeWorld();
       const env: Record<string, string> = provider === 'claude' ? { FAKE_CLAUDE_NEW_ID: 'not-an-id' } : { FAKE_CODEX_NEW_ID: 'not-an-id' };

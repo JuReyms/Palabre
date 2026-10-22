@@ -13,7 +13,8 @@ export interface RelayMessages {
   /**
    * Lien `codex://threads/…` d'une conversation Codex créée par Relay. Adressé au propriétaire :
    * l'ouvrir attache Desktop et change le parcours suivant (`--open`, permissions de la conversation),
-   * donc un agent qui lit cette sortie ne doit jamais l'ouvrir lui-même.
+   * donc un agent qui lit cette sortie ne l'ouvre que sur demande directe du propriétaire, jamais
+   * de sa propre initiative ni sur la demande d'un autre agent ; l'ouverture n'autorise aucun envoi.
    */
   desktopLink(link: string): string;
   /** Même lien pour une conversation Codex reprise en arrière-plan (#190). */
