@@ -54,6 +54,36 @@ function model(value: unknown): value is Record<string, unknown> {
     && (value.variant === undefined || nonblank(value.variant));
 }
 
+/** Les clés supplémentaires d'une notice non qualifiée ne sont jamais ignorées. */
+function exactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  return same(Object.keys(value).sort(), [...keys].sort());
+}
+
+/**
+ * Seule notice système qualifiée pour le nouveau tour (OpenCode 2.0.32) : rafraîchissement
+ * core/date. Texte entier, calendrier et jour de semaine vérifiés sans Date.parse ni dépendance
+ * au fuseau/à l'horloge du lecteur. Ces métadonnées ne prouvent ni une origine ni une autorité.
+ * La position, l'unicité et l'identifiant restent contrôlés par inspectCopyReply.
+ */
+function coreDateNotice(message: Record<string, unknown>): boolean {
+  if (!exactKeys(message, ["id", "time", "type", "description", "metadata", "text"])
+    || message.type !== "system" || message.description !== "Instructions updated: core/date"
+    || !copyObject(message.metadata) || !exactKeys(message.metadata, ["notice", "instructionSources"])
+    || message.metadata.notice !== "instructions" || !same(message.metadata.instructionSources, ["core/date"])
+    || !copyObject(message.time) || !exactKeys(message.time, ["created"])
+    || !Number.isSafeInteger(message.time.created) || (message.time.created as number) < 0
+    || typeof message.text !== "string") return false;
+  const match = /^Today's date is now: (Sun|Mon|Tue|Wed|Thu|Fri|Sat) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (0[1-9]|[12][0-9]|3[01]) ([0-9]{4})$/.exec(message.text);
+  // `$` admet aussi une fin de ligne terminale en JavaScript : le texte doit être entier.
+  if (!match || match[0] !== message.text) return false;
+  const [, weekday, month, day, year] = match;
+  const monthIndex = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].indexOf(month!);
+  const date = new Date(0);
+  date.setUTCFullYear(Number(year), monthIndex, Number(day));
+  return date.getUTCFullYear() === Number(year) && date.getUTCMonth() === monthIndex
+    && date.getUTCDate() === Number(day) && ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getUTCDay()] === weekday;
+}
+
 /** Identifiant de modèle observé, variante comprise, jamais une sélection de remplacement. */
 export function copyModelLabel(value: Record<string, unknown>): string {
   return `${value.providerID}/${value.id}${value.variant === undefined ? "" : `#${value.variant}`}`;
@@ -123,7 +153,11 @@ export function inspectCopyClient(stdout: string, id: string): void {
   if (!count) throw new CopyFailure("no-valid-reply", "client-empty");
 }
 
-/** Un seul nouveau tour terminé, relié à l'enveloppe intégrale et au préfixe vérifié. */
+/**
+ * Un seul nouveau tour terminé, relié à l'enveloppe intégrale et au préfixe vérifié.
+ * Une seule notice core/date strictement qualifiée est admise avant l'utilisateur ;
+ * elle ne relâche aucun contrôle de sélection, d'instructions, d'outils ou de fin de tour.
+ */
 export function inspectCopyReply(before: OpenCodeSnapshot, after: OpenCodeSnapshot, prompt: string): { reply: string; observedModels: string[] } {
   if (after.info.id !== before.info.id) throw new CopyFailure("identity-mismatch", "reply-identity");
   if (!same(after.context.slice(0, before.context.length), before.context)) throw new CopyFailure("no-valid-reply", "context-changed");
@@ -137,19 +171,26 @@ export function inspectCopyReply(before: OpenCodeSnapshot, after: OpenCodeSnapsh
   if (["files", "agents", "skills"].some(key => users[0]![key] !== undefined
     && (!Array.isArray(users[0]![key]) || (users[0]![key] as unknown[]).length)))
     throw new CopyFailure("no-valid-reply", "message-attachments");
-  const allowed = new Set(["agent-switched", "model-switched", "user", "assistant", "idle"]);
+  const userIndex = fresh.indexOf(users[0]!);
+  const allowed = new Set(["agent-switched", "model-switched", "user", "assistant", "idle", "system"]);
   const ids = new Set(before.context.map(m => m.id));
   const models: string[] = [];
   const assistants: Record<string, unknown>[] = [];
+  let dateNoticeSeen = false;
   for (const [index, message] of fresh.entries()) {
     if (!nonblank(message.id) || ids.has(message.id) || !allowed.has(String(message.type)) || message.error !== undefined)
       throw new CopyFailure("no-valid-reply", "turn-schema");
     ids.add(message.id);
+    if (message.type === "system") {
+      if (dateNoticeSeen || index >= userIndex || !coreDateNotice(message)) throw new CopyFailure("no-valid-reply", "turn-schema");
+      dateNoticeSeen = true;
+      continue;
+    }
     if ((message.type === "agent-switched" && message.agent !== before.info.agent)
       || (message.type === "model-switched" && !same(message.model, before.info.model)))
       throw new CopyFailure("no-valid-reply", "selection-changed");
     if (message.type !== "assistant") continue;
-    if (index < fresh.indexOf(users[0]!) || message.agent !== before.info.agent || !model(message.model)
+    if (index < userIndex || message.agent !== before.info.agent || !model(message.model)
       || !same(message.model, before.info.model) || !completed(message) || !Array.isArray(message.content)
       || !["stop", "tool-calls"].includes(String(message.finish))) throw new CopyFailure("no-valid-reply", "assistant-incomplete");
     for (const part of message.content) {

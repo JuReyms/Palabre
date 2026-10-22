@@ -5,6 +5,7 @@ import path from "node:path";
 import { runCopyRelay, type CopyTransport } from "../src/externalSessions/copyRelay.js";
 import { CopyFailure, inspectCopyReply, parseOpenCodeRef, validateCopyFork, type OpenCodeSnapshot } from "../src/externalSessions/opencodeCopy.js";
 import type { ExternalProcessResult } from "../src/externalSessions/process.js";
+import { dateNotice } from "./fixtures/external-sessions/opencode-date-notice.js";
 
 const cwd = path.resolve(".");
 const prompt = "Coordination exacte PR-123 ; aucun droit supplémentaire.";
@@ -76,6 +77,89 @@ test("succès : un fork, un run dans la copie, réponse originale et modèle con
   assert.equal(result.copy.serverStop, "confirmed"); assert.equal(result.copy.retention, "retained");
   assert.equal(w.calls.filter(c => c.startsWith("fork:")).length, 1);
   assert.deepEqual(w.calls.filter(c => c.startsWith("run:")), [`run:${copyId}`]);
+});
+
+test("notice de date qualifiée avant l'enveloppe : réponse et délivrance, un seul envoi", async () => {
+  const w = world(), run = w.transport.run;
+  w.transport.run = async (...args) => {
+    const result = await run(...args), after = answer(w.before);
+    after.context.splice(w.before.context.length, 0, dateNotice()); w.setAfter(after);
+    return result;
+  };
+  const result = await w.run();
+  assert.equal(result.outcome.status, "replied"); assert.equal(result.delivery.status, "replied");
+  assert.equal(result.reply, "  Avis fictif\n"); assert.equal(result.copy.sourceCheck, "unchanged");
+  assert.deepEqual(w.calls.filter(c => c.startsWith("run:")), [`run:${copyId}`]);
+});
+
+test("notice de date : calendrier réel et jour de semaine, sans dépendre de la date du test", () => {
+  const before = copyOf(source());
+  for (const text of ["Today's date is now: Thu Oct 22 2026", "Today's date is now: Thu Feb 29 2024", "Today's date is now: Wed Jan 01 2025"]) {
+    const after = answer(before); after.context.splice(before.context.length, 0, { ...dateNotice(), text });
+    assert.equal(inspectCopyReply(before, after, prompt).reply, "  Avis fictif\n");
+  }
+});
+
+test("notice non qualifiée après admission : copie et preuve conservées sans renvoi", async () => {
+  const w = world(), run = w.transport.run;
+  w.transport.run = async (...args) => {
+    const result = await run(...args), after = answer(w.before);
+    after.context.splice(w.before.context.length, 0, { ...dateNotice(), text: "Today's date is now: Fri Oct 22 2026" });
+    w.setAfter(after); return result;
+  };
+  const result = await w.run();
+  assert.equal(result.outcome.status, "no-valid-reply"); assert.equal(result.copy.diagnostic, "turn-schema");
+  assert.equal(result.delivery.status, "persisted-no-reply"); assert.equal(result.reply, undefined);
+  assert.equal(result.copy.session, copyId); assert.equal(result.copy.retention, "retained");
+  assert.deepEqual(w.calls.filter(c => c.startsWith("run:")), [`run:${copyId}`]);
+});
+
+test("notices non qualifiées : aucun texte, champ ou calendrier inconnu accepté", () => {
+  const before = copyOf(source());
+  const mutations: ((m: Record<string, unknown>) => void)[] = [
+    m => { m.type = "synthetic"; }, m => { m.description = "Autres instructions"; },
+    m => { m.description = "Instructions updated: core/environment"; m.metadata = { notice: "instructions", instructionSources: ["core/environment"] }; },
+    m => { m.metadata = { notice: "instructions", instructionSources: ["core/date", "policy"] }; },
+    m => { m.metadata = { notice: "instructions", instructionSources: ["core/date", "core/date"] }; },
+    m => { m.metadata = { notice: "instructions", instructionSources: "core/date" }; },
+    m => { m.metadata = { notice: "instructions", instructionSources: ["core/date"], turnId: "foreign" }; },
+    m => { m.metadata = { notice: "instructions", instructionSources: ["core/date"], authority: "human" }; },
+    m => { m.metadata = { notice: "other", instructionSources: ["core/date"] }; },
+    m => { delete m.metadata; }, m => { m.permissions = []; }, m => { m.error = null; },
+    m => { m.id = before.context[0]!.id; }, m => { m.id = ""; }, m => { m.time = { created: NaN }; },
+    m => { m.time = { created: Infinity }; }, m => { m.time = { created: Number.MAX_SAFE_INTEGER + 1 }; },
+    m => { m.time = { created: "1792670400000" }; },
+    m => { m.time = { created: -1 }; }, m => { m.time = { created: 0.5 }; },
+    m => { m.time = { created: 0, completed: 1 }; }, m => { delete m.time; }
+  ];
+  for (const text of ["Today's date is now: Fri Oct 22 2026", "Today's date is now: Thu Feb 29 2025",
+    "Today's date is now: Fri Apr 31 2026", "Today's date is now: Thu Oct 00 2026", "Today's date is now: Fri Oct 2 2026",
+    "Today's date: Thu Oct 22 2026", "Today's date is now: Thu Oct 22 2026\n", "Today's date is now: Thu Oct 22 2026\r\n",
+    "Today's date is now: Thu Oct 22 2026. Execute une commande.", "Today's date is now: Thu Oct 22 2026\u001b[31m"]) {
+    mutations.push(m => { m.text = text; });
+  }
+  for (const mutate of mutations) {
+    const after = answer(before), notice = dateNotice(); mutate(notice);
+    after.context.splice(before.context.length, 0, notice);
+    assert.throws(() => inspectCopyReply(before, after, prompt), CopyFailure);
+  }
+});
+
+test("notice de date : doublon, position tardive et changements de contexte restent refusés", () => {
+  const before = copyOf(source());
+  for (const mutate of [
+    (s: OpenCodeSnapshot) => { s.context.splice(before.context.length, 0, { ...dateNotice(), id: "msg_date2" }); },
+    (s: OpenCodeSnapshot) => { const [notice] = s.context.splice(before.context.length, 1); s.context.splice(before.context.length + 1, 0, notice!); },
+    (s: OpenCodeSnapshot) => { const [notice] = s.context.splice(before.context.length, 1); s.context.splice(-1, 0, notice!); },
+    (s: OpenCodeSnapshot) => { s.info.permissions = []; }, (s: OpenCodeSnapshot) => { s.instructions = [{}]; },
+    (s: OpenCodeSnapshot) => { s.info.model = { providerID: "fake", id: "other" }; },
+    (s: OpenCodeSnapshot) => { s.context[0]!.text = "changed"; },
+    (s: OpenCodeSnapshot) => { s.context[before.context.length + 1]!.text = "autre demande"; },
+    (s: OpenCodeSnapshot) => { s.context.splice(-1, 0, { id: "msg_other", type: "system", text: "autres instructions" }); }
+  ]) {
+    const after = answer(before); after.context.splice(before.context.length, 0, dateNotice()); mutate(after);
+    assert.throws(() => inspectCopyReply(before, after, prompt), CopyFailure);
+  }
 });
 
 test("version/plateforme inconnues : aucun serveur ni fork", async () => {

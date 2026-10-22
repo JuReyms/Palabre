@@ -134,6 +134,12 @@ La réponse doit provenir du nouveau tour de la **copie vérifiée** :
   attendus ; aucun changement de sélection contradictoire ;
 - aucun apport utilisateur concurrent, message synthétique, shell, skill,
   changement de dossier, compaction ou type d'événement non qualifié ;
+- seule exception système du nouveau tour : une unique notice de rafraîchissement
+  `core/date` avant l'utilisateur exact. Clés de message/time/metadata strictes,
+  description et texte complets, calendrier et jour de semaine cohérents ;
+  aucun ajout, doublon, autre source d'instruction ou position tardive accepté.
+  La notice reste soumise aux contrôles d'ID et ne change pas les comparaisons de
+  préfixe, instructions, modèle ou permissions. Ces métadonnées n'ont pas d'autorité ;
 - outils terminés sans erreur structurée ; dernier assistant terminé,
   `finish: stop`, texte non blanc, puis une seule fin `idle: succeeded` ;
 - client terminé à zéro, sans annulation, timeout, dépassement ou identité

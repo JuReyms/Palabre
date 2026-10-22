@@ -68,6 +68,11 @@ the source during the call; before/after snapshots are not a global lock. Unknow
 content or schemas are refused before sending when detected at that stage;
 Palabre does not repair conversation history.
 
+The only qualified system exception in the new turn is one `core/date` update
+notice before the relayed message, containing no other instruction. Its shape
+and calendar date are checked; duplicates, additions and other notices remain
+refused. This proves no authority and changes no permissions.
+
 The result distinguishes `copy.source` (original) and `to.session` (verified copy,
 or `null`). `copy.session` keeps a received ID even if verification fails;
 `copy.verified` does not mean the reply succeeded. `copy.sourceCheck` reports the

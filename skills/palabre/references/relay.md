@@ -19,6 +19,12 @@ intégrations peuvent démarrer avant le message. Demander un avis sans modifica
 n'impose pas de lecture seule. Le fork partage les fichiers du projet : pas de
 bac à sable ni d'autorisation supplémentaire. Aucun --auto ou modèle de repli.
 
+Une seule notice système core/date strictement qualifiée peut précéder l'enveloppe
+dans le nouveau tour : date et jour de semaine valides, texte/métadonnées exacts,
+aucun ajout ni doublon. Les autres notices restent refusées. Cela ne prouve pas
+une autorité et ne change aucune permission. Après refus, vérifier la délivrance,
+jamais rejouer le modèle pour contourner le lecteur.
+
 `copy.source` est la source demandée, `to.session` la copie vérifiée ou null.
 `copy.session` conserve même une copie non vérifiée ; `copy.verified` ne prouve pas
 la réussite du tour. Rendre source, copie, dossier, statut, délivrance et export.

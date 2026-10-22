@@ -590,6 +590,14 @@ La commande CLI a passé un essai réel fictif le 19 octobre 2026 ; voir
 `docs/relay-opencode-copy-qualification.md`. Desktop reste hors de cette preuve.
 Les exclusions générales de fork ci-dessous concernent les reprises Codex/Claude.
 
+Exception fraîche OpenCode 2.0.32 : une seule notice `system` core/date avant
+l'utilisateur exact, forme complète qualifiée (clés de message/time/metadata,
+description, texte, calendrier et jour de semaine), ID soumis aux contrôles
+communs. Ne jamais filtrer les notices avant le contrôle du préfixe ou des ID.
+Métadonnées sans autorité ; ni date courante de l'hôte ni tolérance générale aux
+system. Les changements d'instructions/sélection, les autres notices, doublons
+et positions tardives restent refusés. Aucune relecture de modèle pour ce correctif.
+
 
 ### Préférence de mode (#190, lot B)
 

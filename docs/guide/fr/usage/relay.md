@@ -68,6 +68,11 @@ La copie de conversation partage les fichiers du projet : **ce n'est pas un bac
 constituent pas un verrou global. Un contenu ou un schéma non qualifié est refusé
 avant envoi si détecté à cette étape, sans tentative de réparation de l'historique.
 
+Seule exception système qualifiée pour le nouveau tour : une notification de
+mise à jour de date `core/date`, avant le message relayé, sans autre instruction.
+Sa forme et sa date sont vérifiées ; doublon, ajout ou autre notification restent
+refusés. Cela ne prouve pas une autorité et ne change aucune permission.
+
 Le résultat distingue `copy.source` (original) et `to.session` (copie vérifiée,
 ou `null`). `copy.session` conserve l'ID reçu même si la vérification échoue ;
 `copy.verified` ne signifie pas que la réponse a réussi. `copy.sourceCheck` donne

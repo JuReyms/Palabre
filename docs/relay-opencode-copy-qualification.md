@@ -150,6 +150,56 @@ Aucun nouvel appel réel OpenCode, changement de profil ou synchronisation de
 skill installé pendant cette reprise. La preuve fournisseur reste celle du
 19 octobre, pas une nouvelle qualification ; version et plateformes inchangées.
 
+## Essai du 22 octobre : notification de changement de date
+
+Après la CI verte du commit `9fa37f5`, le propriétaire a demandé un nouvel essai
+réel sur le même laboratoire fictif et la source explicitement choisie auparavant.
+CLI et empreinte 2.0.32 identiques, configuration déjà approuvée ; agent, modèle
+et variante conservés. Un seul envoi a été admis, dans une copie vérifiée.
+
+**Le résultat réel reste `no-valid-reply`/2, `persisted-no-reply`, diagnostic
+`turn-schema`.** La copie et l'export sont conservés. Les relevés source sont
+identiques avant/après, y compris dans un audit séparé ; l'inventaire des quatre
+fichiers hors `.git` reste identique, sans ajout. L'arrêt du serveur est confirmé.
+
+La lecture locale de la copie montre une finale terminée et trois lectures
+terminées. Elle restitue le code de contexte et relève le défaut de pourcentage ;
+les exemples chiffrés inspectés sont cohérents. Ce texte n'a toutefois pas été
+accepté comme `reply` par le produit pendant cet essai.
+
+Cause : entre le préfixe copié et l'utilisateur exact, OpenCode insère une notice
+`system`, description `Instructions updated: core/date`, métadonnées
+`notice: instructions`, `instructionSources: [core/date]`, texte
+`Today's date is now: Thu Oct 22 2026`. La source date du 19 octobre.
+Le lecteur refusait tout nouveau `system`. Le code épinglé OpenCode 2.0.32,
+`instructions/builtins.ts` et `session/message-updater.ts`, confirme ce producteur.
+
+Avec l'accord explicite du propriétaire, le correctif admet uniquement une
+notice de cette forme avant l'utilisateur : clés exactes du message, de `time`
+et de `metadata`, texte entier, date du calendrier et jour de semaine cohérents.
+Elle reste dans les contrôles d'ID et ne change aucun contrôle du préfixe,
+de la sélection, des instructions, des outils ou de la fin. Doublons, positions
+tardives, texte supplémentaire et autres instructions restent refusés. Ces
+métadonnées ne constituent jamais une preuve d'autorité.
+
+Vérification sans réseau ni modèle : la fixture publiée ne reprend que la forme
+de notice, avec identifiant et horodatage témoins. Tests positifs et négatifs,
+dont conservation de la délivrance après refus ; aucune dépendance à la date
+ou au fuseau de l'hôte. En complément, le relevé réel complet, **sans retrait de
+la notice**, passe le lecteur corrigé hors ligne. Son préfixe avant appel est
+reconstruit depuis la source déjà vérifiée et les ID réattribués du préfixe copié.
+Ce contrôle du lecteur n'est pas une réexécution complète de la commande.
+
+Le typage, le build, la validation du skill et la génération documentaire passent.
+Dernière suite complète isolée : 1 062 tests, 1 057 réussis, 5 ignorés, aucun
+échec ; vrai profil Palabre inchangé, garde actif. Un premier passage ciblé a
+été rejeté par les notifications du garde malgré des empreintes identiques :
+il ne vaut pas preuve verte, et aucun garde-fou n'a été modifié. Relecture
+indépendante de l'exception et de ses tests négatifs : aucun blocage relevé.
+
+Aucun nouveau modèle, serveur ou message depuis la correction. Le résultat
+historique n'est pas réécrit en succès ; les traces réelles restent locales.
+
 ## Limites conservées
 
 Cette preuve concerne cette CLI, cette version Windows et ce contexte textuel
