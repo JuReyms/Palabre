@@ -20,14 +20,17 @@ export async function snapshot(directory) {
 }
 
 /**
- * Decide whether the real profile changed. Any snapshot difference (contents, mtime, mode), any
- * 'rename' (transient creation, deletion or rename) and any watcher error fail. On Windows only, a
- * 'change' event alone is ignored when the snapshots match: fs.watch there also reports last-access
- * updates, including the guard's own reads. Residual Windows limit: an in-place write that restores
- * both contents and mtime goes unseen. Elsewhere, every 'change' still fails, as before.
+ * Decide whether the real profile changed. A difference in any final snapshot (contents, mtime,
+ * mode) fails, even if a later snapshot matches again: a change once seen is never forgotten. Any
+ * 'rename' (transient creation, deletion or rename) and any watcher error fail too. On Windows only,
+ * a 'change' event alone is ignored when every snapshot matches: fs.watch there also reports
+ * last-access updates, including the guard's own reads. Residual Windows limits: an in-place write
+ * that restores both contents and mtime, or a write landing in an already-read file during the last
+ * snapshot (only possible from a process outliving the tests), goes unseen. Elsewhere, every
+ * 'change' still fails, as before.
  */
-export function guardVerdict({ before, after, events, platform = process.platform }) {
-  return before !== after || events.some(event => event.type !== 'change' || platform !== 'win32');
+export function guardVerdict({ before, afters, events, platform = process.platform }) {
+  return afters.some(after => after !== before) || events.some(event => event.type !== 'change' || platform !== 'win32');
 }
 
 /**
@@ -52,13 +55,14 @@ export async function guardProfile(home, { platform = process.platform, takeSnap
     async finish() {
       try {
         const seen = events.length;
-        let after = await takeSnapshot(directory);
+        const afters = [await takeSnapshot(directory)];
         // Let queued watcher callbacks run before deciding.
         await new Promise(resolve => setTimeout(resolve, 30));
         // On Windows, events during the final pass may hide a write to a file already read: compare once more.
-        if (platform === 'win32' && events.length > seen) after = await takeSnapshot(directory);
-        if (guardVerdict({ before, after, events, platform })) throw new Error(`TEST PROFILE GUARD: real ~/.palabre changed during tests. No restoration attempted. Before=${before}, after=${after}, events=${JSON.stringify([...new Set(events.map(event => event.label))])}`);
-        return after;
+        // Both snapshots count, so a restoration between them cannot erase a change already seen.
+        if (platform === 'win32' && events.length > seen) afters.push(await takeSnapshot(directory));
+        if (guardVerdict({ before, afters, events, platform })) throw new Error(`TEST PROFILE GUARD: real ~/.palabre changed during tests. No restoration attempted. Before=${before}, after=${afters.join(' then ')}, events=${JSON.stringify([...new Set(events.map(event => event.label))])}`);
+        return afters.at(-1);
       } finally { watchers.forEach(w => w.close()); }
     }
   };
