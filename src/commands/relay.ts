@@ -253,7 +253,9 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
     to: null,
     provider: null,
     exchangeStarted: false,
-    open: rawArgs.includes("--open")
+    open: rawArgs.includes("--open"),
+    // Connu dès les arguments bruts : tout résultat de --check porte son rapport, refus précoce compris.
+    check: rawArgs.includes("--check")
   };
   context.approvedWrite = options.approvedWrite;
   let result: RelayResultV1;
@@ -284,10 +286,11 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (flags.open && flags.background) throw invalid("invalid-arguments", messages.relayView.conflict);
   if (context.header && context.open) throw invalid("invalid-arguments", messages.relayView.missionBackground);
   context.check = flags.check === true;
-  // La vérification n'envoie rien : une option d'envoi ou de suivi la rendrait trompeuse.
+  // La vérification n'envoie rien et n'écrit rien : une option d'envoi, de suivi ou d'approbation
+  // (`--trust-config` réécrirait le registre de confiance) la rendrait trompeuse.
   if (context.check && (positionals.length > 0 || flags["message-file"] !== undefined || flags.subject !== undefined || flags.from !== undefined
     || flags.new || flags.dir !== undefined || flags.task !== undefined || flags.pr !== undefined || flags.write || flags.follow
-    || flags.timeout !== undefined || flags["no-export"] || context.header)) {
+    || flags.timeout !== undefined || flags["no-export"] || flags["trust-config"] || context.header)) {
     throw invalid("invalid-arguments", messages.relay.check.conflict);
   }
   context.follow = flags.follow === true;
@@ -582,6 +585,8 @@ function assessClosedTarget(context: RelayContext, adapter: ExternalSessionAdapt
 
 /**
  * `--check` (#203) : mêmes contrôles qu'un envoi jusqu'à l'état de la conversation, puis arrêt.
+ * `check.target` est renseigné dès que l'état est connu, y compris avant `target-busy` (ouverte)
+ * ou `target-not-open` (fermée) ; il reste absent pour un état invérifiable.
  * Ni enveloppe, ni processus de la CLI cible, ni export ; sous macOS/Linux, la sonde de verrou
  * Codex lance `python3`, comme pour un envoi. Un refus garde le statut qu'aurait l'envoi. En mode
  * ouvert, les permissions du dernier tour connu sont relevées, à titre indicatif. La liste MCP de
@@ -601,7 +606,10 @@ async function relayCheck(
     context.targetLocated = true;
     const attachment = new CodexSessionAdapter({ home }).probe({ ...input.to, provider: "codex", cwd: located.cwd }).attachment;
     if (attachment === "unknown") throw new RelayRefusal({ status: "target-state-unknown" });
-    if (attachment !== "attached") throw new RelayRefusal({ status: "target-not-open" });
+    if (attachment !== "attached") {
+      context.checkReport = { target: "closed" };
+      throw new RelayRefusal({ status: "target-not-open" });
+    }
     const last = await readLastTurnContext(located.historyPath);
     const { model: _model, ...permissions } = last?.context ?? {};
     const known = Object.keys(permissions).length > 0;
@@ -614,7 +622,13 @@ async function relayCheck(
     const adapter: ExternalSessionAdapter = input.provider === "claude"
       ? new ClaudeSessionAdapter({ operatorFrame: context.messages.relay.operatorFrame, safeMode: false })
       : new CodexSessionAdapter();
-    assessClosedTarget(context, adapter, input.to, input.configPath, input.explicitBackground);
+    try {
+      assessClosedTarget(context, adapter, input.to, input.configPath, input.explicitBackground);
+    } catch (error) {
+      // Une cible attachée est ouverte : l'état est connu, même si l'envoi serait refusé.
+      if (error instanceof RelayRefusal && error.refusal.status === "target-busy") context.checkReport = { target: "open" };
+      throw error;
+    }
     context.checkReport = { target: "closed" };
   }
   return buildResult(context, { outcome: { status: "checked", exitCode: RELAY_EXIT_CODES.checked }, delivery: NOT_DELIVERED });

@@ -116,7 +116,7 @@ PALABRE runs the same checks as a send (configuration, agent, mode, conversation
 - Checks passed: `checked` outcome (exit 0). PALABRE says whether the conversation is open or closed, so whether a send would go to the desktop app or run in background.
 - Open conversation: PALABRE also shows the permissions of the **last known turn**, read from the end of its history. This is an indication, not a guarantee: the next turn may apply different ones.
 - A send would be refused: `--check` returns the same refusal, with the same exit code (`target-busy`, `target-not-open`, `session-not-found`…), and states that nothing was sent.
-- `--open` and `--background` work as for a send. The message, `--from`, `--subject`, `--new`, `--follow`, `--task`, `--write`, `--timeout` and `--no-export` are refused.
+- `--open` and `--background` work as for a send. The message, `--from`, `--subject`, `--new`, `--follow`, `--task`, `--write`, `--timeout`, `--no-export` and `--trust-config` are refused: the configuration must already be trusted, since `--check` writes nothing.
 
 The state may change between the check and the send: the send always checks again, with no fallback to more permissions. Codex's MCP list is not queried: a `neutralization-failed` failure remains possible when sending.
 

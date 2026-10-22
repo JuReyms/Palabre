@@ -131,8 +131,9 @@ export async function readOpenRollout(filename: string, baseline: OpenBaseline, 
 export const LAST_CONTEXT_TAIL_BYTES = 1024 * 1024;
 
 /**
- * Dernières permissions connues pour `relay --check` (#203) : lit au plus le dernier Mio du rollout,
- * sans charger le reste, puis cherche le dernier `turn_context`. Absent de cette fin, ou fichier
+ * Dernières permissions connues pour `relay --check` (#203) : lit au plus le dernier Mio du rollout
+ * (plus l'octet qui le précède, pour savoir si sa première ligne est complète), sans charger le
+ * reste, puis cherche le dernier `turn_context`. Absent de cette fin, ou fichier
  * illisible : `undefined` (inconnu). Le résultat est indicatif, jamais une garantie pour le tour suivant.
  */
 export async function readLastTurnContext(filename: string, openFile: OpenFile = open): Promise<LastTurnContext | undefined> {
@@ -142,8 +143,12 @@ export async function readLastTurnContext(filename: string, openFile: OpenFile =
       const stat = await file.stat();
       if (!stat.isFile() || !Number.isSafeInteger(stat.size) || stat.size === 0) return undefined;
       const length = Math.min(stat.size, LAST_CONTEXT_TAIL_BYTES);
-      const tail = await readRange(file, stat.size - length, length);
-      return lastTurnContext(new TextDecoder("utf-8").decode(tail), stat.size > length);
+      // Un octet de plus, quand il existe : un saut de ligne juste avant la fin bornée signifie que
+      // sa première ligne est complète et doit être lue.
+      const before = stat.size > length ? 1 : 0;
+      const bytes = await readRange(file, stat.size - length - before, length + before);
+      const partialStart = before === 1 && bytes[0] !== 0x0a;
+      return lastTurnContext(new TextDecoder("utf-8").decode(bytes.subarray(before)), partialStart);
     } finally { await file.close(); }
   } catch {
     return undefined;

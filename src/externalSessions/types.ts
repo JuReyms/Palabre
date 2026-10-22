@@ -175,7 +175,8 @@ export type RelayStatus =
   | "followed"
   /**
    * Vérification seulement (`--check`, #203) : les contrôles d'avant envoi sont passés, rien n'a été
-   * envoyé ni lancé. Un refus que l'envoi aurait reçu garde son propre statut et son code.
+   * envoyé ni écrit, aucune CLI de l'équipier n'a été lancée (sous macOS/Linux, seule la sonde du
+   * verrou lance `python3`). Un refus que l'envoi aurait reçu garde son propre statut et son code.
    */
   | "checked"
   /**

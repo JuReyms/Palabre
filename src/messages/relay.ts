@@ -331,7 +331,7 @@ Seul le propriétaire l'ouvre ; un agent ne l'ouvre jamais à sa place. Une fois
       nothingSent: "Vérification seulement : rien n'a été envoyé. Un envoi recevrait ce même refus.",
       lastPermissions: (summary, at) => `Permissions du dernier tour connu${at ? ` (${at})` : ""} : ${summary}. C'est une indication : le prochain tour peut en appliquer d'autres.`,
       permissionsUnknown: "Permissions du dernier tour : inconnues, aucune trouvée à la fin de l'historique.",
-      conflict: "--check vérifie seulement : utilisez --to <agent>:<uuid>, avec --open ou --background si besoin, sans message, --message-file, --subject, --from, --new, --dir, --task, --pr, --write, --follow, --timeout ni --no-export. Rien n'a été envoyé."
+      conflict: "--check vérifie seulement : utilisez --to <agent>:<uuid>, avec --open ou --background si besoin, sans message, --message-file, --subject, --from, --new, --dir, --task, --pr, --write, --follow, --timeout, --no-export ni --trust-config. Rien n'a été envoyé ni écrit."
     },
     status: (status) => frStatus[status],
     readAccess: (diagnostic) => `${({
@@ -485,7 +485,7 @@ Only the owner opens it; an agent never opens it on their behalf. Once open, lat
       nothingSent: "Check only: nothing was sent. A send would get this same refusal.",
       lastPermissions: (summary, at) => `Permissions of the last known turn${at ? ` (${at})` : ""}: ${summary}. This is an indication: the next turn may apply different ones.`,
       permissionsUnknown: "Permissions of the last turn: unknown, none found at the end of the history.",
-      conflict: "--check only checks: use --to <agent>:<uuid>, with --open or --background if needed, without a message, --message-file, --subject, --from, --new, --dir, --task, --pr, --write, --follow, --timeout or --no-export. Nothing was sent."
+      conflict: "--check only checks: use --to <agent>:<uuid>, with --open or --background if needed, without a message, --message-file, --subject, --from, --new, --dir, --task, --pr, --write, --follow, --timeout, --no-export or --trust-config. Nothing was sent or written."
     },
     status: (status) => enStatus[status],
     readAccess: (diagnostic) => `${({

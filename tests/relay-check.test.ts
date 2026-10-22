@@ -4,7 +4,7 @@
  * jamais lancés. Lecture bornée des dernières permissions (`lastTurnContext`, `readLastTurnContext`).
  */
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, test, type TestContext } from "node:test";
@@ -12,7 +12,7 @@ import { executeRelay, renderRelayText } from "../src/commands/relay.js";
 import { CodexSessionAdapter } from "../src/externalSessions/codex.js";
 import { lastTurnContext } from "../src/externalSessions/openReader.js";
 import { LAST_CONTEXT_TAIL_BYTES, readLastTurnContext } from "../src/externalSessions/openRollout.js";
-import { trustConfig } from "../src/configTrust.js";
+import { CONFIG_TRUST_PATH, trustConfig } from "../src/configTrust.js";
 import { createTranslator } from "../src/i18n.js";
 
 const CODEX = "0199aaaa-bbbb-7ccc-8ddd-eeeeeeeeeeee";
@@ -107,19 +107,20 @@ describe("relay --check (#203)", () => {
   });
 
   test("refus identiques à l'envoi : statut, code et check présent, rien d'envoyé", async (t) => {
-    const cases: Array<[WorldOptions, string[], string, number]> = [
-      [{ attachment: "attached" }, ["--background"], "target-busy", 3],
-      [{ attachment: "attached", view: "background" }, [], "target-busy", 3],
-      [{ attachment: "detached" }, ["--open"], "target-not-open", 3],
-      [{ attachment: "unknown" }, [], "target-state-unknown", 3]
+    // Dernier élément : état connu avant le refus (ouverte, fermée) ou absent si invérifiable.
+    const cases: Array<[WorldOptions, string[], string, number, "open" | "closed" | undefined]> = [
+      [{ attachment: "attached" }, ["--background"], "target-busy", 3, "open"],
+      [{ attachment: "attached", view: "background" }, [], "target-busy", 3, "open"],
+      [{ attachment: "detached" }, ["--open"], "target-not-open", 3, "closed"],
+      [{ attachment: "unknown" }, [], "target-state-unknown", 3, undefined]
     ];
-    for (const [options, extra, status, exitCode] of cases) {
+    for (const [options, extra, status, exitCode, target] of cases) {
       const w = await world(t, options);
       const result = await check(w.file, "--to", `codex:${CODEX}`, ...extra);
       assert.equal(result.status, status, extra.join(" "));
       assert.equal(result.exitCode, exitCode);
       assert.equal(result.delivery.status, "not-delivered");
-      assert.ok(result.check, "rapport de vérification présent");
+      assert.deepEqual(result.check, target ? { target } : {}, `état connu avant le refus : ${status}`);
       assert.equal(result.queue, undefined);
       const text = renderRelayText(result, fr).stderr;
       assert.match(text, /Vérification seulement : rien n'a été envoyé\. Un envoi recevrait ce même refus\./);
@@ -154,15 +155,35 @@ describe("relay --check (#203)", () => {
   test("options d'envoi, de suivi ou Mission refusées avant toute lecture", async (t) => {
     const w = await world(t, { attachment: "attached" });
     for (const extra of [["Bonjour"], ["--from", "claude"], ["--subject", "Objet"], ["--message-file", "m.md"], ["--follow"],
-      ["--timeout", "30"], ["--no-export"], ["--new"], ["--write"], ["--task", "review"], ["--pr", "https://github.com/o/r/pull/1"]]) {
+      ["--timeout", "30"], ["--no-export"], ["--new"], ["--write"], ["--task", "review"], ["--pr", "https://github.com/o/r/pull/1"], ["--trust-config"]]) {
       const result = await check(w.file, "--to", `codex:${CODEX}`, ...extra);
       assert.equal(result.status, "invalid-request", extra.join(" "));
       assert.equal(result.error!.reason, "invalid-arguments");
       assert.match(result.error!.message, /--check vérifie seulement/);
+      assert.deepEqual(result.check, {}, "rapport présent, même sur un refus d'arguments");
     }
     const mission = await executeRelay(["relay", "--check", "--config", w.file, "--to", `codex:${CODEX}`], { header: { kind: "mission", id: CODEX, step: 1 } });
     assert.equal(mission.error!.reason, "invalid-arguments");
     assert.equal(w.probes(), 0, "aucune sonde avant le refus");
+  });
+
+  test("--trust-config refusé : le registre de confiance n'est pas réécrit", async (t) => {
+    const w = await world(t, { attachment: "attached" });
+    const registry = CONFIG_TRUST_PATH;
+    const before = await readFile(registry);
+    const result = await check(w.file, "--to", `codex:${CODEX}`, "--trust-config");
+    assert.equal(result.error!.reason, "invalid-arguments");
+    assert.match(result.error!.message, /--trust-config/);
+    assert.deepEqual(await readFile(registry), before);
+  });
+
+  test("refus d'arguments précoces : le rapport check reste présent", async (t) => {
+    const w = await world(t);
+    for (const extra of [["--open", "--background"], ["--inconnue"]]) {
+      const result = await check(w.file, "--to", `codex:${CODEX}`, ...extra);
+      assert.equal(result.status, "invalid-request", extra.join(" "));
+      assert.deepEqual(result.check, {});
+    }
   });
 });
 
@@ -188,5 +209,19 @@ describe("dernières permissions connues (#203)", () => {
       observedAt: "2026-10-22T10:00:00.000Z"
     });
     assert.equal(await readLastTurnContext(path.join(root, "absent.jsonl")), undefined);
+  });
+
+  test("readLastTurnContext : une ligne complète qui commence pile au début de la fin bornée est lue", async (t) => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "palabre-check-edge-"));
+    t.after(() => rm(root, { recursive: true, force: true }));
+    const context = `${turnContext("on-request", "workspace-write", false)}\n`;
+    // Ligne de remplissage dont la taille complète exactement la fin bornée après le relevé.
+    const fillerSize = LAST_CONTEXT_TAIL_BYTES - Buffer.byteLength(context);
+    const empty = `${JSON.stringify({ type: "event_msg", payload: { text: "" } })}\n`;
+    const filler = `${JSON.stringify({ type: "event_msg", payload: { text: "y".repeat(fillerSize - Buffer.byteLength(empty)) } })}\n`;
+    assert.equal(Buffer.byteLength(context + filler), LAST_CONTEXT_TAIL_BYTES);
+    const file = path.join(root, "edge.jsonl");
+    await writeFile(file, `${JSON.stringify({ type: "session_meta" })}\n${context}${filler}`);
+    assert.deepEqual((await readLastTurnContext(file))?.context, { model: "gpt-test", approvalPolicy: "on-request", sandbox: "workspace-write", network: "restricted" });
   });
 });

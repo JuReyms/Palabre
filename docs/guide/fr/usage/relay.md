@@ -116,7 +116,7 @@ PALABRE fait les mêmes contrôles qu'un envoi (configuration, agent, mode, conv
 - Contrôles passés : issue `checked` (code 0). PALABRE dit si la conversation est ouverte ou fermée, donc si un envoi irait dans l'app desktop ou en arrière-plan.
 - Conversation ouverte : PALABRE affiche aussi les permissions du **dernier tour connu**, lues à la fin de son historique. C'est une indication, pas une garantie : le prochain tour peut en appliquer d'autres.
 - Un envoi serait refusé : `--check` rend le même refus, avec le même code (`target-busy`, `target-not-open`, `session-not-found`…), et précise que rien n'a été envoyé.
-- `--open` et `--background` s'utilisent comme pour un envoi. Le message, `--from`, `--subject`, `--new`, `--follow`, `--task`, `--write`, `--timeout` et `--no-export` sont refusés.
+- `--open` et `--background` s'utilisent comme pour un envoi. Le message, `--from`, `--subject`, `--new`, `--follow`, `--task`, `--write`, `--timeout`, `--no-export` et `--trust-config` sont refusés : la configuration doit déjà être approuvée, car `--check` n'écrit rien.
 
 L'état peut changer entre la vérification et l'envoi : l'envoi revérifie toujours, sans repli vers plus de droits. La liste MCP de Codex n'est pas consultée : un échec `neutralization-failed` reste possible à l'envoi.
 
