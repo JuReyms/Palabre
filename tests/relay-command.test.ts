@@ -12,6 +12,7 @@ import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
 import { relayMessages } from "../src/messages/relay.js";
+import { quotaEvent } from "./fixtures/external-sessions/quota.js";
 import { relayThenFollowText } from "../src/messages/relayThenFollow.js";
 import { buildEnvelope, MAX_RELAY_MESSAGE_BYTES } from "../src/externalSessions/envelope.js";
 import type { ReadAccessDiagnostic } from "../src/externalSessions/types.js";
@@ -869,6 +870,25 @@ describe("palabre relay --open", () => {
     assert.match(result.json.error.message, /--open ne vise que les conversations Codex/);
     assert.equal(result.json.mode, "open");
     assert.equal(result.calls.length, 0);
+  });
+
+  test("envoi ouvert : quota indicatif au résultat fr/en, JSON ou texte", { skip: process.platform !== "win32" }, async () => {
+    for (const language of ["fr", "en"]) for (const json of [true, false]) {
+      const world = makeWorld(), release = holdCodexLock(world);
+      appendFileSync(world.rollout, JSON.stringify(quotaEvent) + "\n");
+      try {
+        const result = await relay(world, [...toOpenCodex, "Question", "--language", language, "--trust-config", ...(json ? ["--json"] : [])]);
+        assert.equal(result.code, 0, result.stderr);
+        if (json) {
+          assert.equal(result.json.status, "replied"); assert.equal(result.json.quota.indicative, true);
+          assert.equal(result.json.quota.primary.usedPercent, 52); assert.equal(result.json.check, undefined);
+          assert.equal(result.json.quota.recordedAt, "2026-10-22T12:00:00.000Z");
+        } else assert.match(result.stderr, language === "fr" ? /Dernier quota Codex connu \(indicatif/ : /Last known Codex quota \(indicative/);
+      } finally { release(); }
+    }
+    const world = makeWorld(); appendFileSync(world.rollout, JSON.stringify(quotaEvent) + "\n");
+    const background = await relay(world, [...toCodex, "Question", "--trust-config", "--json"]);
+    assert.equal(background.json.quota, undefined, "pas de recherche après un envoi arrière-plan");
   });
 
   test("conversation ouverte : dépôt par codex queue, réponse corrélée, diagnostics B1 et export", { skip: process.platform !== "win32" }, async () => {

@@ -3,6 +3,7 @@
  * `locateOpenRollout` retrouve le rollout par UUID et ne lit que sa première ligne ;
  * `captureOpenRollout` et `readOpenRollout` lisent la première ligne, un témoin borné et l'ajout
  * depuis l'offset ; `readLastTurnContext` lit seulement la fin du fichier (`relay --check`, #203).
+ * `readLastCodexQuota` relève de la même lecture bornée, mais exige un quota daté reconnu (#205).
  * Aucun historique complet n'est chargé, quelle que soit sa taille. Lecture seule, aucun agent ni
  * transport.
  */
@@ -10,6 +11,7 @@ import { open, type FileHandle } from "node:fs/promises";
 import { findCodexRollouts } from "./codex.js";
 import { isUsableDirectory } from "./process.js";
 import { captureOpenBaseline, lastTurnContext, OPEN_READ_LIMITS, type LastTurnContext, type OpenBaseline, type OpenSnapshot } from "./openReader.js";
+import { lastCodexQuota, type CodexQuota } from "./quota.js";
 
 /** Ouverture en lecture seule ; injectable pour mesurer les lectures dans les tests. */
 export type OpenFile = (filename: string, flags: "r") => Promise<FileHandle>;
@@ -129,6 +131,34 @@ export async function readOpenRollout(filename: string, baseline: OpenBaseline, 
 
 /** Fin d'historique lue par `readLastTurnContext` : au plus 1 Mio. */
 export const LAST_CONTEXT_TAIL_BYTES = 1024 * 1024;
+
+/**
+ * Dernier quota connu (#205) : au plus 1 Mio + l'octet précédent, sans réseau ni modèle.
+ * Première ligne partielle ignorée ; une ligne finale incomplète n'est pas interprétée.
+ * Illisible, UTF-8 invalide, modification de taille pendant la lecture ou forme inconnue : absent,
+ * sans erreur produit ni estimation. Une absence dans cette fenêtre n'entraîne aucune recherche plus loin.
+ */
+export async function readLastCodexQuota(filename: string, openFile: OpenFile = open): Promise<CodexQuota | undefined> {
+  try {
+    const file = await openFile(filename, "r");
+    try {
+      const stat = await file.stat();
+      if (!stat.isFile() || !Number.isSafeInteger(stat.size) || stat.size <= 0) return undefined;
+      const length = Math.min(stat.size, LAST_CONTEXT_TAIL_BYTES);
+      const before = stat.size > length ? 1 : 0;
+      const bytes = await readRange(file, stat.size - length - before, length + before);
+      const after = await file.stat();
+      if (after.size !== stat.size || after.mtimeMs !== stat.mtimeMs) return undefined;
+      const partialStart = before === 1 && bytes[0] !== 10;
+      // Couper d'abord la ligne partielle : elle peut commencer au milieu d'un caractère UTF-8.
+      const tail = bytes.subarray(before);
+      const complete = partialStart ? tail.subarray(tail.indexOf(10) >= 0 ? tail.indexOf(10) + 1 : tail.length) : tail;
+      const end = complete.lastIndexOf(10);
+      if (end < 0) return undefined;
+      return lastCodexQuota(new TextDecoder("utf-8", { fatal: true }).decode(complete.subarray(0, end + 1)), false);
+    } finally { await file.close(); }
+  } catch { return undefined; }
+}
 
 /**
  * Dernières permissions connues pour `relay --check` (#203) : lit au plus le dernier Mio du rollout

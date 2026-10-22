@@ -49,3 +49,11 @@ Optional JSON v1 field `nextTurn`, only when `--then-follow <10..3600>` was requ
 `nextTurn` contains `status`, `reason?`, `reply?`, `receiver: "unverified"`, `observedModels?`, `targetPermissions?`, `correlation?`, `retryAfter?`. Statuses: `followed` (first turn completed next), `awaiting-turn` with `reason: "timeout"` (no completed turn in the second budget), `not-started` with `reason: "primary-not-replied"` (primary failure), or a secondary failure/cancellation status. A foreign Relay remains `no-valid-reply`/`relay-turn`. Tolerate missing fields and unknown values.
 
 No secondary delivery, verified human author or inferred authorization. A successful primary reply keeps `replied`/0 even after secondary cancellation/failure. Two explicit budgets, each capped at 3600 s, never renewed; reference at the newline after correlated completion, never EOF. One final stdout JSON object, progress on stderr. No second queue call or automatic resend.
+
+## Indicative Codex quota (#205)
+
+Optional v1 field: `check.quota` for an open/closed Codex check; root `quota` after an open send. Not after a background send in this batch, nor for Claude. No status, exit code or delivery change.
+
+Same object in both locations: `source: "codex-rollout"`, `indicative: true`, `recordedAt` (ISO UTC), `limitId: "codex"`, `primary` and `secondary`. Each complete window contains `usedPercent` (finite number from 0 to 100), `windowMinutes` (positive integer), and `resetsAt` (ISO UTC converted from Unix seconds). Text dates are local with a time zone. Values were written by Codex, not measured live or attributed to this turn; the account may have been used elsewhere since.
+
+Last MiB + one byte only. Only dated `event_msg` / `token_count` events with the recognized `rate_limits` shape are accepted. Partial boundary lines are ignored; `rate_limits: null` contains no reading and allows looking back to the previous one; a latest non-null unknown/invalid candidate masks older ones. Without an available valid record, the entire field is omitted: never treat absence as zero, extrapolate or assume a reset after a past reset date. Consumers tolerate absence and future fields.

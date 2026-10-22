@@ -38,7 +38,8 @@ import { CodexSessionAdapter, codexDesktopThreadLink } from "../externalSessions
 import { buildEnvelope, buildOpenEnvelope, createNonce, MAX_RELAY_MESSAGE_BYTES, parseAgentName, parseSenderRef, parseSessionRef, validMissionHeader, validateRelayMessage, validateRelaySubject, type MissionEnvelopeHeader } from "../externalSessions/envelope.js";
 import type { OpenTurnContext } from "../externalSessions/openReader.js";
 import { defaultOpenRelayDeps, runFollowRelay, runOpenRelay, type FollowRelayResult, type OpenQueueReport, type OpenRelayResult } from "../externalSessions/openRelay.js";
-import { locateOpenRollout, readLastTurnContext } from "../externalSessions/openRollout.js";
+import { locateOpenRollout, readLastTurnContext, readLastCodexQuota } from "../externalSessions/openRollout.js";
+import type { CodexQuota } from "../externalSessions/quota.js";
 import { assessTarget, classifyDelivery, RELAY_EXIT_CODES, refusalOutcome, type PreLaunchRefusal } from "../externalSessions/outcome.js";
 import { resolveExternalExecutable } from "../externalSessions/resolve.js";
 import { isUsableDirectory } from "../externalSessions/process.js";
@@ -91,6 +92,8 @@ export type RelayMode = "background" | "open" | "follow";
  * une indication, pas une garantie pour le tour suivant.
  */
 export interface RelayCheckReport {
+  /** Dernier relevé de quota daté de Codex, indicatif ; absent si non reconnu ou indisponible. */
+  quota?: CodexQuota;
   target?: "open" | "closed";
   lastPermissions?: Omit<OpenTurnContext, "model"> | "unknown";
   /** Horodatage ISO du relevé, quand l'historique le fournit. */
@@ -102,6 +105,8 @@ export interface RelayCheckReport {
  * NDJSON : un ajout optionnel ne change pas `v`.
  */
 export interface RelayResultV1 {
+  /** Relevé indicatif lu après un envoi ouvert vers Codex ; pas un quota attribué à ce seul tour. */
+  quota?: CodexQuota;
   /** Suite facultative de --then-follow, distincte de reply et de la délivrance primaire. */
   nextTurn?: ThenFollowReport;
   /** Demande à confirmer, sans aucun appel modèle ; puis rapport d'actions observées. */
@@ -622,6 +627,14 @@ async function relayCheck(
   context: RelayContext,
   input: { to: SessionRef; provider: ExternalProvider; configPath: string; explicitBackground: boolean }
 ): Promise<RelayResultV1> {
+  let quota: CodexQuota | undefined;
+  if (input.provider === "codex") {
+    // Métadonnée facultative seulement : sa localisation/lecture ne doit changer aucun refus.
+    try {
+      const located = await locateOpenRollout(path.join(os.homedir(), ".codex"), input.to.sessionId);
+      if (located.status === "found") quota = await readLastCodexQuota(located.historyPath);
+    } catch { /* Quota inconnu, jamais zéro ni une erreur de Relay. */ }
+  }
   if (context.open) {
     if (input.provider !== "codex") throw invalid("unsupported-agent", context.messages.relay.open.unsupportedProvider);
     const home = path.join(os.homedir(), ".codex");
@@ -633,7 +646,7 @@ async function relayCheck(
     const attachment = new CodexSessionAdapter({ home }).probe({ ...input.to, provider: "codex", cwd: located.cwd }).attachment;
     if (attachment === "unknown") throw new RelayRefusal({ status: "target-state-unknown" });
     if (attachment !== "attached") {
-      context.checkReport = { target: "closed" };
+      context.checkReport = { target: "closed", ...(quota ? { quota } : {}) };
       throw new RelayRefusal({ status: "target-not-open" });
     }
     const last = await readLastTurnContext(located.historyPath);
@@ -641,6 +654,7 @@ async function relayCheck(
     const known = Object.keys(permissions).length > 0;
     context.checkReport = {
       target: "open",
+      ...(quota ? { quota } : {}),
       lastPermissions: known ? permissions : "unknown",
       ...(known && last?.observedAt ? { lastPermissionsAt: last.observedAt } : {})
     };
@@ -652,10 +666,10 @@ async function relayCheck(
       assessClosedTarget(context, adapter, input.to, input.configPath, input.explicitBackground);
     } catch (error) {
       // Une cible attachée est ouverte : l'état est connu, même si l'envoi serait refusé.
-      if (error instanceof RelayRefusal && error.refusal.status === "target-busy") context.checkReport = { target: "open" };
+      if (error instanceof RelayRefusal && error.refusal.status === "target-busy") context.checkReport = { target: "open", ...(quota ? { quota } : {}) };
       throw error;
     }
-    context.checkReport = { target: "closed" };
+    context.checkReport = { target: "closed", ...(quota ? { quota } : {}) };
   }
   return buildResult(context, { outcome: { status: "checked", exitCode: RELAY_EXIT_CODES.checked }, delivery: NOT_DELIVERED });
 }
@@ -703,6 +717,7 @@ async function relayOpen(
   }
   const result = buildResult(context, {
     outcome: open.outcome,
+    quota: await readLastCodexQuota(located.historyPath),
     delivery: open.delivery,
     reply: open.reply,
     identity: open.identity,
@@ -897,6 +912,7 @@ function buildResult(
     message?: string;
     open?: OpenRelayResult;
     follow?: FollowRelayResult;
+    quota?: CodexQuota;
   }
 ): RelayResultV1 {
   const { outcome } = input;
@@ -921,6 +937,7 @@ function buildResult(
   return {
     v: 1,
     type: "relay-result",
+    ...(input.quota ? { quota: input.quota } : {}),
     ...(context.writeRequest ? { writeRequest: context.writeRequest } : {}),
     ...(context.write ? { write: context.write } : {}),
     ...(context.subject !== undefined ? { subject: context.subject } : {}),
@@ -1131,6 +1148,7 @@ export function relayDesktopLink(result: RelayResultV1, targetLocated: boolean):
 /** Même réponse en texte qu'en JSON, y compris après une publication refusée ou interrompue. */
 export function renderRelayText(result: RelayResultV1, messages: Messages, options: { targetLocated?: boolean; primaryPrinted?: boolean } = {}): { stdout: string; stderr: string } {
   const lines: string[] = [];
+  const quota = result.check?.quota ?? result.quota;
   let stdout = result.reply !== undefined && !options.primaryPrinted ? `${sanitizeTerminalText(result.reply)}\n` : "";
   if (result.nextTurn) {
     const label = messages.relayThenFollow.label;
@@ -1159,6 +1177,7 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
   // Mode annoncé à chaque échange (#190), sauf refus d'arguments ou de configuration : rien n'a eu lieu.
   if (result.status !== "invalid-request") lines.push(messages.relay.modeLine(result.mode, result.to?.agent ?? "", Boolean(result.write)));
   if (result.status !== "invalid-request" && result.modeSource) lines.push(messages.relayView.source(result.modeSource));
+  if (quota) lines.push(messages.relayQuota(quota));
   // Visible même quand l'issue reste `replied` : sans cette ligne, un échange réussi ne dirait
   // plus rien des lancements refusés, puisque `error` est alors nul. Pas de seconde copie quand
   // `applyReadAccessDiagnostic` l'a déjà placé dans le message d'erreur (`blocked`, échec enrichi).

@@ -49,3 +49,11 @@ Ajout facultatif du JSON v1 : `nextTurn`, seulement si `--then-follow <10..3600>
 `nextTurn` porte `status`, `reason?`, `reply?`, `receiver: "unverified"`, `observedModels?`, `targetPermissions?`, `correlation?`, `retryAfter?`. Statuts : `followed` (réponse du premier tour terminé ensuite), `awaiting-turn`/`reason: "timeout"` (aucun tour terminé dans le second délai), `not-started`/`reason: "primary-not-replied"` (échec primaire), ou un statut d'échec/annulation secondaire. Un Relay étranger reste `no-valid-reply`/`relay-turn`. Tolérer l'absence de l'objet et les valeurs inconnues.
 
 Aucune délivrance secondaire, aucun auteur humain vérifié ni autorisation déduite. Même après annulation ou échec du suivi, une réponse primaire réussie garde `replied`/0. Deux budgets explicites plafonnés chacun à 3600 s, jamais renouvelés ; référence au saut de ligne après la fin corrélée, jamais EOF. Un seul JSON final sur stdout ; progression sur stderr. Aucun second dépôt ni renvoi.
+
+## Quota indicatif Codex (#205)
+
+Ajout facultatif v1 : `check.quota` pour une vérification Codex ouverte/fermée ; `quota` à la racine après un envoi ouvert. Pas après un envoi arrière-plan dans ce lot, pas pour Claude. Aucun changement de statut, code ou délivrance.
+
+Même objet aux deux endroits : `source: "codex-rollout"`, `indicative: true`, `recordedAt` (ISO UTC), `limitId: "codex"`, `primary` et `secondary`. Chaque fenêtre complète porte `usedPercent` (nombre fini entre 0 et 100), `windowMinutes` (entier positif) et `resetsAt` (ISO UTC converti des secondes Unix). Les dates du texte sont locales avec fuseau. Valeurs écrites par Codex, pas mesure en direct ni usage attribué au seul tour ; le compte peut avoir servi ailleurs depuis.
+
+Lecture du dernier Mio + un octet. Seuls les événements `event_msg` / `token_count` datés et la forme reconnue de `rate_limits` sont acceptés. Lignes de bord partielles ignorées ; `rate_limits: null` ne contient aucun relevé et laisse chercher le précédent ; un dernier candidat non nul inconnu ou invalide masque les anciens. Si aucun relevé exploitable n'est disponible, le champ entier est absent : ne jamais traiter cette absence comme zéro, extrapoler ou supposer une remise à zéro après une date passée. Les consommateurs tolèrent l'absence et les champs futurs.

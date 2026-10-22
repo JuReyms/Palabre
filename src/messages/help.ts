@@ -279,6 +279,12 @@ Options :
   --trust-config              approuve la config résolue (aucune question n'est posée)
   --language <fr|en>          force la langue
 
+Quota Codex (#205) : --check (ouverte ou fermée) et résultat d'un envoi ouvert affichent le
+  dernier quota connu si sa forme et sa date sont reconnues. Indication seulement, pas une mesure
+  en direct : le compte a pu servir ailleurs depuis. Relevé et réinitialisations en heures locales
+  avec fuseau ; ISO dans check.quota ou quota en JSON v1. Lecture du dernier Mio, sans réseau
+  ni modèle. Absent/inconnu : rien affiché, jamais zéro estimé. Aucun effet sur le statut ou les droits.
+
 Préférence du propriétaire :
   relay.view = auto (défaut) : Codex existant, verrou tenu -> dans l'app desktop ; libre -> arrière-plan.
   Verrou invérifiable : target-state-unknown, aucun envoi. Aucun repli après refus.
@@ -821,6 +827,12 @@ Flags:
   --config <path>             explicit config path
   --trust-config              trusts the resolved config (no question is asked)
   --language <fr|en>          force language
+
+Codex quota (#205): --check (open or closed) and an open send's result show the last known quota
+  only if its shape and timestamp are recognized. Indicative, not live: the account may have been
+  used elsewhere since. Recorded and reset dates use local time with a zone; ISO in check.quota or
+  quota in JSON v1. Last MiB only, no network or model. Missing/unknown: nothing shown, never an
+  estimated zero. No effect on status or permissions.
 
 Owner's preference:
   relay.view = auto (default): existing Codex, held lock -> in the desktop app; free -> background.

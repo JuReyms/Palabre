@@ -618,3 +618,11 @@ These commands remove the worktree and its local branch. If Git refuses, keep th
 The sender is optional: without `--from`, the header says `terminal`. An agent may specify `--from claude`, or `--from claude:<uuid>` if it knows its identifier. It remains declared and unauthenticated; **none of these forms conveys human authorization**. JSON gives `from: null` without a sender, or `{ "agent": "claude" }` for a name only.
 
 Omit options that have no value: do not pass `--from ""` or `--dir ""`. If an option is empty, PALABRE explains how to omit or fill it, without sending a message.
+
+## Last known Codex quota
+
+Before a substantial task (writing or a long review), use `palabre relay --check --to codex:<session> --json`. If recognized, `check.quota` reports the last quota written by Codex for an open or closed target. An open send's result may also include root `quota`; not after a background send in this batch, nor for Claude.
+
+This is a **dated, indicative** record, not a live measurement: the account may have been used elsewhere since. Text shows percentages **used**, window durations and local recorded/reset dates with a time zone; JSON dates are ISO UTC. A past reset date never automatically turns the recorded percentage into zero.
+
+Read-only last MiB (plus one boundary byte), no network or model. Missing, unknown, undatable or unreadable data: no field, no estimate, never a default zero. Status, delivery and permissions are unaffected. At **80% used on either window**, inform the owner and offer to split the task or wait; never abandon the task independently or retry automatically at reset time.
