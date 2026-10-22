@@ -16,6 +16,13 @@ const source = await readFile(path.resolve("src/args.ts"), "utf8");
 const flagTable = source.match(/const FLAG_SPECS:[\s\S]*?= \{([\s\S]*?)\n\};/)?.[1];
 assert.ok(flagTable, "table d'arité des flags absente ou format changé : adapter le lecteur du test");
 const flags = [...flagTable.matchAll(/^\s*(?:"([a-z-]+)"|([a-z]+)):\s*\{ arity:/gm)].map(m => m[1] ?? m[2]!);
+// Inventaire fermé : une nouvelle option du parseur exige un classement explicite.
+const launchFlags = ["help", "version", "tui", "terminal", "plain", "json", "no-summary", "no-early-stop", "show-prompt", "dry-run", "pull-models", "checkpoint", "trust-config", "agent-a", "agent-b", "config", "language", "model-a", "model-b", "role-a", "role-b", "ask-role", "ollama-url", "mode", "preset", "summary-agent", "summary-model", "topic", "turns", "renderer", "agents", "files", "context"];
+const otherCommandFlags = ["check", "yes", "prune-trust", "local", "apply", "clear-defaults", "sync-agents", "sync", "sync-ollama-model", "ollama-models", "interface", "relay-view", "install", "limit", "set-ollama-model", "ask-summary-agent", "ask-agents", "set-defaults"];
+
+test("chaque option du parseur est classée : lancement ou autre commande", () => {
+  assert.deepEqual([...launchFlags, ...otherCommandFlags].sort(), [...flags].sort());
+});
 
 for (const language of ["fr", "en"] as const) {
   const help = helpMessages[language];
@@ -72,8 +79,7 @@ for (const language of ["fr", "en"] as const) {
   test(`chaque option publique du parseur apparaît dans une aide ${language}`, () => {
     assert.ok(flags.length > 40, "inventaire incomplet");
     for (const command of commands) assert.ok(help.renderCommand(command), `aide manquante : ${command}`);
-    // run --help rend l'aide générale : sa chaîne dédiée n'est pas accessible par la CLI.
-    const combined = [help.render(""), ...commands.filter(c => c !== "run").map(c => help.renderCommand(c))].join("\n");
+    const combined = [help.render(""), ...commands.map(c => help.renderCommand(c))].join("\n");
     for (const flag of flags) assert.match(combined, new RegExp(`--${flag}(?![a-z-])`), `--${flag}`);
     // Les alias restent découvrables, sans changer leurs noms techniques.
     for (const alias of ["topic", "plain", "apply"]) assert.ok(combined.includes(`--${alias}`));
@@ -100,8 +106,15 @@ for (const language of ["fr", "en"] as const) {
 
   test(`Run et configuration ${language} : modes réels et options avancées`, () => {
     const text = help.renderCommand("run")!;
+    assert.notEqual(text, help.render(""));
+    for (const flag of launchFlags) assert.match(text, new RegExp(`--${flag}(?![a-z-])`), `--${flag}`);
+    for (const alias of ["subject", "s", "t", "lang", "no-tui"]) assert.match(text, new RegExp(`--${alias}(?![a-z-])`), `--${alias}`);
     for (const mode of ["debate", "ask", "chat"]) assert.match(text, new RegExp(`--mode ${mode}`));
     assert.match(text, /--no-early-stop/); assert.match(text, /--summary-model/);
+    assert.match(text, /palabre ask --help/); assert.match(text, /palabre chat --help/);
+    assert.match(help.render(""), /palabre run --help/);
+    assert.match(text, /64 (?:Kio|KiB).*192 (?:Kio|KiB)/);
+    assert.match(text, language === "fr" ? /entier de 1 à 20/ : /integer from 1 to 20/);
     assert.match(help.renderCommand("config")!, /--mode <chat\|debate\|ask>/);
   });
 
@@ -124,9 +137,16 @@ for (const language of ["fr", "en"] as const) {
     const workspace = await mkdtemp(path.join(os.tmpdir(), "palabre-help-"));
     t.after(() => rm(workspace, { recursive: true, force: true }));
     const entry = path.resolve(".tmp/test-dist/src/index.js");
-    for (const command of [undefined, "run", "ask", "chat", "relay", "config", "resume"]) {
-      const { stdout, stderr } = await promisify(execFile)(process.execPath, [entry, ...(command ? [command] : []), "--help", "--language", language], { cwd: workspace, timeout: 15_000 });
-      assert.equal(stdout, command && command !== "run" ? help.renderCommand(command)! + "\n" : help.render("") + "\n");
+    const cases: [string[], string | undefined][] = [
+      [[], undefined], [["help"], undefined], [["run"], "run"],
+      [["--language", language, "run"], "run"], [["run", "--mode", "ask"], "run"],
+      [["run", "--mode", "chat"], "run"], [["--mode", "ask"], undefined],
+      [["--config", "run"], undefined],
+      ...["ask", "chat", "relay", "config", "resume"].map(command => [[command], command] as [string[], string])
+    ];
+    for (const [args, command] of cases) {
+      const { stdout, stderr } = await promisify(execFile)(process.execPath, [entry, ...args, "--help", "--language", language], { cwd: workspace, timeout: 15_000 });
+      assert.equal(stdout, command ? help.renderCommand(command)! + "\n" : help.render("") + "\n");
       assert.equal(stderr, ""); assert.deepEqual(await readdir(workspace), []);
     }
   });

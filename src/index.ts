@@ -1210,10 +1210,11 @@ function printHelp(messages: Messages, command?: string): void {
 /**
  * Résout la commande cible pour l'aide contextuelle (`palabre <cmd> --help`), en normalisant
  * les alias (`agent` -> `agents`, `preset` -> `presets`, `setup` -> `init`).
- * @returns `undefined` pour `help`/`run`, qui utilisent l'aide générale.
+ * @returns `undefined` pour `help` ou un `run` implicite (par exemple `palabre --help`).
+ * Un `run` explicite utilise son aide dédiée, sans changer le lancement des sessions.
  */
 function commandHelpTarget(parsed: ParsedArgs): string | undefined {
-  if (parsed.command === "help" || parsed.command === "run") {
+  if (parsed.command === "help" || (parsed.command === "run" && !parsed.commandExplicit)) {
     return undefined;
   }
 

@@ -417,17 +417,20 @@ Utilisation :
 Sans --mode, le mode configuré s'applique aussi aux formes courtes :
   palabre <preset> "Sujet" ; palabre -s "Sujet"
 Un preset n'est pas utilisable en Chat ; voir palabre chat --help.
+Pour les particularités de chaque mode : palabre ask --help et palabre chat --help.
 
 Agents et mode :
   --mode <debate|ask|chat>    mode de cette session, sans modifier la configuration
   -s, --subject <texte>       sujet (--topic : alias compatible)
-  -t, --turns <nombre>        limite de réponses du Débat (1 à 20)
+  -t, --turns <nombre>        réponses du Débat : entier de 1 à 20 (configuration, sinon 4)
   --preset <nom>              paire d'agents (palabre presets)
   --agent-a <nom>             agent A ; agent actif en Chat
   --agent-b <nom>             agent B du Débat
   --agents <noms...>          participants Ask (1 à 4)
   --role-a <rôle>             rôle temporaire de A ; --role-b <rôle> : rôle de B
   --ask-role <rôle>           rôle commun temporaire en Ask
+Rôles : implementer, reviewer, architect, scout, critic, summarizer.
+Les rôles sont temporaires et ne donnent aucun droit supplémentaire.
 
 Contexte et modèles :
   --files <chemins...>        fichiers précis (64 Kio chacun, 192 Kio au total)
@@ -435,15 +438,20 @@ Contexte et modèles :
   --model-a <modèle>          modèle brut de A ; --model-b <modèle> : modèle de B
   --ollama-url <url>          adresse Ollama pour cette session
   --pull-models               autorise le téléchargement d'un modèle Ollama manquant
+Budget partagé entre --files et --context ; --context ignore les fichiers exclus,
+binaires ou trop grands avec avertissements. --files refuse les entrées invalides.
+Les modèles sont ceux des agents configurés, sauf remplacement explicite.
 
 Synthèse et préparation (Débat/Ask seulement) :
   --summary-agent <nom>       agent de synthèse
   --summary-model <modèle>    modèle brut de synthèse
   --no-summary                désactive la synthèse
-  --no-early-stop             impose tous les tours du Débat
+  --no-early-stop             désactive l'arrêt sur accord en Débat seulement
   --show-prompt               affiche le prompt sans appeler d'agent
   --dry-run                   prévisualise sans appel d'agent ni export
   --checkpoint                permet une reprise avec palabre resume <id>
+En Chat, --dry-run est refusé ; --checkpoint et --show-prompt ne donnent
+ni reprise ni aperçu. La portée des modèles Ask est précisée dans palabre ask --help.
 
 Affichage et configuration :
   --tui                       force l'interface TUI
@@ -452,6 +460,9 @@ Affichage et configuration :
   --language <fr|en>          langue de cette session
   --config <chemin>           configuration à utiliser
   --trust-config              approuve la configuration ; décision du propriétaire
+  -h, --help                  affiche cette aide sans lancer de session
+  -v, --version               affiche la version sans lancer de session
+Alias compatibles : --topic et --s pour --subject ; --t pour --turns ; --lang pour --language.
 
 `,
 chat: `
@@ -935,17 +946,20 @@ Usage:
 Without --mode, the configured mode also applies to short forms:
   palabre <preset> "Subject"; palabre -s "Subject"
 A preset cannot be used in Chat; see palabre chat --help.
+For mode-specific details: palabre ask --help and palabre chat --help.
 
 Agents and mode:
   --mode <debate|ask|chat>    mode for this session, without changing configuration
   -s, --subject <text>        subject (--topic: compatible alias)
-  -t, --turns <n>             Debate response limit (1 to 20)
+  -t, --turns <n>             Debate responses: integer from 1 to 20 (configuration, otherwise 4)
   --preset <name>             agent pair (palabre presets)
   --agent-a <name>            agent A; active agent in Chat
   --agent-b <name>            Debate agent B
   --agents <names...>         Ask participants (1 to 4)
   --role-a <role>             temporary role for A; --role-b <role>: role for B
   --ask-role <role>           temporary shared role in Ask
+Roles: implementer, reviewer, architect, scout, critic, summarizer.
+Roles are temporary and grant no additional permissions.
 
 Context and models:
   --files <paths...>          specific files (64 KiB each, 192 KiB total)
@@ -953,15 +967,20 @@ Context and models:
   --model-a <model>           raw model for A; --model-b <model>: model for B
   --ollama-url <url>          Ollama address for this session
   --pull-models               allows downloading a missing Ollama model
+Shared budget for --files and --context; --context skips excluded, binary or
+oversized files with warnings. --files rejects invalid inputs.
+Models come from the configured agents unless explicitly overridden.
 
 Summary and preparation (Debate/Ask only):
   --summary-agent <name>      summary agent
   --summary-model <model>     raw summary model
   --no-summary                disables the summary
-  --no-early-stop             runs every requested Debate turn
+  --no-early-stop             disables stopping on agreement in Debate only
   --show-prompt               shows the prompt without calling an agent
   --dry-run                   previews without agent calls or an export
   --checkpoint                enables resumption with palabre resume <id>
+In Chat, --dry-run is refused; --checkpoint and --show-prompt provide neither
+resumption nor a preview. Ask model scope is explained in palabre ask --help.
 
 Display and configuration:
   --tui                       forces the TUI interface
@@ -970,6 +989,9 @@ Display and configuration:
   --language <fr|en>          language for this session
   --config <path>             configuration to use
   --trust-config              trusts the configuration; the owner's decision
+  -h, --help                  shows this help without starting a session
+  -v, --version               shows the version without starting a session
+Compatible aliases: --topic and --s for --subject; --t for --turns; --lang for --language.
 
 `,
 
@@ -1103,6 +1125,7 @@ Options de session (run/ask/chat, selon le mode ; détail dans leur aide) :
   -h, --help                  aide ; -v, --version : version
 
 Relay a ses propres options : palabre relay --help.
+Détail des options de lancement : palabre run --help.
 Un agent qui sort en erreur reste en échec ; un extrait de sortie n'est qu'un diagnostic.
 
 Documentation complète : https://palab.re/fr
@@ -1163,6 +1186,7 @@ Session options (run/ask/chat, depending on mode; see their help):
   -h, --help                  help; -v, --version: version
 
 Relay has its own options: palabre relay --help.
+Full launch options: palabre run --help.
 A non-zero agent exit remains a failure; an output excerpt is only a diagnostic.
 
 Full documentation: https://palab.re/en
