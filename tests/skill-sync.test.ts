@@ -231,19 +231,26 @@ test("update : même plan CLI/skill, une seule confirmation ; refus, check et dr
   assert.equal(readFileSync(path.join(target, "SKILL.md"), "utf8"), "custom");
 });
 
-test("plan affiché fr/en : remplacement et sauvegarde annoncés seulement si une copie diffère", () => {
+test("plan affiché fr/en : remplacement et sauvegarde annoncés seulement si une copie peut être remplacée", () => {
   const copy = (state: "current" | "different" | "unreadable") => ({ directory: `/fictif/${state}`, state });
   const plan = (...states: ("current" | "different" | "unreadable")[]) => ({ source: "/fictif/source", backupRoot: "/fictif/backups", copies: states.map(copy) });
   for (const language of ["fr", "en"] as const) {
     const replacement = language === "fr" ? /seront remplacés/ : /will be replaced/;
     const nothing = language === "fr" ? /Rien à remplacer/ : /Nothing to replace/;
+    const none = language === "fr" ? /Aucune copie détectée/ : /No copy detected/;
+    const announces = (text: string) => { assert.match(text, replacement); assert.ok(text.includes("/fictif/backups")); assert.doesNotMatch(text, nothing); };
+    const quiet = (text: string) => { assert.match(text, nothing); assert.doesNotMatch(text, replacement); assert.ok(!text.includes("/fictif/backups")); };
     for (const states of [["different"], ["current", "different"], ["different", "unreadable"]] as const) {
-      const text = formatSkillPlan(plan(...states), language);
-      assert.match(text, replacement); assert.ok(text.includes("/fictif/backups")); assert.doesNotMatch(text, nothing);
+      announces(formatSkillPlan(plan(...states), language));
+      announces(formatSkillPlan(plan(...states), language, true));
     }
-    for (const states of [["current"], ["current", "current"], ["unreadable"], ["current", "unreadable"]] as const) {
-      const text = formatSkillPlan(plan(...states), language);
-      assert.match(text, nothing); assert.doesNotMatch(text, replacement); assert.ok(!text.includes("/fictif/backups"));
+    for (const states of [["current"], ["current", "current"], ["unreadable"], ["current", "unreadable"]] as const) quiet(formatSkillPlan(plan(...states), language));
+    // Après mise à jour de la CLI, une copie aujourd'hui identique sera comparée au nouveau paquet (applyUpdate).
+    for (const states of [["current"], ["current", "unreadable"]] as const) announces(formatSkillPlan(plan(...states), language, true));
+    quiet(formatSkillPlan(plan("unreadable"), language, true));
+    for (const afterUpdate of [false, true]) {
+      const empty = formatSkillPlan(plan(), language, afterUpdate);
+      assert.match(empty, none); assert.doesNotMatch(empty, replacement); assert.doesNotMatch(empty, nothing);
     }
   }
 });

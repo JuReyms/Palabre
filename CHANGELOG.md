@@ -28,7 +28,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 - Pilote Relay OpenCode `--copy` : un dépassement de sortie conserve `output-too-large` pendant les requêtes API ou le drainage final ; une erreur HTTP ou la fermeture confirmée ne masquent plus sa cause. La réponse et sa délivrance restent conservées après une erreur tardive. Régressions de l'ordre des événements et des coupures vérifiées sans modèle après les échecs CI Linux de #178.
 
-- `palabre skill` et le plan de `palabre update` n'annoncent plus « Les fichiers livrés seront remplacés » ni le dossier de sauvegarde quand aucune copie vérifiable ne diffère de la CLI : ils affichent « Rien à remplacer » (fr/en). Le comportement ne change pas : rien n'était remplacé dans ce cas. Test fr/en du plan affiché.
+- `palabre skill` et le plan de `palabre update` n'annoncent plus « Les fichiers livrés seront remplacés » ni le dossier de sauvegarde quand aucune copie vérifiable ne diffère de la CLI : ils affichent « Rien à remplacer » (fr/en). Le comportement ne change pas : rien n'était remplacé dans ce cas. Exception conservée : quand `update` met aussi la CLI à jour, toute copie vérifiable peut être remplacée par le skill du nouveau paquet, et le plan l'annonce toujours. Test fr/en du plan affiché, avec et sans mise à jour de la CLI.
 
 - Aide CLI : `palabre run --help` affiche maintenant son aide dédiée en français et en anglais, avec les options de lancement, leurs limites et les renvois vers Ask et Chat. L'aide générale reste courte et renvoie à cette aide ; `palabre --help` et `palabre help` conservent l'aide générale. Tests de couverture des options, d'alignement et des sorties réelles sans lancement d'agent ni export (Fixes #212).
 

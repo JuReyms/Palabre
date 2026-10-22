@@ -23,13 +23,14 @@ export const skillCommandMessages = {
 
 /**
  * Affiche toutes les cibles avant confirmation, y compris les copies personnalisées à sauvegarder.
- * Le remplacement et le dossier de sauvegarde ne sont annoncés que si au moins une copie diffère :
- * des copies à jour ou illisibles ne seront jamais remplacées.
+ * Le remplacement et le dossier de sauvegarde ne sont annoncés que si une copie peut être remplacée :
+ * une copie différente, ou, après une mise à jour de la CLI (`afterUpdate`), toute copie vérifiable,
+ * puisque `applyUpdate` la compare alors au skill du nouveau paquet. Une copie illisible ne l'est jamais.
  */
 export function formatSkillPlan(plan: SkillSyncPlan, language: Language, afterUpdate = false): string {
   const fr = language === "fr";
   const clean = sanitizeTerminalText;
-  const replacing = plan.copies.some(copy => copy.state === "different");
+  const replacing = plan.copies.some(copy => afterUpdate ? copy.state !== "unreadable" : copy.state === "different");
   return [
     fr ? `Skill livré par la CLI ${afterUpdate ? "après sa mise à jour" : "exécutée"} (aucun téléchargement GitHub).` : `Skill bundled with the ${afterUpdate ? "updated" : "running"} CLI (no GitHub download).`,
     ...plan.copies.map(copy => `  ${clean(copy.directory)} — ${fr ? ({ current: "identique à la CLI actuelle", different: "différent ou absent", unreadable: "AVERTISSEMENT : comparaison impossible ; copie ignorée et laissée intacte" })[copy.state] : ({ current: "matches the current CLI", different: "different or absent", unreadable: "WARNING: cannot compare; copy skipped and left untouched" })[copy.state]}`),
