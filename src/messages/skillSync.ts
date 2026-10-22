@@ -21,17 +21,24 @@ export const skillCommandMessages = {
   }
 } satisfies Record<Language, unknown>;
 
-/** Affiche toutes les cibles avant confirmation, y compris les copies personnalisées à sauvegarder. */
+/**
+ * Affiche toutes les cibles avant confirmation, y compris les copies personnalisées à sauvegarder.
+ * Le remplacement et le dossier de sauvegarde ne sont annoncés que si au moins une copie diffère :
+ * des copies à jour ou illisibles ne seront jamais remplacées.
+ */
 export function formatSkillPlan(plan: SkillSyncPlan, language: Language, afterUpdate = false): string {
   const fr = language === "fr";
   const clean = sanitizeTerminalText;
+  const replacing = plan.copies.some(copy => copy.state === "different");
   return [
     fr ? `Skill livré par la CLI ${afterUpdate ? "après sa mise à jour" : "exécutée"} (aucun téléchargement GitHub).` : `Skill bundled with the ${afterUpdate ? "updated" : "running"} CLI (no GitHub download).`,
     ...plan.copies.map(copy => `  ${clean(copy.directory)} — ${fr ? ({ current: "identique à la CLI actuelle", different: "différent ou absent", unreadable: "AVERTISSEMENT : comparaison impossible ; copie ignorée et laissée intacte" })[copy.state] : ({ current: "matches the current CLI", different: "different or absent", unreadable: "WARNING: cannot compare; copy skipped and left untouched" })[copy.state]}`),
-    ...(plan.copies.length ? [
-      fr ? "Les fichiers livrés seront remplacés après sauvegarde des copies existantes ; les ajouts privés et les jonctions seront conservés." : "Bundled files will be replaced after backing up existing copies; private additions and junctions will be preserved.",
-      `${fr ? "Sauvegardes hors des dossiers de skills" : "Backups outside skill directories"}: ${clean(plan.backupRoot)}`
-    ] : [fr ? "Aucune copie détectée. Installer pour Codex : palabre skill --install codex ; pour Claude : palabre skill --install claude." : "No copy detected. Install for Codex: palabre skill --install codex; for Claude: palabre skill --install claude."])
+    ...(!plan.copies.length
+      ? [fr ? "Aucune copie détectée. Installer pour Codex : palabre skill --install codex ; pour Claude : palabre skill --install claude." : "No copy detected. Install for Codex: palabre skill --install codex; for Claude: palabre skill --install claude."]
+      : replacing ? [
+        fr ? "Les fichiers livrés seront remplacés après sauvegarde des copies existantes ; les ajouts privés et les jonctions seront conservés." : "Bundled files will be replaced after backing up existing copies; private additions and junctions will be preserved.",
+        `${fr ? "Sauvegardes hors des dossiers de skills" : "Backups outside skill directories"}: ${clean(plan.backupRoot)}`
+      ] : [fr ? "Rien à remplacer : aucune copie vérifiable ne diffère de la CLI." : "Nothing to replace: no verifiable copy differs from the CLI."])
   ].join("\n");
 }
 

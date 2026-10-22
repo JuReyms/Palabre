@@ -10,6 +10,7 @@ import { applySkillSync, assertSkillPlanUnchanged, inspectSkillCopies, installed
 import { inspectDoctorArrival } from "../src/doctorArrival.js";
 import { applyUpdate, canApplyUpdate, createUpdatePlan, formatUpdateInstructions, type UpdateInfo } from "../src/update.js";
 import { createTranslator } from "../src/i18n.js";
+import { formatSkillPlan } from "../src/messages/skillSync.js";
 import { runUpdateCommand } from "../src/commands/update.js";
 import type { CommandFlags } from "../src/commands/shared.js";
 
@@ -228,6 +229,23 @@ test("update : même plan CLI/skill, une seule confirmation ; refus, check et dr
   assert.equal(applications, 1);
   assert.ok(reports.some(report => report.includes("palabre@0.19.0") && report.includes(target) && report.includes(info.skills!.backupRoot)));
   assert.equal(readFileSync(path.join(target, "SKILL.md"), "utf8"), "custom");
+});
+
+test("plan affiché fr/en : remplacement et sauvegarde annoncés seulement si une copie diffère", () => {
+  const copy = (state: "current" | "different" | "unreadable") => ({ directory: `/fictif/${state}`, state });
+  const plan = (...states: ("current" | "different" | "unreadable")[]) => ({ source: "/fictif/source", backupRoot: "/fictif/backups", copies: states.map(copy) });
+  for (const language of ["fr", "en"] as const) {
+    const replacement = language === "fr" ? /seront remplacés/ : /will be replaced/;
+    const nothing = language === "fr" ? /Rien à remplacer/ : /Nothing to replace/;
+    for (const states of [["different"], ["current", "different"], ["different", "unreadable"]] as const) {
+      const text = formatSkillPlan(plan(...states), language);
+      assert.match(text, replacement); assert.ok(text.includes("/fictif/backups")); assert.doesNotMatch(text, nothing);
+    }
+    for (const states of [["current"], ["current", "current"], ["unreadable"], ["current", "unreadable"]] as const) {
+      const text = formatSkillPlan(plan(...states), language);
+      assert.match(text, nothing); assert.doesNotMatch(text, replacement); assert.ok(!text.includes("/fictif/backups"));
+    }
+  }
 });
 
 test("commande skill : absence de confirmation, check, dry-run et options invalides ne changent rien au profil", t => {
