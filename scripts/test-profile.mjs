@@ -19,28 +19,45 @@ export async function snapshot(directory) {
   return createHash('sha256').update(JSON.stringify(entries)).digest('hex');
 }
 
-/** Watch transient writes as well as comparing the final state (Windows and Linux, Node 20+). */
-export async function guardProfile(home) {
+/**
+ * Decide whether the real profile changed. Any snapshot difference (contents, mtime, mode), any
+ * 'rename' (transient creation, deletion or rename) and any watcher error fail. On Windows only, a
+ * 'change' event alone is ignored when the snapshots match: fs.watch there also reports last-access
+ * updates, including the guard's own reads. Residual Windows limit: an in-place write that restores
+ * both contents and mtime goes unseen. Elsewhere, every 'change' still fails, as before.
+ */
+export function guardVerdict({ before, after, events, platform = process.platform }) {
+  return before !== after || events.some(event => event.type !== 'change' || platform !== 'win32');
+}
+
+/**
+ * Watch transient writes as well as comparing the final state (Windows and Linux, Node 20+).
+ * `platform` and `takeSnapshot` exist for the guard's own tests on fictional directories.
+ */
+export async function guardProfile(home, { platform = process.platform, takeSnapshot = snapshot } = {}) {
   const directory = path.join(home, '.palabre');
-  const changes = [];
+  const events = [];
   const watchers = [];
-  watchers.push(watch(home, (event, file) => {
-    if (file === null || String(file).toLowerCase() === '.palabre') changes.push(`personal-directory:${event}`);
+  watchers.push(watch(home, (type, file) => {
+    if (file === null || String(file).toLowerCase() === '.palabre') events.push({ type, label: `personal-directory:${type}` });
   }));
-  try { watchers.push(watch(directory, { recursive: true }, (event, file) => changes.push(`personal-content:${event}:${file}`))); }
+  try { watchers.push(watch(directory, { recursive: true }, (type, file) => events.push({ type, label: `personal-content:${type}:${file}` }))); }
   catch (error) { if (error.code !== 'ENOENT') { watchers.forEach(w => w.close()); throw error; } }
-  watchers.forEach(w => w.on('error', () => changes.push('watch-error')));
+  watchers.forEach(w => w.on('error', () => events.push({ type: 'watch-error', label: 'watch-error' })));
   let before;
-  try { before = await snapshot(directory); }
+  try { before = await takeSnapshot(directory); }
   catch (error) { watchers.forEach(w => w.close()); throw error; }
   return {
     before,
     async finish() {
       try {
-        const after = await snapshot(directory);
-        // Let queued watcher callbacks run before closing the handles.
+        const seen = events.length;
+        let after = await takeSnapshot(directory);
+        // Let queued watcher callbacks run before deciding.
         await new Promise(resolve => setTimeout(resolve, 30));
-        if (before !== after || changes.length) throw new Error(`TEST PROFILE GUARD: real ~/.palabre changed during tests. No restoration attempted. Before=${before}, after=${after}, events=${JSON.stringify([...new Set(changes)])}`);
+        // On Windows, events during the final pass may hide a write to a file already read: compare once more.
+        if (platform === 'win32' && events.length > seen) after = await takeSnapshot(directory);
+        if (guardVerdict({ before, after, events, platform })) throw new Error(`TEST PROFILE GUARD: real ~/.palabre changed during tests. No restoration attempted. Before=${before}, after=${after}, events=${JSON.stringify([...new Set(events.map(event => event.label))])}`);
         return after;
       } finally { watchers.forEach(w => w.close()); }
     }
