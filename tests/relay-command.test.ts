@@ -12,6 +12,7 @@ import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
 import { relayMessages } from "../src/messages/relay.js";
+import { relayThenFollowText } from "../src/messages/relayThenFollow.js";
 import { buildEnvelope, MAX_RELAY_MESSAGE_BYTES } from "../src/externalSessions/envelope.js";
 import type { ReadAccessDiagnostic } from "../src/externalSessions/types.js";
 import { npmPowerShellShim } from "./fixtures/external-sessions/npm-shim.js";
@@ -1193,6 +1194,12 @@ test('options vides : message traduit avec prochaine étape, sans lancement ni a
 });
 
 describe("palabre relay --then-follow (#204)", () => {
+  test("ponctuation du statut de la suite en français et en anglais", () => {
+    assert.equal(relayThenFollowText("fr").statusLine("Suite", "followed"), "Suite : followed");
+    assert.equal(relayThenFollowText("en").statusLine("Next turn", "followed"), "Next turn: followed");
+    assert.equal(relayThenFollowText("en").statusLine("Next turn", "awaiting-turn", "timeout"), "Next turn: awaiting-turn (timeout)");
+  });
+
   test("exclusions et durées invalides : refus sans dépôt", async () => {
     for (const suffix of [
       ["--background"], ["--new"], ["--follow", "--open"], ["--check"], ["--write"], ["--task", "review"],
@@ -1221,15 +1228,21 @@ describe("palabre relay --then-follow (#204)", () => {
         assert.equal(result.code, 0, result.stderr); assert.equal(result.calls.length, 1);
         if (json) {
           assert.equal(result.json.status, "replied"); assert.equal(result.json.reply, "FAKE-OPEN « été »");
-          assert.equal(result.json.follow.status, "followed"); assert.equal(result.json.follow.reply, "FAKE-SUITE été 🐈");
-          assert.equal(result.json.follow.receiver, "unverified"); assert.deepEqual(result.json.observedModels, ["gpt-fake"]);
-          assert.deepEqual(result.json.follow.observedModels, ["gpt-next"]);
+          assert.equal(result.json.nextTurn.status, "followed"); assert.equal(result.json.nextTurn.reply, "FAKE-SUITE été 🐈");
+          assert.equal("follow" in result.json, false); assert.equal("thenFollow" in result.json, false);
+          assert.equal(result.json.nextTurn.receiver, "unverified"); assert.deepEqual(result.json.observedModels, ["gpt-fake"]);
+          assert.deepEqual(result.json.nextTurn.observedModels, ["gpt-next"]);
           const exported = readFileSync(result.json.exportPath, "utf8");
-          assert.ok(exported.includes(result.json.reply)); assert.ok(exported.includes(result.json.follow.reply));
+          assert.ok(exported.includes(result.json.reply)); assert.ok(exported.includes(result.json.nextTurn.reply));
+          assert.match(exported, /^## nextTurn — /m);
         } else {
           assert.equal(result.stdout.split("FAKE-OPEN").length, 2, "réponse primaire non dupliquée");
           assert.ok(result.stdout.includes("FAKE-SUITE été 🐈"));
           assert.match(result.stdout, /auteur non vérifié|unverified author/);
+          const text = relayThenFollowText(language as "fr" | "en");
+          assert.ok(result.stderr.includes(text.statusLine(text.label, "followed")));
+          assert.ok(result.stderr.includes(text.followed));
+          if (language === "en") assert.ok(!result.stderr.includes(`${text.label} :`));
         }
       } finally { release(); }
     }

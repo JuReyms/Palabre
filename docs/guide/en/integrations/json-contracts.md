@@ -44,8 +44,8 @@ With `--check` (#203), nothing is sent or written and no teammate CLI is started
 
 ## Continuation after a reply: `relay --then-follow` (#204)
 
-Optional JSON v1 field `follow`, only when `--then-follow <10..3600>` was requested. Root `status`, `exitCode`, `reply`, `delivery`, models and permissions retain the primary message result, never the continuation's.
+Optional JSON v1 field `nextTurn`, only when `--then-follow <10..3600>` was requested. Root `status`, `exitCode`, `reply`, `delivery`, models and permissions retain the primary message result, never the continuation's.
 
-`follow` contains `status`, `reason?`, `reply?`, `receiver: "unverified"`, `observedModels?`, `targetPermissions?`, `correlation?`, `retryAfter?`. Statuses: `followed` (first turn completed next), `awaiting-turn` with `reason: "timeout"` (no completed turn in the second budget), `not-started` with `reason: "primary-not-replied"` (primary failure), or a secondary failure/cancellation status. A foreign Relay remains `no-valid-reply`/`relay-turn`. Tolerate missing fields and unknown values.
+`nextTurn` contains `status`, `reason?`, `reply?`, `receiver: "unverified"`, `observedModels?`, `targetPermissions?`, `correlation?`, `retryAfter?`. Statuses: `followed` (first turn completed next), `awaiting-turn` with `reason: "timeout"` (no completed turn in the second budget), `not-started` with `reason: "primary-not-replied"` (primary failure), or a secondary failure/cancellation status. A foreign Relay remains `no-valid-reply`/`relay-turn`. Tolerate missing fields and unknown values.
 
 No secondary delivery, verified human author or inferred authorization. A successful primary reply keeps `replied`/0 even after secondary cancellation/failure. Two explicit budgets, each capped at 3600 s, never renewed; reference at the newline after correlated completion, never EOF. One final stdout JSON object, progress on stderr. No second queue call or automatic resend.

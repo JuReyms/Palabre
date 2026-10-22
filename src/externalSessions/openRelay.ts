@@ -83,7 +83,7 @@ export interface OpenQueueReport {
 /** Résultat d'un relay B1, avant mise en forme par la commande. */
 export interface OpenRelayResult {
   /** Suite séparée, sans altérer l'issue primaire ni sa délivrance. */
-  follow?: ThenFollowReport;
+  nextTurn?: ThenFollowReport;
   /** Référence interne ; jamais sérialisée par la commande. */
   followBaseline?: OpenBaseline;
   outcome: RelayOutcome;
@@ -180,20 +180,20 @@ export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): 
   const primary = await runOpenRelayOnce(input, deps);
   if (input.thenFollowMs === undefined) return primary;
   const { followBaseline, ...result } = primary;
-  if (primary.outcome.status !== "replied") return { ...result, follow: { status: "not-started", reason: "primary-not-replied", receiver: "unverified" } };
+  if (primary.outcome.status !== "replied") return { ...result, nextTurn: { status: "not-started", reason: "primary-not-replied", receiver: "unverified" } };
   const deadline = deps.now() + input.thenFollowMs;
   try {
     input.onReply?.(primary.reply!);
     if (!followBaseline) throw new Error("completion-boundary-missing");
     const next = await runFollowRelay({ sessionId: input.sessionId, historyPath: input.historyPath,
       timeoutMs: Math.max(0, deadline - deps.now()), deadline, signal: input.signal, baseline: followBaseline }, deps);
-    return { ...result, follow: { status: next.outcome.status === "timeout" ? "awaiting-turn" : next.outcome.status,
+    return { ...result, nextTurn: { status: next.outcome.status === "timeout" ? "awaiting-turn" : next.outcome.status,
       ...(next.outcome.status === "timeout" ? { reason: "timeout" } : next.diagnostic ? { reason: next.diagnostic } : {}),
       ...(next.reply !== undefined ? { reply: next.reply } : {}), receiver: "unverified",
       observedModels: next.observedModels, targetPermissions: next.targetPermissions,
       ...(next.correlation ? { correlation: next.correlation } : {}), ...(next.retryAfter !== undefined ? { retryAfter: next.retryAfter } : {}) } };
   } catch (error) {
-    return { ...result, follow: { status: "internal-error", reason: errorCode(error), receiver: "unverified" } };
+    return { ...result, nextTurn: { status: "internal-error", reason: errorCode(error), receiver: "unverified" } };
   }
 }
 

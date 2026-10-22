@@ -22,7 +22,7 @@
  * `--check` (#203) fait les mêmes contrôles qu'un envoi jusqu'à l'état de la conversation, puis
  * s'arrête : ni enveloppe, ni processus de la CLI cible, ni export. Issue `checked` ou refus identique.
  * --then-follow <secondes> ajoute un suivi après la réponse corrélée, sans second dépôt. Le résultat
- * primaire reste distinct de follow, y compris après une échéance ou annulation secondaire.
+ * primaire reste distinct de nextTurn, y compris après une échéance ou annulation secondaire.
  */
 import { readFile, realpath, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -103,7 +103,7 @@ export interface RelayCheckReport {
  */
 export interface RelayResultV1 {
   /** Suite facultative de --then-follow, distincte de reply et de la délivrance primaire. */
-  follow?: ThenFollowReport;
+  nextTurn?: ThenFollowReport;
   /** Demande à confirmer, sans aucun appel modèle ; puis rapport d'actions observées. */
   writeRequest?: string;
   write?: WriteReport;
@@ -946,7 +946,7 @@ function buildResult(
     ...(context.modeSource ? { modeSource: context.modeSource } : {}),
     ...(context.check ? { check: context.checkReport ?? {} } : {}),
     ...openFields,
-    ...(context.thenFollowMs !== undefined ? { follow: input.open?.follow ?? { status: "not-started" as const, reason: "primary-not-replied", receiver: "unverified" as const } } : {})
+    ...(context.thenFollowMs !== undefined ? { nextTurn: input.open?.nextTurn ?? { status: "not-started" as const, reason: "primary-not-replied", receiver: "unverified" as const } } : {})
   };
 }
 
@@ -983,7 +983,7 @@ async function exportRelay(
       ...(result.subject !== undefined ? { subject: result.subject } : {}),
       message: input.message,
       reply: result.reply,
-      ...(result.follow ? { thenFollow: result.follow } : {}),
+      ...(result.nextTurn ? { nextTurn: result.nextTurn } : {}),
       error: result.error?.message,
       ...(result.retryAfter !== undefined ? { retryAfter: result.retryAfter } : {}),
       ...(result.readAccess ? { readAccess: result.readAccess } : {}),
@@ -1132,15 +1132,16 @@ export function relayDesktopLink(result: RelayResultV1, targetLocated: boolean):
 export function renderRelayText(result: RelayResultV1, messages: Messages, options: { targetLocated?: boolean; primaryPrinted?: boolean } = {}): { stdout: string; stderr: string } {
   const lines: string[] = [];
   let stdout = result.reply !== undefined && !options.primaryPrinted ? `${sanitizeTerminalText(result.reply)}\n` : "";
-  if (result.follow) {
+  if (result.nextTurn) {
     const label = messages.relayThenFollow.label;
-    lines.push(`${label} : ${result.follow.status}${result.follow.reason ? ` (${result.follow.reason})` : ""}`);
-    if (result.follow.status === "awaiting-turn") lines.push(messages.relayThenFollow.awaiting);
-    if (result.follow.status === "not-started") lines.push(messages.relayThenFollow.notStarted);
-    if (result.follow.status === "usage-limit") lines.push(messages.relay.usageLimit(result.follow.retryAfter));
-    if (result.follow.targetPermissions && result.follow.targetPermissions !== "unknown") lines.push(messages.relay.open.followPermissions(permissionsSummary(result.follow.targetPermissions)));
-    if (result.follow.correlation?.reason === "turn-started-before-follow") lines.push(messages.relay.open.followStartedBefore);
-    if (result.follow.reply !== undefined) stdout += `\n${label}\n${sanitizeTerminalText(result.follow.reply)}\n`;
+    lines.push(messages.relayThenFollow.statusLine(label, result.nextTurn.status, result.nextTurn.reason));
+    if (result.nextTurn.status === "followed") lines.push(messages.relayThenFollow.followed);
+    if (result.nextTurn.status === "awaiting-turn") lines.push(messages.relayThenFollow.awaiting);
+    if (result.nextTurn.status === "not-started") lines.push(messages.relayThenFollow.notStarted);
+    if (result.nextTurn.status === "usage-limit") lines.push(messages.relay.usageLimit(result.nextTurn.retryAfter));
+    if (result.nextTurn.targetPermissions && result.nextTurn.targetPermissions !== "unknown") lines.push(messages.relay.open.followPermissions(permissionsSummary(result.nextTurn.targetPermissions)));
+    if (result.nextTurn.correlation?.reason === "turn-started-before-follow") lines.push(messages.relay.open.followStartedBefore);
+    if (result.nextTurn.reply !== undefined) stdout += `\n${label}\n${sanitizeTerminalText(result.nextTurn.reply)}\n`;
   }
   if (result.status === "replied") {
     lines.push(messages.relay.replied(result.to?.agent ?? ""));

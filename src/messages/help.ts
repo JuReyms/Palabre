@@ -371,9 +371,9 @@ Avec --then-follow <secondes> (envoi puis écoute, mode ouvert explicite ou auto
   Un seul dépôt. --timeout borne la réponse liée ; le second délai explicite (10 à 3600 s)
   commence à sa réception. La référence suit exactement sa ligne de fin, sans perdre une suite rapide.
   En texte, réponse liée immédiate puis suite séparée ; en JSON, un seul objet final sur stdout,
-  progression sur stderr. status/reply/delivery principaux restent ceux de la réponse liée ; follow
+  progression sur stderr. status/reply/delivery principaux restent ceux de la réponse liée ; nextTurn
   rapporte la suite (followed), l'échéance (awaiting-turn, reason timeout), l'annulation ou l'erreur.
-  Première réponse échouée : follow not-started, aucune écoute. Aucun auteur ni accord humain déduit.
+  Première réponse échouée : nextTurn not-started, aucune écoute. Aucun auteur ni accord humain déduit.
   Refus : arrière-plan, Claude Code, --new, Mission, --task review, --write, --check ou --follow.
 
 Avec --open --follow (suivre la suite sans --then-follow) :
@@ -913,9 +913,9 @@ With --then-follow <seconds> (send then listen, explicit or auto open mode):
   One queue call only. --timeout bounds the correlated reply; the explicit second budget (10 to
   3600 s) starts when it is received. The reference follows its exact end line, retaining fast continuations.
   Text: immediate correlated reply, then a separate continuation. JSON: one final stdout object,
-  progress on stderr. Main status/reply/delivery retain the correlated result; follow reports the
+  progress on stderr. Main status/reply/delivery retain the correlated result; nextTurn reports the
   continuation (followed), deadline (awaiting-turn, reason timeout), cancellation or failure.
-  Failed first reply: follow not-started, no listening. No human author or authorization inferred.
+  Failed first reply: nextTurn not-started, no listening. No human author or authorization inferred.
   Refused: background, Claude Code, --new, Mission, --task review, --write, --check or --follow.
 
 With --open --follow (follow what happens next without --then-follow):

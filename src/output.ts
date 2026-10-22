@@ -200,7 +200,7 @@ function formatAgentsForHeader(options: DebateOptions): string {
 /** Données d'un export `.relay.md` (voir AGENTS.md, section "Relay externe"). */
 export interface RelayExport {
   /** Suite séparée de --then-follow ; aucune nouvelle délivrance ni autorisation. */
-  thenFollow?: ThenFollowReport;
+  nextTurn?: ThenFollowReport;
   /** Rapport Git et commandes observées, uniquement après un accord d'écriture ponctuel. */
   write?: import("./externalSessions/write.js").WriteReport;
   /** Indication de reprise CLI, sans date/fuseau implicites ni relance automatique. */
@@ -328,9 +328,9 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     ...(report.error !== undefined ? [`## ${labels.error}`, "", report.error, ""] : [])
   ];
   if (report.write) content.push(`## ${relayWriteText(report.write.language).exportHeading}`, "", "````json", JSON.stringify(report.write, null, 2), "````", "");
-  if (report.thenFollow) {
-    const next = report.thenFollow;
-    content.push(`## ${messages.relayThenFollow.label}`, "", `${labels.status}: ${next.status}${next.reason ? ` (${next.reason})` : ""}`, "",
+  if (report.nextTurn) {
+    const next = report.nextTurn;
+    content.push(`## nextTurn — ${messages.relayThenFollow.label}`, "", messages.relayThenFollow.statusLine(labels.status, next.status, next.reason), "",
       ...(next.reply !== undefined ? [next.reply, ""] : []), "````json", JSON.stringify(next, null, 2), "````", "");
   }
   return normalizeMarkdownForWindowsPreview(content.join("\n"));

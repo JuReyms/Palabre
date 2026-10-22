@@ -44,8 +44,8 @@ Avec `--check` (#203), rien n'est envoyé ni écrit et aucune CLI de l'équipier
 
 ## Suite après réponse : `relay --then-follow` (#204)
 
-Ajout facultatif du JSON v1 : `follow`, seulement si `--then-follow <10..3600>` a été choisi. La racine reste le résultat du message : `status`, `exitCode`, `reply`, `delivery`, modèle et permissions primaires ne sont jamais remplacés par ceux de la suite.
+Ajout facultatif du JSON v1 : `nextTurn`, seulement si `--then-follow <10..3600>` a été choisi. La racine reste le résultat du message : `status`, `exitCode`, `reply`, `delivery`, modèle et permissions primaires ne sont jamais remplacés par ceux de la suite.
 
-`follow` porte `status`, `reason?`, `reply?`, `receiver: "unverified"`, `observedModels?`, `targetPermissions?`, `correlation?`, `retryAfter?`. Statuts : `followed` (réponse du premier tour terminé ensuite), `awaiting-turn`/`reason: "timeout"` (aucun tour terminé dans le second délai), `not-started`/`reason: "primary-not-replied"` (échec primaire), ou un statut d'échec/annulation secondaire. Un Relay étranger reste `no-valid-reply`/`relay-turn`. Tolérer l'absence de l'objet et les valeurs inconnues.
+`nextTurn` porte `status`, `reason?`, `reply?`, `receiver: "unverified"`, `observedModels?`, `targetPermissions?`, `correlation?`, `retryAfter?`. Statuts : `followed` (réponse du premier tour terminé ensuite), `awaiting-turn`/`reason: "timeout"` (aucun tour terminé dans le second délai), `not-started`/`reason: "primary-not-replied"` (échec primaire), ou un statut d'échec/annulation secondaire. Un Relay étranger reste `no-valid-reply`/`relay-turn`. Tolérer l'absence de l'objet et les valeurs inconnues.
 
 Aucune délivrance secondaire, aucun auteur humain vérifié ni autorisation déduite. Même après annulation ou échec du suivi, une réponse primaire réussie garde `replied`/0. Deux budgets explicites plafonnés chacun à 3600 s, jamais renouvelés ; référence au saut de ligne après la fin corrélée, jamais EOF. Un seul JSON final sur stdout ; progression sur stderr. Aucun second dépôt ni renvoi.
