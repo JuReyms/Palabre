@@ -274,7 +274,15 @@ Avec `--open`, seul le code structuré `usage_limit_exceeded` de `task_complete.
 
 Pour un avis ou une relecture sans modification, `palabre relay --new --to codex --from claude "<tâche sans modification>" --json` crée une conversation persistante dans le dossier courant. `--dir "<dossier>"` est réservé à `--new`. Mémoriser `to.session` et `cwd`, puis utiliser `--to codex:<id>` sans `--new` pour une suite d'avis/relecture. Sans `--from`, l'expéditeur déclaré est `terminal` ; nom seul et nom avec UUID sont aussi admis. Ni en-tête ni nom déclaré ne donnent d'autorisation.
 
-`created: true` signifie qu'un identifiant a été reçu, même en erreur ; aucun succès n'en découle. `to.session: null` indique qu'aucun identifiant valide n'a été reçu. Vérifier `status` et `delivery` avant de continuer. Pas de relance automatique ni de `--open` avec `--new`. Avec les versions Codex vérifiées, une conversation créée par `--new` via la CLI n'est pas listée dans Codex Desktop, mais reste joignable avec son identifiant. Pour la suivre dans l'app, donner à l'humain le lien `codex://threads/<id>` (texte, export, ou construit depuis `to.session`) : il ouvre la conversation avec son historique (essai Windows, #179 ; macOS et Linux non vérifiés pour ce lien Desktop). Une fois ouverte, Desktop tient le verrou : la joindre en mode ouvert avec `auto`, qui garde ses permissions courantes ; l'arrière-plan imposé répondrait `target-busy`. Uniquement si l'humain demande explicitement `--write` expérimental, utiliser le parcours d'accord ponctuel : nouvelle demande, nouvelle conversation et nouvel accord pour chaque tâche ; ne pas convertir une reprise d'avis en reprise d'écriture.
+`created: true` signifie qu'un identifiant a été reçu, même en erreur ; aucun succès n'en découle. `to.session: null` indique qu'aucun identifiant valide n'a été reçu. Vérifier `status` et `delivery` avant de continuer. Pas de relance automatique ni de `--open` avec `--new`. Avec les versions Codex vérifiées, une conversation créée par `--new` via la CLI n'est pas listée dans Codex Desktop, mais reste joignable avec son identifiant. Pour la suivre dans l'app, donner à l'humain le lien `codex://threads/<id>` (texte, export, ou construit depuis `to.session`) : il ouvre la conversation avec son historique (essai Windows, #179 ; macOS et Linux non vérifiés pour ce lien Desktop). Le présenter comme une commande à lancer par l'humain, dans un bloc de code shell précédé de deux lignes de commentaire : l'action, puis l'objet du relais (`--subject`), jamais un identifiant :
+
+```bash
+# Ouvrir dans Codex Desktop
+# Objet : #205 (quota de Codex)
+explorer.exe "codex://threads/<id>"
+```
+
+`open` sous macOS, `xdg-open` sous Linux. L'app Claude ne rend pas `codex://` cliquable ; sous Windows, une conversation déjà affichée met seulement Codex au premier plan (macOS et Linux non vérifiés). Une fois ouverte, Desktop tient le verrou : la joindre en mode ouvert avec `auto`, qui garde ses permissions courantes ; l'arrière-plan imposé répondrait `target-busy`. Uniquement si l'humain demande explicitement `--write` expérimental, utiliser le parcours d'accord ponctuel : nouvelle demande, nouvelle conversation et nouvel accord pour chaque tâche ; ne pas convertir une reprise d'avis en reprise d'écriture.
 
 ## Dernier quota Codex connu
 
