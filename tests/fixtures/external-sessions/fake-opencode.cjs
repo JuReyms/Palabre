@@ -44,6 +44,12 @@ if (args[0] === 'run') {
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       const latest = read();
+      latest.apiCalls ??= [];
+      latest.apiCalls.push({ route: req.url, method: req.method }); save(latest);
+      if (req.url === '/api/model' && req.method === 'GET') {
+        if (latest.mode === 'model-overflow') { res.end(JSON.stringify({ data: 'X'.repeat(4 * 1024 * 1024 + 1) })); return; }
+        res.end(JSON.stringify({ data: [{ providerID: 'fake', id: 'other', enabled: true, variants: [{ id: 'high' }] }] })); return;
+      }
       const match = /^\/api\/(experimental\/)?session\/(ses_[A-Za-z0-9]+)(.*)$/.exec(req.url);
       if (!match) { res.writeHead(404).end('{}'); return; }
       const id = match[2], suffix = match[3];
@@ -53,6 +59,17 @@ if (args[0] === 'run') {
       if (suffix === '/fork' && req.method === 'POST') {
         if (id !== latest.source.info.id || body !== '{}') { res.writeHead(400).end(); return; }
         value = { id: latest.mode === 'bad-fork' ? latest.source.info.id : latest.copy.info.id };
+      } else if (suffix === '/model' && req.method === 'POST') {
+        if (id !== latest.copy.info.id || id === latest.source.info.id) { res.writeHead(400).end(); return; }
+        const model = JSON.parse(body).model;
+        if (latest.mode !== 'model-no-effect') {
+          latest.copy.context.push({ id: 'msg_modelSelection', type: 'model-switched', model,
+            previous: latest.copy.info.model, time: { created: 11 } });
+          latest.copy.info.model = model; save(latest);
+        }
+        if (latest.mode === 'model-ack-lost') { req.socket.destroy(); return; }
+        if (latest.mode === 'model-bad-ack') { res.end(JSON.stringify({ data: null })); return; }
+        res.writeHead(204).end(); return;
       } else if (suffix === '/interrupt' && req.method === 'POST') value = { interrupted: false };
       else if (suffix === '') value = snapshot.info;
       else if (suffix === '/context') value = snapshot.context;

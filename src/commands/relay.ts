@@ -26,6 +26,7 @@
  *
  * `--copy` utilise un déroulé distinct, à source/dossier explicites, sans sonde d'attachement
  * fabriquée : fork OpenCode vérifié, environnement habituel, preuves conservées même après erreur.
+ * Son --model facultatif vérifie une sélection sur la copie avant prompt, jamais sur la source.
  */
 import { readFile, realpath, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -41,6 +42,7 @@ import { CodexSessionAdapter, codexDesktopThreadLink } from "../externalSessions
 import { runCopyRelay, type CopyReport } from "../externalSessions/copyRelay.js";
 import { OpenCodeCopyTransport } from "../externalSessions/opencodeTransport.js";
 import { parseOpenCodeRef } from "../externalSessions/opencodeCopy.js";
+import { parseCopyModel } from "../externalSessions/opencodeModel.js";
 import { relayCopyText } from "../messages/relayCopy.js";
 import { buildEnvelope, buildOpenEnvelope, createNonce, MAX_RELAY_MESSAGE_BYTES, parseAgentName, parseSenderRef, parseSessionRef, validMissionHeader, validateRelayMessage, validateRelaySubject, type MissionEnvelopeHeader } from "../externalSessions/envelope.js";
 import type { OpenTurnContext } from "../externalSessions/openReader.js";
@@ -83,7 +85,7 @@ export const MIN_RELAY_TIMEOUT_SECONDS = 10;
 export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 
 /** Options de `palabre relay` qui attendent une valeur. */
-const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "then-follow", "config", "language", "task", "pr", "subject", "dir"]);
+const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "then-follow", "config", "language", "task", "pr", "subject", "dir", "model"]);
 /** Options de `palabre relay` sans valeur. */
 const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "background", "new", "write", "follow", "check", "copy"]);
 /** Alias acceptés, comme pour les autres commandes. */
@@ -315,6 +317,12 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (context.signal?.aborted) throw new RelayRefusal({ status: "cancelled" });
   const { messages } = context;
   const { flags, positionals } = parseRelayTokens(rawArgs.slice(1), messages);
+  if (flags.model !== undefined) {
+    const text = messages.relay.copy;
+    if (!flags.copy) throw invalid("invalid-arguments", text.modelOnlyCopy);
+    try { parseCopyModel(String(flags.model)); }
+    catch { throw invalid("invalid-arguments", text.modelSyntax); }
+  }
   if (flags.copy && (flags.new || flags.open || flags.background || flags.check || flags.follow || flags["then-follow"] !== undefined
     || flags.write || flags.task !== undefined || flags.pr !== undefined || context.header)) {
     throw invalid("invalid-arguments", messages.relay.copy.conflict);
@@ -375,6 +383,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   context.to = to.value;
   if (flags.copy) {
     context.copy = { source: to.value.sessionId, verified: false, retention: "none", sourceCheck: "unknown", serverStop: "confirmed" };
+    if (typeof flags.model === "string") context.copy.model = { requested: flags.model, verified: false };
     context.to = { agent: to.value.agent, sessionId: "" };
     const directory = optionalString(flags.dir);
     if (!directory) throw invalid("invalid-arguments", relayCopyText(resolveLanguage({ explicitLanguage: optionalString(flags.language) })).directory);
@@ -469,7 +478,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
 
   if (flags.copy) {
     return relayCopy(context, { executable: resolution.executable, source: to.value.sessionId, agent: to.value.agent,
-      message, nonce, timeoutMs: timeoutSeconds * 1000, outputDir: resolveOutputDir(config.outputDir), exportResult: flags["no-export"] !== true });
+      message, nonce, model: optionalString(flags.model), timeoutMs: timeoutSeconds * 1000, outputDir: resolveOutputDir(config.outputDir), exportResult: flags["no-export"] !== true });
   }
   // Choisir avant l'enveloppe. Les parcours exclus ne sondent pas pour ouvrir une cible ;
   // les transports conservent ensuite leurs propres contrôles, sans repli après refus.
@@ -764,10 +773,10 @@ async function relayOpen(
   return result;
 }
 
-/** --copy : source explicite jamais reprise ; ID et preuves acquis conservés avant l'export. */
+/** --copy : source jamais reprise ; --model change seulement la copie, avec preuve avant envoi. */
 async function relayCopy(context: RelayContext, input: {
   executable: ExternalExecutable; source: string; agent: string; message: string; nonce: string;
-  timeoutMs: number; outputDir: string; exportResult: boolean;
+  timeoutMs: number; outputDir: string; exportResult: boolean; model?: string;
 }): Promise<RelayResultV1> {
   const controller = new AbortController();
   const interrupt = () => controller.abort();
@@ -775,7 +784,7 @@ async function relayCopy(context: RelayContext, input: {
   if (context.signal?.aborted) interrupt();
   const text = relayCopyText(context.language ?? "fr");
   try {
-    const copied = await runCopyRelay({ source: input.source, cwd: context.cwd!, timeoutMs: input.timeoutMs, signal: controller.signal,
+    const copied = await runCopyRelay({ source: input.source, cwd: context.cwd!, timeoutMs: input.timeoutMs, signal: controller.signal, model: input.model,
       envelope: id => buildEnvelope({ from: context.from, to: { agent: input.agent, sessionId: id }, message: input.message,
         nonce: input.nonce, subject: context.subject }, { ...context.messages.relay, envelopePermissions: text.permissions })
     }, { transport: new OpenCodeCopyTransport(input.executable, context.cwd!, input.timeoutMs) });
@@ -1285,6 +1294,9 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
       `${text.copy}: ${result.copy.session ?? (result.copy.retention === "none" ? text.none : text.unknown)}`,
       `${text.verified}: ${result.copy.verified}`, `${text.retention}: ${result.copy.retention}`,
       `${text.check}: ${result.copy.sourceCheck}`, `${text.stop}: ${result.copy.serverStop}`);
+    if (result.copy.model) lines.push(`${text.modelRequested}: ${result.copy.model.requested}`,
+      `${text.modelSource}: ${result.copy.model.source ?? text.unknown}`,
+      `${text.modelSelected}: ${result.copy.model.selected ?? text.unknown}`, `${text.modelVerified}: ${result.copy.model.verified}`);
   }
   if (result.mode === "follow" && result.targetPermissions && result.targetPermissions !== "unknown") {
     lines.push(messages.relay.open.followPermissions(permissionsSummary(result.targetPermissions)));

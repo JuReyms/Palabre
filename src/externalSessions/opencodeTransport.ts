@@ -11,6 +11,7 @@ import type { CopyStopResult, CopyTransport } from "./copyRelay.js";
 import { CopyFailure, copyObject, isOpenCodeSessionId, readCopySnapshot, type OpenCodeSnapshot } from "./opencodeCopy.js";
 import { cleanExternalEnv, killProcessTree, runExternalProcess, type ExternalProcessResult } from "./process.js";
 import { utf8ChildProcessEnv } from "../adapters/cli-shared.js";
+import type { CopyModelRef } from "./opencodeModel.js";
 
 const PROCESS_LIMIT = 4 * 1024 * 1024;
 const API_TOTAL_LIMIT = 32 * 1024 * 1024;
@@ -159,7 +160,7 @@ export class OpenCodeCopyTransport implements CopyTransport {
   }
 
   /** HTTP natif : pas de proxy global, de redirect ou d'URL distante fournie par l'utilisateur. */
-  private api(route: string, signal: AbortSignal, body?: object): Promise<unknown> {
+  private api(route: string, signal: AbortSignal, body?: object, noContent = false): Promise<unknown> {
     this.server?.failed();
     if (!this.url || signal.aborted) return Promise.reject(new CopyFailure("cli-failure", "api-unavailable"));
     return new Promise((resolve, reject) => {
@@ -188,6 +189,10 @@ export class OpenCodeCopyTransport implements CopyTransport {
           try {
             this.server?.failed();
             if (response.statusCode === 404) throw new CopyFailure("session-not-found", "api-not-found");
+            if (noContent) {
+              if (response.statusCode !== 204 || size !== 0) throw new CopyFailure("cli-failure", "model-selection-ack");
+              resolve(undefined); return;
+            }
             if (response.statusCode !== 200) throw new CopyFailure("cli-failure", "api-status");
             const value: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
             if (!copyObject(value) || !("data" in value)) throw new CopyFailure("no-valid-reply", "api-schema");
@@ -215,6 +220,15 @@ export class OpenCodeCopyTransport implements CopyTransport {
   async fork(id: string, signal: AbortSignal): Promise<unknown> {
     if (!isOpenCodeSessionId(id)) throw new CopyFailure("identity-mismatch", "api-session-id");
     return this.api(`/api/session/${id}/fork`, signal, {});
+  }
+
+  /** Catalogue du serveur possédé, sans sonde de génération ni lecture de credentials. */
+  async models(signal: AbortSignal): Promise<unknown> { return this.api("/api/model", signal); }
+
+  /** Seule mutation de sélection : copie explicite, accusé 204 strict, sans retry. */
+  async selectModel(id: string, model: CopyModelRef, signal: AbortSignal): Promise<void> {
+    if (!isOpenCodeSessionId(id)) throw new CopyFailure("identity-mismatch", "api-session-id");
+    await this.api(`/api/session/${id}/model`, signal, { model }, true);
   }
 
   async run(id: string, envelope: string, signal: AbortSignal): Promise<ExternalProcessResult> {

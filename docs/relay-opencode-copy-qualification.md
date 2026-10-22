@@ -202,6 +202,11 @@ historique n'est pas réécrit en succès ; les traces réelles restent locales.
 
 ## Limites conservées
 
+Extension ultérieure `--model fournisseur/modele[#variante]` : contrôles dérivés des
+sources officielles 2.0.32 et tests simulés, aucun nouvel appel réel. Les succès
+historiques ci-dessus ne qualifient pas le changement de modèle. L'original et le
+profil ne changent pas ; le choix explicite ne s'applique qu'à la copie vérifiée.
+
 Cette preuve concerne cette CLI, cette version Windows et ce contexte textuel
 simple. Ni Desktop, conversation concurrente, compaction, tous les contenus
 multimodaux, tous les MCP/plugins ni les erreurs réelles de quota ne sont
@@ -211,7 +216,7 @@ fictifs ; cela ne les transforme pas en essais réels du fournisseur.
 Le fork copie la conversation, pas les fichiers. Les permissions habituelles
 restent celles choisies par l'utilisateur ; aucune lecture seule imposée ni
 neutralisation générale. Les relevés ne sont pas un verrou global. Pas de
-retry, suppression automatique, changement de modèle ou extrapolation à Claude
+retry, suppression automatique, changement automatique de modèle ou extrapolation à Claude
 Code. Mission, review et `--write` restent gelés ; #136 n'est pas résolue par ce
 seul lot CLI. Copies installées : `palabre skill --sync` après accord humain,
 puis recharger le skill ; aucune copie installée n'est modifiée ici.

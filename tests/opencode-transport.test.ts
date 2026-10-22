@@ -91,6 +91,30 @@ test("transport : erreurs, redirect et dépassement API sans réponse partielle 
   }
 });
 
+test("modèle explicite : catalogue et POST204 copie, puis run sans override ; refus sans envoi", async () => {
+  for (const [mode, diagnostic] of [["", undefined], ["model-no-effect", "model-selection-unverified"],
+    ["model-bad-ack", "model-selection-ack"], ["model-ack-lost", "api-request"], ["model-overflow", "api-output-limit"]] as const) {
+    const w = world(mode);
+    try {
+      const result = await runCopyRelay({ source: sourceId, cwd: w.cwd, timeoutMs: 8000, model: "fake/other#high", envelope: () => "Corps exact" },
+        { transport: new OpenCodeCopyTransport({ command: process.execPath, prefixArgs: [fixture] }, w.cwd, 8000), platform: "win32" });
+      const state = JSON.parse(readFileSync(w.state, "utf8"));
+      assert.deepEqual(state.source, w.source);
+      assert.equal(state.apiCalls.filter((c: { route: string }) => c.route === `/api/session/${sourceId}/model`).length, 0);
+      assert.ok(state.apiCalls.filter((c: { route: string }) => c.route === `/api/session/${copyId}/model`).length <= 1);
+      const runs = w.readCalls().filter(c => c.args[0] === "run");
+      if (diagnostic) {
+        assert.equal(result.copy.diagnostic, diagnostic, mode); assert.equal(result.delivery.status, "not-delivered", mode);
+        assert.equal(runs.length, 0, mode);
+      } else {
+        assert.equal(result.outcome.status, "replied", JSON.stringify(result)); assert.equal(result.copy.model?.selected, "fake/other#high");
+        assert.deepEqual(result.observedModels, ["fake/other#high"]); assert.equal(runs.length, 1);
+        assert.equal(runs[0]!.args.includes("--model"), false);
+      }
+    } finally { w.restore(); }
+  }
+});
+
 test("transport : plafonds serveur et API cumulée restent bornés, même avec plusieurs chunks", async () => {
   for (const mode of ["server-overflow", "api-total-limit"]) {
     const w = world(mode);
@@ -146,10 +170,12 @@ test("commande Windows : copie et export FR/EN sous auto/background ; refus avan
         laboratoire: { type: "cli", command: path.join(bin, "opencode.ps1"), role: "reviewer" }
       } }));
       await trustConfig(config);
-      const args = ["relay", "--copy", "--to", `laboratoire:${sourceId}`, "--dir", w.cwd, "--config", config, "--language", language, "Lis le projet sans le modifier."];
+      const args = ["relay", "--copy", "--to", `laboratoire:${sourceId}`, "--dir", w.cwd, "--config", config, "--language", language,
+        "--model", "fake/other#high", "Lis le projet sans le modifier."];
       const r = await executeRelay(args);
       assert.equal(r.status, "replied", JSON.stringify(r)); assert.equal(r.mode, "copy"); assert.equal(r.to?.session, copyId);
       assert.equal(r.modeSource, "explicit");
+      assert.deepEqual(r.copy?.model, { requested: "fake/other#high", source: "fake/test", selected: "fake/other#high", verified: true });
       for (const key of ["check", "nextTurn", "quota", "queue", "correlation", "targetPermissions", "receiver"]) assert.equal(key in r, false, key);
       assert.equal(r.copy?.source, sourceId); assert.equal(r.created, undefined);
       const exported = readFileSync(r.exportPath!, "utf8");
@@ -157,6 +183,10 @@ test("commande Windows : copie et export FR/EN sous auto/background ; refus avan
       assert.ok(exported.includes(createTranslator(language).relay.copy.notice));
       assert.equal(exported.includes(createTranslator(language).relay.export.readOnlyNotice), false);
       const rendered = renderRelayText(r, createTranslator(language)); assert.ok(rendered.stderr.includes(sourceId));
+      for (const label of ["modelRequested", "modelSource", "modelSelected", "modelVerified"] as const) {
+        assert.ok(rendered.stderr.includes(createTranslator(language).relay.copy[label]));
+        assert.ok(exported.includes(createTranslator(language).relay.copy[label]));
+      }
       assert.ok(rendered.stderr.includes(createTranslator(language).relay.modeLine("copy", "laboratoire", false)));
       assert.equal(rendered.stderr.includes(createTranslator(language).relay.modeLine("background", "laboratoire", false)), false);
       assert.equal((exported.match(/\| Mode \|/g) ?? []).length, 1);
@@ -186,6 +216,21 @@ test("options --copy incompatibles : refus avant lecture message/config, même s
       assert.equal(r.copy, undefined); assert.equal(r.to, null);
     }
   }
+});
+
+test("--model réservé à --copy, syntaxe et duplications refusées avant IO", async () => {
+  for (const language of ["fr", "en"] as const) {
+    for (const extra of [["--model", "fake/other"], ["--new", "--model", "fake/other"],
+      ["--open", "--model", "fake/other"], ["--check", "--model", "fake/other"],
+      ["--copy", "--model", "auto"], ["--copy", "--model", "fake/other", "--model", "fake/test"]]) {
+      const r = await executeRelay(["relay", "--to", `opencode:${sourceId}`, "--language", language,
+        "--config", path.join(root, "absent-config.json"), "--message-file", path.join(root, "absent-message.md"), ...extra]);
+      assert.equal(r.status, "invalid-request"); assert.equal(r.delivery.status, "not-delivered");
+      assert.equal(r.to, null); assert.equal(r.exportPath, null);
+    }
+  }
+  const invalidLanguage = await executeRelay(["relay", "--copy", "--to", `opencode:${sourceId}`, "--model", "fake/other", "--language", "unknown"]);
+  assert.equal(invalidLanguage.status, "invalid-request"); assert.equal(invalidLanguage.delivery.status, "not-delivered");
 });
 
 test("commande : échec export conserve réponse/délivrance ; --no-export conserve la copie", { skip: process.platform !== "win32" }, async () => {

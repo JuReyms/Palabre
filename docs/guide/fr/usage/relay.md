@@ -57,10 +57,26 @@ Une autre version est refusée, sans mise à jour automatique. La configuration
 Palabre doit être approuvée comme pour les autres parcours Relay.
 
 Palabre crée et vérifie une copie, puis lui envoie un seul message. **L'original
-n'est jamais repris pour cet envoi.** Agent, modèle et variante de la source sont
+n'est jamais repris pour cet envoi.** Par défaut, agent, modèle et variante de la source sont
 conservés, sans modèle de remplacement ni repli payant implicite. Les connexions,
 permissions, plugins, MCP et règles d'organisation restent ceux d'OpenCode. Des
 intégrations peuvent démarrer dès le lancement du serveur privé, avant le message.
+
+Pour choisir un autre modèle uniquement dans la copie, ajoutez
+`--model fournisseur/modele#variante` à la commande ci-dessus, avec l'identifiant
+exact proposé par votre OpenCode. Sans `#variante`, la variante `default` est choisie :
+la variante de la source n'est pas héritée sur le nouveau modèle. Cette option est
+refusée dans les autres parcours Relay. Le choix peut utiliser un modèle payant :
+aucune sélection gratuite ou payante n'est faite à votre place.
+
+Relay vérifie le catalogue local, puis la sélection et son événement dans la copie
+avant d'envoyer le message. Modèle absent, désactivé, variante inconnue ou sélection
+non confirmée : arrêt sans message, copie conservée, aucun nouvel essai automatique.
+Le catalogue ne prouve ni connexion valide ni quota disponible. Le profil et la
+sélection de l'original ne sont pas modifiés. Le résultat et l'export distinguent
+`copy.model.requested`, `source`, `selected` et `verified` ; `observedModels` décrit
+la réponse validée, pas seulement le choix demandé. Cette extension est testée avec
+des simulations et les sources 2.0.32, pas encore par un appel modèle réel.
 
 « Sans modifier de fichier » est une consigne, pas une lecture seule imposée.
 La copie de conversation partage les fichiers du projet : **ce n'est pas un bac

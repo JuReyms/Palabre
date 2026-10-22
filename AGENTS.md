@@ -581,8 +581,20 @@ consultation demandée sur copie, sans lecture seule imposée. `--copy --dir` es
 à OpenCode CLI Windows 2.0.32 et ne change pas Claude Code, Codex, Mission ou review.
 `--copy` ignore `relay.view` et refuse aussi `--background`, `--check`, `--follow` et `--then-follow` avant toute IO de copie. Le résultat porte `mode: copy`, `modeSource: explicit`, sans champs de suivi/quota/lien Codex. Doctor ne sonde pas la connexion OpenCode via les commandes de Codex/Claude.
 `copyRelay.ts` conserve les phases/ID/preuves ; `opencodeCopy.ts` vérifie les données,
-`opencodeTransport.ts` possède le serveur stdio privé et les IO bornées. La réponse
-validée et sa délivrance survivent à une erreur ultérieure de source/arrêt/export.
+`opencodeTransport.ts` possède le serveur stdio privé et les IO bornées.
+`--model fournisseur/modele[#variante]` est réservé à `--copy`. Sans option, aucune
+lecture de catalogue ni sélection ; avec option, `opencodeModel.ts` impose default
+si variante omise, vérifie providerID/id (pas modelID), enabled et variantes du
+catalogue, puis un seul POST `/api/session/<copie>/model` accusé en 204 sans corps.
+Avant run : préfixe exact, seul delta model-switched attendu avec previous exact,
+sélection et garde-fous inchangés hors modèle ; choix équivalent = no-op sans delta
+(variante absente/default équivalentes, jamais null). Revérifier la source.
+Pas de --model/--variant au client run, ni retry, ni fallback. Le catalogue n'est
+pas une preuve de connexion/quota. `copy.model` facultatif distingue requested,
+source?, selected?, verified ; `copy.verified` reste la provenance du fork.
+Sources officielles 2.0.32 + tests simulés seulement pour cette extension, pas
+de nouvelle qualification réelle. Ne pas modifier le profil ou la source.
+La réponse validée et sa délivrance survivent à une erreur ultérieure de source/arrêt/export.
 `CopyTransport.stop` rend fermeture confirmée et cause éventuelle après drainage ;
 ne jamais conclure au succès sur le seul `close`. Une sortie non demandée est
 mémorisée dès `exit`, mais une cause précise des derniers chunks reste prioritaire.

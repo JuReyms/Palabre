@@ -57,10 +57,25 @@ versions are refused, without automatic updates. The Palabre configuration must
 be trusted as with other Relay paths.
 
 Palabre creates and verifies a copy, then sends one message to it. **The original
-is never resumed for this send.** The source agent, model and variant are kept,
+is never resumed for this send.** By default, the source agent, model and variant are kept,
 without a replacement model or implicit paid fallback. OpenCode connections,
 permissions, plugins, MCP and organization policies remain in effect. Integrations
 may start with the private server, before any message is sent.
+
+To choose another model only in the copy, add `--model provider/model#variant`
+to the command above, using the exact identifier offered by your OpenCode.
+Without `#variant`, `default` is selected: the source variant is not inherited
+on the new model. Other Relay paths reject this option. Your choice may use a
+paid model: no free or paid model is selected on your behalf.
+
+Relay checks the local catalogue, then the selection and its event in the copy
+before sending the message. Missing or disabled model, unknown variant or
+unconfirmed selection: stop without a message, retain the copy, no automatic retry.
+The catalogue proves neither authentication nor available quota. Neither the profile
+nor the original selection is modified. Result and export distinguish
+`copy.model.requested`, `source`, `selected` and `verified`; `observedModels` describes
+the validated reply, not just the request. This extension is tested with simulations
+and the 2.0.32 sources, not yet with a real model call.
 
 “Without modifying files” is a task instruction, not enforced read-only access.
 The conversation copy shares project files: **it is not a sandbox**. Do not reopen

@@ -65,6 +65,14 @@ Last MiB + one byte only. Only dated `event_msg` / `token_count` events with the
 `sourceCheck` (`unchanged`, `changed`, `unknown`), `serverStop` (`confirmed`, `unknown`)
 and `diagnostic?`. `to.session` is null until the copy is verified;
 an unverified received ID may remain in `copy.session`. `created` stays exclusive to `--new`.
+
+Only with `--model provider/model[#variant]`, `copy.model` adds `requested`
+(requested value), `source?` (source selection), `selected?` (checked copy selection)
+and `verified` (proof before prompting). Omitted variant selects `default`.
+This object is absent without the option; `copy.verified` still describes the fork,
+not the model or successful completion. `observedModels` remains validated reply evidence.
+Unconfirmed choice before sending: `delivery.status: not-delivered`, retained copy,
+no retry or substitution. Local catalogue ≠ guaranteed authentication or quota.
 A validated reply and its delivery are preserved after final-check or export failure.
 This mode preserves OpenCode's usual profile, without enforced read-only access.
 No `relay.view` preference, Codex quota/link or follow-up fields apply to this path.
