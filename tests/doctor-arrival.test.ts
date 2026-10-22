@@ -123,7 +123,8 @@ test("profil fictif complet : ordre d'arrivée, CLI déconnectée, gemini, skill
   await writeFile(file, JSON.stringify({ agents: {
     chosen: { type: "cli", command: "claude", role: "reviewer", args: ["--print", "NEVER_CALL_MODEL"], shell: true },
     same: { type: "cli", command: "claude", role: "critic" },
-    gemini: { type: "cli", command: "gemini", role: "reviewer" }
+    gemini: { type: "cli", command: "gemini", role: "reviewer" },
+    laboratoire: { type: "cli", command: "opencode", role: "reviewer", args: ["NEVER_CALL_MODEL"] }
   } }));
   await trustConfig(file);
   const before = await readFile(CONFIG_TRUST_PATH, "utf8");

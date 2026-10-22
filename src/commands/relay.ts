@@ -23,6 +23,9 @@
  * s'arrête : ni enveloppe, ni processus de la CLI cible, ni export. Issue `checked` ou refus identique.
  * --then-follow <secondes> ajoute un suivi après la réponse corrélée, sans second dépôt. Le résultat
  * primaire reste distinct de nextTurn, y compris après une échéance ou annulation secondaire.
+ *
+ * `--copy` utilise un déroulé distinct, à source/dossier explicites, sans sonde d'attachement
+ * fabriquée : fork OpenCode vérifié, environnement habituel, preuves conservées même après erreur.
  */
 import { readFile, realpath, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -35,6 +38,10 @@ import { isConfigTrusted, trustConfig } from "../configTrust.js";
 import { exchange, exchangeOutcome, type ExchangeResult, type ExternalExecutable, type ExternalSessionAdapter } from "../externalSessions/adapter.js";
 import { ClaudeSessionAdapter } from "../externalSessions/claude.js";
 import { CodexSessionAdapter, codexDesktopThreadLink } from "../externalSessions/codex.js";
+import { runCopyRelay, type CopyReport } from "../externalSessions/copyRelay.js";
+import { OpenCodeCopyTransport } from "../externalSessions/opencodeTransport.js";
+import { parseOpenCodeRef } from "../externalSessions/opencodeCopy.js";
+import { relayCopyText } from "../messages/relayCopy.js";
 import { buildEnvelope, buildOpenEnvelope, createNonce, MAX_RELAY_MESSAGE_BYTES, parseAgentName, parseSenderRef, parseSessionRef, validMissionHeader, validateRelayMessage, validateRelaySubject, type MissionEnvelopeHeader } from "../externalSessions/envelope.js";
 import type { OpenTurnContext } from "../externalSessions/openReader.js";
 import { defaultOpenRelayDeps, runFollowRelay, runOpenRelay, type FollowRelayResult, type OpenQueueReport, type OpenRelayResult } from "../externalSessions/openRelay.js";
@@ -78,12 +85,12 @@ export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 /** Options de `palabre relay` qui attendent une valeur. */
 const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "then-follow", "config", "language", "task", "pr", "subject", "dir"]);
 /** Options de `palabre relay` sans valeur. */
-const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "background", "new", "write", "follow", "check"]);
+const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "background", "new", "write", "follow", "check", "copy"]);
 /** Alias acceptés, comme pour les autres commandes. */
 const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
 
 /** Mode d'un échange Relay, tel qu'annoncé à l'utilisateur (#190). */
-export type RelayMode = "background" | "open" | "follow";
+export type RelayMode = "background" | "open" | "follow" | "copy";
 
 /**
  * Rapport de `--check` (#203), présent sur tout résultat de vérification, réussi ou refusé.
@@ -131,10 +138,11 @@ export interface RelayResultV1 {
   status: RelayStatus;
   exitCode: number;
   from: { agent: string; session?: string } | null;
-  /** `session` reste null tant qu'aucun identifiant de création n'a été reçu. */
+  /** Null avant identité de création ou tant que la copie OpenCode n'est pas vérifiée. */
   to: { agent: string; session: string | null; provider: ExternalProvider | null } | null;
-  /** Présents seulement avec --new ; le dossier est résolu avant toute création. */
+  /** --new seulement : réception d'une identité de création, pas réussite. */
   created?: boolean;
+  /** Dossier explicite avec --copy, ou dossier résolu avec --new. */
   cwd?: string;
   /** Réponse de l'agent ; conservée aussi si la publication d'une revue échoue ensuite. */
   reply?: string;
@@ -147,7 +155,8 @@ export interface RelayResultV1 {
   /**
    * Mode de l'échange, émis à chaque résultat (#190). Ajout facultatif du contrat v1 : les
    * consommateurs tolèrent son absence (versions antérieures) ; ce type producteur le garantit. `background` (conversation fermée ou
-   * créée, sans fenêtre visible), `open` (conversation ouverte dans l'app) ou `follow` (#195).
+   * créée, sans fenêtre visible), `open` (conversation ouverte dans l'app), `follow` (#195)
+   * ou `copy` (copie OpenCode, environnement habituel sans lecture seule imposée).
    */
   mode: RelayMode;
   /** Origine du choix ; absent si la validation s'arrête avant toute résolution. */
@@ -157,6 +166,8 @@ export interface RelayResultV1 {
    * l'équipier n'a été lancée (sous macOS/Linux, seule la sonde du verrou lance `python3`).
    */
   check?: RelayCheckReport;
+  /** Source demandée et copie exécutée, avec preuves et rétention propres à --copy. */
+  copy?: CopyReport;
   /**
    * Champs propres au mode ouvert (B1), explicite ou automatique : `status` peut
    * alors valoir `target-not-open`. Avec `--open --follow` (#195) : sans `queue`, et `status` peut
@@ -170,6 +181,7 @@ export interface RelayResultV1 {
 
 /** État partagé avec le gestionnaire d'erreur interne, pour qualifier la délivrance. */
 interface RelayContext {
+  copy?: CopyReport;
   language?: "fr" | "en";
   approvedWrite?: WriteRequest;
   writeRequest?: string;
@@ -303,6 +315,10 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (context.signal?.aborted) throw new RelayRefusal({ status: "cancelled" });
   const { messages } = context;
   const { flags, positionals } = parseRelayTokens(rawArgs.slice(1), messages);
+  if (flags.copy && (flags.new || flags.open || flags.background || flags.check || flags.follow || flags["then-follow"] !== undefined
+    || flags.write || flags.task !== undefined || flags.pr !== undefined || context.header)) {
+    throw invalid("invalid-arguments", messages.relay.copy.conflict);
+  }
   if (flags["then-follow"] !== undefined) {
     const value = flags["then-follow"];
     const seconds = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : NaN;
@@ -312,7 +328,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
       throw invalid("invalid-arguments", messages.relayThenFollow.conflict);
     }
   }
-  context.modeSource = flags.open || flags.background ? "explicit" : undefined;
+  context.modeSource = flags.open || flags.background || flags.copy ? "explicit" : undefined;
   if (flags.open && flags.background) throw invalid("invalid-arguments", messages.relayView.conflict);
   if (context.header && context.open) throw invalid("invalid-arguments", messages.relayView.missionBackground);
   context.check = flags.check === true;
@@ -349,13 +365,23 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (flags.from !== undefined && !fromValue) throw invalid("invalid-arguments", messages.relay.arguments.emptySender);
   if (flags.dir !== undefined && !optionalString(flags.dir)) throw invalid("invalid-arguments", messages.relay.arguments.emptyDirectory);
   context.newSession = flags.new === true;
-  if ((context.newSession && context.open) || (flags.dir !== undefined && !context.newSession)) {
+  if ((context.newSession && context.open) || (flags.dir !== undefined && !context.newSession && !flags.copy)) {
     throw invalid("invalid-arguments", messages.relay.arguments.newConflict);
   }
   // Une création n'a pas encore d'UUID ; ce nom seul ne sert jamais à chercher un historique.
-  const to = context.newSession ? parseNewTarget(toValue, messages) : parseSessionRef(toValue);
+  const opaqueRef = flags.copy === true || toValue.includes(":ses_");
+  const to = context.newSession ? parseNewTarget(toValue, messages) : opaqueRef ? parseOpenCodeRef(toValue) : parseSessionRef(toValue);
   if (!to.ok) throw invalid(to.reason);
   context.to = to.value;
+  if (flags.copy) {
+    context.copy = { source: to.value.sessionId, verified: false, retention: "none", sourceCheck: "unknown", serverStop: "confirmed" };
+    context.to = { agent: to.value.agent, sessionId: "" };
+    const directory = optionalString(flags.dir);
+    if (!directory) throw invalid("invalid-arguments", relayCopyText(resolveLanguage({ explicitLanguage: optionalString(flags.language) })).directory);
+    try { context.cwd = await realpath(path.resolve(directory)); }
+    catch { throw invalid("invalid-working-directory"); }
+    if (!isUsableDirectory(context.cwd)) throw invalid("invalid-working-directory");
+  }
   if (fromValue !== undefined) {
     const from = parseSenderRef(fromValue);
     if (!from.ok) throw invalid(from.reason);
@@ -412,7 +438,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (defaultReviewMessage) message = context.messages.relay.defaultReviewMessage;
   const nonce = createNonce();
   const envelopeInput = { from: context.from, to: to.value, nonce, message, subject: context.subject, header: context.header };
-  const frame = flags.write ? {
+  const frame = flags.copy ? { ...context.messages.relay, envelopePermissions: relayCopyText(context.language ?? "fr").permissions } : flags.write ? {
     ...context.messages.relay, envelopePermissions: relayWriteText(context.language ?? "fr").envelopePermissions
   } : context.messages.relay;
 
@@ -423,6 +449,8 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const provider = externalSessionProviderForCommand(agent.command);
   if (!provider) throw invalid("unsupported-agent");
   context.provider = provider;
+  if (provider === "opencode" && !flags.copy) throw invalid("invalid-arguments", relayCopyText(context.language ?? "fr").required);
+  if (provider !== "opencode" && (flags.copy || opaqueRef)) throw invalid(flags.copy ? "unsupported-agent" : "invalid-session-id");
   // Le suivi ne lance aucun processus Codex : l'exécutable de la cible n'est pas résolu. Seule la
   // sonde de verrou partagée avec `--open` peut lancer `python3` sous macOS/Linux.
   if (context.follow) {
@@ -435,10 +463,14 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     });
   }
   if (flags.write && (provider !== "codex" || process.platform !== "win32")) throw invalid("write-unavailable", relayWriteText(context.language ?? "fr").unavailable);
-  const resolution = resolveExternalExecutable(agent.command);
+  const resolution = resolveExternalExecutable(agent.command, { allowNpmNative: flags.copy === true && provider === "opencode" });
   if (resolution.status === "command-not-found") throw new RelayRefusal({ status: "command-not-found" });
   if (resolution.status === "unsupported-executable") throw invalid("unsupported-executable");
 
+  if (flags.copy) {
+    return relayCopy(context, { executable: resolution.executable, source: to.value.sessionId, agent: to.value.agent,
+      message, nonce, timeoutMs: timeoutSeconds * 1000, outputDir: resolveOutputDir(config.outputDir), exportResult: flags["no-export"] !== true });
+  }
   // Choisir avant l'enveloppe. Les parcours exclus ne sondent pas pour ouvrir une cible ;
   // les transports conservent ensuite leurs propres contrôles, sans repli après refus.
   const excluded = Boolean(context.newSession || context.header || flags.task || flags.write);
@@ -732,6 +764,42 @@ async function relayOpen(
   return result;
 }
 
+/** --copy : source explicite jamais reprise ; ID et preuves acquis conservés avant l'export. */
+async function relayCopy(context: RelayContext, input: {
+  executable: ExternalExecutable; source: string; agent: string; message: string; nonce: string;
+  timeoutMs: number; outputDir: string; exportResult: boolean;
+}): Promise<RelayResultV1> {
+  const controller = new AbortController();
+  const interrupt = () => controller.abort();
+  process.once("SIGINT", interrupt); context.signal?.addEventListener("abort", interrupt, { once: true });
+  if (context.signal?.aborted) interrupt();
+  const text = relayCopyText(context.language ?? "fr");
+  try {
+    const copied = await runCopyRelay({ source: input.source, cwd: context.cwd!, timeoutMs: input.timeoutMs, signal: controller.signal,
+      envelope: id => buildEnvelope({ from: context.from, to: { agent: input.agent, sessionId: id }, message: input.message,
+        nonce: input.nonce, subject: context.subject }, { ...context.messages.relay, envelopePermissions: text.permissions })
+    }, { transport: new OpenCodeCopyTransport(input.executable, context.cwd!, input.timeoutMs) });
+    context.copy = copied.copy;
+    context.to = { agent: input.agent, sessionId: copied.copy.verified ? copied.copy.session! : "" };
+    const result = buildResult(context, { ...copied,
+      message: copied.outcome.status === "replied" ? undefined : copied.outcome.reason === "opencode-cli-unsupported"
+        ? text.unsupported : text.failure(copied.copy.diagnostic ?? copied.outcome.status) });
+    if (input.exportResult && copied.serverAttempted) {
+      result.exportPath = await exportRelay(input.outputDir, result, { nonce: input.nonce, message: input.message, startedAt: context.startedAt }, context.messages, false);
+      if (!result.exportPath) {
+        if (result.status === "replied") {
+          result.status = "cli-failure"; result.exitCode = RELAY_EXIT_CODES["cli-failure"];
+          result.error = { kind: "cli-failure", message: text.exportFailed }; result.copy!.diagnostic = "export-failed";
+        } else if (result.error) result.error.message += ` ${text.exportFailed}`;
+      }
+    }
+    result.durationMs = Date.now() - context.startedAt;
+    return result;
+  } finally {
+    process.removeListener("SIGINT", interrupt); context.signal?.removeEventListener("abort", interrupt);
+  }
+}
+
 /**
  * `--open --follow` (#195) : suivi du premier tour terminé après l'appel, sans dépôt ni processus
  * Codex ; sous macOS/Linux, la sonde de verrou lance `python3`, comme pour `--open`.
@@ -950,7 +1018,7 @@ function buildResult(
     from: context.from ? { agent: context.from.agent, ...(context.from.sessionId ? { session: context.from.sessionId } : {}) } : null,
     to: context.to ? { agent: context.to.agent, session: context.to.sessionId || null, provider: context.provider } : null,
     ...(context.newSession ? { created: !!context.to?.sessionId, ...(context.cwd ? { cwd: context.cwd } : {}) } : {}),
-    ...(success && input.reply !== undefined ? { reply: input.reply } : {}),
+    ...((success || context.copy) && input.reply !== undefined ? { reply: input.reply } : {}),
     delivery: input.delivery,
     identity: input.identity ?? null,
     observedModels: input.observedModels ?? [],
@@ -959,11 +1027,12 @@ function buildResult(
       : { kind: outcome.status, message: input.message ?? errorMessage(outcome, context.messages, input.detail), ...(outcome.reason ? { reason: outcome.reason } : {}) },
     exportPath: null,
     durationMs: Date.now() - context.startedAt,
-    mode: context.follow ? "follow" : context.open ? "open" : "background",
+    mode: context.copy ? "copy" : context.follow ? "follow" : context.open ? "open" : "background",
     ...(context.modeSource ? { modeSource: context.modeSource } : {}),
     ...(context.check ? { check: context.checkReport ?? {} } : {}),
     ...openFields,
-    ...(context.thenFollowMs !== undefined ? { nextTurn: input.open?.nextTurn ?? { status: "not-started" as const, reason: "primary-not-replied", receiver: "unverified" as const } } : {})
+    ...(context.thenFollowMs !== undefined ? { nextTurn: input.open?.nextTurn ?? { status: "not-started" as const, reason: "primary-not-replied", receiver: "unverified" as const } } : {}),
+    ...(context.copy ? { copy: context.copy, cwd: context.cwd } : {})
   };
 }
 
@@ -988,6 +1057,7 @@ async function exportRelay(
       ...(result.modeSource ? { modeSource: result.modeSource } : {}),
       from: result.from,
       ...(result.write ? { write: result.write } : {}),
+      ...(result.copy ? { copy: result.copy, cwd: result.cwd } : {}),
       ...(result.created !== undefined ? { created: result.created, cwd: result.cwd } : {}),
       ...(relayDesktopLink(result, targetLocated) ? { desktopLink: relayDesktopLink(result, targetLocated) } : {}),
       to: { agent: result.to.agent, session: result.to.session, provider: result.to.provider },
@@ -1208,6 +1278,13 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
   if (result.mode === "open" && !result.check) {
     lines.push(messages.relay.open.unverifiedReceiver);
     if (result.targetPermissions && result.targetPermissions !== "unknown") lines.push(messages.relay.open.permissions(permissionsSummary(result.targetPermissions)));
+  }
+  if (result.copy) {
+    const text = messages.relay.copy;
+    lines.push(text.notice, `${text.source}: ${result.to?.agent ?? ""}:${result.copy.source}`,
+      `${text.copy}: ${result.copy.session ?? (result.copy.retention === "none" ? text.none : text.unknown)}`,
+      `${text.verified}: ${result.copy.verified}`, `${text.retention}: ${result.copy.retention}`,
+      `${text.check}: ${result.copy.sourceCheck}`, `${text.stop}: ${result.copy.serverStop}`);
   }
   if (result.mode === "follow" && result.targetPermissions && result.targetPermissions !== "unknown") {
     lines.push(messages.relay.open.followPermissions(permissionsSummary(result.targetPermissions)));

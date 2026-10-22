@@ -36,6 +36,68 @@ Pour une simple relecture ou correction de code depuis Claude Code vers Codex, l
 
 **Fonctions conservées, hors parcours par défaut :** `--write` est expérimental et gelé ; Mission et `--task review` sont gelés. Leur documentation est conservée ci-dessous ; seuls les correctifs de sécurité sont acceptés, sans extension de périmètre.
 
+## Demander un avis à une copie OpenCode
+
+Pilote **Windows, OpenCode CLI 2.0.32 seulement**, non publié. Un essai réel de la
+commande CLI sur projet fictif a réussi le 19 octobre 2026 ; cette preuve ne
+qualifie pas Desktop ou tous les contenus de conversation. Claude Code et Codex
+ne changent pas de permissions.
+
+Dans OpenCode, choisissez votre modèle, attendez la fin du tour et relevez
+l'identifiant exact `ses_...` et le dossier de la conversation. Fermez-la puis,
+depuis votre agent ou votre terminal, demandez par exemple :
+
+```powershell
+palabre relay --copy --to opencode:ses_ExempleSource --dir "C:\projets\exemple" --subject "Avis sur le plan" "Lis docs/plan.md et relève les risques, sans modifier de fichier." --json
+```
+
+Remplacez l'identifiant fictif et le dossier par ceux de votre source ; `opencode`
+est le nom de votre agent configuré. Vérifiez la version avec `opencode --version`.
+Une autre version est refusée, sans mise à jour automatique. La configuration
+Palabre doit être approuvée comme pour les autres parcours Relay.
+
+Palabre crée et vérifie une copie, puis lui envoie un seul message. **L'original
+n'est jamais repris pour cet envoi.** Agent, modèle et variante de la source sont
+conservés, sans modèle de remplacement ni repli payant implicite. Les connexions,
+permissions, plugins, MCP et règles d'organisation restent ceux d'OpenCode. Des
+intégrations peuvent démarrer dès le lancement du serveur privé, avant le message.
+
+« Sans modifier de fichier » est une consigne, pas une lecture seule imposée.
+La copie de conversation partage les fichiers du projet : **ce n'est pas un bac
+à sable**. Ne rouvrez pas la source pendant l'appel ; les relevés avant/après ne
+constituent pas un verrou global. Un contenu ou un schéma non qualifié est refusé
+avant envoi si détecté à cette étape, sans tentative de réparation de l'historique.
+
+Seule exception système qualifiée pour le nouveau tour : une notification de
+mise à jour de date `core/date`, avant le message relayé, sans autre instruction.
+Sa forme et sa date sont vérifiées ; doublon, ajout ou autre notification restent
+refusés. Cela ne prouve pas une autorité et ne change aucune permission.
+
+Le résultat distingue `copy.source` (original) et `to.session` (copie vérifiée,
+ou `null`). `copy.session` conserve l'ID reçu même si la vérification échoue ;
+`copy.verified` ne signifie pas que la réponse a réussi. `copy.sourceCheck` donne
+le dernier relevé de l'original, `copy.serverStop` l'arrêt observé. Une création
+incertaine peut laisser une copie sans ID connu (`retention: unknown`).
+
+Source et copie restent dans OpenCode après l'appel, même en échec. `--no-export`
+désactive seulement le fichier `.relay.md`, pas cette rétention. Conservez le
+résultat : `delivery.status` peut être `replied`, `persisted-no-reply` ou `unknown`
+après une tentative. Aucun renvoi automatique. Une réponse validée reste dans
+`reply` et sa délivrance reste `replied` si seul un contrôle final, l'arrêt ou
+l'export échoue. Une annulation tente d'interrompre seulement la copie ; elle ne
+promet ni retrait du message ni annulation d'effets. L'arrêt dispose d'au plus
+10 secondes supplémentaires après l'échéance d'attente.
+
+Pour inspecter une copie connue, ouvrez le dossier du projet dans votre terminal
+puis lancez `opencode --session ses_IdentifiantCopie`. Pour une nouvelle consultation
+Relay, `--copy --to opencode:ses_IdentifiantCopie --dir "C:\projets\exemple"` créera
+encore une copie : aucune reprise directe ni poursuite automatique. Pas de
+`--new`, `--open`, `--background`, `--check`, `--follow`, `--then-follow`, `--write`,
+`--task review`, `--pr` ou Mission dans ce pilote : ces mélanges sont refusés avant
+tout lancement. La préférence `relay.view` ne change pas ce parcours. JSON et
+export annoncent `mode: copy`, `modeSource: explicit` ; aucun quota ou lien Codex,
+ni champ de suivi, n'est ajouté.
+
 ## Codex chef de mission
 
 Depuis une conversation Codex desktop ouverte dans le dossier du projet, dites par exemple :
@@ -57,7 +119,7 @@ palabre relay --new --to codex "Lis ce projet et propose trois pistes d'amélior
 palabre relay --new --to claude --dir "../autre-projet" "Explique la structure de ce projet, sans rien modifier."
 ```
 
-`--to` désigne ici un agent de votre configuration, sans identifiant. Le dossier courant est utilisé par défaut ; `--dir` choisit un autre dossier existant. Pour une conversation existante, son dossier reste celui de son historique : `--dir` est refusé.
+`--to` désigne ici un agent de votre configuration, sans identifiant. Le dossier courant est utilisé par défaut ; `--dir` choisit un autre dossier existant. Pour une reprise Codex/Claude existante, son dossier reste celui de son historique : `--dir` est refusé. OpenCode utilise le parcours `--copy` distinct ci-dessus.
 
 La sortie texte donne l'identifiant et une commande pour continuer :
 
@@ -88,7 +150,7 @@ Pour **un seul appel**, `--background` force l'arrière-plan et `--open` force l
 
 `--new`, Mission, `--task review`, `--write` et Claude Code restent en arrière-plan ; leurs incompatibilités avec `--open` restent des refus. `palabre agents --json` expose le réglage effectif dans `defaults.relayView`. Le résultat Relay et l'export indiquent aussi `modeSource` : `explicit` pour une option ponctuelle, `auto` pour l'état du verrou ou un parcours imposé, `setting` pour la préférence `background`.
 
-Pour un avis ou une relecture qui doit rester sans modification, passez `--background` : ce choix ponctuel réduit les droits sans changer le réglage. Pour le reste, l'agent ne choisit pas le mode par habitude : il reprend la ligne « Mode » affichée par PALABRE. Sans `--then-follow` à l'envoi, si une confirmation dans l'app lance la suite, préparez `palabre relay --open --follow --to codex:<uuid> --json` **avant** la validation, pour recueillir le tour suivant sans renvoyer le message. Un tour déjà terminé n'est pas rendu ; aucune autorisation n'est déduite de cette suite.
+Pour un avis ou une relecture Codex/Claude qui doit rester sans modification, passez `--background` : ce choix ponctuel réduit les droits sans changer le réglage. Pour le reste, l'agent ne choisit pas le mode par habitude : il reprend la ligne « Mode » affichée par PALABRE. Sans `--then-follow` à l'envoi, si une confirmation dans l'app lance la suite, préparez `palabre relay --open --follow --to codex:<uuid> --json` **avant** la validation, pour recueillir le tour suivant sans renvoyer le message. Un tour déjà terminé n'est pas rendu ; aucune autorisation n'est déduite de cette suite.
 
 Chaque échange annonce où il se passe, sur une ligne « Mode » :
 
@@ -101,7 +163,7 @@ En arrière-plan, une conversation Codex créée, ou reprise et retrouvée par P
 Pour l'ouvrir vous-même : explorer.exe "codex://threads/<identifiant>"
 ```
 
-La commande dépend du système : `explorer.exe` sous Windows, `open` sous macOS, `xdg-open` sous Linux. Elle sert quand le lien n'est pas cliquable, par exemple dans l'app Claude. Lancez-la vous-même : un agent ne l'ouvre jamais à votre place. En JSON, `mode` vaut `background`, `open` ou `follow` ; aucun champ de lien n'est ajouté, une intégration le construit depuis `to.session`.
+La commande dépend du système : `explorer.exe` sous Windows, `open` sous macOS, `xdg-open` sous Linux. Elle sert quand le lien n'est pas cliquable, par exemple dans l'app Claude. Lancez-la vous-même : un agent ne l'ouvre jamais à votre place. En JSON, `mode` vaut `background`, `open`, `follow` ou `copy` (OpenCode) ; aucun champ de lien n'est ajouté, une intégration le construit depuis `to.session`.
 
 ### Vérifier avant d'envoyer (`--check`)
 
@@ -394,6 +456,7 @@ Après une fermeture normale du chef de mission, reprendre avec `status`, puis u
 
 | Option | Rôle |
 | --- | --- |
+| `--copy` | Copie OpenCode explicite, profil habituel conservé sans lecture seule imposée ; dossier source exact obligatoire avec `--dir`. |
 | `"<message>"` ou `--message-file <chemin>` | Le message ; 64 Kio UTF-8 au plus pour l'enveloppe de coordination complète. Utilisez un fichier pour un message qui commence par `-`. |
 | `--task review` | **Gelée.** Revue en lecture seule publiée en COMMENT par PALABRE si autorisée ; message facultatif, incompatible avec `--open` et `--trust-config`. |
 | `--pr <url>` | URL exacte d’une PR github.com ; obligatoire avec `--task review`. |

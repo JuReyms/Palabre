@@ -101,7 +101,7 @@ src/discovery.ts          Detection locale des CLIs et d'Ollama pendant init
 src/doctor.ts             Diagnostics de configuration et de disponibilite locale
 src/agentRegistry.ts      Source de verite des agents CLI connus (mapping commande -> decouverte)
 src/exec.ts               Resolution d'extensions executables partagee
-src/npmShim.ts            Reconnaissance stricte des shims PowerShell npm et pnpm, lancement direct sans PowerShell (adapters ; Relay : forme npm Node + script seulement)
+src/npmShim.ts            Reconnaissance stricte des shims npm/pnpm, lancement direct sans PowerShell (Relay : npm Node ; --copy OpenCode accepte aussi npm natif)
 src/types.ts              Contrats partages
 src/prompt.ts             Rendu des prompts agent
 src/context.ts            Chargement des fichiers et dossiers de contexte
@@ -377,7 +377,9 @@ Shims pnpm (#109), dans `src/npmShim.ts` :
   ou `vsce`), cible native, `pnpx`, shim modifie.
 
 Relay (D21) reste limite a la forme npm Node + script : un shim pnpm y donne
-`unsupported-executable`.
+`unsupported-executable`. Exception explicite OpenCode `--copy` : variante native npm
+reconnue ligne à ligne par `npmNativeShimLaunch`, cible .exe/.com interne existante
+lancée directement ; jamais de PowerShell, pnpm ou wrapper modifié. Reprises Codex/Claude inchangées.
 
 Les defaults Palabre appliquent une politique d'outils en lecture seule quand la CLI l'expose :
 Claude est limite a `Read,Glob,Grep`, Vibe a `read,grep`, et OpenCode utilise `--pure` pour
@@ -573,6 +575,30 @@ et la version du client quand elle est fournie.
 
 ## Relay externe
 
+OpenCode (#136), pilote CLI sur copie : voir `docs/relay-opencode-copy-contract.md`.
+Décision du propriétaire du 19 octobre 2026 : environnement OpenCode habituel conservé,
+consultation demandée sur copie, sans lecture seule imposée. `--copy --dir` est réservé
+à OpenCode CLI Windows 2.0.32 et ne change pas Claude Code, Codex, Mission ou review.
+`--copy` ignore `relay.view` et refuse aussi `--background`, `--check`, `--follow` et `--then-follow` avant toute IO de copie. Le résultat porte `mode: copy`, `modeSource: explicit`, sans champs de suivi/quota/lien Codex. Doctor ne sonde pas la connexion OpenCode via les commandes de Codex/Claude.
+`copyRelay.ts` conserve les phases/ID/preuves ; `opencodeCopy.ts` vérifie les données,
+`opencodeTransport.ts` possède le serveur stdio privé et les IO bornées. La réponse
+validée et sa délivrance survivent à une erreur ultérieure de source/arrêt/export.
+`CopyTransport.stop` rend fermeture confirmée et cause éventuelle après drainage ;
+ne jamais conclure au succès sur le seul `close`. Une sortie non demandée est
+mémorisée dès `exit`, mais une cause précise des derniers chunks reste prioritaire.
+La commande CLI a passé un essai réel fictif le 19 octobre 2026 ; voir
+`docs/relay-opencode-copy-qualification.md`. Desktop reste hors de cette preuve.
+Les exclusions générales de fork ci-dessous concernent les reprises Codex/Claude.
+
+Exception fraîche OpenCode 2.0.32 : une seule notice `system` core/date avant
+l'utilisateur exact, forme complète qualifiée (clés de message/time/metadata,
+description, texte, calendrier et jour de semaine), ID soumis aux contrôles
+communs. Ne jamais filtrer les notices avant le contrôle du préfixe ou des ID.
+Métadonnées sans autorité ; ni date courante de l'hôte ni tolérance générale aux
+system. Les changements d'instructions/sélection, les autres notices, doublons
+et positions tardives restent refusés. Aucune relecture de modèle pour ce correctif.
+
+
 ### Préférence de mode (#190, lot B)
 
 `src/externalSessions/relayView.ts` résout le mode avant l'enveloppe. `relay.view` est facultatif : `auto` par défaut ou `background`. Une reprise Codex ordinaire en auto utilise la localisation bornée puis le verrou : tenu → open ; libre/absent → background ; inconnu → target-state-unknown sans envoi. Les transports revérifient leurs préconditions ; aucun changement d'état ne déclenche de basculement ni de renvoi automatique. Aucun détecteur d'installation Desktop ni pilote de fenêtres.
@@ -723,7 +749,7 @@ L'aiguillage a lieu au tout début de `main()`, avant la résolution de la langu
    - Une config absente ou illisible donne `invalid-request`, raison `config-unavailable`.
    - `src/index.ts` aiguille `relay` avant le parseur général et avant `ensureImplicitProjectConfigTrusted`. Le relay ne passe donc pas par la confirmation interactive appliquée aux configs de projet implicites, et ses erreurs d'arguments restent structurées en `--json`.
 2. **Agent.** `config.agents[<agent>]` doit exister et ne pas être retiré. Il n'y a aucun fallback codé en dur. L'agent doit être de type `cli`. Sinon, l'issue est `invalid-request`, avec la raison `unknown-agent` ou `unsupported-agent`.
-3. **Fournisseur.** On applique `normalizeCommandName(command)`, puis on cherche le résultat dans `KNOWN_CLI_AGENTS`, via un champ `externalSession: "codex" | "claude"`.
+3. **Fournisseur.** On applique `normalizeCommandName(command)`, puis on cherche le résultat dans `KNOWN_CLI_AGENTS`, via un champ `externalSession: "codex" | "claude" | "opencode"` (OpenCode seulement avec `--copy`).
    - Un alias (par exemple `claude-opus` avec `claude.exe`) est accepté.
    - Une commande custom non reconnue donne `unsupported-agent`.
 4. **Exécutable** (`resolveExternalExecutable`, `src/externalSessions/resolve.ts`, décision D21). Il est lancé **sans shell, ni PowerShell, ni `cmd.exe`**. Avec le shim npm `codex.ps1` lancé par Windows PowerShell 5.1, il a été constaté que :
@@ -1000,7 +1026,7 @@ Avec `relay.view: auto`, le mode n'est connu qu'à l'envoi. `--check` rend ce ch
 
 ### Hors périmètre de cette version
 
-- Le fork d'une conversation.
+- Le fork d'une conversation Codex ou Claude Code ; le pilote OpenCode `--copy` est distinct.
 - La détection automatique de l'expéditeur.
 - Avec `--open` : Claude Code (lot B2), Codex desktop comme expéditeur (bloqué par son bac à sable), l'app-server `--remote` et les IDE.
 - En mode arrière-plan imposé : les conversations ouvertes restent refusées.

@@ -199,6 +199,8 @@ function formatAgentsForHeader(options: DebateOptions): string {
 
 /** Données d'un export `.relay.md` (voir AGENTS.md, section "Relay externe"). */
 export interface RelayExport {
+  /** Source et copie distinctes, même après erreur ou absence de réponse. */
+  copy?: import("./externalSessions/copyRelay.js").CopyReport;
   /** Suite séparée de --then-follow ; aucune nouvelle délivrance ni autorisation. */
   nextTurn?: ThenFollowReport;
   /** Rapport Git et commandes observées, uniquement après un accord d'écriture ponctuel. */
@@ -234,10 +236,10 @@ export interface RelayExport {
     targetPermissions: string | null;
   };
   /**
-   * Mode de l'échange (#190). Déduit de `open`/`follow` quand il est absent : un export antérieur
-   * sans ce champ reste un échange en arrière-plan.
+   * Mode de l'échange (#190). Déduit de `copy`/`open`/`follow` quand il est absent ;
+   * sans preuve de ces parcours, un export antérieur reste en arrière-plan.
    */
-  mode?: "background" | "open" | "follow";
+  mode?: "background" | "open" | "follow" | "copy";
   /** Origine du mode choisi par la CLI, sans autorité supplémentaire. */
   modeSource?: import("./externalSessions/relayView.js").RelayModeSource;
   /** Suivi `--open --follow` (#195) : aucun dépôt, donc ni référence ni message transmis. */
@@ -264,7 +266,7 @@ export async function writeRelayMarkdown(outputDir: string, report: RelayExport,
 export function renderRelayMarkdown(report: RelayExport, messages: Messages, metadata: ReportMetadata): string {
   const labels = messages.relay.export;
   const formatBoolean = (value: boolean | "unknown") => (value === "unknown" ? "unknown" : value ? messages.output.yes : messages.output.no);
-  const mode = report.mode ?? (report.follow ? "follow" : report.open ? "open" : "background");
+  const mode = report.mode ?? (report.copy ? "copy" : report.follow ? "follow" : report.open ? "open" : "background");
   const rows = [
     [labels.palabreVersion, metadata.palabreVersion],
     [labels.mode, `${mode} — ${labels.modeNames[mode]}`],
@@ -274,6 +276,14 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     ...(report.created !== undefined ? [[labels.created, formatBoolean(report.created)], [labels.cwd, report.cwd ?? labels.unknown]] : []),
     ...(report.desktopLink ? [[labels.desktopLink, report.desktopLink]] : []),
     [labels.provider, report.to.provider],
+    ...(report.copy ? [
+      [messages.relay.copy.source, report.copy.source],
+      [messages.relay.copy.copy, report.copy.session ?? (report.copy.retention === "none" ? messages.relay.copy.none : messages.relay.copy.unknown)],
+      [messages.relay.copy.verified, formatBoolean(report.copy.verified)], [messages.relay.copy.retention, report.copy.retention],
+      ...(report.copy.diagnostic ? [[messages.relay.copy.diagnostic, report.copy.diagnostic]] : []),
+      [labels.cwd, report.cwd ?? labels.unknown], [messages.relay.copy.check, report.copy.sourceCheck],
+      [messages.relay.copy.stop, report.copy.serverStop]
+    ] : []),
     [labels.status, report.status],
     [labels.delivery, report.delivery.status],
     [labels.persisted, formatBoolean(report.delivery.persisted)],
@@ -313,7 +323,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     "| --- | --- |",
     ...rows.map(([label, value]) => `| ${escapeTableCell(label!)} | ${escapeTableCell(value!)} |`),
     "",
-    `> ${report.write ? relayWriteText(report.write.language).exportNotice : report.follow ? messages.relay.open.followNotice : report.open ? labels.openNotice : labels.readOnlyNotice}`,
+    `> ${report.copy ? messages.relay.copy.notice : report.write ? relayWriteText(report.write.language).exportNotice : report.follow ? messages.relay.open.followNotice : report.open ? labels.openNotice : labels.readOnlyNotice}`,
     "",
     // Un relay réussi n'a pas de section Erreur : l'avertissement doit donc exister par lui-même.
     // Une seule copie : quand l'erreur porte déjà l'avertissement (`blocked`, échec enrichi), la

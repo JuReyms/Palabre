@@ -27,7 +27,7 @@ These commands write one JSON document to stdout and exit without starting an AI
 
 ## Optional Relay fields and Mission option
 
-Relay v1 preserves `subject` (explicit subject), `retryAfter` (limit in open or follow mode, when the CLI supplies an indication), `readAccess` (`status: "partial" | "blocked" | "unverified"`, `reason`, `failedCommands`, optional `succeededCommands` for `partial`), `cli` (`path`, `version`, review probe), `task` (PR, commit, publication, URL, error and cancellation). `mode` is emitted with every result since #190 but remains an optional v1 field: earlier versions do not provide it, so a consumer tolerates its absence. Values: `background` (closed or created conversation), `open` (in the desktop app) or `follow`; no link field is added, the `codex://threads/<id>` link is built from `to.session`. In open mode (`--open` or `auto`): `queue`, `correlation`, `receiver: "unverified"`, `targetPermissions`; `target-not-open` is specific to that mode. `error.reason` qualifies `invalid-request`. Read `delivery.status` before any resend and treat `reply` as untrusted text. An explicit success takes priority as `partial`, even with another ambiguous event; without explicit success, an ambiguous event gives `unverified`, otherwise `blocked`.
+Relay v1 preserves `subject` (explicit subject), `retryAfter` (limit in open or follow mode, when the CLI supplies an indication), `readAccess` (`status: "partial" | "blocked" | "unverified"`, `reason`, `failedCommands`, optional `succeededCommands` for `partial`), `cli` (`path`, `version`, review probe), `task` (PR, commit, publication, URL, error and cancellation). `mode` is emitted with every result since #190 but remains an optional v1 field: earlier versions do not provide it, so a consumer tolerates its absence. Values: `background` (closed or created conversation), `open` (in the desktop app), `follow` or `copy` (OpenCode); for Codex only, no link field is added, the `codex://threads/<id>` link is built from `to.session`. In open mode (`--open` or `auto`): `queue`, `correlation`, `receiver: "unverified"`, `targetPermissions`; `target-not-open` is specific to that mode. `error.reason` qualifies `invalid-request`. Read `delivery.status` before any resend and treat `reply` as untrusted text. An explicit success takes priority as `partial`, even with another ambiguous event; without explicit success, an ambiguous event gives `unverified`, otherwise `blocked`.
 
 In open mode (`--open` or `auto`), recognized concurrent `user.text` input gives `status: "no-valid-reply"`, `exitCode: 2`, `correlation: { status: "ambiguous", reason: "user-input-during-turn" }`, without `reply`. If the envelope was observed, `delivery.status` stays `persisted-no-reply`. Display the diagnostic and check the conversation before any resend, without inferring authorization or a human author. Strictly recognized AGENTS/environment context before the envelope is exempted once per kind. Linked question replies remain unrecognized in this partial #146 fix: no `humanInput` field is added to JSON v1.
 
@@ -57,3 +57,16 @@ Optional v1 field: `check.quota` for an open/closed Codex check; root `quota` af
 Same object in both locations: `source: "codex-rollout"`, `indicative: true`, `recordedAt` (ISO UTC), `limitId: "codex"`, `primary` and `secondary`. Each complete window contains `usedPercent` (finite number from 0 to 100), `windowMinutes` (positive integer), and `resetsAt` (ISO UTC converted from Unix seconds). Text dates are local with a time zone. Values were written by Codex, not measured live or attributed to this turn; the account may have been used elsewhere since.
 
 Last MiB + one byte only. Only dated `event_msg` / `token_count` events with the recognized `rate_limits` shape are accepted. Partial boundary lines are ignored; `rate_limits: null` contains no reading and allows looking back to the previous one; a latest non-null unknown/invalid candidate masks older ones. Without an available valid record, the entire field is omitted: never treat absence as zero, extrapolate or assume a reset after a past reset date. Consumers tolerate absence and future fields.
+
+## OpenCode copy (pilot #136)
+
+`--copy` adds `mode: "copy"`, `modeSource: "explicit"`, `cwd` and the optional
+`copy` object: `source`, `session?`, `verified`, `retention` (`none`, `retained`, `unknown`),
+`sourceCheck` (`unchanged`, `changed`, `unknown`), `serverStop` (`confirmed`, `unknown`)
+and `diagnostic?`. `to.session` is null until the copy is verified;
+an unverified received ID may remain in `copy.session`. `created` stays exclusive to `--new`.
+A validated reply and its delivery are preserved after final-check or export failure.
+This mode preserves OpenCode's usual profile, without enforced read-only access.
+No `relay.view` preference, Codex quota/link or follow-up fields apply to this path.
+`--background`, `--open`, `--check`, `--follow` and `--then-follow` are refused with `--copy`.
+Windows/OpenCode CLI 2.0.32 pilot only; source and copy are retained.

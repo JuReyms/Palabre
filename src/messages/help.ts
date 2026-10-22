@@ -240,10 +240,12 @@ Options :
   relay: `
 Transmet un message à une conversation précise et renvoie sa réponse ; PALABRE choisit le mode.
 Avec --open, dépose le message dans une conversation Codex ouverte et attend sa réponse.
+Avec --copy, demande un avis dans une copie OpenCode (pilote Windows, CLI 2.0.32).
 
 Utilisation :
   palabre relay --to <agent>:<session> "<message>"
   palabre relay --new --to <agent> "<message>"
+  palabre relay --copy --to opencode:ses_... --dir "C:\\projets\\exemple" "<avis sans modification>"
   palabre relay --new --write --to codex --dir <projet-git> "<tâche>"
   palabre relay approve-write <WR-id>    # confirmation par l'humain, dans son terminal
   palabre relay run-write <WR-id> --json # un seul appel après accord
@@ -258,8 +260,9 @@ Options :
   --from <agent>[:<uuid>]     expéditeur facultatif, déclaré et non authentifié ; terminal si absent
   --to <agent>:<uuid>         cible existante ; nom d'agent seul avec --new
   --new                       crée une conversation persistante, lecture seule par défaut, sans --open
+  --copy                      copie OpenCode explicite, profil habituel sans lecture seule imposée
   --write                     expérimental, gelé : tâche Codex Windows avec accord humain et worktree séparé
-  --dir <chemin>              dossier de la nouvelle conversation (défaut : dossier courant)
+  --dir <chemin>              dossier de --new (défaut : courant), obligatoire et exact avec --copy
   Omettez --from et --dir s'ils n'ont pas de valeur ; une chaîne vide est refusée.
   --message-file <chemin>     lit le message dans un fichier (64 Kio au plus)
   --subject <objet>           objet facultatif : une ligne non vide, 200 caractères au plus, sans contrôle
@@ -267,7 +270,7 @@ Options :
   --pr <url>                  PR github.com exacte ; obligatoire avec --task review
   --open                      vise une conversation Codex ouverte (TUI ou Codex desktop), pour cet appel
   --background                force l'arrière-plan pour cet appel ; incompatible avec --open
-  Pour un avis ou une relecture devant rester sans modification, passer --background :
+  Codex/Claude : pour un avis ou une relecture devant rester sans modification, passer --background :
   réduction des droits pour cet appel, sans changer le réglage. Ne pas choisir le mode par habitude ailleurs.
   --follow                    avec --open : ne dépose rien, attend le prochain tour terminé
   --then-follow <secondes>    après la réponse liée, écoute un seul tour supplémentaire (10 à 3600 s)
@@ -336,17 +339,21 @@ Limites :
   dans to.session et l'export, même si le premier tour échoue ; cwd indique le dossier.
   La sortie texte donne la commande pour continuer. En JSON, utiliser to.session avec
   palabre relay --to <agent>:<session> "<suite>" ; aucun renvoi automatique après un échec.
-  Sans --write, aucune écriture en arrière-plan. Avec les versions Codex vérifiées,
+  Reprises Codex/Claude sans --write : aucune écriture en arrière-plan. Avec les versions Codex vérifiées,
   une cible créée par --new n'est pas listée dans Desktop, mais reste joignable par Relay.
   Pour la suivre dans l'app, le propriétaire ouvre le lien codex://threads/<id> affiché
   (jamais un agent à sa place) ; ensuite, auto suit le verrou. Ouverture vérifiée sous Windows seulement ;
   macOS et Linux restent à vérifier pour ce lien Desktop.
   Mode annoncé à chaque échange : « arrière-plan » (sans fenêtre visible, lecture seule
   demandée) ou « dans l'app desktop » (conversation ouverte, avec ses permissions). JSON : mode
-  émis à chaque résultat (background, open ou follow ; absent des versions antérieures). En
+  émis à chaque résultat (background, open, follow ou copy ; absent des versions antérieures). En
   arrière-plan, une conversation Codex créée, ou reprise et retrouvée, donne son lien
   codex://threads/<id>, cliquable dans un terminal, et la commande pour l'ouvrir soi-même
   (explorer.exe, open ou xdg-open) ; un agent ne la lance jamais.
+  OpenCode --copy : agent, modèle, variante, permissions, plugins et MCP habituels conservés.
+  Aucune lecture seule imposée ; fichiers partagés, source et copie conservées même en échec.
+  --copy ignore relay.view et refuse --new, --open, --background, --check, --follow,
+  --then-follow, --write, --task, --pr et Mission. --no-export ne supprime pas la copie.
   --write exige --new, un dépôt Git et une config déjà approuvée. Aucun --open, --task ou --trust-config.
   Le premier appel ne lance pas de modèle : write-approval-required (8), writeRequest et remedy.
   Le propriétaire lance approve-write dans un terminal visible (entrée ET sortie TTY), relit tâche,
@@ -395,7 +402,23 @@ Avec --open --follow (suivre la suite sans --then-follow) :
   Interdit avec un message, --message-file, --subject, --from, --new,
   --task ou --write. JSON : mode follow, delivery not-delivered (rien n'est envoyé), sans queue.
 
-Garanties conditionnelles :
+Avec --copy (pilote OpenCode CLI 2.0.32, Windows seulement) :
+  Une seule notice de date core/date strictement qualifiée est admise avant le message.
+  Tout ajout, doublon ou autre notification système reste refusé ; aucun droit ajouté.
+  Fermez la source et indiquez son ID exact ses_... et son dossier --dir. La source ne reçoit
+  jamais le message : PALABRE vérifie un fork, puis lui demande un avis. Aucun --auto, modèle
+  imposé, retry ou repli payant. Agent, modèle et variante sont ceux de la source.
+  Permissions, plugins et MCP habituels conservés : aucune lecture seule imposée. Le fork copie
+  la conversation, pas les fichiers du projet. Ne réutilisez pas la source pendant l'appel :
+  les relevés ne forment pas un verrou global. Source et copie restent dans OpenCode, même
+  après échec ; --no-export ne supprime pas la copie. Nettoyage : 10 s au plus après le délai.
+  JSON mode=copy : copy.source est l'original ; to.session est la copie vérifiée, ou null.
+  copy.session conserve aussi une copie non vérifiée ; vérifiez copy.verified et delivery.
+  Une réponse validée est conservée même si l'arrêt ou l'export échoue ensuite.
+  Aucun --new, --open, --background, --check, --follow, --then-follow, --write, --task, --pr
+  ou Mission. Desktop non qualifié.
+
+Garanties conditionnelles (reprises Codex/Claude seulement, pas --copy) :
   Avec les options imposées par Palabre et sur les versions de CLI vérifiées, la cible ne
   dispose d'aucun outil d'écriture, et les hooks et la commande notify non gérés sont
   neutralisés. Les serveurs MCP sont neutralisés sous réserve que la configuration ne change
@@ -789,10 +812,12 @@ Flags:
   relay: `
 Sends one message to a specific conversation and returns its reply; PALABRE chooses the mode.
 With --open, queues the message into an open Codex conversation and waits for its reply.
+With --copy, requests advice in an OpenCode copy (Windows pilot, CLI 2.0.32).
 
 Usage:
   palabre relay --to <agent>:<session> "<message>"
   palabre relay --new --to <agent> "<message>"
+  palabre relay --copy --to opencode:ses_... --dir "C:\\projects\\example" "<advice without changes>"
   palabre relay --new --write --to codex --dir <git-project> "<task>"
   palabre relay approve-write <WR-id>    # owner confirms in their terminal
   palabre relay run-write <WR-id> --json # one call after approval
@@ -807,8 +832,9 @@ Flags:
   --from <agent>[:<uuid>]     optional, declared and unauthenticated sender; terminal when omitted
   --to <agent>:<uuid>         existing target; agent name only with --new
   --new                       creates a persistent conversation, read-only by default; no --open
+  --copy                      explicit OpenCode copy, usual profile with no enforced read-only mode
   --write                     experimental, frozen: Windows Codex task with human approval and separate worktree
-  --dir <path>                new conversation directory (default: current directory)
+  --dir <path>                --new directory (default: current), mandatory exact source directory with --copy
   Omit --from and --dir when they have no value; empty strings are rejected.
   --message-file <path>       reads the message from a file (64 KiB at most)
   --subject <subject>         optional subject: one nonblank line, at most 200 characters, no controls
@@ -816,7 +842,7 @@ Flags:
   --pr <url>                  exact github.com PR; required with --task review
   --open                      targets an open Codex conversation (TUI or Codex desktop), for this call
   --background                forces background for this call; incompatible with --open
-  For advice or a review that must not change files, pass --background:
+  Codex/Claude: for advice or a review that must not change files, pass --background:
   fewer permissions for this call, without changing the setting. Do not choose the mode out of habit otherwise.
   --follow                    with --open: queues nothing, waits for the next completed turn
   --then-follow <seconds>     after the correlated reply, listens for one more turn (10 to 3600 s)
@@ -885,16 +911,20 @@ Limits:
   and the export even when the first turn fails; cwd gives the directory. Text output gives
   a continuation command. In JSON, use to.session with
   palabre relay --to <agent>:<session> "<follow-up>". No automatic retry.
-  Without --write, no background writing. With verified Codex versions, a target created by --new
-  is not listed in Desktop but remains reachable through Relay. To follow it in the app, the owner
+  Codex/Claude resumes without --write have no background writing. With verified Codex versions,
+  a target created by --new is not listed in Desktop but remains reachable through Relay. To follow it in the app, the owner
   opens the codex://threads/<id> link shown after creation (never an agent); then use --open.
   Opening this Desktop link is verified on Windows only; macOS and Linux remain unverified.
   Each exchange states its mode: "background" (no visible window, read-only requested) or "in
   the desktop app" (open conversation, with its permissions). JSON: mode is emitted with every
-  result (background, open or follow; absent from earlier versions). In background, a Codex
+  result (background, open, follow or copy; absent from earlier versions). In background, a Codex
   conversation that was created, or resumed and found, shows its codex://threads/<id> link,
   clickable in a terminal, and the command to open it yourself (explorer.exe, open or xdg-open); an agent
   never runs it.
+  OpenCode --copy: usual agent, model, variant, permissions, plugins and MCP are preserved.
+  No enforced read-only mode; shared files, source and copy retained even after failure.
+  --copy ignores relay.view and rejects --new, --open, --background, --check, --follow,
+  --then-follow, --write, --task, --pr and Mission. --no-export does not delete the copy.
   --write requires --new, a Git repository and an already trusted config. No --open, --task or --trust-config.
   The first call starts no model: write-approval-required (8), writeRequest and remedy.
   The owner runs approve-write in a visible terminal (both input and output TTY), checks task, agent,
@@ -943,7 +973,23 @@ With --open --follow (follow what happens next without --then-follow):
   Not allowed with a message, --message-file, --subject, --from,
   --new, --task or --write. JSON: mode follow, delivery not-delivered (nothing is sent), no queue.
 
-Conditional guarantees:
+With --copy (OpenCode CLI 2.0.32 pilot, Windows only):
+  One strictly qualified core/date notice may precede the message. Additions, duplicates
+  and other system notices remain refused; no permissions are granted.
+  Close the source and provide its exact ses_... ID and --dir directory. The source never
+  receives the message: PALABRE checks a fork, then asks it for advice. No --auto, imposed
+  model, retry or paid fallback. Agent, model and variant are inherited from the source.
+  Usual permissions, plugins and MCP are kept: no enforced read-only mode. A fork copies
+  the conversation, not project files. Do not reuse the source during the call: snapshots
+  are not a global lock. Source and copy remain in OpenCode, even after failure; --no-export
+  does not delete the copy. Cleanup takes at most 10 s after the waiting deadline.
+  JSON mode=copy: copy.source is the original; to.session is the verified copy, or null.
+  copy.session also retains an unverified copy; check copy.verified and delivery.
+  A validated reply is retained even if shutdown or export fails later.
+  No --new, --open, --background, --check, --follow, --then-follow, --write, --task, --pr
+  or Mission. Desktop is not qualified.
+
+Conditional guarantees (Codex/Claude resumes only, not --copy):
   With the options enforced by Palabre and on verified CLI versions, the target has no
   write tool, and unmanaged hooks and the notify command are neutralized. MCP servers are
   neutralized provided the configuration does not change between inspection and resume.

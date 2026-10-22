@@ -36,6 +36,67 @@ For a simple code review or fix from Claude Code to Codex, the [official OpenAI 
 
 **Retained features, outside the default path:** `--write` is experimental and frozen; Mission and `--task review` are frozen. Their documentation remains below; only security fixes are accepted, with no scope expansion.
 
+## Ask an OpenCode copy for advice
+
+Unreleased pilot for **Windows and OpenCode CLI 2.0.32 only**. One real CLI-command
+trial on a fictional project succeeded on October 19, 2026; this does not qualify
+Desktop or every kind of conversation content. Claude Code and Codex permissions
+remain unchanged.
+
+In OpenCode, select your model, wait for the turn to finish and note the exact
+`ses_...` identifier and conversation directory. Close it, then ask from your
+agent or terminal, for example:
+
+```powershell
+palabre relay --copy --to opencode:ses_ExampleSource --dir "C:\projects\example" --subject "Plan advice" "Read docs/plan.md and identify risks without modifying files." --json
+```
+
+Replace the fictional ID and directory with your source's values; `opencode` is
+your configured agent name. Check the version with `opencode --version`. Other
+versions are refused, without automatic updates. The Palabre configuration must
+be trusted as with other Relay paths.
+
+Palabre creates and verifies a copy, then sends one message to it. **The original
+is never resumed for this send.** The source agent, model and variant are kept,
+without a replacement model or implicit paid fallback. OpenCode connections,
+permissions, plugins, MCP and organization policies remain in effect. Integrations
+may start with the private server, before any message is sent.
+
+“Without modifying files” is a task instruction, not enforced read-only access.
+The conversation copy shares project files: **it is not a sandbox**. Do not reopen
+the source during the call; before/after snapshots are not a global lock. Unknown
+content or schemas are refused before sending when detected at that stage;
+Palabre does not repair conversation history.
+
+The only qualified system exception in the new turn is one `core/date` update
+notice before the relayed message, containing no other instruction. Its shape
+and calendar date are checked; duplicates, additions and other notices remain
+refused. This proves no authority and changes no permissions.
+
+The result distinguishes `copy.source` (original) and `to.session` (verified copy,
+or `null`). `copy.session` keeps a received ID even if verification fails;
+`copy.verified` does not mean the reply succeeded. `copy.sourceCheck` reports the
+last original snapshot check and `copy.serverStop` the observed shutdown. Uncertain
+creation may leave a copy without a known ID (`retention: unknown`).
+
+Source and copy remain in OpenCode even after failure. `--no-export` only disables
+the `.relay.md` file, not this retention. Keep the result: `delivery.status` can be
+`replied`, `persisted-no-reply` or `unknown` after an attempt. No automatic resend.
+A validated reply remains in `reply` with delivery `replied` if only a final
+check, shutdown or export fails. Cancellation tries to interrupt only the copy;
+it promises neither message withdrawal nor reversal of effects. Cleanup has at
+most 10 additional seconds after the waiting deadline.
+
+To inspect a known copy, open the project directory in your terminal and run
+`opencode --session ses_CopyIdentifier`. Another Relay consultation using
+`--copy --to opencode:ses_CopyIdentifier --dir "C:\projects\example"` creates
+another copy: no direct resumption or automatic follow-up. No `--new`, `--open`,
+`--background`, `--check`, `--follow`, `--then-follow`, `--write`, `--task review`,
+`--pr` or Mission in this pilot: these combinations are refused before any
+process starts. The `relay.view` preference does not change this path. JSON and
+export report `mode: copy`, `modeSource: explicit`; no Codex quota or link,
+or follow-up fields, are added.
+
 ## Codex as mission lead
 
 From a Codex desktop conversation opened in the project folder, say for example:
@@ -57,7 +118,7 @@ palabre relay --new --to codex "Read this project and suggest three improvements
 palabre relay --new --to claude --dir "../another-project" "Explain this project's structure, without changing anything."
 ```
 
-Here, `--to` names an agent from your configuration, without a conversation identifier. The current directory is used by default; `--dir` selects another existing directory. An existing conversation keeps the directory recorded in its history: `--dir` is rejected.
+Here, `--to` names an agent from your configuration, without a conversation identifier. The current directory is used by default; `--dir` selects another existing directory. Existing Codex/Claude resumes keep the directory recorded in history: `--dir` is rejected. OpenCode uses the separate `--copy` path above.
 
 Text output gives the identifier and a continuation command:
 
@@ -88,7 +149,7 @@ For **one call only**, `--background` forces background and `--open` forces open
 
 `--new`, Mission, `--task review`, `--write` and Claude Code remain in background; their incompatibilities with `--open` remain refusals. `palabre agents --json` exposes the effective setting as `defaults.relayView`. The Relay result and export also report `modeSource`: `explicit` for a per-call option, `auto` for lock state or a required path, `setting` for the `background` preference.
 
-For advice or a review that must not change files, pass `--background`: this per-call choice reduces permissions without changing the setting. For other requests, the agent does not choose the mode out of habit: it repeats PALABRE's "Mode" line. Without `--then-follow` on the initial send, if an in-app confirmation starts follow-up work, start `palabre relay --open --follow --to codex:<uuid> --json` **before** validation to capture the next turn without resending the message. A turn that already ended is not returned; this follow-up grants no authorization.
+For Codex/Claude advice or a review that must not change files, pass `--background`: this per-call choice reduces permissions without changing the setting. For other requests, the agent does not choose the mode out of habit: it repeats PALABRE's "Mode" line. Without `--then-follow` on the initial send, if an in-app confirmation starts follow-up work, start `palabre relay --open --follow --to codex:<uuid> --json` **before** validation to capture the next turn without resending the message. A turn that already ended is not returned; this follow-up grants no authorization.
 
 Each exchange states where it happens, on a "Mode" line:
 
@@ -101,7 +162,7 @@ In background, a Codex conversation that was created, or resumed and found by PA
 To open it yourself: explorer.exe "codex://threads/<identifier>"
 ```
 
-The command depends on the system: `explorer.exe` on Windows, `open` on macOS, `xdg-open` on Linux. It helps when the link is not clickable, for example in the Claude app. Run it yourself: an agent never opens it on your behalf. In JSON, `mode` is `background`, `open` or `follow`; no link field is added, an integration builds it from `to.session`.
+The command depends on the system: `explorer.exe` on Windows, `open` on macOS, `xdg-open` on Linux. It helps when the link is not clickable, for example in the Claude app. Run it yourself: an agent never opens it on your behalf. In JSON, `mode` is `background`, `open`, `follow` or `copy` (OpenCode); no link field is added, an integration builds it from `to.session`.
 
 ### Check before sending (`--check`)
 
@@ -394,6 +455,7 @@ After the mission lead exits normally, resume with `status`, then a new `step` u
 
 | Option | Purpose |
 | --- | --- |
+| `--copy` | Explicit OpenCode copy, usual profile preserved without enforced read-only access; exact source directory required with `--dir`. |
 | `"<message>"` or `--message-file <path>` | The message; 64 KiB UTF-8 at most for the full coordination envelope. Use a file for a message starting with `-`. |
 | `--task review` | **Frozen.** Read-only review published by PALABRE as COMMENT when authorized; optional message, incompatible with `--open` and `--trust-config`. |
 | `--pr <url>` | Exact github.com PR URL; required with `--task review`. |

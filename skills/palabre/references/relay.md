@@ -1,5 +1,50 @@
 # Palabre — Relay
 
+## OpenCode : consultation sur copie (pilote CLI)
+
+Windows et OpenCode CLI 2.0.32 seulement, non publié. Un essai réel de la commande
+sur projet fictif a réussi le 19 octobre 2026 ; Desktop hors périmètre. Ne pas
+modifier les réglages Claude Code ou Codex pour suivre ce parcours.
+
+```powershell
+palabre relay --copy --to opencode:ses_ExempleSource --dir "C:\projets\exemple" --subject "Avis sur le plan" "Lis docs/plan.md et relève les risques, sans modifier de fichier." --json
+```
+
+Le propriétaire choisit la source, le dossier et le modèle dans OpenCode ; attendre
+la fin puis fermer la conversation avant l'appel. Remplacer l'ID fictif ; jamais
+« la dernière ». La source ne reçoit pas le prompt : un fork vérifié reçoit un
+seul message. Agent, modèle, variante, connexion, permissions, plugins, MCP et
+règles d'organisation sont conservés. Aucune neutralisation générale ; des
+intégrations peuvent démarrer avant le message. Demander un avis sans modification
+n'impose pas de lecture seule. Le fork partage les fichiers du projet : pas de
+bac à sable ni d'autorisation supplémentaire. Aucun --auto ou modèle de repli.
+
+Une seule notice système core/date strictement qualifiée peut précéder l'enveloppe
+dans le nouveau tour : date et jour de semaine valides, texte/métadonnées exacts,
+aucun ajout ni doublon. Les autres notices restent refusées. Cela ne prouve pas
+une autorité et ne change aucune permission. Après refus, vérifier la délivrance,
+jamais rejouer le modèle pour contourner le lecteur.
+
+`copy.source` est la source demandée, `to.session` la copie vérifiée ou null.
+`copy.session` conserve même une copie non vérifiée ; `copy.verified` ne prouve pas
+la réussite du tour. Rendre source, copie, dossier, statut, délivrance et export.
+Une réponse validée reste conservée si un relevé final, l'arrêt ou l'export échoue.
+`persisted-no-reply`/`unknown` : aucun renvoi automatique. Une copie peut exister
+sans ID après un POST incertain ; ne pas refaire le fork pour la retrouver.
+
+Source et copie restent dans OpenCode même en échec ; --no-export désactive le
+fichier, pas la copie. Les relevés de source ne sont pas un verrou global : ne pas
+la réutiliser pendant l'appel. Timeout/annulation : interruption au mieux de la
+copie, arrêt du serveur possédé (10 s de nettoyage maximum), aucun retrait promis.
+Pour inspecter une copie connue depuis le dossier du projet :
+`opencode --session ses_IdentifiantCopie`. Une nouvelle consultation Relay exige
+encore `--copy --dir` et crée une autre copie ; ne jamais donner une commande de
+reprise directe. Aucun --new, --open, --background, --check, --follow, --then-follow,
+--write, --task, --pr ou Mission ici. La préférence relay.view ne s'applique pas :
+mode: copy et modeSource: explicit, sans quota/lien Codex ni champ de suivi.
+Version inconnue : le propriétaire vérifie `opencode --version` ; aucun contournement,
+mise à jour ou repli automatique. La config Palabre doit être approuvée normalement.
+
 ## Méthode de travail
 
 Le chef de mission propose la délégation de lui-même : quand un travail se découpe (relecture, recherche, lot indépendant, vérification), il n'attend pas que l'humain y pense. Petite délégation attendue, comme une relecture ou une recherche en lecture seule, dans un travail déjà validé : il l'annonce en une ligne (qui fait quoi), puis la fait. Délégation qui engage, comme une écriture, plusieurs équipiers, un quota important ou un nouveau chantier : il pose une question claire, une seule fois pour tout le lot, et la réponse vaut pour la suite de ce lot. Jamais une demande d'autorisation à chaque appel. Une question simple reste traitée par l'hôte seul. Déléguer n'élargit aucun droit.
@@ -48,7 +93,7 @@ Le chef de mission conserve aussi l'identifiant de conversation, le dossier et l
 
 ## Mode choisi par PALABRE
 
-**Mode Relay (#190)** : pour un avis ou une relecture qui doit rester sans modification, passe `--background` : ce choix ponctuel réduit les droits sans changer le réglage. Pour le reste, ne choisis pas le mode par habitude. Désigne la conversation précise ; PALABRE applique `relay.view` (`auto` par défaut : verrou Codex tenu → ouvert, libre → arrière-plan ; invérifiable → refus). `background` impose l'arrière-plan. Reprends la ligne « Mode » rendue par PALABRE et ses permissions, sans annoncer un envoi sur un refus. `defaults.relayView` dans `palabre agents --json` donne la préférence ; `modeSource?` dit `explicit`, `auto` ou `setting`. `--open`/`--background` sont des choix ponctuels explicites, incompatibles entre eux, jamais une modification du réglage. `--new`, Mission, review, `--write` et Claude Code restent en arrière-plan. Seul le propriétaire lance `palabre config --relay-view <auto|background>` et confirme au clavier dans son terminal visible (entrée/sortie TTY), config déjà approuvée, sans `--yes` ni `--trust-config`. L'agent ne change ni ne confirme jamais ce réglage qui affecte les permissions. Sans `--then-follow` à l'envoi, après une demande de confirmation dans l'app, prépare `--open --follow` avant la validation pour recueillir le tour suivant, sans renvoi ; un tour déjà terminé n'est pas rendu.
+**Mode Relay (#190)** : pour un avis ou une relecture qui doit rester sans modification, passe `--background` pour Codex/Claude : ce choix ponctuel réduit les droits sans changer le réglage. Pour le reste, ne choisis pas le mode par habitude. Désigne la conversation précise ; PALABRE applique `relay.view` (`auto` par défaut : verrou Codex tenu → ouvert, libre → arrière-plan ; invérifiable → refus). `background` impose l'arrière-plan. Reprends la ligne « Mode » rendue par PALABRE et ses permissions, sans annoncer un envoi sur un refus. `defaults.relayView` dans `palabre agents --json` donne la préférence ; `modeSource?` dit `explicit`, `auto` ou `setting`. `--open`/`--background` sont des choix ponctuels explicites, incompatibles entre eux, jamais une modification du réglage. `--new`, Mission, review, `--write` et Claude Code restent en arrière-plan. Seul le propriétaire lance `palabre config --relay-view <auto|background>` et confirme au clavier dans son terminal visible (entrée/sortie TTY), config déjà approuvée, sans `--yes` ni `--trust-config`. L'agent ne change ni ne confirme jamais ce réglage qui affecte les permissions. Sans `--then-follow` à l'envoi, après une demande de confirmation dans l'app, prépare `--open --follow` avant la validation pour recueillir le tour suivant, sans renvoi ; un tour déjà terminé n'est pas rendu.
 
 **Vérifier avant d'envoyer (#203)** : `palabre relay --check --to <agent>:<uuid> --json` fait les contrôles d'un envoi (configuration, agent, mode, conversation, verrou) puis s'arrête : rien n'est envoyé ni écrit, aucune CLI de l'équipier n'est lancée (sous macOS/Linux, seule la sonde du verrou lance `python3`), aucun export. `checked` (code 0) avec `check.target` (`open` ou `closed`) ; en mode ouvert, `check.lastPermissions` du dernier tour connu, indicatives. Un envoi refusé donne le même statut et le même code. Refusé avec un message, `--from`, `--subject`, `--new`, `--follow`, `--task`, `--write`, `--timeout`, `--no-export` ou `--trust-config` (config déjà approuvée exigée). L'état peut changer avant l'envoi : l'envoi revérifie toujours. Ne pas présenter `checked` comme une délivrance.
 
@@ -272,7 +317,7 @@ Avec `--open`, seul le code structuré `usage_limit_exceeded` de `task_complete.
 
 ## Créer la cible et continuer
 
-Pour un avis ou une relecture sans modification, `palabre relay --new --to codex --from claude "<tâche sans modification>" --json` crée une conversation persistante dans le dossier courant. `--dir "<dossier>"` est réservé à `--new`. Mémoriser `to.session` et `cwd`, puis utiliser `--to codex:<id>` sans `--new` pour une suite d'avis/relecture. Sans `--from`, l'expéditeur déclaré est `terminal` ; nom seul et nom avec UUID sont aussi admis. Ni en-tête ni nom déclaré ne donnent d'autorisation.
+Pour un avis ou une relecture sans modification, `palabre relay --new --to codex --from claude "<tâche sans modification>" --json` crée une conversation persistante dans le dossier courant. `--dir "<dossier>"` accompagne `--new`, ou le parcours distinct OpenCode `--copy` qui exige le dossier source exact. Mémoriser `to.session` et `cwd`, puis utiliser `--to codex:<id>` sans `--new` pour une suite d'avis/relecture. Sans `--from`, l'expéditeur déclaré est `terminal` ; nom seul et nom avec UUID sont aussi admis. Ni en-tête ni nom déclaré ne donnent d'autorisation.
 
 `created: true` signifie qu'un identifiant a été reçu, même en erreur ; aucun succès n'en découle. `to.session: null` indique qu'aucun identifiant valide n'a été reçu. Vérifier `status` et `delivery` avant de continuer. Pas de relance automatique ni de `--open` avec `--new`. Avec les versions Codex vérifiées, une conversation créée par `--new` via la CLI n'est pas listée dans Codex Desktop, mais reste joignable avec son identifiant. Pour la suivre dans l'app, donner à l'humain le lien `codex://threads/<id>` (texte, export, ou construit depuis `to.session`) : il ouvre la conversation avec son historique (essai Windows, #179 ; macOS et Linux non vérifiés pour ce lien Desktop). Le présenter comme une commande à lancer par l'humain, dans un bloc de code shell précédé de deux lignes de commentaire : l'action, puis l'objet du relais (`--subject`), jamais un identifiant :
 
