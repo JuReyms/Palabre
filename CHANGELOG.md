@@ -6,6 +6,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Added
 
+- Relay `--then-follow <secondes>` : en mode Codex ouvert (explicite ou auto), un seul envoi rend la réponse liée puis écoute le premier tour terminé ensuite. Référence à la fin de ligne exacte du tour corrélé, même si la suite est déjà dans la même lecture. Deux budgets explicites, chacun au plus 3600 s : `--timeout` pour la réponse, puis le délai de suivi. Le champ JSON v1 facultatif `nextTurn` et l'export séparent la suite, d'auteur non vérifié, sans autorisation déduite. La réponse primaire et sa délivrance restent conservées en cas d'échéance (`awaiting-turn`), annulation ou échec secondaire ; un échec primaire ne démarre aucun suivi. Texte progressif, JSON final unique et progression sur stderr. Aucun renvoi ni second dépôt. Exclusions : arrière-plan, Claude Code, `--new`, Mission, review, `--write`, `--check`, `--follow` (Fixes #204). Copies installées : `palabre skill --sync` après accord humain, puis recharger le skill.
+
+### Added
+
 - `palabre relay --check --to <agent>:<session>` vérifie, sans rien envoyer, ce qu'un envoi ferait : mode appliqué (arrière-plan ou dans l'app desktop), conversation ouverte ou fermée et, pour une conversation ouverte, les permissions du dernier tour connu, présentées comme indicatives. Mêmes contrôles qu'un envoi, puis arrêt : ni message, ni CLI de l'équipier lancée, ni export, ni écriture (`--trust-config` est refusé) ; sous macOS/Linux, seule la sonde du verrou lance `python3`. Nouveau statut `checked` (code 0) ; un envoi qui serait refusé donne le même refus et le même code. JSON v1 : champ facultatif `check` (`target`, `lastPermissions`, `lastPermissionsAt`). Le skill demande de vérifier ainsi avant un envoi dont le mode compte, et d'annoncer le résultat à l'humain. Aide, guides fr/en, contrats JSON, skill et AGENTS.md à jour ; copies installées : `palabre skill --sync` après accord humain, puis recharger le skill (Fixes #203).
 
 ### Fixed

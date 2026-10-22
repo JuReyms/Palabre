@@ -88,7 +88,7 @@ For **one call only**, `--background` forces background and `--open` forces open
 
 `--new`, Mission, `--task review`, `--write` and Claude Code remain in background; their incompatibilities with `--open` remain refusals. `palabre agents --json` exposes the effective setting as `defaults.relayView`. The Relay result and export also report `modeSource`: `explicit` for a per-call option, `auto` for lock state or a required path, `setting` for the `background` preference.
 
-For advice or a review that must not change files, pass `--background`: this per-call choice reduces permissions without changing the setting. For other requests, the agent does not choose the mode out of habit: it repeats PALABRE's "Mode" line. If an in-app confirmation starts follow-up work, start `palabre relay --open --follow --to codex:<uuid> --json` **before** validation to capture the next turn without resending the message. A turn that already ended is not returned; this follow-up grants no authorization.
+For advice or a review that must not change files, pass `--background`: this per-call choice reduces permissions without changing the setting. For other requests, the agent does not choose the mode out of habit: it repeats PALABRE's "Mode" line. Without `--then-follow` on the initial send, if an in-app confirmation starts follow-up work, start `palabre relay --open --follow --to codex:<uuid> --json` **before** validation to capture the next turn without resending the message. A turn that already ended is not returned; this follow-up grants no authorization.
 
 Each exchange states where it happens, on a "Mode" line:
 
@@ -174,7 +174,7 @@ If you agree, approve it in the teammate's window or terminal. In a closed conve
 
 After you approve, nothing is resent automatically: continuing is a new explicit request. The first message is often already in the teammate's conversation; it is not sent again.
 
-If the teammate works in an open conversation, your approval starts a new turn that the initial Relay no longer listens to. To get its result, the mission lead starts `--follow` just before you approve (section "Follow what happens next in an open conversation", below).
+If the teammate works in an open conversation, your approval starts a new turn. With `--then-follow` on the initial send, PALABRE already listens for it. Otherwise the mission lead starts `--follow` just before you approve (section "Follow what happens next in an open conversation", below).
 
 ## Designating conversations
 
@@ -211,6 +211,20 @@ Recognized AGENTS.md or environment context before the envelope no longer loses 
 Free input recognized by the `user.text` form, after the envelope and before the final reply, stays `no-valid-reply` (2), with `correlation.reason: "user-input-during-turn"`. Check the target conversation before any resend: the work may have been done. This diagnostic proves neither identity, authorization, nor a human click. Agent envelopes, duplicates and unknown formats remain ambiguous.
 
 The actual format of a linked reply to a question was not found in available local histories: that case remains ambiguous and no `humanInput` field is emitted. Agents should still ask no questions during a turn received through Relay, instead reporting questions and blockers in the final reply. #146 remains partly open; this fix does not qualify Desktop as the default choice in #190.
+
+### Listen for the continuation from the initial send (`--then-follow`)
+
+For an authorized writing task in an existing Codex Desktop conversation, add `--then-follow 3600` to the message in open mode (explicit `--open` or `auto` resolved to open). This grants no write permission: the conversation keeps its own permissions.
+
+```powershell
+palabre relay --open --to codex:<target-session> --then-follow 3600 --timeout 600 "<authorized task>" --json
+```
+
+Only one message is queued. `--timeout` bounds the correlated reply; `--then-follow <seconds>` sets a separate 10–3600 second budget starting when that reply is received. Following starts immediately after its exact completion line, not at the current end of the file: a fast continuation is retained even when both turns are read together. The owner can confirm in the app without waiting for another call to start.
+
+The primary result retains `status: replied`, `reply`, its delivery and exit code 0. Optional `nextTurn` separately reports the first turn completed next: `followed` with its reply, `awaiting-turn` with `reason: timeout` if no turn has completed, or a secondary cancellation/failure. A failed primary result gives `nextTurn.status: not-started`: no listening. A foreign Relay turn gives `no-valid-reply`/`relay-turn`; no later turn is selected. The continuation's author is unverified; no authorization is inferred. Nothing is automatically resent.
+
+Text displays the correlated reply immediately, then a separate continuation. JSON writes one final stdout object, with progress on stderr. The export preserves both parts. Refused with background mode, Claude Code, `--new`, Mission, `--task review`, `--write`, `--check` and `--follow`. Without this option on the initial send, manual following below still must start before confirmation.
 
 ### Follow what happens next in an open conversation (`--follow`)
 

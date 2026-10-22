@@ -12,6 +12,7 @@ import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
 import { relayMessages } from "../src/messages/relay.js";
+import { relayThenFollowText } from "../src/messages/relayThenFollow.js";
 import { buildEnvelope, MAX_RELAY_MESSAGE_BYTES } from "../src/externalSessions/envelope.js";
 import type { ReadAccessDiagnostic } from "../src/externalSessions/types.js";
 import { npmPowerShellShim } from "./fixtures/external-sessions/npm-shim.js";
@@ -1190,6 +1191,62 @@ test('options vides : message traduit avec prochaine étape, sans lancement ni a
     assert.ok(r.json.error.message.includes(flag === '--from' ? '--from claude' : '--new --dir'));
     assert.equal(existsSync(path.join(w.home, '.palabre', 'trusted-configs.json')), false);
   }
+});
+
+describe("palabre relay --then-follow (#204)", () => {
+  test("ponctuation du statut de la suite en français et en anglais", () => {
+    assert.equal(relayThenFollowText("fr").statusLine("Suite", "followed"), "Suite : followed");
+    assert.equal(relayThenFollowText("en").statusLine("Next turn", "followed"), "Next turn: followed");
+    assert.equal(relayThenFollowText("en").statusLine("Next turn", "awaiting-turn", "timeout"), "Next turn: awaiting-turn (timeout)");
+  });
+
+  test("exclusions et durées invalides : refus sans dépôt", async () => {
+    for (const suffix of [
+      ["--background"], ["--new"], ["--follow", "--open"], ["--check"], ["--write"], ["--task", "review"],
+      ["--then-follow", "9"], ["--then-follow", "3601"], ["--then-follow", "abc"], ["--then-follow"]
+    ]) {
+      const world = makeWorld();
+      const duration = suffix[0] === "--then-follow" ? [] : ["--then-follow", "10"];
+      const result = await relay(world, ["--to", `codex:${CODEX_SESSION}`, "Question", ...duration, ...suffix, "--json"]);
+      assert.equal(result.code, 8, suffix.join(" ")); assert.equal(result.calls.length, 0);
+      assert.equal(result.json.delivery.status, "not-delivered");
+    }
+  });
+
+  test("auto fermé et Claude refusés, sans reprise ni dépôt", async () => {
+    for (const to of [`codex:${CODEX_SESSION}`, `claude:${CLAUDE_SESSION}`]) {
+      const result = await relay(makeWorld(), ["--to", to, "Question", "--then-follow", "10", "--trust-config", "--json"]);
+      assert.equal(result.code, 8, result.stderr); assert.equal(result.calls.length, 0);
+    }
+  });
+
+  test("ouvert explicite/auto, fr/en, JSON/texte/export : deux réponses et un seul dépôt", { skip: process.platform !== "win32" }, async () => {
+    for (const language of ["fr", "en"]) for (const json of [true, false]) for (const explicit of [true, false]) {
+      const world = makeWorld(), release = holdCodexLock(world);
+      try {
+        const result = await relay(world, [...(explicit ? ["--open"] : []), "--to", `codex:${CODEX_SESSION}`, "Question", "--then-follow", "10", "--language", language, "--trust-config", ...(json ? ["--json"] : [])], { FAKE_CODEX_QUEUE: "then-follow" });
+        assert.equal(result.code, 0, result.stderr); assert.equal(result.calls.length, 1);
+        if (json) {
+          assert.equal(result.json.status, "replied"); assert.equal(result.json.reply, "FAKE-OPEN « été »");
+          assert.equal(result.json.nextTurn.status, "followed"); assert.equal(result.json.nextTurn.reply, "FAKE-SUITE été 🐈");
+          assert.equal("follow" in result.json, false); assert.equal("thenFollow" in result.json, false);
+          assert.equal(result.json.nextTurn.receiver, "unverified"); assert.deepEqual(result.json.observedModels, ["gpt-fake"]);
+          assert.deepEqual(result.json.nextTurn.observedModels, ["gpt-next"]);
+          const exported = readFileSync(result.json.exportPath, "utf8");
+          assert.ok(exported.includes(result.json.reply)); assert.ok(exported.includes(result.json.nextTurn.reply));
+          assert.match(exported, /^## nextTurn — /m);
+        } else {
+          assert.equal(result.stdout.split("FAKE-OPEN").length, 2, "réponse primaire non dupliquée");
+          assert.ok(result.stdout.includes("FAKE-SUITE été 🐈"));
+          assert.match(result.stdout, /auteur non vérifié|unverified author/);
+          const text = relayThenFollowText(language as "fr" | "en");
+          assert.ok(result.stderr.includes(text.statusLine(text.label, "followed")));
+          assert.ok(result.stderr.includes(text.followed));
+          if (language === "en") assert.ok(!result.stderr.includes(`${text.label} :`));
+        }
+      } finally { release(); }
+    }
+  });
 });
 
 describe("palabre relay --open --follow (#195)", () => {

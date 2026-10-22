@@ -90,6 +90,93 @@ function input(file: string, fields: Partial<OpenRelayInput> = {}): OpenRelayInp
 
 const appendRows = (file: string, rows: Row[]) => appendFileSync(file, rows.map(line).join(""));
 
+describe("B1 : réponse puis un seul suivi, sans second dépôt (#204)", () => {
+  const nextTurn = (text = "Suite été 🐈", message = "Validation dans l'app"): Row[] => [
+    started("next"), context("next"), user(message), item("UserMessage", message, undefined, "next"),
+    item("AgentMessage", text, "final_answer", "next"), complete(text, undefined, "next")
+  ];
+
+  test("deux tours dans une lecture, UTF-8 et ligne vide : référence à la fin du premier", async () => {
+    const file = rollout();
+    const h = harness(file, { onRun: () => { appendFileSync(file, "\n"); appendRows(file, [...fullTurn(), ...nextTurn()]); return queued(); } });
+    const notified: string[] = [];
+    const result = await runOpenRelay(input(file, { thenFollowMs: 10_000, onReply: reply => notified.push(reply) }), h.deps);
+    assert.equal(result.outcome.status, "replied"); assert.equal(result.delivery.status, "replied");
+    assert.deepEqual(notified, [result.reply]);
+    assert.equal(result.nextTurn?.status, "followed"); assert.equal(result.nextTurn?.reply, "Suite été 🐈");
+    assert.equal(result.nextTurn?.receiver, "unverified"); assert.equal(h.calls.run.length, 1);
+    assert.equal(h.calls.capture, 1, "aucune capture à EOF entre les tours");
+    assert.equal(result.followBaseline, undefined, "référence interne retirée");
+  });
+
+  test("ligne suivante partielle puis complétée : pas de saut de tour", async () => {
+    const file = rollout(), rows = nextTurn().map(line).join("");
+    const h = harness(file, { onRun: () => { appendRows(file, fullTurn()); appendFileSync(file, rows.slice(0, 11)); return queued(); },
+      onRead: index => { if (index === 1) appendFileSync(file, rows.slice(11)); } });
+    assert.equal((await runOpenRelay(input(file, { thenFollowMs: 10_000 }), h.deps)).nextTurn?.reply, "Suite été 🐈");
+  });
+
+  test("second budget indépendant : replied conservé, aucune suite à l'échéance", async () => {
+    const file = rollout();
+    const h = harness(file, { onRun: (_spec, clock) => { clock.now = 9_000; appendRows(file, fullTurn()); return queued(); } });
+    const result = await runOpenRelay(input(file, { thenFollowMs: 20_000 }), h.deps);
+    assert.equal(result.outcome.status, "replied"); assert.equal(result.outcome.exitCode, 0);
+    assert.equal(result.nextTurn?.status, "awaiting-turn"); assert.equal(result.nextTurn?.reason, "timeout");
+    assert.equal(h.clock.now, 29_000); assert.equal(h.calls.run.length, 1);
+  });
+
+  test("Relay étranger : relay-turn, sans prendre une troisième réponse", async () => {
+    const file = rollout();
+    const h = harness(file, { onRun: () => { appendRows(file, [...fullTurn(), ...nextTurn("Autre", "PALABRE PR-9999999999999999")]); return queued(); } });
+    const result = await runOpenRelay(input(file, { thenFollowMs: 10_000 }), h.deps);
+    assert.equal(result.nextTurn?.status, "no-valid-reply"); assert.equal(result.nextTurn?.reason, "relay-turn");
+    assert.ok(result.reply); assert.equal(result.nextTurn?.reply, undefined);
+  });
+
+  test("annulation après la réponse : première réponse conservée", async () => {
+    const file = rollout(), controller = new AbortController();
+    const h = harness(file, { onRun: () => { appendRows(file, fullTurn()); return queued(); } });
+    const result = await runOpenRelay(input(file, { signal: controller.signal, thenFollowMs: 10_000, onReply: () => controller.abort() }), h.deps);
+    assert.equal(result.outcome.status, "replied"); assert.ok(result.reply); assert.equal(result.nextTurn?.status, "cancelled");
+  });
+
+  test("première réponse en échec : aucun suivi ni notification", async () => {
+    const file = rollout();
+    const h = harness(file, { onRun: () => { appendRows(file, [started(), user(), item("UserMessage", ENVELOPE), complete(null, { message: "erreur" })]); return queued(); } });
+    const result = await runOpenRelay(input(file, { thenFollowMs: 10_000, onReply: () => assert.fail("pas de réponse valide") }), h.deps);
+    assert.equal(result.outcome.status, "cli-failure"); assert.equal(result.nextTurn?.status, "not-started");
+    assert.equal(h.calls.read, 1); assert.equal(h.calls.run.length, 1);
+  });
+
+  test("historique remplacé pendant le suivi : échec secondaire seulement", async () => {
+    const file = rollout();
+    const h = harness(file, { onRun: () => { appendRows(file, fullTurn()); return queued(); }, onRead: index => { if (index === 1) writeFileSync(file, line(meta)); } });
+    const result = await runOpenRelay(input(file, { thenFollowMs: 10_000 }), h.deps);
+    assert.equal(result.outcome.status, "replied"); assert.equal(result.nextTurn?.status, "no-valid-reply");
+    assert.equal(result.nextTurn?.reason, "history-replaced"); assert.ok(result.reply);
+  });
+
+  test("annulation avant dépôt et échéance primaire : suivi non démarré", async () => {
+    const controller = new AbortController(); controller.abort();
+    const file = rollout(), cancelled = harness(file);
+    const result = await runOpenRelay(input(file, { signal: controller.signal, thenFollowMs: 10_000 }), cancelled.deps);
+    assert.equal(result.outcome.status, "cancelled"); assert.equal(result.nextTurn?.status, "not-started"); assert.equal(cancelled.calls.run.length, 0);
+    const slow = harness(file);
+    const expired = await runOpenRelay(input(file, { timeoutMs: 1_000, thenFollowMs: 10_000 }), slow.deps);
+    assert.equal(expired.outcome.status, "timeout"); assert.equal(expired.nextTurn?.status, "not-started"); assert.equal(slow.clock.now, 1_000);
+  });
+
+  test("limite d'usage secondaire : replied et son modèle restent primaires", async () => {
+    const file = rollout();
+    const h = harness(file, { onRun: () => {
+      appendRows(file, [...fullTurn(), started("next"), context("next"), complete(null, { codex_error_info: "usage_limit_exceeded", message: "Try again at 3:16 PM." }, "next")]); return queued();
+    } });
+    const result = await runOpenRelay(input(file, { thenFollowMs: 10_000 }), h.deps);
+    assert.equal(result.outcome.status, "replied"); assert.equal(result.nextTurn?.status, "usage-limit");
+    assert.equal(result.nextTurn?.retryAfter, "15:16"); assert.equal(result.retryAfter, undefined); assert.ok(result.reply);
+  });
+});
+
 describe("B1 : parcours nominal", () => {
   test("auto choisit open puis perd le verrou : refus sans dépôt ni repli arrière-plan", async () => {
     for (const remaining of ["detached", "unknown"] as const) {

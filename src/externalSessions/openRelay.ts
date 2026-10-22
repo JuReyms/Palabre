@@ -18,6 +18,8 @@
  *
  * `runFollowRelay` (`--open --follow`, #195) partage verrou, référence, lectures et échéance, sans
  * dépôt : il rend le premier tour terminé ensuite, lancé depuis l'app par un auteur non vérifié.
+ * --then-follow réutilise ce suivi après un unique dépôt réussi, à sa frontière exacte, sous un
+ * second budget explicite. Son résultat secondaire ne remplace jamais la réponse primaire.
  */
 import type { ExternalExecutable } from "./adapter.js";
 import { checkQueueCommand, codexQueueArgs, isQueueUnsupported, parseQueueAck, QUEUE_LIMITS } from "./codexQueue.js";
@@ -58,6 +60,10 @@ export interface OpenRelayInput {
   signal: AbortSignal;
   /** Appelé dès qu'un processus de dépôt a été créé (pour qualifier une erreur interne ultérieure). */
   onAttempt?: () => void;
+  /** Second budget explicite, indépendant du dépôt et de la réponse corrélée. */
+  thenFollowMs?: number;
+  /** Notification de la réponse primaire avant l'écoute ; aucune autorisation déduite. */
+  onReply?: (reply: string) => void;
 }
 
 /**
@@ -76,6 +82,10 @@ export interface OpenQueueReport {
 
 /** Résultat d'un relay B1, avant mise en forme par la commande. */
 export interface OpenRelayResult {
+  /** Suite séparée, sans altérer l'issue primaire ni sa délivrance. */
+  nextTurn?: ThenFollowReport;
+  /** Référence interne ; jamais sérialisée par la commande. */
+  followBaseline?: OpenBaseline;
   outcome: RelayOutcome;
   /** Reprise fournie par l'erreur structurée du seul tour corrélé, sans planifier de renvoi. */
   retryAfter?: number | string;
@@ -167,6 +177,28 @@ export function defaultOpenRelayDeps(probe: () => TargetProbe): OpenRelayDeps {
 
 /** Exécute un relay B1 ; ne lève pas pour les échecs prévus (refus, lancement, lecture). */
 export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): Promise<OpenRelayResult> {
+  const primary = await runOpenRelayOnce(input, deps);
+  if (input.thenFollowMs === undefined) return primary;
+  const { followBaseline, ...result } = primary;
+  if (primary.outcome.status !== "replied") return { ...result, nextTurn: { status: "not-started", reason: "primary-not-replied", receiver: "unverified" } };
+  const deadline = deps.now() + input.thenFollowMs;
+  try {
+    input.onReply?.(primary.reply!);
+    if (!followBaseline) throw new Error("completion-boundary-missing");
+    const next = await runFollowRelay({ sessionId: input.sessionId, historyPath: input.historyPath,
+      timeoutMs: Math.max(0, deadline - deps.now()), deadline, signal: input.signal, baseline: followBaseline }, deps);
+    return { ...result, nextTurn: { status: next.outcome.status === "timeout" ? "awaiting-turn" : next.outcome.status,
+      ...(next.outcome.status === "timeout" ? { reason: "timeout" } : next.diagnostic ? { reason: next.diagnostic } : {}),
+      ...(next.reply !== undefined ? { reply: next.reply } : {}), receiver: "unverified",
+      observedModels: next.observedModels, targetPermissions: next.targetPermissions,
+      ...(next.correlation ? { correlation: next.correlation } : {}), ...(next.retryAfter !== undefined ? { retryAfter: next.retryAfter } : {}) } };
+  } catch (error) {
+    return { ...result, nextTurn: { status: "internal-error", reason: errorCode(error), receiver: "unverified" } };
+  }
+}
+
+/** Une seule tentative de dépôt ; conserve les priorités d'erreur B1 sans lancer le suivi. */
+async function runOpenRelayOnce(input: OpenRelayInput, deps: OpenRelayDeps): Promise<OpenRelayResult> {
   const deadline = deps.now() + input.timeoutMs;
   const remaining = () => Math.max(0, deadline - deps.now());
   const base = {
@@ -225,7 +257,7 @@ export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): 
   let persisted = false;
   const inspect = async () => {
     try {
-      observation = inspectOpenReply(await deps.read(input.historyPath, baseline!), request);
+      observation = inspectOpenReply(await deps.read(input.historyPath, baseline!), request, input.thenFollowMs !== undefined);
     } catch (error) {
       observation = { status: "unreadable", persisted: "unknown", reason: errorCode(error) };
     }
@@ -243,6 +275,7 @@ export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): 
     const { model, ...permissions } = context ?? {};
     return {
       outcome: final,
+      ...(final.status === "replied" && current.followBaseline ? { followBaseline: current.followBaseline } : {}),
       ...(final.status === "usage-limit" && current.retryAfter !== undefined ? { retryAfter: current.retryAfter } : {}),
       delivery: { status: settled.status, persisted: settled.persisted, inActiveBranch: "unknown" },
       ...(final.status === "replied" && settled.reply !== undefined ? { reply: settled.reply } : {}),
@@ -305,6 +338,10 @@ export async function runOpenRelay(input: OpenRelayInput, deps: OpenRelayDeps): 
 }
 
 export interface FollowRelayInput {
+  /** Échéance monotone interne déjà fixée à la réponse ; jamais renouvelée par le suivi. */
+  deadline?: number;
+  /** Référence déjà validée pour --then-follow ; --follow seul capture sa propre référence. */
+  baseline?: OpenBaseline;
   sessionId: string;
   historyPath: string;
   /** Budget total : référence et attente. */
@@ -327,6 +364,18 @@ export interface FollowRelayResult {
   diagnostic?: string;
 }
 
+/** Ajout JSON v1 de --then-follow : résultat secondaire, auteur non vérifié, aucune délivrance. */
+export interface ThenFollowReport {
+  status: RelayStatus | "awaiting-turn" | "not-started";
+  reason?: string;
+  reply?: string;
+  receiver: "unverified";
+  observedModels?: string[];
+  targetPermissions?: FollowRelayResult["targetPermissions"];
+  correlation?: FollowRelayResult["correlation"];
+  retryAfter?: number | string;
+}
+
 /**
  * Suivi d'une conversation ouverte (`--open --follow`, #195), sous **une seule échéance** :
  * 1. verrou tenu, sinon `target-not-open` ou `target-state-unknown`, sans lecture de l'ajout ;
@@ -338,7 +387,7 @@ export interface FollowRelayResult {
  * l'auteur n'est pas vérifié, jamais la réponse à un message PALABRE.
  */
 export async function runFollowRelay(input: FollowRelayInput, deps: Pick<OpenRelayDeps, "probe" | "capture" | "read" | "now" | "sleep">): Promise<FollowRelayResult> {
-  const deadline = deps.now() + input.timeoutMs;
+  const deadline = input.deadline ?? deps.now() + input.timeoutMs;
   const remaining = () => Math.max(0, deadline - deps.now());
   let observation: FollowObservation | undefined;
   const finish = (final: RelayOutcome, diagnostic?: string): FollowRelayResult => {
@@ -361,7 +410,7 @@ export async function runFollowRelay(input: FollowRelayInput, deps: Pick<OpenRel
 
   const lock = lockRefusal(deps.probe());
   if (lock) return finish(outcome(lock));
-  const reference = await captureReference(deps, input.historyPath, input.signal, deadline);
+  const reference = input.baseline ? { baseline: input.baseline } : await captureReference(deps, input.historyPath, input.signal, deadline);
   if ("refusal" in reference) return finish(reference.refusal, reference.diagnostic);
   const request = { threadId: input.sessionId, baseline: reference.baseline };
 

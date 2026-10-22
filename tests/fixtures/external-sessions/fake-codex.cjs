@@ -12,7 +12,8 @@
  *   FAKE_CODEX_MARKER    fichier où chaque invocation ajoute une ligne JSON { argv, cwd, stdin, envKeys }.
  *   FAKE_CODEX_QUEUE     comportement de `queue` (relay --open) : reply (accusé, puis tour complet
  *                        ajouté au rollout, comme le ferait le récepteur), ack-only, no-ack,
- *                        foreign-ack, unsupported (refus de l'analyseur d'arguments), fail.
+ *                        foreign-ack, unsupported (refus de l'analyseur d'arguments), fail,
+ *                        then-follow (réponse et tour app dans le même ajout).
  *
  * Aucun réseau ; aucune écriture hors des chemins fournis.
  */
@@ -94,6 +95,14 @@ process.stdin.on("end", () => {
         last_agent_message: null, error: { codex_error_info: "usage_limit_exceeded",
           message: queueMode === "usage-limit" ? "You've hit your usage limit. Try again at 3:16 PM." : "Usage limit reached." } } });
     }
+    if (queueMode === "then-follow") rows.push(
+      { type: "event_msg", payload: { type: "task_started", turn_id: "next-app" } },
+      { type: "turn_context", payload: { turn_id: "next-app", model: "gpt-next", approval_policy: "on-request", sandbox_policy: { type: "workspace-write" } } },
+      { type: "response_item", payload: { type: "message", role: "user", content: [{ type: "input_text", text: "oui" }] } },
+      { type: "event_msg", payload: { type: "item_completed", thread_id: thread, turn_id: "next-app", item: { type: "UserMessage", content: [{ type: "text", text: "oui" }] } } },
+      { type: "event_msg", payload: { type: "item_completed", thread_id: thread, turn_id: "next-app", item: { type: "AgentMessage", phase: "final_answer", content: [{ type: "text", text: "FAKE-SUITE été 🐈" }] } } },
+      { type: "event_msg", payload: { type: "task_complete", turn_id: "next-app", last_agent_message: "FAKE-SUITE été 🐈" } }
+    );
     fs.appendFileSync(process.env.FAKE_CODEX_ROLLOUT, rows.map((row) => JSON.stringify(row)).join("\n") + "\n");
     return;
   }

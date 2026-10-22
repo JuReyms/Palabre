@@ -270,6 +270,7 @@ Options :
   Pour un avis ou une relecture devant rester sans modification, passer --background :
   réduction des droits pour cet appel, sans changer le réglage. Ne pas choisir le mode par habitude ailleurs.
   --follow                    avec --open : ne dépose rien, attend le prochain tour terminé
+  --then-follow <secondes>    après la réponse liée, écoute un seul tour supplémentaire (10 à 3600 s)
   --check                     vérifie mode, conversation et permissions connues, sans rien envoyer
   --timeout <secondes>        délai maximal, de 10 à 3600 (défaut : 600)
   --json                      sortie JSON v1 pour les intégrations
@@ -366,7 +367,16 @@ Avec --open (pilote Codex ; Windows, macOS et Linux) :
   n'annule pas un dépôt, et il n'y a aucun renvoi automatique. Sur macOS/Linux, python3 est requis
   pour éprouver le verrou POSIX ; outil absent, timeout ou erreur ambiguë = target-state-unknown.
 
-Avec --open --follow (suivre la suite) :
+Avec --then-follow <secondes> (envoi puis écoute, mode ouvert explicite ou auto) :
+  Un seul dépôt. --timeout borne la réponse liée ; le second délai explicite (10 à 3600 s)
+  commence à sa réception. La référence suit exactement sa ligne de fin, sans perdre une suite rapide.
+  En texte, réponse liée immédiate puis suite séparée ; en JSON, un seul objet final sur stdout,
+  progression sur stderr. status/reply/delivery principaux restent ceux de la réponse liée ; nextTurn
+  rapporte la suite (followed), l'échéance (awaiting-turn, reason timeout), l'annulation ou l'erreur.
+  Première réponse échouée : nextTurn not-started, aucune écoute. Aucun auteur ni accord humain déduit.
+  Refus : arrière-plan, Claude Code, --new, Mission, --task review, --write, --check ou --follow.
+
+Avec --open --follow (suivre la suite sans --then-follow) :
   Quand la conversation attend une action dans l'app (par exemple une confirmation), la suite se
   joue dans un nouveau tour qu'aucun appel Relay n'écoute. --follow ne dépose rien et ne lance
   aucun processus Codex (sous macOS/Linux, seule la sonde du verrou lance python3, comme pour
@@ -803,6 +813,7 @@ Flags:
   For advice or a review that must not change files, pass --background:
   fewer permissions for this call, without changing the setting. Do not choose the mode out of habit otherwise.
   --follow                    with --open: queues nothing, waits for the next completed turn
+  --then-follow <seconds>     after the correlated reply, listens for one more turn (10 to 3600 s)
   --check                     checks mode, conversation and known permissions, sends nothing
   --timeout <seconds>         maximum duration, 10 to 3600 (default: 600)
   --json                      JSON v1 output for integrations
@@ -898,7 +909,16 @@ With --open (Codex pilot; Windows, macOS, and Linux):
   does not cancel a queued message, and there is no automatic resend. On macOS/Linux, python3 is
   required to probe the POSIX lock; missing tool, timeout, or ambiguous error = target-state-unknown.
 
-With --open --follow (follow what happens next):
+With --then-follow <seconds> (send then listen, explicit or auto open mode):
+  One queue call only. --timeout bounds the correlated reply; the explicit second budget (10 to
+  3600 s) starts when it is received. The reference follows its exact end line, retaining fast continuations.
+  Text: immediate correlated reply, then a separate continuation. JSON: one final stdout object,
+  progress on stderr. Main status/reply/delivery retain the correlated result; nextTurn reports the
+  continuation (followed), deadline (awaiting-turn, reason timeout), cancellation or failure.
+  Failed first reply: nextTurn not-started, no listening. No human author or authorization inferred.
+  Refused: background, Claude Code, --new, Mission, --task review, --write, --check or --follow.
+
+With --open --follow (follow what happens next without --then-follow):
   When the conversation waits for an action in the app (for example a confirmation), what follows
   happens in a new turn that no Relay call is listening to. --follow queues nothing and starts no
   Codex process (on macOS/Linux, only the lock probe starts python3, as with --open): it waits
