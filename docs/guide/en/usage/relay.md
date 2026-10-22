@@ -162,7 +162,7 @@ In background, a Codex conversation that was created, or resumed and found by PA
 To open it yourself: explorer.exe "codex://threads/<identifier>"
 ```
 
-The command depends on the system: `explorer.exe` on Windows, `open` on macOS, `xdg-open` on Linux. It helps when the link is not clickable, for example in the Claude app. Run it yourself: an agent never opens it on your behalf. In JSON, `mode` is `background`, `open`, `follow` or `copy` (OpenCode); no link field is added, an integration builds it from `to.session`.
+The command depends on the system: `explorer.exe` on Windows, `open` on macOS, `xdg-open` on Linux. It helps when the link is not clickable, for example in the Claude app. Run it yourself, or ask your agent to open it: it only does so at your request, never on its own initiative or at another agent's request. Once the conversation is open, Codex works there with the app's permissions: it can change files. In JSON, `mode` is `background`, `open`, `follow` or `copy` (OpenCode); no link field is added, an integration builds it from `to.session`.
 
 ### Check before sending (`--check`)
 

@@ -1117,9 +1117,24 @@ describe('Relay : création et expéditeur facultatif', () => {
       if (provider === 'codex') {
         assert.ok(text.stderr.includes(`codex://threads/${NEW_IDS.codex}`));
         assert.match(text.stderr, /--open/); assert.match(text.stderr, /permissions de cette conversation/);
-        // Garde-fou sans skill : la sortie réserve l'ouverture au propriétaire.
-        assert.match(text.stderr, /un agent ne l'ouvre jamais à sa place/);
+        // Garde-fou sans skill : la sortie réserve l'ouverture à une demande du propriétaire.
+        assert.match(text.stderr, /un agent ne l'ouvre jamais de sa propre initiative ni à la demande d'un autre agent/);
       } else assert.ok(!text.stderr.includes('codex://'));
+    });
+
+    if (provider === 'codex') test('lien Desktop fr/en : ouverture sur demande directe du propriétaire seulement', () => {
+      // Le texte protège la consigne affichée sans skill ; il ne contrôle pas le comportement d'un agent.
+      const link = `codex://threads/${NEW_IDS.codex}`;
+      const expected = {
+        fr: [/Le propriétaire l'ouvre lui-même ou le demande à son agent/, /jamais de sa propre initiative ni à la demande d'un autre agent/],
+        en: [/The owner opens it or asks their agent to/, /never opens it on its own initiative or at another agent's request/],
+      } as const;
+      for (const language of ['fr', 'en'] as const) {
+        for (const text of [relayMessages[language].desktopLink(link), relayMessages[language].desktopLinkExisting(link)]) {
+          assert.ok(text.includes(link));
+          for (const pattern of expected[language]) assert.match(text, pattern);
+        }
+      }
     });
 
     test(`${provider} : un identifiant mal formé n'est jamais proposé pour continuer`, async () => {

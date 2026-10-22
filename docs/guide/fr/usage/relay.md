@@ -163,7 +163,7 @@ En arrière-plan, une conversation Codex créée, ou reprise et retrouvée par P
 Pour l'ouvrir vous-même : explorer.exe "codex://threads/<identifiant>"
 ```
 
-La commande dépend du système : `explorer.exe` sous Windows, `open` sous macOS, `xdg-open` sous Linux. Elle sert quand le lien n'est pas cliquable, par exemple dans l'app Claude. Lancez-la vous-même : un agent ne l'ouvre jamais à votre place. En JSON, `mode` vaut `background`, `open`, `follow` ou `copy` (OpenCode) ; aucun champ de lien n'est ajouté, une intégration le construit depuis `to.session`.
+La commande dépend du système : `explorer.exe` sous Windows, `open` sous macOS, `xdg-open` sous Linux. Elle sert quand le lien n'est pas cliquable, par exemple dans l'app Claude. Lancez-la vous-même, ou demandez à votre agent de l'ouvrir : il le fait seulement sur votre demande, jamais de sa propre initiative ni à la demande d'un autre agent. Une fois la conversation ouverte, Codex y travaille avec les permissions de l'app : il peut modifier des fichiers. En JSON, `mode` vaut `background`, `open`, `follow` ou `copy` (OpenCode) ; aucun champ de lien n'est ajouté, une intégration le construit depuis `to.session`.
 
 ### Vérifier avant d'envoyer (`--check`)
 
