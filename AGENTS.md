@@ -1553,6 +1553,8 @@ Le JSON v1 ajoute `created` et `cwd` pour `--new` seulement : `created` signifie
 
 Lien Desktop (#188, après #150) : après création d'une conversation Codex, le texte et l'export `.relay.md` affichent `codex://threads/<id>`. Aucun champ JSON n'est ajouté : une intégration construit le lien depuis `to.session`. La conversation créée par la CLI n'est pas listée dans Desktop avec les versions vérifiées ; seul le propriétaire ouvre le lien, jamais l'agent. L'ouverture avec historique a été vérifiée sous Windows (Codex Desktop 26.1013.40934) seulement ; macOS et Linux restent à vérifier pour ce lien. Une fois ouverte dans Desktop, Relay utilise `--open` et les permissions de Desktop, sans élargissement implicite.
 
+Restitution par le skill : le compte rendu d'un Relay vise un utilisateur de l'app desktop. Résultat en mots simples, mode, une seule action humaine si nécessaire ; pour ouvrir une conversation créée, seulement la commande d'ouverture dans un bloc shell (bouton Run de l'hôte), jamais le lien seul. L'agent garde identifiant, dossier et export pour « continue » et ne les affiche, avec une commande `palabre relay --to …`, que sur demande, sans mémoire de conversation chez l'hôte ou pour diagnostiquer un échec. La sortie texte de la CLI reste inchangée.
+
 
 ### Codex Windows : alias PowerShell Store (#128)
 
