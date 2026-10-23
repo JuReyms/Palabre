@@ -295,7 +295,8 @@ Ouvrir Codex sans envoyer (#219) :
   puis sonde du verrou sans second lancement. Le défilement n'est pas piloté.
   JSON séparé : relay-open-result v1, launcher, attachment, display: unverified, messageSent: false.
   Code 0 : attached ; 3 : verrou libre à l'échéance ou inconnu ; 4 : délai pendant validation,
-  lanceur ou sonde ; 7 : lanceur absent ; 130 : annulation. Envoi suivant : --open explicite,
+  lanceur ou sonde ; 2 : échec du lanceur ; 7 : lanceur absent ; 130 : annulation.
+  Envoi suivant : --open explicite,
   seulement pour une tâche autorisée. Claude n'est pas pris en charge ici : dépannage --desktop
   séparé (#225), pas de suivi direct (#193). Deux ouvertures Windows puis une ouverture
   corrigée confirmées par le propriétaire ; aucune généralisation à toutes les versions
@@ -900,7 +901,8 @@ Open Codex without sending (#219):
   Windows/Explorer code 1: launcher unverified, raw code retained, then lock probing without
   a second launch. Scrolling is not controlled. Separate JSON: relay-open-result v1,
   launcher, attachment, display: unverified, messageSent: false. Code 0: attached; 3: still free
-  at deadline or unknown; 4: deadline during validation, launcher or probe; 7: missing launcher;
+  at deadline or unknown; 4: deadline during validation, launcher or probe; 2: launcher failure;
+  7: missing launcher;
   130: cancelled. For a later authorized send, use --open explicitly. Claude is unsupported
   here: separate --desktop workaround (#225), no live following (#193). Two Windows openings
   then one corrected opening confirmed by the owner; not a qualification of all versions

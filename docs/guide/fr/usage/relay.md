@@ -193,6 +193,11 @@ code final 0 et affichage confirmé séparément par le propriétaire, sans mess
 Cet essai ne qualifie pas toutes les versions ni une transition de fermé à ouvert.
 macOS/Linux non vérifiés, `python3` requis sur POSIX.
 
+Sous Linux, si le lanceur reste actif, Relay peut atteindre son délai sans
+confirmer le verrou, même si l'app s'est affichée. Vérifiez l'app avant une autre
+demande ; aucun nouvel essai automatique. La prise initiale du verrou par Desktop
+reste également à qualifier : les essais Windows n'ont pas validé ce cas.
+
 Les validations, localisations, lectures et sondes peuvent retarder le retour ou
 Ctrl+C ; les 15 secondes ne sont pas une borne murale stricte. Le délai est
 revérifié après ces opérations, avant tout lancement ou succès.

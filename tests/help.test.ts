@@ -123,6 +123,9 @@ for (const language of ["fr", "en"] as const) {
     for (const flag of ["open", "follow", "background", "relay-view"]) assert.ok(text.includes(`--${flag}`));
     assert.match(text, language === "fr" ? /aucun renvoi automatique/i : /no automatic resend/i);
     assert.match(text, language === "fr" ? /sans modification.*--background/s : /must not change files.*--background/s);
+    const opening = text.split(language === "fr" ? "Ouvrir Codex sans envoyer (#219) :" : "Open Codex without sending (#219):")[1]?.split("\n\n")[0];
+    assert.ok(opening, "section d'ouverture Relay absente");
+    assert.match(opening, language === "fr" ? /2 : échec du lanceur/ : /2: launcher failure/);
   });
 
   test(`exemples de lancement ${language} : syntaxe reconnue, sans exécution`, () => {
@@ -151,3 +154,10 @@ for (const language of ["fr", "en"] as const) {
     }
   });
 }
+
+test("skill Relay : PALABRE choisit le lanceur, sans commande système de remplacement", async () => {
+  const reference = await readFile(path.resolve("skills/palabre/references/relay.md"), "utf8");
+  assert.match(reference, /palabre relay open --to codex:<id>/);
+  assert.match(reference, /PALABRE choisit lui-même le lanceur système : conserver `palabre relay open`/);
+  assert.doesNotMatch(reference, /`open` sous macOS, `xdg-open` sous Linux\./);
+});

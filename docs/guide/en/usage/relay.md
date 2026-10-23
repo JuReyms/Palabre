@@ -191,6 +191,11 @@ confirmed separately by the owner, with no message. This test does not qualify a
 versions or a transition from closed to open.
 macOS/Linux unverified, `python3` required on POSIX.
 
+On Linux, if the launcher stays active, Relay may reach its deadline without
+confirming the lock even if the app is displayed. Inspect the app before another
+request; there is no automatic retry. Desktop's initial lock acquisition also
+remains unqualified: the Windows tests did not validate that case.
+
 Validation, lookup, reads and probes may delay returning or Ctrl+C; 15 seconds is
 not a strict wall-clock return bound. The deadline is rechecked afterwards,
 before any launch or accepted success.

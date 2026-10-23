@@ -88,3 +88,23 @@ de la première cible au commit 4d464e2 : `launcher: unverified`/1, `attached`/0
 Cela ne qualifie ni toutes les versions ni une transition de fermé à ouvert.
 macOS/Linux restent non vérifiés. Aucun modèle n'est nécessaire pour une ouverture ;
 l'échange Codex → Codex relaté dans le bilan est un test séparé explicitement autorisé.
+
+## Risques à vérifier, sans garantie supplémentaire
+
+La revue de Claude Opus 5.5 sur b931a15 n'a pas relevé de défaut bloquant, mais
+ces scénarios restent à vérifier ; ce ne sont pas des pannes observées :
+
+- Si `xdg-open` ne se termine pas avant l'échéance, l'attente du lanceur utilise
+  le budget restant et aucune sonde après lancement n'a lieu. Le rapport peut
+  être `timeout`/4, `attachment: unknown`, même si l'app s'est ouverte. Ne pas
+  relancer automatiquement ; constater l'état de l'app. Qualification Linux requise.
+- Le lanceur Linux est résolu par le PATH depuis le dossier de la cible. Un PATH
+  comportant `.` ou une entrée relative peut donc sélectionner un exécutable du
+  projet. Ce lot ne durcit pas cette résolution : ne pas annoncer d'isolation
+  supplémentaire ni modifier le PATH utilisateur pour un essai.
+- La sonde Windows prend puis relâche brièvement un accès exclusif si le verrou
+  est libre. Sa concurrence avec la prise du verrou par Desktop n'a pas été
+  qualifiée ; les essais réels ne prouvent pas une transition fermé → ouvert.
+
+Un changement du lancement, de la résolution PATH ou de la stratégie de sonde
+demande un lot séparé avec ses tests ; ne pas improviser de repli dans une intégration.

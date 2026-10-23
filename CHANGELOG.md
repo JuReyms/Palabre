@@ -32,6 +32,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Fixed
 
+- Revue Claude Opus 5.5 de #226 : l'aide Relay FR/EN mentionne le code 2 d'échec du lanceur ; le skill conserve `palabre relay open` sur les trois systèmes, sans suggérer une commande système de remplacement. Régressions documentaires testées. Les risques non vérifiés de lanceur Linux, PATH relatif et concurrence de prise du verrou sont consignés sans modification du runtime. Copies installées uniquement après accord humain, puis rechargement du skill.
+
 - Relay `open` Windows (#226) : Explorer code 1, observé malgré deux ouvertures confirmées, devient `launcher.status: unverified` avec le code brut conservé ; la sonde du verrou continue, sans second lancement ni succès d'affichage inventé. Autres erreurs/plateformes inchangées. Tests hors ligne, aide, guides fr/en et skill alignés. Bilan des ouvertures et d'un échange Codex → Codex séparé consigné ; aucun défilement automatique promis. Copies installées uniquement après accord humain, puis rechargement du skill.
 
 - Relay OpenCode `--copy` : reconnaît une seule notification de changement de date `core/date` d'OpenCode 2.0.32, avant l'enveloppe, sans accepter les autres messages système. Forme exacte, date et jour de semaine vérifiés ; doublons, texte ajouté, autres instructions et changements de permissions restent refusés. Cas révélé par l'essai du 22 octobre puis corrigé et vérifié hors ligne, sans nouvel appel au modèle ni nouveau champ JSON (Refs #136, #178). Aide, guides FR/EN et référence du skill alignés ; copies installées : `palabre skill --sync` après accord humain, puis recharger le skill.
