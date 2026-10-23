@@ -64,6 +64,8 @@ Relay can create a new conversation or continue one you choose. Each send is exp
 | **Ask** | Compare 1–4 independent opinions, without mutual influence. | `question → separate answers → comparison` |
 | **Chat** | Advance with one interlocutor and occasionally request another opinion. | `you ↔ A`, with a one-off consultation of B |
 
+Unlike Relay, Debate, Ask and Chat start new exchanges: they do not automatically pick up your existing Codex or Claude Code conversations.
+
 ### Which tools work with which modes?
 
 These are the tools Palabre can call, once installed and configured — regardless of which compatible assistant you use to launch Palabre.
@@ -136,6 +138,8 @@ Palabre saves exchanges as Markdown files in `.palabre/` by default: `.relay.md`
 
 Full documentation: **[palab.re](https://palab.re/en)** — [Relay](https://palab.re/en/usage/relay), [Debate](https://palab.re/en/get-started/first-debate), [CLI reference](https://palab.re/en/reference/cli), [Troubleshooting](https://palab.re/en/troubleshooting).
 
+For agents: operating instructions in [`skills/palabre/SKILL.md`](./skills/palabre/SKILL.md).
+
 [VS Code extension](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode): Debate, Ask and Chat from a sidebar. [Integration contracts](https://palab.re/en/integrations/ndjson): JSON/NDJSON for other clients.
 
 [Contributing and local development](./AGENTS.md) · [Changelog](./CHANGELOG.md) · [Roadmap](https://palab.re/en/roadmap) · [MIT license](./LICENSE)
@@ -191,6 +195,8 @@ Relay peut créer une nouvelle conversation ou poursuivre celle que vous choisis
 | **Débat** | Travailler deux positions et leurs désaccords. | `A ↔ B → synthèse` |
 | **Ask** | Comparer 1 à 4 avis indépendants, sans influence mutuelle. | `question → réponses séparées → comparaison` |
 | **Chat** | Avancer avec un interlocuteur et demander parfois un autre avis. | `vous ↔ A`, avec consultation ponctuelle de B |
+
+Contrairement à Relay, Débat, Ask et Chat lancent de nouveaux échanges : ils ne reprennent pas automatiquement vos conversations existantes dans Codex ou Claude Code.
 
 ### Quels outils pour quels modes ?
 
@@ -263,6 +269,8 @@ Palabre enregistre les échanges dans des fichiers Markdown, dans `.palabre/` pa
 ### Documentation et intégrations
 
 Documentation complète : **[palab.re](https://palab.re/fr)** — [Relay](https://palab.re/fr/usage/relay), [Débat](https://palab.re/fr/get-started/first-debate), [Référence CLI](https://palab.re/fr/reference/cli), [Dépannage](https://palab.re/fr/troubleshooting).
+
+Pour les agents : consignes d'utilisation dans [`skills/palabre/SKILL.md`](./skills/palabre/SKILL.md).
 
 [Extension VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode) : Débat, Ask et Chat dans une barre latérale. [Contrats d'intégration](https://palab.re/fr/integrations/ndjson) : JSON/NDJSON pour les autres clients.
 
