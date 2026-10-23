@@ -1148,11 +1148,13 @@ describe('Relay : création et expéditeur facultatif', () => {
   }
 
   test('lien Codex Desktop en arrière-plan : création et reprise, commande d\'ouverture, jamais en JSON (#190)', async () => {
-    const opener = process.platform === 'win32' ? 'explorer.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open';
-    const created = await relay(makeWorld(), ['--new', '--to', 'codex', 'Question', '--trust-config', '--language', 'en', '--no-export']);
+    const w = makeWorld();
+    const quotedConfig = (workspace: string) => "'" + path.join(workspace, 'palabre.config.json').replaceAll("'", process.platform === 'win32' ? "''" : "'\\''") + "'";
+    const created = await relay(w, ['--new', '--to', 'codex', 'Question', '--trust-config', '--language', 'en', '--no-export']);
     assert.equal(created.code, 0, created.stderr);
     assert.ok(created.stderr.includes(`Codex Desktop link, to hand to the owner: codex://threads/${NEW_IDS.codex}`));
-    assert.ok(created.stderr.includes(`To open it yourself: ${opener} "codex://threads/${NEW_IDS.codex}"`));
+    assert.ok(created.stderr.includes(`To open it yourself (${process.platform === 'win32' ? 'PowerShell' : 'POSIX'}): palabre relay open --to codex:${NEW_IDS.codex} --config ${quotedConfig(w.workspace)}`));
+    assert.deepEqual(created.calls.map(c => c.argv[0]), ['mcp', 'exec'], 'seuls la sonde MCP et le tour demandé sont lancés');
     assert.ok(created.stderr.includes('Mode: background — no visible window; PALABRE requests read-only access.'));
     // Sortie non TTY : aucune séquence OSC 8.
     assert.ok(!created.stderr.includes('\u001b]8;;'));
@@ -1160,10 +1162,12 @@ describe('Relay : création et expéditeur facultatif', () => {
     assert.equal(resumed.code, 0, resumed.stdout + resumed.stderr);
     assert.equal(resumed.json.mode, 'background');
     assert.ok(!JSON.stringify(resumed.json).includes('codex://'), 'aucun champ JSON de lien');
+    assert.ok(!JSON.stringify(resumed.json).includes('desktopConfigPath'), 'métadonnée de présentation privée');
     assert.match(readFileSync(resumed.json.exportPath, 'utf8'), new RegExp(`\\| Lien Codex Desktop \\| codex://threads/${CODEX_SESSION} \\|`));
-    const text = await relay(makeWorld(), ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--no-export']);
+    const resumedWorld = makeWorld();
+    const text = await relay(resumedWorld, ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--no-export']);
     assert.ok(text.stderr.includes(`Pour suivre cette conversation dans Codex Desktop : codex://threads/${CODEX_SESSION}`));
-    assert.ok(text.stderr.includes(`Pour l'ouvrir vous-même : ${opener} "codex://threads/${CODEX_SESSION}"`));
+    assert.ok(text.stderr.includes(`Pour l'ouvrir vous-même (${process.platform === 'win32' ? 'PowerShell' : 'POSIX'}) : palabre relay open --to codex:${CODEX_SESSION} --config ${quotedConfig(resumedWorld.workspace)}`));
     const claude = await relay(makeWorld(), ['--to', `claude:${CLAUDE_SESSION}`, 'Question', '--trust-config', '--no-export']);
     assert.ok(!claude.stderr.includes('codex://'), 'jamais pour Claude');
     assert.ok(claude.stderr.includes('Mode : arrière-plan — sans fenêtre visible ; PALABRE demande la lecture seule.'));
@@ -1172,6 +1176,23 @@ describe('Relay : création et expéditeur facultatif', () => {
     assert.equal(missing.code, 6, missing.stderr);
     assert.ok(!missing.stderr.includes('codex://'), 'jamais pour une conversation introuvable');
     assert.ok(missing.stderr.includes('Mode : arrière-plan — sans fenêtre visible'));
+  });
+
+  test('suggestion Codex : alias et config relative explicite conservés depuis un autre dossier', async () => {
+    const w = makeWorld("source O'Brien $()");
+    const configPath = path.join(w.workspace, 'palabre.config.json');
+    const config = JSON.parse(readFileSync(configPath, 'utf8'));
+    config.agents['codex-reviewer'] = config.agents.codex;
+    writeFileSync(configPath, JSON.stringify(config));
+    const caller = path.join(w.base, 'autre-projet');
+    mkdirSync(caller);
+    const r = await relay({ ...w, workspace: caller }, ['--to', `codex-reviewer:${CODEX_SESSION}`, '--config', path.relative(caller, configPath), 'Question', '--trust-config', '--no-export']);
+    assert.equal(r.code, 0, r.stderr);
+    const quoted = configPath.replaceAll("'", process.platform === 'win32' ? "''" : "'\\''");
+    assert.ok(r.stderr.includes(`palabre relay open --to codex-reviewer:${CODEX_SESSION} --config '${quoted}'`), r.stderr);
+    assert.ok(r.calls.every(c => c.cwd === w.workspace));
+    assert.deepEqual(r.calls.map(c => c.argv[0]), ['mcp', 'exec'], 'aucune ouverture en affichant la suggestion');
+    assert.doesNotMatch(r.stderr, /explorer\.exe|xdg-open/);
   });
 
   test('ouverture Claude fr/en : création/reprise exactes, même CLI et aucun lancement Desktop', async () => {

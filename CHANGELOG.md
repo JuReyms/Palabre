@@ -32,6 +32,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Fixed
 
+- Revue Claude Opus 5.5 du lot UX : refuse aussi U+201A/U+201B dans les suggestions PowerShell Codex et Claude (rupture du littéral confirmée avec le parseur PowerShell 7.6.5, sans exécution). Shell attendu affiché pour Codex et documenté : PowerShell sous Windows, POSIX sous macOS/Linux. Tests et exemple OSC 8 actualisés ; aucune modification des transports Claude.
+
+- Relay : les suggestions d'ouverture Codex passent par `palabre relay open`, sur les trois systèmes, avec l'alias et la configuration effective en chemin absolu. Ouvrir reste distinct d'envoyer ; aucune ouverture automatique, aucun changement des transports, du JSON ou de l'export. Chemins quotés sans interpolation ; suggestion omise si le chemin ne peut pas être reproduit fidèlement. Aide, guides fr/en et skill alignés. Copies installées : `palabre skill --sync` seulement après accord humain, puis recharger le skill.
+
 - Revue Claude Opus 5.5 de #226 : l'aide Relay FR/EN mentionne le code 2 d'échec du lanceur ; le skill conserve `palabre relay open` sur les trois systèmes, sans suggérer une commande système de remplacement. Régressions documentaires testées. Les risques non vérifiés de lanceur Linux, PATH relatif et concurrence de prise du verrou sont consignés sans modification du runtime. Copies installées uniquement après accord humain, puis rechargement du skill.
 
 - Relay `open` Windows (#226) : Explorer code 1, observé malgré deux ouvertures confirmées, devient `launcher.status: unverified` avec le code brut conservé ; la sonde du verrou continue, sans second lancement ni succès d'affichage inventé. Autres erreurs/plateformes inchangées. Tests hors ligne, aide, guides fr/en et skill alignés. Bilan des ouvertures et d'un échange Codex → Codex séparé consigné ; aucun défilement automatique promis. Copies installées uniquement après accord humain, puis rechargement du skill.

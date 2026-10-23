@@ -1,11 +1,12 @@
 /**
  * @file Tests de l'affichage du mode Relay (#190, lot A) : libellés fr/en, lien OSC 8 réservé au
- * terminal interactif, commande d'ouverture d'un lien `codex://` selon le système et cas où ce lien
+ * terminal interactif, suggestion `relay open` liée à la config effective et cas où ce lien
  * est donné, et ouverture Claude liée à son dossier exact sans nouvel envoi. Fonctions pures.
  */
 import assert from "node:assert/strict";
+import path from "node:path";
 import { describe, test } from "node:test";
-import { claudeDesktopOpenCommand, desktopOpenCommand, relayDesktopLink, renderRelayText, terminalHyperlinksEnabled, withTerminalHyperlink, type RelayResultV1 } from "../src/commands/relay.js";
+import { claudeDesktopOpenCommand, codexDesktopOpenCommand, relayDesktopLink, renderRelayText, terminalHyperlinksEnabled, withTerminalHyperlink, type RelayResultV1 } from "../src/commands/relay.js";
 import { relayMessages } from "../src/messages/relay.js";
 import { createTranslator } from "../src/i18n.js";
 
@@ -59,8 +60,12 @@ describe("Claude Desktop : commande de consultation, aucun envoi", () => {
     assert.equal(claudeDesktopOpenCommand(result(), true, executable, "linux"), undefined);
   });
   test("contrôles et guillemets typographiques PowerShell refusés, pas assainis en commande différente", () => {
-    for (const command of ["claude\n.exe", "claude\u202e.exe", "C:/O\u2019Brien/claude.exe"]) {
+    for (const command of ["claude\n.exe", "claude\u202e.exe", ...Array.from({ length: 7 }, (_, i) => `C:/O${String.fromCharCode(0x2018 + i)}Brien/claude.exe`)]) {
       assert.equal(claudeDesktopOpenCommand(result(), true, { command, prefixArgs: [] }, "win32"), undefined);
+    }
+    for (const quote of ["\u201a", "\u201b"]) {
+      assert.equal(claudeDesktopOpenCommand(result({ cwd: `C:/projet${quote}nom` }), true, executable, "win32"), undefined);
+      assert.equal(claudeDesktopOpenCommand(result(), true, { command: "node", prefixArgs: [`C:/projet${quote}nom/claude.js`] }, "win32"), undefined);
     }
     assert.equal(claudeDesktopOpenCommand(result(), true, { command: "node", prefixArgs: ["cli\n.js"] }, "darwin"), undefined);
   });
@@ -88,15 +93,50 @@ describe("#190 : lien cliquable et commande d'ouverture", () => {
     assert.equal(terminalHyperlinksEnabled(true, { TERM: "dumb" }), false);
   });
   test("seule la première occurrence devient cliquable ; texte inchangé sans le lien", () => {
-    const text = `Lien : ${LINK}\nPour l'ouvrir vous-même : explorer.exe "${LINK}"\n`;
+    const text = `Lien : ${LINK}\nRappel du lien : ${LINK}\n`;
     const linked = withTerminalHyperlink(text, LINK);
-    assert.equal(linked, `Lien : \u001b]8;;${LINK}\u001b\\${LINK}\u001b]8;;\u001b\\\nPour l'ouvrir vous-même : explorer.exe "${LINK}"\n`);
+    assert.equal(linked, `Lien : \u001b]8;;${LINK}\u001b\\${LINK}\u001b]8;;\u001b\\\nRappel du lien : ${LINK}\n`);
     assert.equal(withTerminalHyperlink("aucun lien", LINK), "aucun lien");
   });
-  test("commande selon le système, lien entre guillemets", () => {
-    assert.equal(desktopOpenCommand(LINK, "win32"), `explorer.exe "${LINK}"`);
-    assert.equal(desktopOpenCommand(LINK, "darwin"), `open "${LINK}"`);
-    assert.equal(desktopOpenCommand(LINK, "linux"), `xdg-open "${LINK}"`);
+});
+
+describe("Codex Desktop : suggestion unique, config et cible conservées", () => {
+  const session = "0199aaaa-bbbb-7ccc-8ddd-eeeeeeeeeeee";
+  const result = { status: "replied", mode: "background", to: { agent: "codex-reviewer", session, provider: "codex" } } as RelayResultV1;
+  const config = path.resolve("projet O'Brien $()`\"", "palabre.config.json");
+  test("PowerShell et POSIX : littéral exact, même alias, sans envoi ni approbation", () => {
+    for (const platform of ["win32", "darwin", "linux"] as const) {
+      const quoted = platform === "win32" ? config.replaceAll("'", "''") : config.replaceAll("'", "'\\''");
+      assert.equal(codexDesktopOpenCommand(result, true, config, platform),
+        `palabre relay open --to codex-reviewer:${session} --config '${quoted}'`);
+    }
+  });
+  test("aucune cible/config supposée ; caractères non représentables refusés", () => {
+    assert.equal(codexDesktopOpenCommand(result, false, config), undefined);
+    assert.ok(codexDesktopOpenCommand({ ...result, created: true, status: "cli-failure" }, false, config));
+    for (const bad of [undefined, "", "./relative.json", config + "\n", config + "\u202e", ...Array.from({ length: 7 }, (_, i) => config + String.fromCharCode(0x2018 + i))]) {
+      assert.equal(codexDesktopOpenCommand(result, true, bad, "win32"), undefined);
+    }
+    for (const mode of ["copy", "open", "follow"] as const) {
+      assert.equal(codexDesktopOpenCommand({ ...result, mode }, true, config), undefined);
+    }
+    for (const to of [
+      { ...result.to!, agent: "x;whoami" }, { ...result.to!, session: "latest" },
+      { ...result.to!, provider: "claude" as const }
+    ]) assert.equal(codexDesktopOpenCommand({ ...result, to }, true, config), undefined);
+  });
+  test("texte fr/en : consultation distincte d'un futur envoi ; pas de commande altérée", () => {
+    for (const language of ["fr", "en"] as const) {
+      const rendered = renderRelayText(result, createTranslator(language), { targetLocated: true, desktopConfigPath: config });
+      assert.ok(rendered.stderr.includes(codexDesktopOpenCommand(result, true, config)!));
+      assert.ok(rendered.stderr.includes(process.platform === "win32" ? "(PowerShell)" : "(POSIX)"));
+      assert.match(rendered.stderr, /relay --check --open/);
+      assert.match(rendered.stderr, language === "fr" ? /n'autorise aucun envoi/ : /grants no permission to send/);
+      assert.doesNotMatch(rendered.stderr, /explorer\.exe|xdg-open/);
+      const unsafe = renderRelayText(result, createTranslator(language), { targetLocated: true, desktopConfigPath: config + "\n" });
+      assert.ok(unsafe.stderr.includes(LINK));
+      assert.ok(!unsafe.stderr.includes("palabre relay open"));
+    }
   });
 });
 

@@ -126,6 +126,9 @@ for (const language of ["fr", "en"] as const) {
     const opening = text.split(language === "fr" ? "Ouvrir Codex sans envoyer (#219) :" : "Open Codex without sending (#219):")[1]?.split("\n\n")[0];
     assert.ok(opening, "section d'ouverture Relay absente");
     assert.match(opening, language === "fr" ? /2 : échec du lanceur/ : /2: launcher failure/);
+    assert.match(text, /palabre relay open --to <agent>:<id> --config/);
+    assert.doesNotMatch(text, /explorer\.exe|xdg-open/);
+    assert.match(text, language === "fr" ? /même implicite/ : /even when implicit/);
   });
 
   test(`exemples de lancement ${language} : syntaxe reconnue, sans exécution`, () => {
@@ -160,4 +163,13 @@ test("skill Relay : PALABRE choisit le lanceur, sans commande système de rempla
   assert.match(reference, /palabre relay open --to codex:<id>/);
   assert.match(reference, /PALABRE choisit lui-même le lanceur système : conserver `palabre relay open`/);
   assert.doesNotMatch(reference, /`open` sous macOS, `xdg-open` sous Linux\./);
+});
+
+test("guides Relay fr/en : même ouverture que la CLI, avec config, sans envoi", async () => {
+  for (const language of ["fr", "en"] as const) {
+    const guide = await readFile(path.resolve(`docs/guide/${language}/usage/relay.md`), "utf8");
+    assert.match(guide, /palabre relay open --to codex:<[^>]+> --config '/);
+    assert.doesNotMatch(guide, /explorer\.exe|xdg-open/);
+    assert.match(guide, language === "fr" ? /Ouvrir n'envoie aucun message et n'autorise aucun envoi/ : /Opening sends no message and grants no permission to send/);
+  }
 });

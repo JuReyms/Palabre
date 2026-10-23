@@ -393,7 +393,8 @@ Desktop garde une qualification séparée.
 ## Centraliser l'ouverture Codex avec `relay open` (#219)
 
 Sur demande humaine directe uniquement, utiliser `palabre relay open --to
-<agent>:<uuid> --json`, avec le même --config si explicite, plutôt que refaire
+<agent>:<uuid> --json`, avec le même alias et la config effective en chemin absolu
+(--config, même si implicite à l'envoi), plutôt que refaire
 le lanceur système et la boucle de contrôle dans chaque hôte. Pas de message,
 --trust-config, --new ni option d'envoi. La commande valide avec --check --open,
 lance une seule fois, puis observe le verrou sous budget coopératif de 15 s.
@@ -419,8 +420,12 @@ sans changer la conversation affichée (échange Codex → Codex confirmé sous 
 Le bouton court « Ouvrir dans Codex » dépend de l'hôte. S'il n'en propose pas,
 une question courte puis exécution sur accord ; pour l'humain qui veut lancer
 lui-même, une seule commande sans --json dans le bloc shell, commentaires action
-et objet. Le texte CLI des anciennes versions peut encore donner explorer/open/
-xdg-open ; le lien n'est jamais une preuve d'affichage.
+et objet. Le texte CLI propose aussi relay open avec la config effective absolue,
+sans l'exécuter ; aucun champ JSON/export ajouté. Sous Windows, cette suggestion
+est une commande PowerShell, pas Git Bash ni cmd.exe ; sous macOS/Linux, shell POSIX.
+Chemin non représentable sans
+altération : ne pas deviner une autre config, demander une commande au propriétaire.
+Le lien n'est jamais une preuve d'affichage.
 
 Claude/OpenCode sont refusés dans ce premier lot ; le dépannage Claude TTY de
 #225 reste distinct. Ne pas inventer un transport --open Claude ou un flux live.
