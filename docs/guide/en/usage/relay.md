@@ -200,7 +200,7 @@ window, even after switching away and back. After **File > Quit** and reopening
 the same conversation, it was visible. This restart is only a workaround, never
 an automatic shutdown or the intended normal workflow. A Relay “closed” check
 does not prove the conversation is closed in Claude Desktop: its CLI registry
-may be empty. See the [qualification report](https://github.com/JuReyms/Palabre/blob/codex/relay-desktop-opening/docs/relay-desktop-qualification.md).
+may be empty. See the [qualification report](https://github.com/JuReyms/Palabre/blob/3342c36/docs/relay-desktop-qualification.md).
 
 **Viewing is not sending.** Check permissions before continuing in Claude Desktop:
 the Relay turn's restrictions are not guaranteed in the app. Before another Relay

@@ -298,7 +298,7 @@ Le propriétaire l'ouvre lui-même ou le demande à son agent ; un agent ne l'ou
     desktopLinkExisting: link => `Pour suivre cette conversation dans Codex Desktop : ${link}
 Le propriétaire l'ouvre lui-même ou le demande à son agent ; un agent ne l'ouvre jamais de sa propre initiative ni à la demande d'un autre agent. Une fois ouverte, les Relay suivants passent par --open, avec les permissions de cette conversation.`,
     openLinkCommand: command => `Pour l'ouvrir vous-même : ${command}`,
-    claudeDesktop: "Consulter dans Claude Desktop (CLI 2.1.285+, app et abonnement Claude requis) : utilisez un terminal TTY sans redirection, ou demandez à votre agent de l'ouvrir. Ouverture seulement sur demande directe du propriétaire, jamais d'un autre agent. Aucun message envoyé ; vérifiez les permissions dans l'app, les restrictions du tour Relay ne sont pas garanties. Relay ne joint pas Claude ouverte : fermez-la avant un nouvel envoi.",
+    claudeDesktop: "Consulter dans Claude Desktop (CLI 2.1.285+, app et abonnement Claude requis) : utilisez un terminal TTY sans redirection, ou demandez à votre agent de l'ouvrir. Ouverture seulement sur demande directe du propriétaire, jamais d'un autre agent. Aucun message envoyé ; vérifiez les permissions dans l'app, les restrictions du tour Relay ne sont pas garanties. Le transport --open ne prend pas en charge Claude ; l'affichage en direct n'est pas garanti.",
     modeLine: (mode, agent, write) => mode === "copy"
       ? "Mode : copie OpenCode — environnement habituel conservé, aucune lecture seule imposée ; fichiers du projet partagés."
       : mode === "open"
@@ -456,7 +456,7 @@ The owner opens it or asks their agent to; an agent never opens it on its own in
     desktopLinkExisting: link => `To follow this conversation in Codex Desktop: ${link}
 The owner opens it or asks their agent to; an agent never opens it on its own initiative or at another agent's request. Once open, later relays go through --open, with this conversation's permissions.`,
     openLinkCommand: command => `To open it yourself: ${command}`,
-    claudeDesktop: "View in Claude Desktop (CLI 2.1.285+, app and Claude subscription required): use a TTY terminal without redirection, or ask your agent to open it. Open only at the owner's direct request, never another agent's request. No message sent; check permissions in the app, the Relay turn's restrictions are not guaranteed. Relay cannot reach open Claude sessions: close it before another send.",
+    claudeDesktop: "View in Claude Desktop (CLI 2.1.285+, app and Claude subscription required): use a TTY terminal without redirection, or ask your agent to open it. Open only at the owner's direct request, never another agent's request. No message sent; check permissions in the app, the Relay turn's restrictions are not guaranteed. The --open transport does not support Claude; live display is not guaranteed.",
     modeLine: (mode, agent, write) => mode === "copy"
       ? "Mode: OpenCode copy — usual environment preserved, no enforced read-only mode; shared project files."
       : mode === "open"

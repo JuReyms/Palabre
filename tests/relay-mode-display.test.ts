@@ -71,7 +71,7 @@ describe("Claude Desktop : commande de consultation, aucun envoi", () => {
       assert.match(text, /2\.1\.285/);
       assert.match(text, language === "fr" ? /demande directe du propriétaire/ : /owner's direct request/);
       assert.match(text, language === "fr" ? /Aucun message envoyé/ : /No message sent/);
-      assert.match(text, language === "fr" ? /fermez-la avant un nouvel envoi/ : /close it before another send/);
+      assert.match(text, language === "fr" ? /--open ne prend pas en charge Claude/ : /--open transport does not support Claude/);
       const rendered = renderRelayText(result(), createTranslator(language), { targetLocated: true, desktopExecutable: executable });
       assert.equal(rendered.stderr.includes("'--desktop' '--resume'"), process.platform === "win32" || process.platform === "darwin");
       assert.ok(!rendered.stderr.includes("codex://"));

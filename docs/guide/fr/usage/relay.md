@@ -202,7 +202,7 @@ fenêtre déjà ouverte, même après un aller-retour entre conversations. Aprè
 Ce redémarrage est seulement un dépannage, jamais une fermeture automatique ni
 le parcours normal. Une vérification Relay « fermée » ne prouve pas que la
 conversation est fermée dans Claude Desktop : son registre CLI peut être vide.
-Voir le [bilan de qualification](https://github.com/JuReyms/Palabre/blob/codex/relay-desktop-opening/docs/relay-desktop-qualification.md).
+Voir le [bilan de qualification](https://github.com/JuReyms/Palabre/blob/3342c36/docs/relay-desktop-qualification.md).
 
 **Consulter n'est pas envoyer.** Vérifiez les permissions avant de poursuivre dans
 Claude Desktop : les restrictions du tour Relay ne sont pas garanties dans l'app.

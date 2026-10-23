@@ -357,7 +357,7 @@ Limites :
   Claude Code 2.1.285+, app installée et abonnement Claude requis (Windows x64/macOS).
   L'ouverture pour consulter a été vérifiée sous Windows ; macOS reste à vérifier, Linux non proposé.
   Aucun message envoyé, aucune permission modifiée par PALABRE ; les restrictions du tour Relay
-  ne sont pas garanties dans l'app. Relay ne peut pas joindre Claude ouverte : la fermer avant
+  ne sont pas garanties dans l'app. Le transport --open ne prend pas en charge Claude : fermer l'app avant
   un nouvel envoi. Ce dépannage de visibilité (#193) ne livre pas relay open (#219).
   Claude Desktop peut ne pas actualiser un échange ajouté en arrière-plan ; son registre CLI
   vide ne prouve pas la fermeture de la fenêtre. Aucun redémarrage automatique de l'app.
@@ -943,7 +943,7 @@ Limits:
   Requires Claude Code 2.1.285+, the installed app and a Claude subscription (Windows x64/macOS).
   Viewing was verified on Windows; macOS remains unverified, Linux is not offered.
   No message sent or permissions changed by PALABRE; the Relay turn's restrictions are not
-  guaranteed in the app. Relay cannot reach open Claude sessions: close it before another send.
+  guaranteed in the app. The --open transport does not support Claude: quit the app before another supported send.
   This visibility workaround (#193) does not implement relay open (#219).
   Claude Desktop may not refresh a background exchange; an empty CLI registry does not prove
   its window is closed. PALABRE never restarts the app automatically.
