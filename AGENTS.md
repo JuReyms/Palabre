@@ -1400,6 +1400,8 @@ Les documents obsoletes ou historiques doivent etre deplaces dans `docs/archive/
 
 ## JSDoc
 
+Skill livré : `SKILL.md` garde routage, exemples sûrs, portée des rôles et invariants d'autorité/délivrance. Références conditionnelles : `relay.md` (bases), `relay-desktop.md`, `relay-opencode.md`, `relay-frozen.md`, plus Chat, CLI et exports. Le validateur contrôle présence/liens, au plus 120 lignes, 10 000 caractères et 1 200 caractères par paragraphe/élément de liste du point d'entrée ; ce budget ne prouve pas le comportement. Préserver les garde-fous lors des déplacements, faire évaluer des scénarios réalistes par un autre agent sans donner les réponses attendues. Copies installées seulement par plan confirmé, jamais depuis la branche Git.
+
 Suggestions Codex après Relay : le rendu texte propose `palabre relay open --to <alias>:<uuid> --config <chemin-absolu>` plutôt qu'un lanceur système. Même preuve de cible que le lien (création identifiée ou reprise localisée), même alias et config effective, y compris implicite. Le chemin absolu reste une métadonnée privée de présentation : aucun champ JSON/export ajouté. Quoting PowerShell/POSIX sans interpolation ; contrôles/caractères de format et guillemets typographiques PowerShell font omettre la suggestion, jamais changer de config. Aucun lancement au rendu ; l'accord d'ouverture n'autorise aucun envoi, qui reste séparé après `--check --open` et avec `--open` explicite. Transports Claude inchangés ; même filtrage renforcé des guillemets PowerShell dans sa suggestion. Shell de la suggestion Codex affiché : PowerShell sous Windows (pas Git Bash/cmd.exe), POSIX sous macOS/Linux.
 
 Mettre en place et maintenir des JSDoc sur les API internes qui servent de contrat entre modules :

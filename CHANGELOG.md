@@ -4,6 +4,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Skill
+
+- Skill Palabre recentré : coopération via Relay, avis et décision ; « outil », « modèle » et entrée d'agent distingués, rôles explicitement complémentaires à Débat/Ask/Chat, pas Relay. Point d'entrée allégé et références Desktop, OpenCode et fonctions gelées séparées ; exemples de reprise d'avis avec `--background` et ouverture avec configuration absolue. Budget réel de lecture et liens vérifiés sur fixtures ; aucun changement de transport ou permission. Copies installées non modifiées : `palabre skill --sync` après accord humain, puis recharger le skill.
+
 ### Added
 
 - `palabre relay open --to codex:<uuid>` (#219, premier lot) : ouverture unique par le lanceur système, puis observation du verrou sous budget coopératif de 15 s, sans message, export ni changement de droits/config. JSON distinct `relay-open-result` v1 : lancement et attachement séparés, affichage non vérifié. Annulation/échéance ne tuent jamais Desktop et n'annulent pas une ouverture déjà lancée. Claude/OpenCode refusés ; dépannage Claude #225 séparé. Deux ouvertures Windows confirmées le 23 octobre 2026 ont révélé le faux échec Explorer code 1 ; correctif testé hors ligne puis confirmé sur une ouverture réelle (unverified/1, attached/0, cible affichée selon le propriétaire), sans généraliser à toutes les versions ni à une transition de fermé à ouvert. macOS/Linux non vérifiés. Skill livré mis à jour ; copies installées seulement après accord humain et rechargement.
