@@ -55,6 +55,14 @@ Relay can create a new conversation or continue one you choose. Each send is exp
 
 **Relay currently connects Codex and Claude Code conversations.** Relay can also send a message to a Codex conversation you are already using in its app or terminal. Sending to Claude Code while its conversation is in use in a terminal or desktop app is not yet supported. See the [Relay guide](https://palab.re/en/usage/relay) for setup, platform requirements and the OpenCode pilot.
 
+#### A real example: writing this README
+
+Codex drafted this README and asked Claude Code for a critical review through Palabre Relay. Their exchanges revealed ambiguities; the maintainer chose the changes to apply. OpenCode then explained what it understood from the document, in a separate test run directly, outside Palabre.
+
+You can use the same approach:
+
+> Write the README with me. Use Palabre Relay to ask Claude Code for a critical review, discuss its findings, then present the proposed changes to me before applying them.
+
 ### The four modes
 
 | Mode | When it helps | Shape |
@@ -186,6 +194,14 @@ Par exemple, depuis Codex :
 Relay peut créer une nouvelle conversation ou poursuivre celle que vous choisissez. Chaque envoi est explicite ; il ne déclenche pas de boucle autonome entre les conversations. Le [skill Palabre](https://palab.re/fr/get-started/skill) donne à votre assistant les consignes pour utiliser Palabre et vous rendre compte du résultat.
 
 **Relay relie aujourd'hui les conversations Codex et Claude Code.** Relay peut aussi envoyer un message à une conversation Codex que vous utilisez déjà dans l'application ou le terminal. L'envoi à Claude Code pendant que sa conversation est utilisée dans le terminal ou l'application de bureau n'est pas encore pris en charge. Installation, prérequis par plateforme et pilote OpenCode : [guide Relay](https://palab.re/fr/usage/relay).
+
+#### Un exemple réel : la rédaction de ce README
+
+Codex a rédigé ce README et demandé à Claude Code une relecture critique via Palabre Relay. Leurs échanges ont fait ressortir des ambiguïtés ; le mainteneur a choisi les modifications à appliquer. OpenCode a ensuite expliqué ce qu'il comprenait du document, dans un test séparé lancé directement, hors Palabre.
+
+Vous pouvez reprendre cette méthode :
+
+> Rédige le README avec moi. Utilise Palabre Relay pour demander à Claude Code une relecture critique, discute ses remarques, puis présente-moi les changements proposés avant de les appliquer.
 
 ### Les quatre modes
 
