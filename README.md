@@ -18,9 +18,14 @@
 
 From your usual tools, Palabre lets you delegate a task, bring another tool's reply back, collect independent opinions or work through disagreements. You decide what happens next.
 
-### Tools, models, agents: what do we mean?
+Palabre calls the AI assistants you bring into the work **agents**, for example through Codex, Claude Code, OpenCode or a local model with Ollama. **Models** are the AI engines those tools use.
 
-Claude Code, Codex, Antigravity CLI, OpenCode and Mistral Vibe are examples of **AI tools**. **Models** are the engines those tools use; some tools offer models from several providers. In Palabre's configuration, an **agent** is a named entry connected to one of these tools, or to Ollama for local models. It is not one of the tool's internal subagents. Multiple entries can use the same tool with different settings.
+### Where can you use Palabre?
+
+- **In your usual AI assistant**, in its CLI or desktop app: ask it to use Palabre in plain language. With the Palabre skill and permission to run local commands, it can launch Relay, Debate, Ask or Chat and report back to you.
+- **In a terminal**: run `palabre` for interactive menus (TUI) to use Debate, Ask and Chat, or use the direct commands, including Relay.
+
+The conversational route works with compatible assistants such as Codex and Claude Code, not with every chat app. If your app supports voice input, you can dictate the same request: voice comes from your app, not Palabre.
 
 ### Relay: cooperate from your usual conversation
 
@@ -36,9 +41,9 @@ For example, from Codex:
 
 > Use Palabre to ask Claude Code to review these changes without modifying files. Explain its findings and any disagreements.
 
-Relay can create a new conversation or reach the exact one you designate. Each send is explicit; it does not start an autonomous conversation loop. The [Palabre skill](https://palab.re/en/get-started/skill) teaches your host tool how to choose the route, retain the target and explain the result.
+Relay can create a new conversation or continue one you choose. Each send is explicit; it does not start an autonomous conversation loop. The [Palabre skill](https://palab.re/en/get-started/skill) gives your assistant instructions for using Palabre and reporting back to you.
 
-**Current Relay scope:** Claude Code or Codex can lead. Codex targets can be closed or open; Claude Code targets must be closed for a supported send. Opening to view is separate from sending. Platform requirements and the OpenCode pilot: [Relay guide](https://palab.re/en/usage/relay).
+**Relay currently connects Codex and Claude Code conversations.** Relay can also send a message to a Codex conversation you are already using in its app or terminal. Sending to Claude Code while its conversation is in use in a terminal or desktop app is not yet supported. See the [Relay guide](https://palab.re/en/usage/relay) for setup, platform requirements and the OpenCode pilot.
 
 ### Other ways to consult and decide
 
@@ -48,7 +53,7 @@ Relay can create a new conversation or reach the exact one you designate. Each s
 | **Ask** | Compare 1–4 independent opinions, without mutual influence. | `question → separate answers → comparison` |
 | **Chat** | Advance with one interlocutor and occasionally request another opinion. | `you ↔ A`, with a one-off consultation of B |
 
-These three modes support Claude Code, Codex, Antigravity CLI, OpenCode, Mistral Vibe and Ollama, according to your configuration; this does not mean each is a Relay target.
+For Debate, Ask and Chat, you can bring in Claude Code, Codex, Antigravity CLI, OpenCode, Mistral Vibe or local models through Ollama. Relay has a separate, narrower compatibility list, described above.
 
 **Roles complement Debate, Ask and Chat.** For example, an `implementer` proposes a solution while a `reviewer` looks for risks. Roles change the instruction, not the model or permissions. They do not configure Relay; “lead” and “teammate” describe coordination instead. [Roles and configuration](https://palab.re/en/get-started/configuration).
 
@@ -63,32 +68,41 @@ palabre
 
 The first interactive launch creates the global configuration if needed and detects installed tools. Use `palabre doctor` for diagnostics.
 
-To use Relay from your host tool, install its skill, then reload the skill in that host:
+#### From your assistant — desktop app or CLI
+
+Install the skill for the assistant you use, then reload it in that assistant:
 
 ```powershell
 palabre skill --install codex
 # For Claude Code instead: palabre skill --install claude
 ```
 
-Or request a review directly from your terminal, after setup:
+Continue in your usual conversation. No Palabre command to memorize:
+
+> Use Palabre Relay to ask Claude Code to review this plan without changing files.
+
+Or, to compare opinions rather than send a task to a conversation:
+
+> Use Palabre Ask to get independent opinions from Codex and Claude Code on this plan, then summarize their differences.
+
+You can also request a Debate or a Chat. Type your request, or dictate it if your app supports voice input. Your assistant runs Palabre locally and brings the result back into your conversation.
+
+[Set up the skill](https://palab.re/en/get-started/skill) · [Your first Relay](https://palab.re/en/get-started/first-relay)
+
+#### Directly from a terminal
+
+Run `palabre` to choose a mode from the menus. For direct commands instead:
 
 ```powershell
 palabre relay --new --background --to claude --subject "Review the plan" "Read docs/plan.md without changing files."
-```
-
-[Your first Relay](https://palab.re/en/get-started/first-relay) · [Installation and other package managers](https://palab.re/en/get-started/installation)
-
-For a Debate from the terminal:
-
-```powershell
 palabre codex-claude --mode debate "Challenge this plan" -t 4 --files docs/plan.md
 ```
 
 ### What stays under your control
 
-- Relay messages grant no rights. Ordinary background Codex/Claude calls restrict tools; an open Codex target keeps that conversation's permissions. No automatic resend after uncertain delivery.
+- Relay messages grant no extra permissions. Background Codex/Claude calls restrict the teammate's tools; sending into a conversation in the Codex app uses that conversation's own permissions. If delivery is uncertain, Palabre does not send again automatically.
 - Palabre runs locally, without a Palabre-owned server. Prompts and context still go to the tools you choose and, where applicable, their remote services. Local Ollama models can keep inference on your machine.
-- Markdown exports make exchanges reviewable. Mission, `--task review` and experimental `--write` are frozen and outside the default path.
+- Markdown exports let you read the exchanges again and keep a record.
 
 ### Documentation and integrations
 
@@ -104,9 +118,14 @@ Full documentation: **[palab.re](https://palab.re/en)** — [Relay](https://pala
 
 Depuis vos outils habituels, Palabre permet de confier une tâche, de récupérer la réponse d'un autre outil, de recueillir des avis indépendants ou de travailler les désaccords. Vous gardez la décision.
 
-### Outils, modèles, agents : de quoi parle-t-on ?
+Palabre appelle **agents** les assistants IA que vous faites participer, par exemple via Codex, Claude Code, OpenCode ou un modèle local avec Ollama. Les **modèles** sont les moteurs IA de ces outils.
 
-Claude Code, Codex, Antigravity CLI, OpenCode et Mistral Vibe sont des exemples d'**outils IA**. Les **modèles** sont les moteurs qu'ils utilisent ; certains outils proposent des modèles de plusieurs fournisseurs. Dans la configuration Palabre, un **agent** est une entrée nommée reliée à l'un de ces outils, ou à Ollama pour des modèles locaux. Ce n'est pas un sous-agent interne de l'outil. Plusieurs entrées peuvent utiliser le même outil avec des réglages différents.
+### Où utiliser Palabre ?
+
+- **Dans votre assistant IA habituel**, en ligne de commande (CLI) ou dans son application de bureau (Desktop) : demandez-lui d'utiliser Palabre en langage naturel. Avec le skill Palabre et l'autorisation d'exécuter des commandes locales, il peut lancer Relay, Débat, Ask ou Chat et vous en rapporter le résultat.
+- **Dans un terminal** : lancez `palabre` pour utiliser Débat, Ask et Chat avec des menus interactifs (TUI), ou utilisez les commandes directes, y compris pour Relay.
+
+Le parcours conversationnel fonctionne avec des assistants compatibles comme Codex et Claude Code, pas avec toutes les applications de chat. Si votre application propose la saisie vocale, vous pouvez dicter la même demande : la voix vient de votre application, pas de Palabre.
 
 ### Relay : coopérer depuis votre conversation habituelle
 
@@ -122,9 +141,9 @@ Par exemple, depuis Codex :
 
 > Avec Palabre, demande à Claude Code de relire ces changements sans modifier de fichier. Explique-moi ses remarques et les éventuels désaccords.
 
-Relay peut créer une nouvelle conversation ou joindre celle que vous désignez précisément. Chaque envoi est explicite ; il ne déclenche pas de boucle autonome entre les conversations. Le [skill Palabre](https://palab.re/fr/get-started/skill) apprend à votre outil hôte à choisir le parcours, garder la cible et restituer le résultat.
+Relay peut créer une nouvelle conversation ou poursuivre celle que vous choisissez. Chaque envoi est explicite ; il ne déclenche pas de boucle autonome entre les conversations. Le [skill Palabre](https://palab.re/fr/get-started/skill) donne à votre assistant les consignes pour utiliser Palabre et vous rendre compte du résultat.
 
-**Périmètre Relay actuel :** Claude Code ou Codex peut être chef de mission. Une cible Codex peut être fermée ou ouverte ; une cible Claude Code doit être fermée pour un envoi pris en charge. Ouvrir pour consulter reste distinct d'envoyer. Prérequis par plateforme et pilote OpenCode : [guide Relay](https://palab.re/fr/usage/relay).
+**Relay relie aujourd'hui les conversations Codex et Claude Code.** Relay peut aussi envoyer un message à une conversation Codex que vous utilisez déjà dans l'application ou le terminal. L'envoi à Claude Code pendant que sa conversation est utilisée dans le terminal ou l'application de bureau n'est pas encore pris en charge. Installation, prérequis par plateforme et pilote OpenCode : [guide Relay](https://palab.re/fr/usage/relay).
 
 ### D'autres façons de consulter et décider
 
@@ -134,7 +153,7 @@ Relay peut créer une nouvelle conversation ou joindre celle que vous désignez 
 | **Ask** | Comparer 1 à 4 avis indépendants, sans influence mutuelle. | `question → réponses séparées → comparaison` |
 | **Chat** | Avancer avec un interlocuteur et demander parfois un autre avis. | `vous ↔ A`, avec consultation ponctuelle de B |
 
-Ces trois modes prennent en charge Claude Code, Codex, Antigravity CLI, OpenCode, Mistral Vibe et Ollama selon votre configuration ; cela ne signifie pas que chacun est une cible Relay.
+Pour Débat, Ask et Chat, vous pouvez faire participer Claude Code, Codex, Antigravity CLI, OpenCode, Mistral Vibe ou des modèles locaux via Ollama. Relay a une compatibilité distincte, plus restreinte, décrite plus haut.
 
 **Les rôles complètent Débat, Ask et Chat.** Par exemple, un `implementer` propose une solution et un `reviewer` cherche les risques. Ils changent la consigne, pas le modèle ni les permissions. Ils ne règlent pas Relay ; « chef de mission » et « équipier » décrivent plutôt la coordination. [Rôles et configuration](https://palab.re/fr/get-started/configuration).
 
@@ -149,32 +168,41 @@ palabre
 
 Au premier lancement interactif, Palabre crée la configuration globale si nécessaire et détecte les outils installés. `palabre doctor` fournit les diagnostics.
 
-Pour utiliser Relay depuis votre outil hôte, installez son skill, puis rechargez-le dans cet outil :
+#### Depuis votre assistant — application de bureau ou CLI
+
+Installez le skill correspondant à votre assistant, puis rechargez-le dans cet outil :
 
 ```powershell
 palabre skill --install codex
 # Pour Claude Code : palabre skill --install claude
 ```
 
-Ou demandez une relecture directement depuis le terminal, après configuration :
+Continuez dans votre conversation habituelle. Aucune commande Palabre à mémoriser :
+
+> Avec Palabre Relay, demande à Claude Code de relire ce plan sans modifier de fichier.
+
+Ou, pour comparer des avis plutôt qu'envoyer une tâche à une conversation :
+
+> Avec Palabre Ask, recueille les avis indépendants de Codex et Claude Code sur ce plan, puis résume leurs différences.
+
+Vous pouvez aussi demander un Débat ou un Chat. Écrivez votre demande, ou dictez-la si votre application le permet. Votre assistant exécute Palabre localement et vous rapporte le résultat dans la conversation.
+
+[Configurer le skill](https://palab.re/fr/get-started/skill) · [Premier Relay](https://palab.re/fr/get-started/first-relay)
+
+#### Directement depuis un terminal
+
+Lancez `palabre` pour choisir un mode dans les menus. Pour utiliser plutôt les commandes directes :
 
 ```powershell
 palabre relay --new --background --to claude --subject "Relire le plan" "Lis docs/plan.md sans modifier de fichier."
-```
-
-[Premier Relay](https://palab.re/fr/get-started/first-relay) · [Installation et autres gestionnaires de paquets](https://palab.re/fr/get-started/installation)
-
-Pour un Débat depuis le terminal :
-
-```powershell
 palabre codex-claude --mode debate "Critique ce plan" -t 4 --files docs/plan.md
 ```
 
 ### Ce qui reste sous votre contrôle
 
-- Un message Relay n'accorde aucun droit. Les appels ordinaires Codex/Claude en arrière-plan limitent les outils ; une cible Codex ouverte garde les permissions de sa conversation. Aucun renvoi automatique après une délivrance incertaine.
+- Un message Relay n'accorde aucun droit supplémentaire. Les appels Codex/Claude en arrière-plan limitent les outils de l'équipier ; un envoi dans une conversation de l'application Codex utilise les permissions de cette conversation. Si la délivrance est incertaine, Palabre ne renvoie pas le message automatiquement.
 - Palabre fonctionne localement, sans serveur Palabre. Les prompts et le contexte partent néanmoins vers les outils choisis et, selon leur fonctionnement, leurs services distants. Avec Ollama et un modèle local, l'inférence peut rester sur votre machine.
-- Les exports Markdown permettent de relire les échanges. Mission, `--task review` et `--write` expérimental sont gelés et hors parcours par défaut.
+- Les exports Markdown permettent de relire les échanges et d'en garder une trace.
 
 ### Documentation et intégrations
 
