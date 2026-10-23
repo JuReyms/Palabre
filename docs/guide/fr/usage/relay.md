@@ -75,8 +75,9 @@ non confirmée : arrêt sans message, copie conservée, aucun nouvel essai autom
 Le catalogue ne prouve ni connexion valide ni quota disponible. Le profil et la
 sélection de l'original ne sont pas modifiés. Le résultat et l'export distinguent
 `copy.model.requested`, `source`, `selected` et `verified` ; `observedModels` décrit
-la réponse validée, pas seulement le choix demandé. Cette extension est testée avec
-des simulations et les sources 2.0.32, pas encore par un appel modèle réel.
+la réponse validée, pas seulement le choix demandé. Un essai réel sur projet
+fictif a vérifié le passage de DeepSeek à GLM-5.3-Flash Free dans la copie le
+23 octobre 2026 ; cela ne qualifie pas tous les modèles ou variantes ni Desktop.
 
 « Sans modifier de fichier » est une consigne, pas une lecture seule imposée.
 La copie de conversation partage les fichiers du projet : **ce n'est pas un bac

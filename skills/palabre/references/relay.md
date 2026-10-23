@@ -28,8 +28,10 @@ avant prompt : modèle absent/désactivé, variante inconnue ou état non confir
 arrêt sans message, copie conservée, aucun retry. Catalogue ≠ connexion/quota garantis.
 Ni profil ni sélection source modifiés. Rendre `copy.model.requested`, `source?`,
 `selected?`, `verified` et `observedModels` (réponse validée). `copy.verified` reste
-la provenance du fork, pas la sélection ni la réussite. Sources 2.0.32 et simulations
-seulement pour cette extension, pas de nouvel essai réel.
+la provenance du fork, pas la sélection ni la réussite. Sources 2.0.32, simulations
+et un essai réel sur projet fictif le 23 octobre 2026 : DeepSeek high → GLM-5.3-Flash
+Free low sur copie, original et quatre fichiers inchangés. Cela ne qualifie ni
+tous les modèles/variantes, ni Desktop. Aucun nouvel appel pour refaire ce bilan.
 
 Une seule notice système core/date strictement qualifiée peut précéder l'enveloppe
 dans le nouveau tour : date et jour de semaine valides, texte/métadonnées exacts,

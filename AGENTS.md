@@ -592,8 +592,11 @@ sélection et garde-fous inchangés hors modèle ; choix équivalent = no-op san
 Pas de --model/--variant au client run, ni retry, ni fallback. Le catalogue n'est
 pas une preuve de connexion/quota. `copy.model` facultatif distingue requested,
 source?, selected?, verified ; `copy.verified` reste la provenance du fork.
-Sources officielles 2.0.32 + tests simulés seulement pour cette extension, pas
-de nouvelle qualification réelle. Ne pas modifier le profil ou la source.
+Sources officielles 2.0.32 + tests simulés ; essai réel du 23 octobre 2026 :
+DeepSeek high source → GLM-5.3-Flash Free low copie, sélection/réponse confirmées,
+original et quatre fichiers fictifs inchangés, coût copie rapporté zéro. Une seule
+tentative, pas une qualification générale des modèles/variantes ou de Desktop.
+Ne pas modifier le profil ou la source ; voir le bilan de qualification.
 La réponse validée et sa délivrance survivent à une erreur ultérieure de source/arrêt/export.
 `CopyTransport.stop` rend fermeture confirmée et cause éventuelle après drainage ;
 ne jamais conclure au succès sur le seul `close`. Une sortie non demandée est

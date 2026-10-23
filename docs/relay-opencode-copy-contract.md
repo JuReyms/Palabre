@@ -282,4 +282,7 @@ Extension --model : sources officielles v2.0.32, commit
 `843a6c514e606b436a7fe713422ace0a93ad3d61`, `packages/schema/src/model.ts`,
 `packages/protocol/src/groups/{model,session}.ts`, `packages/server/src/handlers/{model,session}.ts`,
 `packages/core/src/session/{session,message-updater,info}.ts` et `model-resolver.ts`.
-Les simulations vérifient le contrat ; aucun appel réel ne qualifie encore cette extension.
+Les simulations vérifient le contrat. Un appel produit réel le 23 octobre 2026
+a vérifié le passage DeepSeek high → GLM-5.3-Flash Free low sur la copie, avec
+original et quatre fichiers témoins inchangés. Sa portée reste celle décrite dans
+`docs/relay-opencode-copy-qualification.md`, pas une qualification générale.

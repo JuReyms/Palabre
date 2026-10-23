@@ -91,7 +91,8 @@ Unreleased OpenCode CLI pilot (Windows, 2.0.32): `palabre relay --copy --to open
 
 In the OpenCode pilot, optional `--model provider/model[#variant]` selects only on the copy;
 without a variant it selects `default`. Catalogue and selection are checked before prompting,
-with no replacement or retry. This extension has simulated tests, not a new real-model qualification.
+with no replacement or retry. One real trial verified DeepSeek → GLM-5.3-Flash Free
+on the copy; other models, variants and Desktop remain unqualified.
 
 - **PALABRE drives your CLIs.** Each agent runs with its own tool, account and default model. PALABRE does not list models: `--model-a`, `--model-b` and `--summary-model` pass the raw value to the agent.
 - **Context.** `--files` injects specific files (64 KiB per file, 192 KiB in total). `--context` scans folders with limits and exclusions. `--show-prompt` shows exactly what will be sent; `palabre context scan` previews the context.
@@ -265,7 +266,8 @@ Pilote OpenCode CLI non publié (Windows, 2.0.32) : `palabre relay --copy --to o
 
 Dans le pilote OpenCode, `--model fournisseur/modele[#variante]` choisit uniquement sur la copie ;
 sans variante, il choisit `default`. Catalogue et sélection sont contrôlés avant le prompt,
-sans remplacement ni retry. Cette extension est testée en simulation, sans nouvel essai modèle réel.
+sans remplacement ni retry. Un essai réel a vérifié DeepSeek → GLM-5.3-Flash Free
+sur la copie ; les autres modèles, variantes et Desktop restent à qualifier.
 
 - **PALABRE pilote vos CLI.** Chaque agent tourne avec son outil, son compte et son modèle par défaut. PALABRE ne liste pas les modèles : `--model-a`, `--model-b` et `--summary-model` transmettent la valeur brute à l'agent.
 - **Contexte.** `--files` injecte des fichiers précis (64 Kio par fichier, 192 Kio au total). `--context` parcourt des dossiers avec des limites et des exclusions. `--show-prompt` montre exactement ce qui sera envoyé ; `palabre context scan` prévisualise le contexte.

@@ -74,8 +74,9 @@ unconfirmed selection: stop without a message, retain the copy, no automatic ret
 The catalogue proves neither authentication nor available quota. Neither the profile
 nor the original selection is modified. Result and export distinguish
 `copy.model.requested`, `source`, `selected` and `verified`; `observedModels` describes
-the validated reply, not just the request. This extension is tested with simulations
-and the 2.0.32 sources, not yet with a real model call.
+the validated reply, not just the request. One real trial on a fictional project
+verified the change from DeepSeek to GLM-5.3-Flash Free in the copy on October 23,
+2026; this does not qualify every model or variant, or Desktop.
 
 “Without modifying files” is a task instruction, not enforced read-only access.
 The conversation copy shares project files: **it is not a sandbox**. Do not reopen

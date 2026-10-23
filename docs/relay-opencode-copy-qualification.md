@@ -197,15 +197,53 @@ Dernière suite complète isolée : 1 062 tests, 1 057 réussis, 5 ignorés, auc
 il ne vaut pas preuve verte, et aucun garde-fou n'a été modifié. Relecture
 indépendante de l'exception et de ses tests négatifs : aucun blocage relevé.
 
-Aucun nouveau modèle, serveur ou message depuis la correction. Le résultat
-historique n'est pas réécrit en succès ; les traces réelles restent locales.
+À l'issue de cette correction du 22 octobre, aucun nouveau modèle, serveur ou
+message n'avait été lancé. Le résultat historique n'est pas réécrit en succès ;
+les traces réelles restent locales.
+
+## Essai du choix explicite de modèle — 23 octobre 2026
+
+Le propriétaire a autorisé un essai avec un modèle gratuit, puis confirmé la
+fermeture CLI et Desktop. Un seul appel de la commande produit, au commit
+`664dc19`, a reçu `--model opencode/glm-5.3-flash-free#low`, sur une nouvelle
+copie de la source fictive explicitement conservée. Aucun renvoi ni modèle de
+remplacement, aucune reprise de l'original pour le prompt.
+
+Le catalogue du serveur privé annonçait ce modèle activé, la variante `low`
+et tous les tarifs input/output/cache à zéro avant l'envoi. La copie rapporte
+un coût de conversation de zéro ; cela décrit ce relevé, pas une garantie sur
+une offre future ni une vérification indépendante de facturation.
+
+Le résultat est `replied`/0 en environ 9,4 s, délivrance `replied`, identité
+`same-as-target`, `copy.verified: true`, `copy.model.verified: true` :
+
+- source : `opencode/deepseek-v4.1-flash-free#high` ;
+- demandé, sélection vérifiée et modèles des assistants :
+  `opencode/glm-5.3-flash-free#low` ;
+- original inchangé sur les informations/export/contexte/inbox/instructions ;
+- inventaire des quatre fichiers fictifs inchangé, aucun nouveau fichier ;
+- code de contexte retrouvé sans être donné dans la demande ;
+- trois outils `read` terminés, exactement README.md, src/total.mjs et
+  test/total.test.mjs ; aucune commande ou écriture observée dans le nouveau tour ;
+- export local relu, source/copie et choix du modèle distincts ;
+- arrêt du serveur produit et des serveurs de relevé confirmé ; aucun champ Codex.
+
+L'avis explique correctement la remise soustraite comme montant. Son exemple
+`total(12, 3, 10)` donne 26 avec le défaut, contre 32,4 attendus. Il propose les
+cas 10 %, 100 % et entrées nulles. Aucun test ni correctif n'a été exécuté par
+l'équipier. La justesse de cet exemple n'est pas une évaluation générale du modèle.
+
+Les relevés, identifiants, code de contexte et export bruts restent locaux.
+La preuve qualifie cet appel CLI Windows 2.0.32 seulement : ni Desktop,
+autre variante, tous les modèles ou concurrence, ni garantie de confinement.
+Il ne faut pas rejouer l'appel pour reproduire ce bilan.
 
 ## Limites conservées
 
-Extension ultérieure `--model fournisseur/modele[#variante]` : contrôles dérivés des
-sources officielles 2.0.32 et tests simulés, aucun nouvel appel réel. Les succès
-historiques ci-dessus ne qualifient pas le changement de modèle. L'original et le
-profil ne changent pas ; le choix explicite ne s'applique qu'à la copie vérifiée.
+L'extension `--model fournisseur/modele[#variante]` repose sur les sources
+officielles 2.0.32, les tests simulés et l'essai distinct du 23 octobre ci-dessus.
+Les essais historiques sans override ne qualifient pas ce changement à eux seuls.
+Le choix explicite ne s'applique qu'à la copie vérifiée.
 
 Cette preuve concerne cette CLI, cette version Windows et ce contexte textuel
 simple. Ni Desktop, conversation concurrente, compaction, tous les contenus
