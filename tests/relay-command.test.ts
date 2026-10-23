@@ -53,10 +53,10 @@ function installFakeCli(bin: string, name: "claude" | "codex"): void {
 }
 
 /** Environnement complet : dossier personnel, projet approuvable, historiques Claude et Codex. */
-function makeWorld() {
+function makeWorld(workspaceName = "workspace") {
   const base = path.join(root, `case-${++counter}`);
   const home = path.join(base, "home");
-  const workspace = path.join(base, "workspace");
+  const workspace = path.join(base, workspaceName);
   const bin = path.join(base, "bin");
   mkdirSync(workspace, { recursive: true });
   installFakeCli(bin, "claude");
@@ -1172,6 +1172,51 @@ describe('Relay : création et expéditeur facultatif', () => {
     assert.equal(missing.code, 6, missing.stderr);
     assert.ok(!missing.stderr.includes('codex://'), 'jamais pour une conversation introuvable');
     assert.ok(missing.stderr.includes('Mode : arrière-plan — sans fenêtre visible'));
+  });
+
+  test('ouverture Claude fr/en : création/reprise exactes, même CLI et aucun lancement Desktop', async () => {
+    for (const language of ['fr', 'en'] as const) {
+      for (const fresh of [false, true]) {
+        const w = makeWorld();
+        const args = fresh ? ['--new', '--to', 'claude'] : ['--to', `claude:${CLAUDE_SESSION}`];
+        const r = await relay(w, [...args, 'Question', '--trust-config', '--language', language, '--no-export']);
+        assert.equal(r.code, 0, r.stderr);
+        if (process.platform === 'win32' || process.platform === 'darwin') {
+          assert.ok(r.stderr.includes("'--desktop' '--resume'"), r.stderr);
+          assert.ok(r.stderr.includes(fresh ? NEW_IDS.claude : CLAUDE_SESSION));
+          // Résolution npm Node sous Windows, binaire direct ailleurs ; jamais une autre CLI PATH.
+          assert.ok(r.stderr.includes(w.bin.replaceAll("'", "''")), r.stderr);
+          assert.match(r.stderr, /TTY/);
+          assert.ok(r.stderr.includes(w.workspace), 'le dossier exact accompagne la commande, même en reprise');
+          assert.match(r.stderr, language === 'fr' ? /Aucun message envoyé/ : /No message sent/);
+        } else assert.ok(!r.stderr.includes("'--desktop'"));
+        assert.equal(r.calls.filter(c => c.argv.includes('-p')).length, 1);
+        assert.ok(r.calls.every(c => !c.argv.includes('--desktop')), 'la sortie ne lance jamais Desktop');
+        const json = await relay(makeWorld(), [...args, 'Question', '--trust-config', '--language', language, '--json', '--no-export']);
+        assert.equal(json.code, 0);
+        assert.ok(!JSON.stringify(json.json).includes('--desktop'), 'JSON inchangé, pas de commande exécutable');
+      }
+    }
+    const missing = await relay(makeWorld(), ['--to', 'claude:0199bbbb-bbbb-7bbb-8bbb-bbbbbbbbbbbb', 'Question', '--trust-config', '--no-export']);
+    assert.equal(missing.code, 6);
+    assert.ok(!missing.stderr.includes("'--desktop'"));
+    assert.equal(missing.calls.length, 0);
+  });
+
+  test('reprise Claude depuis un autre projet : ouverture liée au dossier source avec apostrophe', async () => {
+    const w = makeWorld("source O'Brien $()");
+    const caller = path.join(w.base, 'autre-projet');
+    mkdirSync(caller);
+    const r = await relay({ ...w, workspace: caller }, ['--to', `claude:${CLAUDE_SESSION}`, '--config', path.join(w.workspace, 'palabre.config.json'), 'Question', '--trust-config', '--no-export']);
+    assert.equal(r.code, 0, r.stderr);
+    assert.ok(r.calls.every(c => c.cwd === w.workspace));
+    if (process.platform === 'win32') {
+      assert.ok(r.stderr.includes(`Push-Location -LiteralPath '${w.workspace.replaceAll("'", "''")}' -ErrorAction Stop`), r.stderr);
+      assert.match(r.stderr, /finally \{ Pop-Location \}/);
+    } else if (process.platform === 'darwin') {
+      assert.ok(r.stderr.includes(`(cd -- '${w.workspace.replaceAll("'", "'\\''")}' && `), r.stderr);
+    }
+    assert.ok(r.calls.every(c => !c.argv.includes('--desktop')));
   });
 
   test('refus d\'arguments : mode présent en JSON, aucune ligne Mode ni lien', async () => {

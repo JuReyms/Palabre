@@ -329,6 +329,67 @@ explorer.exe "codex://threads/<id>"
 
 `open` sous macOS, `xdg-open` sous Linux. L'app Claude ne rend pas `codex://` cliquable ; sous Windows, une conversation déjà affichée met seulement Codex au premier plan (macOS et Linux non vérifiés). Une fois ouverte, Desktop tient le verrou : après `--check --open` réussi, la joindre avec `--open` explicite, qui garde ses permissions courantes et refuse une conversation relâchée entre-temps (avec `auto`, l'envoi partirait alors en arrière-plan) ; l'arrière-plan imposé répondrait `target-busy`. Pour une conversation créée par `--new`, ces permissions sont celles de sa création : lecture seule, même dans Desktop (constaté avec les versions vérifiées). Pour faire écrire Codex, l'humain crée lui-même la conversation dans Desktop avec les permissions qu'il choisit. Uniquement si l'humain demande explicitement `--write` expérimental, utiliser le parcours d'accord ponctuel : nouvelle demande, nouvelle conversation et nouvel accord pour chaque tâche ; ne pas convertir une reprise d'avis en reprise d'écriture.
 
+## Ouvrir Claude pour consulter : dépannage de visibilité
+
+Le même geste utilisateur s'applique dans les deux sens Claude/Codex : proposer
+un bouton court « Ouvrir dans Claude » ou « Ouvrir dans Codex » si l'hôte le permet,
+sinon une question courte. Une demande directe de l'humain, phrase ou clic, autorise
+seulement l'ouverture de la conversation précise. Jamais d'ouverture autonome,
+sur demande d'un agent, ni d'envoi déduit de cet accord.
+
+Pour Claude, utiliser **la même CLI résolue que l'échange**, éventuellement Node
+et le script du paquet, avec les seuls arguments `--desktop --resume <to.session>`.
+Pas d'arguments d'agent, prompt, `--print`, fork, modification de config ou permissions.
+Conserver le dossier exact de cette conversation comme cwd de lancement. Sur un
+résultat texte, reprendre la commande affichée par PALABRE ; en JSON, conserver
+to.session, le dossier déjà connu et la CLI configurée sans substitution d'installation.
+Ne jamais sélectionner « la dernière ». L'existence doit être établie par created
+ou par localisation explicite, pas seulement par un statut final.
+
+Exemple standard à adapter à la CLI connue, seule commande à montrer à l'humain :
+
+```powershell
+# Ouvrir dans Claude Desktop
+# Objet : relire le plan
+claude --desktop --resume <id>
+```
+
+Le lancement exige un **TTY, sans redirection de sortie** : Claude refuse les
+sorties capturées. Si l'outil de commande de l'hôte permet un terminal, l'utiliser
+uniquement pour cette ouverture, sans message ; sinon donner la commande pour le
+terminal visible de l'humain. Une demande technique d'autorisation ponctuelle peut
+rester nécessaire ; aucun préfixe durable ni réglage de sécurité ajouté. En cas de
+refus, le rapporter sans contournement ni renvoi du message de relecture.
+
+Préconditions [documentées par Claude](https://code.claude.com/docs/en/desktop#coming-from-the-cli) :
+CLI 2.1.285+ proposant --desktop, app installée, Windows x64/macOS et connexion par
+abonnement Claude (pas API seule/Bedrock/Vertex/Foundry). Pas d'installation,
+authentification ou mise à jour implicite. L'ouverture d'une revue Relay a été
+confirmée par le propriétaire dans l'app Windows le 23 octobre 2026 ; macOS reste
+non vérifié et Linux n'est pas proposé. Ne pas déduire un affichage du seul code 0
+du lanceur : demander à l'humain s'il voit la conversation quand c'est nécessaire.
+
+**Actualisation, essai Windows du 23 octobre 2026** : un message témoin réellement
+reçu en arrière-plan n'est pas apparu dans la fenêtre déjà ouverte, ni après un
+aller-retour entre conversations. Après Fichier > Quitter fait par l'humain et
+réouverture native de la même session, le témoin était visible. Ne pas promettre
+de suivi en direct, ni transformer ce dépannage en fermeture automatique de l'app.
+L'absence d'entrée dans le registre CLI a donné check.target: closed malgré la
+fenêtre ouverte ; ce résultat ne prouve donc pas sa fermeture dans Desktop.
+Une relance d'ouverture a aussi été refusée comme session occupée : aucun verrou
+forcé, archivage, suppression ou renvoi. Preuve détaillée : docs/relay-desktop-qualification.md.
+
+**Suite** : l'humain peut relire ou continuer lui-même dans Claude Desktop, après
+avoir vérifié ses permissions : ne pas promettre que les outils limités/MCP/hooks
+du tour Relay sont maintenus dans l'app. Aucun droit n'est ajouté par l'agent.
+Le transport --open ne prend toujours pas en charge Claude (#193) :
+demander sa fermeture avant un nouvel envoi autorisé, et contrôler la délivrance
+pour ne pas dupliquer un message. Ne pas utiliser les parcours --check --open,
+--open --follow ou --then-follow de Codex avec Claude. Ce dépannage ne résout ni
+le dépôt ni la corrélation ouverts de #193 ; la sous-commande unifiée relay open
+et son observation d'état restent #219, pas une commande disponible. OpenCode
+Desktop garde une qualification séparée.
+
 ## Dernier quota Codex connu
 
 Avant un lot important (écriture ou longue relecture), utilisez `palabre relay --check --to codex:<session> --json`. Si la forme est reconnue, `check.quota` indique le dernier quota écrit par Codex, pour une cible ouverte ou fermée. Le résultat d'un envoi ouvert peut aussi porter `quota` à la racine ; pas d'ajout après un envoi arrière-plan dans ce lot, ni pour Claude.

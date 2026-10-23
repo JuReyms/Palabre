@@ -165,6 +165,57 @@ Pour l'ouvrir vous-même : explorer.exe "codex://threads/<identifiant>"
 
 La commande dépend du système : `explorer.exe` sous Windows, `open` sous macOS, `xdg-open` sous Linux. Elle sert quand le lien n'est pas cliquable, par exemple dans l'app Claude. Lancez-la vous-même, ou demandez à votre agent de l'ouvrir : il le fait seulement sur votre demande, jamais de sa propre initiative ni à la demande d'un autre agent. Une fois ouverte, la conversation garde ses propres permissions : en lecture seule pour une conversation créée par `--new`. En JSON, `mode` vaut `background`, `open`, `follow` ou `copy` (OpenCode) ; aucun champ de lien n'est ajouté, une intégration le construit depuis `to.session`.
 
+### Ouvrir la conversation de l'équipier
+
+Dites « ouvre la conversation » à votre agent, ou utilisez « Ouvrir dans Claude » /
+« Ouvrir dans Codex » si votre hôte propose un bouton. Sur votre demande, l'agent
+ouvre la conversation précise du relais, sans envoyer de nouveau message, quel
+que soit l'expéditeur. Un message d'un autre agent ne vaut jamais accord.
+
+Pour **Claude**, la sortie texte donne la commande de la même CLI résolue par
+PALABRE, avec `--desktop --resume <identifiant>`. Exemple standard, depuis le
+dossier de la conversation :
+
+```powershell
+# Ouvrir dans Claude Desktop
+# Objet : relire le plan
+claude --desktop --resume <identifiant>
+```
+
+La commande affichée se place temporairement dans le dossier exact, puis restaure
+votre dossier de terminal ; elle ne lance pas Claude si ce dossier est inaccessible.
+L'agent conserve l'identifiant et le dossier, sans vous les faire recopier. Il
+utilise un terminal **TTY sans redirection** : Claude refuse une sortie capturée.
+Si l'hôte ne peut pas fournir ce terminal, il vous donne seulement la commande à
+lancer vous-même. Aucun contournement d'un refus ni renvoi du message relayé.
+
+Selon la [documentation Claude](https://code.claude.com/docs/en/desktop#coming-from-the-cli),
+il faut Claude Code 2.1.285+ proposant `--desktop`, l'app installée, Windows x64 ou
+macOS et une connexion avec abonnement Claude, pas une clé API seule. L'ouverture
+exacte d'une revue Relay a été confirmée dans l'app sous Windows le 23 octobre
+2026 ; macOS reste à vérifier, Linux n'est pas proposé. Le succès du lanceur seul
+ne prouve ni l'affichage ni les permissions.
+
+Lors de cet essai, un nouvel échange en arrière-plan n'est pas apparu dans la
+fenêtre déjà ouverte, même après un aller-retour entre conversations. Après
+**Fichier > Quitter**, puis réouverture de la même conversation, il était visible.
+Ce redémarrage est seulement un dépannage, jamais une fermeture automatique ni
+le parcours normal. Une vérification Relay « fermée » ne prouve pas que la
+conversation est fermée dans Claude Desktop : son registre CLI peut être vide.
+Voir le [bilan de qualification](https://github.com/JuReyms/Palabre/blob/3342c36/docs/relay-desktop-qualification.md).
+
+**Consulter n'est pas envoyer.** Vérifiez les permissions avant de poursuivre dans
+Claude Desktop : les restrictions du tour Relay ne sont pas garanties dans l'app.
+Pour un nouvel envoi Relay vers Claude, fermez cette conversation ; Claude ouverte
+reste non prise en charge (#193). Ne dupliquez pas un message déjà délivré.
+Pour Codex, conservez `--check --open`, puis `--open` pour un envoi autorisé ; une
+conversation créée par `--new` reste en lecture seule dans Desktop.
+
+Ce lot dépanne la visibilité de #193, pas l'envoi vers Claude ouverte. La commande
+unifiée `palabre relay open`, l'observation d'attachement et ses résultats
+structurés restent le chantier #219, pas une commande déjà disponible. OpenCode
+Desktop reste à qualifier séparément : ne pas lui appliquer ces commandes.
+
 ### Vérifier avant d'envoyer (`--check`)
 
 Avec `auto`, le mode n'est connu qu'au moment de l'envoi. Pour le savoir avant, sans rien envoyer :

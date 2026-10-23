@@ -81,6 +81,16 @@ The mission lead reuses the identifier, reads the reply and reports back to you 
 
 If the teammate changes files in an open conversation, they stay in its working directory. They appear on GitHub only after a separately authorized commit and push. Receiving a reply does not prove the work or tests succeeded.
 
+For **Claude**, also say “open the conversation”: the agent uses
+`claude --desktop --resume <identifier>` from the relay's directory, with the same
+Claude installation, in a TTY terminal without redirection. The agent retains the
+identifier; the host may offer an “Open in Claude” button. This opens for viewing
+without a new message. It was verified on Windows with the installed app and a
+Claude subscription (CLI 2.1.285+ required; macOS unverified). Check permissions in
+the app before continuing yourself. Before another Relay send to Claude, close
+this conversation: sending to open Claude remains unavailable. See the
+[opening workflow](../usage/relay#open-the-teammates-conversation).
+
 ## Without an agent
 
 You can operate Relay yourself from the project folder:

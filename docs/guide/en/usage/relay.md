@@ -164,6 +164,56 @@ To open it yourself: explorer.exe "codex://threads/<identifier>"
 
 The command depends on the system: `explorer.exe` on Windows, `open` on macOS, `xdg-open` on Linux. It helps when the link is not clickable, for example in the Claude app. Run it yourself, or ask your agent to open it: it only does so at your request, never on its own initiative or at another agent's request. Once open, the conversation keeps its own permissions: read-only for a conversation created by `--new`. In JSON, `mode` is `background`, `open`, `follow` or `copy` (OpenCode); no link field is added, an integration builds it from `to.session`.
 
+### Open the teammate's conversation
+
+Tell your agent “open the conversation”, or use “Open in Claude” / “Open in Codex”
+if your host offers a button. At your request, the agent opens the exact Relay
+conversation without sending a new message, regardless of the sender. Another
+agent's message never grants permission to open it.
+
+For **Claude**, text output shows the same CLI resolved by PALABRE, with
+`--desktop --resume <identifier>`. Standard example, from the conversation's
+directory:
+
+```powershell
+# Open in Claude Desktop
+# Subject: review the plan
+claude --desktop --resume <identifier>
+```
+
+The displayed command temporarily enters the exact directory and restores your
+terminal directory afterwards; it does not launch Claude if that directory is inaccessible.
+The agent retains the identifier and directory; you do not have to copy them.
+It uses a **TTY terminal without redirection**: Claude refuses captured output.
+If the host cannot provide that terminal, it gives you only the command to run
+yourself. It does not bypass a refusal or resend the relayed message.
+
+According to the [Claude documentation](https://code.claude.com/docs/en/desktop#coming-from-the-cli),
+this requires Claude Code 2.1.285+ exposing `--desktop`, the installed app,
+Windows x64 or macOS and Claude subscription sign-in, not API-key-only auth.
+Opening the exact Relay review was confirmed in the Windows app on October 23,
+2026; macOS remains unverified and Linux is not offered. Launcher success alone
+proves neither display nor permissions.
+
+In this test, a new background exchange did not appear in the already open
+window, even after switching away and back. After **File > Quit** and reopening
+the same conversation, it was visible. This restart is only a workaround, never
+an automatic shutdown or the intended normal workflow. A Relay “closed” check
+does not prove the conversation is closed in Claude Desktop: its CLI registry
+may be empty. See the [qualification report](https://github.com/JuReyms/Palabre/blob/3342c36/docs/relay-desktop-qualification.md).
+
+**Viewing is not sending.** Check permissions before continuing in Claude Desktop:
+the Relay turn's restrictions are not guaranteed in the app. Before another Relay
+send to Claude, close this conversation; open Claude remains unsupported (#193).
+Do not duplicate an already delivered message. For Codex, keep `--check --open`,
+then `--open` for an authorized send; a conversation created by `--new` stays
+read-only in Desktop.
+
+This works around visibility in #193, not sending to open Claude. The unified
+`palabre relay open` command, attachment observation and structured results remain
+#219 work, not an already available command. OpenCode Desktop needs separate
+qualification; do not apply these commands to it.
+
 ### Check before sending (`--check`)
 
 With `auto`, the mode is only known when sending. To know it beforehand, without sending anything:

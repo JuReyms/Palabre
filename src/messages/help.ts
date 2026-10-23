@@ -352,6 +352,15 @@ Limites :
   arrière-plan, une conversation Codex créée, ou reprise et retrouvée, donne son lien
   codex://threads/<id>, cliquable dans un terminal, et la commande pour l'ouvrir soi-même
   (explorer.exe, open ou xdg-open) ; un agent ne la lance que sur demande directe du propriétaire.
+  Pour Claude, la sortie texte donne aussi la commande --desktop --resume <id> de la même CLI,
+  sans la lancer : depuis le dossier de la conversation, terminal TTY sans redirection requis.
+  Claude Code 2.1.285+, app installée et abonnement Claude requis (Windows x64/macOS).
+  L'ouverture pour consulter a été vérifiée sous Windows ; macOS reste à vérifier, Linux non proposé.
+  Aucun message envoyé, aucune permission modifiée par PALABRE ; les restrictions du tour Relay
+  ne sont pas garanties dans l'app. Le transport --open ne prend pas en charge Claude : fermer l'app avant
+  un nouvel envoi. Ce dépannage de visibilité (#193) ne livre pas relay open (#219).
+  Claude Desktop peut ne pas actualiser un échange ajouté en arrière-plan ; son registre CLI
+  vide ne prouve pas la fermeture de la fenêtre. Aucun redémarrage automatique de l'app.
   OpenCode --copy : agent, modèle, variante, permissions, plugins et MCP habituels conservés.
   Aucune lecture seule imposée ; fichiers partagés, source et copie conservées même en échec.
   --copy ignore relay.view et refuse --new, --open, --background, --check, --follow,
@@ -929,6 +938,15 @@ Limits:
   conversation that was created, or resumed and found, shows its codex://threads/<id> link,
   clickable in a terminal, and the command to open it yourself (explorer.exe, open or xdg-open); an agent
   runs it only at the owner's direct request.
+  For Claude, text output also shows the same CLI's --desktop --resume <id> command without
+  running it: use the conversation's directory and a TTY terminal, with no redirected output.
+  Requires Claude Code 2.1.285+, the installed app and a Claude subscription (Windows x64/macOS).
+  Viewing was verified on Windows; macOS remains unverified, Linux is not offered.
+  No message sent or permissions changed by PALABRE; the Relay turn's restrictions are not
+  guaranteed in the app. The --open transport does not support Claude: quit the app before another supported send.
+  This visibility workaround (#193) does not implement relay open (#219).
+  Claude Desktop may not refresh a background exchange; an empty CLI registry does not prove
+  its window is closed. PALABRE never restarts the app automatically.
   OpenCode --copy: usual agent, model, variant, permissions, plugins and MCP are preserved.
   No enforced read-only mode; shared files, source and copy retained even after failure.
   --copy ignores relay.view and rejects --new, --open, --background, --check, --follow,
