@@ -324,7 +324,7 @@ Pour un avis ou une relecture sans modification, `palabre relay --new --to codex
 ```bash
 # Ouvrir dans Codex Desktop
 # Objet : #205 (quota de Codex)
-explorer.exe "codex://threads/<id>"
+palabre relay open --to codex:<id>
 ```
 
 `open` sous macOS, `xdg-open` sous Linux. L'app Claude ne rend pas `codex://` cliquable ; sous Windows, une conversation déjà affichée met seulement Codex au premier plan (macOS et Linux non vérifiés). Une fois ouverte, Desktop tient le verrou : après `--check --open` réussi, la joindre avec `--open` explicite, qui garde ses permissions courantes et refuse une conversation relâchée entre-temps (avec `auto`, l'envoi partirait alors en arrière-plan) ; l'arrière-plan imposé répondrait `target-busy`. Pour une conversation créée par `--new`, ces permissions sont celles de sa création : lecture seule, même dans Desktop (constaté avec les versions vérifiées). Pour faire écrire Codex, l'humain crée lui-même la conversation dans Desktop avec les permissions qu'il choisit. Uniquement si l'humain demande explicitement `--write` expérimental, utiliser le parcours d'accord ponctuel : nouvelle demande, nouvelle conversation et nouvel accord pour chaque tâche ; ne pas convertir une reprise d'avis en reprise d'écriture.
@@ -386,9 +386,39 @@ Le transport --open ne prend toujours pas en charge Claude (#193) :
 demander sa fermeture avant un nouvel envoi autorisé, et contrôler la délivrance
 pour ne pas dupliquer un message. Ne pas utiliser les parcours --check --open,
 --open --follow ou --then-follow de Codex avec Claude. Ce dépannage ne résout ni
-le dépôt ni la corrélation ouverts de #193 ; la sous-commande unifiée relay open
-et son observation d'état restent #219, pas une commande disponible. OpenCode
+le dépôt ni la corrélation ouverts de #193 ; le premier lot relay open de #219
+ne couvre que Codex, pas Claude. OpenCode
 Desktop garde une qualification séparée.
+
+## Centraliser l'ouverture Codex avec `relay open` (#219)
+
+Sur demande humaine directe uniquement, utiliser `palabre relay open --to
+<agent>:<uuid> --json`, avec le même --config si explicite, plutôt que refaire
+le lanceur système et la boucle de contrôle dans chaque hôte. Pas de message,
+--trust-config, --new ni option d'envoi. La commande valide avec --check --open,
+lance une seule fois, puis observe le verrou sous budget coopératif de 15 s.
+Validation, localisation, lectures et sondes peuvent retarder retour et Ctrl+C :
+aucune borne murale stricte. Délai revérifié après chaque IO, aucun lancement ni
+succès accepté tardivement. Elle ne ferme jamais l'app et ne retire aucun verrou.
+Une ouverture lancée peut aboutir après Ctrl+C ou l'échéance ; aucun retrait promis.
+
+Lire le type distinct relay-open-result : launcher (attempted/status/exitCode?),
+attachment (attached/detached/unknown), reason, display toujours unverified et
+messageSent toujours false. attached/code 0 ne prouve ni surface, ni visibilité,
+ni changement de droits ; ne pas annoncer « affiché » sur cette seule base.
+Envoi séparé, tâche déjà autorisée et --open explicite après --check --open.
+Refus ou échéance : rapporter l'état, aucun retry ni envoi en arrière-plan.
+
+Le bouton court « Ouvrir dans Codex » dépend de l'hôte. S'il n'en propose pas,
+une question courte puis exécution sur accord ; pour l'humain qui veut lancer
+lui-même, une seule commande sans --json dans le bloc shell, commentaires action
+et objet. Le texte CLI des anciennes versions peut encore donner explorer/open/
+xdg-open ; le lien n'est jamais une preuve d'affichage.
+
+Claude/OpenCode sont refusés dans ce premier lot ; le dépannage Claude TTY de
+#225 reste distinct. Ne pas inventer un transport --open Claude ou un flux live.
+Nouvelle commande encore à qualifier en réel sous Windows sur une cible choisie
+par l'humain avant publication ; macOS/Linux non vérifiés, python3 requis POSIX.
 
 ## Dernier quota Codex connu
 

@@ -81,6 +81,10 @@ Le chef de mission réutilise l'identifiant, lit la réponse et vous en rend com
 
 Si l'équipier modifie des fichiers dans une conversation ouverte, ils restent dans son dossier de travail. Ils apparaissent sur GitHub seulement après un commit et un push autorisés séparément. Une réponse reçue ne prouve pas que le travail ou les tests ont réussi.
 
+Pour **Codex**, l'agent utilise `palabre relay open --to codex:<identifiant>` :
+un lancement, puis vérification du verrou, sans message. Ouvrir n'autorise aucun
+envoi ni écriture ; l'affichage reste à confirmer dans l'app.
+
 Pour **Claude**, dites aussi « ouvre la conversation » : l'agent utilise
 `claude --desktop --resume <identifiant>` depuis le dossier du relais, avec la même
 installation Claude, dans un terminal TTY sans redirection. L'identifiant reste

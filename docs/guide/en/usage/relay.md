@@ -166,6 +166,29 @@ The command depends on the system: `explorer.exe` on Windows, `open` on macOS, `
 
 ### Open the teammate's conversation
 
+For **Codex**, centralize opening and checking:
+
+```powershell
+# Open in Codex Desktop
+# Subject: review the plan
+palabre relay open --to codex:<identifier>
+```
+
+Only at your direct request: one launch, then lock observation with a cooperative
+15-second budget, with no message or setting/permission changes. A held lock
+proves neither the holding app nor display. Cancellation cannot undo an already
+launched opening; the app is never killed. No retry or automatic send. Config must
+already be trusted; retain `--config` if the relay used an explicit config. `--json`
+returns `relay-open-result`, with `launcher`, `attachment`, `display: unverified`,
+`messageSent: false`. No message or `--trust-config` is accepted; a later authorized
+send uses `--check --open`, then explicit `--open`. Claude/OpenCode are refused here;
+the Claude workflow below is separate. Real Windows qualification of this new
+command is still needed; macOS/Linux unverified, `python3` required on POSIX.
+
+Validation, lookup, reads and probes may delay returning or Ctrl+C; 15 seconds is
+not a strict wall-clock return bound. The deadline is rechecked afterwards,
+before any launch or accepted success.
+
 Tell your agent “open the conversation”, or use “Open in Claude” / “Open in Codex”
 if your host offers a button. At your request, the agent opens the exact Relay
 conversation without sending a new message, regardless of the sender. Another
@@ -209,10 +232,9 @@ Do not duplicate an already delivered message. For Codex, keep `--check --open`,
 then `--open` for an authorized send; a conversation created by `--new` stays
 read-only in Desktop.
 
-This works around visibility in #193, not sending to open Claude. The unified
-`palabre relay open` command, attachment observation and structured results remain
-#219 work, not an already available command. OpenCode Desktop needs separate
-qualification; do not apply these commands to it.
+The Claude workflow works around visibility in #193, not the open Claude transport.
+`palabre relay open` covers only Codex in this first #219 step. OpenCode Desktop
+needs separate qualification; do not apply these commands to it.
 
 ### Check before sending (`--check`)
 

@@ -76,6 +76,7 @@ import { resolveRelayView, type RelayModeSource } from "../externalSessions/rela
 import { relayViewText } from "../messages/relayView.js";
 import type { ThenFollowReport } from "../externalSessions/openRelay.js";
 import { relayViewCommand } from "./relayView.js";
+import { runRelayOpenCommand } from "./relayOpen.js";
 
 /** Timeout par défaut et bornes de `--timeout`, en secondes. */
 export const DEFAULT_RELAY_TIMEOUT_SECONDS = 600;
@@ -252,6 +253,10 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
   }
   if (rawArgs[1] === "approve-write" || rawArgs[1] === "run-write") {
     await manageWrite(rawArgs);
+    return;
+  }
+  if (rawArgs[1] === "open") {
+    await runRelayOpenCommand(rawArgs, (args, signal) => executeRelayWithMessages(args, { signal }), messages);
     return;
   }
   if (rawArgs[1] === "allow-repo") {

@@ -70,3 +70,18 @@ This mode preserves OpenCode's usual profile, without enforced read-only access.
 No `relay.view` preference, Codex quota/link or follow-up fields apply to this path.
 `--background`, `--open`, `--check`, `--follow` and `--then-follow` are refused with `--copy`.
 Windows/OpenCode CLI 2.0.32 pilot only; source and copy are retained.
+
+## Codex opening without a message (#219)
+
+`palabre relay open --to codex:<uuid> --json` returns a **distinct** v1 object,
+`type: relay-open-result`. Fields: `status`, `exitCode`, `to`, `launcher`
+(`attempted`, `status`, `exitCode?`), `attachment` (`attached`, `detached`, `unknown`),
+`reason`, `display: unverified`, `messageSent: false`, `error`, `durationMs`.
+No `reply`, `delivery`, `mode`, `targetPermissions` or export. The exchange
+relay-result JSON is unchanged. Code 0/attached means a held lock, never proof
+of display or Desktop; the launcher is separate evidence. Code 3: free at
+deadline/unknown; 4: timeout during validation/launcher/probe; 7: missing launcher;
+2: launcher failure; 130: cancelled. Validation refusals are preserved. Never
+treat this result as a received message. A later authorized send is separate and
+uses explicit --open. Claude/OpenCode refused; real Windows qualification of this
+new command is still needed, macOS/Linux unverified.

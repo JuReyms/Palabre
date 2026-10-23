@@ -70,3 +70,18 @@ Le mode conserve le profil habituel d'OpenCode, sans lecture seule imposée.
 Ni préférence `relay.view`, ni quota/lien Codex, ni champs de suivi dans ce parcours.
 `--background`, `--open`, `--check`, `--follow` et `--then-follow` sont refusés avec `--copy`.
 Pilote Windows/OpenCode CLI 2.0.32 seulement ; source et copie sont conservées.
+
+## Ouverture Codex sans message (#219)
+
+`palabre relay open --to codex:<uuid> --json` rend un objet **distinct** v1,
+`type: relay-open-result`. Champs : `status`, `exitCode`, `to`, `launcher`
+(`attempted`, `status`, `exitCode?`), `attachment` (`attached`, `detached`, `unknown`),
+`reason`, `display: unverified`, `messageSent: false`, `error`, `durationMs`.
+Aucun `reply`, `delivery`, `mode`, `targetPermissions` ou export. Le JSON d'échange
+relay-result reste inchangé. Code 0/attached signifie verrou tenu, jamais preuve
+d'affichage ni d'app Desktop ; le lanceur est une preuve séparée. Code 3 pour
+verrou libre à l'échéance/inconnu ; 4 pour délai pendant validation/lanceur/sonde ;
+7 lanceur absent ; 2 échec lanceur ; 130 annulation. Refus de validation conservés.
+Ne pas assimiler ce résultat à un message reçu. Un envoi autorisé est séparé et
+utilise --open explicite. Claude/OpenCode refusés ; qualification réelle Windows
+de cette nouvelle commande encore requise, macOS/Linux non vérifiés.
