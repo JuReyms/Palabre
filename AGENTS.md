@@ -1571,7 +1571,9 @@ le 23 octobre 2026 malgré Explorer code 1 ; seul ce cas donne launcher.status u
 code brut conservé, puis sonde du verrou sans relance. Les autres erreurs gardent leur
 priorité. Défilement non piloté. Un verrou préexistant ne prouve aucun nouvel affichage.
 Bilan et échange séparé Codex → Codex : docs/relay-codex-desktop-qualification.md.
-Correctif testé hors ligne ; résultat corrigé encore à qualifier en réel avant publication.
+Correctif testé hors ligne puis confirmé sur une ouverture réelle au commit 4d464e2 :
+lanceur unverified/1, attached/0, 728 ms, bonne cible affichée selon le propriétaire.
+Ne pas généraliser à toutes les versions ni à une transition de fermé à ouvert.
 Ne pas rejouer les échanges ni lancer un modèle pour qualifier une ouverture.
 
 Le lanceur est créé dans un groupe isolé (`detached: true`, stdio ignore), puis unref à

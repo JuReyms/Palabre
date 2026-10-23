@@ -297,8 +297,9 @@ Ouvrir Codex sans envoyer (#219) :
   Code 0 : attached ; 3 : verrou libre à l'échéance ou inconnu ; 4 : délai pendant validation,
   lanceur ou sonde ; 7 : lanceur absent ; 130 : annulation. Envoi suivant : --open explicite,
   seulement pour une tâche autorisée. Claude n'est pas pris en charge ici : dépannage --desktop
-  séparé (#225), pas de suivi direct (#193). Deux ouvertures Windows confirmées ; correctif
-  Explorer testé hors ligne, résultat corrigé encore à qualifier en réel avant publication.
+  séparé (#225), pas de suivi direct (#193). Deux ouvertures Windows puis une ouverture
+  corrigée confirmées par le propriétaire ; aucune généralisation à toutes les versions
+  ni à une transition de fermé à ouvert.
   macOS/Linux non vérifiés. python3 requis sur POSIX pour vérifier le verrou.
 
 Quota Codex (#205) : --check (ouverte ou fermée) et résultat d'un envoi ouvert affichent le
@@ -902,8 +903,8 @@ Open Codex without sending (#219):
   at deadline or unknown; 4: deadline during validation, launcher or probe; 7: missing launcher;
   130: cancelled. For a later authorized send, use --open explicitly. Claude is unsupported
   here: separate --desktop workaround (#225), no live following (#193). Two Windows openings
-  confirmed; Explorer fix tested offline, corrected result still needs real qualification
-  before publication. macOS/Linux unverified. python3 required on POSIX.
+  then one corrected opening confirmed by the owner; not a qualification of all versions
+  or a transition from closed to open. macOS/Linux unverified. python3 required on POSIX.
 
 Codex quota (#205): --check (open or closed) and an open send's result show the last known quota
   only if its shape and timestamp are recognized. Indicative, not live: the account may have been

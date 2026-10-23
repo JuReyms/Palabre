@@ -82,7 +82,9 @@ Tests simulés/profils fictifs via `scripts/test.mjs`. Deux ouvertures par la no
 commande, sur cibles choisies par le propriétaire sous Windows le 23 octobre 2026,
 ont été confirmées à l'écran malgré le faux échec Explorer code 1. La première
 n'était pas au bas de l'historique. Bilan : docs/relay-codex-desktop-qualification.md.
-Le correctif du code 1 est testé hors ligne, pas encore rejoué en réel : une
-qualification bout en bout du résultat corrigé reste requise avant publication.
+Le correctif du code 1 est testé hors ligne et confirmé sur une ouverture réelle
+de la première cible au commit 4d464e2 : `launcher: unverified`/1, `attached`/0,
+728 ms, aucun message ; bonne conversation affichée selon le propriétaire.
+Cela ne qualifie ni toutes les versions ni une transition de fermé à ouvert.
 macOS/Linux restent non vérifiés. Aucun modèle n'est nécessaire pour une ouverture ;
 l'échange Codex → Codex relaté dans le bilan est un test séparé explicitement autorisé.

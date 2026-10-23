@@ -188,7 +188,9 @@ Claude ci-dessous séparé. Deux ouvertures confirmées sous Windows le 23 octob
 2026 ont révélé un faux échec : Explorer code 1 est désormais `launcher.status:
 unverified`, code brut conservé, puis vérification du verrou sans second lancement.
 Ce n'est pas une preuve d'affichage ; le défilement n'est pas piloté. Le correctif
-est testé hors ligne, son résultat complet reste à qualifier en réel avant publication.
+a ensuite été confirmé sur une ouverture réelle de la cible choisie : verrou tenu,
+code final 0 et affichage confirmé séparément par le propriétaire, sans message.
+Cet essai ne qualifie pas toutes les versions ni une transition de fermé à ouvert.
 macOS/Linux non vérifiés, `python3` requis sur POSIX.
 
 Les validations, localisations, lectures et sondes peuvent retarder le retour ou

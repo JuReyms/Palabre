@@ -86,5 +86,7 @@ Ne pas assimiler ce résultat à un message reçu. Un envoi autorisé est sépar
 utilise --open explicite. Sous Windows seulement, Explorer code 1 donne
 `launcher.status: unverified`, `launcher.exitCode: 1` conservé, puis sonde du verrou
 sans relance. Un verrou déjà tenu ne prouve aucun nouvel affichage. Deux ouvertures
-ont été confirmées sous Windows avant ce correctif ; son résultat complet reste à
-qualifier en réel avant publication. Claude/OpenCode refusés ; macOS/Linux non vérifiés.
+ont été confirmées sous Windows avant ce correctif ; une ouverture corrigée a ensuite
+rendu `launcher: unverified`/1 et `attached`/0, avec affichage confirmé séparément
+par le propriétaire. Cela ne qualifie pas une transition de fermé à ouvert ni
+toutes les versions. Claude/OpenCode refusés ; macOS/Linux non vérifiés.

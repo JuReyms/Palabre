@@ -425,8 +425,10 @@ xdg-open ; le lien n'est jamais une preuve d'affichage.
 Claude/OpenCode sont refusés dans ce premier lot ; le dépannage Claude TTY de
 #225 reste distinct. Ne pas inventer un transport --open Claude ou un flux live.
 Deux ouvertures confirmées par l'humain sous Windows le 23 octobre 2026 ont révélé
-le faux échec Explorer code 1. Le correctif est couvert hors ligne ; son résultat
-complet reste à qualifier en réel avant publication. Bilan sans identifiants privés :
+le faux échec Explorer code 1. Le correctif est couvert hors ligne et confirmé sur
+une ouverture réelle : lanceur unverified/1, attached/0, affichage confirmé séparément
+par le propriétaire. Ne pas généraliser à toutes les versions ni à une transition
+de fermé à ouvert. Bilan sans identifiants privés :
 docs/relay-codex-desktop-qualification.md. macOS/Linux non vérifiés, python3 requis POSIX.
 
 ## Dernier quota Codex connu

@@ -86,5 +86,7 @@ treat this result as a received message. A later authorized send is separate and
 uses explicit --open. On Windows only, Explorer code 1 yields `launcher.status:
 unverified`, retaining `launcher.exitCode: 1`, then probing the lock without a
 relaunch. An already held lock proves no new display. Two openings were confirmed
-on Windows before this fix; its full result still needs real qualification before
-publication. Claude/OpenCode refused; macOS/Linux unverified.
+on Windows before this fix; a corrected opening then returned `launcher: unverified`/1
+and `attached`/0, with display confirmed separately by the owner. This does not
+qualify a transition from closed to open or all versions. Claude/OpenCode refused;
+macOS/Linux unverified.
