@@ -20,6 +20,16 @@ From your usual tools, Palabre lets you delegate a task, bring another tool's re
 
 Palabre calls the AI assistants you bring into the work **agents**, for example through Codex, Claude Code, OpenCode or a local model with Ollama. **Models** are the AI engines those tools use.
 
+### Your data, your tools
+
+**Palabre does not collect your data: no Palabre account, no telemetry, no Palabre server receiving your conversations.** It runs on your machine.
+
+- **Local AI exchanges:** Debate, Ask and Chat can use a local Ollama server and local models, including for summaries. Launch them from your terminal, without a remote AI assistant, to keep these exchanges on your machine.
+- **Your choice of providers:** if you include a remote tool or model, it receives the prompts and context it needs, under its own privacy policy. Palabre adds no intermediary collecting your conversations.
+- **Local records:** Palabre saves its Markdown exports on your machine. You choose whether to share them.
+
+[Privacy and what stays local](https://palab.re/en/get-started/introduction#privacy)
+
 ### Where can you use Palabre?
 
 - **In your usual AI assistant**, in its CLI or desktop app: ask it to use Palabre in plain language. With the Palabre skill and permission to run local commands, it can launch Relay, Debate, Ask or Chat and report back to you.
@@ -53,7 +63,20 @@ Relay can create a new conversation or continue one you choose. Each send is exp
 | **Ask** | Compare 1–4 independent opinions, without mutual influence. | `question → separate answers → comparison` |
 | **Chat** | Advance with one interlocutor and occasionally request another opinion. | `you ↔ A`, with a one-off consultation of B |
 
-For Debate, Ask and Chat, you can bring in Claude Code, Codex, Antigravity CLI, OpenCode, Mistral Vibe or local models through Ollama. Relay has a separate, narrower compatibility list, described above.
+### Which tools work with which modes?
+
+These are the tools Palabre can call, once installed and configured — regardless of which compatible assistant you use to launch Palabre.
+
+| AI tool | Relay: receive a task | Debate | Ask | Chat |
+| --- | --- | --- | --- | --- |
+| Codex | Yes | Yes | Yes | Yes |
+| Claude Code | Yes, in the background | Yes | Yes | Yes |
+| OpenCode | Experimental, on a copy (1) | Yes | Yes | Yes |
+| Antigravity CLI | No | Yes | Yes | Yes |
+| Mistral Vibe | No | Yes | Yes | Yes |
+| Ollama (local models) | No | Yes | Yes | Yes |
+
+Codex and Claude Code can also coordinate Relay exchanges. (1) The OpenCode Relay pilot works on a copy of an existing conversation: Windows, CLI 2.0.32 only, not yet released; Desktop use has not been verified. [Relay requirements and limits](https://palab.re/en/usage/relay).
 
 **Roles complement Debate, Ask and Chat.** For example, an `implementer` proposes a solution while a `reviewer` looks for risks. Roles change the instruction, not the model or permissions. They do not configure Relay; “lead” and “teammate” describe coordination instead. [Roles and configuration](https://palab.re/en/get-started/configuration).
 
@@ -101,7 +124,6 @@ palabre codex-claude --mode debate "Challenge this plan" -t 4 --files docs/plan.
 ### What stays under your control
 
 - Relay messages grant no extra permissions. Background Codex/Claude calls restrict the teammate's tools; sending into a conversation in the Codex app uses that conversation's own permissions. If delivery is uncertain, Palabre does not send again automatically.
-- Palabre runs locally, without a Palabre-owned server. Prompts and context still go to the tools you choose and, where applicable, their remote services. Local Ollama models can keep inference on your machine.
 - Markdown exports let you read the exchanges again and keep a record.
 
 ### Documentation and integrations
@@ -119,6 +141,16 @@ Full documentation: **[palab.re](https://palab.re/en)** — [Relay](https://pala
 Depuis vos outils habituels, Palabre permet de confier une tâche, de récupérer la réponse d'un autre outil, de recueillir des avis indépendants ou de travailler les désaccords. Vous gardez la décision.
 
 Palabre appelle **agents** les assistants IA que vous faites participer, par exemple via Codex, Claude Code, OpenCode ou un modèle local avec Ollama. Les **modèles** sont les moteurs IA de ces outils.
+
+### Vos données, vos outils
+
+**Palabre ne collecte pas vos données : aucun compte Palabre, aucune télémétrie, aucun serveur Palabre pour recevoir vos conversations.** Il fonctionne sur votre machine.
+
+- **Des échanges IA locaux :** Débat, Ask et Chat peuvent utiliser un serveur Ollama et des modèles locaux, y compris pour la synthèse. Lancez-les depuis votre terminal, sans assistant IA distant, pour garder ces échanges sur votre machine.
+- **Vos fournisseurs, votre choix :** si vous faites participer un outil ou un modèle distant, il reçoit les prompts et le contexte nécessaires, selon sa propre politique de confidentialité. Palabre n'ajoute pas d'intermédiaire qui collecte vos conversations.
+- **Des traces locales :** Palabre enregistre ses exports Markdown sur votre machine. Vous choisissez de les partager ou non.
+
+[Confidentialité et données locales](https://palab.re/fr/get-started/introduction#confidentialité)
 
 ### Où utiliser Palabre ?
 
@@ -153,7 +185,20 @@ Relay peut créer une nouvelle conversation ou poursuivre celle que vous choisis
 | **Ask** | Comparer 1 à 4 avis indépendants, sans influence mutuelle. | `question → réponses séparées → comparaison` |
 | **Chat** | Avancer avec un interlocuteur et demander parfois un autre avis. | `vous ↔ A`, avec consultation ponctuelle de B |
 
-Pour Débat, Ask et Chat, vous pouvez faire participer Claude Code, Codex, Antigravity CLI, OpenCode, Mistral Vibe ou des modèles locaux via Ollama. Relay a une compatibilité distincte, plus restreinte, décrite plus haut.
+### Quels outils pour quels modes ?
+
+Voici les outils que Palabre peut appeler, une fois installés et configurés — quel que soit l'assistant compatible depuis lequel vous lancez Palabre.
+
+| Outil IA | Relay : recevoir une tâche | Débat | Ask | Chat |
+| --- | --- | --- | --- | --- |
+| Codex | Oui | Oui | Oui | Oui |
+| Claude Code | Oui, en arrière-plan | Oui | Oui | Oui |
+| OpenCode | Expérimental, sur copie (1) | Oui | Oui | Oui |
+| Antigravity CLI | Non | Oui | Oui | Oui |
+| Mistral Vibe | Non | Oui | Oui | Oui |
+| Ollama (modèles locaux) | Non | Oui | Oui | Oui |
+
+Codex et Claude Code peuvent aussi coordonner les échanges Relay. (1) Le pilote Relay OpenCode travaille sur une copie d'une conversation existante : Windows, CLI 2.0.32 seulement, pas encore publié ; l'utilisation depuis Desktop n'est pas encore validée. [Prérequis et limites Relay](https://palab.re/fr/usage/relay).
 
 **Les rôles complètent Débat, Ask et Chat.** Par exemple, un `implementer` propose une solution et un `reviewer` cherche les risques. Ils changent la consigne, pas le modèle ni les permissions. Ils ne règlent pas Relay ; « chef de mission » et « équipier » décrivent plutôt la coordination. [Rôles et configuration](https://palab.re/fr/get-started/configuration).
 
@@ -201,7 +246,6 @@ palabre codex-claude --mode debate "Critique ce plan" -t 4 --files docs/plan.md
 ### Ce qui reste sous votre contrôle
 
 - Un message Relay n'accorde aucun droit supplémentaire. Les appels Codex/Claude en arrière-plan limitent les outils de l'équipier ; un envoi dans une conversation de l'application Codex utilise les permissions de cette conversation. Si la délivrance est incertaine, Palabre ne renvoie pas le message automatiquement.
-- Palabre fonctionne localement, sans serveur Palabre. Les prompts et le contexte partent néanmoins vers les outils choisis et, selon leur fonctionnement, leurs services distants. Avec Ollama et un modèle local, l'inférence peut rester sur votre machine.
 - Les exports Markdown permettent de relire les échanges et d'en garder une trace.
 
 ### Documentation et intégrations

@@ -38,7 +38,13 @@ Débat, Ask et Chat lancent un nouvel appel d'agent pour chaque réponse. PALABR
 
 ## Confidentialité
 
-PALABRE s'exécute localement et n'a pas de serveur. Les prompts, fichiers et échanges vont aux agents choisis, selon leurs politiques et vos réglages. Avec Ollama **et un modèle local sur votre machine**, les requêtes restent locales ; un serveur Ollama distant reçoit les données qui lui sont envoyées.
+**PALABRE ne collecte pas vos données : aucun compte PALABRE, aucune télémétrie, aucun serveur PALABRE pour recevoir vos conversations.** La CLI s'exécute sur votre machine et enregistre ses exports localement ; ils peuvent contenir des informations sensibles, à relire avant tout partage.
+
+Avec un **serveur Ollama et des modèles locaux sur votre machine**, Débat, Ask et Chat peuvent garder leurs échanges IA en local. Tous les participants et l'éventuel agent de synthèse doivent utiliser des modèles locaux. Lancez la session directement dans le terminal si vous ne voulez pas qu'un assistant hôte distant reçoive votre demande ou les résultats.
+
+Si vous faites participer des outils ou modèles distants, les prompts, fichiers et échanges nécessaires leur sont transmis selon leurs politiques et vos réglages. Un serveur Ollama distant reçoit lui aussi les données qui lui sont envoyées. Utiliser un seul participant local ne rend pas toute la session locale.
+
+« Échanges IA locaux » ne signifie pas « aucune requête réseau » : PALABRE peut notamment consulter le registre npm pour vérifier les mises à jour. Cette vérification ne transmet pas vos prompts, fichiers ou conversations.
 
 ## Suite
 

@@ -38,7 +38,13 @@ Debate, Ask and Chat make a new agent call for each reply. PALABRE supplies the 
 
 ## Privacy
 
-PALABRE runs locally and has no server. Prompts, files and exchanges go to your chosen agents, subject to their policies and your settings. With Ollama **and a local model on your machine**, requests stay local; a remote Ollama server receives the data sent to it.
+**PALABRE does not collect your data: no PALABRE account, no telemetry, no PALABRE server receiving your conversations.** The CLI runs on your machine and saves its exports locally; these can contain sensitive information, so review them before sharing.
+
+With a **local Ollama server and local models on your machine**, Debate, Ask and Chat can keep their AI exchanges local. All participants and any summary agent must use local models. Launch the session directly from your terminal if you do not want a remote host assistant to receive your request or the results.
+
+If you include remote tools or models, they receive the necessary prompts, files and exchanges, subject to their policies and your settings. A remote Ollama server also receives the data sent to it. Using just one local participant does not make the whole session local.
+
+“Local AI exchanges” does not mean “no network requests”: PALABRE can, for example, query the npm registry to check for updates. This check does not send your prompts, files or conversations.
 
 ## Next
 
