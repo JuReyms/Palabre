@@ -104,11 +104,11 @@ Continue in your usual conversation. No Palabre command to memorize:
 
 > Use Palabre Relay to ask Claude Code to review this plan without changing files.
 
-Or, to compare opinions rather than send a task to a conversation:
+Or, to have two agents challenge the plan together:
 
-> Use Palabre Ask to get independent opinions from Codex and Claude Code on this plan, then summarize their differences.
+> Use Palabre Debate to have Codex and Claude Code discuss this plan, challenge each other's proposals and summarize their agreements and disagreements.
 
-You can also request a Debate or a Chat. Type your request, or dictate it if your app supports voice input. Your assistant runs Palabre locally and brings the result back into your conversation.
+Ask and Chat are also available for independent opinions or a conversation with one agent. Type your request, or dictate it if your app supports voice input. Your assistant runs Palabre locally and brings the result back into your conversation.
 
 [Set up the skill](https://palab.re/en/get-started/skill) · [Your first Relay](https://palab.re/en/get-started/first-relay)
 
@@ -226,11 +226,11 @@ Continuez dans votre conversation habituelle. Aucune commande Palabre à mémori
 
 > Avec Palabre Relay, demande à Claude Code de relire ce plan sans modifier de fichier.
 
-Ou, pour comparer des avis plutôt qu'envoyer une tâche à une conversation :
+Ou, pour faire examiner le plan par deux agents qui se répondent :
 
-> Avec Palabre Ask, recueille les avis indépendants de Codex et Claude Code sur ce plan, puis résume leurs différences.
+> Avec Palabre Débat, fais débattre Codex et Claude Code sur ce plan. Qu'ils confrontent leurs propositions, puis résument leurs accords et désaccords.
 
-Vous pouvez aussi demander un Débat ou un Chat. Écrivez votre demande, ou dictez-la si votre application le permet. Votre assistant exécute Palabre localement et vous rapporte le résultat dans la conversation.
+Ask et Chat restent disponibles pour recueillir des avis indépendants ou échanger avec un agent. Écrivez votre demande, ou dictez-la si votre application le permet. Votre assistant exécute Palabre localement et vous rapporte le résultat dans la conversation.
 
 [Configurer le skill](https://palab.re/fr/get-started/skill) · [Premier Relay](https://palab.re/fr/get-started/first-relay)
 
