@@ -130,7 +130,7 @@ To continue this conversation: palabre relay --to codex:<uuid> "…"
 
 In JSON, `to.session` contains the received identifier, `cwd` the directory, and root-level `created` indicates whether an identifier was received. `identity` also remains at the root. Before that, `to.session` is `null` and `created` is `false`. JSON and the export do not contain a continuation command: use the documented form `palabre relay --to <agent>:<to.session> "<follow-up>" --json`. The identifier is captured during the call and preserved in the result and export even if the first turn fails: **this does not mean the question was answered**. Check delivery before sending again; no retry is automatic.
 
-The conversation remains in the CLI history and can be resumed through Relay. For Codex, with the verified versions, a conversation created by `--new` through the CLI is not listed in Codex Desktop. This does not prevent Relay from reaching it. To follow the teammate in the app, open the `codex://threads/<identifier>` link that PALABRE shows after creation: the conversation opens in Desktop with its history, even though it is absent from the list. Once open, Desktop holds it: `auto` then reaches it in open mode, and it then answers with this conversation's permissions instead of closed Relay restrictions. A conversation created by `--new` still keeps a restricted profile, even when opened in Desktop. `--new` cannot be used with `--open`. By default, creation supports advice and reading; `--write` remains an experimental, frozen path documented at the end of this page. Opening this Desktop link is verified on Windows only; macOS and Linux remain unverified.
+The conversation remains in the CLI history and can be resumed through Relay. For Codex, with the verified versions, a conversation created by `--new` through the CLI is not listed in Codex Desktop. This does not prevent Relay from reaching it. To follow the teammate in the app, open the conversation with the command PALABRE shows after creation, or ask your agent to open it: it opens in Desktop with its history, even though it is absent from the list. Permission to open does not authorize sending a message. For an already authorized task or a new request, the agent first checks with `palabre relay --check --open --to codex:<identifier>`, then sends with `--open`: if the conversation is no longer open, sending is refused instead of going to the background. A conversation created by `--new` keeps the profile it was created with, read-only, even when opened in Desktop (observed with the verified versions): opening it lets you follow or review. To have Codex change files, create the conversation yourself in Codex Desktop, in the project folder, with the permissions you choose, then point your agent to it. `--new` cannot be used with `--open`. By default, creation supports advice and reading; `--write` remains an experimental, frozen path documented at the end of this page. Opening this Desktop link is verified on Windows only; macOS and Linux remain unverified.
 
 ## Background or in the desktop app
 
@@ -162,7 +162,7 @@ In background, a Codex conversation that was created, or resumed and found by PA
 To open it yourself: explorer.exe "codex://threads/<identifier>"
 ```
 
-The command depends on the system: `explorer.exe` on Windows, `open` on macOS, `xdg-open` on Linux. It helps when the link is not clickable, for example in the Claude app. Run it yourself, or ask your agent to open it: it only does so at your request, never on its own initiative or at another agent's request. Once the conversation is open, Codex works there with the app's permissions: it can change files. In JSON, `mode` is `background`, `open`, `follow` or `copy` (OpenCode); no link field is added, an integration builds it from `to.session`.
+The command depends on the system: `explorer.exe` on Windows, `open` on macOS, `xdg-open` on Linux. It helps when the link is not clickable, for example in the Claude app. Run it yourself, or ask your agent to open it: it only does so at your request, never on its own initiative or at another agent's request. Once open, the conversation keeps its own permissions: read-only for a conversation created by `--new`. In JSON, `mode` is `background`, `open`, `follow` or `copy` (OpenCode); no link field is added, an integration builds it from `to.session`.
 
 ### Check before sending (`--check`)
 
@@ -275,10 +275,10 @@ The actual format of a linked reply to a question was not found in available loc
 
 ### Listen for the continuation from the initial send (`--then-follow`)
 
-For an authorized writing task in an existing Codex Desktop conversation, add `--then-follow 3600` to the message in open mode (explicit `--open` or `auto` resolved to open). This grants no write permission: the conversation keeps its own permissions.
+Not by default: an ordinary send returns the reply as soon as the teammate is done, whereas `--then-follow` then waits for the first next turn to complete, until the deadline if nothing comes (and with `--json`, the main reply is only returned when following ends). Use it only when the teammate is expected in advance to ask you for an approval in the app, with a short budget (120 s to start with, adjusted to the task). If the approval request only shows up in its reply, start `--open --follow` just before you approve instead. Open mode only (explicit `--open` or `auto` resolved to open). This grants no write permission: the conversation keeps its own permissions.
 
 ```powershell
-palabre relay --open --to codex:<target-session> --then-follow 3600 --timeout 600 "<authorized task>" --json
+palabre relay --open --to codex:<target-session> --then-follow 120 --timeout 600 "<authorized task>" --json
 ```
 
 Only one message is queued. `--timeout` bounds the correlated reply; `--then-follow <seconds>` sets a separate 10–3600 second budget starting when that reply is received. Following starts immediately after its exact completion line, not at the current end of the file: a fast continuation is retained even when both turns are read together. The owner can confirm in the app without waiting for another call to start.

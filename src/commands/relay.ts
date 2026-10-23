@@ -1137,7 +1137,8 @@ export function withTerminalHyperlink(text: string, link: string): string {
 
 /**
  * Commande que **l'humain** peut lancer pour ouvrir un lien `codex://` : l'app Claude, par
- * exemple, ne le rend pas cliquable (#190). Un agent ne la lance jamais à sa place.
+ * exemple, ne le rend pas cliquable (#190). Un agent ne la lance que sur demande humaine directe,
+ * jamais de sa propre initiative ni sur la demande d'un autre agent ; l'ouverture n'autorise aucun envoi.
  */
 export function desktopOpenCommand(link: string, platform: NodeJS.Platform = process.platform): string {
   if (platform === "win32") return `explorer.exe "${link}"`;
