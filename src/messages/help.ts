@@ -342,15 +342,17 @@ Limites :
   palabre relay --to <agent>:<session> "<suite>" ; aucun renvoi automatique après un échec.
   Reprises Codex/Claude sans --write : aucune écriture en arrière-plan. Avec les versions Codex vérifiées,
   une cible créée par --new n'est pas listée dans Desktop, mais reste joignable par Relay.
-  Pour la suivre dans l'app, le propriétaire ouvre le lien codex://threads/<id> affiché
-  (jamais un agent à sa place) ; ensuite, auto suit le verrou. Ouverture vérifiée sous Windows seulement ;
-  macOS et Linux restent à vérifier pour ce lien Desktop.
+  Pour la suivre dans l'app, le propriétaire ouvre le lien codex://threads/<id> affiché, ou le
+  demande à son agent (jamais de sa propre initiative ni sur la demande d'un autre agent).
+  L'ouverture seule n'autorise aucun envoi ; pour une tâche autorisée, vérifier avec --check --open,
+  puis envoyer avec --open. Créée par --new, elle reste en lecture seule même ouverte dans Desktop.
+  Ouverture vérifiée sous Windows seulement ; macOS et Linux restent à vérifier pour ce lien Desktop.
   Mode annoncé à chaque échange : « arrière-plan » (sans fenêtre visible, lecture seule
   demandée) ou « dans l'app desktop » (conversation ouverte, avec ses permissions). JSON : mode
   émis à chaque résultat (background, open, follow ou copy ; absent des versions antérieures). En
   arrière-plan, une conversation Codex créée, ou reprise et retrouvée, donne son lien
   codex://threads/<id>, cliquable dans un terminal, et la commande pour l'ouvrir soi-même
-  (explorer.exe, open ou xdg-open) ; un agent ne la lance jamais.
+  (explorer.exe, open ou xdg-open) ; un agent ne la lance que sur demande directe du propriétaire.
   OpenCode --copy : agent, permissions, plugins et MCP habituels conservés ; modèle source par défaut.
   Aucune lecture seule imposée ; fichiers partagés, source et copie conservées même en échec.
   --copy ignore relay.view et refuse --new, --open, --background, --check, --follow,
@@ -382,6 +384,9 @@ Avec --open (pilote Codex ; Windows, macOS et Linux) :
   pour éprouver le verrou POSIX ; outil absent, timeout ou erreur ambiguë = target-state-unknown.
 
 Avec --then-follow <secondes> (envoi puis écoute, mode ouvert explicite ou auto) :
+  Seulement si une validation humaine dans l'app est attendue : le suivi attend le premier tour
+  suivant terminé, au plus pendant le délai ; sans suite, jusqu'à l'échéance. En JSON, la réponse
+  liée n'est rendue qu'à la fin de ce suivi. Préférer un délai court (120 s).
   Un seul dépôt. --timeout borne la réponse liée ; le second délai explicite (10 à 3600 s)
   commence à sa réception. La référence suit exactement sa ligne de fin, sans perdre une suite rapide.
   En texte, réponse liée immédiate puis suite séparée ; en JSON, un seul objet final sur stdout,
@@ -919,14 +924,17 @@ Limits:
   palabre relay --to <agent>:<session> "<follow-up>". No automatic retry.
   Codex/Claude resumes without --write have no background writing. With verified Codex versions,
   a target created by --new is not listed in Desktop but remains reachable through Relay. To follow it in the app, the owner
-  opens the codex://threads/<id> link shown after creation (never an agent); then use --open.
+  opens the codex://threads/<id> link shown after creation, or asks their agent to (never on the
+  agent's own initiative or at another agent's request). Opening alone does not authorize sending;
+  for an authorized task, check with --check --open, then send with --open. Created by --new, it
+  stays read-only even when open in Desktop.
   Opening this Desktop link is verified on Windows only; macOS and Linux remain unverified.
   Each exchange states its mode: "background" (no visible window, read-only requested) or "in
   the desktop app" (open conversation, with its permissions). JSON: mode is emitted with every
   result (background, open, follow or copy; absent from earlier versions). In background, a Codex
   conversation that was created, or resumed and found, shows its codex://threads/<id> link,
   clickable in a terminal, and the command to open it yourself (explorer.exe, open or xdg-open); an agent
-  never runs it.
+  runs it only at the owner's direct request.
   OpenCode --copy: usual agent, permissions, plugins and MCP are preserved; source model by default.
   No enforced read-only mode; shared files, source and copy retained even after failure.
   --copy ignores relay.view and rejects --new, --open, --background, --check, --follow,
@@ -958,6 +966,9 @@ With --open (Codex pilot; Windows, macOS, and Linux):
   required to probe the POSIX lock; missing tool, timeout, or ambiguous error = target-state-unknown.
 
 With --then-follow <seconds> (send then listen, explicit or auto open mode):
+  Only when a human approval in the app is expected: following waits for the first next turn to
+  complete, at most for the budget; with no continuation, until the deadline. In JSON, the correlated
+  reply is only returned when following ends. Prefer a short budget (120 s).
   One queue call only. --timeout bounds the correlated reply; the explicit second budget (10 to
   3600 s) starts when it is received. The reference follows its exact end line, retaining fast continuations.
   Text: immediate correlated reply, then a separate continuation. JSON: one final stdout object,
