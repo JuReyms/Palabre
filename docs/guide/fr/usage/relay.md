@@ -196,6 +196,14 @@ exacte d'une revue Relay a été confirmée dans l'app sous Windows le 23 octobr
 2026 ; macOS reste à vérifier, Linux n'est pas proposé. Le succès du lanceur seul
 ne prouve ni l'affichage ni les permissions.
 
+Lors de cet essai, un nouvel échange en arrière-plan n'est pas apparu dans la
+fenêtre déjà ouverte, même après un aller-retour entre conversations. Après
+**Fichier > Quitter**, puis réouverture de la même conversation, il était visible.
+Ce redémarrage est seulement un dépannage, jamais une fermeture automatique ni
+le parcours normal. Une vérification Relay « fermée » ne prouve pas que la
+conversation est fermée dans Claude Desktop : son registre CLI peut être vide.
+Voir le [bilan de qualification](https://github.com/JuReyms/Palabre/blob/codex/relay-desktop-opening/docs/relay-desktop-qualification.md).
+
 **Consulter n'est pas envoyer.** Vérifiez les permissions avant de poursuivre dans
 Claude Desktop : les restrictions du tour Relay ne sont pas garanties dans l'app.
 Pour un nouvel envoi Relay vers Claude, fermez cette conversation ; Claude ouverte

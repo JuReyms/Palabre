@@ -369,6 +369,16 @@ confirmée par le propriétaire dans l'app Windows le 23 octobre 2026 ; macOS re
 non vérifié et Linux n'est pas proposé. Ne pas déduire un affichage du seul code 0
 du lanceur : demander à l'humain s'il voit la conversation quand c'est nécessaire.
 
+**Actualisation, essai Windows du 23 octobre 2026** : un message témoin réellement
+reçu en arrière-plan n'est pas apparu dans la fenêtre déjà ouverte, ni après un
+aller-retour entre conversations. Après Fichier > Quitter fait par l'humain et
+réouverture native de la même session, le témoin était visible. Ne pas promettre
+de suivi en direct, ni transformer ce dépannage en fermeture automatique de l'app.
+L'absence d'entrée dans le registre CLI a donné check.target: closed malgré la
+fenêtre ouverte ; ce résultat ne prouve donc pas sa fermeture dans Desktop.
+Une relance d'ouverture a aussi été refusée comme session occupée : aucun verrou
+forcé, archivage, suppression ou renvoi. Preuve détaillée : docs/relay-desktop-qualification.md.
+
 **Suite** : l'humain peut relire ou continuer lui-même dans Claude Desktop, après
 avoir vérifié ses permissions : ne pas promettre que les outils limités/MCP/hooks
 du tour Relay sont maintenus dans l'app. Aucun droit n'est ajouté par l'agent.

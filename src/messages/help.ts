@@ -359,6 +359,8 @@ Limites :
   Aucun message envoyé, aucune permission modifiée par PALABRE ; les restrictions du tour Relay
   ne sont pas garanties dans l'app. Relay ne peut pas joindre Claude ouverte : la fermer avant
   un nouvel envoi. Ce dépannage de visibilité (#193) ne livre pas relay open (#219).
+  Claude Desktop peut ne pas actualiser un échange ajouté en arrière-plan ; son registre CLI
+  vide ne prouve pas la fermeture de la fenêtre. Aucun redémarrage automatique de l'app.
   OpenCode --copy : agent, modèle, variante, permissions, plugins et MCP habituels conservés.
   Aucune lecture seule imposée ; fichiers partagés, source et copie conservées même en échec.
   --copy ignore relay.view et refuse --new, --open, --background, --check, --follow,
@@ -943,6 +945,8 @@ Limits:
   No message sent or permissions changed by PALABRE; the Relay turn's restrictions are not
   guaranteed in the app. Relay cannot reach open Claude sessions: close it before another send.
   This visibility workaround (#193) does not implement relay open (#219).
+  Claude Desktop may not refresh a background exchange; an empty CLI registry does not prove
+  its window is closed. PALABRE never restarts the app automatically.
   OpenCode --copy: usual agent, model, variant, permissions, plugins and MCP are preserved.
   No enforced read-only mode; shared files, source and copy retained even after failure.
   --copy ignores relay.view and rejects --new, --open, --background, --check, --follow,

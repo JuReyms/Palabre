@@ -18,6 +18,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Changed
 
+- Qualification de l'ouverture Claude Desktop (#225, Refs #193/#219) : dans l'essai Windows du 23 octobre, l'échange ajouté en arrière-plan n'apparaît pas à chaud, mais devient visible après Fichier > Quitter et réouverture. Le registre CLI vide a aussi fait annoncer « fermée » malgré la fenêtre ouverte. Guides et référence du skill précisent ces limites : aucun suivi en direct promis, aucune fermeture ou relance automatique. Copies installées : synchronisation après accord humain, puis rechargement.
+
 - Skill : pour suivre une conversation Codex dans l'app, l'agent présente la commande d'ouverture (`explorer.exe`, `open` ou `xdg-open`) dans un bloc de code shell, précédée de deux lignes de commentaire, `# Ouvrir dans Codex Desktop` et `# Objet : <objet du relais>`, au lieu d'un lien `codex://` que l'app Claude ne rend pas cliquable. Copies installées : `palabre skill --sync` après accord humain, puis recharger le skill.
 
 - Skill : le compte rendu d'un Relay est écrit pour un utilisateur de l'app desktop. L'agent rend le résultat en mots simples, le mode et une seule action quand il en faut une (pour ouvrir une conversation dans Codex Desktop : la seule commande d'ouverture, sans lien isolé ni identifiant). Il garde lui-même l'identifiant, le dossier et l'export : l'humain dit « continue ». Il ne montre plus par défaut l'identifiant, le dossier, le chemin de l'export ni une commande `palabre relay --to …` à recopier ; il les donne sur demande ou pour diagnostiquer un échec. Guides fr/en et AGENTS.md à jour.

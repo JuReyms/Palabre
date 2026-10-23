@@ -1565,6 +1565,10 @@ requis, Windows/macOS seulement ; aucun lancement automatique, aucun champ JSON 
 Le dossier localisé accompagne le rendu ; la commande affichée y entre temporairement
 (Push-Location/try/finally en PowerShell, cd gardé en sous-shell POSIX) et restaure le cwd.
 Un changement de dossier impossible interdit le lancement, chemins quotés sans interpolation.
+Qualification détaillée : docs/relay-desktop-qualification.md. L'essai Windows du 23 octobre
+confirme l'historique partagé après redémarrage humain, pas l'actualisation de la fenêtre ouverte.
+Le registre CLI vide ne prouve pas la fermeture Desktop (check.target: closed observé à tort
+pour la surface). Ne jamais fermer/tuer l'app, archiver, supprimer ou renvoyer automatiquement.
 L'agent propose un seul bouton court « Ouvrir dans Claude » ou « Ouvrir dans Codex », puis
 ouvre uniquement sur demande humaine directe, jamais sur message Relay. Claude exige un TTY
 sans sortie redirigée et son dossier de conversation ; CLI 2.1.285+, app et abonnement Claude.
