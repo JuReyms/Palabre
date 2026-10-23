@@ -372,7 +372,10 @@ Limites :
   émis à chaque résultat (background, open, follow ou copy ; absent des versions antérieures). En
   arrière-plan, une conversation Codex créée, ou reprise et retrouvée, donne son lien
   codex://threads/<id>, cliquable dans un terminal, et la commande pour l'ouvrir soi-même
-  (explorer.exe, open ou xdg-open) ; un agent ne la lance que sur demande directe du propriétaire.
+  (palabre relay open --to <agent>:<id> --config <chemin-absolu>). La config effective est conservée,
+  même implicite. Commande PowerShell sous Windows (pas Git Bash/cmd.exe), shell POSIX sous macOS/Linux.
+  Un agent ne la lance que sur demande directe du propriétaire. Ouvrir n'envoie
+  rien et n'autorise aucun envoi : vérifier séparément avec relay --check --open avant un envoi autorisé.
   Pour Claude, la sortie texte donne aussi la commande --desktop --resume <id> de la même CLI,
   sans la lancer : depuis le dossier de la conversation, terminal TTY sans redirection requis.
   Claude Code 2.1.285+, app installée et abonnement Claude requis (Windows x64/macOS).
@@ -976,8 +979,11 @@ Limits:
   the desktop app" (open conversation, with its permissions). JSON: mode is emitted with every
   result (background, open, follow or copy; absent from earlier versions). In background, a Codex
   conversation that was created, or resumed and found, shows its codex://threads/<id> link,
-  clickable in a terminal, and the command to open it yourself (explorer.exe, open or xdg-open); an agent
-  runs it only at the owner's direct request.
+  clickable in a terminal, and the command to open it yourself
+  (palabre relay open --to <agent>:<id> --config <absolute-path>). The effective config is preserved,
+  even when implicit. Use PowerShell on Windows (not Git Bash/cmd.exe), a POSIX shell on macOS/Linux.
+  An agent runs it only at the owner's direct request. Opening sends nothing
+  and grants no permission to send: check separately with relay --check --open before an authorized send.
   For Claude, text output also shows the same CLI's --desktop --resume <id> command without
   running it: use the conversation's directory and a TTY terminal, with no redirected output.
   Requires Claude Code 2.1.285+, the installed app and a Claude subscription (Windows x64/macOS).

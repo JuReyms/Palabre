@@ -160,12 +160,14 @@ Chaque échange annonce où il se passe, sur une ligne « Mode » :
 En arrière-plan, une conversation Codex créée, ou reprise et retrouvée par PALABRE, donne aussi son lien `codex://threads/<identifiant>`, cliquable dans un terminal qui le permet, et la commande pour l'ouvrir vous-même :
 
 ```text
-Pour l'ouvrir vous-même : explorer.exe "codex://threads/<identifiant>"
+Pour l'ouvrir vous-même (PowerShell) : palabre relay open --to codex:<identifiant> --config '<chemin-absolu-de-la-config>'
 ```
 
-La commande dépend du système : `explorer.exe` sous Windows, `open` sous macOS, `xdg-open` sous Linux. Elle sert quand le lien n'est pas cliquable, par exemple dans l'app Claude. Lancez-la vous-même, ou demandez à votre agent de l'ouvrir : il le fait seulement sur votre demande, jamais de sa propre initiative ni à la demande d'un autre agent. Une fois ouverte, la conversation garde ses propres permissions : en lecture seule pour une conversation créée par `--new`. En JSON, `mode` vaut `background`, `open`, `follow` ou `copy` (OpenCode) ; aucun champ de lien n'est ajouté, une intégration le construit depuis `to.session`.
+La même commande PALABRE s'utilise sur les trois systèmes ; PALABRE choisit le lanceur. La suggestion conserve l'alias de l'agent et le chemin absolu de la configuration effective, même si elle était implicite, pour rester valable depuis un autre dossier. Si un chemin ne peut pas être reproduit sans altération dans le terminal, le lien reste affiché mais aucune commande n'est proposée. Elle sert aussi quand le lien n'est pas cliquable, par exemple dans l'app Claude. Lancez-la vous-même, ou demandez à votre agent de l'ouvrir : il le fait seulement sur votre demande, jamais de sa propre initiative ni à la demande d'un autre agent. Ouvrir n'envoie aucun message et n'autorise aucun envoi. Pour un envoi ultérieur déjà autorisé, vérifier séparément avec `relay --check --open`, puis envoyer avec `--open`. La conversation garde ses propres permissions : en lecture seule pour une conversation créée par `--new`. En JSON, `mode` vaut `background`, `open`, `follow` ou `copy` (OpenCode) ; aucun champ de lien ni de commande n'est ajouté, une intégration construit le lien depuis `to.session`.
 
 ### Ouvrir la conversation de l'équipier
+
+La suggestion est à lancer dans **PowerShell sous Windows**, pas Git Bash ni cmd.exe ; sous macOS/Linux, dans un shell POSIX. Le quoting des chemins avec apostrophes dépend du shell : ne pas reprendre la forme PowerShell dans Git Bash.
 
 Pour **Codex**, centraliser l'ouverture et sa vérification :
 

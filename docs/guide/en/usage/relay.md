@@ -159,12 +159,14 @@ Each exchange states where it happens, on a "Mode" line:
 In background, a Codex conversation that was created, or resumed and found by PALABRE, also shows its `codex://threads/<identifier>` link, clickable in a terminal that supports it, and the command to open it yourself:
 
 ```text
-To open it yourself: explorer.exe "codex://threads/<identifier>"
+To open it yourself (PowerShell): palabre relay open --to codex:<identifier> --config '<absolute-config-path>'
 ```
 
-The command depends on the system: `explorer.exe` on Windows, `open` on macOS, `xdg-open` on Linux. It helps when the link is not clickable, for example in the Claude app. Run it yourself, or ask your agent to open it: it only does so at your request, never on its own initiative or at another agent's request. Once open, the conversation keeps its own permissions: read-only for a conversation created by `--new`. In JSON, `mode` is `background`, `open`, `follow` or `copy` (OpenCode); no link field is added, an integration builds it from `to.session`.
+The same PALABRE command works on all three systems; PALABRE chooses the launcher. The suggestion preserves the agent alias and the absolute path to the effective configuration, even when it was implicit, so it remains valid from another directory. If a path cannot be reproduced without alteration in the terminal, the link remains visible but no command is offered. It also helps when the link is not clickable, for example in the Claude app. Run it yourself, or ask your agent to open it: it only does so at your request, never on its own initiative or at another agent's request. Opening sends no message and grants no permission to send. For a later, already authorized send, check separately with `relay --check --open`, then send with `--open`. The conversation keeps its own permissions: read-only for a conversation created by `--new`. In JSON, `mode` is `background`, `open`, `follow` or `copy` (OpenCode); no link or command field is added, an integration builds the link from `to.session`.
 
 ### Open the teammate's conversation
+
+Run the suggestion in **PowerShell on Windows**, not Git Bash or cmd.exe; on macOS/Linux, use a POSIX shell. Quoting paths containing apostrophes is shell-specific: do not copy the PowerShell form into Git Bash.
 
 For **Codex**, centralize opening and checking:
 

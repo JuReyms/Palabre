@@ -26,6 +26,8 @@
  *
  * `--copy` utilise un déroulé distinct, à source/dossier explicites, sans sonde d'attachement
  * fabriquée : fork OpenCode vérifié, environnement habituel, preuves conservées même après erreur.
+ * Les suggestions Codex utilisent `relay open`, sans envoi et avec la config effective absolue ;
+ * cette métadonnée de présentation ne fait pas partie du résultat JSON ni de l'export.
  */
 import { readFile, realpath, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -184,6 +186,8 @@ export interface RelayResultV1 {
 interface RelayContext {
   /** CLI Claude déjà résolue, pour afficher une ouverture sans la lancer ni changer d'installation. */
   desktopExecutable?: ExternalExecutable;
+  /** Config effective absolue, réservée à la commande de consultation proposée en texte. */
+  desktopConfigPath?: string;
   copy?: CopyReport;
   language?: "fr" | "en";
   approvedWrite?: WriteRequest;
@@ -269,11 +273,11 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
   }
   let primaryPrinted = false;
   const json = rawArgs.includes("--json");
-  const { result, messages: resolvedMessages, targetLocated, desktopExecutable, desktopCwd } = await executeRelayWithMessages(rawArgs, { onOpenReply: (reply, localized) => {
+  const { result, messages: resolvedMessages, targetLocated, desktopExecutable, desktopCwd, desktopConfigPath } = await executeRelayWithMessages(rawArgs, { onOpenReply: (reply, localized) => {
     if (!json) { process.stdout.write(`${sanitizeTerminalText(reply)}\n`); primaryPrinted = true; }
     process.stderr.write(`${localized.relayThenFollow.waiting}\n`);
   } });
-  writeResult(result, json, resolvedMessages, targetLocated, primaryPrinted, desktopExecutable, desktopCwd);
+  writeResult(result, json, resolvedMessages, targetLocated, primaryPrinted, desktopExecutable, desktopCwd, desktopConfigPath);
   process.exitCode = result.exitCode;
 }
 
@@ -282,8 +286,8 @@ export async function executeRelay(rawArgs: string[], options: { signal?: AbortS
   return (await executeRelayWithMessages(rawArgs, options)).result;
 }
 
-/** Préserve la langue résolue dans la config pour le rendu de la commande historique. */
-async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader; approvedWrite?: WriteRequest; onOpenReply?: RelayContext["onOpenReply"] } = {}): Promise<{ result: RelayResultV1; messages: Messages; targetLocated: boolean; desktopExecutable?: ExternalExecutable; desktopCwd?: string }> {
+/** Préserve langue et contexte de consultation privés, sans enrichir le résultat public. */
+async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader; approvedWrite?: WriteRequest; onOpenReply?: RelayContext["onOpenReply"] } = {}): Promise<{ result: RelayResultV1; messages: Messages; targetLocated: boolean; desktopExecutable?: ExternalExecutable; desktopCwd?: string; desktopConfigPath?: string }> {
   const context: RelayContext = {
     signal: options.signal,
     startedAt: Date.now(),
@@ -315,7 +319,7 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
         detail: error instanceof Error ? error.message : String(error)
       });
   }
-  return { result, messages: context.messages, targetLocated: context.targetLocated === true, desktopExecutable: context.desktopExecutable, desktopCwd: context.cwd };
+  return { result, messages: context.messages, targetLocated: context.targetLocated === true, desktopExecutable: context.desktopExecutable, desktopCwd: context.cwd, desktopConfigPath: context.desktopConfigPath };
 }
 
 async function relay(rawArgs: string[], context: RelayContext): Promise<RelayResultV1> {
@@ -425,6 +429,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   try {
     configFingerprint = flags.task ? createHash("sha256").update(await readFile(configPath)).digest("hex") : undefined;
     config = await loadConfig(configPath);
+    context.desktopConfigPath = path.resolve(configPath);
   } catch {
     throw invalid("config-unavailable");
   }
@@ -1117,12 +1122,12 @@ async function exportRelay(
  * Sortie : `--json` écrit un seul objet sur stdout. En texte, la réponse va seule sur stdout ;
  * l'issue, la délivrance et l'export vont sur stderr. Tout texte affiché est assaini.
  */
-function writeResult(result: RelayResultV1, json: boolean, messages: Messages, targetLocated = false, primaryPrinted = false, desktopExecutable?: ExternalExecutable, desktopCwd?: string): void {
+function writeResult(result: RelayResultV1, json: boolean, messages: Messages, targetLocated = false, primaryPrinted = false, desktopExecutable?: ExternalExecutable, desktopCwd?: string, desktopConfigPath?: string): void {
   if (json) {
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }
-  const text = renderRelayText(result, messages, { targetLocated, primaryPrinted, desktopExecutable, desktopCwd });
+  const text = renderRelayText(result, messages, { targetLocated, primaryPrinted, desktopExecutable, desktopCwd, desktopConfigPath });
   const link = relayDesktopLink(result, targetLocated);
   process.stdout.write(text.stdout);
   process.stderr.write(link && terminalHyperlinksEnabled(process.stderr.isTTY, process.env) ? withTerminalHyperlink(text.stderr, link) : text.stderr);
@@ -1145,14 +1150,19 @@ export function withTerminalHyperlink(text: string, link: string): string {
 }
 
 /**
- * Commande que **l'humain** peut lancer pour ouvrir un lien `codex://` : l'app Claude, par
- * exemple, ne le rend pas cliquable (#190). Un agent ne la lance que sur demande humaine directe,
- * jamais de sa propre initiative ni sur la demande d'un autre agent ; l'ouverture n'autorise aucun envoi.
+ * Suggestion de consultation Codex, jamais exécutée ici : même cible prouvée que le lien et
+ * même alias/config effective, absolue pour rester valable depuis un autre dossier. Aucun prompt,
+ * transport d'envoi ou accord de confiance. Littéral PowerShell/POSIX ; si le chemin n'est pas
+ * représentable sans altération terminal, ne pas proposer une commande vers une autre config.
+ * Un agent ne l'exécute que sur demande humaine directe ; ouvrir n'autorise aucun envoi.
  */
-export function desktopOpenCommand(link: string, platform: NodeJS.Platform = process.platform): string {
-  if (platform === "win32") return `explorer.exe "${link}"`;
-  if (platform === "darwin") return `open "${link}"`;
-  return `xdg-open "${link}"`;
+export function codexDesktopOpenCommand(result: RelayResultV1, targetLocated: boolean, configPath?: string, platform: NodeJS.Platform = process.platform): string | undefined {
+  if (!relayDesktopLink(result, targetLocated) || !result.to || !parseAgentName(result.to.agent).ok
+    || !configPath || !path.isAbsolute(configPath)
+    || /[\p{Cc}\p{Cf}\u2028\u2029]/u.test(configPath)
+    || (platform === "win32" && /[\u2018-\u201b\u201c-\u201e]/u.test(configPath))) return undefined;
+  const quotedConfig = platform === "win32" ? `'${configPath.replaceAll("'", "''")}'` : `'${configPath.replaceAll("'", "'\\''")}'`;
+  return `palabre relay open --to ${result.to.agent}:${result.to.session} --config ${quotedConfig}`;
 }
 
 /**
@@ -1239,7 +1249,7 @@ export function claudeDesktopOpenCommand(result: RelayResultV1, targetLocated: b
     || !cwd || (platform !== "win32" && platform !== "darwin")) return undefined;
   const args = [executable.command, ...executable.prefixArgs, "--desktop", "--resume", result.to.session];
   if ([...args, cwd].some(arg => /[\p{Cc}\p{Cf}\u2028\u2029]/u.test(arg)
-    || (platform === "win32" && /[\u2018\u2019\u201c\u201d]/u.test(arg)))) return undefined;
+    || (platform === "win32" && /[\u2018-\u201b\u201c-\u201e]/u.test(arg)))) return undefined;
   const quote = (arg: string) => platform === "win32" ? `'${arg.replaceAll("'", "''")}'` : `'${arg.replaceAll("'", "'\\''")}'`;
   const command = `${platform === "win32" ? "& " : ""}${args.map(quote).join(" ")}`;
   return platform === "win32"
@@ -1248,7 +1258,7 @@ export function claudeDesktopOpenCommand(result: RelayResultV1, targetLocated: b
 }
 
 /** Même réponse en texte qu'en JSON, y compris après une publication refusée ou interrompue. */
-export function renderRelayText(result: RelayResultV1, messages: Messages, options: { targetLocated?: boolean; primaryPrinted?: boolean; desktopExecutable?: ExternalExecutable; desktopCwd?: string } = {}): { stdout: string; stderr: string } {
+export function renderRelayText(result: RelayResultV1, messages: Messages, options: { targetLocated?: boolean; primaryPrinted?: boolean; desktopExecutable?: ExternalExecutable; desktopCwd?: string; desktopConfigPath?: string } = {}): { stdout: string; stderr: string } {
   const lines: string[] = [];
   const quota = result.check?.quota ?? result.quota;
   let stdout = result.reply !== undefined && !options.primaryPrinted ? `${sanitizeTerminalText(result.reply)}\n` : "";
@@ -1300,7 +1310,8 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
   const link = relayDesktopLink(result, options.targetLocated === true);
   if (link) {
     lines.push(result.created ? messages.relay.desktopLink(link) : messages.relay.desktopLinkExisting(link));
-    lines.push(messages.relay.openLinkCommand(desktopOpenCommand(link)));
+    const command = codexDesktopOpenCommand(result, options.targetLocated === true, options.desktopConfigPath);
+    if (command) lines.push(messages.relay.openLinkCommand(command, process.platform === "win32" ? "PowerShell" : "POSIX"));
   }
   const claudeCommand = claudeDesktopOpenCommand(result, options.targetLocated === true, options.desktopExecutable, process.platform, options.desktopCwd ?? result.cwd);
   if (claudeCommand) {
@@ -1365,8 +1376,8 @@ async function manageWrite(rawArgs: string[]): Promise<void> {
       console.log(text.approved(id));
       return;
     }
-    const { result, messages, targetLocated } = await executeRelayWithMessages(request.args, { approvedWrite: request });
-    writeResult(result, rawArgs.includes("--json"), messages, targetLocated); process.exitCode = result.exitCode;
+    const { result, messages, targetLocated, desktopConfigPath } = await executeRelayWithMessages(request.args, { approvedWrite: request });
+    writeResult(result, rawArgs.includes("--json"), messages, targetLocated, false, undefined, undefined, desktopConfigPath); process.exitCode = result.exitCode;
   } catch (error) {
     const text = relayWriteText(language);
     const detail = error instanceof Error && error.message === "human-terminal-required" ? text.terminal + ` palabre relay approve-write ${rawArgs[2]}` : text.failure(error instanceof Error ? error.message : "invalid-request");

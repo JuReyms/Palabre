@@ -1400,6 +1400,8 @@ Les documents obsoletes ou historiques doivent etre deplaces dans `docs/archive/
 
 ## JSDoc
 
+Suggestions Codex après Relay : le rendu texte propose `palabre relay open --to <alias>:<uuid> --config <chemin-absolu>` plutôt qu'un lanceur système. Même preuve de cible que le lien (création identifiée ou reprise localisée), même alias et config effective, y compris implicite. Le chemin absolu reste une métadonnée privée de présentation : aucun champ JSON/export ajouté. Quoting PowerShell/POSIX sans interpolation ; contrôles/caractères de format et guillemets typographiques PowerShell font omettre la suggestion, jamais changer de config. Aucun lancement au rendu ; l'accord d'ouverture n'autorise aucun envoi, qui reste séparé après `--check --open` et avec `--open` explicite. Transports Claude inchangés ; même filtrage renforcé des guillemets PowerShell dans sa suggestion. Shell de la suggestion Codex affiché : PowerShell sous Windows (pas Git Bash/cmd.exe), POSIX sous macOS/Linux.
+
 Mettre en place et maintenir des JSDoc sur les API internes qui servent de contrat entre modules :
 
 - types et interfaces exportes dans `src/types.ts` ;
