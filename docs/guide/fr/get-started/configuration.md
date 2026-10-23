@@ -108,6 +108,12 @@ Ici :
 - `claude` produit la synthèse finale ;
 - `-t 4` demande jusqu'à quatre réponses au total (deux par agent si toutes sont jouées, hors synthèse).
 
+## Rôles complémentaires aux modes
+
+Les rôles orientent les consignes des agents en **Débat, Ask et Chat**, pas en Relay. Ils complètent le mode choisi : un `implementer` propose, un `reviewer` cherche les risques, un `critic` remet les hypothèses en question, un `architect` structure les options et un `scout` explore. Ils ne changent ni le modèle ni les permissions. La synthèse finale utilise automatiquement la consigne `summarizer`, quel que soit le rôle habituel de l'agent choisi.
+
+Pour une session : `--role-a` / `--role-b` en Débat, `--ask-role` en Ask, `--role-a` pour l'interlocuteur initial en Chat. Pour le rôle par défaut : `palabre agent-role <agent> <rôle>`. Dans Relay, « chef de mission » et « équipier » décrivent qui confie et qui reçoit la tâche ; ce ne sont pas ces rôles configurables. Voir la [référence CLI](/fr/reference/cli).
+
 ## Ajouter des agents détectés plus tard
 
 Si vous installez Claude Code, Codex, Antigravity, OpenCode, Mistral Vibe ou Ollama après avoir créé la configuration :
