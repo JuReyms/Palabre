@@ -65,6 +65,14 @@ Lecture du dernier Mio + un octet. Seuls les événements `event_msg` / `token_c
 `sourceCheck` (`unchanged`, `changed`, `unknown`), `serverStop` (`confirmed`, `unknown`)
 et `diagnostic?`. `to.session` est null tant que la copie n'est pas vérifiée ;
 un ID reçu non vérifié peut rester dans `copy.session`. `created` reste réservé à `--new`.
+
+Avec `--model fournisseur/modele[#variante]` seulement, `copy.model` ajoute `requested`
+(valeur demandée), `source?` (sélection source), `selected?` (sélection de copie contrôlée)
+et `verified` (preuve avant prompt). Sans variante explicite, `default` est choisi.
+Ce bloc est absent sans option ; `copy.verified` continue de décrire le fork, pas le
+modèle ni la réussite du tour. `observedModels` reste la preuve de la réponse validée.
+Choix non confirmé avant envoi : `delivery.status: not-delivered`, copie conservée,
+aucun retry ni substitution. Catalogue local ≠ connexion ou quota garantis.
 Une réponse validée et sa délivrance restent conservées après échec final ou d'export.
 Le mode conserve le profil habituel d'OpenCode, sans lecture seule imposée.
 Ni préférence `relay.view`, ni quota/lien Codex, ni champs de suivi dans ce parcours.

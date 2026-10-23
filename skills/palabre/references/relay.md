@@ -14,10 +14,24 @@ Le propriétaire choisit la source, le dossier et le modèle dans OpenCode ; att
 la fin puis fermer la conversation avant l'appel. Remplacer l'ID fictif ; jamais
 « la dernière ». La source ne reçoit pas le prompt : un fork vérifié reçoit un
 seul message. Agent, modèle, variante, connexion, permissions, plugins, MCP et
-règles d'organisation sont conservés. Aucune neutralisation générale ; des
+règles d'organisation sont conservés par défaut. Aucune neutralisation générale ; des
 intégrations peuvent démarrer avant le message. Demander un avis sans modification
 n'impose pas de lecture seule. Le fork partage les fichiers du projet : pas de
 bac à sable ni d'autorisation supplémentaire. Aucun --auto ou modèle de repli.
+
+Sur choix explicite de l'humain seulement, ajouter `--model fournisseur/modele#variante`
+avec l'identifiant exact proposé dans son OpenCode. Sans `#variante`, sélectionner
+`default`, jamais la variante source sur un nouveau modèle. L'option peut engager
+un modèle payant ; ne choisir ni modèle ni variante de remplacement à sa place.
+Cette option est réservée à --copy. Catalogue puis sélection de copie contrôlés
+avant prompt : modèle absent/désactivé, variante inconnue ou état non confirmé =
+arrêt sans message, copie conservée, aucun retry. Catalogue ≠ connexion/quota garantis.
+Ni profil ni sélection source modifiés. Rendre `copy.model.requested`, `source?`,
+`selected?`, `verified` et `observedModels` (réponse validée). `copy.verified` reste
+la provenance du fork, pas la sélection ni la réussite. Sources 2.0.32, simulations
+et un essai réel sur projet fictif le 23 octobre 2026 : DeepSeek high → GLM-5.3-Flash
+Free low sur copie, original et quatre fichiers inchangés. Cela ne qualifie ni
+tous les modèles/variantes, ni Desktop. Aucun nouvel appel pour refaire ce bilan.
 
 Une seule notice système core/date strictement qualifiée peut précéder l'enveloppe
 dans le nouveau tour : date et jour de semaine valides, texte/métadonnées exacts,

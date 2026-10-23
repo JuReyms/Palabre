@@ -282,7 +282,13 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
       [messages.relay.copy.verified, formatBoolean(report.copy.verified)], [messages.relay.copy.retention, report.copy.retention],
       ...(report.copy.diagnostic ? [[messages.relay.copy.diagnostic, report.copy.diagnostic]] : []),
       [labels.cwd, report.cwd ?? labels.unknown], [messages.relay.copy.check, report.copy.sourceCheck],
-      [messages.relay.copy.stop, report.copy.serverStop]
+      [messages.relay.copy.stop, report.copy.serverStop],
+      ...(report.copy.model ? [
+        [messages.relay.copy.modelRequested, report.copy.model.requested],
+        [messages.relay.copy.modelSource, report.copy.model.source ?? labels.unknown],
+        [messages.relay.copy.modelSelected, report.copy.model.selected ?? labels.unknown],
+        [messages.relay.copy.modelVerified, formatBoolean(report.copy.model.verified)]
+      ] : [])
     ] : []),
     [labels.status, report.status],
     [labels.delivery, report.delivery.status],

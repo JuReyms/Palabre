@@ -54,7 +54,15 @@ function world() {
     async start() { calls.push("start"); },
     async snapshot(id) { calls.push(`snapshot:${id}`); return cloned(id === sourceId ? original : after); },
     async fork(id) { calls.push(`fork:${id}`); return { id: copyId }; },
-    async run(id, body) { calls.push(`run:${id}`); assert.equal(body, prompt); after = answer(before); return cloned(success); },
+    async models() { calls.push("models"); return [{ providerID: "fake", id: "other", enabled: true, variants: [{ id: "high" }] }]; },
+    async selectModel(id, model) {
+      calls.push(`select:${id}`);
+      if (JSON.stringify(after.info.model) === JSON.stringify(model)) return;
+      after = cloned(after);
+      after.context.push({ id: "msg_select", type: "model-switched", previous: after.info.model, model, time: { created: 11 } });
+      after.info.model = model;
+    },
+    async run(id, body) { calls.push(`run:${id}`); assert.equal(body, prompt); after = answer(after); return cloned(success); },
     async interrupt(id) { calls.push(`interrupt:${id}`); },
     async stop() { calls.push("stop"); return { confirmed: true }; }
   };
@@ -77,6 +85,72 @@ test("succès : un fork, un run dans la copie, réponse originale et modèle con
   assert.equal(result.copy.serverStop, "confirmed"); assert.equal(result.copy.retention, "retained");
   assert.equal(w.calls.filter(c => c.startsWith("fork:")).length, 1);
   assert.deepEqual(w.calls.filter(c => c.startsWith("run:")), [`run:${copyId}`]);
+  assert.equal(w.calls.includes("models"), false); assert.equal(result.copy.model, undefined);
+});
+
+test("choix explicite : modèle/variante sur copie seulement, source intacte, preuve avant run", async () => {
+  for (const [model, expected] of [["fake/other", "fake/other#default"], ["fake/other#high", "fake/other#high"]]) {
+    const w = world(), original = cloned(w.original), result = await w.run({ model });
+    assert.equal(result.outcome.status, "replied", JSON.stringify(result));
+    assert.deepEqual(result.copy.model, { requested: model, source: "fake/test#high", selected: expected, verified: true });
+    assert.deepEqual(result.observedModels, [expected]); assert.deepEqual(w.original, original);
+    assert.equal(w.calls.filter(c => c === "models").length, 1);
+    assert.deepEqual(w.calls.filter(c => c.startsWith("select:")), [`select:${copyId}`]);
+    assert.ok(w.calls.indexOf(`select:${copyId}`) < w.calls.indexOf(`run:${copyId}`));
+  }
+});
+
+test("sélection non confirmée : copie conservée, pas de prompt, POST jamais répété", async () => {
+  for (const mode of ["absent", "variant", "catalogue", "lost", "no-effect", "concurrent", "source-changed", "cancelled"]) {
+    const w = world();
+    const selection = w.transport.selectModel;
+    const abort = new AbortController();
+    if (mode === "absent") w.transport.models = async () => [];
+    if (mode === "catalogue") w.transport.models = async () => ({ data: [] });
+    if (mode === "lost") w.transport.selectModel = async id => { w.calls.push(`select:${id}`); throw Error("Lost ACK"); };
+    if (mode === "no-effect") w.transport.selectModel = async id => { w.calls.push(`select:${id}`); };
+    if (["concurrent", "source-changed", "cancelled"].includes(mode)) w.transport.selectModel = async (...args) => {
+      await selection(...args);
+      if (mode === "concurrent") { const snapshot = await w.transport.snapshot(copyId, args[2]); snapshot.inbox.push("pending"); w.setAfter(snapshot); }
+      if (mode === "source-changed") w.original.info.title = "changed";
+      if (mode === "cancelled") abort.abort();
+    };
+    const result = await w.run({ model: mode === "variant" ? "fake/other#unknown" : "fake/other", signal: abort.signal });
+    assert.notEqual(result.outcome.status, "replied", mode); assert.equal(result.delivery.status, "not-delivered", mode);
+    assert.equal(result.copy.retention, "retained", mode); assert.equal(result.copy.session, copyId, mode);
+    assert.equal(w.calls.some(c => c.startsWith("run:")), false, mode);
+    assert.ok(w.calls.filter(c => c.startsWith("select:")).length <= 1, mode);
+    assert.equal(w.calls.filter(c => c.startsWith("fork:")).length, 1, mode);
+  }
+});
+
+test("référence invalide refusée avant version/serveur/fork", async () => {
+  const w = world(), result = await w.run({ model: "auto" });
+  assert.equal(result.outcome.status, "invalid-request"); assert.deepEqual(w.calls, []);
+});
+
+test("modèle source demandé explicitement : sélection no-op, aucune réécriture du contexte", async () => {
+  const w = world();
+  w.transport.models = async () => [{ providerID: "fake", id: "test", enabled: true, variants: [{ id: "high" }] }];
+  const result = await w.run({ model: "fake/test#high" });
+  assert.equal(result.outcome.status, "replied", JSON.stringify(result));
+  assert.equal(result.copy.model?.verified, true); assert.equal(result.copy.model?.selected, "fake/test#high");
+  assert.equal(w.calls.filter(c => c.startsWith("select:")).length, 1);
+});
+
+test("substitution pendant la réponse refusée : preuve du message conservée sans retry", async () => {
+  const w = world(), run = w.transport.run;
+  w.transport.run = async (...args) => {
+    const result = await run(...args), after = await w.transport.snapshot(copyId, args[2]);
+    after.context.find(m => m.id === "msg_newA")!.model = { providerID: "fake", id: "substitute", variant: "default" };
+    w.setAfter(after); return result;
+  };
+  const result = await w.run({ model: "fake/other" });
+  assert.equal(result.outcome.status, "no-valid-reply"); assert.equal(result.delivery.status, "persisted-no-reply");
+  assert.equal(result.reply, undefined); assert.deepEqual(result.observedModels, []);
+  assert.equal(result.copy.model?.selected, "fake/other#default"); assert.equal(result.copy.model?.verified, true);
+  assert.equal(w.calls.filter(c => c.startsWith("select:")).length, 1);
+  assert.equal(w.calls.filter(c => c.startsWith("run:")).length, 1);
 });
 
 test("notice de date qualifiée avant l'enveloppe : réponse et délivrance, un seul envoi", async () => {
@@ -177,9 +251,11 @@ test("source non admissible ou dossier différent : aucun fork ni run", async ()
     (s: OpenCodeSnapshot) => { s.info.location = { directory: path.resolve("other") }; },
     (s: OpenCodeSnapshot) => { s.context.push({ type: "compaction", id: "msg_c" }); }
   ]) {
-    const w = world(); mutate(w.original); const r = await w.run();
-    assert.notEqual(r.outcome.status, "replied"); assert.equal(r.delivery.status, "not-delivered");
-    assert.equal(w.calls.some(c => c.startsWith("fork:") || c.startsWith("run:")), false);
+    for (const extra of [{}, { model: "fake/other" }]) {
+      const w = world(); mutate(w.original); const r = await w.run(extra);
+      assert.notEqual(r.outcome.status, "replied"); assert.equal(r.delivery.status, "not-delivered");
+      assert.equal(w.calls.some(c => c.startsWith("fork:") || c.startsWith("run:") || c.startsWith("select:") || c === "models"), false);
+    }
   }
 });
 
