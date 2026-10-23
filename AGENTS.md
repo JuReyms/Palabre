@@ -1556,6 +1556,25 @@ Lien Desktop (#188, après #150) : après création d'une conversation Codex, le
 Restitution par le skill : le compte rendu d'un Relay vise un utilisateur de l'app desktop. Résultat en mots simples, mode, une seule action humaine si nécessaire ; pour ouvrir une conversation créée, seulement la commande d'ouverture dans un bloc shell (bouton Run de l'hôte), jamais le lien seul. Sur demande directe de l'humain (phrase ou bouton de l'hôte), l'agent lance lui-même cette commande ; cet accord vaut pour l'ouverture seulement. Un envoi exige une tâche déjà autorisée ou une nouvelle demande humaine, se vérifie avec `relay --check --open` (sans `--open`, `checked` peut désigner une cible fermée) et part avec `--open` explicite pour qu'une conversation relâchée soit refusée plutôt que jointe en arrière-plan. L'agent garde identifiant, dossier et export pour « continue » et ne les affiche, avec une commande `palabre relay --to …`, que sur demande, sans mémoire de conversation chez l'hôte ou pour diagnostiquer un échec. La sortie texte de `relay` et l'aide (fr/en) reprennent la règle d'ouverture sur demande directe du propriétaire. Une conversation créée par `--new` garde le profil de sa création (`read-only`, `approval_policy=never`, `codex.ts`) même ouverte dans Desktop : constaté le 23 octobre 2026, l'ouverture ne la rend pas inscriptible. Pour faire écrire Codex, l'humain crée la conversation dans Desktop avec les permissions qu'il choisit et la désigne explicitement. `--then-follow` n'est pas un défaut du skill : le suivi attend le premier tour suivant terminé, jusqu'à l'échéance s'il n'en vient aucun, et avec `--json` la réponse principale n'est rendue qu'à la fin de ce suivi ; le skill le réserve à une validation humaine attendue d'avance, avec un délai court (120 s), et préfère sinon `--open --follow` lancé quand la validation apparaît.
 
 
+### Ouvrir une conversation Claude dans Desktop
+
+Ouverture Claude Desktop (premier dépannage #193, préparation #219) : le texte Relay propose
+`--desktop --resume <uuid>` avec la CLI déjà résolue et son préfixe Node éventuel, jamais une
+autre installation ni les arguments d'agent. UUID reçu après création ou historique localisé
+requis, Windows/macOS seulement ; aucun lancement automatique, aucun champ JSON ajouté.
+Le dossier localisé accompagne le rendu ; la commande affichée y entre temporairement
+(Push-Location/try/finally en PowerShell, cd gardé en sous-shell POSIX) et restaure le cwd.
+Un changement de dossier impossible interdit le lancement, chemins quotés sans interpolation.
+L'agent propose un seul bouton court « Ouvrir dans Claude » ou « Ouvrir dans Codex », puis
+ouvre uniquement sur demande humaine directe, jamais sur message Relay. Claude exige un TTY
+sans sortie redirigée et son dossier de conversation ; CLI 2.1.285+, app et abonnement Claude.
+Essai confirmé dans l'app sous Windows le 23 octobre 2026, macOS non vérifié, Linux non proposé.
+L'ouverture ne prouve ni affichage ni droits et n'autorise aucun envoi. Ne pas promettre que les
+restrictions du tour Claude fermé survivent dans Desktop ; vérifier les permissions dans l'app.
+Relay vers Claude ouverte reste refusé : fermer avant un nouvel envoi autorisé, sans dupliquer
+un message déjà délivré. #193 (dépôt/corrélation ouverts) et #219 (commande open/observation)
+restent ouverts ; ni transport nouveau, ni --open Claude, ni pilotage de fenêtre.
+
 ### Codex Windows : alias PowerShell Store (#128)
 
 `CodexSessionAdapter.environment` prépare une copie de l'environnement pour `exchange` (MCP puis création/reprise), donc aussi Mission et review. Le PATH parent, les autres fournisseurs et `--open` restent inchangés. Si le `pwsh.exe` prioritaire est un AppExecLink confirmé par `fsutil` natif (3 s / 8 Kio), situé directement sous WindowsApps ou dans le dossier d'alias du paquet (`WindowsApps\Microsoft.PowerShell_<éditeur>`, cas de l'essai #171), son dossier et ses doublons sont retirés seulement si un PowerShell natif régulier reste disponible. Si un autre alias confirmé passe alors en tête, il est retiré à son tour (au plus 4 dossiers) ; un alias suivant non confirmé laisse l'environnement inchangé, car Codex le choisirait encore. Un dossier d'installation versionné (`Program Files\WindowsApps\Microsoft.PowerShell_7.x…`) n'est jamais un emplacement d'alias. Ne pas traiter tout dossier WindowsApps comme suspect ; il peut contenir de vrais exécutables ou des runtimes Codex. Lire l'entrée par lstat : existsSync peut nier l'existence d'un alias présent. Sonde inconnue ou repli incertain = environnement inchangé. Préserver les valeurs UTF-8 par défaut et le nettoyage des variables de session de l'hôte.

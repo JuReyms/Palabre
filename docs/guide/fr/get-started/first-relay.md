@@ -81,6 +81,16 @@ Le chef de mission réutilise l'identifiant, lit la réponse et vous en rend com
 
 Si l'équipier modifie des fichiers dans une conversation ouverte, ils restent dans son dossier de travail. Ils apparaissent sur GitHub seulement après un commit et un push autorisés séparément. Une réponse reçue ne prouve pas que le travail ou les tests ont réussi.
 
+Pour **Claude**, dites aussi « ouvre la conversation » : l'agent utilise
+`claude --desktop --resume <identifiant>` depuis le dossier du relais, avec la même
+installation Claude, dans un terminal TTY sans redirection. L'identifiant reste
+géré par l'agent ; un bouton « Ouvrir dans Claude » peut être proposé par l'hôte.
+Cette ouverture sert à consulter, sans nouveau message. Elle a été vérifiée sous
+Windows avec l'app installée et un abonnement Claude (CLI 2.1.285+ requis ; macOS
+non vérifié). Vérifiez les permissions dans l'app avant de continuer vous-même.
+Pour un nouvel envoi Relay vers Claude, fermez d'abord cette conversation :
+l'envoi vers Claude ouverte reste indisponible. Voir le [parcours d'ouverture](../usage/relay#ouvrir-la-conversation-de-lequipier).
+
 ## Sans agent
 
 Vous pouvez piloter Relay vous-même depuis le dossier du projet :

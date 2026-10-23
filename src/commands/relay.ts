@@ -42,7 +42,7 @@ import { runCopyRelay, type CopyReport } from "../externalSessions/copyRelay.js"
 import { OpenCodeCopyTransport } from "../externalSessions/opencodeTransport.js";
 import { parseOpenCodeRef } from "../externalSessions/opencodeCopy.js";
 import { relayCopyText } from "../messages/relayCopy.js";
-import { buildEnvelope, buildOpenEnvelope, createNonce, MAX_RELAY_MESSAGE_BYTES, parseAgentName, parseSenderRef, parseSessionRef, validMissionHeader, validateRelayMessage, validateRelaySubject, type MissionEnvelopeHeader } from "../externalSessions/envelope.js";
+import { buildEnvelope, buildOpenEnvelope, createNonce, isSessionId, MAX_RELAY_MESSAGE_BYTES, parseAgentName, parseSenderRef, parseSessionRef, validMissionHeader, validateRelayMessage, validateRelaySubject, type MissionEnvelopeHeader } from "../externalSessions/envelope.js";
 import type { OpenTurnContext } from "../externalSessions/openReader.js";
 import { defaultOpenRelayDeps, runFollowRelay, runOpenRelay, type FollowRelayResult, type OpenQueueReport, type OpenRelayResult } from "../externalSessions/openRelay.js";
 import { locateOpenRollout, readLastTurnContext, readLastCodexQuota } from "../externalSessions/openRollout.js";
@@ -181,6 +181,8 @@ export interface RelayResultV1 {
 
 /** État partagé avec le gestionnaire d'erreur interne, pour qualifier la délivrance. */
 interface RelayContext {
+  /** CLI Claude déjà résolue, pour afficher une ouverture sans la lancer ni changer d'installation. */
+  desktopExecutable?: ExternalExecutable;
   copy?: CopyReport;
   language?: "fr" | "en";
   approvedWrite?: WriteRequest;
@@ -262,11 +264,11 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
   }
   let primaryPrinted = false;
   const json = rawArgs.includes("--json");
-  const { result, messages: resolvedMessages, targetLocated } = await executeRelayWithMessages(rawArgs, { onOpenReply: (reply, localized) => {
+  const { result, messages: resolvedMessages, targetLocated, desktopExecutable, desktopCwd } = await executeRelayWithMessages(rawArgs, { onOpenReply: (reply, localized) => {
     if (!json) { process.stdout.write(`${sanitizeTerminalText(reply)}\n`); primaryPrinted = true; }
     process.stderr.write(`${localized.relayThenFollow.waiting}\n`);
   } });
-  writeResult(result, json, resolvedMessages, targetLocated, primaryPrinted);
+  writeResult(result, json, resolvedMessages, targetLocated, primaryPrinted, desktopExecutable, desktopCwd);
   process.exitCode = result.exitCode;
 }
 
@@ -276,7 +278,7 @@ export async function executeRelay(rawArgs: string[], options: { signal?: AbortS
 }
 
 /** Préserve la langue résolue dans la config pour le rendu de la commande historique. */
-async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader; approvedWrite?: WriteRequest; onOpenReply?: RelayContext["onOpenReply"] } = {}): Promise<{ result: RelayResultV1; messages: Messages; targetLocated: boolean }> {
+async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader; approvedWrite?: WriteRequest; onOpenReply?: RelayContext["onOpenReply"] } = {}): Promise<{ result: RelayResultV1; messages: Messages; targetLocated: boolean; desktopExecutable?: ExternalExecutable; desktopCwd?: string }> {
   const context: RelayContext = {
     signal: options.signal,
     startedAt: Date.now(),
@@ -308,7 +310,7 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
         detail: error instanceof Error ? error.message : String(error)
       });
   }
-  return { result, messages: context.messages, targetLocated: context.targetLocated === true };
+  return { result, messages: context.messages, targetLocated: context.targetLocated === true, desktopExecutable: context.desktopExecutable, desktopCwd: context.cwd };
 }
 
 async function relay(rawArgs: string[], context: RelayContext): Promise<RelayResultV1> {
@@ -466,6 +468,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const resolution = resolveExternalExecutable(agent.command, { allowNpmNative: flags.copy === true && provider === "opencode" });
   if (resolution.status === "command-not-found") throw new RelayRefusal({ status: "command-not-found" });
   if (resolution.status === "unsupported-executable") throw invalid("unsupported-executable");
+  if (provider === "claude") context.desktopExecutable = resolution.executable;
 
   if (flags.copy) {
     return relayCopy(context, { executable: resolution.executable, source: to.value.sessionId, agent: to.value.agent,
@@ -632,6 +635,7 @@ function assessClosedTarget(context: RelayContext, adapter: ExternalSessionAdapt
       : invalid("invalid-working-directory");
   }
   context.targetLocated = true;
+  context.cwd = located.target.cwd;
   const decision = assessTarget(adapter.probe(located.target));
   if (!decision.allowed) {
     if (context.provider === "codex" && decision.status === "target-busy" && context.modeSource === "setting") {
@@ -1108,12 +1112,12 @@ async function exportRelay(
  * Sortie : `--json` écrit un seul objet sur stdout. En texte, la réponse va seule sur stdout ;
  * l'issue, la délivrance et l'export vont sur stderr. Tout texte affiché est assaini.
  */
-function writeResult(result: RelayResultV1, json: boolean, messages: Messages, targetLocated = false, primaryPrinted = false): void {
+function writeResult(result: RelayResultV1, json: boolean, messages: Messages, targetLocated = false, primaryPrinted = false, desktopExecutable?: ExternalExecutable, desktopCwd?: string): void {
   if (json) {
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }
-  const text = renderRelayText(result, messages, { targetLocated, primaryPrinted });
+  const text = renderRelayText(result, messages, { targetLocated, primaryPrinted, desktopExecutable, desktopCwd });
   const link = relayDesktopLink(result, targetLocated);
   process.stdout.write(text.stdout);
   process.stderr.write(link && terminalHyperlinksEnabled(process.stderr.isTTY, process.env) ? withTerminalHyperlink(text.stderr, link) : text.stderr);
@@ -1216,8 +1220,30 @@ export function relayDesktopLink(result: RelayResultV1, targetLocated: boolean):
   return codexDesktopThreadLink(result.to.session);
 }
 
+/**
+ * Commande de consultation Claude Desktop, jamais exécutée par Relay. Même CLI résolue que
+ * l'échange (préfixe Node conservé), aucun argument de génération/config/permission. Un UUID
+ * reçu ou un historique localisé est requis, pas un statut de succès. Windows/macOS seulement
+ * selon le contrat documenté de --desktop ; Linux n'est pas supposé compatible. Les littéraux
+ * sont quotés pour PowerShell ou POSIX, sans interpolation de chemins ni d'arguments.
+ * Le dossier exact est requis ; changement temporaire et restauré, échec de cd bloquant.
+ */
+export function claudeDesktopOpenCommand(result: RelayResultV1, targetLocated: boolean, executable?: ExternalExecutable, platform: NodeJS.Platform = process.platform, cwd = result.cwd): string | undefined {
+  if (!executable || result.mode !== "background" || result.to?.provider !== "claude"
+    || !result.to.session || !isSessionId(result.to.session) || (!result.created && !targetLocated)
+    || !cwd || (platform !== "win32" && platform !== "darwin")) return undefined;
+  const args = [executable.command, ...executable.prefixArgs, "--desktop", "--resume", result.to.session];
+  if ([...args, cwd].some(arg => /[\p{Cc}\p{Cf}\u2028\u2029]/u.test(arg)
+    || (platform === "win32" && /[\u2018\u2019\u201c\u201d]/u.test(arg)))) return undefined;
+  const quote = (arg: string) => platform === "win32" ? `'${arg.replaceAll("'", "''")}'` : `'${arg.replaceAll("'", "'\\''")}'`;
+  const command = `${platform === "win32" ? "& " : ""}${args.map(quote).join(" ")}`;
+  return platform === "win32"
+    ? `& { Push-Location -LiteralPath ${quote(cwd)} -ErrorAction Stop; try { ${command} } finally { Pop-Location } }`
+    : `(cd -- ${quote(cwd)} && ${command})`;
+}
+
 /** Même réponse en texte qu'en JSON, y compris après une publication refusée ou interrompue. */
-export function renderRelayText(result: RelayResultV1, messages: Messages, options: { targetLocated?: boolean; primaryPrinted?: boolean } = {}): { stdout: string; stderr: string } {
+export function renderRelayText(result: RelayResultV1, messages: Messages, options: { targetLocated?: boolean; primaryPrinted?: boolean; desktopExecutable?: ExternalExecutable; desktopCwd?: string } = {}): { stdout: string; stderr: string } {
   const lines: string[] = [];
   const quota = result.check?.quota ?? result.quota;
   let stdout = result.reply !== undefined && !options.primaryPrinted ? `${sanitizeTerminalText(result.reply)}\n` : "";
@@ -1270,6 +1296,12 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
   if (link) {
     lines.push(result.created ? messages.relay.desktopLink(link) : messages.relay.desktopLinkExisting(link));
     lines.push(messages.relay.openLinkCommand(desktopOpenCommand(link)));
+  }
+  const claudeCommand = claudeDesktopOpenCommand(result, options.targetLocated === true, options.desktopExecutable, process.platform, options.desktopCwd ?? result.cwd);
+  if (claudeCommand) {
+    lines.push(messages.relay.claudeDesktop);
+    if (options.desktopCwd) lines.push(`${messages.relay.export.cwd}: ${options.desktopCwd}`);
+    lines.push(messages.relay.openLinkCommand(claudeCommand));
   }
   if (result.check?.lastPermissions) {
     lines.push(result.check.lastPermissions === "unknown"
