@@ -286,3 +286,11 @@ Les simulations vérifient le contrat. Un appel produit réel le 23 octobre 2026
 a vérifié le passage DeepSeek high → GLM-5.3-Flash Free low sur la copie, avec
 original et quatre fichiers témoins inchangés. Sa portée reste celle décrite dans
 `docs/relay-opencode-copy-qualification.md`, pas une qualification générale.
+
+Variante omise : le chemin officiel `SessionRunnerModel.resolve` →
+`ModelResolver.resolveModel` → `SessionStep.attempt` → `createLLMEventPublisher`
+→ `session.step.started` → `message-updater` conserve `variant: "default"` dans
+la référence durable. `withVariant` normalise seulement les options de requête.
+Ce point est vérifié par sources et simulations, pas par un essai réel sans `#`.
+Ne pas étendre l'équivalence absent/default au lecteur de réponse sans nouvelle
+preuve ; une variante perdue reste refusée, avec délivrance conservée sans retry.

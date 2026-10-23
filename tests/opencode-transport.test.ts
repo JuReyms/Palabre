@@ -128,6 +128,35 @@ test("transport : plafonds serveur et API cumulée restent bornés, même avec p
   }
 });
 
+test("transport : sans # = default explicite, variante perdue refusée, catalogue doublonné sans sélection", async () => {
+  // Fixtures dérivées des sources 2.0.32, pas d'une observation réelle default ; voir opencode-model-default.md.
+  for (const mode of ["model-default", "model-variant-lost", "model-duplicate"]) {
+    const w = world(mode);
+    try {
+      const result = await runCopyRelay({ source: sourceId, cwd: w.cwd, timeoutMs: 8000, model: "fake/other", envelope: () => "Corps exact" },
+        { transport: new OpenCodeCopyTransport({ command: process.execPath, prefixArgs: [fixture] }, w.cwd, 8000), platform: "win32" });
+      const state = JSON.parse(readFileSync(w.state, "utf8"));
+      const selections = state.apiCalls.filter((c: { route: string }) => c.route === `/api/session/${copyId}/model`);
+      const runs = w.readCalls().filter(c => c.args[0] === "run");
+      assert.deepEqual(state.source, w.source);
+      if (mode === "model-duplicate") {
+        assert.equal(result.copy.diagnostic, "model-catalogue-schema"); assert.equal(result.delivery.status, "not-delivered");
+        assert.equal(selections.length, 0); assert.equal(runs.length, 0); assert.equal(result.copy.retention, "retained");
+      } else {
+        assert.equal(selections.length, 1); assert.equal(runs.length, 1);
+        assert.deepEqual(state.copy.info.model, { providerID: "fake", id: "other", variant: "default" });
+        assert.equal(result.copy.model?.selected, "fake/other#default"); assert.equal(result.copy.model?.verified, true);
+        if (mode === "model-default") {
+          assert.equal(result.outcome.status, "replied"); assert.deepEqual(result.observedModels, ["fake/other#default"]);
+        } else {
+          assert.equal(result.copy.diagnostic, "assistant-incomplete"); assert.equal(result.delivery.status, "persisted-no-reply");
+          assert.equal(result.reply, undefined); assert.deepEqual(result.observedModels, []);
+        }
+      }
+    } finally { w.restore(); }
+  }
+});
+
 test("transport : arrêt pour plafond pendant les requêtes API conserve sa cause primaire", async () => {
   for (const mode of ["server-overflow-request", "api-disconnect"]) {
     const w = world(mode);

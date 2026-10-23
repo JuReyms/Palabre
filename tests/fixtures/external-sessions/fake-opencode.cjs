@@ -1,4 +1,4 @@
-/* OpenCode fictif : aucun compte, outil ou modèle ; API locale et historique dans un fichier jetable. */
+/* OpenCode fictif : aucun compte ou modèle ; cas default dérivé des sources, voir opencode-model-default.md. */
 const fs = require('node:fs');
 const http = require('node:http');
 const args = process.argv.slice(2);
@@ -21,6 +21,10 @@ if (args[0] === 'run') {
         content: [{ type: 'text', text: 'Avis fictif transport' }], finish: 'stop', time: { completed: 30 } },
       { id: 'msg_idleNew', type: 'idle', outcome: 'succeeded' });
     if (latest.mode === 'partial') latest.copy.context.pop();
+    if (latest.mode === 'model-variant-lost') {
+      const assistant = latest.copy.context.at(-2);
+      assistant.model = { ...assistant.model }; delete assistant.model.variant;
+    }
     if (latest.mode === 'source-changed') latest.source.info.title = 'changed';
     save(latest);
     console.log(JSON.stringify({ type: 'text', sessionID: id, text: 'Avis fictif transport' }));
@@ -48,7 +52,8 @@ if (args[0] === 'run') {
       latest.apiCalls.push({ route: req.url, method: req.method }); save(latest);
       if (req.url === '/api/model' && req.method === 'GET') {
         if (latest.mode === 'model-overflow') { res.end(JSON.stringify({ data: 'X'.repeat(4 * 1024 * 1024 + 1) })); return; }
-        res.end(JSON.stringify({ data: [{ providerID: 'fake', id: 'other', enabled: true, variants: [{ id: 'high' }] }] })); return;
+        const model = { providerID: 'fake', id: 'other', enabled: true, variants: [{ id: 'high' }] };
+        res.end(JSON.stringify({ data: latest.mode === 'model-duplicate' ? [model, model] : [model] })); return;
       }
       const match = /^\/api\/(experimental\/)?session\/(ses_[A-Za-z0-9]+)(.*)$/.exec(req.url);
       if (!match) { res.writeHead(404).end('{}'); return; }

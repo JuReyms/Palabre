@@ -78,6 +78,8 @@ sélection de l'original ne sont pas modifiés. Le résultat et l'export disting
 la réponse validée, pas seulement le choix demandé. Un essai réel sur projet
 fictif a vérifié le passage de DeepSeek à GLM-5.3-Flash Free dans la copie le
 23 octobre 2026 ; cela ne qualifie pas tous les modèles ou variantes ni Desktop.
+Le cas sans `#variante` (`default`) est vérifié dans les sources et les simulations,
+mais n'a pas encore fait l'objet d'un essai réel.
 
 « Sans modifier de fichier » est une consigne, pas une lecture seule imposée.
 La copie de conversation partage les fichiers du projet : **ce n'est pas un bac

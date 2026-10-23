@@ -77,6 +77,8 @@ nor the original selection is modified. Result and export distinguish
 the validated reply, not just the request. One real trial on a fictional project
 verified the change from DeepSeek to GLM-5.3-Flash Free in the copy on October 23,
 2026; this does not qualify every model or variant, or Desktop.
+The case without `#variant` (`default`) is checked against sources and simulations,
+but has not yet been exercised in a real trial.
 
 “Without modifying files” is a task instruction, not enforced read-only access.
 The conversation copy shares project files: **it is not a sandbox**. Do not reopen

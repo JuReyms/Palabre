@@ -238,6 +238,29 @@ La preuve qualifie cet appel CLI Windows 2.0.32 seulement : ni Desktop,
 autre variante, tous les modèles ou concurrence, ni garantie de confinement.
 Il ne faut pas rejouer l'appel pour reproduire ce bilan.
 
+## Revue Claude après resynchronisation — 23 octobre 2026
+
+Revue Relay en arrière-plan, sans écriture ni test par l'équipier, sur la tête
+`3cedf63` resynchronisée avec main `eaa6aad`. Aucun bug bloquant établi ; revue
+ciblée des modules OpenCode, jonctions Relay, aide, tests et contrat, pas une
+lecture exhaustive de tous les autres fournisseurs ni du diff entier.
+L'hôte a comparé les quatre modules OpenCode du commit réel `664dc19` à
+`3cedf63` : aucun changement entre les deux, sans rejouer le modèle.
+
+Le risque signalé sur la variante omise a été vérifié dans les sources 2.0.32 :
+`SessionRunnerModel.resolve` transmet la variante à `ModelResolver.resolveModel` ;
+`withVariant` ne normalise `default` que pour les options, tandis que `ref` conserve
+la chaîne. `SessionStep.attempt` et `createLLMEventPublisher` la transmettent à
+`SessionEvent.Step.Started.model`, puis `message-updater` à l'assistant. Aucun
+assouplissement du lecteur strict n'est donc justifié par cette hypothèse.
+Provenance et cas négatifs : `tests/fixtures/external-sessions/opencode-model-default.md`.
+
+Le cas sans `#` est couvert par sources et simulations, **pas par un essai réel**.
+Seul `#low` a été essayé réellement ; ne pas annoncer une qualification réelle
+de `default`. La création d'un fork avant contrôle du catalogue est conservée,
+comme annoncé dans le contrat : un modèle absent peut laisser une copie sans
+message, conservée et identifiée. Optimiser cet ordre reste hors de ce lot.
+
 ## Limites conservées
 
 L'extension `--model fournisseur/modele[#variante]` repose sur les sources

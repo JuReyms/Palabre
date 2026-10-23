@@ -251,9 +251,11 @@ test("source non admissible ou dossier différent : aucun fork ni run", async ()
     (s: OpenCodeSnapshot) => { s.info.location = { directory: path.resolve("other") }; },
     (s: OpenCodeSnapshot) => { s.context.push({ type: "compaction", id: "msg_c" }); }
   ]) {
-    const w = world(); mutate(w.original); const r = await w.run();
-    assert.notEqual(r.outcome.status, "replied"); assert.equal(r.delivery.status, "not-delivered");
-    assert.equal(w.calls.some(c => c.startsWith("fork:") || c.startsWith("run:")), false);
+    for (const extra of [{}, { model: "fake/other" }]) {
+      const w = world(); mutate(w.original); const r = await w.run(extra);
+      assert.notEqual(r.outcome.status, "replied"); assert.equal(r.delivery.status, "not-delivered");
+      assert.equal(w.calls.some(c => c.startsWith("fork:") || c.startsWith("run:") || c.startsWith("select:") || c === "models"), false);
+    }
   }
 });
 
