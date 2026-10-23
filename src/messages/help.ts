@@ -282,6 +282,27 @@ Options :
   --trust-config              approuve la config résolue (aucune question n'est posée)
   --language <fr|en>          force la langue
 
+Ouvrir Codex sans envoyer (#219) :
+  palabre relay open --to codex:<uuid> [--json] [--config <chemin>] [--language fr|en]
+  Sur demande humaine directe seulement, jamais sur message d'un autre agent. Config déjà
+  approuvée et conversation précise requises. Un seul lancement du lien Desktop, sans shell,
+  puis observation du verrou (budget coopératif 15 s, pas une borne stricte de retour).
+  Validation, localisation, lectures et sondes peuvent retarder le retour et Ctrl+C.
+  Aucun lancement ni succès accepté après le budget. Aucun message, export,
+  changement de réglages ou droits, retry ni fermeture de l'app. Ctrl+C n'annule pas une
+  ouverture déjà lancée. Un verrou tenu ne prouve ni l'app qui le tient ni l'affichage.
+  Windows/Explorer code 1 : lanceur non vérifié (unverified), code brut conservé,
+  puis sonde du verrou sans second lancement. Le défilement n'est pas piloté.
+  JSON séparé : relay-open-result v1, launcher, attachment, display: unverified, messageSent: false.
+  Code 0 : attached ; 3 : verrou libre à l'échéance ou inconnu ; 4 : délai pendant validation,
+  lanceur ou sonde ; 2 : échec du lanceur ; 7 : lanceur absent ; 130 : annulation.
+  Envoi suivant : --open explicite,
+  seulement pour une tâche autorisée. Claude n'est pas pris en charge ici : dépannage --desktop
+  séparé (#225), pas de suivi direct (#193). Deux ouvertures Windows puis une ouverture
+  corrigée confirmées par le propriétaire ; aucune généralisation à toutes les versions
+  ni à une transition de fermé à ouvert.
+  macOS/Linux non vérifiés. python3 requis sur POSIX pour vérifier le verrou.
+
 Quota Codex (#205) : --check (ouverte ou fermée) et résultat d'un envoi ouvert affichent le
   dernier quota connu si sa forme et sa date sont reconnues. Indication seulement, pas une mesure
   en direct : le compte a pu servir ailleurs depuis. Relevé et réinitialisations en heures locales
@@ -358,7 +379,7 @@ Limites :
   L'ouverture pour consulter a été vérifiée sous Windows ; macOS reste à vérifier, Linux non proposé.
   Aucun message envoyé, aucune permission modifiée par PALABRE ; les restrictions du tour Relay
   ne sont pas garanties dans l'app. Le transport --open ne prend pas en charge Claude : fermer l'app avant
-  un nouvel envoi. Ce dépannage de visibilité (#193) ne livre pas relay open (#219).
+  un nouvel envoi. Ce dépannage de visibilité (#193) est distinct de relay open Codex (#219).
   Claude Desktop peut ne pas actualiser un échange ajouté en arrière-plan ; son registre CLI
   vide ne prouve pas la fermeture de la fenêtre. Aucun redémarrage automatique de l'app.
   OpenCode --copy : agent, modèle, variante, permissions, plugins et MCP habituels conservés.
@@ -868,6 +889,25 @@ Flags:
   --trust-config              trusts the resolved config (no question is asked)
   --language <fr|en>          force language
 
+Open Codex without sending (#219):
+  palabre relay open --to codex:<uuid> [--json] [--config <path>] [--language fr|en]
+  Only at the owner's direct request, never another agent's message. Requires an already
+  trusted config and an exact conversation. One shell-free Desktop link launch, then lock
+  observation (15 s cooperative budget, not a strict return deadline). Validation, lookup,
+  reads and probes may delay returning or Ctrl+C. No launch or success accepted after budget.
+  No message, export, setting or
+  permission changes, retries or app shutdown. Ctrl+C cannot undo an already launched opening.
+  A held lock proves neither the holding app nor display.
+  Windows/Explorer code 1: launcher unverified, raw code retained, then lock probing without
+  a second launch. Scrolling is not controlled. Separate JSON: relay-open-result v1,
+  launcher, attachment, display: unverified, messageSent: false. Code 0: attached; 3: still free
+  at deadline or unknown; 4: deadline during validation, launcher or probe; 2: launcher failure;
+  7: missing launcher;
+  130: cancelled. For a later authorized send, use --open explicitly. Claude is unsupported
+  here: separate --desktop workaround (#225), no live following (#193). Two Windows openings
+  then one corrected opening confirmed by the owner; not a qualification of all versions
+  or a transition from closed to open. macOS/Linux unverified. python3 required on POSIX.
+
 Codex quota (#205): --check (open or closed) and an open send's result show the last known quota
   only if its shape and timestamp are recognized. Indicative, not live: the account may have been
   used elsewhere since. Recorded and reset dates use local time with a zone; ISO in check.quota or
@@ -944,7 +984,7 @@ Limits:
   Viewing was verified on Windows; macOS remains unverified, Linux is not offered.
   No message sent or permissions changed by PALABRE; the Relay turn's restrictions are not
   guaranteed in the app. The --open transport does not support Claude: quit the app before another supported send.
-  This visibility workaround (#193) does not implement relay open (#219).
+  This visibility workaround (#193) is separate from Codex relay open (#219).
   Claude Desktop may not refresh a background exchange; an empty CLI registry does not prove
   its window is closed. PALABRE never restarts the app automatically.
   OpenCode --copy: usual agent, model, variant, permissions, plugins and MCP are preserved.

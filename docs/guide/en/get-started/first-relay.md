@@ -81,6 +81,13 @@ The mission lead reuses the identifier, reads the reply and reports back to you 
 
 If the teammate changes files in an open conversation, they stay in its working directory. They appear on GitHub only after a separately authorized commit and push. Receiving a reply does not prove the work or tests succeeded.
 
+For **Codex**, the agent uses `palabre relay open --to codex:<identifier>`:
+one launch, then a lock check, with no message. Opening authorizes neither sending
+nor writing; display still needs confirmation in the app. Explorer may return code
+1 despite opening: Relay marks it unverified and checks the lock without relaunching.
+Scrolling to the latest message is not guaranteed. A separate Relay exchange can
+be processed without leaving the original conversation (Windows test).
+
 For **Claude**, also say “open the conversation”: the agent uses
 `claude --desktop --resume <identifier>` from the relay's directory, with the same
 Claude installation, in a TTY terminal without redirection. The agent retains the

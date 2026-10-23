@@ -1556,6 +1556,29 @@ Lien Desktop (#188, après #150) : après création d'une conversation Codex, le
 Restitution par le skill : le compte rendu d'un Relay vise un utilisateur de l'app desktop. Résultat en mots simples, mode, une seule action humaine si nécessaire ; pour ouvrir une conversation créée, seulement la commande d'ouverture dans un bloc shell (bouton Run de l'hôte), jamais le lien seul. Sur demande directe de l'humain (phrase ou bouton de l'hôte), l'agent lance lui-même cette commande ; cet accord vaut pour l'ouverture seulement. Un envoi exige une tâche déjà autorisée ou une nouvelle demande humaine, se vérifie avec `relay --check --open` (sans `--open`, `checked` peut désigner une cible fermée) et part avec `--open` explicite pour qu'une conversation relâchée soit refusée plutôt que jointe en arrière-plan. L'agent garde identifiant, dossier et export pour « continue » et ne les affiche, avec une commande `palabre relay --to …`, que sur demande, sans mémoire de conversation chez l'hôte ou pour diagnostiquer un échec. La sortie texte de `relay` et l'aide (fr/en) reprennent la règle d'ouverture sur demande directe du propriétaire. Une conversation créée par `--new` garde le profil de sa création (`read-only`, `approval_policy=never`, `codex.ts`) même ouverte dans Desktop : constaté le 23 octobre 2026, l'ouverture ne la rend pas inscriptible. Pour faire écrire Codex, l'humain crée la conversation dans Desktop avec les permissions qu'il choisit et la désigne explicitement. `--then-follow` n'est pas un défaut du skill : le suivi attend le premier tour suivant terminé, jusqu'à l'échéance s'il n'en vient aucun, et avec `--json` la réponse principale n'est rendue qu'à la fin de ce suivi ; le skill le réserve à une validation humaine attendue d'avance, avec un délai court (120 s), et préfère sinon `--open --follow` lancé quand la validation apparaît.
 
 
+### Ouvrir une conversation Codex par Relay
+
+`relay open` (#219) est un parcours distinct Codex seulement dans commands/relayOpen.ts :
+validation commune --check --open sans message, puis un lanceur OS sans shell et observation
+du verrou sous budget coopératif de 15 s. Validation/localisation/lectures/sondes peuvent
+retarder le retour et Ctrl+C ; pas de borne murale stricte, aucun lancement/succès tardif.
+JSON distinct relay-open-result ; ne jamais déduire un
+affichage, une surface ou un droit d'un verrou tenu. À échéance/annulation, détacher le
+lanceur sans tuer son arbre (Desktop pourrait en être descendant), aucun retrait promis.
+Pas de message, export, retry, réglage ni fermeture d'app. Claude/OpenCode restent refusés.
+Contrat complet docs/relay-desktop-open-contract.md. Deux ouvertures Windows confirmées
+le 23 octobre 2026 malgré Explorer code 1 ; seul ce cas donne launcher.status unverified,
+code brut conservé, puis sonde du verrou sans relance. Les autres erreurs gardent leur
+priorité. Défilement non piloté. Un verrou préexistant ne prouve aucun nouvel affichage.
+Bilan et échange séparé Codex → Codex : docs/relay-codex-desktop-qualification.md.
+Correctif testé hors ligne puis confirmé sur une ouverture réelle au commit 4d464e2 :
+lanceur unverified/1, attached/0, 728 ms, bonne cible affichée selon le propriétaire.
+Ne pas généraliser à toutes les versions ni à une transition de fermé à ouvert.
+Ne pas rejouer les échanges ni lancer un modèle pour qualifier une ouverture.
+
+Le lanceur est créé dans un groupe isolé (`detached: true`, stdio ignore), puis unref à
+l'arrêt de l'attente ; ne pas le laisser dans le groupe du terminal POSIX (Ctrl+C).
+
 ### Ouvrir une conversation Claude dans Desktop
 
 Ouverture Claude Desktop (premier dépannage #193, préparation #219) : le texte Relay propose

@@ -167,6 +167,41 @@ La commande dépend du système : `explorer.exe` sous Windows, `open` sous macOS
 
 ### Ouvrir la conversation de l'équipier
 
+Pour **Codex**, centraliser l'ouverture et sa vérification :
+
+```powershell
+# Ouvrir dans Codex Desktop
+# Objet : relire le plan
+palabre relay open --to codex:<identifiant>
+```
+
+Sur votre demande directe seulement : un lancement, puis observation du verrou
+avec un budget coopératif de 15 secondes, sans message ni changement de
+réglages/permissions. Un verrou tenu ne prouve ni l'app qui le tient ni l'affichage.
+L'annulation n'annule pas une ouverture déjà lancée ; l'app n'est jamais tuée.
+Aucun retry ni envoi automatique. Config déjà approuvée ; reprendre `--config`
+si le relais utilisait une config explicite. `--json` rend `relay-open-result`,
+avec `launcher`, `attachment`, `display: unverified`, `messageSent: false`.
+Aucun message ni `--trust-config` admis ; un envoi autorisé utilise ensuite
+`--check --open`, puis `--open` explicite. Claude/OpenCode refusés ici ; parcours
+Claude ci-dessous séparé. Deux ouvertures confirmées sous Windows le 23 octobre
+2026 ont révélé un faux échec : Explorer code 1 est désormais `launcher.status:
+unverified`, code brut conservé, puis vérification du verrou sans second lancement.
+Ce n'est pas une preuve d'affichage ; le défilement n'est pas piloté. Le correctif
+a ensuite été confirmé sur une ouverture réelle de la cible choisie : verrou tenu,
+code final 0 et affichage confirmé séparément par le propriétaire, sans message.
+Cet essai ne qualifie pas toutes les versions ni une transition de fermé à ouvert.
+macOS/Linux non vérifiés, `python3` requis sur POSIX.
+
+Sous Linux, si le lanceur reste actif, Relay peut atteindre son délai sans
+confirmer le verrou, même si l'app s'est affichée. Vérifiez l'app avant une autre
+demande ; aucun nouvel essai automatique. La prise initiale du verrou par Desktop
+reste également à qualifier : les essais Windows n'ont pas validé ce cas.
+
+Les validations, localisations, lectures et sondes peuvent retarder le retour ou
+Ctrl+C ; les 15 secondes ne sont pas une borne murale stricte. Le délai est
+revérifié après ces opérations, avant tout lancement ou succès.
+
 Dites « ouvre la conversation » à votre agent, ou utilisez « Ouvrir dans Claude » /
 « Ouvrir dans Codex » si votre hôte propose un bouton. Sur votre demande, l'agent
 ouvre la conversation précise du relais, sans envoyer de nouveau message, quel
@@ -211,9 +246,8 @@ reste non prise en charge (#193). Ne dupliquez pas un message déjà délivré.
 Pour Codex, conservez `--check --open`, puis `--open` pour un envoi autorisé ; une
 conversation créée par `--new` reste en lecture seule dans Desktop.
 
-Ce lot dépanne la visibilité de #193, pas l'envoi vers Claude ouverte. La commande
-unifiée `palabre relay open`, l'observation d'attachement et ses résultats
-structurés restent le chantier #219, pas une commande déjà disponible. OpenCode
+Le parcours Claude dépanne la visibilité de #193, pas le transport Claude ouvert.
+`palabre relay open` couvre seulement Codex dans ce premier lot #219. OpenCode
 Desktop reste à qualifier séparément : ne pas lui appliquer ces commandes.
 
 ### Vérifier avant d'envoyer (`--check`)
