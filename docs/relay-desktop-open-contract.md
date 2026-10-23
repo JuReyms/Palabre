@@ -23,12 +23,21 @@ de #225 reste séparé : #193 n'est pas livré ici.
 3. Lancer une seule fois le lien construit depuis l'UUID : Explorer natif sous
    Windows, `/usr/bin/open` sur macOS, `xdg-open` sur Linux. Arguments structurés,
    sans shell, stdin/flux ignorés. Aucune donnée libre envoyée au lanceur.
-4. Après succès du lanceur, sonder immédiatement puis toutes les 500 ms au plus,
+4. Après code 0 du lanceur, ou code 1 non concluant d'Explorer sous Windows,
+   sonder immédiatement puis toutes les 500 ms au plus,
    sous budget coopératif de 15 s incluant validation et lancement. Vérifier annulation
    et délai après chaque IO avant d'accepter un verrou tardif. Validation, localisation,
    lectures et sondes peuvent retarder le retour et Ctrl+C : ce n'est pas une borne
    murale stricte. Aucun lancement ni succès accepté après le budget.
 5. Rendre lancement et verrou séparément, jamais une preuve de fenêtre visible.
+
+Le code 1 d'Explorer a accompagné deux ouvertures confirmées par le propriétaire.
+Ce seul cas donne `launcher.status: unverified`, avec `exitCode: 1` conservé :
+pas `succeeded`, ni échec bloquant la sonde. Un verrou tenu permet `attached` ;
+libre ou invérifiable, il garde son diagnostic habituel. Les autres codes,
+plateformes, erreurs de spawn, délais et annulations restent inchangés.
+Un attachement préexistant ne prouve pas que ce lancement a ouvert la cible.
+Le défilement n'est pas piloté ; aucune garantie d'arrivée au dernier message.
 
 Une conversation peut être déjà tenue : `attached` ne prouve ni que l'ouverture
 a créé cet attachement, ni quelle surface le possède, ni la visibilité de la cible.
@@ -46,7 +55,7 @@ pas recevoir le Ctrl+C du terminal appelant sous POSIX ; `unref` seul ne suffit 
 | --- | --- |
 | `status`, `exitCode` | Issue d'ouverture/observation, pas une réponse d'agent |
 | `to` | Référence exacte validée, ou null avant validation |
-| `launcher` | `attempted`, `status`, `exitCode?` ; succès distinct de l'affichage |
+| `launcher` | `attempted`, `status`, `exitCode?` ; `unverified` pour Explorer Windows code 1, succès distinct de l'affichage |
 | `attachment` | `attached`, `detached`, `unknown`, dernière sonde terminée |
 | `reason` | Validation, verrou tenu, délai, sonde inconnue, lanceur, annulation |
 | `display` | Toujours `unverified` |
@@ -69,8 +78,11 @@ ni `relay.view`. Aucun bouton natif Palabre ajouté : l'hôte fournit sa présen
 
 ## Qualification
 
-Tests simulés/profils fictifs via `scripts/test.mjs`. La nouvelle commande doit
-encore être essayée sur une conversation Codex précise choisie par le propriétaire
-sous Windows avant publication. Les essais antérieurs du lien système ne
-qualifient pas seuls ce parcours. macOS/Linux restent non vérifiés. Aucun modèle
-n'est nécessaire pour tester une ouverture.
+Tests simulés/profils fictifs via `scripts/test.mjs`. Deux ouvertures par la nouvelle
+commande, sur cibles choisies par le propriétaire sous Windows le 23 octobre 2026,
+ont été confirmées à l'écran malgré le faux échec Explorer code 1. La première
+n'était pas au bas de l'historique. Bilan : docs/relay-codex-desktop-qualification.md.
+Le correctif du code 1 est testé hors ligne, pas encore rejoué en réel : une
+qualification bout en bout du résultat corrigé reste requise avant publication.
+macOS/Linux restent non vérifiés. Aucun modèle n'est nécessaire pour une ouverture ;
+l'échange Codex → Codex relaté dans le bilan est un test séparé explicitement autorisé.

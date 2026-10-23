@@ -409,6 +409,13 @@ ni changement de droits ; ne pas annoncer « affiché » sur cette seule base.
 Envoi séparé, tâche déjà autorisée et --open explicite après --check --open.
 Refus ou échéance : rapporter l'état, aucun retry ni envoi en arrière-plan.
 
+Sous Windows, le seul code 1 d'Explorer est non concluant : launcher.status
+unverified avec exitCode 1 conservé, puis observation du verrou, jamais un second
+lancement. Ne pas traduire ce statut par « ouvert » ni « échec certain ». Un verrou
+déjà tenu ne prouve aucun nouvel affichage. Défilement non piloté : ne pas promettre
+l'arrivée au dernier message. Un envoi --open reste séparé et peut être traité
+sans changer la conversation affichée (échange Codex → Codex confirmé sous Windows).
+
 Le bouton court « Ouvrir dans Codex » dépend de l'hôte. S'il n'en propose pas,
 une question courte puis exécution sur accord ; pour l'humain qui veut lancer
 lui-même, une seule commande sans --json dans le bloc shell, commentaires action
@@ -417,8 +424,10 @@ xdg-open ; le lien n'est jamais une preuve d'affichage.
 
 Claude/OpenCode sont refusés dans ce premier lot ; le dépannage Claude TTY de
 #225 reste distinct. Ne pas inventer un transport --open Claude ou un flux live.
-Nouvelle commande encore à qualifier en réel sous Windows sur une cible choisie
-par l'humain avant publication ; macOS/Linux non vérifiés, python3 requis POSIX.
+Deux ouvertures confirmées par l'humain sous Windows le 23 octobre 2026 ont révélé
+le faux échec Explorer code 1. Le correctif est couvert hors ligne ; son résultat
+complet reste à qualifier en réel avant publication. Bilan sans identifiants privés :
+docs/relay-codex-desktop-qualification.md. macOS/Linux non vérifiés, python3 requis POSIX.
 
 ## Dernier quota Codex connu
 

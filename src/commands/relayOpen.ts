@@ -20,10 +20,10 @@ export const DESKTOP_OPEN_TIMEOUT_MS = 15_000;
 /** Intervalle d'observation, sans relance du lanceur. */
 export const DESKTOP_OPEN_POLL_MS = 500;
 
-/** Rapport du lanceur : sa réussite ne prouve pas un affichage. */
+/** Rapport du lanceur : code 1 d'Explorer non concluant ; même un succès ne prouve pas l'affichage. */
 export interface DesktopLauncherReport {
   attempted: boolean;
-  status: "not-attempted" | "succeeded" | "failed" | "not-found" | "timeout" | "cancelled";
+  status: "not-attempted" | "succeeded" | "unverified" | "failed" | "not-found" | "timeout" | "cancelled";
   exitCode?: number | null;
 }
 
@@ -141,7 +141,8 @@ function openingArgs(args: string[]): { ref: SessionRef; check: string[] } | und
 /**
  * Exécute uniquement l'ouverture : la validation réutilise --check --open. Un target-not-open
  * est attendu avant lancement et prouve la localisation ; tout autre refus arrête. Annulation
- * et échéance sont vérifiées après chaque IO, avant d'accepter un verrou tardif.
+ * et échéance sont vérifiées après chaque IO, avant d'accepter un verrou tardif. Le code 1 du
+ * seul lanceur Explorer Windows reste non concluant : conserver ce code et sonder, sans relancer.
  */
 export async function executeRelayOpen(args: string[], validate: DesktopOpenValidation, initialMessages: Messages, options: { signal?: AbortSignal; deps?: Partial<DesktopOpenDeps> } = {}): Promise<{ result: RelayOpenResult; messages: Messages }> {
   const deps: DesktopOpenDeps = {
@@ -188,8 +189,12 @@ export async function executeRelayOpen(args: string[], validate: DesktopOpenVali
     const target: ExternalTarget = { ...parsed.ref, provider: "codex", cwd: located.cwd };
     const spec = desktopLauncher(parsed.ref, deps.platform);
     result.launcher = await deps.launch({ ...spec, cwd: located.cwd, timeoutMs: deadline - deps.now(), signal: options.signal });
+    // Observé lors de deux ouvertures confirmées par l'humain : ce code d'Explorer ne suffit
+    // ni à refuser l'observation ni à annoncer un succès. Aucun autre lanceur/code n'est assoupli.
+    if (deps.platform === "win32" && result.launcher.attempted && result.launcher.status === "failed" && result.launcher.exitCode === 1)
+      result.launcher.status = "unverified";
     const launched = stopped(); if (launched) return launched;
-    if (result.launcher.status !== "succeeded" || !result.launcher.attempted) {
+    if (!["succeeded", "unverified"].includes(result.launcher.status) || !result.launcher.attempted) {
       const text = messages.relayDesktopOpen;
       if (result.launcher.status === "cancelled") return finish("cancelled", 130, "cancelled", text.cancelled);
       if (result.launcher.status === "timeout") return finish("timeout", 4, "deadline", text.deadline);
@@ -214,6 +219,7 @@ export async function executeRelayOpen(args: string[], validate: DesktopOpenVali
 export function renderRelayOpen(result: RelayOpenResult, messages: Messages): string {
   const text = messages.relayDesktopOpen;
   const lines = [text.notice, `${text.launch}: ${result.launcher.status}`, `${text.attachment}: ${result.attachment}`, text.display];
+  if (result.launcher.status === "unverified") lines.push(text.launcherUnverified);
   if (result.error) lines.push(result.error.message.replaceAll("<agent>:<uuid>", result.to ? `${result.to.agent}:${result.to.session}` : "codex:<uuid>"));
   if (result.status === "attached") lines.push(text.ready);
   return sanitizeTerminalText(lines.join("\n")) + "\n";

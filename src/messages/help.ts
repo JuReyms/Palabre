@@ -291,12 +291,15 @@ Ouvrir Codex sans envoyer (#219) :
   Aucun lancement ni succès accepté après le budget. Aucun message, export,
   changement de réglages ou droits, retry ni fermeture de l'app. Ctrl+C n'annule pas une
   ouverture déjà lancée. Un verrou tenu ne prouve ni l'app qui le tient ni l'affichage.
+  Windows/Explorer code 1 : lanceur non vérifié (unverified), code brut conservé,
+  puis sonde du verrou sans second lancement. Le défilement n'est pas piloté.
   JSON séparé : relay-open-result v1, launcher, attachment, display: unverified, messageSent: false.
   Code 0 : attached ; 3 : verrou libre à l'échéance ou inconnu ; 4 : délai pendant validation,
   lanceur ou sonde ; 7 : lanceur absent ; 130 : annulation. Envoi suivant : --open explicite,
   seulement pour une tâche autorisée. Claude n'est pas pris en charge ici : dépannage --desktop
-  séparé (#225), pas de suivi direct (#193). Cette nouvelle commande reste à qualifier en réel
-  sous Windows ; macOS/Linux non vérifiés. python3 requis sur POSIX pour vérifier le verrou.
+  séparé (#225), pas de suivi direct (#193). Deux ouvertures Windows confirmées ; correctif
+  Explorer testé hors ligne, résultat corrigé encore à qualifier en réel avant publication.
+  macOS/Linux non vérifiés. python3 requis sur POSIX pour vérifier le verrou.
 
 Quota Codex (#205) : --check (ouverte ou fermée) et résultat d'un envoi ouvert affichent le
   dernier quota connu si sa forme et sa date sont reconnues. Indication seulement, pas une mesure
@@ -892,12 +895,15 @@ Open Codex without sending (#219):
   reads and probes may delay returning or Ctrl+C. No launch or success accepted after budget.
   No message, export, setting or
   permission changes, retries or app shutdown. Ctrl+C cannot undo an already launched opening.
-  A held lock proves neither the holding app nor display. Separate JSON: relay-open-result v1,
+  A held lock proves neither the holding app nor display.
+  Windows/Explorer code 1: launcher unverified, raw code retained, then lock probing without
+  a second launch. Scrolling is not controlled. Separate JSON: relay-open-result v1,
   launcher, attachment, display: unverified, messageSent: false. Code 0: attached; 3: still free
   at deadline or unknown; 4: deadline during validation, launcher or probe; 7: missing launcher;
   130: cancelled. For a later authorized send, use --open explicitly. Claude is unsupported
-  here: separate --desktop workaround (#225), no live following (#193). This new command still
-  needs a real Windows qualification; macOS/Linux unverified. python3 required on POSIX.
+  here: separate --desktop workaround (#225), no live following (#193). Two Windows openings
+  confirmed; Explorer fix tested offline, corrected result still needs real qualification
+  before publication. macOS/Linux unverified. python3 required on POSIX.
 
 Codex quota (#205): --check (open or closed) and an open send's result show the last known quota
   only if its shape and timestamp are recognized. Indicative, not live: the account may have been

@@ -94,6 +94,62 @@ test("lanceur absent, échec, délai, annulation : diagnostic primaire, pas de s
   }
 });
 
+test("Explorer code 1 : résultat du lanceur non vérifié, observation du verrou sans second lancement", async () => {
+  for (const sequence of [["attached"], ["detached", "attached"], ["detached"], ["unknown"]] as const) {
+    const w = lab([...sequence]); w.report({ attempted: true, status: "failed", exitCode: 1 });
+    const { result } = await executeRelayOpen(args, w.validate, fr, { deps: w.deps });
+    const last = sequence.at(-1);
+    assert.equal(result.status, last === "attached" ? "attached" : last === "unknown" ? "target-state-unknown" : "target-not-open");
+    assert.equal(result.exitCode, last === "attached" ? 0 : 3);
+    assert.deepEqual(result.launcher, { attempted: true, status: "unverified", exitCode: 1 });
+    assert.equal(result.attachment, last); assert.equal(w.counts().launches, 1);
+    assert.equal(result.messageSent, false); assert.equal(result.display, "unverified");
+    if (last === "detached") assert.equal(result.durationMs, 15000);
+    for (const language of ["fr", "en"] as const) {
+      const text = renderRelayOpen(result, createTranslator(language));
+      assert.match(text, /Explorer.*code 1/);
+      assert.match(text, language === "fr" ? /lancement non vérifié/ : /launch outcome unverified/);
+      assert.match(text, language === "fr" ? /défilement n'est pas piloté/ : /Scrolling is not controlled/);
+    }
+  }
+});
+
+test("code 1 hors Windows, autres codes et lancement absent : aucun assouplissement", async () => {
+  for (const [platform, code, attempted] of [["darwin", 1, true], ["linux", 1, true], ["win32", 2, true], ["win32", null, true], ["win32", 1, false]] as const) {
+    const w = lab(); w.deps.platform = platform; w.report({ attempted, status: "failed", exitCode: code });
+    const { result } = await executeRelayOpen(args, w.validate, fr, { deps: w.deps });
+    assert.equal(result.status, "cli-failure"); assert.equal(result.launcher.status, "failed");
+    assert.equal(w.counts().probes, 0); assert.equal(w.counts().launches, 1);
+  }
+});
+
+test("Explorer code 1 avec verrou préexistant : attachement observé, aucun nouvel affichage déduit", async () => {
+  const w = lab(); w.report({ attempted: true, status: "failed", exitCode: 1 });
+  const validate: DesktopOpenValidation = async (...v) => {
+    const checked = await w.validate(...v); checked.result.status = "checked"; checked.result.exitCode = 0;
+    return checked;
+  };
+  const { result } = await executeRelayOpen(args, validate, fr, { deps: w.deps });
+  assert.equal(result.status, "attached"); assert.equal(result.launcher.status, "unverified");
+  assert.equal(result.launcher.exitCode, 1); assert.equal(result.display, "unverified");
+  assert.deepEqual(w.counts(), { launches: 1, probes: 1, validations: 1 });
+  assert.equal(result.messageSent, false);
+});
+
+test("Explorer code 1 : annulation et délai gardent priorité sur un verrou tenu", async () => {
+  for (const cancel of [false, true]) {
+    const controller = new AbortController(); const w = lab();
+    w.deps.launch = async () => {
+      if (cancel) controller.abort(); else w.advance(15000);
+      return { attempted: true, status: "failed", exitCode: 1 };
+    };
+    const { result } = await executeRelayOpen(args, w.validate, fr, { deps: w.deps, signal: controller.signal });
+    assert.equal(result.status, cancel ? "cancelled" : "timeout");
+    assert.equal(result.launcher.status, "unverified"); assert.equal(w.counts().probes, 0);
+    assert.equal(result.messageSent, false);
+  }
+});
+
 test("déjà tenue avant l'ouverture : un seul lancement reste requis ; faux succès sans lancement refusé", async () => {
   const w = lab();
   const validate: DesktopOpenValidation = async (...args) => {
@@ -195,7 +251,7 @@ test("validation réelle sur profil fictif : confiance requise, Claude refusée,
 });
 
 test("lanceur réel testé avec Node inerte : code 0, erreur et commande absente, jamais Desktop", async () => {
-  for (const exit of [0, 2]) {
+  for (const exit of [0, 1, 2]) {
     const report = await launchDesktopOnce({ command: process.execPath, args: ["-e", `process.exit(${exit})`], cwd: process.cwd(), timeoutMs: 5000 });
     assert.equal(report.status, exit === 0 ? "succeeded" : "failed"); assert.equal(report.exitCode, exit);
   }

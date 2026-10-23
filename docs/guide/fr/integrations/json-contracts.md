@@ -83,5 +83,8 @@ d'affichage ni d'app Desktop ; le lanceur est une preuve séparée. Code 3 pour
 verrou libre à l'échéance/inconnu ; 4 pour délai pendant validation/lanceur/sonde ;
 7 lanceur absent ; 2 échec lanceur ; 130 annulation. Refus de validation conservés.
 Ne pas assimiler ce résultat à un message reçu. Un envoi autorisé est séparé et
-utilise --open explicite. Claude/OpenCode refusés ; qualification réelle Windows
-de cette nouvelle commande encore requise, macOS/Linux non vérifiés.
+utilise --open explicite. Sous Windows seulement, Explorer code 1 donne
+`launcher.status: unverified`, `launcher.exitCode: 1` conservé, puis sonde du verrou
+sans relance. Un verrou déjà tenu ne prouve aucun nouvel affichage. Deux ouvertures
+ont été confirmées sous Windows avant ce correctif ; son résultat complet reste à
+qualifier en réel avant publication. Claude/OpenCode refusés ; macOS/Linux non vérifiés.

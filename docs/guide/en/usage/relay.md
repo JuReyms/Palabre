@@ -182,8 +182,12 @@ already be trusted; retain `--config` if the relay used an explicit config. `--j
 returns `relay-open-result`, with `launcher`, `attachment`, `display: unverified`,
 `messageSent: false`. No message or `--trust-config` is accepted; a later authorized
 send uses `--check --open`, then explicit `--open`. Claude/OpenCode are refused here;
-the Claude workflow below is separate. Real Windows qualification of this new
-command is still needed; macOS/Linux unverified, `python3` required on POSIX.
+the Claude workflow below is separate. Two openings confirmed on Windows on October
+23, 2026 exposed a false failure: Explorer code 1 now yields `launcher.status:
+unverified`, retaining the raw code, then checking the lock without a second launch.
+This does not prove display; scrolling is not controlled. The fix is tested offline;
+its full result still needs a real qualification before publication.
+macOS/Linux unverified, `python3` required on POSIX.
 
 Validation, lookup, reads and probes may delay returning or Ctrl+C; 15 seconds is
 not a strict wall-clock return bound. The deadline is rechecked afterwards,

@@ -83,5 +83,8 @@ of display or Desktop; the launcher is separate evidence. Code 3: free at
 deadline/unknown; 4: timeout during validation/launcher/probe; 7: missing launcher;
 2: launcher failure; 130: cancelled. Validation refusals are preserved. Never
 treat this result as a received message. A later authorized send is separate and
-uses explicit --open. Claude/OpenCode refused; real Windows qualification of this
-new command is still needed, macOS/Linux unverified.
+uses explicit --open. On Windows only, Explorer code 1 yields `launcher.status:
+unverified`, retaining `launcher.exitCode: 1`, then probing the lock without a
+relaunch. An already held lock proves no new display. Two openings were confirmed
+on Windows before this fix; its full result still needs real qualification before
+publication. Claude/OpenCode refused; macOS/Linux unverified.

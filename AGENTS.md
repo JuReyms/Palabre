@@ -1566,8 +1566,13 @@ JSON distinct relay-open-result ; ne jamais déduire un
 affichage, une surface ou un droit d'un verrou tenu. À échéance/annulation, détacher le
 lanceur sans tuer son arbre (Desktop pourrait en être descendant), aucun retrait promis.
 Pas de message, export, retry, réglage ni fermeture d'app. Claude/OpenCode restent refusés.
-Contrat complet docs/relay-desktop-open-contract.md. Qualification réelle de la nouvelle
-commande Windows encore requise sur cible choisie par l'humain ; pas de nouveau modèle.
+Contrat complet docs/relay-desktop-open-contract.md. Deux ouvertures Windows confirmées
+le 23 octobre 2026 malgré Explorer code 1 ; seul ce cas donne launcher.status unverified,
+code brut conservé, puis sonde du verrou sans relance. Les autres erreurs gardent leur
+priorité. Défilement non piloté. Un verrou préexistant ne prouve aucun nouvel affichage.
+Bilan et échange séparé Codex → Codex : docs/relay-codex-desktop-qualification.md.
+Correctif testé hors ligne ; résultat corrigé encore à qualifier en réel avant publication.
+Ne pas rejouer les échanges ni lancer un modèle pour qualifier une ouverture.
 
 Le lanceur est créé dans un groupe isolé (`detached: true`, stdio ignore), puis unref à
 l'arrêt de l'attente ; ne pas le laisser dans le groupe du terminal POSIX (Ctrl+C).

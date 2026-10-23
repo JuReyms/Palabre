@@ -83,7 +83,10 @@ Si l'équipier modifie des fichiers dans une conversation ouverte, ils restent d
 
 Pour **Codex**, l'agent utilise `palabre relay open --to codex:<identifiant>` :
 un lancement, puis vérification du verrou, sans message. Ouvrir n'autorise aucun
-envoi ni écriture ; l'affichage reste à confirmer dans l'app.
+envoi ni écriture ; l'affichage reste à confirmer dans l'app. Explorer peut renvoyer
+le code 1 malgré l'ouverture : Relay le marque non vérifié et contrôle le verrou,
+sans relancer. L'arrivée au dernier message n'est pas garantie. Un échange Relay
+séparé peut être traité sans quitter la conversation d'origine (essai Windows).
 
 Pour **Claude**, dites aussi « ouvre la conversation » : l'agent utilise
 `claude --desktop --resume <identifiant>` depuis le dossier du relais, avec la même
