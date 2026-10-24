@@ -32,6 +32,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Fixed
 
+- Relay OpenCode `--copy` : reconnaît dans le préfixe source le rappel standard du mode Plan 2.0.32, après sélection de `plan`, sans supprimer ce contexte ni passer en Build. Texte, métadonnées et chemin Windows strictement qualifiés ; autres synthétiques et nouveaux rappels pendant le tour toujours refusés. Agent, modèle, permissions et contrôles de copie inchangés. Tests négatifs, aide, guides FR/EN et référence du skill alignés ; copies installées seulement après `palabre skill --sync` confirmé et rechargement. Refs #136.
+
 - Revue Claude Opus 5.5 du lot UX : refuse aussi U+201A/U+201B dans les suggestions PowerShell Codex et Claude (rupture du littéral confirmée avec le parseur PowerShell 7.6.5, sans exécution). Shell attendu affiché pour Codex et documenté : PowerShell sous Windows, POSIX sous macOS/Linux. Tests et exemple OSC 8 actualisés ; aucune modification des transports Claude.
 
 - Relay : les suggestions d'ouverture Codex passent par `palabre relay open`, sur les trois systèmes, avec l'alias et la configuration effective en chemin absolu. Ouvrir reste distinct d'envoyer ; aucune ouverture automatique, aucun changement des transports, du JSON ou de l'export. Chemins quotés sans interpolation ; suggestion omise si le chemin ne peut pas être reproduit fidèlement. Aide, guides fr/en et skill alignés. Copies installées : `palabre skill --sync` seulement après accord humain, puis recharger le skill.
