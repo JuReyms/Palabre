@@ -24,6 +24,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Changed
 
+- README FR/EN recentré sur la coopération via Relay et les modes complémentaires d'avis/décision : accroche globale, vocabulaire simplifié, petits schémas et premier Relay. Parcours terminal/TUI et demandes conversationnelles depuis un assistant CLI/Desktop distingués ; voix possible via l'application hôte, pas fournie par Palabre. Confidentialité mise en avant (aucune collecte ni télémétrie Palabre), parcours Ollama local et limites des outils distants précisés aussi dans les guides d'introduction. Tableau des outils par mode, avec pilote Relay OpenCode distinct. Rôles conservés avec leur portée explicite (Débat, Ask, Chat) et détails dans les guides. Aucun comportement CLI modifié.
+
 - Qualification de l'ouverture Claude Desktop (#225, Refs #193/#219) : dans l'essai Windows du 23 octobre, l'échange ajouté en arrière-plan n'apparaît pas à chaud, mais devient visible après Fichier > Quitter et réouverture. Le registre CLI vide a aussi fait annoncer « fermée » malgré la fenêtre ouverte. Guides et référence du skill précisent ces limites : aucun suivi en direct promis, aucune fermeture ou relance automatique. Copies installées : synchronisation après accord humain, puis rechargement.
 
 - Skill : pour suivre une conversation Codex dans l'app, l'agent présente la commande d'ouverture (`explorer.exe`, `open` ou `xdg-open`) dans un bloc de code shell, précédée de deux lignes de commentaire, `# Ouvrir dans Codex Desktop` et `# Objet : <objet du relais>`, au lieu d'un lien `codex://` que l'app Claude ne rend pas cliquable. Copies installées : `palabre skill --sync` après accord humain, puis recharger le skill.
