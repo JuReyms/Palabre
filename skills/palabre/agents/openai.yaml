@@ -1,4 +1,4 @@
 interface:
   display_name: "Palabre"
-  short_description: "Consulter d'autres agents : Chat, Débat, Ask ou Relay"
-  default_prompt: "Use $palabre to pick the right Palabre route and get a second opinion."
+  short_description: "Coopérer, croiser les avis et décider avec Palabre"
+  default_prompt: "Use $palabre to coordinate my AI tools or compare their views before deciding."

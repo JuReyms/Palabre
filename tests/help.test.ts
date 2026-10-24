@@ -159,7 +159,7 @@ for (const language of ["fr", "en"] as const) {
 }
 
 test("skill Relay : PALABRE choisit le lanceur, sans commande système de remplacement", async () => {
-  const reference = await readFile(path.resolve("skills/palabre/references/relay.md"), "utf8");
+  const reference = await readFile(path.resolve("skills/palabre/references/relay-desktop.md"), "utf8");
   assert.match(reference, /palabre relay open --to codex:<id>/);
   assert.match(reference, /PALABRE choisit lui-même le lanceur système : conserver `palabre relay open`/);
   assert.doesNotMatch(reference, /`open` sous macOS, `xdg-open` sous Linux\./);

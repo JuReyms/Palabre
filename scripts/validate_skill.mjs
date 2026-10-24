@@ -1,3 +1,4 @@
+/** @file Valide le skill livré, ses liens et son budget de lecture, sans exécuter les recettes. */
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -8,6 +9,9 @@ const references = [
   "references/chat.md",
   "references/cli.md",
   "references/relay.md",
+  "references/relay-desktop.md",
+  "references/relay-opencode.md",
+  "references/relay-frozen.md",
   "references/outputs.md"
 ];
 const requiredFiles = ["SKILL.md", "agents/openai.yaml", ...references];
@@ -15,6 +19,8 @@ const requiredFiles = ["SKILL.md", "agents/openai.yaml", ...references];
 // les détails vont dans les références, chargées à la demande.
 const MAX_DESCRIPTION_LENGTH = 1024;
 const MAX_SKILL_LINES = 120;
+const MAX_SKILL_CHARACTERS = 10_000;
+const MAX_BODY_PARAGRAPH_CHARACTERS = 1_200;
 
 const fail = (message) => {
   console.error(`Skill validation failed: ${message}`);
@@ -50,8 +56,21 @@ if (skill) {
   }
 
   if (skill.split(/\r?\n/).length > MAX_SKILL_LINES) fail(`SKILL.md exceeds ${MAX_SKILL_LINES} lines; move details to references`);
+  if (skill.length > MAX_SKILL_CHARACTERS) fail(`SKILL.md exceeds ${MAX_SKILL_CHARACTERS} characters; move conditional detail to references`);
+  const body = skill.slice(frontmatter?.[0].length ?? 0);
+  if (body.split(/\r?\n\s*\r?\n|\r?\n(?=- )/).some(paragraph => paragraph.length > MAX_BODY_PARAGRAPH_CHARACTERS)) {
+    fail(`SKILL.md has a paragraph exceeding ${MAX_BODY_PARAGRAPH_CHARACTERS} characters`);
+  }
   for (const reference of references) {
     if (!skill.includes(`\`${reference}\``)) fail(`SKILL.md must link to ${reference}`);
+  }
+}
+
+// Les chemins cités doivent rester résolubles depuis le document qui les porte.
+for (const [file, content] of files) {
+  for (const match of content.matchAll(/`(references\/[a-z0-9/-]+\.md|(?:relay(?:-[a-z0-9-]+)?|chat|cli|outputs)\.md)`/g)) {
+    const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), match[1]));
+    if (!files.has(target)) fail(`unresolved reference ${match[1]} in ${file}`);
   }
 }
 

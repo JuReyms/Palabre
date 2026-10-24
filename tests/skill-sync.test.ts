@@ -14,7 +14,7 @@ import { formatSkillPlan } from "../src/messages/skillSync.js";
 import { runUpdateCommand } from "../src/commands/update.js";
 import type { CommandFlags } from "../src/commands/shared.js";
 
-const names = ["SKILL.md", "agents/openai.yaml", "references/chat.md", "references/cli.md", "references/outputs.md", "references/relay.md"];
+const names = ["SKILL.md", "agents/openai.yaml", "references/chat.md", "references/cli.md", "references/outputs.md", "references/relay.md", "references/relay-desktop.md", "references/relay-opencode.md", "references/relay-frozen.md"];
 function skill(directory: string, text = "new\nline\n"): void {
   for (const name of names) { const file = path.join(directory, name); mkdirSync(path.dirname(file), { recursive: true }); writeFileSync(file, text); }
 }
