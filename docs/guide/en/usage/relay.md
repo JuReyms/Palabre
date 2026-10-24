@@ -62,6 +62,11 @@ without a replacement model or implicit paid fallback. OpenCode connections,
 permissions, plugins, MCP and organization policies remain in effect. Integrations
 may start with the private server, before any message is sent.
 
+The standard OpenCode 2.0.32 Plan reminder is recognized in the source conversation
+and kept in its copy, without switching to Build or changing permissions. Other
+synthetic messages and any new Plan reminder during the relayed turn remain refused;
+do not remove them from history to force a send.
+
 “Without modifying files” is a task instruction, not enforced read-only access.
 The conversation copy shares project files: **it is not a sandbox**. Do not reopen
 the source during the call; before/after snapshots are not a global lock. Unknown

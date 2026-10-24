@@ -66,6 +66,14 @@ palabre relay --copy --to <agent-opencode>:<ses_...> --dir <dossier>
   refusée avant le serveur avec un diagnostic de version non qualifiée ; ne pas
   mettre à jour OpenCode automatiquement. Étendre ce domaine demande une preuve.
 
+Exception de préfixe source relevée le 23 octobre : le rappel `synthetic` standard
+du mode Plan 2.0.32 après `agent-switched` vers `plan`, avec sélection source `plan`.
+Texte complet, clés et date de création numériques stricts ; seul le chemin natif
+Windows vers `.opencode\plan` varie, sans être lu ni utilisé comme autorisation.
+Le fork conserve intégralement ce préfixe. Les autres synthétiques, tout changement
+du rappel dans la copie et tout nouveau synthétique pendant le tour restent refusés.
+Ce correctif ne change ni l'agent, ni le modèle, ni les permissions de la source.
+
 L'approbation de la config Palabre autorise sa consommation, pas une modification
 des permissions OpenCode. La commande ne demande aucune confirmation interactive.
 L'agent destinataire expose ses questions ou blocages dans sa réponse finale.

@@ -67,4 +67,4 @@ palabre codex-opencode "Review this MVP" -t 4
 palabre opencode-claude "Compare these options" -t 3
 ```
 
-In the Windows example, `shell` is `true`; elsewhere it is `false`. `--pure` prevents external plugins but does not prohibit all writing tools: OpenCode permissions remain defined in its own configuration. OpenCode is not a Relay target.
+In the Windows example, `shell` is `true`; elsewhere it is `false`. `--pure` prevents external plugins but does not prohibit all writing tools: OpenCode permissions remain defined in its own configuration. The [OpenCode Relay copy pilot](/en/usage/relay) uses a separate path with the usual environment preserved, for Windows and OpenCode CLI 2.0.32 only.

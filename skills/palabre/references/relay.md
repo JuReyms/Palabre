@@ -19,6 +19,11 @@ intégrations peuvent démarrer avant le message. Demander un avis sans modifica
 n'impose pas de lecture seule. Le fork partage les fichiers du projet : pas de
 bac à sable ni d'autorisation supplémentaire. Aucun --auto ou modèle de repli.
 
+Une source en mode Plan peut conserver le rappel standard 2.0.32 après la sélection
+de `plan`, dans sa forme strictement qualifiée. Ne pas passer en Build ou retirer
+le rappel pour contourner un refus. Cette exception concerne le préfixe copié,
+pas de nouveaux messages synthétiques pendant le tour relayé.
+
 Une seule notice système core/date strictement qualifiée peut précéder l'enveloppe
 dans le nouveau tour : date et jour de semaine valides, texte/métadonnées exacts,
 aucun ajout ni doublon. Les autres notices restent refusées. Cela ne prouve pas
