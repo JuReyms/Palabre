@@ -57,7 +57,7 @@ Relay can create a new conversation or continue one you choose. Each send is exp
 
 #### A real example: writing this README
 
-Codex drafted this README and asked Claude Code for a critical review through Palabre Relay. Their exchanges revealed ambiguities; the maintainer chose the changes to apply. OpenCode then explained what it understood from the document, in a separate test run directly, outside Palabre.
+Codex drafted this README and asked Claude Code for a critical review through Palabre Relay. Their exchanges revealed ambiguities; the maintainer chose the changes to apply. Finally, a test of the Relay copy pilot checked what OpenCode understood from the document.
 
 You can use the same approach:
 
@@ -197,7 +197,7 @@ Relay peut créer une nouvelle conversation ou poursuivre celle que vous choisis
 
 #### Un exemple réel : la rédaction de ce README
 
-Codex a rédigé ce README et demandé à Claude Code une relecture critique via Palabre Relay. Leurs échanges ont fait ressortir des ambiguïtés ; le mainteneur a choisi les modifications à appliquer. OpenCode a ensuite expliqué ce qu'il comprenait du document, dans un test séparé lancé directement, hors Palabre.
+Codex a rédigé ce README et demandé à Claude Code une relecture critique via Palabre Relay. Leurs échanges ont fait ressortir des ambiguïtés ; le mainteneur a choisi les modifications à appliquer. Enfin, un essai du pilote Relay sur copie a permis de vérifier ce qu'OpenCode comprenait du document.
 
 Vous pouvez reprendre cette méthode :
 
