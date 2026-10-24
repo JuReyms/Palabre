@@ -62,6 +62,11 @@ conservés, sans modèle de remplacement ni repli payant implicite. Les connexio
 permissions, plugins, MCP et règles d'organisation restent ceux d'OpenCode. Des
 intégrations peuvent démarrer dès le lancement du serveur privé, avant le message.
 
+Le rappel standard du mode Plan d'OpenCode 2.0.32 est reconnu dans la conversation
+source et conservé dans sa copie, sans passer en mode Build ni changer les permissions.
+Les autres messages synthétiques et tout nouveau rappel Plan pendant le tour relayé
+restent refusés ; ne les supprimez pas de l'historique pour forcer l'envoi.
+
 « Sans modifier de fichier » est une consigne, pas une lecture seule imposée.
 La copie de conversation partage les fichiers du projet : **ce n'est pas un bac
 à sable**. Ne rouvrez pas la source pendant l'appel ; les relevés avant/après ne

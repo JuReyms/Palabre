@@ -600,6 +600,13 @@ Métadonnées sans autorité ; ni date courante de l'hôte ni tolérance génér
 system. Les changements d'instructions/sélection, les autres notices, doublons
 et positions tardives restent refusés. Aucune relecture de modèle pour ce correctif.
 
+Préfixe Plan OpenCode 2.0.32 (#136, 23 octobre) : `validateCopySource` reconnaît
+seulement le rappel `synthetic` standard après sélection de `plan`, source en `plan`,
+clés/texte/horodatage stricts et chemin Windows normalisé vers `.opencode\plan`.
+Ce chemin reste une donnée, sans lecture ni autorité. Aucun filtrage : le fork doit
+conserver tout le rappel et ses permissions. `inspectCopyReply` reste inchangé :
+un nouveau synthétique pendant le tour est refusé, avec délivrance conservée.
+
 
 ### Préférence de mode (#190, lot B)
 
@@ -1401,6 +1408,8 @@ Le script `scripts/sync_docs.py` valide et copie les pages `docs/guide/fr` et `d
 Les documents obsoletes ou historiques doivent etre deplaces dans `docs/archive/` plutot que supprimes brutalement quand ils gardent une valeur de contexte.
 
 ## JSDoc
+
+Skill livré : `SKILL.md` garde routage, exemples sûrs, portée des rôles et invariants d'autorité/délivrance. Références conditionnelles : `relay.md` (bases), `relay-desktop.md`, `relay-opencode.md`, `relay-frozen.md`, plus Chat, CLI et exports. Le validateur contrôle présence/liens, au plus 120 lignes, 10 000 caractères et 1 200 caractères par paragraphe/élément de liste du point d'entrée ; ce budget ne prouve pas le comportement. Préserver les garde-fous lors des déplacements, faire évaluer des scénarios réalistes par un autre agent sans donner les réponses attendues. Copies installées seulement par plan confirmé, jamais depuis la branche Git.
 
 Suggestions Codex après Relay : le rendu texte propose `palabre relay open --to <alias>:<uuid> --config <chemin-absolu>` plutôt qu'un lanceur système. Même preuve de cible que le lien (création identifiée ou reprise localisée), même alias et config effective, y compris implicite. Le chemin absolu reste une métadonnée privée de présentation : aucun champ JSON/export ajouté. Quoting PowerShell/POSIX sans interpolation ; contrôles/caractères de format et guillemets typographiques PowerShell font omettre la suggestion, jamais changer de config. Aucun lancement au rendu ; l'accord d'ouverture n'autorise aucun envoi, qui reste séparé après `--check --open` et avec `--open` explicite. Transports Claude inchangés ; même filtrage renforcé des guillemets PowerShell dans sa suggestion. Shell de la suggestion Codex affiché : PowerShell sous Windows (pas Git Bash/cmd.exe), POSIX sous macOS/Linux.
 

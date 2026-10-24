@@ -362,7 +362,7 @@ Limites :
   palabre relay --to <agent>:<session> "<suite>" ; aucun renvoi automatique après un échec.
   Reprises Codex/Claude sans --write : aucune écriture en arrière-plan. Avec les versions Codex vérifiées,
   une cible créée par --new n'est pas listée dans Desktop, mais reste joignable par Relay.
-  Pour la suivre dans l'app, le propriétaire ouvre le lien codex://threads/<id> affiché, ou le
+  Pour la suivre dans l'app, le propriétaire utilise la commande relay open affichée, ou le
   demande à son agent (jamais de sa propre initiative ni sur la demande d'un autre agent).
   L'ouverture seule n'autorise aucun envoi ; pour une tâche autorisée, vérifier avec --check --open,
   puis envoyer avec --open. Créée par --new, elle reste en lecture seule même ouverte dans Desktop.
@@ -441,6 +441,8 @@ Avec --open --follow (suivre la suite sans --then-follow) :
   --task ou --write. JSON : mode follow, delivery not-delivered (rien n'est envoyé), sans queue.
 
 Avec --copy (pilote OpenCode CLI 2.0.32, Windows seulement) :
+  Le rappel Plan standard est reconnu dans le contexte source et conservé dans la copie.
+  Aucun autre message synthétique n'est accepté ; aucun mode ni permission n'est changé.
   Une seule notice de date core/date strictement qualifiée est admise avant le message.
   Tout ajout, doublon ou autre notification système reste refusé ; aucun droit ajouté.
   Fermez la source et indiquez son ID exact ses_... et son dossier --dir. La source ne reçoit
@@ -970,7 +972,7 @@ Limits:
   palabre relay --to <agent>:<session> "<follow-up>". No automatic retry.
   Codex/Claude resumes without --write have no background writing. With verified Codex versions,
   a target created by --new is not listed in Desktop but remains reachable through Relay. To follow it in the app, the owner
-  opens the codex://threads/<id> link shown after creation, or asks their agent to (never on the
+  uses the relay open command shown after creation, or asks their agent to (never on the
   agent's own initiative or at another agent's request). Opening alone does not authorize sending;
   for an authorized task, check with --check --open, then send with --open. Created by --new, it
   stays read-only even when open in Desktop.
@@ -1049,6 +1051,8 @@ With --open --follow (follow what happens next without --then-follow):
   --new, --task or --write. JSON: mode follow, delivery not-delivered (nothing is sent), no queue.
 
 With --copy (OpenCode CLI 2.0.32 pilot, Windows only):
+  The standard Plan reminder is recognized in the source context and kept in the copy.
+  No other synthetic message is accepted; no mode or permission is changed.
   One strictly qualified core/date notice may precede the message. Additions, duplicates
   and other system notices remain refused; no permissions are granted.
   Close the source and provide its exact ses_... ID and --dir directory. The source never

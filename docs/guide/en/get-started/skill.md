@@ -83,6 +83,12 @@ palabre agents
 
 ## What the skill adds
 
+The entrypoint covers shared decisions and safeguards; the agent then loads the reference for the relevant route. Relay separates the basics, Desktop opening/follow-up, the OpenCode pilot and frozen features. Details for unrelated routes are not loaded by default.
+
+To continue Codex/Claude advice without changes, recipes keep `--background`, even if you opened the conversation meanwhile: a busy target is refused, without silently switching to its permissions. Opening to view and sending remain separate actions; Codex opening preserves the absolute effective configuration path.
+
+Here, a Palabre agent is a configured entry connected to an AI tool (such as Claude Code or Codex) or to Ollama, not a model or a subagent. Roles complement Debate, Ask and Chat; they do not configure Relay or grant permissions.
+
 ### Naming PALABRE tasks
 
 Your agent names each PALABRE task `Palabre <mode>: <subject>`, for example `Palabre Relay: send the review to Codex`. The skill asks it to do this; your agent's application decides what it actually displays.

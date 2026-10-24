@@ -4,6 +4,10 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Skill
+
+- Skill Palabre recentré : coopération via Relay, avis et décision ; « outil », « modèle » et entrée d'agent distingués, rôles explicitement complémentaires à Débat/Ask/Chat, pas Relay. Point d'entrée allégé et références Desktop, OpenCode et fonctions gelées séparées ; exemples de reprise d'avis avec `--background` et ouverture avec configuration absolue. Budget réel de lecture et liens vérifiés sur fixtures ; aucun changement de transport ou permission. Copies installées non modifiées : `palabre skill --sync` après accord humain, puis recharger le skill.
+
 ### Added
 
 - `palabre relay open --to codex:<uuid>` (#219, premier lot) : ouverture unique par le lanceur système, puis observation du verrou sous budget coopératif de 15 s, sans message, export ni changement de droits/config. JSON distinct `relay-open-result` v1 : lancement et attachement séparés, affichage non vérifié. Annulation/échéance ne tuent jamais Desktop et n'annulent pas une ouverture déjà lancée. Claude/OpenCode refusés ; dépannage Claude #225 séparé. Deux ouvertures Windows confirmées le 23 octobre 2026 ont révélé le faux échec Explorer code 1 ; correctif testé hors ligne puis confirmé sur une ouverture réelle (unverified/1, attached/0, cible affichée selon le propriétaire), sans généraliser à toutes les versions ni à une transition de fermé à ouvert. macOS/Linux non vérifiés. Skill livré mis à jour ; copies installées seulement après accord humain et rechargement.
@@ -33,6 +37,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 - Relay, suite de la revue de Codex : l'ouverture d'une conversation n'autorise aucun envoi ; un envoi autorisé se vérifie avec `--check --open` puis part avec `--open` (guides fr/en, aide). Le skill ne promet plus qu'une conversation ouverte permet d'écrire : créée par `--new`, elle reste en lecture seule même dans Codex Desktop (constaté) ; pour faire écrire Codex, l'humain crée la conversation dans Desktop avec ses permissions et la désigne. `--then-follow` n'est plus conseillé par défaut (3600 s auparavant) : réservé à une validation humaine attendue d'avance, avec un délai court (120 s), sinon `--open --follow` au moment de la validation. Les champs de copie OpenCode restent pour l'agent, sauf demande ou échec. Copies installées : `palabre skill --sync` après accord humain, puis recharger le skill.
 
 ### Fixed
+
+- Relay OpenCode `--copy` : reconnaît dans le préfixe source le rappel standard du mode Plan 2.0.32, après sélection de `plan`, sans supprimer ce contexte ni passer en Build. Texte, métadonnées et chemin Windows strictement qualifiés ; autres synthétiques et nouveaux rappels pendant le tour toujours refusés. Agent, modèle, permissions et contrôles de copie inchangés. Tests négatifs, aide, guides FR/EN et référence du skill alignés ; copies installées seulement après `palabre skill --sync` confirmé et rechargement. Refs #136.
 
 - Revue Claude Opus 5.5 du lot UX : refuse aussi U+201A/U+201B dans les suggestions PowerShell Codex et Claude (rupture du littéral confirmée avec le parseur PowerShell 7.6.5, sans exécution). Shell attendu affiché pour Codex et documenté : PowerShell sous Windows, POSIX sous macOS/Linux. Tests et exemple OSC 8 actualisés ; aucune modification des transports Claude.
 

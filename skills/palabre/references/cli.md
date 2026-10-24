@@ -1,6 +1,6 @@
 # Palabre — référence CLI (Débat, Ask et commun)
 
-Chat et Relay ont leur propre référence : `references/chat.md` et `references/relay.md`.
+Chat et Relay ont leur propre référence : `chat.md` et `relay.md`.
 
 ## Agents et disponibilité
 
@@ -23,6 +23,8 @@ Une copie du skill non vérifiable reste affichée avec avertissement et intacte
 `palabre config --prune-trust --dry-run` affiche les approbations de fichiers disparus, sans rien modifier. Pour les retirer, proposez à l'humain de lancer lui-même `palabre config --prune-trust` dans son terminal : liste, confirmation au clavier et sauvegarde horodatée. Ne confirmez jamais à sa place ; aucun `--yes` n'est admis. Les configurations existantes ou inaccessibles sont conservées et aucun nouveau droit n'est accordé.
 
 ## Débat
+
+Les rôles complètent Débat, Ask et Chat, jamais Relay. Un rôle change la consigne, pas le modèle ni les permissions. « Chef de mission » et « équipier » sont des positions dans la coordination Relay, pas des rôles configurés. La synthèse utilise automatiquement le rôle summarizer, indépendamment du rôle habituel de l'agent choisi.
 
 Deux agents se répondent avec le sujet, le contexte et l'historique ; synthèse finale par défaut (consensus, désaccords, actions, conclusion).
 

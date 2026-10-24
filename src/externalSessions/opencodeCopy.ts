@@ -1,5 +1,6 @@
 /** @file Contrôles purs du fork OpenCode 2.0.32 ; aucune IO, sélection implicite ou autorisation. */
 import { isDeepStrictEqual as same } from "node:util";
+import path from "node:path";
 import { parseAgentName, type ValidationResult } from "./envelope.js";
 import type { RelayStatus, SessionRef } from "./types.js";
 
@@ -60,6 +61,27 @@ function exactKeys(value: Record<string, unknown>, keys: readonly string[]): boo
 }
 
 /**
+ * Rappel Plan observé dans le préfixe source OpenCode 2.0.32, après sélection de `plan`.
+ * Reconnaît le texte complet et ses seules métadonnées connues ; le chemin reste une donnée,
+ * jamais lu ni utilisé comme autorisation. Cette exception ne s'applique pas au nouveau tour :
+ * le fork doit conserver intégralement ce préfixe et les permissions de sa source.
+ */
+function sourcePlanReminder(message: Record<string, unknown>, previous: Record<string, unknown> | undefined, agent: unknown): boolean {
+  if (agent !== "plan" || previous?.type !== "agent-switched" || previous.agent !== "plan"
+    || message.type !== "synthetic" || !exactKeys(message, ["id", "time", "type", "text"])
+    || !copyObject(message.time) || !exactKeys(message.time, ["created"])
+    || !Number.isSafeInteger(message.time.created) || (message.time.created as number) < 0
+    || typeof message.text !== "string" || message.text.length > 4096) return false;
+  const prefix = "<system-reminder>\nYou are in Plan mode. Discuss the plan with the user directly in the conversation. Do not create or update plan files unless the user explicitly asks you to; when they do, write them only in:\n";
+  const suffix = "\n\nDo not modify any other files or ask a subagent to do so.\n\nYou remain in Plan mode until the user switches agents. If the user asks you to implement changes, do not do so. Tell them they need to switch agents.\n</system-reminder>";
+  if (!message.text.startsWith(prefix) || !message.text.endsWith(suffix)) return false;
+  const directory = message.text.slice(prefix.length, -suffix.length);
+  return /^[A-Za-z]:\\/.test(directory) && directory.endsWith("\\.opencode\\plan")
+    && !/[\p{Cc}\p{Cf}<>"|?*/]/u.test(directory) && !directory.slice(2).includes(":")
+    && path.win32.normalize(directory) === directory;
+}
+
+/**
  * Seule notice système qualifiée pour le nouveau tour (OpenCode 2.0.32) : rafraîchissement
  * core/date. Texte entier, calendrier et jour de semaine vérifiés sans Date.parse ni dépendance
  * au fuseau/à l'horloge du lecteur. Ces métadonnées ne prouvent ni une origine ni une autorité.
@@ -89,7 +111,7 @@ export function copyModelLabel(value: Record<string, unknown>): string {
   return `${value.providerID}/${value.id}${value.variant === undefined ? "" : `#${value.variant}`}`;
 }
 
-/** Source terminée et explicite ; l'égalité des dossiers canoniques appartient au contrôleur. */
+/** Source terminée et explicite ; seul le rappel Plan qualifié élargit les types du préfixe. */
 export function validateCopySource(source: OpenCodeSnapshot, id: string): string {
   const { info, context } = source;
   if (info.id !== id) throw new CopyFailure("identity-mismatch", "source-identity");
@@ -99,8 +121,9 @@ export function validateCopySource(source: OpenCodeSnapshot, id: string): string
     throw new CopyFailure("target-state-unknown", "source-incomplete");
   const allowed = new Set(["agent-switched", "model-switched", "user", "assistant", "idle", "system"]);
   const ids = new Set<string>();
-  for (const message of context) {
-    if (!nonblank(message.id) || ids.has(message.id) || !allowed.has(String(message.type)) || message.error !== undefined)
+  for (const [index, message] of context.entries()) {
+    const known = allowed.has(String(message.type)) || sourcePlanReminder(message, context[index - 1], info.agent);
+    if (!nonblank(message.id) || ids.has(message.id) || !known || message.error !== undefined)
       throw new CopyFailure("target-state-unknown", "source-context");
     ids.add(message.id);
   }
