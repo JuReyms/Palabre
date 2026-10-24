@@ -598,6 +598,13 @@ Métadonnées sans autorité ; ni date courante de l'hôte ni tolérance génér
 system. Les changements d'instructions/sélection, les autres notices, doublons
 et positions tardives restent refusés. Aucune relecture de modèle pour ce correctif.
 
+Préfixe Plan OpenCode 2.0.32 (#136, 23 octobre) : `validateCopySource` reconnaît
+seulement le rappel `synthetic` standard après sélection de `plan`, source en `plan`,
+clés/texte/horodatage stricts et chemin Windows normalisé vers `.opencode\plan`.
+Ce chemin reste une donnée, sans lecture ni autorité. Aucun filtrage : le fork doit
+conserver tout le rappel et ses permissions. `inspectCopyReply` reste inchangé :
+un nouveau synthétique pendant le tour est refusé, avec délivrance conservée.
+
 
 ### Préférence de mode (#190, lot B)
 

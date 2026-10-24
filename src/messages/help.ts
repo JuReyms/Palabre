@@ -441,6 +441,8 @@ Avec --open --follow (suivre la suite sans --then-follow) :
   --task ou --write. JSON : mode follow, delivery not-delivered (rien n'est envoyé), sans queue.
 
 Avec --copy (pilote OpenCode CLI 2.0.32, Windows seulement) :
+  Le rappel Plan standard est reconnu dans le contexte source et conservé dans la copie.
+  Aucun autre message synthétique n'est accepté ; aucun mode ni permission n'est changé.
   Une seule notice de date core/date strictement qualifiée est admise avant le message.
   Tout ajout, doublon ou autre notification système reste refusé ; aucun droit ajouté.
   Fermez la source et indiquez son ID exact ses_... et son dossier --dir. La source ne reçoit
@@ -1049,6 +1051,8 @@ With --open --follow (follow what happens next without --then-follow):
   --new, --task or --write. JSON: mode follow, delivery not-delivered (nothing is sent), no queue.
 
 With --copy (OpenCode CLI 2.0.32 pilot, Windows only):
+  The standard Plan reminder is recognized in the source context and kept in the copy.
+  No other synthetic message is accepted; no mode or permission is changed.
   One strictly qualified core/date notice may precede the message. Additions, duplicates
   and other system notices remain refused; no permissions are granted.
   Close the source and provide its exact ses_... ID and --dir directory. The source never
