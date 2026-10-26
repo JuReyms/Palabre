@@ -1411,6 +1411,24 @@ Le script `scripts/sync_docs.py` valide et copie les pages `docs/guide/fr` et `d
 
 Les documents obsoletes ou historiques doivent etre deplaces dans `docs/archive/` plutot que supprimes brutalement quand ils gardent une valeur de contexte.
 
+## Retrouver un échange Relay (#206)
+
+`relay recent` consulte seulement les `.relay.md` du dossier de sortie effectif,
+sans changer `history`, scanner les conversations fournisseurs, lancer une CLI,
+ouvrir ni envoyer. JSON distinct `relay-recent-result` v1, fichiers relatifs,
+métadonnées déclaratives non authentifiées. Confirmer objet/date/outil avec
+l'humain avant reprise, puis appliquer les validations d'envoi actuelles.
+OpenCode : `to: null`, `copy.source` et `copy.session` séparés, jamais de reprise
+directe. Pas de permissions ou de commandes déduites du Markdown.
+
+`src/relayRecent.ts` lit uniquement la table initiale FR/EN (vrai writer testé),
+refuse doublons, en-têtes incomplets, liens et cibles mal formées ; jamais une
+table du corps. Scan plat de 5 000 entrées, tri mtime/nom, puis 200 lectures de
+16 Kio maximum ; `scanTruncated` signale les plafonds. Erreurs individuelles
+sans masquer les autres. Config : même précédence, déjà approuvée, aucun repli
+sur un chemin existant inaccessible/non approuvé ; sans config, défaut .palabre.
+Tests exclusivement avec `scripts/test.mjs`, profils et exports fictifs.
+
 ## JSDoc
 
 Skill livré : `SKILL.md` garde routage, exemples sûrs, portée des rôles et invariants d'autorité/délivrance. Références conditionnelles : `relay.md` (bases), `relay-desktop.md`, `relay-opencode.md`, `relay-frozen.md`, plus Chat, CLI et exports. Le validateur contrôle présence/liens, au plus 120 lignes, 10 000 caractères et 1 200 caractères par paragraphe/élément de liste du point d'entrée ; ce budget ne prouve pas le comportement. Préserver les garde-fous lors des déplacements, faire évaluer des scénarios réalistes par un autre agent sans donner les réponses attendues. Copies installées seulement par plan confirmé, jamais depuis la branche Git.

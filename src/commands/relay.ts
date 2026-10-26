@@ -28,6 +28,8 @@
  * fabriquée : fork OpenCode vérifié, environnement habituel, preuves conservées même après erreur.
  * Les suggestions Codex utilisent `relay open`, sans envoi et avec la config effective absolue ;
  * cette métadonnée de présentation ne fait pas partie du résultat JSON ni de l'export.
+ * `relay recent` consulte seulement les en-têtes des exports du dossier configuré ; résultat
+ * distinct, sans choix, ouverture, envoi ou modification du contrat d'échange ci-dessous.
  */
 import { readFile, realpath, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -79,6 +81,7 @@ import { relayViewText } from "../messages/relayView.js";
 import type { ThenFollowReport } from "../externalSessions/openRelay.js";
 import { relayViewCommand } from "./relayView.js";
 import { runRelayOpenCommand } from "./relayOpen.js";
+import { runRelayRecentCommand } from "./relayRecent.js";
 
 /** Timeout par défaut et bornes de `--timeout`, en secondes. */
 export const DEFAULT_RELAY_TIMEOUT_SECONDS = 600;
@@ -255,6 +258,18 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
   const messages = startupMessages(rawArgs);
   if (rawArgs.includes("--help") || rawArgs.includes("-h")) {
     console.log(messages.help.renderCommand("relay"));
+    return;
+  }
+  // Routage seulement : ne pas confondre la valeur d'un --to/--from avec une sous-commande.
+  let actionIndex = -1;
+  for (let i = 1; i < rawArgs.length; i++) {
+    const token = rawArgs[i]!;
+    if (!token.startsWith("-")) { actionIndex = i; break; }
+    if ((RELAY_VALUE_FLAGS.has(token.slice(2)) || token === "--lang" || token === "--limit")
+      && rawArgs[i + 1] !== undefined && !rawArgs[i + 1]!.startsWith("-")) i++;
+  }
+  if (actionIndex > 0 && rawArgs[actionIndex] === "recent") {
+    await runRelayRecentCommand(["relay", "recent", ...rawArgs.slice(1, actionIndex), ...rawArgs.slice(actionIndex + 1)]);
     return;
   }
   if (rawArgs[1] === "approve-write" || rawArgs[1] === "run-write") {

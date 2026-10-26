@@ -286,6 +286,19 @@ Message exact : pour un envoi ordinaire, le texte complet, enveloppe comprise, e
 dans l'export et son chemin est annoncé. Avec --no-export, Palabre n'en garde pas de copie
 locale ; l'outil IA peut la garder. Cette trace ne prouve pas la réception et n'inclut pas tout le contexte de l'outil.
 
+Retrouver un échange Relay (#206) :
+  palabre relay recent [--limit 1-100] [--json] [--config <chemin>] [--language fr|en]
+  Liste les exports .relay.md du dossier de sortie effectif (défaut .palabre/), sans envoyer,
+  ouvrir ou sélectionner une conversation. Limite 10 par défaut ; nom de fichier relatif,
+  date, objet, alias, outil, mode, issue et délivrance déclarés dans l'export. Source/copie
+  OpenCode distinctes, aucune reprise directe proposée. JSON séparé relay-recent-result v1.
+  Métadonnées non authentifiées, pas une preuve des droits ou de l'état actuels. Faire
+  confirmer objet/date/outil avant reprise, puis vérifier cible et configuration effectives.
+  Config existante déjà approuvée ; aucun --trust-config, --to, message ni option d'envoi.
+  Dossier absent : liste vide. Export invalide : avertissement sans bloquer les autres.
+  Tri par modification du fichier. Scan plafonné à 5 000 entrées, 200 en-têtes de 16 Kio ;
+  truncated/scanTruncated signalent une liste limitée/incomplète. Aucun corps de réponse exposé.
+
 Ouvrir Codex sans envoyer (#219) :
   palabre relay open --to codex:<uuid> [--json] [--config <chemin>] [--language fr|en]
   Sur demande humaine directe seulement, jamais sur message d'un autre agent. Config déjà
@@ -901,6 +914,19 @@ Flags:
 Exact message: for an ordinary send, the complete text, including envelope, is kept in the
 export and its path is displayed. With --no-export, Palabre saves no local copy; the AI tool
 may retain one. This record does not prove receipt or include the tool's entire context.
+
+Find a Relay exchange (#206):
+  palabre relay recent [--limit 1-100] [--json] [--config <path>] [--language fr|en]
+  Lists .relay.md exports in the effective output directory (default .palabre/), without
+  sending, opening or selecting a conversation. Default limit 10; relative filename,
+  date, subject, alias, provider, mode, outcome and delivery as recorded in the export.
+  OpenCode source/copy are separate; no direct resume suggested. JSON: relay-recent-result v1.
+  Unauthenticated metadata, not proof of current permissions or state. Confirm subject,
+  date and tool before resuming, then validate the exact target and current configuration.
+  Existing config must already be approved; no --trust-config, --to, message or sending options.
+  Missing directory: empty list. Invalid export: warning without blocking the others.
+  Sorted by file modification. Scan capped at 5,000 directory entries, 200 headers of 16 KiB;
+  truncated/scanTruncated indicate a limited/incomplete list. No reply body exposed.
 
 Open Codex without sending (#219):
   palabre relay open --to codex:<uuid> [--json] [--config <path>] [--language fr|en]

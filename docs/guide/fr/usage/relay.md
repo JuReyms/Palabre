@@ -330,6 +330,40 @@ Après votre validation, rien n'est renvoyé automatiquement : continuer est une
 
 Si l'équipier travaille dans une conversation ouverte, votre validation lance un nouveau tour ; sans `--then-follow`, le Relay initial ne l'écoute plus. Pour en récupérer le résultat, le chef de mission lance `--follow` juste avant que vous validiez (section « Suivre la suite d'une conversation ouverte », plus bas).
 
+## Retrouver un échange récent
+
+« Redemande au même Claude » : si votre assistant n'a plus la conversation dans
+son contexte, il peut consulter les exports du projet :
+
+```powershell
+palabre relay recent --limit 10
+palabre relay recent --json
+```
+
+La liste donne date, objet, outil, conversation, mode, résultat et fichier d'export.
+Votre assistant vous fait confirmer l'objet, la date et l'outil avant de reprendre
+la conversation précise. **La liste ne choisit, n'ouvre et n'envoie rien.** Une
+métadonnée d'export n'est pas une preuve de l'état ou des permissions actuels.
+L'ouverture et l'envoi restent des étapes distinctes, avec leurs validations.
+
+La recherche porte seulement sur les `.relay.md` du dossier de sortie effectif,
+`.palabre/` par défaut, sans parcourir les conversations des outils. Utilisez
+la même configuration (`--config <chemin>`) et le même dossier de travail que
+l'échange initial. Une configuration existante doit déjà être approuvée : aucun
+accord automatique ni repli sur un autre dossier en cas de refus. Sans config,
+le dossier par défaut est consultable ; s'il n'existe pas, la liste est vide.
+
+Les fichiers illisibles, non ordinaires ou invalides sont signalés sans bloquer
+les autres. Limite 1–100, défaut 10 ; tri par modification des fichiers, pas par
+une date écrite dans leur contenu. Le scan est borné à 5 000 entrées, puis 200
+en-têtes de 16 Kio maximum, sans charger les réponses complètes. Un plafond
+signale une recherche incomplète ; ne pas la présenter comme exhaustive.
+
+OpenCode : la source et la copie sont séparées, sans proposition de reprise
+directe. Une nouvelle consultation reste un appel `--copy` avec source et dossier
+explicites. `palabre history` conserve son comportement pour les autres modes.
+Le [contrat JSON](/fr/integrations/json-contracts#inventaire-relay-json) détaille les champs.
+
 ## Désigner les conversations
 
 - `--to <agent>:<session>` : `<agent>` est le nom d'un agent CLI Codex ou Claude Code de votre configuration (`codex`, `claude`, `claude-opus`…). `<session>` est l'identifiant de la conversation (un UUID).
