@@ -176,8 +176,8 @@ un message déjà délivré. #193 (dépôt/corrélation ouverts) et #219 (comman
 restent ouverts ; ni transport nouveau, ni --open Claude, ni pilotage de fenêtre.
 
 Recherche #193 reprise le 26 octobre 2026 : [bilan de faisabilité Claude ouvert](../relay-claude-open-research.md).
-La messagerie native est prioritaire, mais un contrat externe complet de dépôt et de
-corrélation n'est pas établi. Clarifier ce contrat avant de demander une manipulation
+La messagerie native est prioritaire : dépôt externe direct ou Claude messager encadré,
+deux voies encore non qualifiées. Clarifier envoi et corrélation avant une manipulation
 Desktop ; aucun jeton privé extrait, réglage de réception changé ou essai implicite.
 
 ### Codex Windows : alias PowerShell Store (#128)
