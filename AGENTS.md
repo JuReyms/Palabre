@@ -83,7 +83,7 @@ Avant d’agir dans un domaine ci-dessous, lire entièrement la ou les référen
 | Init, discovery, new, update, skill sync | [Configuration et mises à jour](docs/dev/configuration.md) |
 | Adapter, exécutable, shim, modèle, timeout | [Adapters et modèles](docs/dev/adapters.md) |
 | Débat, Ask, Chat, contexte, prompts, checkpoint | [Orchestration et contexte](docs/dev/orchestration.md) |
-| Socle Relay, permissions, délivrance, Mission/review/write | [Contrat Relay](docs/dev/relay.md) |
+| Socle Relay, permissions, délivrance, exports `.relay.md`, `relay recent`, Mission/review/write | [Contrat Relay](docs/dev/relay.md) |
 | Codex ouvert, suivi, quota, ouverture Desktop | [Contrat Relay](docs/dev/relay.md) et [Relay ouvert/Desktop](docs/dev/relay-open.md) |
 | Identité terminal, aide, langues, TUI, JSON/NDJSON | [Interfaces et protocoles](docs/dev/interfaces.md) |
 | Tests, trust, nettoyage du registre, doctor, smoke réel | [Vérification et isolation](docs/dev/verification.md) |
