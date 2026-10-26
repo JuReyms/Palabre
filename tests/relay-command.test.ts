@@ -425,6 +425,7 @@ describe("palabre relay : réponse", () => {
     const exported = readFileSync(json.exportPath, "utf8");
     assert.match(exported, /Peux-tu relire ce plan \?/);
     assert.match(exported, /FAKE-OK/);
+    assert.ok(exported.includes(`\x60\x60\x60text\n${result.calls[0]!.stdin}\n\x60\x60\x60\n`), "texte réellement passé à stdin conservé intégralement");
     assert.equal(result.calls.length, 1);
     assert.match(result.calls[0]!.stdin, /\n\nPeux-tu relire ce plan \?\n\n---\n/);
     assert.equal(result.calls[0]!.stdin.split("\n")[0], `### ${relayMessages.fr.envelopeHeader("codex", "claude")}`);
@@ -438,10 +439,30 @@ describe("palabre relay : réponse", () => {
     assert.equal(fr.code, 0, fr.stderr);
     assert.equal(fr.stdout, "FAKE-OK\n");
     assert.match(fr.stderr, /Relay : réponse reçue de claude\./);
-    assert.match(fr.stderr, /Export : /);
+    assert.match(fr.stderr, /Message Relay \(sans objet\).*texte exact, enveloppe comprise : /);
     const en = await relay(world, [...toClaude, "Hello", "--language", "en", "--no-export"]);
     assert.equal(en.code, 0, en.stderr);
     assert.match(en.stderr, /Relay: reply received from claude\./);
+    assert.match(en.stderr, /--no-export: Palabre did not save a local copy/);
+  });
+
+  test("#210 : texte FR/EN avec/sans objet, export ou --no-export", async () => {
+    for (const language of ["fr", "en"] as const) {
+      for (const subject of [undefined, "Relire le plan éà"] as const) {
+        for (const disabled of [false, true]) {
+          const world = makeWorld();
+          const r = await relay(world, [...toClaude, "Question", "--trust-config", "--language", language,
+            ...(subject ? ["--subject", subject] : []), ...(disabled ? ["--no-export"] : [])]);
+          assert.equal(r.code, 0, r.stderr); assert.equal(r.stdout, "FAKE-OK\n");
+          assert.equal(r.calls.length, 1, "aucun second envoi pour la trace");
+          if (disabled) assert.ok(r.stderr.includes(relayMessages[language].messageCopy.disabled));
+          else {
+            assert.match(r.stderr, language === "fr" ? /texte exact, enveloppe comprise/ : /exact text, including envelope/);
+            assert.ok(r.stderr.includes(subject ?? (language === "fr" ? "sans objet" : "no subject")));
+          }
+        }
+      }
+    }
   });
 
   test("Claude : cadre opérateur fixe dans la langue du relay, message absent du cadre (D22)", async () => {
@@ -461,15 +482,35 @@ describe("palabre relay : réponse", () => {
     }
   });
 
+  test("#210 : échec export signalé en texte, réponse/délivrance conservées et aucun renvoi", async () => {
+    for (const language of ["fr", "en"] as const) {
+      const world = makeWorld();
+      writeFileSync(path.join(world.workspace, ".palabre"), "collision fictive : dossier indisponible");
+      const r = await relay(world, [...toClaude, "Question", "--trust-config", "--language", language]);
+      assert.equal(r.code, 0, r.stderr);
+      assert.equal(r.stdout, "FAKE-OK\n");
+      assert.equal(r.calls.length, 1);
+      assert.ok(r.stderr.includes(relayMessages[language].messageCopy.failed));
+      assert.ok(r.stderr.includes(relayMessages[language].replied("claude")));
+    }
+  });
+
   test("accents et fins de ligne transmis intacts, sans passer par PowerShell (D21)", async () => {
-    const world = makeWorld();
-    const file = path.join(world.base, "message.txt");
-    writeFileSync(file, "Sujet accentué : éèàçœ\nDeuxième ligne", "utf8");
-    const result = await relay(world, [...toClaude, "--message-file", file, "--trust-config", "--json", "--no-export"]);
-    assert.equal(result.code, 0, result.stderr);
-    const stdin = result.calls[0]!.stdin;
-    assert.ok(stdin.includes("\n\nSujet accentué : éèàçœ\nDeuxième ligne\n\n---\n"), JSON.stringify(stdin));
-    assert.equal(stdin.includes("\r\n"), false);
+    for (const newline of ["\n", "\r\n"]) {
+      const world = makeWorld();
+      const file = path.join(world.base, "message.txt");
+      const body = `Sujet accentué : éèàçœ${newline}**Détail :**\n\x60\x60\x60\x60\nDeuxième ligne`;
+      writeFileSync(file, body, "utf8");
+      const result = await relay(world, [...toClaude, "--message-file", file, "--trust-config", "--json"]);
+      assert.equal(result.code, 0, result.stderr);
+      const stdin = result.calls[0]!.stdin;
+      assert.ok(stdin.includes(`\n\n${body}\n\n---\n`), JSON.stringify(stdin));
+      if (newline === "\n") assert.equal(stdin.includes("\r\n"), false);
+      const exported = readFileSync(result.json.exportPath, "utf8");
+      assert.ok(exported.includes(`\x60\x60\x60\x60\x60text\n${stdin}\n\x60\x60\x60\x60\x60\n`));
+      assert.equal("envelope" in result.json, false);
+      assert.equal("messageCopy" in result.json, false);
+    }
   });
 
   test("Codex : liste MCP puis reprise neutralisée dans le dossier de la cible", async () => {
@@ -921,6 +962,7 @@ describe("palabre relay --open", () => {
       assert.equal(call!.stdin, "");
       assert.equal(path.resolve(call!.cwd).toLowerCase(), path.resolve(world.workspace).toLowerCase());
       const exported = readFileSync(json.exportPath, "utf8");
+      assert.ok(exported.includes(`\x60\x60\x60text\n${envelope}\n\x60\x60\x60\n`), "queue reçoit exactement le bloc exporté");
       assert.match(exported, /\| Mode \| open — dans l'app desktop \|/);
       assert.match(exported, /accepted=true/);
       assert.match(exported, /aucune lecture seule n'est garantie/);
@@ -954,6 +996,7 @@ describe("palabre relay --open", () => {
       assert.equal(result.json.delivery.status, "unknown");
       assert.match(result.json.error.message, /Réception non observée/);
       assert.ok(result.json.exportPath && existsSync(result.json.exportPath), "tentative exportée");
+      assert.ok(readFileSync(result.json.exportPath, "utf8").includes(`\x60\x60\x60text\n${result.calls[0]!.argv[4]}\n\x60\x60\x60\n`), "trace conservée sans transformer unknown en reçu");
     } finally {
       release();
     }

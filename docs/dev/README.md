@@ -12,7 +12,7 @@ La [vision produit](../product-vision.md) distingue Palabre globalement de ses m
 | Init, discovery, new, update et skill sync | [Configuration](configuration.md) |
 | CLI/PTY/Ollama, exécution, shims et modèles | [Adapters](adapters.md) |
 | Débat/Ask/Chat, contexte, checkpoints et prompts | [Orchestration](orchestration.md) |
-| Relay fermé/copie, délivrance, identité, permissions et fonctions gelées | [Relay](relay.md) |
+| Relay fermé/copie, délivrance, trace du message, échanges récents, permissions et fonctions gelées | [Relay](relay.md) |
 | Codex ouvert, suivi, quota et ouverture Desktop | [Relay ouvert/Desktop](relay-open.md), après le socle Relay |
 | Identité terminal, langues, aide, TUI et JSON/NDJSON | [Interfaces](interfaces.md) |
 | Tests, trust, doctor, isolation et smoke réels | [Vérification](verification.md) |
@@ -58,6 +58,11 @@ Point de départ : `AGENTS.md` au commit `040821f` (1 629 lignes). Les détails 
 | Sync documentation (palabre-web) | [maintenance.md](maintenance.md) |
 | Issues GitHub | [maintenance.md](maintenance.md) |
 | Style de contribution | [maintenance.md](maintenance.md), [relay-open.md](relay-open.md), [AGENTS.md](../../AGENTS.md) |
+
+Les consignes ajoutées lors des fusions de #231 (échanges récents, #206) et #232
+(message exact, #210) sont conservées dans [le socle Relay](relay.md). Le test
+de compatibilité vérifie que le bloc de message exact ne devient pas une source
+de métadonnées pour `relay recent`.
 
 ### Corrections explicites, sans changement de runtime
 

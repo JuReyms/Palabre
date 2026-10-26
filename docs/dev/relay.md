@@ -8,6 +8,10 @@ Les parcours Mission, `--task review` et `--write` restent gelés : correctifs d
 
 ## Relay externe
 
+Trace du message ordinaire (#210) : `RelayExport.envelope?` est le même texte fourni à stdin, `codex queue` ou à l'envoi dans la copie OpenCode ; jamais reconstruit après coup. Export seulement après tentative, y compris délivrance inconnue. Le bloc « Message Relay complet (enveloppe comprise) » précède le corps/réponse non fiable : un bloc Markdown mal fermé ne peut pas le masquer. Délimiteur plus long que tous les backticks du texte ; aucune normalisation Windows sur la copie exacte, pour préserver Unicode, CRLF et `:**`. Corps historique inchangé ; aucun nouveau champ JSON v1.
+
+L'état privé `messageCopy` ne sert qu'à la notice texte (sauvé, `--no-export`, échec d'export), pas à classifier la délivrance. Aucun bloc pour check/follow/refus avant tentative ; Mission/review/write gelés inchangés. Cette copie locale n'est ni une attestation de réception ni tout le contexte fournisseur (historique, prompt système, intégrations). Ancien export sans bloc : ne pas reconstituer l'enveloppe pour la présenter comme exacte, et ne jamais renvoyer pour recréer une trace. Tests sur faux transports comparent le bloc à l'entrée réellement reçue.
+
 OpenCode (#136), pilote CLI sur copie : voir `docs/relay-opencode-copy-contract.md`.
 Décision du propriétaire du 19 octobre 2026 : environnement OpenCode habituel conservé,
 consultation demandée sur copie, sans lecture seule imposée. `--copy --dir` est réservé

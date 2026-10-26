@@ -226,6 +226,8 @@ export interface RelayExport {
   startedAt: string;
   /** Message transmis, avant enveloppe. */
   message: string;
+  /** Texte exact soumis au transport ; absent avant tentative, pour un suivi et les parcours gelés. */
+  envelope?: string;
   reply?: string;
   error?: string;
   /** Diagnostic de `--open` (B1) ; absent sans `--open`, ce qui laisse l'export Relay A inchangé. */
@@ -343,5 +345,12 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     content.push(`## nextTurn — ${messages.relayThenFollow.label}`, "", messages.relayThenFollow.statusLine(labels.status, next.status, next.reason), "",
       ...(next.reply !== undefined ? [next.reply, ""] : []), "````json", JSON.stringify(next, null, 2), "````", "");
   }
-  return normalizeMarkdownForWindowsPreview(content.join("\n"));
+  const rendered = normalizeMarkdownForWindowsPreview(content.join("\n"));
+  if (report.envelope === undefined) return rendered;
+  // Ne jamais normaliser ce bloc : il conserve aussi CRLF, accents et `:**`.
+  // Un délimiteur plus long que tous les backticks du message empêche sa fermeture anticipée.
+  const fence = "`".repeat((report.envelope.match(/`+/g) ?? []).reduce((length, run) => Math.max(length, run.length + 1), 3));
+  // Avant tout corps/réponse non fiable : un fence laissé ouvert ne peut pas avaler la trace.
+  const messageIndex = content.indexOf(`## ${labels.message}`);
+  return `${normalizeMarkdownForWindowsPreview(content.slice(0, messageIndex).join("\n"))}\n## ${messages.relay.messageCopy.heading}\n\n${messages.relay.messageCopy.notice}\n\n${fence}text\n${report.envelope}\n${fence}\n\n${normalizeMarkdownForWindowsPreview(content.slice(messageIndex).join("\n"))}`;
 }

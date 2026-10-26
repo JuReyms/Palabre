@@ -282,6 +282,10 @@ Options :
   --trust-config              approuve la config résolue (aucune question n'est posée)
   --language <fr|en>          force la langue
 
+Message exact : pour un envoi ordinaire, le texte complet, enveloppe comprise, est conservé
+dans l'export et son chemin est annoncé. Avec --no-export, Palabre n'en garde pas de copie
+locale ; l'outil IA peut la garder. Cette trace ne prouve pas la réception et n'inclut pas tout le contexte de l'outil.
+
 Retrouver un échange Relay (#206) :
   palabre relay recent [--limit 1-100] [--json] [--config <chemin>] [--language fr|en]
   Liste les exports .relay.md du dossier de sortie effectif (défaut .palabre/), sans envoyer,
@@ -906,6 +910,10 @@ Flags:
   --config <path>             explicit config path
   --trust-config              trusts the resolved config (no question is asked)
   --language <fr|en>          force language
+
+Exact message: for an ordinary send, the complete text, including envelope, is kept in the
+export and its path is displayed. With --no-export, Palabre saves no local copy; the AI tool
+may retain one. This record does not prove receipt or include the tool's entire context.
 
 Find a Relay exchange (#206):
   palabre relay recent [--limit 1-100] [--json] [--config <path>] [--language fr|en]
