@@ -37,7 +37,7 @@ const failure: ExchangeInterpretation = { ...reply, isError: true, reply: undefi
 const probe = (attachment: TargetProbe["attachment"]): TargetProbe => ({ attachment, activity: "unknown", processes: [], evidence: [] });
 
 describe("codes de sortie", () => {
-  test("table conforme au contrat (AGENTS.md, section Relay externe)", () => {
+  test("table conforme au contrat (docs/dev/relay.md)", () => {
     assert.deepEqual({ ...RELAY_EXIT_CODES }, {
       "replied": 0,
       "followed": 0,

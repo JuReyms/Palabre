@@ -1,6 +1,6 @@
 /**
  * @file Validation des références de session et du message, nonce et enveloppe du relay (voir
- * AGENTS.md, section "Relay externe").
+ * docs/dev/relay.md, section "Relay externe").
  *
  * L'enveloppe identifie l'expéditeur et porte un nonce à usage unique. Le nonce sert ensuite de
  * preuve de délivrance dans l'historique de la cible : il n'est jamais réutilisé.

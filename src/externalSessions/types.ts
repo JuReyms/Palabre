@@ -1,5 +1,5 @@
 /**
- * @file Contrats partagés du relay Codex, Claude Code ou copie OpenCode (voir AGENTS.md,
+ * @file Contrats partagés du relay Codex, Claude Code ou copie OpenCode (voir docs/dev/relay.md,
  * section "Relay externe").
  *
  * Une session externe n'est pas un adapter de débat : elle n'expose pas `generate(prompt)` et

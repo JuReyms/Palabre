@@ -1,6 +1,6 @@
 /**
  * @file Relay B1 (`palabre relay --open`) : dépôt d'un message dans une conversation Codex ouverte
- * par `codex queue`, puis attente de la réponse corrélée dans le rollout (voir AGENTS.md, section
+ * par `codex queue`, puis attente de la réponse corrélée dans le rollout (voir docs/dev/relay-open.md, section
  * "Relay externe", et `scripts/prototypes/relay/CONTRAT-B1.md`).
  *
  * Déroulé, sous **une seule échéance** couvrant référence, dépôt et attente :

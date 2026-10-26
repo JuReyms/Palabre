@@ -1,5 +1,5 @@
 /**
- * @file Issues, codes de sortie et statut de délivrance du relay (voir AGENTS.md, section
+ * @file Issues, codes de sortie et statut de délivrance du relay (voir docs/dev/relay.md, section
  * "Relay externe").
  *
  * L'issue est unique et déduite dans un ordre fixe :
