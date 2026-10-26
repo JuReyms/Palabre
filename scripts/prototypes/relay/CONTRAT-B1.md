@@ -311,5 +311,8 @@ de réception `accept`, `hold` et `refuse` et les expirations font partie du fut
 [Messagerie officielle](https://code.claude.com/docs/en/cross-session-messaging),
 [référence CLI](https://code.claude.com/docs/en/cli-reference).
 
+Reprise #193 du 26 octobre 2026 : [bilan de faisabilité et ordre des contrôles](../../../docs/relay-claude-open-research.md).
+Le contrat externe doit être établi avant tout essai Desktop ; aucun nouveau transport livré.
+
 Aucun essai réel consommant du quota Claude n'est requis pour relire ce lot. Claude peut faire
 la revue une fois son quota disponible, avant le développement du transport et de la commande.
