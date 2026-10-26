@@ -69,6 +69,11 @@ Une seconde relecture a fait retirer la contrainte injustifiée « sans appel mo
 
 ## Question amont proposée — non publiée
 
+La question reste une option, pas un préalable au prototype isolé approuvé par le
+propriétaire. Le [banc hors ligne du messager](../scripts/prototypes/relay/CLAUDE-MESSENGER.md)
+du 27 octobre teste les refus et la réservation unique sur des données fictives.
+Il ne qualifie ni le SDK natif, ni la liaison UUID/adresse, ni l'envoi Desktop.
+
 **Titre :** Interface officielle de dépôt externe dans une conversation Claude Code locale ouverte
 
 Nous développons un outil local de coopération entre outils IA. Nous souhaitons transmettre un message unique à une conversation Claude Code précise, notamment dans l'onglet Code de Desktop sous Windows, sans second écrivain sur son historique, automatisation d'interface ou contournement des permissions.
