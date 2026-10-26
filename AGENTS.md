@@ -4,7 +4,14 @@ Ce fichier guide les agents et contributeurs qui travaillent dans ce depot.
 
 ## Vision
 
-Palabre est un meta-CLI qui fait cooperer des outils IA et aide a croiser leurs avis pour mieux decider avant d'agir. Relay facilite la communication et le travail entre conversations precises ; Debat, Ask et Chat completent les parcours de consultation et de decision. Ce harnais d'intelligence collective rend les arbitrages explicites et peut preparer une action sous controle utilisateur. Le produit cible des utilisateurs ayant installe et configure leurs outils IA locaux : Codex, Claude Code, Ollama, ou equivalents.
+Palabre est un meta-CLI qui fait cooperer des outils IA, aide a croiser leurs avis et a avancer dans le travail comme dans les decisions, sous controle humain. Boussole produit : mieux travailler et se corriger entre outils, tout en gardant l'humain dans la boucle. Le produit cible des utilisateurs ayant installe et configure leurs outils IA locaux : Codex, Claude Code, Ollama, ou equivalents.
+
+**Produit et modes : deux niveaux distincts** (decision du proprietaire, 26 octobre 2026) :
+
+- **Palabre** est le produit global. Sa promesse couvre la cooperation, les avis croises et l'aide a la decision ; elle n'impose pas le meme fonctionnement a tous les modes.
+- **Relay, Debat, Ask et Chat** sont ses modes. Relay fait communiquer et travailler des conversations precises ; Debat confronte des arguments ; Ask recueille des avis independants ; Chat permet d'echanger avec un agent et d'en consulter un autre. Le chef de mission, le coequipier et le parcours de conversations reliees decrivent Relay, pas tout Palabre.
+
+Avant toute redaction du README, des guides, du site ou d'un skill, preciser le niveau concerne : produit ou mode nomme. Relay peut etre mis en avant sans devenir la definition de Palabre. Ne pas employer « mode Palabre » pour designer Relay ou Debat. Ne promettre ni affichage en direct sur toutes les interfaces, ni memoire partagee automatiquement, ni quotas fusionnes, ni disparition des hallucinations. Reference de developpement : [docs/product-vision.md](docs/product-vision.md).
 
 Vocabulaire public : un outil IA (Claude Code, Codex, OpenCode...) utilise un modele ; certains outils proposent plusieurs fournisseurs de modeles. Un agent Palabre est une entree nommee de configuration reliee a un outil ou a Ollama, pas un sous-agent interne de l'hote. Les roles configurables completent Debat, Ask et Chat, jamais Relay ; chef de mission et equipier decrivent la coordination, pas ces roles. Le README sert de porte d'entree avec schemas simples et renvois aux guides, sans promettre les memes capacites Relay pour tous les outils/interfaces.
 
