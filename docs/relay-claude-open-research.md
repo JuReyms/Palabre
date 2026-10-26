@@ -70,9 +70,10 @@ Une seconde relecture a fait retirer la contrainte injustifiée « sans appel mo
 ## Question amont proposée — non publiée
 
 La question reste une option, pas un préalable au prototype isolé approuvé par le
-propriétaire. Le [banc hors ligne du messager](../scripts/prototypes/relay/CLAUDE-MESSENGER.md)
-du 27 octobre teste les refus et la réservation unique sur des données fictives.
-Il ne qualifie ni le SDK natif, ni la liaison UUID/adresse, ni l'envoi Desktop.
+propriétaire. Le [banc du messager et sa calibration SDK](../scripts/prototypes/relay/CLAUDE-MESSENGER.md)
+du 27 octobre testent les refus sur données fictives ; un essai autorisé confirme
+le refus explicite du hook SDK sur un faux outil en mémoire. Cela ne qualifie ni
+`SendMessage` natif, ni la liaison UUID/adresse, ni l'envoi Desktop.
 
 **Titre :** Interface officielle de dépôt externe dans une conversation Claude Code locale ouverte
 
