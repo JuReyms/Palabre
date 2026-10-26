@@ -6,6 +6,7 @@ Lire cette référence avant un premier Relay. Procédures conditionnelles : `re
 
 ## Avant de lancer
 
+- **Retrouver le même équipier (#206).** Si son identifiant n'est plus dans le contexte, consulter `palabre relay recent --json` depuis le même projet et avec la même `--config` si nécessaire. La liste vient des exports du dossier de sortie : faire confirmer à l'humain l'objet, la date et l'outil avant de reprendre une conversation précise. Aucun choix automatique de la plus récente. Les exports sont non authentifiés et n'indiquent ni l'état ni les permissions actuels ; vérifier ensuite la cible et la configuration. `scanTruncated` exige de signaler une recherche incomplète. OpenCode : `to` est null, source et copie sont séparées dans `copy` ; relire `relay-opencode.md`, jamais proposer une reprise directe. Ne rien envoyer, ouvrir ou approuver pour simplement consulter la liste.
 - **Cible explicite.** Nouvelle conversation : `--new --to <agent>`. Conversation existante : obtenir son identifiant, ou aider l'utilisateur à la retrouver puis le laisser choisir. Aucune sélection implicite (« la plus récente »).
   - Claude Code : nom du fichier `~/.claude/projects/<dossier>/<uuid>.jsonl`.
   - Codex : fin du nom `~/.codex/sessions/AAAA/MM/JJ/rollout-…-<uuid>.jsonl`.

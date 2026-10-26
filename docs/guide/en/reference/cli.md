@@ -74,6 +74,10 @@ Resume keeps every complete response and calls only the next Debate turn, remain
 
 ## Relay
 
+To find an exchange without sending or opening: `palabre relay recent [--limit 1-100] [--json] [--config <path>] [--language fr|en]`.
+Confirm date, subject and tool before resuming; exports are unauthenticated
+metadata. [Find an exchange](/en/usage/relay#find-a-recent-exchange).
+
 | Command | Description |
 | --- | --- |
 | `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> "Message"` | Closed Codex or Claude Code conversation, resumed read-only. |

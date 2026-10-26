@@ -90,3 +90,33 @@ on Windows before this fix; a corrected opening then returned `launcher: unverif
 and `attached`/0, with display confirmed separately by the owner. This does not
 qualify a transition from closed to open or all versions. Claude/OpenCode refused;
 macOS/Linux unverified.
+
+## Relay inventory JSON
+
+`palabre relay recent --json` returns one object, not an NDJSON stream:
+
+```json
+{"v":1,"type":"relay-recent-result","status":"listed","exitCode":0,"entries":[],"warnings":[],"truncated":false,"scanTruncated":false,"error":null}
+```
+
+- `entries[]`: `fileName` relative to the output directory, export ISO `date`,
+  `subject` or null, `agent` alias, `provider`, `to: {agent, session}` (session may
+  be null), `mode` or null for an old export, `status`, `delivery`.
+- OpenCode copy: `to: null`, separate `copy: {source, session, verified}`; never
+  substitute source for a missing copy or suggest direct resume.
+- `warnings[]`: relative `fileName` and stable `reason` (`unreadable`, `invalid-header`,
+  `header-too-large`, `not-regular`, `changed`, `invalid-name`). For `invalid-name`,
+  the name is replaced by `[invalid-name]`, without displaying a path or control.
+  Invalid files do not count toward
+  `--limit` and do not prevent presenting the others.
+- `truncated`: files not shown. `scanTruncated`: scan/read cap reached; potentially
+  incomplete list, with no guarantee of globally newest entries.
+- Exit codes: 0 listed (even empty), 8 invalid arguments/config, 2 unreadable directory.
+  On failure: `status: invalid-request|read-failed`, `error: {reason, message}`;
+  empty lists, no fallback or writes.
+
+No absolute file path added, prompt, reply, permission or generated command.
+Subjects can contain private information chosen by the user. This metadata is
+unauthenticated: confirm the exchange with the owner, then validate the exact
+target and current config before any opening or send. The existing `history`
+contract and Relay send results remain unchanged.

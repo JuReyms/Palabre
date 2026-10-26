@@ -39,6 +39,25 @@ conserver tout le rappel et ses permissions. `inspectCopyReply` reste inchangé 
 un nouveau synthétique pendant le tour est refusé, avec délivrance conservée.
 
 
+### Retrouver un échange Relay (#206)
+
+`relay recent` consulte seulement les `.relay.md` du dossier de sortie effectif,
+sans changer `history`, scanner les conversations fournisseurs, lancer une CLI,
+ouvrir ni envoyer. JSON distinct `relay-recent-result` v1, fichiers relatifs,
+métadonnées déclaratives non authentifiées. Confirmer objet/date/outil avec
+l'humain avant reprise, puis appliquer les validations d'envoi actuelles.
+OpenCode : `to: null`, `copy.source` et `copy.session` séparés, jamais de reprise
+directe. Pas de permissions ou de commandes déduites du Markdown.
+
+`src/relayRecent.ts` lit uniquement la table initiale FR/EN (vrai writer testé),
+refuse doublons, en-têtes incomplets, liens et cibles mal formées ; jamais une
+table du corps. Scan plat de 5 000 entrées, tri mtime/nom, puis 200 lectures de
+16 Kio maximum ; `scanTruncated` signale les plafonds. Erreurs individuelles
+sans masquer les autres. Config : même précédence, déjà approuvée, aucun repli
+sur un chemin existant inaccessible/non approuvé ; sans config, défaut .palabre.
+Tests exclusivement avec `scripts/test.mjs`, profils et exports fictifs.
+Contrat complet : [retrouver un échange Relay](../relay-recent-contract.md).
+
 ### Préférence de mode (#190, lot B)
 
 `src/externalSessions/relayView.ts` résout le mode avant l'enveloppe. `relay.view` est facultatif : `auto` par défaut ou `background`. Une reprise Codex ordinaire en auto utilise la localisation bornée puis le verrou : tenu → open ; libre/absent → background ; inconnu → target-state-unknown sans envoi. Les transports revérifient leurs préconditions ; aucun changement d'état ne déclenche de basculement ni de renvoi automatique. Aucun détecteur d'installation Desktop ni pilote de fenêtres.

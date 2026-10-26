@@ -74,6 +74,10 @@ La reprise conserve les réponses complètes et relance uniquement le prochain t
 
 ## Relay
 
+Pour retrouver un échange sans envoyer ni ouvrir : `palabre relay recent [--limit 1-100] [--json] [--config <chemin>] [--language fr|en]`.
+Date, objet et outil à confirmer avant reprise ; les exports sont des métadonnées
+non authentifiées. [Retrouver un échange](/fr/usage/relay#retrouver-un-échange-récent).
+
 | Commande | Description |
 | --- | --- |
 | `palabre relay --from <agent>:<uuid> --to <agent>:<uuid> "Message"` | Conversation fermée Codex ou Claude Code, reprise en lecture seule. |
