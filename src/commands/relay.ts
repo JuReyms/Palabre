@@ -184,6 +184,8 @@ export interface RelayResultV1 {
 
 /** État partagé avec le gestionnaire d'erreur interne, pour qualifier la délivrance. */
 interface RelayContext {
+  /** Présentation privée : jamais ajoutée au contrat JSON v1. */
+  messageCopy?: "saved" | "disabled" | "failed";
   /** CLI Claude déjà résolue, pour afficher une ouverture sans la lancer ni changer d'installation. */
   desktopExecutable?: ExternalExecutable;
   /** Config effective absolue, réservée à la commande de consultation proposée en texte. */
@@ -273,11 +275,11 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
   }
   let primaryPrinted = false;
   const json = rawArgs.includes("--json");
-  const { result, messages: resolvedMessages, targetLocated, desktopExecutable, desktopCwd, desktopConfigPath } = await executeRelayWithMessages(rawArgs, { onOpenReply: (reply, localized) => {
+  const { result, messages: resolvedMessages, targetLocated, desktopExecutable, desktopCwd, desktopConfigPath, messageCopy } = await executeRelayWithMessages(rawArgs, { onOpenReply: (reply, localized) => {
     if (!json) { process.stdout.write(`${sanitizeTerminalText(reply)}\n`); primaryPrinted = true; }
     process.stderr.write(`${localized.relayThenFollow.waiting}\n`);
   } });
-  writeResult(result, json, resolvedMessages, targetLocated, primaryPrinted, desktopExecutable, desktopCwd, desktopConfigPath);
+  writeResult(result, json, resolvedMessages, targetLocated, primaryPrinted, desktopExecutable, desktopCwd, desktopConfigPath, messageCopy);
   process.exitCode = result.exitCode;
 }
 
@@ -287,7 +289,7 @@ export async function executeRelay(rawArgs: string[], options: { signal?: AbortS
 }
 
 /** Préserve langue et contexte de consultation privés, sans enrichir le résultat public. */
-async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader; approvedWrite?: WriteRequest; onOpenReply?: RelayContext["onOpenReply"] } = {}): Promise<{ result: RelayResultV1; messages: Messages; targetLocated: boolean; desktopExecutable?: ExternalExecutable; desktopCwd?: string; desktopConfigPath?: string }> {
+async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader; approvedWrite?: WriteRequest; onOpenReply?: RelayContext["onOpenReply"] } = {}): Promise<{ result: RelayResultV1; messages: Messages; targetLocated: boolean; desktopExecutable?: ExternalExecutable; desktopCwd?: string; desktopConfigPath?: string; messageCopy?: RelayContext["messageCopy"] }> {
   const context: RelayContext = {
     signal: options.signal,
     startedAt: Date.now(),
@@ -319,7 +321,7 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
         detail: error instanceof Error ? error.message : String(error)
       });
   }
-  return { result, messages: context.messages, targetLocated: context.targetLocated === true, desktopExecutable: context.desktopExecutable, desktopCwd: context.cwd, desktopConfigPath: context.desktopConfigPath };
+  return { result, messages: context.messages, targetLocated: context.targetLocated === true, desktopExecutable: context.desktopExecutable, desktopCwd: context.cwd, desktopConfigPath: context.desktopConfigPath, messageCopy: context.messageCopy };
 }
 
 async function relay(rawArgs: string[], context: RelayContext): Promise<RelayResultV1> {
@@ -621,9 +623,12 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     }
     applyReviewCancellation(result, controller.signal.aborted, context.messages);
     result.durationMs = Date.now() - context.startedAt;
+    // Parcours ordinaires seulement : Mission/review/écriture restent gelés.
+    const submitted = launched && !context.header && !context.task && !context.approvedWrite ? envelope : undefined;
     if (flags["no-export"] !== true) {
-      result.exportPath = await exportRelay(resolveOutputDir(config.outputDir), result, { nonce, message, startedAt: context.startedAt }, context.messages, context.targetLocated === true);
+      result.exportPath = await exportRelay(resolveOutputDir(config.outputDir), result, { nonce, message, envelope: submitted, startedAt: context.startedAt }, context.messages, context.targetLocated === true);
     }
+    recordMessageCopy(context, result, submitted, flags["no-export"] !== true);
     return result;
   } finally {
     context.signal?.removeEventListener("abort", onInterrupt);
@@ -773,8 +778,9 @@ async function relayOpen(
   });
   // Un refus avant tentative n'a rien exécuté : pas d'export, comme pour Relay A.
   if (input.exportResult && open.queue.attempted) {
-    result.exportPath = await exportRelay(input.outputDir, result, { nonce, message: input.message, startedAt: context.startedAt }, context.messages, false);
+    result.exportPath = await exportRelay(input.outputDir, result, { nonce, message: input.message, envelope, startedAt: context.startedAt }, context.messages, false);
   }
+  recordMessageCopy(context, result, open.queue.attempted ? envelope : undefined, input.exportResult);
   return result;
 }
 
@@ -789,17 +795,22 @@ async function relayCopy(context: RelayContext, input: {
   if (context.signal?.aborted) interrupt();
   const text = relayCopyText(context.language ?? "fr");
   try {
+    let envelope: string | undefined;
     const copied = await runCopyRelay({ source: input.source, cwd: context.cwd!, timeoutMs: input.timeoutMs, signal: controller.signal,
-      envelope: id => buildEnvelope({ from: context.from, to: { agent: input.agent, sessionId: id }, message: input.message,
-        nonce: input.nonce, subject: context.subject }, { ...context.messages.relay, envelopePermissions: text.permissions })
+      envelope: id => {
+        envelope = buildEnvelope({ from: context.from, to: { agent: input.agent, sessionId: id }, message: input.message,
+          nonce: input.nonce, subject: context.subject }, { ...context.messages.relay, envelopePermissions: text.permissions });
+        return envelope;
+      }
     }, { transport: new OpenCodeCopyTransport(input.executable, context.cwd!, input.timeoutMs) });
     context.copy = copied.copy;
     context.to = { agent: input.agent, sessionId: copied.copy.verified ? copied.copy.session! : "" };
     const result = buildResult(context, { ...copied,
       message: copied.outcome.status === "replied" ? undefined : copied.outcome.reason === "opencode-cli-unsupported"
         ? text.unsupported : text.failure(copied.copy.diagnostic ?? copied.outcome.status) });
+    const submitted = copied.delivery.status !== "not-delivered" ? envelope : undefined;
     if (input.exportResult && copied.serverAttempted) {
-      result.exportPath = await exportRelay(input.outputDir, result, { nonce: input.nonce, message: input.message, startedAt: context.startedAt }, context.messages, false);
+      result.exportPath = await exportRelay(input.outputDir, result, { nonce: input.nonce, message: input.message, envelope: submitted, startedAt: context.startedAt }, context.messages, false);
       if (!result.exportPath) {
         if (result.status === "replied") {
           result.status = "cli-failure"; result.exitCode = RELAY_EXIT_CODES["cli-failure"];
@@ -807,6 +818,7 @@ async function relayCopy(context: RelayContext, input: {
         } else if (result.error) result.error.message += ` ${text.exportFailed}`;
       }
     }
+    recordMessageCopy(context, result, submitted, input.exportResult);
     result.durationMs = Date.now() - context.startedAt;
     return result;
   } finally {
@@ -1056,11 +1068,16 @@ function refusalResult(context: RelayContext, refusal: RelayRefusal): RelayResul
     ...(refusal.refusal.status === "target-busy" && detail ? { message: `${context.messages.relay.status("target-busy")} ${detail}` } : {}) });
 }
 
+/** Qualifie la copie consultable sans confondre tentative, persistance et réponse reçue. */
+function recordMessageCopy(context: RelayContext, result: RelayResultV1, envelope: string | undefined, exportEnabled: boolean): void {
+  if (envelope !== undefined) context.messageCopy = result.exportPath ? "saved" : exportEnabled ? "failed" : "disabled";
+}
+
 /** Écrit l'export ; un échec d'écriture ne change pas l'issue du relay. */
 async function exportRelay(
   outputDir: string,
   result: RelayResultV1,
-  input: { nonce: string; message: string; startedAt: number },
+  input: { nonce: string; message: string; envelope?: string; startedAt: number },
   messages: Messages,
   targetLocated: boolean
 ): Promise<string | null> {
@@ -1083,6 +1100,7 @@ async function exportRelay(
       startedAt: new Date(input.startedAt).toISOString(),
       ...(result.subject !== undefined ? { subject: result.subject } : {}),
       message: input.message,
+      ...(input.envelope !== undefined ? { envelope: input.envelope } : {}),
       reply: result.reply,
       ...(result.nextTurn ? { nextTurn: result.nextTurn } : {}),
       error: result.error?.message,
@@ -1122,12 +1140,12 @@ async function exportRelay(
  * Sortie : `--json` écrit un seul objet sur stdout. En texte, la réponse va seule sur stdout ;
  * l'issue, la délivrance et l'export vont sur stderr. Tout texte affiché est assaini.
  */
-function writeResult(result: RelayResultV1, json: boolean, messages: Messages, targetLocated = false, primaryPrinted = false, desktopExecutable?: ExternalExecutable, desktopCwd?: string, desktopConfigPath?: string): void {
+function writeResult(result: RelayResultV1, json: boolean, messages: Messages, targetLocated = false, primaryPrinted = false, desktopExecutable?: ExternalExecutable, desktopCwd?: string, desktopConfigPath?: string, messageCopy?: RelayContext["messageCopy"]): void {
   if (json) {
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }
-  const text = renderRelayText(result, messages, { targetLocated, primaryPrinted, desktopExecutable, desktopCwd, desktopConfigPath });
+  const text = renderRelayText(result, messages, { targetLocated, primaryPrinted, desktopExecutable, desktopCwd, desktopConfigPath, messageCopy });
   const link = relayDesktopLink(result, targetLocated);
   process.stdout.write(text.stdout);
   process.stderr.write(link && terminalHyperlinksEnabled(process.stderr.isTTY, process.env) ? withTerminalHyperlink(text.stderr, link) : text.stderr);
@@ -1257,8 +1275,11 @@ export function claudeDesktopOpenCommand(result: RelayResultV1, targetLocated: b
     : `(cd -- ${quote(cwd)} && ${command})`;
 }
 
-/** Même réponse en texte qu'en JSON, y compris après une publication refusée ou interrompue. */
-export function renderRelayText(result: RelayResultV1, messages: Messages, options: { targetLocated?: boolean; primaryPrinted?: boolean; desktopExecutable?: ExternalExecutable; desktopCwd?: string; desktopConfigPath?: string } = {}): { stdout: string; stderr: string } {
+/**
+ * Même réponse en texte qu'en JSON, y compris après une publication refusée ou interrompue.
+ * `messageCopy` vient du parcours d'envoi, jamais déduit d'un ancien `exportPath` seul.
+ */
+export function renderRelayText(result: RelayResultV1, messages: Messages, options: { targetLocated?: boolean; primaryPrinted?: boolean; desktopExecutable?: ExternalExecutable; desktopCwd?: string; desktopConfigPath?: string; messageCopy?: RelayContext["messageCopy"] } = {}): { stdout: string; stderr: string } {
   const lines: string[] = [];
   const quota = result.check?.quota ?? result.quota;
   let stdout = result.reply !== undefined && !options.primaryPrinted ? `${sanitizeTerminalText(result.reply)}\n` : "";
@@ -1338,7 +1359,14 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
   if (result.mode === "follow" && result.targetPermissions && result.targetPermissions !== "unknown") {
     lines.push(messages.relay.open.followPermissions(permissionsSummary(result.targetPermissions)));
   }
-  if (result.exportPath) lines.push(messages.relay.exportWritten(result.exportPath));
+  if (options.messageCopy === "saved" && result.exportPath) lines.push(messages.relay.messageCopy.saved(result.exportPath, result.subject));
+  else {
+    if (result.exportPath) lines.push(messages.relay.exportWritten(result.exportPath));
+    if (options.messageCopy === "disabled") lines.push(messages.relay.messageCopy.disabled);
+    if (options.messageCopy === "failed" && !(result.copy && result.error?.message.includes(messages.relay.copy.exportFailed))) {
+      lines.push(messages.relay.messageCopy.failed);
+    }
+  }
   if (result.write) {
     const text = relayWriteText(result.write.language);
     lines.push(text.report, `${messages.relay.export.cwd}: ${result.write.worktree}`,

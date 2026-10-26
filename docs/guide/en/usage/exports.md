@@ -47,6 +47,8 @@ In Debate and Ask, the summary is separated from the transcript by a horizontal 
 
 Some Windows previews interpret `:**` as an emoji. Palabre replaces this sequence with `&#58;**` in exported content.
 
+Exception: the “Complete Relay message (including envelope)” block is never rewritten, to preserve the exact text supplied to the transport.
+
 The Markdown rendering remains visually equivalent, but the Windows preview avoids emoji interpretation.
 
 ## Change the output folder
@@ -76,5 +78,7 @@ The history view displays recent `.debate.md`, `.chat.md`, and `.ask.md` exports
 Debate and Ask preserve an interruption section on failure; their exports and Chat's include the PALABRE version and declared client provenance. A `.relay.md` includes the PALABRE version, sender, target and UUIDs, optional subject, message, reply or error, delivery, diagnostics and any review publication. A `retryAfter` indication appears only when the path supplies it. Remove identifiers and sensitive data before public sharing.
 
 Relay example: `palabre-relay-codex-2026-05-06T08-52-43-000Z.relay.md`; its name comes from the target agent, not the subject. Relative `outputDir` paths resolve from the launch directory. Edit local or global configuration and reapprove its content after manual changes.
+
+After an ordinary Relay attempt, the “Complete Relay message (including envelope)” block keeps the exact text, not just the request body. It proves neither receipt nor the AI tool's entire context. Older exports, check/follow-only calls and frozen paths lack it; `--no-export` saves no local Palabre copy. See [the exact Relay message](/en/usage/relay#see-the-exact-message).
 
 `/history` and `palabre history` list only Debate, Ask and Chat. Find Relay in `outputDir` and Mission with `palabre mission status <id>`.

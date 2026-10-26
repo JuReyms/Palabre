@@ -282,6 +282,10 @@ Options :
   --trust-config              approuve la config résolue (aucune question n'est posée)
   --language <fr|en>          force la langue
 
+Message exact : pour un envoi ordinaire, le texte complet, enveloppe comprise, est conservé
+dans l'export et son chemin est annoncé. Avec --no-export, Palabre n'en garde pas de copie
+locale ; l'outil IA peut la garder. Cette trace ne prouve pas la réception et n'inclut pas tout le contexte de l'outil.
+
 Ouvrir Codex sans envoyer (#219) :
   palabre relay open --to codex:<uuid> [--json] [--config <chemin>] [--language fr|en]
   Sur demande humaine directe seulement, jamais sur message d'un autre agent. Config déjà
@@ -893,6 +897,10 @@ Flags:
   --config <path>             explicit config path
   --trust-config              trusts the resolved config (no question is asked)
   --language <fr|en>          force language
+
+Exact message: for an ordinary send, the complete text, including envelope, is kept in the
+export and its path is displayed. With --no-export, Palabre saves no local copy; the AI tool
+may retain one. This record does not prove receipt or include the tool's entire context.
 
 Open Codex without sending (#219):
   palabre relay open --to codex:<uuid> [--json] [--config <path>] [--language fr|en]

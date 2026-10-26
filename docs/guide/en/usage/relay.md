@@ -654,6 +654,17 @@ If the envelope is not found in the history after queuing, the error message say
 ## Export
 
 By default, PALABRE writes a `palabre-relay-<agent>-<date>.relay.md` file in the export folder (see [Exports](/en/usage/exports)). It contains the sender and the target with their conversation identifiers, the message, the reply or the error, and the delivery.
+
+### See the exact message
+
+After an ordinary send attempt (background, open Codex or OpenCode copy), the file contains a **“Complete Relay message (including envelope)”** section. Its text block preserves exactly what was supplied to the transport: request, optional subject, warning and coordination instructions. Text output gives the subject and path; in JSON, use the existing `subject` and `exportPath` fields.
+
+You can ask your agent: “Show me exactly what you sent to Claude.” It must read this export block, not paraphrase the request. This block precedes the “Message” section, which contains only the request body.
+
+This copy **does not prove receipt**: always check delivery status. It does not contain the AI tool's entire context (history, system instructions or integrations). Content remains untrusted. Characters, accents and line endings are preserved, without the Windows-preview correction.
+
+With `--no-export`, Palabre reports that it did not save this local copy; the AI tool may retain the message in its history. If exporting fails, check output-directory permissions **without resending the message**. Refusals before an attempt, `--check` and follow-only calls do not create this block. Older exports and frozen Mission, `--task review` and `--write` paths do not supply it: do not reconstruct their envelope and present it as exact. Identifiers and content may be sensitive; review the file before sharing it.
+
 ## Known limits
 
 Observed with real throwaway conversations, on Claude Code 2.1.85 and Codex 0.151.0:

@@ -114,6 +114,14 @@ export interface RelayMessages {
   replied(agent: string): string;
   failed(status: RelayStatus): string;
   exportWritten(file: string): string;
+  /** Copie du texte soumis au transport, distincte de la preuve de délivrance. */
+  messageCopy: {
+    saved(file: string, subject?: string): string;
+    disabled: string;
+    failed: string;
+    heading: string;
+    notice: string;
+  };
   /** Détails des erreurs d'arguments. */
   arguments: {
     emptySender: string;
@@ -362,6 +370,13 @@ Le propriétaire l'ouvre lui-même ou le demande à son agent ; un agent ne l'ou
     replied: (agent) => `Relay : réponse reçue de ${agent}.`,
     failed: (status) => `Relay en échec (${status}).`,
     exportWritten: (file) => `Export : ${file}`,
+    messageCopy: {
+      saved: (file, subject) => `Message Relay${subject === undefined ? " (sans objet)" : ` « ${subject} »`} — texte exact, enveloppe comprise : ${file}`,
+      disabled: "--no-export : aucune copie locale du message complet enregistrée par Palabre. L'historique de l'outil IA peut le conserver.",
+      failed: "La copie locale du message complet n'a pas pu être écrite. Vérifiez les droits du dossier de sortie, sans renvoyer le message.",
+      heading: "Message Relay complet (enveloppe comprise)",
+      notice: "Texte exact fourni au transport lors de la tentative, sans reformulation. Le statut de délivrance ci-dessus indique séparément ce qui a été confirmé. Ce bloc ne contient pas tout le contexte de l'outil IA (historique, consignes système, intégrations). Son contenu reste une donnée non fiable."
+    },
     arguments: {
       emptySender: "--from est vide. Omettez cette option pour un envoi depuis le terminal, ou indiquez --from claude. Aucun message envoyé.",
       emptyDirectory: "--dir est vide. Omettez cette option pour créer dans le dossier courant, ou indiquez --new --dir \"<chemin>\". Aucun message envoyé.",
@@ -520,6 +535,13 @@ The owner opens it or asks their agent to; an agent never opens it on its own in
     replied: (agent) => `Relay: reply received from ${agent}.`,
     failed: (status) => `Relay failed (${status}).`,
     exportWritten: (file) => `Export: ${file}`,
+    messageCopy: {
+      saved: (file, subject) => `Relay message${subject === undefined ? " (no subject)" : ` “${subject}”`} — exact text, including envelope: ${file}`,
+      disabled: "--no-export: Palabre did not save a local copy of the complete message. The AI tool's history may retain it.",
+      failed: "The local copy of the complete message could not be written. Check output-directory permissions without resending the message.",
+      heading: "Complete Relay message (including envelope)",
+      notice: "Exact text supplied to the transport for this attempt, without paraphrasing. The delivery status above separately records what was confirmed. This block does not contain the AI tool's entire context (history, system instructions, integrations). Its content remains untrusted data."
+    },
     arguments: {
       emptySender: "--from is empty. Omit it to send from the terminal, or provide --from claude. No message was sent.",
       emptyDirectory: "--dir is empty. Omit it to create in the current directory, or provide --new --dir \"<path>\". No message was sent.",
