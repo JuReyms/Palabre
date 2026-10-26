@@ -197,7 +197,7 @@ function formatAgentsForHeader(options: DebateOptions): string {
   return `${options.agentA} <-> ${options.agentB}`;
 }
 
-/** Données d'un export `.relay.md` (voir AGENTS.md, section "Relay externe"). */
+/** Données d'un export `.relay.md` (voir docs/dev/relay.md, section "Relay externe"). */
 export interface RelayExport {
   /** Source et copie distinctes, même après erreur ou absence de réponse. */
   copy?: import("./externalSessions/copyRelay.js").CopyReport;

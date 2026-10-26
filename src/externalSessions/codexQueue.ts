@@ -1,5 +1,5 @@
 /**
- * @file Relay B1 (`palabre relay --open`) : dépôt par `codex queue` (voir AGENTS.md, section
+ * @file Relay B1 (`palabre relay --open`) : dépôt par `codex queue` (voir docs/dev/relay-open.md, section
  * "Relay externe").
  *
  * `codex queue --thread <uuid> --message <texte>` (Codex CLI 0.151.0) n'accepte le texte qu'en

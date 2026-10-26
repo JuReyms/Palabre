@@ -1,5 +1,5 @@
 /**
- * @file Lancement d'une CLI de session externe (voir AGENTS.md, section "Relay externe").
+ * @file Lancement d'une CLI de session externe (voir docs/dev/relay.md, section "Relay externe").
  *
  * Garanties de `runExternalProcess` :
  * - aucun shell : la commande et ses arguments sont transmis tels quels ;

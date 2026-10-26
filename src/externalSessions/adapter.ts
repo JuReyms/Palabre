@@ -1,5 +1,5 @@
 /**
- * @file Contrat d'un adapter de session externe et échange générique (voir AGENTS.md, section
+ * @file Contrat d'un adapter de session externe et échange générique (voir docs/dev/relay.md, section
  * "Relay externe").
  *
  * Un adapter fournisseur (Claude, Codex) connaît l'historique, le registre ou le verrou, les

@@ -1133,7 +1133,7 @@ function writeResult(result: RelayResultV1, json: boolean, messages: Messages, t
   process.stderr.write(link && terminalHyperlinksEnabled(process.stderr.isTTY, process.env) ? withTerminalHyperlink(text.stderr, link) : text.stderr);
 }
 
-/** Liens OSC 8 réservés à un terminal interactif, sans `NO_COLOR` ni `TERM=dumb` (voir AGENTS.md). */
+/** Liens OSC 8 réservés à un terminal interactif, sans `NO_COLOR` ni `TERM=dumb` (voir docs/dev/interfaces.md). */
 export function terminalHyperlinksEnabled(isTTY: boolean | undefined, env: NodeJS.ProcessEnv): boolean {
   return Boolean(isTTY) && !env.NO_COLOR && env.TERM !== "dumb";
 }

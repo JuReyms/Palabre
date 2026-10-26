@@ -1,6 +1,6 @@
 /**
  * @file Relay B1 (`palabre relay --open`) : corrélation d'une réponse Codex dans un rollout (voir
- * AGENTS.md, section "Relay externe", et `scripts/prototypes/relay/CONTRAT-B1.md`), et suivi du tour
+ * docs/dev/relay-open.md, section "Relay vers une conversation ouverte", et `scripts/prototypes/relay/CONTRAT-B1.md`), et suivi du tour
  * suivant sans dépôt (`--open --follow`, #195, `inspectFollowedTurn`).
  * Fonctions pures : aucun accès disque, envoi, attente, reprise ni appel de modèle. Le dialecte
  * expérimental utilise les item_completed liés à un thread et à un tour, observés avec Codex 0.151.0

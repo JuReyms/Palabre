@@ -6,7 +6,7 @@ Statut au 8 octobre 2026 : **contrat relu dans la PR #110, transport implément�
 permissions de la cible acceptées et seulement relevées après coup (option A), récepteur annoncé
 **non vérifié** (limite assumée du pilote, pas une preuve de compatibilité), enveloppe de 8 192
 unités UTF-16 au plus, un seul nouveau statut `target-not-open`. Le contrat produit, avec la table
-complète des issues, est dans `AGENTS.md` (section « Relay vers une conversation ouverte »). Le
+complète des issues, est désormais dans [docs/dev/relay-open.md](../../../docs/dev/relay-open.md). Le
 contrat de Relay A sans `--open` est inchangé.
 
 ## Objectif et portée

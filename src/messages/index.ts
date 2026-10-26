@@ -27,7 +27,7 @@ import { sessionsMessages, type SessionsMessages } from "./sessions.js";
 import { tuiMessages, type TuiMessages } from "./tui.js";
 import { updateMessages, type UpdateMessages } from "./update.js";
 
-/** Dictionnaire complet des messages traduits, un domaine par surface CLI (voir AGENTS.md, section "Internationalisation"). */
+/** Dictionnaire complet des messages traduits, un domaine par surface CLI (voir docs/dev/interfaces.md, section "Internationalisation"). */
 export interface Messages {
   adapterErrors: AdapterErrorMessages;
   agents: AgentsMessages;

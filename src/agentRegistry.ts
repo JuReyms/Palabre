@@ -1,4 +1,4 @@
-/** @file Source de vérité unique reliant les agents CLI connus à leur détection locale (voir AGENTS.md, section "Registre d'agents connus"). */
+/** @file Source de vérité unique reliant les agents CLI connus à leur détection locale (voir docs/dev/architecture.md, section "Registre d'agents connus"). */
 import type { CommandDetection, ToolDiscovery } from "./discovery.js";
 import path from "node:path";
 import { statSync } from "node:fs";
@@ -20,7 +20,7 @@ interface KnownCliAgent {
   /** Clé correspondante dans `ToolDiscovery`. */
   discoveryKey: "codex" | "claude" | "antigravity" | "opencode" | "vibe";
   /**
-   * Fournisseur de session externe pris en charge par `palabre relay` (voir AGENTS.md, section
+   * Fournisseur de session externe pris en charge par `palabre relay` (voir docs/dev/relay.md, section
    * "Relay externe"). Absent pour les CLIs dont la reprise de session n'est pas vérifiée.
    */
   externalSession?: "codex" | "claude" | "opencode";

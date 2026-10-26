@@ -31,4 +31,5 @@ docs/ressources/
 docs/archive/*
 !docs/archive/gemini-en.md
 !docs/archive/gemini-fr.md
+!docs/archive/development-qualifications.md
 docs/palabre.zip

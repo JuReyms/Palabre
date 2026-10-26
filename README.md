@@ -14,9 +14,9 @@
 
 ## English
 
-**Let your AI tools work together. Compare their views. Make better decisions.**
+**Let your AI tools work together. Compare views. Move your work and decisions forward.**
 
-From your usual tools, Palabre lets you delegate a task, bring another tool's reply back, collect independent opinions or work through disagreements. You decide what happens next.
+Palabre offers several ways to work with your usual AI tools: cooperate, examine a proposal or inform a decision. Choose the mode that fits your need; you stay in control.
 
 Palabre calls the AI assistants you bring into the work **agents**, for example through Codex, Claude Code, OpenCode or a local model with Ollama. **Models** are the AI engines those tools use.
 
@@ -37,9 +37,20 @@ Palabre calls the AI assistants you bring into the work **agents**, for example 
 
 The conversational route works with compatible assistants such as Codex and Claude Code, not with every chat app. If your app supports voice input, you can dictate the same request: voice comes from your app, not Palabre.
 
+### One product, four modes
+
+| Mode | When it helps | Shape |
+| --- | --- | --- |
+| **Relay** | Delegate a task to another agent and bring its reply back. | `you → A → B → A → you` |
+| **Debate** | Work through two positions and their disagreements. | `A ↔ B → summary` |
+| **Ask** | Compare 1–4 independent opinions, without mutual influence. | `question → separate answers → comparison` |
+| **Chat** | Advance with one interlocutor and occasionally request another opinion. | `you ↔ A`, with a one-off consultation of B |
+
+Debate, Ask and Chat start new exchanges; unlike Relay, they do not pick up your existing Codex or Claude Code conversations.
+
 ### Relay mode: cooperate from your usual conversation
 
-Ask the tool you are talking to to consult a teammate, then bring the reply back — without copying messages between windows yourself.
+Talk to your usual tool, the lead. It sends a task or review request to a teammate and brings the result back — without you copying messages between windows. This lead/teammate workflow belongs to **Relay**.
 
 ```text
 You → Your tool (lead) → Palabre Relay → Teammate
@@ -53,6 +64,8 @@ For example, from Codex:
 
 Relay can create a new conversation or continue one you choose. Each send is explicit; it does not start an autonomous conversation loop. The [Palabre skill](https://palab.re/en/get-started/skill) gives your assistant instructions for using Palabre and reporting back to you.
 
+Each tool keeps its own conversation and quotas. The request must carry the useful context; Relay does not automatically share their memories. Cross-checking can help catch errors, but agreement between tools is not proof of correctness.
+
 **Relay currently connects Codex and Claude Code conversations.** Relay can also send a message to a Codex conversation you are already using in its app or terminal. Sending to Claude Code while its conversation is in use in a terminal or desktop app is not yet supported. See the [Relay guide](https://palab.re/en/usage/relay) for setup, platform requirements and the OpenCode pilot.
 
 #### A real example: writing this README
@@ -62,17 +75,6 @@ Codex drafted this README and asked Claude Code for a critical review through Pa
 You can use the same approach:
 
 > Write the README with me. Use Palabre Relay to ask Claude Code for a critical review, discuss its findings, then present the proposed changes to me before applying them.
-
-### The four modes
-
-| Mode | When it helps | Shape |
-| --- | --- | --- |
-| **Relay** | Delegate a task to another agent and bring its reply back. | `you → A → B → A → you` |
-| **Debate** | Work through two positions and their disagreements. | `A ↔ B → summary` |
-| **Ask** | Compare 1–4 independent opinions, without mutual influence. | `question → separate answers → comparison` |
-| **Chat** | Advance with one interlocutor and occasionally request another opinion. | `you ↔ A`, with a one-off consultation of B |
-
-Unlike Relay, Debate, Ask and Chat start new exchanges: they do not automatically pick up your existing Codex or Claude Code conversations.
 
 ### Which tools work with which modes?
 
@@ -136,7 +138,7 @@ palabre codex-claude --mode debate "Challenge this plan" -t 4 --files docs/plan.
 
 ### What stays under your control
 
-- Relay messages grant no extra permissions. Background Codex/Claude calls restrict the teammate's tools; sending into a conversation in the Codex app uses that conversation's own permissions. If delivery is uncertain, Palabre does not send again automatically.
+Relay messages grant no extra permissions. Background Codex/Claude calls restrict the teammate's tools; sending into a conversation in the Codex app uses that conversation's own permissions. If delivery is uncertain, Palabre does not send again automatically.
 
 ### Keep a record of your exchanges
 
@@ -154,9 +156,9 @@ For agents: operating instructions in [`skills/palabre/SKILL.md`](./skills/palab
 
 ## Français
 
-**Faites coopérer vos outils IA. Croisez leurs avis. Décidez de la suite.**
+**Faites coopérer vos outils IA, croisez leurs avis et avancez dans vos décisions comme dans votre travail.**
 
-Depuis vos outils habituels, Palabre permet de confier une tâche, de récupérer la réponse d'un autre outil, de recueillir des avis indépendants ou de travailler les désaccords. Vous gardez la décision.
+Palabre propose plusieurs façons de travailler avec vos outils IA habituels : coopérer, examiner une proposition ou éclairer une décision. Choisissez le mode adapté ; vous gardez la main.
 
 Palabre appelle **agents** les assistants IA que vous faites participer, par exemple via Codex, Claude Code, OpenCode ou un modèle local avec Ollama. Les **modèles** sont les moteurs IA de ces outils.
 
@@ -177,9 +179,20 @@ Palabre appelle **agents** les assistants IA que vous faites participer, par exe
 
 Le parcours conversationnel fonctionne avec des assistants compatibles comme Codex et Claude Code, pas avec toutes les applications de chat. Si votre application propose la saisie vocale, vous pouvez dicter la même demande : la voix vient de votre application, pas de Palabre.
 
+### Un produit, quatre modes
+
+| Mode | Quand l'utiliser | Schéma |
+| --- | --- | --- |
+| **Relay** | Confier une tâche à un autre agent et récupérer sa réponse. | `vous → A → B → A → vous` |
+| **Débat** | Travailler deux positions et leurs désaccords. | `A ↔ B → synthèse` |
+| **Ask** | Comparer 1 à 4 avis indépendants, sans influence mutuelle. | `question → réponses séparées → comparaison` |
+| **Chat** | Avancer avec un interlocuteur et demander parfois un autre avis. | `vous ↔ A`, avec consultation ponctuelle de B |
+
+Débat, Ask et Chat lancent de nouveaux échanges ; contrairement à Relay, ils ne reprennent pas vos conversations existantes dans Codex ou Claude Code.
+
 ### Mode Relay : coopérer depuis votre conversation habituelle
 
-Demandez à l'outil avec lequel vous échangez de consulter un équipier, puis de vous rapporter sa réponse — sans copier vous-même les messages entre les fenêtres.
+Échangez avec votre outil habituel, le chef de mission. Il confie une tâche ou une relecture à un équipier et vous rapporte le résultat — sans copier vous-même les messages entre les fenêtres. Ce parcours chef de mission/équipier est propre au **mode Relay**.
 
 ```text
 Vous → Votre outil (chef de mission) → Palabre Relay → Équipier
@@ -193,6 +206,8 @@ Par exemple, depuis Codex :
 
 Relay peut créer une nouvelle conversation ou poursuivre celle que vous choisissez. Chaque envoi est explicite ; il ne déclenche pas de boucle autonome entre les conversations. Le [skill Palabre](https://palab.re/fr/get-started/skill) donne à votre assistant les consignes pour utiliser Palabre et vous rendre compte du résultat.
 
+Chaque outil garde sa conversation et ses quotas. Le contexte utile doit accompagner la demande ; Relay ne partage pas automatiquement leurs mémoires. Croiser les regards peut aider à repérer des erreurs, mais un accord entre outils ne prouve pas qu'une proposition est correcte.
+
 **Relay relie aujourd'hui les conversations Codex et Claude Code.** Relay peut aussi envoyer un message à une conversation Codex que vous utilisez déjà dans l'application ou le terminal. L'envoi à Claude Code pendant que sa conversation est utilisée dans le terminal ou l'application de bureau n'est pas encore pris en charge. Installation, prérequis par plateforme et pilote OpenCode : [guide Relay](https://palab.re/fr/usage/relay).
 
 #### Un exemple réel : la rédaction de ce README
@@ -202,17 +217,6 @@ Codex a rédigé ce README et demandé à Claude Code une relecture critique via
 Vous pouvez reprendre cette méthode :
 
 > Rédige le README avec moi. Utilise Palabre Relay pour demander à Claude Code une relecture critique, discute ses remarques, puis présente-moi les changements proposés avant de les appliquer.
-
-### Les quatre modes
-
-| Mode | Quand l'utiliser | Schéma |
-| --- | --- | --- |
-| **Relay** | Confier une tâche à un autre agent et récupérer sa réponse. | `vous → A → B → A → vous` |
-| **Débat** | Travailler deux positions et leurs désaccords. | `A ↔ B → synthèse` |
-| **Ask** | Comparer 1 à 4 avis indépendants, sans influence mutuelle. | `question → réponses séparées → comparaison` |
-| **Chat** | Avancer avec un interlocuteur et demander parfois un autre avis. | `vous ↔ A`, avec consultation ponctuelle de B |
-
-Contrairement à Relay, Débat, Ask et Chat lancent de nouveaux échanges : ils ne reprennent pas automatiquement vos conversations existantes dans Codex ou Claude Code.
 
 ### Quels outils pour quels modes ?
 
@@ -276,7 +280,7 @@ palabre codex-claude --mode debate "Critique ce plan" -t 4 --files docs/plan.md
 
 ### Ce qui reste sous votre contrôle
 
-- Un message Relay n'accorde aucun droit supplémentaire. Les appels Codex/Claude en arrière-plan limitent les outils de l'équipier ; un envoi dans une conversation de l'application Codex utilise les permissions de cette conversation. Si la délivrance est incertaine, Palabre ne renvoie pas le message automatiquement.
+Un message Relay n'accorde aucun droit supplémentaire. Les appels Codex/Claude en arrière-plan limitent les outils de l'équipier ; un envoi dans une conversation de l'application Codex utilise les permissions de cette conversation. Si la délivrance est incertaine, Palabre ne renvoie pas le message automatiquement.
 
 ### Garder une trace des échanges
 

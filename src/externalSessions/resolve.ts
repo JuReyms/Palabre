@@ -1,5 +1,5 @@
 /**
- * @file Résolution de l'exécutable d'une CLI de session externe, sans shell (voir AGENTS.md,
+ * @file Résolution de l'exécutable d'une CLI de session externe, sans shell (voir docs/dev/relay.md,
  * section "Relay externe", décision D21).
  *
  * Le relay ne passe jamais par PowerShell ni par `cmd.exe` : avec Windows PowerShell 5.1, le shim

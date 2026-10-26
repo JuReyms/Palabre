@@ -1,5 +1,5 @@
 /**
- * @file Adapter de session externe Codex (voir AGENTS.md, section "Relay externe").
+ * @file Adapter de session externe Codex (voir docs/dev/relay.md, section "Relay externe").
  *
  * Sources lues, toutes sous `~/.codex` (racine injectable pour les tests) :
  * - `sessions/**` et `archived_sessions/**` : rollout `rollout-*-<session>.jsonl`, dont la
