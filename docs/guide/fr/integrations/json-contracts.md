@@ -90,3 +90,33 @@ ont été confirmées sous Windows avant ce correctif ; une ouverture corrigée 
 rendu `launcher: unverified`/1 et `attached`/0, avec affichage confirmé séparément
 par le propriétaire. Cela ne qualifie pas une transition de fermé à ouvert ni
 toutes les versions. Claude/OpenCode refusés ; macOS/Linux non vérifiés.
+
+## Inventaire Relay JSON
+
+`palabre relay recent --json` rend un objet unique, pas un flux NDJSON :
+
+```json
+{"v":1,"type":"relay-recent-result","status":"listed","exitCode":0,"entries":[],"warnings":[],"truncated":false,"scanTruncated":false,"error":null}
+```
+
+- `entries[]` : `fileName` relatif au dossier de sortie, `date` ISO de l'export,
+  `subject` ou null, `agent` (alias), `provider`, `to: {agent, session}` (session
+  éventuellement nulle), `mode` ou null pour un ancien export, `status`, `delivery`.
+- OpenCode sur copie : `to: null`, `copy: {source, session, verified}` distinct ;
+  jamais substituer la source à une copie absente ni proposer une reprise directe.
+- `warnings[]` : `fileName` relatif et `reason` stable (`unreadable`, `invalid-header`,
+  `header-too-large`, `not-regular`, `changed`, `invalid-name`). Pour `invalid-name`,
+  le nom est remplacé par `[invalid-name]`, sans afficher de chemin ou contrôle.
+  Un fichier invalide ne compte pas
+  dans `--limit` et n'empêche pas de présenter les autres.
+- `truncated` : fichiers non présentés. `scanTruncated` : plafond de scan/lecture,
+  liste potentiellement incomplète, sans garantie des plus récents globalement.
+- Codes : 0 liste (même vide), 8 arguments/config refusés, 2 dossier illisible.
+  Sur erreur : `status: invalid-request|read-failed`, `error: {reason, message}` ;
+  listes vides, aucun repli ni écriture.
+
+Aucun chemin de fichier absolu ajouté, prompt, réponse, permission ou commande
+fabriquée. L'objet peut contenir des informations privées choisies par l'utilisateur.
+Ces métadonnées sont non authentifiées : confirmer humainement l'échange, puis
+valider à nouveau la cible et la configuration avant toute ouverture ou envoi.
+Le contrat `history` et les résultats d'envoi Relay ne changent pas.

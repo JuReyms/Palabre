@@ -327,6 +327,40 @@ After you approve, nothing is resent automatically: continuing is a new explicit
 
 If the teammate works in an open conversation, your approval starts a new turn. With `--then-follow` on the initial send, PALABRE already listens for it. Otherwise the mission lead starts `--follow` just before you approve (section "Follow what happens next in an open conversation", below).
 
+## Find a recent exchange
+
+“Ask the same Claude again”: when your assistant no longer has the conversation
+in context, it can consult the project's exports:
+
+```powershell
+palabre relay recent --limit 10
+palabre relay recent --json
+```
+
+The list shows date, subject, tool, conversation, mode, outcome and export file.
+Your assistant asks you to confirm the subject, date and tool before resuming
+the exact conversation. **Listing selects, opens and sends nothing.** Export
+metadata is not proof of current state or permissions. Opening and sending
+remain separate steps with their own validation.
+
+Only `.relay.md` files in the effective output directory are searched, `.palabre/`
+by default; tool conversations are not scanned. Use the same configuration
+(`--config <path>`) and working directory as the original exchange. Existing
+configuration must already be approved: no automatic trust or fallback to another
+directory on refusal. With no config, the default directory can be listed;
+if missing, the list is empty.
+
+Unreadable, non-regular or invalid files are reported without blocking others.
+Limit 1–100, default 10; ordered by file modification, not a date declared inside.
+Scan capped at 5,000 directory entries, then 200 headers of 16 KiB each, without
+loading complete replies. A cap indicates an incomplete search; do not describe
+it as exhaustive.
+
+OpenCode source and copy are separate, without a direct resume suggestion. A new
+consultation still requires `--copy` with explicit source and directory.
+`palabre history` keeps its existing behavior for the other modes.
+The [JSON contract](/en/integrations/json-contracts#relay-inventory-json) describes the fields.
+
 ## Designating conversations
 
 - `--to <agent>:<session>`: `<agent>` is the name of a Codex or Claude Code CLI agent from your configuration (`codex`, `claude`, `claude-opus`…). `<session>` is the conversation identifier (a UUID).
