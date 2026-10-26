@@ -132,10 +132,61 @@ lecture seule, sans lire la trace privée ni exécuter le banc. Aucun défaut
 bloquant relevé ; sa réserve sur l'absence de second contrôle après préapprobation
 a été explicitée ci-dessus. Cette revue n'est pas une seconde calibration SDK.
 
+## Préparation des pannes — banc hors ligne du 27 octobre 2026
+
+Le [banc de pannes](claudeMessengerFaults.ts) et ses
+[18 tests](../../../tests/claude-messenger-faults.test.ts) n'importent pas le SDK.
+Horloge et réveils sont fictifs : ni timer réel, ni modèle, processus ou connexion.
+Le lanceur SDK de la calibration précédente reste inchangé et n'a pas été relancé.
+
+Un contrôle asynchrone simulé précède le garde existant. Exception, rejet,
+annulation, échéance ou deuxième tentative ferment le banc ; une résolution
+tardive ne peut pas le rouvrir. L'échéance est revérifiée même si le réveil simulé
+ne s'est pas déclenché, à la résolution du contrôle puis immédiatement avant le
+compteur. Si le contrôle reste suspendu **et** le réveil ne se déclenche pas,
+la décision reste en attente ; le comportement du SDK face à ce hook hors délai
+n'est pas qualifié. Le compteur du banc, lui, ne s'exécute pas.
+
+Le banc possède aussi un **dernier contrôle dans son propre faux gestionnaire** :
+`executeFake` vérifie réservation, session, outil, identifiant d'appel, destinataire,
+texte et délai, puis consomme une seule fois avant d'incrémenter un entier. Aucun
+callback d'envoi n'est disponible. Si le faux hôte ignore le hook ou tente de
+poursuivre pendant son attente, le compteur reste à zéro. Le témoin valide
+l'incrémente une fois : le banc ne se contente donc pas de toujours refuser.
+
+| Cas hors ligne | Compteur factice |
+| --- | --- |
+| Contrôle réussi, proposition intacte, appel réservé encore valide | 1, jamais 2 |
+| Exception/rejet, contrôle suspendu puis échéance, résultat tardif | 0 |
+| Annulation, timer/horloge/nettoyage en erreur, réentrée | 0 |
+| Hook sauté, appel exécuté trop tôt ou seconde tentative concurrente | 0 |
+| Appel réservé changé ou devenu trop ancien avant exécution | 0 |
+
+Cette couche supplémentaire reçoit l'événement complet **injecté par le banc**.
+Le gestionnaire MCP du lanceur SDK actuel n'utilise que les arguments de l'outil ;
+la disponibilité de `tool_use_id` et de la session à ce point reste à vérifier
+avant de compter sur cette barrière dans le SDK. Ce contrôle n'est pas présent
+dans l'outil natif `SendMessage` et n'en prouve aucune propriété.
+Ce lot ne qualifie ni panne/timeout du SDK, ni
+blocage d'un processus JavaScript, ni arrêt/reprise ou exclusion multi-processus.
+Les fonctions injectées sont du code de banc de confiance, pas du JS hostile isolé.
+Une promesse qui reste suspendue peut conserver ses ressources : le banc clôt
+l'autorisation, il ne prétend pas arrêter son exécution. Aucun état durable.
+
+Vérification ciblée (sans agent) après `pnpm build:test` :
+
+```powershell
+node scripts/test.mjs .tmp/test-dist/tests/claude-messenger-faults.test.js
+```
+
+Revue Claude Opus 5.5 via Palabre Relay, en arrière-plan et lecture seule : pas
+de défaut de compteur relevé ; deux limites documentaires précisées (métadonnées
+disponibles au gestionnaire et attente sans réveil). Claude n'a pas exécuté les tests.
+
 ## Prochaine qualification, séparée
 
-Avant un essai de messagerie réelle : qualifier les pannes et timeouts avec le
-faux outil, établir le schéma natif et l'adresse exacte d'une conversation jetable
+Avant un essai de messagerie réelle : qualifier les pannes et timeouts **dans le
+SDK réel** avec le faux outil, établir le schéma natif et l'adresse exacte d'une conversation jetable
 désignée par l'humain, puis démontrer les refus applicables à cet outil natif.
 Ne pas appliquer un réglage `accept` pour faire passer un test, extraire un
 token privé, fermer une app, ou utiliser un second écrivain sur le transcript.
