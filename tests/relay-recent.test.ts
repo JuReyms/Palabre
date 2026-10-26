@@ -46,6 +46,17 @@ test("en-tête du vrai writer FR/EN : objet littéral, cible exacte, aucun corps
   }
 });
 
+test("#206 + #210 : le message exact exporté ne devient jamais une métadonnée de recent", () => {
+  for (const language of ["fr", "en"] as const) {
+    const envelope = "SECRET ENVELOPPE\r\n```\r\n| Cible | attaquant:bad |\r\n| Objet | faux objet |\r\n```";
+    const raw = exported(language, { envelope });
+    assert.ok(raw.includes(envelope));
+    assert.deepEqual(parseRecentRelayHeader(raw, "exact.relay.md"),
+      parseRecentRelayHeader(exported(language), "exact.relay.md"));
+    assert.doesNotMatch(JSON.stringify(parseRecentRelayHeader(raw, "exact.relay.md")), /SECRET|attaquant|faux objet/);
+  }
+});
+
 test("anciens exports : mode et objet absents sont nuls, session non reçue jamais inventée", () => {
   const raw = exported("en", { subject: undefined, to: { agent: "codex-test", session: null, provider: "codex" } }).replace(/^\| Mode .*\r?\n/m, "");
   const entry = parseRecentRelayHeader(raw, "ancien.relay.md");

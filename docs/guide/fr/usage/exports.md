@@ -47,6 +47,8 @@ En Débat et Ask, la synthèse est séparée du transcript par une ligne horizon
 
 Certains aperçus Windows interprètent `:**` comme un émoji. Palabre remplace cette séquence par `&#58;**` dans les contenus exportés.
 
+Exception : le bloc « Message Relay complet (enveloppe comprise) » n'est jamais réécrit, pour conserver le texte exact fourni au transport.
+
 Le rendu Markdown reste visuellement équivalent, mais l'aperçu Windows évite l'interprétation en émoji.
 
 ## Changer le dossier de sortie
@@ -76,5 +78,7 @@ La vue historique affiche les derniers exports `.debate.md`, `.chat.md` et `.ask
 Débat et Ask conservent une section « Interruption » en cas d'échec ; leurs exports et celui de Chat indiquent version de PALABRE et provenance du client déclaré. Un `.relay.md` indique version de PALABRE, expéditeur, cible et UUID, objet éventuel, message, réponse ou erreur, délivrance, diagnostics et éventuelle publication de revue. Une indication de reprise `retryAfter` n'est présente que si ce parcours la fournit. Retirez les identifiants et données sensibles avant tout partage public.
 
 Exemple Relay : `palabre-relay-codex-2026-05-06T08-52-43-000Z.relay.md` ; son nom dépend de l'agent cible, pas du sujet. Les chemins relatifs `outputDir` sont résolus depuis le dossier de lancement. Modifiez la configuration locale ou globale puis réapprouvez son contenu si l'édition est manuelle.
+
+Après une tentative Relay ordinaire, le bloc « Message Relay complet (enveloppe comprise) » garde le texte exact, pas seulement le corps de la demande. Il ne prouve ni la réception ni l'intégralité du contexte de l'outil IA. Il est absent des anciens exports, des vérifications/suivis sans envoi et des parcours gelés ; `--no-export` ne garde pas de copie locale Palabre. Voir [le message Relay exact](/fr/usage/relay#voir-le-message-exact).
 
 `/history` et `palabre history` ne listent que Débat, Ask et Chat. Retrouvez Relay dans `outputDir` et Mission avec `palabre mission status <id>`.

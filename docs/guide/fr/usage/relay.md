@@ -691,6 +691,17 @@ Si l'enveloppe n'est pas retrouvée dans l'historique après un dépôt, le mess
 ## Export
 
 Par défaut, PALABRE écrit un fichier `palabre-relay-<agent>-<date>.relay.md` dans le dossier des exports (voir [Exports](/fr/usage/exports)). Il contient l'expéditeur et la cible, avec leurs identifiants de conversation, ainsi que le message, la réponse ou l'erreur, et la délivrance.
+
+### Voir le message exact
+
+Après une tentative d'envoi ordinaire (arrière-plan, Codex ouvert ou copie OpenCode), le fichier contient une section **« Message Relay complet (enveloppe comprise) »**. Son bloc de texte conserve exactement le message fourni au transport : demande, objet éventuel, avertissement et consignes de coordination. En sortie texte, une ligne donne l'objet et le chemin ; en JSON, utilisez les champs existants `subject` et `exportPath`.
+
+Vous pouvez demander à votre agent : « Montre-moi exactement le message envoyé à Claude. » Il doit lire ce bloc dans l'export, pas reformuler la demande. Ce bloc précède la section « Message », qui ne contient que le corps de la demande.
+
+Cette copie **ne prouve pas la réception** : regardez toujours le statut de délivrance. Elle ne contient pas tout le contexte de l'outil IA (historique, consignes système ou intégrations). Le contenu reste non fiable. Les caractères, accents et retours à la ligne y sont conservés, sans correction de l'aperçu Windows.
+
+Avec `--no-export`, Palabre annonce qu'il n'a pas enregistré cette copie locale ; l'outil IA peut conserver le message dans son historique. Si l'export échoue, vérifiez les droits du dossier de sortie **sans renvoyer le message**. Un refus avant tentative, `--check` ou un suivi sans envoi ne crée pas ce bloc. Les anciens exports et les parcours gelés Mission, `--task review`, `--write` ne le fournissent pas : ne reconstituez pas leur enveloppe en la présentant comme exacte. Les identifiants et le contenu peuvent être sensibles ; relisez le fichier avant de le partager.
+
 ## Limites connues
 
 Observées avec de vraies conversations jetables, sur Claude Code 2.1.85 et Codex 0.151.0 :
