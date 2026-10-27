@@ -233,10 +233,57 @@ ne pas préapprouver l'envoi et qualifier les contrôles encore appliqués à l'
 natif. Le simple compteur protégé par le banc hors ligne ne répond pas à cette
 question : ses métadonnées complètes sont injectées, pas établies dans le SDK.
 
+## Profil restrictif préparé hors ligne — 27 octobre 2026
+
+Le [contrôle renforcé](claudeMessengerGuarded.ts) réutilise le banc de pannes :
+exception et rejet deviennent un `deny` explicite ; un réveil propre est demandé
+au plus tard à 2 s, avant le matcher SDK de 5 s. Annulation et erreur de nettoyage
+restent des refus. Cela reste dépendant du réveil et de l'event loop : un processus
+bloqué n'est pas préempté par ce module.
+
+Le profil ne préapprouve aucun outil (`allowedTools: []`), conserve le mode
+`default`, et prépare `always_ask` pour **le seul faux outil MCP**. Son callback
+`canUseTool` refuse systématiquement, sans modifier de permission, même pour la
+bonne proposition. **Ce profil ne sait pas encore autoriser un envoi valide.**
+Il permet de préparer un test de protection, pas de prétendre à un messager utilisable.
+
+Le lanceur propose séparément `guarded-valid`, `guarded-throw` et `guarded-timeout`.
+Le témoin utilise un texte ASCII sans fin de ligne pour ne pas confondre le
+chemin des permissions avec la normalisation CRLF/LF déjà observée. Les anciens
+scénarios conservent la préapprobation pour reproduire les mesures historiques.
+**Aucun de ces nouveaux scénarios n'a été lancé avec le SDK ou un modèle.**
+Leur `passed` reste conservatoirement faux : ni forme réelle du nouveau chemin
+de refus, ni qualification automatique inventées avant observation.
+
+Les [tests du profil](../../../tests/claude-messenger-guarded.test.ts) sont hors
+ligne, avec horloge et signaux fictifs. Un contrôle de types séparé, local et non
+versionné, compare les signatures de ses callbacks et de sa politique aux types
+SDK0.3.302 déjà installés ; il n'importe pas le runtime SDK. Cela ne prouve pas
+l'application de la politique par la CLI. Aucun réglage utilisateur ne change.
+Revue Codex indépendante du profil et du lanceur : pas de défaut important relevé,
+en lecture seule, sans exécution de test, SDK ou modèle par le relecteur.
+
+### Ce que cela ne prouve pas sur SendMessage
+
+La [référence des outils natifs](https://code.claude.com/docs/en/tools-reference)
+classe `SendMessage` et `ListAgents` sans demande de permission par défaut. La
+[documentation des permissions](https://code.claude.com/docs/en/agent-sdk/permissions)
+explique que certains outils peuvent s'autoriser avant `canUseTool` : retirer
+`allowedTools` ne démontre donc pas que le callback voit l'envoi natif.
+`always_ask` est ici une [politique d'outil MCP du SDK](https://code.claude.com/docs/en/agent-sdk/custom-tools#require-approval-for-specific-tools),
+pas une option déjà qualifiée pour l'outil natif.
+
+Les [restrictions de messagerie](https://code.claude.com/docs/en/cross-session-messaging#turn-off-cross-session-messaging)
+documentent un refus complet via les noms `SendMessage` et `ListAgents`, sans
+spécificateur. Cela permet de désactiver l'outil, pas de prouver une restriction
+au destinataire exact. La liaison UUID/adresse et le schéma natif restent inconnus
+dans ce prototype ; ni token privé extrait, ni outil natif exposé par ce lot.
+
 ## Prochaine qualification, séparée
 
-Avant un essai de messagerie réelle : corriger la stratégie après l'exception
-non bloquante observée et qualifier ses protections, établir le schéma natif et
+Avant un essai de messagerie réelle : qualifier le profil restrictif préparé
+sur faux outil après un nouvel accord humain, vérifier ses protections puis
+établir le schéma natif et
 l'adresse exacte d'une conversation jetable
 désignée par l'humain, puis démontrer les refus applicables à cet outil natif.
 Ne pas appliquer un réglage `accept` pour faire passer un test, extraire un

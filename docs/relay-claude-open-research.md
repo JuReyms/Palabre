@@ -13,6 +13,13 @@ stricts restent négatifs (métadonnées de refus absentes au timeout). Cette st
 ne peut donc pas être transposée telle quelle à la messagerie réelle ; aucune
 conversation existante n'a reçu ces essais.
 
+Un [profil restrictif préparé hors ligne](../scripts/prototypes/relay/CLAUDE-MESSENGER.md#profil-restrictif-préparé-hors-ligne--27-octobre-2026)
+convertit maintenant les erreurs en refus explicites et prépare un second contrôle
+sans préapprobation pour le faux MCP. Il refuse tout : ni envoi valide autorisé,
+ni nouvelle qualification SDK. La référence officielle classe `SendMessage` sans
+permission requise par défaut ; enlever `allowedTools` ne suffit donc pas à prouver
+que `canUseTool` contrôle le natif. Aucun nouveau modèle lancé pour ce lot.
+
 - L'essai Windows du 23 octobre montre qu'une reprise CLI de l'historique partagé ne réveille pas la fenêtre Desktop. Le changement de conversation puis la commande d'ouverture ne rafraîchissaient pas l'échange ; le propriétaire a dû quitter lui-même l'app. Le registre CLI vide annonçait pourtant la conversation fermée. Voir [l'essai Desktop](relay-desktop-qualification.md).
 - Le contrat B1 note une réception TUI Claude 2.1.292 depuis un messager `-p`, qui consomme lui-même un appel modèle. Ce constat, antérieur à la version installée 2.1.302, ne prouve ni Desktop ni un transport déterministe externe. Voir [le contrat B1, alternatives Claude](../scripts/prototypes/relay/CONTRAT-B1.md#alternatives-et-suite-claude).
 - Installation inspectée aujourd'hui : `claude.exe` 2.1.302. Pour cette inspection, seules `--version` et `--help` ont été lancées ; aucune session utilisateur ouverte n'a reçu de message. L'aide expose reprise, ouverture Desktop et entrées stream-json, mais pas une commande analogue à `codex queue`. L'absence dans l'aide n'est pas une preuve d'absence de capacité : la référence officielle précise que l'aide n'énumère pas tous les flags. [Référence CLI](https://code.claude.com/docs/en/cli-reference).
