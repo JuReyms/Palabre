@@ -90,6 +90,30 @@ test("ask natif : destinataire, textes, clé supplémentaire ou manquante refus�
     assert.deepEqual(probe.hook(event(), "fixture-call"), nativeHookDeny()); assert.equal(probe.state().neutralCount, 0);
   }
 });
+test("ask natif : forme observée, summary complet et content raccourci restent refusés avant callback", () => {
+  // Relation observée lors de l'essai autorisé ; texte et identités entièrement fictifs.
+  // Ni schéma natif validé, ni preuve que content n'est qu'un aperçu sans effet.
+  const raw = { ...plan(), message: "Fictif : ".padEnd(101, "x") };
+  const captured = { to: raw.target.recipient, message: raw.message, summary: raw.message,
+    type: "message", recipient: raw.target.recipient, recipient_kind: "name", content: raw.message.slice(0, 49) + "…" };
+  const probe = createNativeAskProbe(sessionId, raw, { now: () => 1, deadline: 10 });
+  assert.equal(probe.arm(handshake()), true);
+  assert.deepEqual(probe.hook({ ...event(), tool_input: captured }, "fixture-call"), nativeHookDeny());
+  assert.equal(probe.state().phase, "closed"); assert.equal(probe.state().neutralCount, 0);
+  assert.equal(probe.state().capture.permissionCalls, 0); assert.equal(probe.state().possibleSend, false);
+  const { events } = evidence();
+  events[1].message.content[0].input = captured; // L'événement assistant observé a aussi sept clés.
+  events[2].tool_result_meta[0].permission_decision.source = "hook";
+  assert.equal(hasNativeAskDenial(events, sessionId, raw, probe.state()), false);
+});
+test("ask natif : summary dans l'événement assistant invalide seul une preuve autrement conforme", () => {
+  // Variation isolée, sans état fermé ni autre défaut qui masquerait ce critère.
+  const { probe, events } = evidence();
+  const state = probe.state();
+  assert.equal(hasNativeAskDenial(events, sessionId, plan(), state), true);
+  events[1].message.content[0].input.summary = plan().message;
+  assert.equal(hasNativeAskDenial(events, sessionId, plan(), state), false);
+});
 test("ask natif : événement, session, outil et ID doivent concorder avant neutralité", () => {
   for (const changed of [{ ...event(), hook_event_name: "PostToolUse" }, { ...event(), session_id: "foreign" },
     { ...event(), tool_name: "Bash" }, { ...event(), tool_use_id: "other" }, { ...event(), tool_use_id: "" }]) {

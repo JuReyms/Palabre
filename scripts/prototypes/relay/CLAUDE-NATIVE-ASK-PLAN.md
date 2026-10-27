@@ -1,9 +1,10 @@
-# Second contrôle natif Claude : plan, pas lanceur #193
+# Second contrôle natif Claude : préparation et essai #193
 
-État du 27 octobre 2026 : analyse statique uniquement après le
+Préparation du 27 octobre 2026 : analyse statique après le
 [premier refus observé](CLAUDE-NATIVE-CONTROLS.md#premier-essai-natif-autorisé--27-octobre-2026).
-Aucun nouveau `query()`, message de test, changement de permissions ou de modèle
-installé. Le premier vérificateur et son résultat négatif sont conservés.
+Aucun nouveau `query()` pendant cette préparation ; le lancement autorisé ensuite
+est décrit dans le bilan final. Aucun réglage utilisateur ou modèle installé
+modifié. Le premier vérificateur et son résultat négatif sont conservés.
 
 ## Ce que la différence d'entrée permet de conclure
 
@@ -69,7 +70,7 @@ callback**. Cette voie ne satisfait pas un préflight garantissant le non-envoi.
 La source `flagSettings` est candidate pour l'option `settings`, non observée pour
 ce cas natif ; ne pas la déclarer déjà vérifiée.
 
-## Déroulé candidat, encore non exécutable
+## Déroulé candidat au stade du plan
 
 1. Retenir un profil de test séparé, sans toucher à la conversation ou aux réglages
    habituels : outil natif seul, aucun MCP, aucune préapprobation, mode `default`,
@@ -115,14 +116,14 @@ a bloqué : le callback doit avoir été effectivement consulté. Aucun compteur
 d'exécution natif accessible ; absence ponctuelle dans l'historique ou Desktop
 reste une observation. Aucun renvoi, autorisation positive ou extension au produit.
 
-## Prochaine étape précise
+## Étape prévue après le plan (historique)
 
 Préparer les fixtures du callback et de la garde candidate, puis leur lanceur
 séparé, avec ces critères et limites explicites. Une absence de préflight public
 n'interdit pas ce travail hors ligne ; elle interdit d'annoncer une garantie
 préalable. Aucun nouveau test natif n'est nécessaire pour relire ce plan ; ne pas
 mettre à jour le SDK ou l'app pour forcer une API à apparaître. Le banc préparé
-ensuite est décrit ci-dessous ; aucun lanceur SDK du second essai n'est ajouté.
+ensuite est décrit ci-dessous ; ce lot de plan n'ajoutait aucun lanceur SDK.
 
 Revue Claude Opus5.5 via Palabre Relay, arrière-plan et lecture seule : plan lu
 entièrement, types ciblés inspectés, aucun SDK ou test exécuté. Le relecteur n'a
@@ -272,8 +273,9 @@ un faux `query`, une horloge et un timer. Ils n'importent aucun SDK et ne lancen
 pas Claude. Témoin corrélé partiel, mauvais handshake/inventaire/mode, hook précoce,
 ask ignorée avec compteur factice à 1, règle étrangère, erreurs, annulation,
 attentes suspendues, plafonds et nettoyage. Le script manuel est seulement lancé
-avec `--help` ou des arguments invalides ; son chemin complet `--run` reste
-**non exécuté**, tout comme le second contrôle natif réel.
+avec `--help` ou des arguments invalides pendant cette préparation ; le chemin
+complet `--run` n'avait pas encore été exécuté. L'essai autorisé ensuite figure
+dans le bilan ci-dessous ; le second contrôle n'y a pas été atteint.
 
 Revue Claude Opus5.5 via Palabre Relay, arrière-plan et lecture seule : trois
 fichiers lanceur/déroulé/tests et cette section lus, pas de test exécuté. Le
@@ -288,3 +290,121 @@ surface `query` vérifiées sans runtime SDK. `pnpm check`, `pnpm test` et
 Vrai profil Palabre inchangé ; `git diff --check` réussi et prototypes absents du
 build produit. Pas d'exécution du chemin manuel valide, SIGINT/écriture de trace
 réels non éprouvés par les tests ; aucune qualification native supplémentaire.
+
+## Essai du second contrôle — 27 octobre 2026
+
+Le propriétaire a confirmé le nouveau message exact, la conversation jetable
+toujours ouverte et le risque de réception malgré le refus attendu. Identité
+recoupée avant lancement : titre/dossier/UUID concordants, nom unique dans le
+registre, PID vivant et heure de création concordante. Aucun fichier de clé lu.
+Ce contrôle extérieur n'authentifie toujours pas atomiquement le routage par nom.
+
+Un seul `--run`, SDK0.3.302 et messager CLI2.1.302, destinataire Desktop déclaré
+2.1.308. Opus5.5 observé pour les événements assistant ; le bilan `modelUsage`
+compte aussi Haiku5.5 auxiliaire. Aucun repli configuré, aucune relance.
+
+| Observation | Résultat |
+| --- | --- |
+| Handshake, prompt et inventaire | Version/hooks vérifiés, prompt libéré, `SendMessage` seul, aucun MCP, mode `default` |
+| Appels observés | Un `SendMessage`, un hook capturé sans erreur |
+| Premier contrôle | **Refus**, aucune neutralité |
+| Second contrôle | **Aucun callback** : `matchedAskRule` et la règle ask ne sont pas éprouvés |
+| Refus runtime | Même session/ID, `is_error: true`, `permission-rule`, `reject/source: hook` ; refus final lié |
+| Fin et nettoyage | `success`, pas d'erreur, timeout ou troncature ; fermeture demandée, aucun callback tardif observé |
+| Verdict | `correlatedCallbackDenial: false`, `passed: false`, `delivery: unverified`, code 1 |
+
+Le hook a refusé parce que `content` diffère du texte prévu. `message` et `summary`
+conservent chacun les 101 octets du texte exact ; dans cet échantillon, `content`
+égale ses 49 premières unités UTF-16 suivies de `…` (50 unités au total). Nom,
+`type: message`, `recipient_kind: name` et jeu de sept clés concordent avec la
+garde candidate. Cette relation ne prouve ni l'origine de la transformation,
+ni que `content` n'est qu'un aperçu sans effet sur la livraison.
+
+L'événement assistant contient cette fois lui aussi `summary` (sept clés), alors
+que l'oracle candidat attend six clés à cet endroit : autre variation négative,
+pas la cause du refus du hook. Ni événement assistant assimilé à la sortie brute
+du modèle, ni champ supprimé ou normalisé pour faire passer le constat.
+
+Le résultat ne dit **pas** que la règle ask échoue : elle n'a pas été atteinte.
+Le garde, le lanceur et l'oracle restent inchangés. Une régression entièrement
+factice conserve le texte complet et `content` distinct, et exige encore le refus
+avant callback. Recoupement de la trace privée hors ligne, sans runtime SDK.
+
+Deux lectures passives bornées de l'historique localisé, après l'essai puis plus
+tard, n'ont pas trouvé le marqueur ; taille/date stables pendant chacune. Le propriétaire confirme
+ne voir aucun message de test dans Desktop, sans saisie pour rafraîchir. Observations
+ponctuelles, pas preuve contre toute réception différée ou retenue. Aucun compteur
+du gestionnaire natif disponible, donc aucune mesure d'exécution zéro annoncée.
+Registre de confiance de même empreinte avant/après ; trace et identités privées.
+
+Vérification de ce bilan : 57 tests ciblés réussis (bancs, lanceur et liens),
+dont deux nouvelles régressions fictives ; vrai profil Palabre inchangé. Inspection
+hors ligne de la trace réussie, sans SDK ni nouvel appel modèle. Aucun changement
+des contrôles, du lanceur, de l'oracle, du code produit ou des permissions.
+
+Suite : analyser la représentation reçue, puis définir éventuellement un nouvel
+essai distinct avec accord humain sur un nouveau texte. Ne pas raccourcir ou
+renvoyer automatiquement celui-ci, supprimer sa réservation ou assouplir la garde
+pour atteindre le callback. Aucun envoi positif, transport produit ou comportement
+Desktop qualifié par ce résultat.
+
+Revue Claude Opus5.5 via Palabre Relay en arrière-plan et lecture seule : bilan
+final et nouvelle régression lus, aucun test exécuté, aucune trace privée ou
+source Web consultée. Les observations natives lui étaient rapportées, pas
+vérifiées indépendamment. Aucun défaut important relevé. Réserve de couverture
+intégrée : une fixture distincte part désormais d'une preuve factice conforme et
+ajoute seulement `summary` à l'événement assistant ; l'oracle doit la refuser,
+sans qu'un état fermé masque ce critère. Contrôles et oracle restent inchangés.
+
+Choisir un futur texte pour que `content` égale le message pourrait permettre
+de franchir le premier contrôle : l'accord humain devrait couvrir explicitement
+l'envoi possible si la règle ask n'est pas appliquée. Ce n'est ni un test autorisé
+ici ni une raison de renvoyer le texte précédent.
+
+## Analyse statique du raccourci — 27 octobre 2026
+
+Lecture des deux traces déjà enregistrées, du code du banc et du SDK0.3.302
+installé ; aucun import runtime SDK, appel Claude, extraction du binaire ou
+nouvel envoi. Recoupement sans imprimer texte, identité ou données de compte :
+dans les deux échantillons de 101 unités UTF-16, `content` contient les 49 premières
+unités suivies de `…`, aussi bien dans l'événement assistant que dans le hook.
+`message` reste complet et le hook contient un `summary` complet. Les deux traces
+n'ont aucun `stream_event` : aucune entrée brute du modèle à comparer ici.
+Deux échantillons ne définissent pas une limite générale ou son unité pour Unicode.
+
+| Étape inspectée | Ce que la lecture établit |
+| --- | --- |
+| Prompt du banc | Texte du plan complet sérialisé ; la consigne de conserver les aperçus ne constitue pas un contrôle du runtime |
+| SDK `ProcessTransport.readMessages` | Ligne stdout analysée par `Fe`, qui appelle `JSON.parse`, puis objet rendu sans sélection de champ |
+| SDK `Query.readMessages` | Événement assistant placé dans la file ; aucun raccourcissement de son entrée sur ce chemin inspecté |
+| SDK `handleControlRequest` / `handleHookCallbacks` | `request.input` passé au callback enregistré, sans transformation du texte dans ces méthodes |
+| Capture du banc | Copie JSON bornée, refus en cas de dépassement ; pas de découpe des chaînes |
+
+Référence locale reproductible : `sdk.mjs`0.3.302, SHA-256
+`baf41bb694a59df1a1ac2577b06d759c5cd81f4f13953161c1a91c4b54434d6b`.
+Les noms de méthodes servent de repères dans le fichier minifié, pas d'API à appeler.
+Les recherches ciblées dans les fichiers JS/types livrés ne fournissent pas le
+gestionnaire natif `SendMessage` ; ce constat ne couvre pas le binaire non inspecté.
+
+Le [changelog officiel SDK0.3.292](https://github.com/anthropics/claude-agent-sdk-typescript/blob/main/CHANGELOG.md#03292)
+annonce l'ajout de `recipient_kind` aux entrées `SendMessage` des événements
+assistant. C'est une preuve documentaire que cette représentation peut être
+enrichie, pas une explication de `content`, `summary` ou de leur origine dans ces
+essais. La [référence des outils](https://code.claude.com/docs/en/tools-reference)
+décrit `summary` comme aperçu facultatif, raccourci au-delà de 200 caractères :
+ce contrat ne décrit pas le `content` de 50 unités constaté ici. La page des hooks
+inspectée ne décrit toujours pas l'entrée `SendMessage`.
+
+Conclusion bornée : aucune découpe dans les chemins Palabre/client SDK inspectés ;
+la représentation raccourcie arrive déjà à ces consommateurs. **Attribution au
+modèle ou à une transformation interne de Claude Code non établie**, champ réellement
+livré toujours non établi. Aucun décodeur plus permissif justifié par cette lecture.
+La question utile à résoudre avant une autorisation positive est le contrat entre
+l'entrée modèle, l'entrée du hook et le texte livré, pas seulement la longueur du
+message. Un prochain essai sur texte court ne résoudrait pas à lui seul ce contrat.
+
+Avant publication, revue statique indépendante Codex interne du diff public et
+des modules publics : aucun défaut important relevé. Ce n'était pas un appel
+Claude/Palabre ; ni tests, SDK, Web ou traces privées consultés par ce relecteur.
+Les faits réels et constats SDK lui restaient rapportés. Les 57 tests ciblés et
+les liens ont été revérifiés par l'auteur, vrai profil Palabre inchangé.

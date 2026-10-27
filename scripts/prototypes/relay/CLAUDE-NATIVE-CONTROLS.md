@@ -204,8 +204,12 @@ Deux vérifications séparées sont nécessaires :
    la règle ask avec `canUseTool` refusant tout. Sinon, un refus du premier hook
    masquerait l'absence du second contrôle.
 
-Le premier essai n'est pas à rejouer ; le second lanceur est préparé hors ligne,
-son chemin réel non exécuté et son exécution à autoriser séparément.
+Le premier essai n'est pas à rejouer. Le second lanceur, préparé hors ligne,
+a ensuite été exécuté une seule fois après accord distinct : son premier hook
+a refusé un champ `content` différent du texte prévu. Le callback de permission
+n'a pas été atteint ; la règle ask reste non éprouvée. Voir le
+[bilan du second essai](CLAUDE-NATIVE-ASK-PLAN.md#essai-du-second-contrôle--27-octobre-2026).
+Ne pas rejouer cet essai non plus, ni assouplir le contrôle pour atteindre le callback.
 Le [plan du second contrôle](CLAUDE-NATIVE-ASK-PLAN.md) sépare les questions de
 schéma et de vérification de la règle ask, sans ouvrir de chemin d'envoi.
 Conserver : seulement l'outil natif nécessaire,

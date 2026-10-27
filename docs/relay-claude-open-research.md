@@ -41,7 +41,7 @@ identifie une piste documentée : une règle ask sur `SendMessage` pourrait impo
 le second contrôle, contrairement au simple retrait de `allowedTools`.
 Compatibilité de types vérifiée avec SDK0.3.302, sans runtime ni modèle ; analyse
 de la règle et effet natif non qualifiés. Schéma complet et liaison UUID/adresse
-restent à établir. Deux essais de refus séparés sont proposés, pas exécutés :
+restent à établir. Deux essais de refus séparés avaient été proposés :
 le premier hook, puis la règle ask avec second callback. Une conversation jetable
 et un message bénin devront être désignés par l'humain, car un refus encore non
 qualifié ne garantit pas l'absence d'envoi. Aucun réglage utilisateur appliqué.
@@ -51,7 +51,7 @@ est désormais préparé et testé hors ligne : uniquement le premier hook, touj
 refusant, sans règle ask ni décodeur natif. Prompt retenu jusqu'à confirmation
 d'inscription du hook, trace exclusive et constat corrélé partiel, jamais une
 preuve de non-réception. Sa préparation n'a lancé aucun appel Claude ; le premier
-essai autorisé ensuite est décrit ci-dessous. Le second lanceur reste non implémenté.
+essai autorisé ensuite est décrit ci-dessous. Le second lanceur a été préparé ensuite.
 
 Le [premier essai natif autorisé](../scripts/prototypes/relay/CLAUDE-NATIVE-CONTROLS.md#premier-essai-natif-autorisé--27-octobre-2026)
 a observé un seul appel `SendMessage`, un hook refusant et un refus runtime lié.
@@ -69,7 +69,7 @@ précise les inconnues du schéma et la piste d'une inspection des règles effec
 Une méthode existe dans le bundle SDK inspecté, sans être déclarée dans l'interface
 publique `Query`. La contre-analyse Claude a trouvé `matchedAskRule`, déclaré dans
 le callback : piste de preuve après coup, pas inspection avant le modèle. Aucun
-appel privé ni second essai lancé ; le plan prévoit explicitement le risque d'un
+appel privé ni second essai lancé pendant ce lot de plan ; celui-ci prévoit le risque d'un
 message livré si la règle n'intercepte pas l'appel.
 Le vérificateur et le lanceur du premier essai restent inchangés.
 
@@ -84,7 +84,15 @@ Le [second lanceur manuel](../scripts/prototypes/relay/CLAUDE-NATIVE-ASK-PLAN.md
 est ensuite préparé avec un déroulé testable à faux SDK injecté : plan privé
 distinct, réservation exclusive avant runtime, handshake avant prompt, neutralité
 seulement après inventaire lu, callback refusant, arrêt sans retry et bilan toujours
-non qualifié. Son chemin réel `--run` et le second essai natif restent non exécutés.
+non qualifié. Aucun chemin réel `--run` exécuté pendant cette préparation.
+
+L'[essai distinct autorisé ensuite](../scripts/prototypes/relay/CLAUDE-NATIVE-ASK-PLAN.md#essai-du-second-contrôle--27-octobre-2026)
+a de nouveau été bloqué au premier hook : `message` et `summary` conservent le
+texte prévu, mais `content` est raccourci. Le callback n'a donc pas été atteint ;
+cela ne démontre pas un échec de la règle ask. Aucun changement des contrôles ou
+de l'oracle, aucun rejeu. Deux lectures passives et le propriétaire ne trouvent
+aucun message de test, observations ponctuelles sans garantie de non-réception.
+Régression fictive ajoutée ; aucun envoi positif ou fonctionnement Desktop qualifié.
 
 - L'essai Windows du 23 octobre montre qu'une reprise CLI de l'historique partagé ne réveille pas la fenêtre Desktop. Le changement de conversation puis la commande d'ouverture ne rafraîchissaient pas l'échange ; le propriétaire a dû quitter lui-même l'app. Le registre CLI vide annonçait pourtant la conversation fermée. Voir [l'essai Desktop](relay-desktop-qualification.md).
 - Le contrat B1 note une réception TUI Claude 2.1.292 depuis un messager `-p`, qui consomme lui-même un appel modèle. Ce constat, antérieur à la version installée 2.1.302, ne prouve ni Desktop ni un transport déterministe externe. Voir [le contrat B1, alternatives Claude](../scripts/prototypes/relay/CONTRAT-B1.md#alternatives-et-suite-claude).
