@@ -204,8 +204,8 @@ Deux vérifications séparées sont nécessaires :
    la règle ask avec `canUseTool` refusant tout. Sinon, un refus du premier hook
    masquerait l'absence du second contrôle.
 
-Le premier essai n'est pas à rejouer ; le second lanceur reste à construire et son
-exécution à autoriser.
+Le premier essai n'est pas à rejouer ; le second lanceur est préparé hors ligne,
+son chemin réel non exécuté et son exécution à autoriser séparément.
 Le [plan du second contrôle](CLAUDE-NATIVE-ASK-PLAN.md) sépare les questions de
 schéma et de vérification de la règle ask, sans ouvrir de chemin d'envoi.
 Conserver : seulement l'outil natif nécessaire,

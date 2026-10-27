@@ -185,8 +185,8 @@ vérification synchrone uniquement ; pas de préemption d'une event loop bloqué
 19 tests couvrent la forme intacte, les altérations, la règle absente ou
 étrangère, les callbacks hors ordre ou répétés, les captures hostiles, la fermeture
 et les preuves runtime incomplètes. Aucune cible réelle, lecture de profil ou
-tentative réseau dans ces tests. Le second lanceur SDK reste à préparer et son
-exécution à autoriser séparément ; pas de nouvel essai natif dans ce lot.
+tentative réseau dans ces tests. À ce stade le second lanceur SDK restait à
+préparer ; sa préparation ultérieure est décrite ci-dessous, sans nouvel essai natif.
 
 Revue du banc par Claude Opus5.5 via Palabre Relay en arrière-plan, sans modification :
 trois fichiers TS lus entièrement et plan à partir de la ligne 50, pas de test ou
@@ -204,3 +204,87 @@ le timeout de 2 s d'un mock de shim PowerShell existant ; ce fichier a réussi
 ensuite dans les 69 tests ciblés puis dans la suite complète, sans changement
 de son code ou de son délai. Vrai profil Palabre inchangé pendant ces tests.
 Les prototypes ne sont pas livrés dans le build produit.
+
+## Lanceur manuel préparé, non exécuté avec Claude
+
+Le [lanceur séparé](claudeNativeAskProbe.mjs) relie le banc au
+[déroulé à SDK injecté](claudeNativeAskRunner.ts). Le code produit et le premier
+lanceur ne les importent pas ; aucune option d'envoi positif ou de retry.
+L'aide reste accessible sans SDK ou conversation :
+
+```powershell
+node scripts/prototypes/relay/claudeNativeAskProbe.mjs --help
+```
+
+Un fichier privé distinct est exigé : `{v: 1, kind: "native-ask-deny-probe", plan}`,
+où `plan` conserve UUID, dossier, nom et texte explicites du banc. Le plan nu du
+premier essai est refusé ; aucun champ `approved` ou drapeau d'accord ajouté.
+Ce format évite une confusion accidentelle, pas un rejeu volontaire ou un consentement
+fabriqué. L'humain devra choisir un nouveau texte exact et accepter la possibilité
+qu'il parte si le contrôle natif échoue. L'accord de quota ne suffit pas.
+
+Le lanceur ne vérifie ni l'UUID destinataire, ni son PID, ni l'unicité du nom :
+ces champs restent déclaratifs. Le chef de mission doit refaire les lectures
+bornées d'identité juste avant un lancement autorisé (titre, dossier, UUID, nom
+unique, PID vivant et heure de création), avec confirmation du propriétaire sur
+la conversation jetable. Dérive ou doute : arrêt sans envoyer. L'UUID conservé
+dans le plan ne lie pas le routage natif, qui reste par nom ; cette vérification
+extérieure n'est pas atomique avec l'envoi. Ne pas la présenter comme telle.
+
+Le lanceur vérifie SDK0.3.302 local et CLI Windows native2.1.302, sans installation,
+repli ou modification de configuration. Environnement réduit, sans clé API ni
+override de modèle hérités ; Opus5.5 demandé, pas de fallback. Il réserve une trace
+neuve en création exclusive avant import runtime et `query`, puis utilise un
+dossier messager vide distinct, conservé. Une réservation vide après crash reste
+en place : ne pas la supprimer ou changer de chemin pour rejouer. Cette réserve
+ne constitue toujours pas un anti-rejeu durable global.
+
+Le déroulé construit un seul `query`. Prompt retenu jusqu'au handshake version/hooks,
+sans inspection privée des règles. L'inventaire `init` arrive après libération du
+prompt : pas un préflight avant modèle. Toutefois le hook ne peut rendre `{}`
+qu'après lecture d'un inventaire conforme (`SendMessage` seul, aucun MCP, mode
+`default`) ; un appel précoce reste refusé et invalide le constat. Le callback
+reste toujours `deny`, avec capture de l'indication `matchedAskRule` candidate.
+L'ordre de remise de `init` et de l'appel de hook par le SDK n'est pas qualifié :
+un hook précoce donnera un refus sûr du banc mais aucun constat du second contrôle,
+quota déjà potentiellement consommé. Annoncer aussi ce risque avant l'essai.
+
+Budget coopératif 120 s, signal d'annulation et demande de `close()` ; attente du
+handshake ou du prochain événement interrompue par une course avec l'annulation.
+Cela ne prouve ni kill d'un processus récalcitrant ni retrait du message. Timers et
+écouteur du déroulé sont nettoyés ; état du tour figé avant tout nettoyage ou
+demande de fermeture, y compris sur annulation. Callbacks tardifs refusés et comptés
+séparément lorsqu'observés pendant la fermeture ; ils ne peuvent atténuer le signal
+« sans callback pendant le tour », ni qualifier le constat. Ce n'est pas une
+observation continue après retour du lanceur. Pas de boucle de renvoi. Stockage des événements
+limité à 256/4 Mio et stderr à 16 extraits de 2048 unités UTF-16 ; ni toute la mémoire
+du SDK ni un seul événement déjà matérialisé ne sont bornés par ce stockage.
+
+Le résultat garde **`passed: false`, code 1 et `delivery: unverified`**, même si
+`correlatedCallbackDenial` reconnaît ses critères partiels. `possibleSend` décrit
+une neutralité observée ; si le lanceur n'obtient aucun rapport, il affiche
+`unknown`, pas une preuve de non-envoi. Neutralité sans callback :
+`attention: possible-send-without-callback`, arrêt, vérification humaine, aucun
+retry. Les données de compte, cibles, textes et événements complets restent privés.
+
+Les [tests du déroulé](../../../tests/claude-native-ask-runner.test.ts) injectent
+un faux `query`, une horloge et un timer. Ils n'importent aucun SDK et ne lancent
+pas Claude. Témoin corrélé partiel, mauvais handshake/inventaire/mode, hook précoce,
+ask ignorée avec compteur factice à 1, règle étrangère, erreurs, annulation,
+attentes suspendues, plafonds et nettoyage. Le script manuel est seulement lancé
+avec `--help` ou des arguments invalides ; son chemin complet `--run` reste
+**non exécuté**, tout comme le second contrôle natif réel.
+
+Revue Claude Opus5.5 via Palabre Relay, arrière-plan et lecture seule : trois
+fichiers lanceur/déroulé/tests et cette section lus, pas de test exécuté. Le
+relecteur n'a pas relu le banc, le SDK, le Web ou des traces privées. Réserves
+intégrées : UUID non vérifié par le lanceur, capture avant nettoyage avec trois
+régressions de callbacks de fermeture, risque de refus précoce consommant du quota.
+
+Vérification finale de cette préparation : 21 tests nouveaux, 55 ciblés avec les
+bancs et la documentation ; syntaxe du `.mjs` et compatibilité structurelle de la
+surface `query` vérifiées sans runtime SDK. `pnpm check`, `pnpm test` et
+`pnpm build` réussis après corrections (1247 tests, 1242 réussis, 5 ignorés).
+Vrai profil Palabre inchangé ; `git diff --check` réussi et prototypes absents du
+build produit. Pas d'exécution du chemin manuel valide, SIGINT/écriture de trace
+réels non éprouvés par les tests ; aucune qualification native supplémentaire.

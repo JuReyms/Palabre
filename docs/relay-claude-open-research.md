@@ -77,8 +77,14 @@ Un [banc séparé du second contrôle](../scripts/prototypes/relay/CLAUDE-NATIVE
 est préparé hors ligne : une seule proposition candidate peut rendre le premier
 hook neutre, puis le callback refuse toujours. Son oracle distinct exige la règle
 ask déclarée et les événements de refus liés ; ses témoins sont entièrement
-fictifs. Aucun lanceur SDK du second essai, appel natif, transport produit ou
-qualification Desktop n'est ajouté par ce lot.
+fictifs. Ce lot de banc n'ajoutait aucun lanceur SDK, appel natif, transport produit
+ou qualification Desktop.
+
+Le [second lanceur manuel](../scripts/prototypes/relay/CLAUDE-NATIVE-ASK-PLAN.md#lanceur-manuel-préparé-non-exécuté-avec-claude)
+est ensuite préparé avec un déroulé testable à faux SDK injecté : plan privé
+distinct, réservation exclusive avant runtime, handshake avant prompt, neutralité
+seulement après inventaire lu, callback refusant, arrêt sans retry et bilan toujours
+non qualifié. Son chemin réel `--run` et le second essai natif restent non exécutés.
 
 - L'essai Windows du 23 octobre montre qu'une reprise CLI de l'historique partagé ne réveille pas la fenêtre Desktop. Le changement de conversation puis la commande d'ouverture ne rafraîchissaient pas l'échange ; le propriétaire a dû quitter lui-même l'app. Le registre CLI vide annonçait pourtant la conversation fermée. Voir [l'essai Desktop](relay-desktop-qualification.md).
 - Le contrat B1 note une réception TUI Claude 2.1.292 depuis un messager `-p`, qui consomme lui-même un appel modèle. Ce constat, antérieur à la version installée 2.1.302, ne prouve ni Desktop ni un transport déterministe externe. Voir [le contrat B1, alternatives Claude](../scripts/prototypes/relay/CONTRAT-B1.md#alternatives-et-suite-claude).
