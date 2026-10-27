@@ -46,6 +46,13 @@ le premier hook, puis la règle ask avec second callback. Une conversation jetab
 et un message bénin devront être désignés par l'humain, car un refus encore non
 qualifié ne garantit pas l'absence d'envoi. Aucun réglage utilisateur appliqué.
 
+Le [premier lanceur natif](../scripts/prototypes/relay/CLAUDE-NATIVE-CONTROLS.md#premier-lanceur-préparé-non-exécuté-avec-claude)
+est désormais préparé et testé hors ligne : uniquement le premier hook, toujours
+refusant, sans règle ask ni décodeur natif. Prompt retenu jusqu'à confirmation
+d'inscription du hook, trace exclusive et constat corrélé partiel, jamais une
+preuve de non-réception. Le chemin réel `--run` n'a pas été exécuté ; aucun appel
+Claude ou message dans ce lot. Le second essai reste distinct et non implémenté.
+
 - L'essai Windows du 23 octobre montre qu'une reprise CLI de l'historique partagé ne réveille pas la fenêtre Desktop. Le changement de conversation puis la commande d'ouverture ne rafraîchissaient pas l'échange ; le propriétaire a dû quitter lui-même l'app. Le registre CLI vide annonçait pourtant la conversation fermée. Voir [l'essai Desktop](relay-desktop-qualification.md).
 - Le contrat B1 note une réception TUI Claude 2.1.292 depuis un messager `-p`, qui consomme lui-même un appel modèle. Ce constat, antérieur à la version installée 2.1.302, ne prouve ni Desktop ni un transport déterministe externe. Voir [le contrat B1, alternatives Claude](../scripts/prototypes/relay/CONTRAT-B1.md#alternatives-et-suite-claude).
 - Installation inspectée aujourd'hui : `claude.exe` 2.1.302. Pour cette inspection, seules `--version` et `--help` ont été lancées ; aucune session utilisateur ouverte n'a reçu de message. L'aide expose reprise, ouverture Desktop et entrées stream-json, mais pas une commande analogue à `codex queue`. L'absence dans l'aide n'est pas une preuve d'absence de capacité : la référence officielle précise que l'aide n'énumère pas tous les flags. [Référence CLI](https://code.claude.com/docs/en/cli-reference).
