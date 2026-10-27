@@ -15,13 +15,13 @@ palabre relay --open --from <agent>:<session> --to <agent-codex>:<session> ("<me
 
 La validation des arguments, la config approuvée, l'agent et l'exécutable (D21) sont ceux de Relay A. Ensuite (`src/externalSessions/openRelay.ts`), sous **une seule échéance** `--timeout` couvrant référence, dépôt et attente :
 
-1. **Localisation bornée** (`locateOpenRollout`) : rollout par UUID, doublons refusés, première ligne seulement (1 Mio au plus), `session_meta.id` et dossier de travail validés. L'historique n'est jamais chargé en entier, quelle que soit sa taille. Aucun modèle n'est recherché : B1 ne lance aucune reprise.
+1. **Localisation bornée** (`locateOpenRollout`) : chaîne de segments résolue par UUID (voir [segments](relay.md#historique-codex-en-segments)), refus d'une chaîne cassée ou ambiguë, premières lignes seulement (1 Mio au plus), `session_meta.id` et dossier de travail de la tête validés. L'historique n'est jamais chargé en entier, quelle que soit sa taille. Aucun modèle n'est recherché : B1 ne lance aucune reprise.
 2. **Verrou tenu** obligatoire : absent ou libre, `target-not-open` ; invérifiable, `target-state-unknown`. Aucun dépôt dans les deux cas.
 3. **Contrôle du dépôt** (`codexQueue.ts`) : enveloppe complète d'au plus 8 192 unités UTF-16 ; aucun NUL ; ligne de commande Windows réellement sérialisée (exécutable, arguments préfixés D21, arguments et échappement libuv, NUL final) d'au plus 32 767 unités. Sinon `invalid-request` / `message-too-large`, sans dépôt.
-4. **Référence** du rollout (`captureOpenRollout`) : une fin de ligne partielle est réessayée pendant 2 s au plus, dans le budget et annulable ; ensuite, `no-valid-reply` avec la raison, sans dépôt.
+4. **Référence** du rollout (`captureOpenRollout`) : prise sur la tête actuelle de la chaîne. Une fin de ligne partielle, ou un segment dont la première ligne s'écrit encore (`history-rotating`), est réessayée pendant 2 s au plus, dans le budget et annulable ; un fichier qui n'est plus la tête (`history-rotated`) est refusé aussitôt. Ensuite, `no-valid-reply` avec la raison (`reference-…`), sans dépôt.
 5. **Nouveau contrôle du verrou** immédiatement avant le dépôt. Il réduit la fenêtre de course sans rendre vérification et dépôt atomiques. Verrou libéré : `target-not-open` ; invérifiable : `target-state-unknown`, sans dépôt.
 6. **Un seul `codex queue --thread <uuid> --message <enveloppe>`**, lancé par `runExternalProcess` : sans shell, dans le dossier de la cible, environnement nettoyé, stdin vide, en `min(60 s, budget restant)` et 1 Mio au plus. Annulation et budget sont recontrôlés juste avant le lancement : si la sonde a épuisé le budget, `timeout` sans dépôt (ce contrôle ne rend pas sonde et lancement atomiques). Dès qu'un processus est créé, la tentative compte.
-7. **Attente** : lectures bornées de l'ajout (`readOpenRollout`, `inspectOpenReply`) toutes les 500 ms jusqu'à une observation terminale, l'échéance ou l'annulation. Annulation et échéance sont contrôlées avant chaque lecture **et après son retour**, avant d'accepter une observation terminale : une lecture terminée après Ctrl+C ou après l'échéance donne `cancelled` ou `timeout`, sans réponse. Toute preuve de réception est mémorisée.
+7. **Attente** : lectures bornées de l'ajout (`readOpenRollout`, `inspectOpenReply`), y compris dans un segment créé pendant l'attente (section suivante), toutes les 500 ms jusqu'à une observation terminale, l'échéance ou l'annulation. Annulation et échéance sont contrôlées avant chaque lecture **et après son retour**, avant d'accepter une observation terminale : une lecture terminée après Ctrl+C ou après l'échéance donne `cancelled` ou `timeout`, sans réponse. Toute preuve de réception est mémorisée.
 
 L'enveloppe `--open` annonce un expéditeur déclaré non authentifié et une demande d'un autre agent : ce n'est pas une instruction de l'utilisateur, elle n'autorise aucune action et ne lève aucune restriction. Ctrl+C est géré avant la référence ; le gestionnaire est retiré en fin de relay.
 
@@ -67,6 +67,20 @@ Une saisie libre de forme `user.text` du même tour, après l'enveloppe et avant
 - Un message déposé peut être traité après le délai, même sans être affiché : Codex desktop garde un fil chargé après qu'on l'a quitté. Ni l'échéance, ni Ctrl+C, ni la fermeture de Palabre ne retirent un message de la file.
 - Le format du rollout est expérimental (Codex 0.151.0 en TUI, app-server 0.160.1 de Codex desktop 26.930.7945.0), pas un schéma public.
 - L'export `.relay.md` ajoute le mode, le dépôt, la corrélation, le récepteur et les permissions relevées, avec un avertissement propre à `--open`. Un refus avant tentative n'écrit pas d'export.
+
+### Historique Codex en segments pendant l'attente
+
+La chaîne est résolue de nouveau à chaque lecture (`readOpenRollout` avec une portée `{ home, sessionId }`). Les offsets sont ceux d'un **flux logique ancré** sur le fichier de la référence : ce fichier depuis l'octet 0 jusqu'à sa coupure, puis chaque segment suivant sans sa première ligne, jusqu'à sa propre coupure ou sa fin. Témoin, première ligne d'identité, plafond de l'ajout et contrôle de dérive restent ceux d'un fichier seul ; `--then-follow` garde sa référence interne dans ce même flux, même si la réponse ou la suite tombe dans un nouveau segment.
+
+| Cas pendant l'attente | Effet |
+| --- | --- |
+| Segment créé après la référence, coupure à la référence ou après | suivi : la réponse peut être lue dans le nouveau segment |
+| Première ligne du nouveau segment encore partielle | ignoré jusqu'à la lecture suivante ; la fin de l'ancrage reste lue, ce qui ne peut donner qu'un tour interrompu |
+| Coupure avant la référence (historique repris avant elle) | `unreadable`, diagnostic `history-rewound` : `no-valid-reply` / 2, jamais une réponse devinée ; après dépôt, délivrance selon la preuve |
+| Chaîne devenue cassée ou ambiguë | diagnostic `history-<raison>` (par exemple `history-fork`), même issue |
+| Fichier de référence sorti de la chaîne | `history-chain-changed`, même issue |
+
+Les diagnostics `history-*` ajoutent au texte une phrase demandant de vérifier la conversation dans Codex avant tout renvoi. `--check` et le quota lisent la fin de l'**historique actif** (de la racine à la tête, sans fins abandonnées ni premières lignes de segments) ; une chaîne refusée donne un quota absent et, pour `--check --open`, le refus `session-not-found` nommé.
 
 ### Suivre la suite d'une conversation ouverte (`--open --follow`, #195)
 

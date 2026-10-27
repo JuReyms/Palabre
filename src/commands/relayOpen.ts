@@ -185,7 +185,8 @@ export async function executeRelayOpen(args: string[], validate: DesktopOpenVali
       return finish("invalid-request", 8, "validation-refused", messages.relayDesktopOpen.invalid);
     const located = await deps.locate(parsed.ref);
     const late = stopped(); if (late) return late;
-    if (located.status !== "found") return finish("session-not-found", 6, "validation-refused", messages.relay.status("session-not-found"));
+    if (located.status !== "found") return finish("session-not-found", 6, "validation-refused", located.status === "session-not-found" && located.history
+      ? messages.relay.historyChain.refused(located.history) : messages.relay.status("session-not-found"));
     const target: ExternalTarget = { ...parsed.ref, provider: "codex", cwd: located.cwd };
     const spec = desktopLauncher(parsed.ref, deps.platform);
     result.launcher = await deps.launch({ ...spec, cwd: located.cwd, timeoutMs: deadline - deps.now(), signal: options.signal });

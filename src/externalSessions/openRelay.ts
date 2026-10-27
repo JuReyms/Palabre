@@ -24,7 +24,7 @@
 import type { ExternalExecutable } from "./adapter.js";
 import { checkQueueCommand, codexQueueArgs, isQueueUnsupported, parseQueueAck, QUEUE_LIMITS } from "./codexQueue.js";
 import { inspectFollowedTurn, inspectOpenReply, settleOpenDelivery, type FollowObservation, type OpenBaseline, type OpenObservation, type OpenSnapshot, type OpenTurnContext } from "./openReader.js";
-import { captureOpenRollout, readOpenRollout } from "./openRollout.js";
+import { captureOpenRollout, readOpenRollout, type CodexHistoryScope } from "./openRollout.js";
 import { RELAY_EXIT_CODES } from "./outcome.js";
 import { runExternalProcess, type ExternalProcessResult, type ExternalProcessSpec } from "./process.js";
 import type { DeliveryVerdict, InvalidRequestReason, RelayOutcome, RelayStatus, SessionIdentity, TargetProbe } from "./types.js";
@@ -159,7 +159,8 @@ async function captureReference(
       return { baseline: await deps.capture(historyPath) };
     } catch (error) {
       const code = errorCode(error);
-      if (code === "baseline-incomplete" && deps.now() + OPEN_BASELINE_RETRY.stepMs <= retryUntil) {
+      // Fin de ligne partielle, ou segment Codex dont la première ligne s'écrit encore.
+      if ((code === "baseline-incomplete" || code === "history-rotating") && deps.now() + OPEN_BASELINE_RETRY.stepMs <= retryUntil) {
         await deps.sleep(OPEN_BASELINE_RETRY.stepMs, signal);
         continue;
       }
@@ -170,9 +171,19 @@ async function captureReference(
   }
 }
 
-/** Dépendances réelles : verrou par `probe`, lectures bornées, lancement sans shell. */
-export function defaultOpenRelayDeps(probe: () => TargetProbe): OpenRelayDeps {
-  return { probe, capture: captureOpenRollout, read: readOpenRollout, run: runExternalProcess, now: () => performance.now(), sleep: abortableSleep };
+/**
+ * Dépendances réelles : verrou par `probe`, lectures bornées, lancement sans shell. `history`
+ * fait suivre la chaîne de segments de la conversation pendant l'attente (`readOpenRollout`).
+ */
+export function defaultOpenRelayDeps(probe: () => TargetProbe, history?: CodexHistoryScope): OpenRelayDeps {
+  return {
+    probe,
+    capture: (file) => captureOpenRollout(file, undefined, history),
+    read: (file, baseline) => readOpenRollout(file, baseline, undefined, history),
+    run: runExternalProcess,
+    now: () => performance.now(),
+    sleep: abortableSleep
+  };
 }
 
 /** Exécute un relay B1 ; ne lève pas pour les échecs prévus (refus, lancement, lecture). */
