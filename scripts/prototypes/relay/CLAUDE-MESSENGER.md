@@ -1,7 +1,7 @@
 # Claude messager — garde hors ligne et calibration isolée #193
 
-État du 27 octobre 2026 : garde hors ligne, puis une calibration SDK autorisée
-séparément avec un faux outil en mémoire (bilan ci-dessous). Aucun envoi entre
+État du 27 octobre 2026 : garde hors ligne, puis calibrations SDK autorisées
+séparément avec un faux outil en mémoire (bilans ci-dessous). Aucun envoi entre
 conversations, ouverture Desktop, extraction de token ou mutation de configuration.
 Ce n'est pas un nouveau transport de `palabre relay` ; rien n'est ajouté au paquet livré.
 Recherche préalable : [bilan #193](../../../docs/relay-claude-open-research.md).
@@ -251,9 +251,10 @@ Le lanceur propose séparément `guarded-valid`, `guarded-throw` et `guarded-tim
 Le témoin utilise un texte ASCII sans fin de ligne pour ne pas confondre le
 chemin des permissions avec la normalisation CRLF/LF déjà observée. Les anciens
 scénarios conservent la préapprobation pour reproduire les mesures historiques.
-**Aucun de ces nouveaux scénarios n'a été lancé avec le SDK ou un modèle.**
-Leur `passed` reste conservatoirement faux : ni forme réelle du nouveau chemin
-de refus, ni qualification automatique inventées avant observation.
+À la préparation, aucun de ces scénarios n'avait été lancé avec le SDK ou un modèle.
+Le seul essai `guarded-valid` autorisé ensuite est décrit ci-dessous ; les deux
+scénarios de panne restent non exécutés. Leur `passed` reste conservatoirement
+faux : aucune qualification automatique ajoutée après observation.
 
 Les [tests du profil](../../../tests/claude-messenger-guarded.test.ts) sont hors
 ligne, avec horloge et signaux fictifs. Un contrôle de types séparé, local et non
@@ -279,10 +280,50 @@ spécificateur. Cela permet de désactiver l'outil, pas de prouver une restricti
 au destinataire exact. La liaison UUID/adresse et le schéma natif restent inconnus
 dans ce prototype ; ni token privé extrait, ni outil natif exposé par ce lot.
 
+## Témoin restrictif SDK autorisé — 27 octobre 2026
+
+Un seul lancement `guarded-valid`, autorisé par l'humain après la préparation :
+SDK0.3.302, CLI native2.1.302, Windows, tour principal `claude-opus-5-5`.
+Aucune relance, aucun message vers une conversation, aucun outil natif exposé,
+aucune ouverture Desktop. Le faux gestionnaire ne consulte pas lui-même le garde :
+son compteur observe donc bien la non-exécution par le runtime.
+
+| Observation structurée | Résultat |
+| --- | --- |
+| Inventaire `init` | Seul faux outil MCP en mémoire, modèle et version attendus |
+| Proposition du modèle | Un seul appel, destinataire et texte ASCII strictement identiques au plan |
+| Premier contrôle `PreToolUse` | Décision neutre, une réservation |
+| Second contrôle `canUseTool` | Appelé une fois pour le faux outil ; refus `deny`, aucune permission accordée |
+| Résultat d'outil | Même session et `tool_use_id`, `is_error: true`, `non_execution_kind: permission-rule`, décision `reject/source: user_reject` |
+| Résultat final | `success`, `is_error: false`, un `permission_denials` lié au même appel ; aucun timeout global ni erreur de session |
+| Compteur du faux gestionnaire | **0** |
+
+Le libellé runtime `user_reject` décrit ici le refus retourné par le callback du
+banc : **il ne prouve aucune action ni aucun clic humain**. Le journal du callback
+ne conserve que le nom d'outil et la décision, pas son identifiant d'appel ; aucun
+contrôle par ce second callback d'une liaison native ou d'un appel réservé n'est
+donc qualifié par cet essai. Le résultat d'outil et le refus final sont, eux,
+corrélés à l'unique proposition observée.
+
+Ce cas établit que le second contrôle est consulté et son refus appliqué pour
+**ce faux outil, ce profil et ces versions**. Il ne teste ni exception, ni attente
+suspendue dans le nouveau profil, ni envoi autorisé. Le lanceur conserve
+`passed: false` et son code de sortie 1 préparés : pas de nouvel oracle ni
+d'élargissement de qualification après le résultat. Le compteur nul seul n'aurait
+pas suffi ; les événements liés et la décision du callback sont recoupés.
+
+`modelUsage` compte encore Haiku5.5 auxiliaire en plus du tour principal Opus5.5,
+sans repli configuré. Trace complète et données de compte restent privées.
+Le registre de confiance Palabre a la même empreinte avant et après cet essai ;
+aucun réglage utilisateur n'a été modifié par le banc.
+Relecture indépendante du bilan par Codex, sans trace privée ni nouvel appel Claude :
+aucun défaut important relevé. Vérification de la trace par recoupement hors ligne,
+puis 11 tests du profil et des liens réussis ; aucune relance SDK pour ces contrôles.
+
 ## Prochaine qualification, séparée
 
-Avant un essai de messagerie réelle : qualifier le profil restrictif préparé
-sur faux outil après un nouvel accord humain, vérifier ses protections puis
+Avant un essai de messagerie réelle : tester séparément les pannes du profil
+restrictif sur faux outil après un nouvel accord humain, vérifier ses protections puis
 établir le schéma natif et
 l'adresse exacte d'une conversation jetable
 désignée par l'humain, puis démontrer les refus applicables à cet outil natif.

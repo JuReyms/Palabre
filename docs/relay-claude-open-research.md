@@ -16,9 +16,17 @@ conversation existante n'a reçu ces essais.
 Un [profil restrictif préparé hors ligne](../scripts/prototypes/relay/CLAUDE-MESSENGER.md#profil-restrictif-préparé-hors-ligne--27-octobre-2026)
 convertit maintenant les erreurs en refus explicites et prépare un second contrôle
 sans préapprobation pour le faux MCP. Il refuse tout : ni envoi valide autorisé,
-ni nouvelle qualification SDK. La référence officielle classe `SendMessage` sans
+ni messager utilisable. La référence officielle classe `SendMessage` sans
 permission requise par défaut ; enlever `allowedTools` ne suffit donc pas à prouver
-que `canUseTool` contrôle le natif. Aucun nouveau modèle lancé pour ce lot.
+que `canUseTool` contrôle le natif. Sa préparation n'a lancé aucun modèle.
+
+Un [témoin SDK autorisé ensuite](../scripts/prototypes/relay/CLAUDE-MESSENGER.md#témoin-restrictif-sdk-autorisé--27-octobre-2026)
+a proposé une demande intacte : premier contrôle neutre, puis `canUseTool` appelé
+une fois et refus appliqué ; compteur factice nul, résultat d'outil et refus final
+corrélés à l'unique appel. Le libellé runtime `user_reject` provient ici du callback,
+pas d'un clic humain. Un seul lancement Opus5.5, aucune relance ; `passed: false`
+conservé, pannes du nouveau profil non testées avec le SDK. Ni `SendMessage` natif,
+ni envoi autorisé, ni visibilité Desktop qualifiés.
 
 - L'essai Windows du 23 octobre montre qu'une reprise CLI de l'historique partagé ne réveille pas la fenêtre Desktop. Le changement de conversation puis la commande d'ouverture ne rafraîchissaient pas l'échange ; le propriétaire a dû quitter lui-même l'app. Le registre CLI vide annonçait pourtant la conversation fermée. Voir [l'essai Desktop](relay-desktop-qualification.md).
 - Le contrat B1 note une réception TUI Claude 2.1.292 depuis un messager `-p`, qui consomme lui-même un appel modèle. Ce constat, antérieur à la version installée 2.1.302, ne prouve ni Desktop ni un transport déterministe externe. Voir [le contrat B1, alternatives Claude](../scripts/prototypes/relay/CONTRAT-B1.md#alternatives-et-suite-claude).
