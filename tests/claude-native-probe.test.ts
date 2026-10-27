@@ -105,6 +105,21 @@ test("essai natif : refus corrélé partiel sur fixture, sans preuve de récepti
   assert.equal(hasNativeHookDenial(events, sessionId, probe.state()), true);
 });
 
+test("essai natif : forme observée avec summary supplémentaire au hook, verdict strict négatif conservé", () => {
+  const { events } = evidence(), probe = createNativeDenyProbe(sessionId);
+  // Forme relevée après l'essai autorisé, avec uniquement des noms/textes/ID fictifs.
+  // Ce n'est pas une déclaration de schéma natif : les champs supplémentaires restent opaques.
+  const proposal = { to: "fixture-native-name", message: "Texte fictif sans action.",
+    type: "message", recipient: "fixture-native-name", recipient_kind: "name", content: "Texte fictif…" };
+  events[1].message.content[0].input = proposal;
+  assert.deepEqual(probe.hook({ ...event(), tool_input: { to: proposal.to, summary: proposal.message,
+    message: proposal.message, type: proposal.type, recipient: proposal.recipient,
+    recipient_kind: proposal.recipient_kind, content: proposal.content } }, "fixture-call"), nativeHookDeny());
+  assert.equal(probe.state().captureFailed, false);
+  assert.equal(probe.state().hookCalls, 1);
+  assert.equal(hasNativeHookDenial(events, sessionId, probe.state()), false);
+});
+
 test("essai natif : compteur de hook et prose ne remplacent aucun événement lié", () => {
   for (let i = 0; i < 4; i++) {
     const { probe, events } = evidence();
