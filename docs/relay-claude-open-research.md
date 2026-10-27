@@ -51,7 +51,7 @@ est désormais préparé et testé hors ligne : uniquement le premier hook, touj
 refusant, sans règle ask ni décodeur natif. Prompt retenu jusqu'à confirmation
 d'inscription du hook, trace exclusive et constat corrélé partiel, jamais une
 preuve de non-réception. Sa préparation n'a lancé aucun appel Claude ; le premier
-essai autorisé ensuite est décrit ci-dessous. Le second reste non implémenté.
+essai autorisé ensuite est décrit ci-dessous. Le second lanceur reste non implémenté.
 
 Le [premier essai natif autorisé](../scripts/prototypes/relay/CLAUDE-NATIVE-CONTROLS.md#premier-essai-natif-autorisé--27-octobre-2026)
 a observé un seul appel `SendMessage`, un hook refusant et un refus runtime lié.
@@ -72,6 +72,13 @@ le callback : piste de preuve après coup, pas inspection avant le modèle. Aucu
 appel privé ni second essai lancé ; le plan prévoit explicitement le risque d'un
 message livré si la règle n'intercepte pas l'appel.
 Le vérificateur et le lanceur du premier essai restent inchangés.
+
+Un [banc séparé du second contrôle](../scripts/prototypes/relay/CLAUDE-NATIVE-ASK-PLAN.md#banc-du-second-contrôle-préparé-hors-ligne)
+est préparé hors ligne : une seule proposition candidate peut rendre le premier
+hook neutre, puis le callback refuse toujours. Son oracle distinct exige la règle
+ask déclarée et les événements de refus liés ; ses témoins sont entièrement
+fictifs. Aucun lanceur SDK du second essai, appel natif, transport produit ou
+qualification Desktop n'est ajouté par ce lot.
 
 - L'essai Windows du 23 octobre montre qu'une reprise CLI de l'historique partagé ne réveille pas la fenêtre Desktop. Le changement de conversation puis la commande d'ouverture ne rafraîchissaient pas l'échange ; le propriétaire a dû quitter lui-même l'app. Le registre CLI vide annonçait pourtant la conversation fermée. Voir [l'essai Desktop](relay-desktop-qualification.md).
 - Le contrat B1 note une réception TUI Claude 2.1.292 depuis un messager `-p`, qui consomme lui-même un appel modèle. Ce constat, antérieur à la version installée 2.1.302, ne prouve ni Desktop ni un transport déterministe externe. Voir [le contrat B1, alternatives Claude](../scripts/prototypes/relay/CONTRAT-B1.md#alternatives-et-suite-claude).

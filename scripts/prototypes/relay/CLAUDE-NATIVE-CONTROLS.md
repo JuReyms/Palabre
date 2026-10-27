@@ -87,8 +87,8 @@ Ce lanceur ne configure volontairement **pas** de règle ask : le refus du premi
 hook doit être observé séparément. `tools` ne demande que `SendMessage`, sans MCP
 ou préapprobation ; hook et callback de permissions retournent toujours `deny`,
 même si l'entrée ou sa capture échoue. Aucun chemin neutre, `allow`, mise à jour de
-droits, décodage de destinataire ou reprise d'historique. Le second essai ask reste
-seulement proposé ; aucune option ne permet de le lancer avec ce script.
+droits, décodage de destinataire ou reprise d'historique. Le banc du second essai
+ask est préparé séparément ; aucune option ne permet de le lancer avec ce script.
 
 Avant un lancement autorisé, l'agent préparera un plan privé explicite de forme
 `{v: 1, target: {sessionId, directory, recipient}, message}` avec l'humain, sans lui
@@ -204,7 +204,8 @@ Deux vérifications séparées sont nécessaires :
    la règle ask avec `canUseTool` refusant tout. Sinon, un refus du premier hook
    masquerait l'absence du second contrôle.
 
-Le premier essai n'est pas à rejouer ; le second reste à construire et autoriser.
+Le premier essai n'est pas à rejouer ; le second lanceur reste à construire et son
+exécution à autoriser.
 Le [plan du second contrôle](CLAUDE-NATIVE-ASK-PLAN.md) sépare les questions de
 schéma et de vérification de la règle ask, sans ouvrir de chemin d'envoi.
 Conserver : seulement l'outil natif nécessaire,

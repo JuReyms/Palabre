@@ -121,8 +121,8 @@ Préparer les fixtures du callback et de la garde candidate, puis leur lanceur
 séparé, avec ces critères et limites explicites. Une absence de préflight public
 n'interdit pas ce travail hors ligne ; elle interdit d'annoncer une garantie
 préalable. Aucun nouveau test natif n'est nécessaire pour relire ce plan ; ne pas
-mettre à jour le SDK ou l'app pour forcer une API à apparaître. Aucun lanceur ou
-hook neutre n'est ajouté par ce document.
+mettre à jour le SDK ou l'app pour forcer une API à apparaître. Le banc préparé
+ensuite est décrit ci-dessous ; aucun lanceur SDK du second essai n'est ajouté.
 
 Revue Claude Opus5.5 via Palabre Relay, arrière-plan et lecture seule : plan lu
 entièrement, types ciblés inspectés, aucun SDK ou test exécuté. Le relecteur n'a
@@ -139,3 +139,68 @@ Vérification de ce lot documentaire : contrôle de types local sans émission
 réussi ; 15 tests existants natifs/documentaires et `git diff --check` réussis.
 Vrai profil Palabre inchangé pendant les tests. Aucun code produit, premier
 vérificateur, dépendance ou skill installé modifié.
+
+## Banc du second contrôle préparé hors ligne
+
+Le [module séparé](claudeNativeAskProbe.ts) et ses
+[tests](../../../tests/claude-native-ask-probe.test.ts) ne chargent aucun SDK et
+n'ont aucune fonction d'envoi. Ni import par `src/` ni livraison dans `dist`.
+Le lanceur du premier essai ne les utilise pas et reste inchangé.
+
+Le plan privé est copié et figé ; message d'au plus 160 octets UTF-8, sur une
+ligne sans contrôles ou caractères de formatage. Le banc doit être armé une fois
+avec le handshake déclaré de la bonne version et l'inscription du hook. Cette
+injection de test n'est pas un handshake réellement observé avec le SDK.
+
+Une seule entrée peut rendre le hook neutre (`{}`, jamais `allow`) : session,
+ID, outil, clés et valeurs exacts selon la garde candidate ci-dessus. La réservation
+précède la capture ; répétition, réentrée, entrée hostile, expiration, annulation
+ou défaut d'horloge ferment le banc. Le callback de permission rend **toujours
+`deny`**, même si l'entrée est intacte et la règle attendue présente. Les captures
+réutilisent les bornes du premier banc, sans modifier son comportement ; contextes
+hôte et signaux ne sont pas sérialisés en entier.
+
+Un oracle distinct exige le passage neutre unique et un seul callback, l'indication
+ask exacte, les entrées conservées séparément et les événements liés dans l'ordre.
+L'entrée assistant attendue a six clés, le hook en a sept avec `summary` ; les
+textes doivent tous être identiques au plan. Callback et hook sont comparés
+strictement, y compris l'ordre de représentation JSON. Toute variation est un
+constat négatif, pas une normalisation. `user_reject` et `flagSettings` restent des
+attentes candidates, pas des observations natives de ce chemin.
+
+Le témoin positif des fixtures signifie seulement que cet oracle reconnaît les
+preuves injectées ; il ne qualifie ni le SDK, ni une adresse ou livraison réelle.
+L'état expose `possibleSend`, vrai dès qu'un hook neutre a été rendu et jamais
+remis à faux, même après fermeture ou refus du callback : aucun compteur natif
+n'atteste la non-exécution. Fin d'essai sans callback après cette neutralité :
+**envoi possible, délivrance inconnue** ; préserver la trace, arrêter et demander
+la vérification humaine de la conversation jetable, sans relance. Ne pas assimiler
+une fermeture tardive à un refus du premier hook ou à un retrait du message.
+Inversement, `possibleSend: false` n'est pas une preuve de non-réception par un
+runtime externe ; ce champ décrit seulement la neutralité rendue par le banc.
+Pas de compteur du gestionnaire natif, d'anti-rejeu durable, de retrait de message
+ou de garantie contre une règle ask ignorée. Horloge et échéance injectées,
+vérification synchrone uniquement ; pas de préemption d'une event loop bloquée.
+
+19 tests couvrent la forme intacte, les altérations, la règle absente ou
+étrangère, les callbacks hors ordre ou répétés, les captures hostiles, la fermeture
+et les preuves runtime incomplètes. Aucune cible réelle, lecture de profil ou
+tentative réseau dans ces tests. Le second lanceur SDK reste à préparer et son
+exécution à autoriser séparément ; pas de nouvel essai natif dans ce lot.
+
+Revue du banc par Claude Opus5.5 via Palabre Relay en arrière-plan, sans modification :
+trois fichiers TS lus entièrement et plan à partir de la ligne 50, pas de test ou
+SDK exécuté par le relecteur. Aucun défaut de double neutralité ou accord relevé.
+Réserves intégrées : signal persistant d'envoi possible après neutralité, test
+d'expiration entre contrôles et test de deux appels dans un seul événement assistant.
+L'indicateur retenu est plus conservateur qu'une phase seulement `neutral` : une
+fermeture ou un callback tardif ne l'effacent pas. Les limites de routage et le
+risque d'un refus au premier hook sans apprentissage sur le second restent visibles.
+
+Vérification du banc : compatibilité des signatures avec SDK0.3.302 par imports
+de types uniquement ; `pnpm check`, suite complète et `pnpm build` réussis
+(1226 tests, 1221 réussis, 5 ignorés). Un premier passage complet avait échoué sur
+le timeout de 2 s d'un mock de shim PowerShell existant ; ce fichier a réussi
+ensuite dans les 69 tests ciblés puis dans la suite complète, sans changement
+de son code ou de son délai. Vrai profil Palabre inchangé pendant ces tests.
+Les prototypes ne sont pas livrés dans le build produit.
