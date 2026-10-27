@@ -64,6 +64,15 @@ test après l'appel ; le propriétaire a confirmé ne voir aucun message de test
 Ce sont des observations ponctuelles, pas une preuve générale de non-réception.
 Revue Claude Opus5.5 via Palabre Relay intégrée, sans traces privées ni nouvel essai.
 
+Le [plan du second contrôle natif](../scripts/prototypes/relay/CLAUDE-NATIVE-ASK-PLAN.md)
+précise les inconnues du schéma et la piste d'une inspection des règles effectives.
+Une méthode existe dans le bundle SDK inspecté, sans être déclarée dans l'interface
+publique `Query`. La contre-analyse Claude a trouvé `matchedAskRule`, déclaré dans
+le callback : piste de preuve après coup, pas inspection avant le modèle. Aucun
+appel privé ni second essai lancé ; le plan prévoit explicitement le risque d'un
+message livré si la règle n'intercepte pas l'appel.
+Le vérificateur et le lanceur du premier essai restent inchangés.
+
 - L'essai Windows du 23 octobre montre qu'une reprise CLI de l'historique partagé ne réveille pas la fenêtre Desktop. Le changement de conversation puis la commande d'ouverture ne rafraîchissaient pas l'échange ; le propriétaire a dû quitter lui-même l'app. Le registre CLI vide annonçait pourtant la conversation fermée. Voir [l'essai Desktop](relay-desktop-qualification.md).
 - Le contrat B1 note une réception TUI Claude 2.1.292 depuis un messager `-p`, qui consomme lui-même un appel modèle. Ce constat, antérieur à la version installée 2.1.302, ne prouve ni Desktop ni un transport déterministe externe. Voir [le contrat B1, alternatives Claude](../scripts/prototypes/relay/CONTRAT-B1.md#alternatives-et-suite-claude).
 - Installation inspectée aujourd'hui : `claude.exe` 2.1.302. Pour cette inspection, seules `--version` et `--help` ont été lancées ; aucune session utilisateur ouverte n'a reçu de message. L'aide expose reprise, ouverture Desktop et entrées stream-json, mais pas une commande analogue à `codex queue`. L'absence dans l'aide n'est pas une preuve d'absence de capacité : la référence officielle précise que l'aide n'énumère pas tous les flags. [Référence CLI](https://code.claude.com/docs/en/cli-reference).

@@ -19,7 +19,7 @@ Le schéma d'entrée complet et la liaison à une conversation précise ne sont 
 
 | Contrôle | Appui disponible | Limite pour Palabre |
 | --- | --- | --- |
-| `PreToolUse` | Le hook reçoit l'outil, ses arguments, la session et l'ID d'appel avant exécution | Refus natif et pannes encore non testés |
+| `PreToolUse` | Le hook reçoit l'outil, ses arguments, la session et l'ID d'appel avant exécution | Premier refus runtime lié observé, comparateur strict négatif ; pannes natives non testées |
 | Retrait de `allowedTools` | N'ajoute pas de préapprobation | Un outil peut s'autoriser lui-même avant `canUseTool` |
 | `permissions.ask: ["SendMessage"]` | Les règles ask documentées passent avant les autorisations ordinaires et conduisent au callback | Piste native, pas une qualification runtime |
 | `permissions.deny: ["SendMessage"]` | Refus complet documenté, outil retiré du contexte | Empêche aussi d'observer une proposition normale du modèle pour cet outil |
@@ -205,12 +205,15 @@ Deux vérifications séparées sont nécessaires :
    masquerait l'absence du second contrôle.
 
 Le premier essai n'est pas à rejouer ; le second reste à construire et autoriser.
+Le [plan du second contrôle](CLAUDE-NATIVE-ASK-PLAN.md) sépare les questions de
+schéma et de vérification de la règle ask, sans ouvrir de chemin d'envoi.
 Conserver : seulement l'outil natif nécessaire,
 aucun outil système/MCP, aucune préapprobation, aucun `allow`, un seul appel prévu,
 versions vérifiées, trace privée et arrêt sans renvoi. Capturer l'ID et l'entrée
 dans chaque contrôle ; aucun `updatedPermissions` ni changement de politique reçu
 d'un agent. Vérifier l'inventaire et les événements ; pour l'essai ask, vérifier
-aussi la règle effectivement appliquée, sans poursuivre si elle n'est pas vérifiable.
+aussi l'indication de règle appliquée dans le callback. Cette vérification arrive
+après le prompt, pas en préflight public : le plan distinct explicite ce risque.
 
 Avant chaque essai à quota : l'humain désigne une conversation jetable, son dossier
 et un message bénin unique, et accepte les effets potentiels. **L'intention de
