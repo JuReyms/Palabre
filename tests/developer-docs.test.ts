@@ -46,7 +46,7 @@ test("AGENTS : point d’entrée court et références par domaine, sans retour 
 
 test("documentation développeur et README : liens locaux et ancres résolus sans réseau", () => {
   const files = ["AGENTS.md", "README.md", "docs/product-vision.md", "docs/archive/development-qualifications.md", "docs/relay-claude-open-research.md",
-    "scripts/prototypes/relay/CONTRAT-A0.md", "scripts/prototypes/relay/CONTRAT-B1.md", "scripts/prototypes/relay/RAPPORT.md",
+    "scripts/prototypes/relay/CONTRAT-A0.md", "scripts/prototypes/relay/CONTRAT-B1.md", "scripts/prototypes/relay/RAPPORT.md", "scripts/prototypes/relay/CLAUDE-MESSENGER.md",
     ...readdirSync("docs/dev").filter(name => name.endsWith(".md")).map(name => `docs/dev/${name}`)];
   for (const file of files) {
     const body = prose(readFileSync(file, "utf8"));
