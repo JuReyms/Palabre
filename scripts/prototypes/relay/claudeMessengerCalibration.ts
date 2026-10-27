@@ -55,3 +55,37 @@ export function hasCorrelatedCalibrationDenial(events: readonly unknown[], sessi
     && item.tool_result_meta?.some?.((meta: any) => meta.id === call.id
       && meta.permission_decision?.decision === "reject" && meta.permission_decision?.source === "hook"));
 }
+
+/** Observations locales requises pour qualifier UNE panne sur le faux outil, pas un envoi natif. */
+export interface CalibrationFaultEvidence {
+  scenario: string;
+  sessionId: string;
+  inventoryValidated: boolean;
+  handlerCalls: number;
+  outerTimedOut: boolean;
+  error: unknown;
+  faultElapsedMs?: number;
+  hookDecisions: readonly { tool: string; toolUseId?: string; sessionMatches: boolean; disposition: string; reason?: string }[];
+  events: readonly unknown[];
+}
+
+/**
+ * Une panne injectée seule et compteur nul ne suffisent pas : exige le rejet corrélé
+ * attribué au hook par le runtime. Le timeout global du banc ne qualifie pas le SDK.
+ * Pour le scénario timeout, la durée monotone doit être compatible avec les 5 s du hook
+ * (tolérance IPC 500 ms) ; ni prose du modèle ni seul signal annulé ne font preuve.
+ */
+export function hasQualifiedCalibrationFaultBlock(evidence: CalibrationFaultEvidence): boolean {
+  try {
+    if (!["throw", "timeout"].includes(evidence.scenario) || !evidence.inventoryValidated || evidence.error
+      || evidence.outerTimedOut || evidence.handlerCalls !== 0 || evidence.hookDecisions.length !== 1) return false;
+    const hook = evidence.hookDecisions[0]!;
+    if (hook.tool !== CALIBRATION_TOOL || !hook.sessionMatches || hook.disposition !== "injected-fault"
+      || hook.reason !== evidence.scenario || typeof hook.toolUseId !== "string" || !hook.toolUseId) return false;
+    if (evidence.scenario === "timeout" && (!Number.isFinite(evidence.faultElapsedMs)
+      || evidence.faultElapsedMs! < 4500 || evidence.faultElapsedMs! > 5500)) return false;
+    if (!hasCorrelatedCalibrationDenial(evidence.events, evidence.sessionId)) return false;
+    return evidence.events.some((item: any) => item?.type === "assistant" && item.message?.content?.some?.(
+      (block: any) => block.type === "tool_use" && block.id === hook.toolUseId && block.name === CALIBRATION_TOOL));
+  } catch { return false; }
+}

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createOfflineMessengerGuard } from "../scripts/prototypes/relay/claudeMessenger.js";
-import { inspectCalibrationTool, hasCorrelatedCalibrationDenial, CALIBRATION_TOOL, CALIBRATION_TEXT } from "../scripts/prototypes/relay/claudeMessengerCalibration.js";
+import { inspectCalibrationTool, hasCorrelatedCalibrationDenial, hasQualifiedCalibrationFaultBlock, CALIBRATION_TOOL, CALIBRATION_TEXT } from "../scripts/prototypes/relay/claudeMessengerCalibration.js";
 
 const messenger = "11111111-1111-4111-8111-111111111111";
 const target = { kind: "fixture-only" as const, sessionId: "22222222-2222-4222-8222-222222222222", recipient: "fixture-recipient" };
@@ -60,4 +60,48 @@ test("calibration : inventaire non validé, session étrangère et entrée non J
   const accessor = { ...event, get tool_name() { reads++; return CALIBRATION_TOOL; } };
   assert.equal(inspectCalibrationTool(setup(), accessor, [target]).disposition, "blocked");
   assert.equal(reads, 0);
+});
+for (const scenario of ["throw", "timeout"]) {
+  test(`calibration ${scenario} : panne attribuée et rejet runtime exigés, sans verdict sur la prose`, () => {
+    const evidence = { scenario, sessionId: messenger, inventoryValidated: true, handlerCalls: 0, outerTimedOut: false, error: null,
+      faultElapsedMs: 5100, events: trace(), hookDecisions: [{ tool: CALIBRATION_TOOL, toolUseId: "fixture-call", sessionMatches: true, disposition: "injected-fault", reason: scenario }] };
+    assert.equal(hasQualifiedCalibrationFaultBlock(evidence), true);
+    for (const patch of [{ handlerCalls: 1 }, { outerTimedOut: true }, { inventoryValidated: false }, { error: "failed" },
+      { events: [] }, { hookDecisions: [] }, { hookDecisions: [...evidence.hookDecisions, ...evidence.hookDecisions] },
+      { hookDecisions: [{ ...evidence.hookDecisions[0]!, toolUseId: "other-call" }] },
+      { hookDecisions: [{ ...evidence.hookDecisions[0]!, reason: "other-fault" }] }]) {
+      assert.equal(hasQualifiedCalibrationFaultBlock({ ...evidence, ...patch }), false);
+    }
+    if (scenario === "timeout") for (const faultElapsedMs of [undefined, NaN, 0, 4499, 5501, 60000]) {
+      assert.equal(hasQualifiedCalibrationFaultBlock({ ...evidence, faultElapsedMs }), false);
+    }
+  });
+}
+test("calibration : formes négatives réellement observées conservées sans les faire passer", () => {
+  // Essais autorisés du 27/10/2026, SDK0.3.302/CLI2.1.302. Identifiants et texte factices.
+  // Exception : outil exécuté, accept/config ; timeout : is_error mais pas de métadonnée
+  // permission_decision ni de permission_denials. Ne pas reconstituer ces preuves absentes.
+  for (const scenario of ["throw", "timeout"]) {
+    const base = trace();
+    const observedResult = scenario === "throw"
+      ? { type: "user", session_id: messenger, message: { content: [{ type: "tool_result", tool_use_id: "fixture-call", is_error: false }] },
+        tool_result_meta: [{ id: "fixture-call", permission_decision: { decision: "accept", source: "config" } }] }
+      : { type: "user", session_id: messenger, message: { content: [{ type: "tool_result", tool_use_id: "fixture-call", is_error: true }] } };
+    const records: unknown[] = [base[0], base[1], observedResult, { ...base[3]!, permission_denials: [] }];
+    assert.equal(hasQualifiedCalibrationFaultBlock({ scenario, sessionId: messenger, inventoryValidated: true,
+      handlerCalls: scenario === "throw" ? 1 : 0, outerTimedOut: false, error: null, faultElapsedMs: scenario === "throw" ? 64 : 5001,
+      events: records, hookDecisions: [{ tool: CALIBRATION_TOOL, toolUseId: "fixture-call", sessionMatches: true, disposition: "injected-fault", reason: scenario }] }), false);
+  }
+});
+test("calibration : panne injectée ferme le garde, tout deuxième appel reste refusé", () => {
+  const guard = setup();
+  guard.cancel(); // Même fermeture que le lanceur avant son throw ou son attente infinie.
+  let fakeCalls = 0;
+  for (const tool_use_id of ["retry-1", "retry-2"]) {
+    const decision = inspectCalibrationTool(guard, { ...event, tool_use_id }, [target]);
+    if (decision.disposition === "continue-permissions") fakeCalls++;
+    assert.equal(decision.disposition, "blocked");
+  }
+  assert.equal(fakeCalls, 0);
+  assert.equal(guard.state().reservations, 0);
 });
