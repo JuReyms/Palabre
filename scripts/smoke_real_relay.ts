@@ -271,8 +271,10 @@ async function main(): Promise<void> {
     let screen = "";
     const pty: IPty = spawnPty(file, args, { name: "xterm-256color", cols: 140, rows: 50, cwd, env: cleanExternalEnv(process.env) as Record<string, string> });
     pty.onData((data) => { screen += data; });
+    let ptyExited = false;
+    pty.onExit(() => { ptyExited = true; });
     let probe: any;
-    for (let waited = 0; waited < 60_000; waited += 1_000) {
+    for (let waited = 0; waited < 60_000 && !ptyExited; waited += 1_000) {
       await sleep(1_000);
       probe = adapter.probe(target);
       if (probe.attachment === "attached") break;
@@ -281,15 +283,25 @@ async function main(): Promise<void> {
     let before: HistoryFootprint | undefined;
     let after: HistoryFootprint | undefined;
     let result: Awaited<ReturnType<typeof palabre>> | undefined;
-    if (refusalPrecondition(probe).send) {
+    let reason: string | undefined;
+    try {
       before = historyFootprint(historyFiles());
-      result = await palabre(relay);
-      await sleep(2_000);
-      after = historyFootprint(historyFiles());
+    } catch (error) {
+      reason = `historique illisible (${error instanceof Error ? error.message : String(error)}) : aucun message envoyé`;
     }
-    trace[`attached${label}`] = { probe, sent: result !== undefined, result: result ? result.json ?? { stdout: result.stdout, stderr: result.stderr } : null,
+    if (!reason) {
+      // Sonde refaite au plus près de l'appel : la première a pu précéder la fermeture du TUI.
+      probe = adapter.probe(target);
+      const decision = refusalPrecondition(probe, { ptyExited, history: before });
+      if (decision.send) {
+        result = await palabre(relay);
+        await sleep(2_000);
+        after = historyFootprint(historyFiles());
+      } else reason = decision.reason;
+    }
+    trace[`attached${label}`] = { probe, ptyExited, sent: result !== undefined, reason, result: result ? result.json ?? { stdout: result.stdout, stderr: result.stderr } : null,
       historyBefore: before, historyAfter: after, screenTail: strip(screen).split(/\r?\n/).filter((line) => line.trim()).slice(-8) };
-    for (const item of refusalChecks(label, { probe, call: result ? { code: result.code, json: result.json } : undefined, before, after })) check(item.name, item.ok, item.detail);
+    for (const item of refusalChecks(label, { probe, call: result ? { code: result.code, json: result.json } : undefined, before, after, reason })) check(item.name, item.ok, item.detail);
     pty.write("\x03");
     await sleep(800);
     pty.write("\x03");

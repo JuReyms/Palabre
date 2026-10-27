@@ -36,6 +36,17 @@ describe("smoke Relay : précondition du scénario de refus", () => {
       assert.match(decision.send ? "" : decision.reason, /aucun message envoyé/);
     }
   });
+
+  test("TUI terminé ou historique introuvable juste avant l'appel : aucun envoi", () => {
+    const attached = { attachment: "attached" };
+    const exited = refusalPrecondition(attached, { ptyExited: true, history: { files: 1, lines: 3 } });
+    assert.equal(exited.send, false);
+    assert.match(exited.send ? "" : exited.reason, /TUI terminé/);
+    const empty = refusalPrecondition(attached, { ptyExited: false, history: { files: 0, lines: 0 } });
+    assert.equal(empty.send, false);
+    assert.match(empty.send ? "" : empty.reason, /historique introuvable/);
+    assert.deepEqual(refusalPrecondition(attached, { ptyExited: false, history: { files: 1, lines: 3 } }), { send: true });
+  });
 });
 
 describe("smoke Relay : verdicts du scénario de refus", () => {
@@ -66,6 +77,19 @@ describe("smoke Relay : verdicts du scénario de refus", () => {
     assert.equal(refusalChecks("Codex", { probe: attached, call: busy, before: same, after: { files: 1, lines: 5 } })[2]!.ok, false);
     assert.equal(refusalChecks("Codex", { probe: attached, call: busy, before: same })[2]!.ok, false);
   });
+
+  test("aucun fichier observé avant et après : jamais un historique inchangé", () => {
+    const none = { files: 0, lines: 0 };
+    const checks = refusalChecks("Codex", { probe: { attachment: "attached" }, call: busy, before: none, after: { ...none } });
+    assert.equal(checks[2]!.ok, false);
+    assert.deepEqual(historyFootprint([]), none, "une liste vide se mesure, mais ne qualifie rien");
+  });
+
+  test("scénario non joué : la raison de l'arrêt est rapportée", () => {
+    const checks = refusalChecks("Codex", { probe: { attachment: "attached" }, reason: "TUI terminé avant l'appel : aucun message envoyé" });
+    assert.deepEqual(checks.map((check) => check.ok), [true, false, false]);
+    assert.match(checks[1]!.detail, /TUI terminé/);
+  });
 });
 
 describe("smoke Relay : empreinte d'historique", () => {
@@ -83,7 +107,7 @@ describe("smoke Relay : empreinte d'historique", () => {
 });
 
 describe("smoke Relay : l'appel du scénario de refus refuse au lieu d'envoyer", () => {
-  async function world(t: TestContext) {
+  async function world(t: TestContext, attachment: "attached" | "detached" = "attached") {
     const root = await mkdtemp(path.join(os.tmpdir(), "palabre-smoke-refusal-"));
     t.after(() => rm(root, { recursive: true, force: true }));
     t.mock.method(os, "homedir", () => root);
@@ -100,9 +124,15 @@ describe("smoke Relay : l'appel du scénario de refus refuse au lieu d'envoyer",
     let probes = 0;
     t.mock.method(CodexSessionAdapter.prototype, "probe", () => {
       probes++;
-      return { attachment: "attached", activity: "unknown", processes: [], evidence: [] };
+      return { attachment, activity: "unknown", processes: [], evidence: [] };
     });
-    return { configPath, probes: () => probes };
+    // Espions : toute préparation de lancement (environnement, liste MCP, reprise ou création)
+    // est comptée ; un refus avant lancement n'en déclenche aucune.
+    const launches: string[] = [];
+    for (const method of ["environment", "prepare", "resumeArgs", "createArgs"] as const) {
+      t.mock.method(CodexSessionAdapter.prototype, method, () => { launches.push(method); throw new Error(`lancement inattendu : ${method}`); });
+    }
+    return { configPath, probes: () => probes, launches };
   }
 
   test("Codex attachée : target-busy, code 3, rien envoyé, arrière-plan explicite", async (t) => {
@@ -114,7 +144,15 @@ describe("smoke Relay : l'appel du scénario de refus refuse au lieu d'envoyer",
     assert.equal(result.mode, "background");
     assert.equal(result.modeSource, "explicit");
     assert.ok(w.probes() >= 1);
+    assert.deepEqual(w.launches, [], "aucun environnement, liste MCP, reprise ni création préparés");
     const checks = refusalChecks("Codex", { probe: { attachment: "attached" }, call: { code: result.exitCode, json: result }, before: { files: 1, lines: 1 }, after: { files: 1, lines: 1 } });
     assert.deepEqual(checks.map((check) => check.ok), [true, true, true]);
+  });
+
+  test("témoin des espions : une Codex fermée atteint la préparation du lancement", async (t) => {
+    const w = await world(t, "detached");
+    const result = await executeRelay(smokeRelayArgs({ from: `claude:${CLAUDE}`, to: `codex:${CODEX}`, message: "Témoin", configPath: w.configPath }));
+    assert.notEqual(result.status, "target-busy");
+    assert.ok(w.launches.length > 0, "les espions détectent bien un lancement en préparation");
   });
 });

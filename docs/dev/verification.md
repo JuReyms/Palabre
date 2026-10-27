@@ -55,7 +55,7 @@ pnpm smoke:real-relay
 
 `scripts/smoke_real_relay.ts` crée deux sessions **jetables**, une Claude Code et une Codex, dans un dossier temporaire, puis vérifie :
 - la réponse d'une cible fermée, avec contexte conservé, délivrance, identité, export et arrière-plan explicite ;
-- le refus d'une cible attachée, avec un TUI ouvert dans un pseudo-terminal : `target-busy`, code 3, `not-delivered`, et historique inchangé (nombre de fichiers et de lignes, segments Codex compris). Le message de refus n'est envoyé que si la sonde établit l'attachement ; sinon le scénario échoue sans rien envoyer ;
+- le refus d'une cible attachée, avec un TUI ouvert dans un pseudo-terminal : `target-busy`, code 3, `not-delivered`, et historique inchangé (nombre de fichiers et de lignes, segments Codex compris). Le message de refus n'est envoyé que si, juste avant l'appel, une nouvelle sonde établit l'attachement, le TUI n'est pas terminé et l'historique a été mesuré sur au moins un fichier ; sinon le scénario échoue sans rien envoyer. Une mesure sans aucun fichier n'est jamais un historique inchangé. Cette nouvelle sonde réduit la course sans rendre sonde et appel atomiques ;
 - la neutralisation MCP de Codex (journaux d'une reprise témoin comparés à ceux du relay) ;
 - l'outillage de Claude annoncé par `system/init` ;
 - les versions des CLIs.

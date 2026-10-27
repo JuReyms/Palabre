@@ -23,10 +23,19 @@ export interface ProbeLike {
   evidence?: readonly string[];
 }
 
-/** Envoyer le message du scénario de refus seulement si la cible est attachée. */
-export function refusalPrecondition(probe: ProbeLike | undefined): { send: true } | { send: false; reason: string } {
-  if (probe?.attachment === "attached") return { send: true };
-  return { send: false, reason: `attachement non établi (${probe?.attachment ?? "sonde absente"}) : aucun message envoyé` };
+/**
+ * Envoyer le message du scénario de refus seulement si, juste avant l'appel, la cible est attachée,
+ * le pseudo-terminal qui la tient n'est pas terminé et l'historique a été mesuré sur au moins un
+ * fichier. La sonde doit être **refaite au plus près de l'appel** : une sonde ancienne laisserait
+ * passer un TUI fermé entre-temps, et `--background` reprendrait alors la conversation. Cela réduit
+ * la course sans rendre sonde et appel atomiques.
+ */
+export function refusalPrecondition(probe: ProbeLike | undefined, context: { ptyExited?: boolean; history?: HistoryFootprint } = {}): { send: true } | { send: false; reason: string } {
+  const refuse = (cause: string) => ({ send: false as const, reason: `${cause} : aucun message envoyé` });
+  if (probe?.attachment !== "attached") return refuse(`attachement non établi (${probe?.attachment ?? "sonde absente"})`);
+  if (context.ptyExited) return refuse("TUI terminé avant l'appel");
+  if (context.history && context.history.files === 0) return refuse("historique introuvable");
+  return { send: true };
 }
 
 /** Empreinte d'un historique : nombre de fichiers et de lignes non vides, tous fichiers confondus. */
@@ -62,14 +71,16 @@ export interface RelayCall {
 /**
  * Verdicts du scénario « conversation attachée ». Sans envoi (précondition non remplie), le refus
  * et l'historique échouent explicitement : un scénario non joué n'est jamais un succès. Un refus
- * exige `target-busy`, code 3, `not-delivered`, mode arrière-plan explicite ; l'historique, le même
- * nombre de fichiers et de lignes avant et après.
+ * exige `target-busy`, code 3, `not-delivered`, mode arrière-plan explicite ; l'historique, au moins
+ * un fichier mesuré, puis le même nombre de fichiers et de lignes avant et après. Une mesure vide
+ * n'est jamais un historique inchangé. `reason` explique un scénario non joué.
  */
 export function refusalChecks(label: string, input: {
   probe: ProbeLike | undefined;
   call?: RelayCall;
   before?: HistoryFootprint;
   after?: HistoryFootprint;
+  reason?: string;
 }): SmokeCheck[] {
   const { probe, call, before, after } = input;
   const checks: SmokeCheck[] = [{
@@ -78,8 +89,8 @@ export function refusalChecks(label: string, input: {
     detail: `attachement ${probe?.attachment ?? "?"}, activité ${probe?.activity ?? "?"} ; ${(probe?.evidence ?? []).join(" | ")}`
   }];
   if (!call) {
-    const reason = refusalPrecondition(probe);
-    const detail = reason.send ? "appel non lancé" : reason.reason;
+    const decision = refusalPrecondition(probe);
+    const detail = input.reason ?? (decision.send ? "appel non lancé" : decision.reason);
     checks.push({ name: `${label} attaché : refus`, ok: false, detail });
     checks.push({ name: `${label} attaché : historique inchangé`, ok: false, detail: "non mesuré : scénario non joué" });
     return checks;
@@ -91,7 +102,7 @@ export function refusalChecks(label: string, input: {
       && json.mode === "background" && json.modeSource === "explicit",
     detail: `code ${call.code}, statut ${json?.status}, délivrance ${json?.delivery?.status}, mode ${json?.mode} (${json?.modeSource})`
   });
-  const same = before !== undefined && after !== undefined && before.files === after.files && before.lines === after.lines;
+  const same = before !== undefined && after !== undefined && before.files > 0 && before.files === after.files && before.lines === after.lines;
   checks.push({
     name: `${label} attaché : historique inchangé`,
     ok: same,
