@@ -8,7 +8,8 @@
  * 1. relay vers une conversation fermée, Claude puis Codex : réponse, contexte conservé (nom de
  *    projet fictif mémorisé à la création), délivrance, identité, export, modèle effectif ;
  * 2. relay vers une conversation attachée (TUI ouvert dans un pseudo-terminal) : refus
- *    `target-busy`, code 3, historique inchangé ;
+ *    `target-busy`, code 3, historique inchangé (fichiers et lignes, segments Codex compris). Le
+ *    message n'est envoyé que si la sonde établit l'attachement ;
  * 3. neutralisation MCP Codex : liste stricte dans le dossier de la cible, puis comparaison des
  *    journaux (`RUST_LOG=info`) entre une reprise témoin non neutralisée et l'échange du relay ;
  *    côté Claude, outils et serveurs MCP annoncés par `system/init` pendant l'échange du relay ;
@@ -22,14 +23,18 @@
  * La trace complète (identifiants de session compris) est écrite dans `.tmp/relay-smoke/`, ignoré
  * par git. La sortie console ne contient aucun identifiant.
  *
+ * Tous les appels imposent `--background` (`smoke_relay_plan.ts`) : avec `relay.view: auto`, une
+ * Codex attachée serait jointe en mode ouvert et recevrait le message censé être refusé.
+ *
  * Usage : pnpm build && pnpm smoke:real-relay
  */
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { spawn as spawnPty, type IPty } from "node-pty";
+import { historyFootprint, refusalChecks, refusalPrecondition, smokeRelayArgs, type HistoryFootprint } from "./smoke_relay_plan.js";
 
 const repo = process.cwd();
 const dist = (file: string) => pathToFileURL(path.join(repo, "dist", file)).href;
@@ -69,10 +74,6 @@ function palabre(args: string[]): Promise<{ code: number | null; stdout: string;
   });
 }
 
-function lineCount(file: string): number {
-  return readFileSync(file, "utf8").split(/\r?\n/).filter(Boolean).length;
-}
-
 /** Serveurs mentionnés dans les journaux d'une reprise Codex : indice de démarrage, pas preuve d'exposition. */
 function mentioned(stderr: string, names: string[]): string[] {
   return names.filter((name) => new RegExp(`\\b${name.replace(/[-]/g, "\\-")}\\b`).test(stderr));
@@ -86,6 +87,7 @@ async function main(): Promise<void> {
   const { resolveExternalExecutable } = await import(dist("externalSessions/resolve.js"));
   const { ClaudeSessionAdapter, claudeResumeArgs, interpretClaudeOutput } = await import(dist("externalSessions/claude.js"));
   const { CodexSessionAdapter, parseMcpServerNames, mcpNeutralizationArgs } = await import(dist("externalSessions/codex.js"));
+  const { findCodexHistoryFiles } = await import(dist("externalSessions/codexHistory.js"));
   const { exchange, exchangeOutcome } = await import(dist("externalSessions/adapter.js"));
   const { buildEnvelope, createNonce } = await import(dist("externalSessions/envelope.js"));
   const { relayMessages } = await import(dist("messages/relay.js"));
@@ -174,8 +176,8 @@ async function main(): Promise<void> {
   if (claudeLocated.status !== "found" || codexLocated.status !== "found") throw new Error("session jetable non localisée.");
   check("localisation", true, `dossiers d'origine retrouvés ; modèle Codex enregistré : ${codexLocated.target.model ?? "absent"}`);
 
-  const relayArgs = (from: string, to: string, message: string) =>
-    ["relay", "--from", from, "--to", to, message, "--json", "--config", configPath, "--trust-config", "--timeout", "600"];
+  const relayArgs = (from: string, to: string, message: string) => smokeRelayArgs({ from, to, message, configPath });
+  const backgroundMode = (json: any) => json?.mode === "background" && json?.modeSource === "explicit";
 
   // 1. Conversations fermées : réponse et contexte conservé.
   const toClaude = await palabre(relayArgs(`codex:${codexSession}`, `claude:${claudeSession}`, "Comment s'appelle le projet de test mentionné au début de cette conversation ? Réponds uniquement par son nom."));
@@ -185,6 +187,7 @@ async function main(): Promise<void> {
   check("Claude fermé : délivrance et identité", toClaude.json?.delivery?.status === "replied" && toClaude.json?.delivery?.persisted === true && toClaude.json?.identity === "same-as-target",
     `délivrance ${toClaude.json?.delivery?.status}, persisted ${toClaude.json?.delivery?.persisted}, identité ${toClaude.json?.identity}, modèles ${(toClaude.json?.observedModels ?? []).join(", ")}`);
   check("Claude fermé : export", Boolean(toClaude.json?.exportPath && existsSync(toClaude.json.exportPath)), "export .relay.md écrit");
+  check("Claude fermé : arrière-plan explicite", backgroundMode(toClaude.json), `mode ${toClaude.json?.mode} (${toClaude.json?.modeSource})`);
   // Observation, pas une vérification : modèle de création et modèle effectif de la reprise.
   console.log(`Observation : Claude créé avec --model ${claudeModel} (${(trace.creationModels as any).claude.filter(Boolean).join(", ")}), repris sans --model avec ${(toClaude.json?.observedModels ?? []).join(", ") || "?"}`);
 
@@ -216,6 +219,7 @@ async function main(): Promise<void> {
   check("Codex fermé : contexte conservé", String(toCodex.json?.reply ?? "").trim() === codexCode, "réponse égale au seul nom du projet attendu (une citation dans un refus ne suffit pas)");
   check("Codex fermé : délivrance et identité", toCodex.json?.delivery?.status === "replied" && toCodex.json?.delivery?.persisted === true && toCodex.json?.identity === "same-as-target",
     `délivrance ${toCodex.json?.delivery?.status}, persisted ${toCodex.json?.delivery?.persisted}, identité ${toCodex.json?.identity}`);
+  check("Codex fermé : arrière-plan explicite", backgroundMode(toCodex.json), `mode ${toCodex.json?.mode} (${toCodex.json?.modeSource})`);
 
   // 3. Neutralisation MCP.
   // Claude : outils et serveurs annoncés par `system/init` pendant un échange du relay.
@@ -261,8 +265,9 @@ async function main(): Promise<void> {
     controlValid && relayedOutcome.status === "replied" && relayed.verdict?.interpretation.identity === "same-as-target" && relayMentions.length === 0,
     `issue ${relayedOutcome.status}, identité ${relayed.verdict?.interpretation.identity ?? "?"}, réponse ${JSON.stringify(relayed.verdict?.interpretation.reply ?? null)} ; serveurs mentionnés dans les journaux du relay : ${relayMentions.join(", ") || "aucun"}. Les journaux sont un indice, pas une preuve d'absence d'exposition`);
 
-  // 2. Conversations attachées : TUI ouvert dans un pseudo-terminal, puis relay refusé.
-  async function attached(label: string, file: string, args: string[], cwd: string, history: string, adapter: any, target: any, relay: string[]): Promise<void> {
+  // 2. Conversations attachées : TUI ouvert dans un pseudo-terminal, puis relay refusé. Le message
+  // n'est envoyé que si la sonde établit l'attachement ; l'historique est mesuré sur tous ses fichiers.
+  async function attached(label: string, file: string, args: string[], cwd: string, historyFiles: () => string[], adapter: any, target: any, relay: string[]): Promise<void> {
     let screen = "";
     const pty: IPty = spawnPty(file, args, { name: "xterm-256color", cols: 140, rows: 50, cwd, env: cleanExternalEnv(process.env) as Record<string, string> });
     pty.onData((data) => { screen += data; });
@@ -273,15 +278,18 @@ async function main(): Promise<void> {
       if (probe.attachment === "attached") break;
     }
     await sleep(3_000);
-    const before = lineCount(history);
-    const result = await palabre(relay);
-    await sleep(2_000);
-    const after = lineCount(history);
-    trace[`attached${label}`] = { probe, result: result.json ?? { stdout: result.stdout, stderr: result.stderr }, linesBefore: before, linesAfter: after, screenTail: strip(screen).split(/\r?\n/).filter((line) => line.trim()).slice(-8) };
-    check(`${label} attaché : sonde`, probe?.attachment === "attached", `attachement ${probe?.attachment}, activité ${probe?.activity} ; ${(probe?.evidence ?? []).join(" | ")}`);
-    check(`${label} attaché : refus`, result.code === 3 && result.json?.status === "target-busy" && result.json?.delivery?.status === "not-delivered",
-      `code ${result.code}, statut ${result.json?.status}, délivrance ${result.json?.delivery?.status}`);
-    check(`${label} attaché : historique inchangé`, before === after, `${before} → ${after} entrée(s)`);
+    let before: HistoryFootprint | undefined;
+    let after: HistoryFootprint | undefined;
+    let result: Awaited<ReturnType<typeof palabre>> | undefined;
+    if (refusalPrecondition(probe).send) {
+      before = historyFootprint(historyFiles());
+      result = await palabre(relay);
+      await sleep(2_000);
+      after = historyFootprint(historyFiles());
+    }
+    trace[`attached${label}`] = { probe, sent: result !== undefined, result: result ? result.json ?? { stdout: result.stdout, stderr: result.stderr } : null,
+      historyBefore: before, historyAfter: after, screenTail: strip(screen).split(/\r?\n/).filter((line) => line.trim()).slice(-8) };
+    for (const item of refusalChecks(label, { probe, call: result ? { code: result.code, json: result.json } : undefined, before, after })) check(item.name, item.ok, item.detail);
     pty.write("\x03");
     await sleep(800);
     pty.write("\x03");
@@ -293,12 +301,12 @@ async function main(): Promise<void> {
 
   await attached("Claude", claudeExe.executable.command, [...claudeExe.executable.prefixArgs, "--resume", claudeSession, "--permission-mode", "plan",
     "--tools", "Read,Glob,Grep", "--strict-mcp-config", "--settings", JSON.stringify({ disableAllHooks: true })],
-    wsClaude, claudeLocated.historyPath, claudeAdapter, claudeLocated.target,
+    wsClaude, () => [claudeLocated.historyPath], claudeAdapter, claudeLocated.target,
     relayArgs(`codex:${codexSession}`, `claude:${claudeSession}`, "Ce message doit être refusé : la conversation est ouverte."));
   const trust = `projects={${JSON.stringify(wsCodex)}={trust_level="trusted"}}`;
   await attached("Codex", codexExe.executable.command, [...codexExe.executable.prefixArgs, "resume", codexSession, "-s", "read-only", ...neutralization,
     "--disable", "memories", "--disable", "hooks", "--no-alt-screen", "-c", "check_for_update_on_startup=false", "-c", trust],
-    wsCodex, codexLocated.historyPath, codexAdapter, codexLocated.target,
+    wsCodex, () => findCodexHistoryFiles(path.join(os.homedir(), ".codex"), codexSession).map((entry: { path: string }) => entry.path), codexAdapter, codexLocated.target,
     relayArgs(`claude:${claudeSession}`, `codex:${codexSession}`, "Ce message doit être refusé : la conversation est ouverte."));
 }
 
