@@ -365,7 +365,7 @@ The [JSON contract](/en/integrations/json-contracts#relay-inventory-json) descri
 
 - `--to <agent>:<session>`: `<agent>` is the name of a Codex or Claude Code CLI agent from your configuration (`codex`, `claude`, `claude-opus`…). `<session>` is the conversation identifier (a UUID).
   - Claude Code: it is the name of the `~/.claude/projects/<folder>/<session>.jsonl` file.
-  - Codex: it is the end of the `~/.codex/sessions/YYYY/MM/DD/rollout-…-<session>.jsonl` file name. A long conversation may continue in other `rollout-…-<session>_<other>.jsonl` files: the identifier is the one before `_`, never the one after it. PALABRE follows these files itself; if it cannot link them without ambiguity, it refuses and sends nothing.
+  - Codex: in `~/.codex/sessions/YYYY/MM/DD/rollout-…-<session>.jsonl` or `rollout-…-<session>_<other>.jsonl`, keep only the identifier represented by `<session>`, never `<other>`. A conversation may use several files: PALABRE follows them for you. If it cannot link them with confidence, it refuses to send.
 - `--from <agent>[:<session>]`: the sender. It is only a label, copied into the relayed message. It is neither launched nor verified, and the sender conversation may be open.
 
 Copy the identifier from the host’s conversation information, or from its history filename. Never pick “the most recent” on the owner’s behalf; no target is inferred implicitly.
