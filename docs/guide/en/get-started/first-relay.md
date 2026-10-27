@@ -47,7 +47,7 @@ palabre relay --help
 
 Help must list `--new`. Otherwise, use a PALABRE version that includes it; see [Installation and updates](/en/get-started/installation).
 
-Also install the [Palabre skill](/en/get-started/skill) for your usual agent. Copy the entire folder, including references, then open a new conversation so the agent can see it. After a skill update, its installed copy must be updated manually.
+Also install the [Palabre skill](/en/get-started/skill) with `palabre skill --install codex` for Codex, or `palabre skill --install claude` for Claude Code. Palabre shows the plan before you confirm. To refresh existing copies, use `palabre skill --sync`; `palabre update` also includes this refresh in its plan. Then reload the skill or open a new conversation so the agent can see it.
 
 Each call uses the selected agent's account and model. Check what you share before delegating sensitive files.
 
@@ -77,9 +77,11 @@ This path has been verified on Windows from Codex desktop. It still needs testin
 
 > Continue with the same Claude to clarify the main risk, without changing files.
 
-The mission lead reuses the identifier, reads the reply and reports back to you in plain words, without asking you to copy the identifier or a command. The exchange stays in the teammate's conversation and in the `.relay.md` export, which the agent points to if you ask. With the verified Codex versions, a conversation created by `--new` is not listed in Codex Desktop, but Relay can keep reaching it. To follow it in the app, run the opening command your agent gives you (Run button when the app shows one), or simply ask it to open the conversation; once open in Desktop, the agent reaches it in the app, with its permissions. The reply returns to the caller without being added automatically to the sender's conversation. Opening this Desktop link is verified on Windows only; macOS and Linux remain unverified.
+The mission lead reuses the identifier, reads the reply and reports back to you in plain words, without asking you to copy the identifier or a command. The exchange stays in the teammate's conversation and in the `.relay.md` export, which the agent points to if you ask. With the verified Codex versions, a conversation created by `--new` is not listed in Codex Desktop, but Relay can keep reaching it. To follow it in the app, run the opening command your agent gives you (Run button when the app shows one), or simply ask it to open the conversation; once open in Desktop, the agent reaches it in the app, with that conversation's permissions. The reply returns to the caller without being added automatically to the sender's conversation. Opening this Desktop link is verified on Windows only; macOS and Linux remain unverified.
 
-If the teammate changes files in an open conversation, they stay in its working directory. They appear on GitHub only after a separately authorized commit and push. Receiving a reply does not prove the work or tests succeeded.
+With the verified versions, a **Codex conversation created by Relay** (`--new`) stays read-only even when opened in Desktop: opening it lets you inspect it, not grant it permission to change files. To delegate changes to Codex, create its conversation yourself in Codex Desktop with the permissions you choose, then designate that conversation to your mission lead.
+
+If the teammate changes files in an open conversation with those permissions, they stay in its working directory. They appear on GitHub only after a separately authorized commit and push. Receiving a reply does not prove the work or tests succeeded.
 
 For **Codex**, the agent uses `palabre relay open --to codex:<identifier>`:
 one launch, then a lock check, with no message. Opening authorizes neither sending
