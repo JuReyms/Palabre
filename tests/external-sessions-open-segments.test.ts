@@ -16,7 +16,8 @@ import { trustConfig } from "../src/configTrust.js";
 import { CodexSessionAdapter } from "../src/externalSessions/codex.js";
 import { buildOpenEnvelope } from "../src/externalSessions/envelope.js";
 import { runFollowRelay, runOpenRelay, type OpenRelayDeps, type OpenRelayInput } from "../src/externalSessions/openRelay.js";
-import { captureOpenRollout, locateOpenRollout, readLastCodexQuota, readLastTurnContext, readOpenRollout, type CodexHistoryScope } from "../src/externalSessions/openRollout.js";
+import { captureOpenRollout, locateOpenRollout, readLastCodexQuota, readLastTurnContext, readOpenRollout, type CodexHistoryScope, type OpenFile } from "../src/externalSessions/openRollout.js";
+import { open } from "node:fs/promises";
 import type { ExternalProcessResult } from "../src/externalSessions/process.js";
 import { createTranslator } from "../src/i18n.js";
 import { relayMessages } from "../src/messages/relay.js";
@@ -52,13 +53,13 @@ const queued = (): ExternalProcessResult => ({
 });
 
 /** Dépendances simulées, lectures réelles sur la chaîne de la portée. */
-function harness(scope: CodexHistoryScope, options: { onRun?: () => void; onRead?: (index: number) => void } = {}) {
+function harness(scope: CodexHistoryScope, options: { onRun?: () => void; onRead?: (index: number) => void; openFile?: OpenFile } = {}) {
   const clock = { now: 0 };
   const calls = { run: 0, read: 0 };
   const deps: OpenRelayDeps = {
     probe: () => ({ attachment: "attached", activity: "unknown", processes: [], evidence: [] }),
     capture: (file) => captureOpenRollout(file, undefined, scope),
-    read: async (file, baseline) => { options.onRead?.(calls.read++); return readOpenRollout(file, baseline, undefined, scope); },
+    read: async (file, baseline) => { options.onRead?.(calls.read++); return readOpenRollout(file, baseline, options.openFile, scope); },
     run: async () => { calls.run += 1; options.onRun?.(); return queued(); },
     now: () => clock.now,
     sleep: async (ms, signal) => { if (!signal.aborted) clock.now += ms; }
@@ -232,6 +233,84 @@ describe("--open sur segments : rotation pendant l'attente", () => {
     const followed = await runFollowRelay({ sessionId: THREAD, historyPath: second.path, timeoutMs: 10_000, signal: new AbortController().signal }, h.deps);
     assert.equal(followed.outcome.status, "followed");
     assert.equal(followed.reply, "Fait dans l'app");
+  });
+});
+
+describe("--open sur segments : régressions de la relecture de la PR", () => {
+  test("coupure avant la référence --then-follow, témoin identique : history-rewound, jamais followed", async () => {
+    const home = newHome();
+    const { second } = twoSegments(home);
+    // Réponse de plus de 64 Kio : le témoin ne contient que la fin de last_agent_message.
+    const big = "R".repeat(70_000);
+    let third: SegmentFile | undefined;
+    const h = harness({ home, sessionId: THREAD }, {
+      onRun: () => { third = writeSegment(home, THREAD, root, second, SEG2, second.nextOrdinal, relayed(big)); },
+      onRead: (index) => {
+        if (index !== 1 || !third) return;
+        // Un nouveau segment coupe juste avant la fin du tour et la remplace par une ligne de même
+        // longueur attribuée à un autre tour, puis un tour suivant se termine.
+        const completion = third.nextOrdinal - 1;
+        assert.equal(String(completion).length, String(completion + 1).length, "ordinal de même longueur");
+        writeSegment(home, THREAD, root, third, "0199bbbb-0000-7000-8000-000000000003", completion, [
+          event("task_complete", "relayer", { last_agent_message: big }), ...turn("next", "Validation", "Suite validée")
+        ]);
+      }
+    });
+    const result = await runOpenRelay(input(second.path, { thenFollowMs: 10_000 }), h.deps);
+    assert.equal(result.outcome.status, "replied");
+    assert.equal(result.reply, big);
+    assert.equal(result.nextTurn?.status, "no-valid-reply");
+    assert.equal(result.nextTurn?.reason, "history-rewound");
+    assert.equal(result.nextTurn?.reply, undefined);
+  });
+
+  test("réponse complète dans l'ancienne tête pendant qu'un segment s'écrit : aucune conclusion, puis abandon respecté", async () => {
+    const home = newHome();
+    const { second } = twoSegments(home);
+    const relayStart = second.nextOrdinal;
+    const h = harness({ home, sessionId: THREAD }, {
+      onRun: () => {
+        appendSegmentRows(second, relayed());
+        writeSegment(home, THREAD, root, second, SEG2, relayStart, [], { header: '{"ordinal":' });
+      },
+      // Le segment complété coupe avant le tour relayé : sa réponse est abandonnée.
+      onRead: (index) => { if (index === 3) writeSegment(home, THREAD, root, second, SEG2, relayStart, turn("autre", "Autre saisie", "Autre réponse")); }
+    });
+    const result = await runOpenRelay(input(second.path, { timeoutMs: 5_000 }), h.deps);
+    assert.equal(result.outcome.status, "timeout");
+    assert.equal(result.reply, undefined);
+    assert.equal(result.correlation?.reason, "envelope-not-observed");
+  });
+
+  test("segment en cours d'écriture jusqu'à l'échéance : timeout avec diagnostic history-rotating", async () => {
+    const home = newHome();
+    const { second } = twoSegments(home);
+    const h = harness({ home, sessionId: THREAD }, { onRun: () => {
+      appendSegmentRows(second, relayed());
+      writeSegment(home, THREAD, root, second, SEG2, second.nextOrdinal - 6, [], { header: '{"ordinal":' });
+    } });
+    const result = await runOpenRelay(input(second.path, { timeoutMs: 3_000 }), h.deps);
+    assert.equal(result.outcome.status, "timeout");
+    assert.equal(result.reply, undefined);
+    assert.equal(result.diagnostic, "history-rotating");
+    assert.match(createTranslator("fr").relay.historyChain.changed, /Vérifiez la conversation/);
+  });
+
+  test("segment complet apparu pendant une lecture : la lecture n'est pas conclue", async () => {
+    const home = newHome();
+    const { second } = twoSegments(home);
+    const relayStart = second.nextOrdinal;
+    let opens = 0;
+    let armed = false;
+    // Simule la course : la chaîne change entre la résolution et la fin de la lecture.
+    const racing: OpenFile = async (name, flags) => {
+      if (armed && ++opens === 2) writeSegment(home, THREAD, root, second, SEG2, relayStart, turn("autre", "Autre saisie", "Autre réponse"));
+      return open(name, flags);
+    };
+    const h = harness({ home, sessionId: THREAD }, { openFile: racing, onRun: () => { appendSegmentRows(second, relayed()); armed = true; } });
+    const result = await runOpenRelay(input(second.path, { timeoutMs: 3_000 }), h.deps);
+    assert.notEqual(result.outcome.status, "replied");
+    assert.equal(result.reply, undefined);
   });
 });
 

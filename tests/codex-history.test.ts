@@ -169,6 +169,13 @@ describe("historique Codex : refus d'une chaîne cassée ou ambiguë", () => {
     }
   });
 
+  test("coupure en fin de fichier avec un ordinal incohérent : invalid-cut", () => {
+    const dir = home();
+    const first = writeRoot(dir, THREAD, root, finished("a"), { paginated: true });
+    writeSegment(dir, THREAD, root, first, SEG1, 999, finished("b"));
+    assert.equal(refused(dir), "invalid-cut");
+  });
+
   test("ligne à la coupure d'un autre ordinal : invalid-cut", () => {
     const dir = home();
     const first = writeRoot(dir, THREAD, root, [...finished("a"), ...aborted("b")], { paginated: true });

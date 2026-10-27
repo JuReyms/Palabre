@@ -15,7 +15,7 @@
 import { createHash } from "node:crypto";
 import { open, type FileHandle } from "node:fs/promises";
 import path from "node:path";
-import { historyParts, historyRefusalDetail, resolveCodexHistory, type CodexHistoryRefusal, type HistoryPart } from "./codexHistory.js";
+import { historyParts, historyRefusalDetail, resolveCodexHistory, type CodexHistoryRefusal, type CodexSegment, type HistoryPart } from "./codexHistory.js";
 import { isUsableDirectory } from "./process.js";
 import { captureOpenBaseline, lastTurnContext, OPEN_READ_LIMITS, type LastTurnContext, type OpenBaseline, type OpenSnapshot } from "./openReader.js";
 import { lastCodexQuota, type CodexQuota } from "./quota.js";
@@ -138,9 +138,8 @@ async function readLogical(parts: readonly HistoryPart[], from: number, to: numb
   return Buffer.concat(chunks);
 }
 
-/** Parties depuis l'ancrage, la tête prolongée jusqu'à sa taille actuelle. */
-async function partsFrom(scope: CodexHistoryScope, anchor: string, openFile: OpenFile): Promise<HistoryPart[]> {
-  const chain = currentChain(scope);
+/** Parties depuis l'ancrage dans `chain`, la tête prolongée jusqu'à sa taille actuelle. */
+async function partsFrom(chain: { segments: CodexSegment[] }, anchor: string, openFile: OpenFile): Promise<HistoryPart[]> {
   const index = chain.segments.findIndex((segment) => samePath(segment.path, anchor));
   if (index < 0) throw new Error("history-chain-changed");
   const parts = historyParts(chain.segments, index);
@@ -161,13 +160,27 @@ const logicalLength = (parts: readonly HistoryPart[]) => {
 };
 
 /**
+ * Les parties `kept` sont-elles toujours en place dans `parts` ? Mêmes fichiers, débuts et offsets
+ * logiques ; les parties précédentes gardent leur fin ; la dernière n'a pas été coupée avant la fin
+ * retenue (elle peut avoir grandi).
+ */
+function layoutKept(kept: readonly HistoryPart[], parts: readonly HistoryPart[]): boolean {
+  return kept.every((part, index) => {
+    const current = parts[index];
+    if (!current || !samePath(current.path, part.path) || current.start !== part.start || current.logicalStart !== part.logicalStart) return false;
+    return index < kept.length - 1 ? current.end === part.end : current.end >= part.end;
+  });
+}
+
+/**
  * Capture une référence de fin de ligne, quelle que soit la taille historique du fichier.
  * Une fin encore partielle est refusée (`baseline-incomplete`) : `runOpenRelay` réessaie brièvement
  * avant tout dépôt. Les erreurs de lecture restent des erreurs, traduites par l'appelant.
  *
  * Avec une portée, le fichier doit être la tête actuelle de la chaîne : un segment en cours de
  * création donne `history-rotating` (réessayé comme une fin partielle), un fichier qui n'est plus
- * la tête donne `history-rotated`. Aucune référence n'est prise sur une partie abandonnée.
+ * la tête donne `history-rotated`. Aucune référence n'est prise sur une partie abandonnée. La
+ * référence garde sa position physique (`layout`).
  */
 export async function captureOpenRollout(filename: string, openFile: OpenFile = open, scope?: CodexHistoryScope): Promise<OpenBaseline> {
   if (scope) {
@@ -182,7 +195,8 @@ export async function captureOpenRollout(filename: string, openFile: OpenFile = 
     const firstLine = await readIdentity(file, stat.size);
     const length = Math.min(stat.size, OPEN_READ_LIMITS.witnessBytes);
     const witness = await readRange(file, stat.size - length, length);
-    return captureOpenBaseline({ bytes: stat.size, firstLine, witness });
+    const baseline = captureOpenBaseline({ bytes: stat.size, firstLine, witness });
+    return scope ? { ...baseline, layout: [{ path: filename, start: 0, end: stat.size, logicalStart: 0 }] } : baseline;
   } finally { await file.close(); }
 }
 
@@ -194,17 +208,25 @@ export async function captureOpenRollout(filename: string, openFile: OpenFile = 
  *
  * Avec une portée, l'offset est celui du flux logique ancré sur `filename` (`historyParts`) :
  * l'ajout enchaîne la partie active de l'ancrage puis celle des segments créés ensuite, sans leur
- * première ligne. Une coupure annoncée avant la référence donne `history-rewound` : le tour attendu
- * a pu être abandonné, rien n'est deviné. Un segment encore partiel est ignoré jusqu'à la lecture
- * suivante ; la fin abandonnée de l'ancrage reste lue en attendant, ce qui ne peut donner qu'un
- * tour interrompu, jamais une réponse d'un autre tour.
+ * première ligne. Contrôles, dans l'ordre :
+ * - un segment dont la première ligne s'écrit encore donne `history-rotating`, non terminal pour
+ *   l'attente : sa coupure, inconnue, peut abandonner ce qui serait lu ;
+ * - la position physique de la référence (`baseline.layout`) doit rester dans la partie active ;
+ *   sinon `history-rewound`, quel que soit le témoin : le tour attendu a pu être abandonné ;
+ * - après la lecture, la chaîne est résolue de nouveau : un segment apparu entre-temps, ou une
+ *   coupure dans ce qui vient d'être lu, donne `history-rotating`, jamais une conclusion.
  */
 export async function readOpenRollout(filename: string, baseline: OpenBaseline, openFile: OpenFile = open, scope?: CodexHistoryScope): Promise<OpenSnapshot> {
   if (!Number.isSafeInteger(baseline.bytes) || baseline.bytes <= 0) throw new Error("invalid-baseline");
   if (!scope) return readSingleRollout(filename, baseline, openFile);
-  const parts = await partsFrom(scope, filename, openFile);
+  const chain = currentChain(scope);
+  if (chain.pending > 0) throw new Error("history-rotating");
+  const parts = await partsFrom(chain, filename, openFile);
+  const reference = baseline.layout ?? [{ path: filename, start: 0, end: baseline.bytes, logicalStart: 0 }];
+  const referenceEnd = reference[reference.length - 1]!;
+  if (referenceEnd.logicalStart + referenceEnd.end - referenceEnd.start !== baseline.bytes) throw new Error("invalid-baseline");
+  if (!layoutKept(reference, parts)) throw new Error(parts.length > 1 ? "history-rewound" : "history-replaced");
   const total = logicalLength(parts);
-  if (total < baseline.bytes) throw new Error(parts.length > 1 ? "history-rewound" : "history-replaced");
   if (total - baseline.bytes > OPEN_READ_LIMITS.addedBytes) throw new Error("added-too-large");
   const anchor = await openFile(filename, "r");
   let firstLine: string;
@@ -215,7 +237,6 @@ export async function readOpenRollout(filename: string, baseline: OpenBaseline, 
   } finally { await anchor.close(); }
   const length = Math.min(baseline.bytes, OPEN_READ_LIMITS.witnessBytes);
   const witness = await readLogical(parts, baseline.bytes - length, baseline.bytes, openFile);
-  // Témoin changé alors qu'un segment suit l'ancrage : la coupure est passée avant la référence.
   if (parts.length > 1 && createHash("sha256").update(witness).digest("hex") !== baseline.sha256) throw new Error("history-rewound");
   const added = await readLogical(parts, baseline.bytes, total, openFile);
   const check = await openFile(filename, "r");
@@ -224,7 +245,10 @@ export async function readOpenRollout(filename: string, baseline: OpenBaseline, 
     if (!witness.equals(await readLogical(parts, baseline.bytes - length, baseline.bytes, openFile))
       || firstLine !== await readIdentity(check, after.size)) throw new Error("history-replaced");
   } finally { await check.close(); }
-  return { bytes: total, firstLine, witness, added };
+  // Une rotation pendant la lecture peut abandonner une partie de ce qui vient d'être lu.
+  const settled = currentChain(scope);
+  if (settled.pending > 0 || !layoutKept(parts, await partsFrom(settled, filename, openFile))) throw new Error("history-rotating");
+  return { bytes: total, firstLine, witness, added, layout: parts };
 }
 
 /** Forme d'un seul fichier, inchangée : l'ajout est la suite du fichier depuis la référence. */
@@ -258,7 +282,7 @@ export const LAST_CONTEXT_TAIL_BYTES = 1024 * 1024;
 async function readHistoryTail(source: string | CodexHistoryScope, openFile: OpenFile, stable: boolean): Promise<{ bytes: Buffer; before: 0 | 1 } | undefined> {
   if (typeof source !== "string") {
     const chain = currentChain(source);
-    const parts = await partsFrom(source, chain.segments[0]!.path, openFile);
+    const parts = await partsFrom(chain, chain.segments[0]!.path, openFile);
     const total = logicalLength(parts);
     if (total <= 0) return undefined;
     const length = Math.min(total, LAST_CONTEXT_TAIL_BYTES);

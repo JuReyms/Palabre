@@ -31,6 +31,11 @@ import type { DeliveryVerdict, InvalidRequestReason, RelayOutcome, RelayStatus, 
 
 /** Intervalle entre deux lectures de l'ajout. */
 export const OPEN_POLL_MS = 500;
+/**
+ * Lecture non concluante d'un historique Codex en segments pendant une rotation : l'attente
+ * continue, jusqu'à l'échéance au plus, sans issue terminale (`readOpenRollout`).
+ */
+const ROTATING = "history-rotating";
 /** Durée maximale des nouvelles tentatives de référence sur une fin de ligne partielle, et pas. */
 export const OPEN_BASELINE_RETRY = { totalMs: 2_000, stepMs: 100 } as const;
 
@@ -270,7 +275,11 @@ async function runOpenRelayOnce(input: OpenRelayInput, deps: OpenRelayDeps): Pro
     try {
       observation = inspectOpenReply(await deps.read(input.historyPath, baseline!), request, input.thenFollowMs !== undefined);
     } catch (error) {
-      observation = { status: "unreadable", persisted: "unknown", reason: errorCode(error) };
+      const code = errorCode(error);
+      // Segment Codex en cours de création : rien ne peut être conclu avant la lecture suivante.
+      observation = code === ROTATING
+        ? { status: "awaiting-message", persisted: "unknown", reason: code }
+        : { status: "unreadable", persisted: "unknown", reason: code };
     }
     if (observation.persisted === true) persisted = true;
   };
@@ -432,7 +441,8 @@ export async function runFollowRelay(input: FollowRelayInput, deps: Pick<OpenRel
     try {
       observation = inspectFollowedTurn(await deps.read(input.historyPath, reference.baseline), request);
     } catch (error) {
-      observation = { status: "unreadable", reason: errorCode(error) };
+      const code = errorCode(error);
+      observation = code === ROTATING ? { status: "awaiting-turn", reason: code } : { status: "unreadable", reason: code };
     }
     if (input.signal.aborted) return finish(outcome("cancelled"));
     if (remaining() <= 0) return finish(outcome("timeout"));

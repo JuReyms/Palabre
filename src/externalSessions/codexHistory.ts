@@ -191,17 +191,40 @@ function readHeader(file: { path: string; segment?: string }, sessionId: string)
 }
 
 /**
+ * Ligne terminée par l'octet `end - 1` (un saut de ligne), au plus `HISTORY_LINE_LIMIT` octets ;
+ * `too-large` si son début n'est pas trouvé dans cette limite.
+ */
+function readLineBefore(fd: number, end: number): Buffer | "too-large" {
+  const limit = Math.max(0, end - 1 - HISTORY_LINE_LIMIT);
+  let position = end - 1;
+  while (position > limit) {
+    const length = Math.min(4096, position - limit);
+    const chunk = readExact(fd, position - length, length);
+    const newline = chunk.lastIndexOf(10);
+    if (newline >= 0) {
+      const start = position - length + newline + 1;
+      return readExact(fd, start, end - start);
+    }
+    position -= length;
+  }
+  return position === 0 ? readExact(fd, 0, end) : "too-large";
+}
+
+/**
  * Vérifie la coupure annoncée par `child` dans `parent` : après la première ligne, dans le
  * fichier, sur une frontière de ligne ; le premier enregistrement du segment et, s'il existe,
- * l'enregistrement abandonné à la coupure portent l'ordinal annoncé.
+ * l'enregistrement abandonné à la coupure portent l'ordinal annoncé, et la dernière ligne conservée
+ * du parent porte l'ordinal précédent (y compris pour une coupure en fin de fichier).
  */
 function validCut(parent: Header, child: Header): boolean {
   const { endOffset, endOrdinal } = child.base!;
-  if (child.ordinal !== endOrdinal || endOffset < parent.headerBytes || endOffset > parent.size) return false;
+  if (child.ordinal !== endOrdinal || endOrdinal === 0 || endOffset < parent.headerBytes || endOffset > parent.size) return false;
   let fd: number;
   try { fd = openSync(parent.path, "r"); } catch { return false; }
   try {
     if (readExact(fd, endOffset - 1, 1)[0] !== 10) return false;
+    const kept = readLineBefore(fd, endOffset);
+    if (typeof kept === "string" || parseRecord(kept)?.ordinal !== endOrdinal - 1) return false;
     if (endOffset === parent.size) return true;
     const line = readLineAt(fd, parent.size, endOffset);
     return typeof line !== "string" && parseRecord(line)?.ordinal === endOrdinal;

@@ -70,13 +70,13 @@ Une saisie libre de forme `user.text` du même tour, après l'enveloppe et avant
 
 ### Historique Codex en segments pendant l'attente
 
-La chaîne est résolue de nouveau à chaque lecture (`readOpenRollout` avec une portée `{ home, sessionId }`). Les offsets sont ceux d'un **flux logique ancré** sur le fichier de la référence : ce fichier depuis l'octet 0 jusqu'à sa coupure, puis chaque segment suivant sans sa première ligne, jusqu'à sa propre coupure ou sa fin. Témoin, première ligne d'identité, plafond de l'ajout et contrôle de dérive restent ceux d'un fichier seul ; `--then-follow` garde sa référence interne dans ce même flux, même si la réponse ou la suite tombe dans un nouveau segment.
+La chaîne est résolue de nouveau à chaque lecture (`readOpenRollout` avec une portée `{ home, sessionId }`). Les offsets sont ceux d'un **flux logique ancré** sur le fichier de la référence : ce fichier depuis l'octet 0 jusqu'à sa coupure, puis chaque segment suivant sans sa première ligne, jusqu'à sa propre coupure ou sa fin. Témoin, première ligne d'identité, plafond de l'ajout et contrôle de dérive restent ceux d'un fichier seul. La référence garde en plus sa **position physique** (`OpenBaseline.layout` : fichiers traversés et position dans le dernier) ; `--then-follow` en hérite, même si la réponse ou la suite tombe dans un nouveau segment. Le témoin seul ne suffit pas : une ligne remplacée par une autre de même fin passerait. Après chaque lecture, la chaîne est résolue de nouveau ; si elle a changé entre-temps, la lecture n'est pas conclue.
 
 | Cas pendant l'attente | Effet |
 | --- | --- |
 | Segment créé après la référence, coupure à la référence ou après | suivi : la réponse peut être lue dans le nouveau segment |
-| Première ligne du nouveau segment encore partielle | ignoré jusqu'à la lecture suivante ; la fin de l'ancrage reste lue, ce qui ne peut donner qu'un tour interrompu |
-| Coupure avant la référence (historique repris avant elle) | `unreadable`, diagnostic `history-rewound` : `no-valid-reply` / 2, jamais une réponse devinée ; après dépôt, délivrance selon la preuve |
+| Première ligne d'un segment encore partielle, ou chaîne modifiée pendant la lecture | lecture non concluante (`history-rotating`) : aucune réponse ni échec n'est retenu, l'attente continue jusqu'à l'échéance au plus (`timeout` avec ce diagnostic) |
+| Coupure avant la position physique de la référence (historique repris avant elle) | `unreadable`, diagnostic `history-rewound` : `no-valid-reply` / 2, jamais une réponse devinée ; après dépôt, délivrance selon la preuve. Pour `--then-follow`, seule la suite (`nextTurn`) est concernée |
 | Chaîne devenue cassée ou ambiguë | diagnostic `history-<raison>` (par exemple `history-fork`), même issue |
 | Fichier de référence sorti de la chaîne | `history-chain-changed`, même issue |
 
