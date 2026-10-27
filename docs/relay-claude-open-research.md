@@ -25,8 +25,16 @@ a proposé une demande intacte : premier contrôle neutre, puis `canUseTool` app
 une fois et refus appliqué ; compteur factice nul, résultat d'outil et refus final
 corrélés à l'unique appel. Le libellé runtime `user_reject` provient ici du callback,
 pas d'un clic humain. Un seul lancement Opus5.5, aucune relance ; `passed: false`
-conservé, pannes du nouveau profil non testées avec le SDK. Ni `SendMessage` natif,
-ni envoi autorisé, ni visibilité Desktop qualifiés.
+conservé. Ce témoin ne teste pas les pannes. Ni `SendMessage` natif, ni envoi
+autorisé, ni visibilité Desktop qualifiés.
+
+Les [deux pannes du profil restrictif](../scripts/prototypes/relay/CLAUDE-MESSENGER.md#pannes-du-profil-restrictif-avec-sdk--27-octobre-2026)
+ont ensuite été autorisées et testées une fois chacune : exception du contrôle,
+puis attente suspendue avec réveil interne préparé à 2 s. Dans chaque cas,
+refus explicite du premier contrôle appliqué, compteur nul, résultat d'outil et
+refus final corrélés à l'unique appel. Second contrôle non consulté ; aucun
+rattrapage par lui démontré. Pas de durée monotone mesurée pour le réveil,
+ni de test d'event loop bloquée ou d'arrêt de l'hôte. Aucun envoi réel.
 
 - L'essai Windows du 23 octobre montre qu'une reprise CLI de l'historique partagé ne réveille pas la fenêtre Desktop. Le changement de conversation puis la commande d'ouverture ne rafraîchissaient pas l'échange ; le propriétaire a dû quitter lui-même l'app. Le registre CLI vide annonçait pourtant la conversation fermée. Voir [l'essai Desktop](relay-desktop-qualification.md).
 - Le contrat B1 note une réception TUI Claude 2.1.292 depuis un messager `-p`, qui consomme lui-même un appel modèle. Ce constat, antérieur à la version installée 2.1.302, ne prouve ni Desktop ni un transport déterministe externe. Voir [le contrat B1, alternatives Claude](../scripts/prototypes/relay/CONTRAT-B1.md#alternatives-et-suite-claude).

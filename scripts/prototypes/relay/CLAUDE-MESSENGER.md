@@ -252,9 +252,9 @@ Le témoin utilise un texte ASCII sans fin de ligne pour ne pas confondre le
 chemin des permissions avec la normalisation CRLF/LF déjà observée. Les anciens
 scénarios conservent la préapprobation pour reproduire les mesures historiques.
 À la préparation, aucun de ces scénarios n'avait été lancé avec le SDK ou un modèle.
-Le seul essai `guarded-valid` autorisé ensuite est décrit ci-dessous ; les deux
-scénarios de panne restent non exécutés. Leur `passed` reste conservatoirement
-faux : aucune qualification automatique ajoutée après observation.
+Le témoin `guarded-valid`, puis les deux scénarios de panne ont été autorisés
+séparément et exécutés une fois chacun, comme décrit ci-dessous. Leur `passed`
+reste conservatoirement faux : aucune qualification automatique ajoutée après observation.
 
 Les [tests du profil](../../../tests/claude-messenger-guarded.test.ts) sont hors
 ligne, avec horloge et signaux fictifs. Un contrôle de types séparé, local et non
@@ -320,13 +320,52 @@ Relecture indépendante du bilan par Codex, sans trace privée ni nouvel appel C
 aucun défaut important relevé. Vérification de la trace par recoupement hors ligne,
 puis 11 tests du profil et des liens réussis ; aucune relance SDK pour ces contrôles.
 
+## Pannes du profil restrictif avec SDK — 27 octobre 2026
+
+L'humain a ensuite autorisé la suite : un lancement `guarded-throw`, puis un
+`guarded-timeout`, sans relance ni autre scénario. Versions et profil inchangés :
+SDK0.3.302, CLI native2.1.302, Windows, Opus5.5 pour les tours principaux,
+Haiku5.5 auxiliaire également compté. Seulement le faux outil MCP en mémoire ;
+aucun message réel, outil natif ou lancement Desktop.
+
+| Panne injectée dans le premier contrôle | État final du garde | Observation du runtime |
+| --- | --- | --- |
+| Exception du contrôle | Fermé, cause `hook-failed`, aucune réservation | Refus explicite du hook appliqué, gestionnaire factice exécuté **0** fois |
+| Promesse du contrôle qui ne se résout jamais | Fermé, cause `expired`, aucune réservation | Refus explicite du hook appliqué, gestionnaire factice exécuté **0** fois |
+
+Dans chaque trace : une seule proposition du modèle, texte et destinataire
+intacts ; un callback `PreToolUse` bloquant ; résultat d'outil lié au même
+`tool_use_id` et à la même session, `is_error: true`, `non_execution_kind:
+permission-rule`, décision `reject/source: hook`. Le résultat final porte un
+seul `permission_denials` lié, sans erreur de session ni timeout global.
+Le second callback de permissions n'a pas été consulté : le premier contrôle
+a déjà refusé. Ces essais ne démontrent donc pas un rattrapage par le second.
+
+Pour l'attente, c'est le réveil **interne préparé à 2 s** qui ferme le garde
+et produit un refus, pas l'absence de réponse volontaire du callback SDK historique.
+Le lanceur n'enregistre pas ici de durée monotone entre entrée du hook et résultat :
+aucune durée mesurée de 2 s ni qualification du timeout SDK de 5 s n'est revendiquée.
+Le blocage de l'event loop, l'arrêt de l'hôte et les autres pannes restent non testés.
+
+Le vérificateur de refus corrélé déjà existant
+(`hasCorrelatedCalibrationDenial`) accepte les deux traces enregistrées lors
+d'un recoupement local, sans SDK ni nouvel appel modèle. Ce contrôle partiel
+ne remplace pas une qualification complète : `passed: false` et code de sortie 1
+du profil restent inchangés, sans nouvel oracle après observation.
+Le registre de confiance a la même empreinte avant et après les deux essais ;
+aucune configuration ou permission utilisateur modifiée. Traces et données de
+compte restent privées. Ce résultat ne qualifie toujours ni envoi autorisé,
+ni contrôle natif `SendMessage`, ni réception ou affichage Desktop.
+Revue indépendante du bilan par Codex interne, sans trace privée ni appel Claude :
+aucun défaut important relevé. Les 37 tests ciblés de calibration, pannes, profil
+et liens passent hors ligne ; le vrai profil Palabre reste inchangé pendant ces tests.
+
 ## Prochaine qualification, séparée
 
-Avant un essai de messagerie réelle : tester séparément les pannes du profil
-restrictif sur faux outil après un nouvel accord humain, vérifier ses protections puis
-établir le schéma natif et
-l'adresse exacte d'une conversation jetable
-désignée par l'humain, puis démontrer les refus applicables à cet outil natif.
+Avant un essai de messagerie réelle : établir le schéma natif, le point de contrôle
+effectivement applicable à cet outil et l'adresse exacte d'une conversation
+jetable désignée par l'humain, puis démontrer les refus et l'envoi exact applicables
+à cet outil natif. Les trois essais restrictifs du faux MCP ne s'y transposent pas.
 Ne pas appliquer un réglage `accept` pour faire passer un test, extraire un
 token privé, fermer une app, ou utiliser un second écrivain sur le transcript.
 
