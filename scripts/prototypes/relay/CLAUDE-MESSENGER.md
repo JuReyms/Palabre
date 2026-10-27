@@ -362,6 +362,10 @@ et liens passent hors ligne ; le vrai profil Palabre reste inchangé pendant ces
 
 ## Prochaine qualification, séparée
 
+La [recherche des contrôles natifs](CLAUDE-NATIVE-CONTROLS.md) distingue une règle
+ask candidate, les types disponibles et les preuves runtime encore manquantes.
+Elle ne modifie aucun garde ni permission et ne lance aucun modèle.
+
 Avant un essai de messagerie réelle : établir le schéma natif, le point de contrôle
 effectivement applicable à cet outil et l'adresse exacte d'une conversation
 jetable désignée par l'humain, puis démontrer les refus et l'envoi exact applicables

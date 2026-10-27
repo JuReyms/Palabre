@@ -36,6 +36,16 @@ refus final corrélés à l'unique appel. Second contrôle non consulté ; aucun
 rattrapage par lui démontré. Pas de durée monotone mesurée pour le réveil,
 ni de test d'event loop bloquée ou d'arrêt de l'hôte. Aucun envoi réel.
 
+La [vérification des contrôles natifs](../scripts/prototypes/relay/CLAUDE-NATIVE-CONTROLS.md)
+identifie une piste documentée : une règle ask sur `SendMessage` pourrait imposer
+le second contrôle, contrairement au simple retrait de `allowedTools`.
+Compatibilité de types vérifiée avec SDK0.3.302, sans runtime ni modèle ; analyse
+de la règle et effet natif non qualifiés. Schéma complet et liaison UUID/adresse
+restent à établir. Deux essais de refus séparés sont proposés, pas exécutés :
+le premier hook, puis la règle ask avec second callback. Une conversation jetable
+et un message bénin devront être désignés par l'humain, car un refus encore non
+qualifié ne garantit pas l'absence d'envoi. Aucun réglage utilisateur appliqué.
+
 - L'essai Windows du 23 octobre montre qu'une reprise CLI de l'historique partagé ne réveille pas la fenêtre Desktop. Le changement de conversation puis la commande d'ouverture ne rafraîchissaient pas l'échange ; le propriétaire a dû quitter lui-même l'app. Le registre CLI vide annonçait pourtant la conversation fermée. Voir [l'essai Desktop](relay-desktop-qualification.md).
 - Le contrat B1 note une réception TUI Claude 2.1.292 depuis un messager `-p`, qui consomme lui-même un appel modèle. Ce constat, antérieur à la version installée 2.1.302, ne prouve ni Desktop ni un transport déterministe externe. Voir [le contrat B1, alternatives Claude](../scripts/prototypes/relay/CONTRAT-B1.md#alternatives-et-suite-claude).
 - Installation inspectée aujourd'hui : `claude.exe` 2.1.302. Pour cette inspection, seules `--version` et `--help` ont été lancées ; aucune session utilisateur ouverte n'a reçu de message. L'aide expose reprise, ouverture Desktop et entrées stream-json, mais pas une commande analogue à `codex queue`. L'absence dans l'aide n'est pas une preuve d'absence de capacité : la référence officielle précise que l'aide n'énumère pas tous les flags. [Référence CLI](https://code.claude.com/docs/en/cli-reference).
