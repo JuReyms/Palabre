@@ -229,7 +229,10 @@ preuves ; aucune relance ni changement de permissions pour réussir.
 
 Même un refus natif réussi ne prouvera pas un envoi exact réussi, les pannes du
 contrôle natif, l'anti-rejeu durable, la réponse du coéquipier ou sa visibilité dans
-Desktop. Ces critères restent séparés. Aucune question Anthropic n'est publiée.
+Desktop. Ces critères restent séparés. La question Anthropic, non publiée au
+stade de ce plan, l'a été ensuite après accord humain :
+[claude-code #105445](https://github.com/anthropics/claude-code/issues/105445).
+Elle porte sur le contrat d'entrée, sans autoriser de nouvel essai.
 
 Vérification de la préparation : types compatibles, deux tests documentaires et liens
 réussis, `git diff --check` réussi ; vrai profil Palabre inchangé pendant les tests.

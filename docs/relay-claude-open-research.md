@@ -129,7 +129,7 @@ Références : [Channels](https://code.claude.com/docs/en/channels-reference), [
 
 ## Prochain essai borné proposé
 
-Avant toute conversation de test, établir un canal pris en charge vers une session désignée : dépôt externe direct (A), ou Claude messager encadré (B). « Sans appel modèle intermédiaire » est une préférence de coût et de simplicité, pas une exigence produit ajoutée au besoin humain. Le surcoût éventuel de B doit être expliqué et accepté avant son essai ; aucune acceptation n'est présumée. Les pages lues ne suffisent pas à qualifier l'une de ces voies aujourd'hui : pas encore de manipulation Desktop demandée. Une question amont précise est proposée ci-dessous, sans publication.
+Le plan initial demandait d'établir un canal pris en charge vers une session désignée : dépôt externe direct (A), ou Claude messager encadré (B). « Sans appel modèle intermédiaire » est une préférence de coût et de simplicité, pas une exigence produit ajoutée au besoin humain. Le surcoût éventuel de B doit être expliqué et accepté avant son essai ; aucune acceptation n'est présumée. Les essais négatifs autorisés ensuite sont consignés plus haut ; ils ne qualifient toujours pas un envoi Desktop. La question amont publiée ci-dessous porte sur le contrat d'entrée de `SendMessage`, désormais prioritaire avant un nouvel essai.
 
 ### Ce que le garde d'un éventuel messager devrait prouver
 
@@ -155,20 +155,21 @@ Une relecture par Claude Opus 5.5 via Palabre Relay, dans la conversation de rev
 
 Une seconde relecture a fait retirer la contrainte injustifiée « sans appel modèle » et préciser les contrôles du messager. Ses assertions techniques ont été recoupées avec les sources officielles par Codex ; le relecteur n'avait toujours pas d'accès Web. La coopération a corrigé le plan, pas qualifié un transport.
 
-## Question amont proposée — non publiée
+## Question amont publiée — 27 octobre 2026
 
-La question reste une option, pas un préalable au prototype isolé approuvé par le
-propriétaire. Le [banc du messager et sa calibration SDK](../scripts/prototypes/relay/CLAUDE-MESSENGER.md)
-du 27 octobre testent les refus sur données fictives ; un essai autorisé confirme
-le refus explicite du hook SDK sur un faux outil en mémoire. Cela ne qualifie ni
-`SendMessage` natif, ni la liaison UUID/adresse, ni l'envoi Desktop.
+Après relecture Claude Opus5.5 via Palabre et accord explicite du propriétaire,
+la question a été publiée chez Anthropic :
+[claude-code #105445](https://github.com/anthropics/claude-code/issues/105445).
+Son titre et son corps sont en anglais, sans signature ajoutée ni trace privée.
 
-**Titre :** Interface officielle de dépôt externe dans une conversation Claude Code locale ouverte
+**Titre :** Which contract should a host use to verify SendMessage text before it is sent?
 
-Nous développons un outil local de coopération entre outils IA. Nous souhaitons transmettre un message unique à une conversation Claude Code précise, notamment dans l'onglet Code de Desktop sous Windows, sans second écrivain sur son historique, automatisation d'interface ou contournement des permissions.
+Elle demande le schéma d'entrée natif reçu par `PreToolUse`, les champs de
+destinataire/texte effectivement livrés plutôt que d'affichage, et le moment où
+un hôte SDK peut vérifier le contenu final. Les observations des deux essais
+refusés y restent distinguées d'un envoi autorisé, jamais testé.
 
-La documentation décrit `ListAgents`/`SendMessage` et l'accès d'un enfant au socket de sa propre session. Existe-t-il une interface publique pour un programme externe, adressable par UUID ? Où sont définis l'authentification prévue, la liaison UUID/adresse, le message, les accusés de réception/retenue/refus/expiration et les identifiants reliant réception, tour et réponse finale ?
-
-Sinon, le parcours pris en charge passe-t-il par un Claude messager ou un Channel explicitement configuré ? Pour Desktop, comment la réception applique-t-elle les classes de permissions sans dialogue, et quelle action humaine est prévue pour un message retenu ?
-
-Aucune donnée de compte, clé ou conversation privée ne serait jointe. La publication de cette question demande l'accord du propriétaire ; aucun message n'a été envoyé à Anthropic dans ce lot.
+Le brouillon initial, plus large, portait sur un dépôt externe par UUID ; il n'a
+pas été publié tel quel. Identité exacte, corrélation de réponse et visibilité
+Desktop restent à qualifier séparément. La publication ne valide aucun transport
+et n'autorise ni nouvel essai natif ni renvoi des essais précédents.

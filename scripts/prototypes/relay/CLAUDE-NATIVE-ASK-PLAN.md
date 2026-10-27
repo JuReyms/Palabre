@@ -408,3 +408,13 @@ des modules publics : aucun défaut important relevé. Ce n'était pas un appel
 Claude/Palabre ; ni tests, SDK, Web ou traces privées consultés par ce relecteur.
 Les faits réels et constats SDK lui restaient rapportés. Les 57 tests ciblés et
 les liens ont été revérifiés par l'auteur, vrai profil Palabre inchangé.
+
+## Relais vers Anthropic — 27 octobre 2026
+
+Question sur le contrat d'entrée publiée après relecture Claude via Palabre et
+accord humain explicite :
+[claude-code #105445](https://github.com/anthropics/claude-code/issues/105445).
+Titre et corps en anglais, aucun historique, identifiant ou texte de test privé
+joint. La relecture portait sur le brouillon, pas sur une vérification indépendante
+de toute la documentation. Lien conservé pour reprendre la recherche ; aucun
+nouveau test natif ou changement des contrôles ne découle de cette publication.
