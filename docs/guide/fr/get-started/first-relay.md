@@ -47,7 +47,7 @@ palabre relay --help
 
 L'aide doit proposer `--new`. Sinon, utilisez une version de PALABRE qui le contient ; voir [Installation et mise à jour](/fr/get-started/installation).
 
-Installez aussi le [skill Palabre](/fr/get-started/skill) pour votre agent habituel. Copiez le dossier complet, références comprises, puis ouvrez une nouvelle conversation pour qu'il le voie. Après une évolution du skill, sa copie installée doit être mise à jour manuellement.
+Installez aussi le [skill Palabre](/fr/get-started/skill) avec `palabre skill --install codex` pour Codex, ou `palabre skill --install claude` pour Claude Code. Palabre affiche le plan avant votre confirmation. Pour rafraîchir les copies déjà installées, utilisez `palabre skill --sync` ; `palabre update` inclut aussi ce rafraîchissement dans son plan. Rechargez ensuite le skill ou ouvrez une nouvelle conversation pour que l'agent le voie.
 
 Chaque appel utilise le compte et le modèle de l'agent choisi. Vérifiez ce que vous partagez avant de lui confier des fichiers sensibles.
 
@@ -77,9 +77,11 @@ Ce parcours a été vérifié sous Windows depuis Codex desktop. Depuis Codex CL
 
 > Continue avec le même Claude pour préciser le risque principal, sans modifier de fichier.
 
-Le chef de mission réutilise l'identifiant, lit la réponse et vous en rend compte simplement, sans vous demander de recopier l'identifiant ni une commande. L'échange reste dans la conversation de l'équipier et dans l'export `.relay.md`, que l'agent vous indique si vous le demandez. Avec les versions Codex vérifiées, une conversation créée par `--new` n'est pas listée dans Codex Desktop, mais Relay peut continuer à la joindre. Pour la suivre dans l'application, lancez la commande d'ouverture que votre agent vous donne (bouton Run quand l'application en affiche un), ou demandez-lui simplement de l'ouvrir ; une fois ouverte dans Desktop, l'agent la joint dans l'app, avec ses permissions. La réponse revient à l'appelant, sans être ajoutée automatiquement à la conversation de l'expéditeur. L'ouverture de ce lien Desktop est vérifiée sous Windows seulement ; macOS et Linux restent à vérifier.
+Le chef de mission réutilise l'identifiant, lit la réponse et vous en rend compte simplement, sans vous demander de recopier l'identifiant ni une commande. L'échange reste dans la conversation de l'équipier et dans l'export `.relay.md`, que l'agent vous indique si vous le demandez. Avec les versions Codex vérifiées, une conversation créée par `--new` n'est pas listée dans Codex Desktop, mais Relay peut continuer à la joindre. Pour la suivre dans l'application, lancez la commande d'ouverture que votre agent vous donne (bouton Run quand l'application en affiche un), ou demandez-lui simplement de l'ouvrir ; une fois ouverte dans Desktop, l'agent la joint dans l'app, avec les permissions de cette conversation. La réponse revient à l'appelant, sans être ajoutée automatiquement à la conversation de l'expéditeur. L'ouverture de ce lien Desktop est vérifiée sous Windows seulement ; macOS et Linux restent à vérifier.
 
-Si l'équipier modifie des fichiers dans une conversation ouverte, ils restent dans son dossier de travail. Ils apparaissent sur GitHub seulement après un commit et un push autorisés séparément. Une réponse reçue ne prouve pas que le travail ou les tests ont réussi.
+Avec les versions vérifiées, une conversation **Codex créée par Relay** (`--new`) reste en lecture seule, même ouverte dans Desktop : l'ouvrir sert à consulter, pas à lui donner le droit de modifier des fichiers. Pour confier des modifications à Codex, créez vous-même sa conversation dans Codex Desktop avec les permissions que vous choisissez, puis désignez cette conversation à votre chef de mission.
+
+Si l'équipier modifie des fichiers dans une conversation ouverte disposant de ces permissions, ils restent dans son dossier de travail. Ils apparaissent sur GitHub seulement après un commit et un push autorisés séparément. Une réponse reçue ne prouve pas que le travail ou les tests ont réussi.
 
 Pour **Codex**, l'agent utilise `palabre relay open --to codex:<identifiant>` :
 un lancement, puis vérification du verrou, sans message. Ouvrir n'autorise aucun
