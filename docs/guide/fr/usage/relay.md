@@ -368,7 +368,7 @@ Le [contrat JSON](/fr/integrations/json-contracts#inventaire-relay-json) détail
 
 - `--to <agent>:<session>` : `<agent>` est le nom d'un agent CLI Codex ou Claude Code de votre configuration (`codex`, `claude`, `claude-opus`…). `<session>` est l'identifiant de la conversation (un UUID).
   - Claude Code : c'est le nom du fichier `~/.claude/projects/<dossier>/<session>.jsonl`.
-  - Codex : c'est la fin du nom du fichier `~/.codex/sessions/AAAA/MM/JJ/rollout-…-<session>.jsonl`.
+  - Codex : dans `~/.codex/sessions/AAAA/MM/JJ/rollout-…-<session>.jsonl` ou `rollout-…-<session>_<autre>.jsonl`, gardez uniquement l'identifiant représenté par `<session>`, jamais `<autre>`. Une conversation peut utiliser plusieurs fichiers : PALABRE les suit pour vous. S'il ne peut pas les relier avec certitude, il refuse l'envoi.
 - `--from <agent>[:<session>]` : l'expéditeur facultatif. C'est une simple étiquette, recopiée dans le message transmis. Elle n'est ni lancée ni vérifiée, et la conversation de l'expéditeur peut être ouverte.
 
 Copiez l'identifiant des informations de la conversation dans l'hôte, ou du nom de son fichier d'historique. Ne choisissez jamais « la plus récente » à la place de l'humain ; aucune cible n'est déduite implicitement.

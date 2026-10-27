@@ -255,11 +255,11 @@ Les étapes sont strictement ordonnées, et une étape refusée arrête le relay
 1. **Valider les arguments.**
 2. **Résoudre la config, l'agent et l'exécutable.**
 3. **Localiser l'historique de la cible et son dossier de travail** :
-   - Codex : rollout `rollout-*-<session>.jsonl`, cherché dans `~/.codex/sessions/**` puis `archived_sessions/**`.
-     - La première entrée doit être un `session_meta` de la même session ; sinon, le rollout est jugé incohérent et la cible est `session-not-found`.
-     - Le dossier est `session_meta.cwd`.
-     - Le modèle est celui du dernier `turn_context`, repris avec `-m` pour éviter un changement de modèle dans l'historique. Sans modèle enregistré, `-m` est omis et l'omission est signalée.
-     - Plusieurs rollouts pour un même identifiant donnent `session-not-found` (ambigu) ;
+   - Codex : rollout `rollout-*-<session>.jsonl`, cherché dans `~/.codex/sessions/**` puis `archived_sessions/**`, avec ses éventuels segments (voir « Historique Codex en segments » ci-dessous).
+     - La première entrée de chaque fichier doit être un `session_meta` de la même session ; sinon, le rollout est jugé incohérent et la cible est `session-not-found`.
+     - Le dossier est `session_meta.cwd` de la tête de chaîne.
+     - Le modèle est celui du dernier `turn_context` de l'historique actif, repris avec `-m` pour éviter un changement de modèle dans l'historique. Sans modèle enregistré, `-m` est omis et l'omission est signalée.
+     - Plusieurs racines pour un même identifiant donnent `session-not-found` (ambigu), avant toute lecture ;
    - Claude : transcript `~/.claude/projects/*/<session>.jsonl`. Le dossier retenu est le `cwd` de la première entrée qui en porte un, c'est-à-dire le dossier d'origine. Une reprise lancée ailleurs ajoute d'autres `cwd`, qui sont signalés mais pas suivis. Un identifiant présent dans plusieurs dossiers de projet est refusé comme ambigu (`session-not-found`).
 
    Le dossier doit exister. Il n'est **jamais remplacé par le dossier courant** de Palabre. Sinon, l'issue est `invalid-request`, raison `invalid-working-directory`.
@@ -307,6 +307,27 @@ Les étapes sont strictement ordonnées, et une étape refusée arrête le relay
 4. sinon : échec de lancement.
 
 Un échec de lancement donne `cli-failure` pour la reprise, et `neutralization-failed` pour `codex mcp list`. Dans les deux cas, la délivrance est `not-delivered`.
+
+### Historique Codex en segments
+
+Constaté en octobre 2026 avec Codex 0.163.0-alpha.11.2 (format non documenté par OpenAI) : une conversation peut continuer dans plusieurs fichiers. Avant ce correctif, PALABRE ne retenait que la racine et attendait une réponse dans un fichier que Codex n'écrivait plus. `src/externalSessions/codexHistory.ts` résout désormais la chaîne ; tous les lecteurs Codex passent par lui.
+
+- **Racine** : `rollout-<date>-<session>.jsonl`, seule forme des anciens historiques, sans `history_base`.
+- **Segment** : `rollout-<date>-<session>_<segment>.jsonl`. Sa première ligne `session_meta` porte la même session, `history_mode: "paginated"` et `history_base` (`thread_id`, `end_ordinal_exclusive`, `end_byte_offset`). `thread_id` désigne le fichier précédent : la session pour la racine, sinon l'identifiant d'un autre segment.
+- **Coupure** : le segment reprend l'historique du fichier précédent jusqu'à `end_byte_offset` exclu. La suite de ce fichier est **abandonnée** (cas observé : tour interrompu puis repris). Le segment recommence à l'ordinal `end_ordinal_exclusive`.
+
+Règles de résolution (`resolveCodexHistory`) :
+
+- la tête est le seul fichier atteint en suivant des liens validés depuis la racine ; **jamais le fichier le plus récent** ;
+- refus `session-not-found` avec raison stable : deux racines (`duplicate-root`, vérifié avant toute lecture, même pour une copie archivée), segments sans racine (`missing-root`), deux fichiers pour un segment (`duplicate-segment`), première ligne invalide ou d'une autre session (`invalid-header`), lien vers un fichier absent (`broken-link`), deux segments sur le même fichier (`fork`), segment non atteint (`unreachable-segment`), coupure hors fichier, hors frontière de ligne, ou dont les ordinaux ne se suivent pas : dernière ligne conservée à `end_ordinal_exclusive - 1`, ligne abandonnée et première ligne du segment à `end_ordinal_exclusive`, y compris pour une coupure en fin de fichier (`invalid-cut`). Le texte nomme la raison et dit que rien n'a été envoyé ;
+- lectures bornées : premières lignes et ligne de coupure, 1 Mio chacune ; aucun historique chargé en entier pour résoudre ;
+- un fichier dont la première ligne est encore partielle est écarté (`pending`) : il apparaîtra à la lecture suivante.
+
+Lecteurs concernés :
+
+- Relay A (`CodexSessionAdapter`) : `locate` lit le dossier de la tête et le modèle du dernier `turn_context` actif (tête, puis parties actives des fichiers précédents) ; `findNonce` cherche dans toute la chaîne. Nonce seulement dans une fin abandonnée : `persisted: true`, `inActiveBranch: false`.
+- `--open`, `--follow`, `--then-follow`, `--check` et quota : voir [Relay ouvert](relay-open.md#historique-codex-en-segments-pendant-lattente).
+- Un historique d'un seul fichier se lit exactement comme avant.
 
 ### Engagements et limites
 

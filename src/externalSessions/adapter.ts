@@ -11,6 +11,7 @@
  * Les issues et la délivrance
  * restent calculées par `outcome.ts`, identiques pour tous les fournisseurs.
  */
+import type { CodexHistoryRefusal } from "./codexHistory.js";
 import { launchOutcome, refusalOutcome, type PreLaunchRefusal } from "./outcome.js";
 import { utf8ChildProcessEnv } from "../adapters/cli-shared.js";
 import { runExternalProcess, type ExternalProcessResult } from "./process.js";
@@ -41,10 +42,11 @@ export interface ExternalExecutable {
  * - `session-not-found` : aucun historique exploitable (absent, illisible, incohérent ou ambigu) ;
  * - `invalid-working-directory` : historique trouvé, mais dossier absent ou non renseigné.
  *   Aucun repli vers le dossier courant.
+ * `history` nomme le refus d'un historique Codex en segments cassé ou ambigu (`codexHistory.ts`).
  */
 export type LocateResult =
   | { status: "found"; target: ExternalTarget; historyPath: string; evidence: string[] }
-  | { status: "session-not-found" | "invalid-working-directory"; detail: string };
+  | { status: "session-not-found" | "invalid-working-directory"; detail: string; history?: CodexHistoryRefusal };
 
 /** Lecture de la sortie d'une CLI par son adapter. */
 export interface ProviderVerdict {

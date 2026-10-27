@@ -50,6 +50,7 @@ import { buildEnvelope, buildOpenEnvelope, createNonce, isSessionId, MAX_RELAY_M
 import type { OpenTurnContext } from "../externalSessions/openReader.js";
 import { defaultOpenRelayDeps, runFollowRelay, runOpenRelay, type FollowRelayResult, type OpenQueueReport, type OpenRelayResult } from "../externalSessions/openRelay.js";
 import { locateOpenRollout, readLastTurnContext, readLastCodexQuota } from "../externalSessions/openRollout.js";
+import type { CodexHistoryRefusal } from "../externalSessions/codexHistory.js";
 import type { CodexQuota } from "../externalSessions/quota.js";
 import { assessTarget, classifyDelivery, RELAY_EXIT_CODES, refusalOutcome, type PreLaunchRefusal } from "../externalSessions/outcome.js";
 import { resolveExternalExecutable } from "../externalSessions/resolve.js";
@@ -239,6 +240,15 @@ class RelayRefusal extends Error {
 }
 
 const invalid = (reason: InvalidRequestReason, detail?: string) => new RelayRefusal({ status: "invalid-request", reason }, detail);
+
+/** Localisation refusée ; une chaîne de segments Codex cassée ou ambiguë est nommée clairement. */
+function locateRefusal(located: { status: "session-not-found" | "invalid-working-directory"; history?: CodexHistoryRefusal }, messages: Messages): RelayRefusal {
+  if (located.status !== "session-not-found") return invalid("invalid-working-directory");
+  return new RelayRefusal({ status: "session-not-found" }, located.history ? messages.relay.historyChain.refused(located.history) : undefined);
+}
+
+/** Diagnostic d'attente lié à un historique repris ou découpé (`history-*`, y compris en référence). */
+const isHistoryDiagnostic = (code: string | undefined) => code !== undefined && /(^|-)history-/.test(code);
 
 const NOT_DELIVERED: DeliveryVerdict = { status: "not-delivered", persisted: false, inActiveBranch: false };
 
@@ -507,8 +517,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   let probe: () => import("../externalSessions/types.js").TargetProbe = () => { throw new Error("unexpected-mode-probe"); };
   if (!context.open && !flags.background && !excluded && provider === "codex" && config.relay?.view !== "background") {
     const located = await locateOpenRollout(path.join(os.homedir(), ".codex"), to.value.sessionId);
-    if (located.status !== "found") throw located.status === "session-not-found"
-      ? new RelayRefusal({ status: "session-not-found" }) : invalid("invalid-working-directory");
+    if (located.status !== "found") throw locateRefusal(located, context.messages);
     context.targetLocated = true;
     const adapter = new CodexSessionAdapter();
     probe = () => adapter.probe({ ...to.value, provider: "codex", cwd: located.cwd });
@@ -660,9 +669,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
 function assessClosedTarget(context: RelayContext, adapter: ExternalSessionAdapter, to: SessionRef, configPath: string, explicitBackground: boolean): ExternalTarget {
   const located = adapter.locate(to);
   if (located.status !== "found") {
-    throw located.status === "session-not-found"
-      ? new RelayRefusal({ status: "session-not-found" })
-      : invalid("invalid-working-directory");
+    throw locateRefusal(located, context.messages);
   }
   context.targetLocated = true;
   context.cwd = located.target.cwd;
@@ -698,7 +705,7 @@ async function relayCheck(
     // Métadonnée facultative seulement : sa localisation/lecture ne doit changer aucun refus.
     try {
       const located = await locateOpenRollout(path.join(os.homedir(), ".codex"), input.to.sessionId);
-      if (located.status === "found") quota = await readLastCodexQuota(located.historyPath);
+      if (located.status === "found") quota = await readLastCodexQuota({ home: path.join(os.homedir(), ".codex"), sessionId: input.to.sessionId });
     } catch { /* Quota inconnu, jamais zéro ni une erreur de Relay. */ }
   }
   if (context.open) {
@@ -706,7 +713,7 @@ async function relayCheck(
     const home = path.join(os.homedir(), ".codex");
     const located = await locateOpenRollout(home, input.to.sessionId);
     if (located.status !== "found") {
-      throw located.status === "session-not-found" ? new RelayRefusal({ status: "session-not-found" }) : invalid("invalid-working-directory");
+      throw locateRefusal(located, context.messages);
     }
     context.targetLocated = true;
     const attachment = new CodexSessionAdapter({ home }).probe({ ...input.to, provider: "codex", cwd: located.cwd }).attachment;
@@ -715,7 +722,7 @@ async function relayCheck(
       context.checkReport = { target: "closed", ...(quota ? { quota } : {}) };
       throw new RelayRefusal({ status: "target-not-open" });
     }
-    const last = await readLastTurnContext(located.historyPath);
+    const last = await readLastTurnContext({ home, sessionId: input.to.sessionId });
     const { model: _model, ...permissions } = last?.context ?? {};
     const known = Object.keys(permissions).length > 0;
     context.checkReport = {
@@ -752,7 +759,7 @@ async function relayOpen(
   const home = path.join(os.homedir(), ".codex");
   const located = await locateOpenRollout(home, input.to.sessionId);
   if (located.status !== "found") {
-    throw located.status === "session-not-found" ? new RelayRefusal({ status: "session-not-found" }) : invalid("invalid-working-directory");
+    throw locateRefusal(located, context.messages);
   }
   const adapter = new CodexSessionAdapter({ home });
   const target: ExternalTarget = { agent: input.to.agent, provider: "codex", sessionId: input.to.sessionId, cwd: located.cwd };
@@ -776,14 +783,14 @@ async function relayOpen(
       onAttempt: () => { context.exchangeStarted = true; },
       thenFollowMs: context.thenFollowMs,
       onReply: reply => context.onOpenReply?.(reply, context.messages)
-    }, defaultOpenRelayDeps(() => adapter.probe(target)));
+    }, defaultOpenRelayDeps(() => adapter.probe(target), { home, sessionId: input.to.sessionId }));
   } finally {
     process.removeListener("SIGINT", onInterrupt);
     context.signal?.removeEventListener("abort", onInterrupt);
   }
   const result = buildResult(context, {
     outcome: open.outcome,
-    quota: await readLastCodexQuota(located.historyPath),
+    quota: await readLastCodexQuota({ home, sessionId: input.to.sessionId }),
     delivery: open.delivery,
     reply: open.reply,
     identity: open.identity,
@@ -854,7 +861,7 @@ async function relayFollow(
   const home = path.join(os.homedir(), ".codex");
   const located = await locateOpenRollout(home, input.to.sessionId);
   if (located.status !== "found") {
-    throw located.status === "session-not-found" ? new RelayRefusal({ status: "session-not-found" }) : invalid("invalid-working-directory");
+    throw locateRefusal(located, context.messages);
   }
   const adapter = new CodexSessionAdapter({ home });
   const target: ExternalTarget = { agent: input.to.agent, provider: "codex", sessionId: input.to.sessionId, cwd: located.cwd };
@@ -868,7 +875,7 @@ async function relayFollow(
       historyPath: located.historyPath,
       timeoutMs: input.timeoutMs,
       signal: controller.signal
-    }, defaultOpenRelayDeps(() => adapter.probe(target)));
+    }, defaultOpenRelayDeps(() => adapter.probe(target), { home, sessionId: input.to.sessionId }));
   } finally {
     process.removeListener("SIGINT", onInterrupt);
   }
@@ -894,6 +901,7 @@ function followErrorMessage(followed: FollowRelayResult, messages: Messages): st
     ? messages.relay.usageLimit(followed.retryAfter)
     : followed.outcome.status === "target-state-unknown" ? messages.relay.open.targetStateUnknown : errorMessage(followed.outcome, messages)];
   if (followed.diagnostic) parts.push(messages.relay.open.diagnostic(followed.diagnostic));
+  if (isHistoryDiagnostic(followed.diagnostic)) parts.push(messages.relay.historyChain.changed);
   return parts.join(" ");
 }
 
@@ -907,6 +915,7 @@ function openErrorMessage(open: OpenRelayResult, messages: Messages): string | u
     : open.outcome.status === "target-state-unknown" ? relayMessages.open.targetStateUnknown
     : tooLarge ? relayMessages.open.messageTooLarge(open.diagnostic ?? "") : errorMessage(open.outcome, messages)];
   if (open.diagnostic && !tooLarge) parts.push(relayMessages.open.diagnostic(open.diagnostic));
+  if (isHistoryDiagnostic(open.diagnostic)) parts.push(relayMessages.historyChain.changed);
   if (open.queue.attempted && !open.receptionObserved) parts.push(relayMessages.open.receptionNotObserved);
   return parts.join(" ");
 }
@@ -1080,7 +1089,8 @@ function buildResult(
 function refusalResult(context: RelayContext, refusal: RelayRefusal): RelayResultV1 {
   const detail = refusal.message !== refusal.refusal.status ? refusal.message : undefined;
   return buildResult(context, { outcome: refusalOutcome(refusal.refusal), delivery: NOT_DELIVERED, detail,
-    ...(refusal.refusal.status === "target-busy" && detail ? { message: `${context.messages.relay.status("target-busy")} ${detail}` } : {}) });
+    ...((refusal.refusal.status === "target-busy" || refusal.refusal.status === "session-not-found") && detail
+      ? { message: `${context.messages.relay.status(refusal.refusal.status)} ${detail}` } : {}) });
 }
 
 /** Qualifie la copie consultable sans confondre tentative, persistance et réponse reçue. */
