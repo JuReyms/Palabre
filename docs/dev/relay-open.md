@@ -189,6 +189,11 @@ Relay vers Claude ouverte reste refusé : fermer avant un nouvel envoi autorisé
 un message déjà délivré. #193 (dépôt/corrélation ouverts) et #219 (commande open/observation)
 restent ouverts ; ni transport nouveau, ni --open Claude, ni pilotage de fenêtre.
 
+Recherche #193 reprise le 26 octobre 2026 : [bilan de faisabilité Claude ouvert](../relay-claude-open-research.md).
+La messagerie native est prioritaire : dépôt externe direct ou Claude messager encadré,
+deux voies encore non qualifiées. Clarifier envoi et corrélation avant une manipulation
+Desktop ; aucun jeton privé extrait, réglage de réception changé ou essai implicite.
+
 ### Codex Windows : alias PowerShell Store (#128)
 
 `CodexSessionAdapter.environment` prépare une copie de l'environnement pour `exchange` (MCP puis création/reprise), donc aussi Mission et review. Le PATH parent, les autres fournisseurs et `--open` restent inchangés. Si le `pwsh.exe` prioritaire est un AppExecLink confirmé par `fsutil` natif (3 s / 8 Kio), situé directement sous WindowsApps ou dans le dossier d'alias du paquet (`WindowsApps\Microsoft.PowerShell_<éditeur>`, cas de l'essai #171), son dossier et ses doublons sont retirés seulement si un PowerShell natif régulier reste disponible. Si un autre alias confirmé passe alors en tête, il est retiré à son tour (au plus 4 dossiers) ; un alias suivant non confirmé laisse l'environnement inchangé, car Codex le choisirait encore. Un dossier d'installation versionné (`Program Files\WindowsApps\Microsoft.PowerShell_7.x…`) n'est jamais un emplacement d'alias. Ne pas traiter tout dossier WindowsApps comme suspect ; il peut contenir de vrais exécutables ou des runtimes Codex. Lire l'entrée par lstat : existsSync peut nier l'existence d'un alias présent. Sonde inconnue ou repli incertain = environnement inchangé. Préserver les valeurs UTF-8 par défaut et le nettoyage des variables de session de l'hôte.
