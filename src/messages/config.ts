@@ -7,6 +7,10 @@ export interface ConfigMessages {
   syncRefreshed(path: string): string;
   /** --sync-agents : configuration modifiée depuis son chargement ; rien n'est écrit. */
   syncConflict(path: string): string;
+  /** Accueil TUI : même conflit ; la session garde la config chargée et n'enregistre plus rien. */
+  tuiSyncConflict(path: string): string;
+  /** Session TUI verrouillée après un conflit : réglage refusé avant toute écriture. */
+  tuiWriteBlocked(path: string): string;
   ollamaModelNoChange(path: string, model: string | undefined): string;
   ollamaModelUpdated(path: string, previousModel: string, nextModel: string): string;
   ollamaModelUnavailable(model: string): string;
@@ -60,6 +64,8 @@ export const configMessages: Record<Language, ConfigMessages> = {
     syncAdded: (path, agents) => `Agents ajoutés dans ${path}: ${agents}.`,
     syncRefreshed: (path) => `Agents détectés rafraîchis dans ${path}.`,
     syncConflict: (path) => `La configuration ${path} a changé pendant la synchronisation : rien n'a été écrit, pour ne pas écraser cette modification. Vérifie le fichier, puis relance \`palabre config --sync-agents\`.`,
+    tuiSyncConflict: (path) => `La configuration ${path} a changé depuis l'ouverture de Palabre : rien n'a été écrit, pour ne pas écraser cette modification. Cette session garde la configuration chargée et n'enregistrera plus aucun réglage ; relance \`palabre\` pour recharger le fichier.`,
+    tuiWriteBlocked: (path) => `Réglage non enregistré : ${path} a changé depuis l'ouverture de Palabre, et cette session ne l'écrasera pas. Relance \`palabre\` pour recharger la configuration.`,
     ollamaModelNoChange: (path, model) => `Modèle Ollama inchangé dans ${path}: ${model ?? "aucun"}.`,
     ollamaModelUpdated: (path, previousModel, nextModel) => `Modèle Ollama mis à jour dans ${path}: ${previousModel} -> ${nextModel}.`,
     ollamaModelUnavailable: (model) => `Modèle Ollama non installé: ${model}. Action: choisis un modèle installé ou lance \`ollama pull ${model}\`.`,
@@ -119,6 +125,8 @@ export const configMessages: Record<Language, ConfigMessages> = {
     syncAdded: (path, agents) => `Agents added to ${path}: ${agents}.`,
     syncRefreshed: (path) => `Detected agents refreshed in ${path}.`,
     syncConflict: (path) => `The configuration ${path} changed during synchronization: nothing was written, so that change is not overwritten. Check the file, then run \`palabre config --sync-agents\` again.`,
+    tuiSyncConflict: (path) => `The configuration ${path} changed since Palabre opened: nothing was written, so that change is not overwritten. This session keeps the loaded configuration and will not save any setting; restart \`palabre\` to reload the file.`,
+    tuiWriteBlocked: (path) => `Setting not saved: ${path} changed since Palabre opened, and this session will not overwrite it. Restart \`palabre\` to reload the configuration.`,
     ollamaModelNoChange: (path, model) => `Ollama model unchanged in ${path}: ${model ?? "none"}.`,
     ollamaModelUpdated: (path, previousModel, nextModel) => `Ollama model updated in ${path}: ${previousModel} -> ${nextModel}.`,
     ollamaModelUnavailable: (model) => `Ollama model is not installed: ${model}. Action: choose an installed model or run \`ollama pull ${model}\`.`,

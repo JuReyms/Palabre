@@ -382,7 +382,7 @@ async function main(): Promise<void> {
     ]);
     const tuiUpdateInfo = await getUpdateInfo(currentVersion);
     if (syncResult.conflict) {
-      tuiNotice = messages.config.syncConflict(configPath);
+      tuiNotice = messages.config.tuiSyncConflict(configPath);
     } else if (!tuiNotice && syncResult.addedAgents.length > 0) {
       tuiNotice = messages.config.syncAdded(configPath, syncResult.addedAgents.join(", "));
     }
