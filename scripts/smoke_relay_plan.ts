@@ -21,6 +21,46 @@ export interface ProbeLike {
   attachment?: string;
   activity?: string;
   evidence?: readonly string[];
+  processes?: readonly { pid: number; liveness: string }[];
+}
+
+/** Libellé exact : ce scénario ne qualifie ni le TUI Claude ni Desktop. */
+export const CLAUDE_ATTACHED_LABEL = "Claude attaché (processus non interactif)";
+
+/** Arguments de la reprise Claude maintenue ouverte ; aucun prompt ni accord de confiance. */
+export function claudeAttachedArgs(sessionId: string): string[] {
+  return ["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
+    "--resume", sessionId, "--permission-mode", "plan", "--tools", "Read,Glob,Grep",
+    "--strict-mcp-config", "--settings", JSON.stringify({ disableAllHooks: true })];
+}
+
+/** Identité locale du processus possédé ; les PID préexistants ne sont jamais des preuves. */
+export interface SmokeProcessOwner {
+  pid?: number;
+  exited: boolean;
+  preexistingPids: readonly number[];
+}
+
+/** La sonde concerne déjà la session précise ; exiger en plus son propre PID vivant et nouveau. */
+export function ownedClaudeAttachment(probe: ProbeLike | undefined, owner: SmokeProcessOwner): boolean {
+  return !owner.exited && Number.isSafeInteger(owner.pid) && owner.pid! > 0
+    && !owner.preexistingPids.includes(owner.pid!) && probe?.attachment === "attached"
+    && probe.processes?.some((item) => item.pid === owner.pid && item.liveness === "alive") === true;
+}
+
+/** Diagnostic prudent : aucun texte d'écran n'établit à lui seul une confiance ou un attachement. */
+export function blockedSmokeStartup(): string {
+  return "démarrage bloqué, cause non établie : aucun message envoyé";
+}
+
+/** Décision avant l'appel : PID propre attaché, processus encore actif et historique réellement mesuré. */
+export function claudeRefusalPrecondition(probe: ProbeLike | undefined, owner: SmokeProcessOwner,
+  history: HistoryFootprint | undefined): { send: true } | { send: false; reason: string } {
+  if (!ownedClaudeAttachment(probe, owner)) return { send: false, reason: blockedSmokeStartup() };
+  if (!history || history.files < 1 || history.lines < 1) {
+    return { send: false, reason: "historique non mesuré ou vide : aucun message envoyé" };
+  }
+  return { send: true };
 }
 
 /**
@@ -62,6 +102,15 @@ export interface SmokeCheck {
   detail: string;
 }
 
+/** Un arrêt n'est confirmé que lorsque sortie, fermeture des flux et mort du PID sont observées. */
+export function smokeProcessStopCheck(label: string, state: {
+  exited: boolean; closed: boolean; liveness: string; failure?: string;
+}): SmokeCheck {
+  const ok = state.exited && state.closed && state.liveness === "dead" && !state.failure;
+  return { name: `${label} : arrêt confirmé`, ok,
+    detail: ok ? "processus terminé, flux fermés" : "arrêt non confirmé ou erreur de processus ; scénario non qualifié" };
+}
+
 /** Résultat d'un appel `palabre relay --json` : code de sortie et objet JSON v1 éventuel. */
 export interface RelayCall {
   code: number | null;
@@ -81,30 +130,32 @@ export function refusalChecks(label: string, input: {
   before?: HistoryFootprint;
   after?: HistoryFootprint;
   reason?: string;
+  owner?: SmokeProcessOwner;
 }): SmokeCheck[] {
   const { probe, call, before, after } = input;
+  const prefix = input.owner ? label : `${label} attaché`;
   const checks: SmokeCheck[] = [{
-    name: `${label} attaché : sonde`,
-    ok: probe?.attachment === "attached",
+    name: `${prefix} : sonde`,
+    ok: input.owner ? ownedClaudeAttachment(probe, input.owner) : probe?.attachment === "attached",
     detail: `attachement ${probe?.attachment ?? "?"}, activité ${probe?.activity ?? "?"} ; ${(probe?.evidence ?? []).join(" | ")}`
   }];
   if (!call) {
     const decision = refusalPrecondition(probe);
     const detail = input.reason ?? (decision.send ? "appel non lancé" : decision.reason);
-    checks.push({ name: `${label} attaché : refus`, ok: false, detail });
-    checks.push({ name: `${label} attaché : historique inchangé`, ok: false, detail: "non mesuré : scénario non joué" });
+    checks.push({ name: `${prefix} : refus`, ok: false, detail });
+    checks.push({ name: `${prefix} : historique inchangé`, ok: false, detail: "non mesuré : scénario non joué" });
     return checks;
   }
   const json = call.json;
   checks.push({
-    name: `${label} attaché : refus`,
+    name: `${prefix} : refus`,
     ok: call.code === 3 && json?.status === "target-busy" && json.delivery?.status === "not-delivered"
       && json.mode === "background" && json.modeSource === "explicit",
     detail: `code ${call.code}, statut ${json?.status}, délivrance ${json?.delivery?.status}, mode ${json?.mode} (${json?.modeSource})`
   });
   const same = before !== undefined && after !== undefined && before.files > 0 && before.files === after.files && before.lines === after.lines;
   checks.push({
-    name: `${label} attaché : historique inchangé`,
+    name: `${prefix} : historique inchangé`,
     ok: same,
     detail: before && after ? `${before.files} fichier(s), ${before.lines} → ${after.files} fichier(s), ${after.lines} entrée(s)` : "mesure incomplète"
   });
