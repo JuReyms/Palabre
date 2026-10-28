@@ -54,8 +54,8 @@ pnpm smoke:real-relay
 ```
 
 `scripts/smoke_real_relay.ts` crée deux sessions **jetables**, une Claude Code et une Codex, dans un dossier temporaire, puis vérifie :
-- la réponse d'une cible fermée, avec contexte conservé, délivrance, identité et export ;
-- le refus d'une cible attachée, avec un TUI ouvert dans un pseudo-terminal et l'historique inchangé ;
+- la réponse d'une cible fermée, avec contexte conservé, délivrance, identité, export et arrière-plan explicite ;
+- le refus d'une cible attachée, avec un TUI ouvert dans un pseudo-terminal : `target-busy`, code 3, `not-delivered`, et historique inchangé (nombre de fichiers et de lignes, segments Codex compris). Le message de refus n'est envoyé que si, juste avant l'appel, une nouvelle sonde établit l'attachement, le TUI n'est pas terminé et l'historique a été mesuré sur au moins un fichier ; sinon le scénario échoue sans rien envoyer. Une mesure sans aucun fichier n'est jamais un historique inchangé. Cette nouvelle sonde réduit la course sans rendre sonde et appel atomiques ;
 - la neutralisation MCP de Codex (journaux d'une reprise témoin comparés à ceux du relay) ;
 - l'outillage de Claude annoncé par `system/init` ;
 - les versions des CLIs.
@@ -70,6 +70,8 @@ Effets de bord, tous sur des données jetables :
 - la reprise témoin démarre les serveurs MCP de l'utilisateur.
 
 La trace, avec les identifiants de session, est écrite dans `.tmp/relay-smoke/`.
+
+Tous les appels du smoke imposent `--background` : avec la préférence `relay.view: auto`, une conversation Codex attachée serait jointe en mode ouvert et recevrait le message censé être refusé. Les décisions (arguments, précondition d'attachement, verdicts, empreinte d'historique) vivent dans `scripts/smoke_relay_plan.ts` et sont testées hors ligne par `tests/smoke-relay-plan.test.ts`, sans agent réel. Les scripts `smoke:real-*` compilent un fichier isolé avec `tsc --ignoreConfig` : TypeScript 7 refuse sinon de compiler des fichiers nommés quand un `tsconfig.json` est présent (`TS5112`).
 
 Quand un changement touche l'adapter CLI, lancer `pnpm test`. Ces tests compilent `src/` et `tests/` via `tsconfig.test.json` dans `.tmp/test-dist`, puis utilisent `node:test` avec des CLIs mockees. Garder les tests automatises sous `tests/` et completer par un smoke test manuel avec une vraie CLI seulement quand le comportement depend d'un outil externe.
 
