@@ -57,7 +57,7 @@ Extrait du bloc `agents` :
 }
 ```
 
-OpenCode s'exécute dans son **environnement habituel** : ses plugins, serveurs MCP et permissions configurés restent actifs, en Débat, Ask et Chat comme pour les synthèses. Palabre ne promet ni neutralisation des plugins ni lecture seule. OpenCode 2 n'a plus l'option `--pure`, et aucun remplaçant fiable n'existe pour cette commande. Vérifiez donc vous-même les permissions d'OpenCode dans sa configuration.
+OpenCode s'exécute dans son **environnement habituel** : ses plugins, serveurs MCP et permissions configurés restent actifs, en Débat, Ask et Chat comme pour les synthèses. Palabre ne promet ni neutralisation des plugins ni lecture seule. OpenCode 2 n'a plus l'option `--pure`, et Palabre n'a qualifié aucun remplaçant pour cette commande. Vérifiez donc vous-même les permissions d'OpenCode dans sa configuration.
 
 ## Utilisation
 
@@ -68,6 +68,6 @@ palabre opencode-claude "Compare ces options" -t 3
 
 Dans l'exemple Windows, `shell` vaut `true` ; il vaut `false` ailleurs.
 
-Si une ancienne configuration contient encore `["run", "--pure"]`, OpenCode 2 refuse de démarrer et Palabre explique comment corriger. `palabre config --sync-agents` remplace cet ancien défaut exact par `["run"]` ; des arguments personnalisés ne sont jamais modifiés, retirez-y `--pure` vous-même.
+Si une ancienne configuration contient encore l'ancien défaut exact `["run", "--pure"]`, Palabre le remplace par `["run"]` à chaque lancement, sans toucher au fichier ; `palabre config --sync-agents` écrit ce remplacement dans le fichier. Des arguments personnalisés ne sont jamais modifiés : s'ils contiennent `--pure`, OpenCode 2 refuse de démarrer et Palabre vous indique de retirer `--pure` vous-même.
 
 Le [pilote Relay OpenCode sur copie](/fr/usage/relay#demander-un-avis-à-une-copie-opencode) utilise un parcours distinct, avec l'environnement habituel conservé, pour Windows et OpenCode CLI 2.0.32 seulement.

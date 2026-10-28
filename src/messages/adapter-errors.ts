@@ -74,7 +74,7 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
     usageLimit: (adapterName, detail) => `${adapterName} a atteint une limite d'utilisation: ${detail}`,
     unsupportedModel: (adapterName, detail) => `${adapterName} ne peut pas utiliser ce modèle: ${detail}`,
     openCodePureRemoved: (adapterName) =>
-      `${adapterName} : OpenCode 2 n'accepte plus l'option --pure. Si les arguments de cet agent valent encore l'ancien défaut ["run", "--pure"], lance \`palabre config --sync-agents\` pour les remplacer par ["run"] ; sinon retire toi-même --pure de "args" dans ta configuration. OpenCode garde alors son environnement habituel : ses plugins, serveurs MCP et permissions configurés restent actifs.`,
+      `${adapterName} : OpenCode 2 n'accepte plus l'option --pure. Retire-la toi-même des arguments ("args") personnalisés de cet agent dans ta configuration : Palabre ne modifie jamais des arguments personnalisés (seul l'ancien défaut exact ["run", "--pure"] est remplacé automatiquement par ["run"]). OpenCode garde alors son environnement habituel : ses plugins, serveurs MCP et permissions configurés restent actifs.`,
     unsafeWindowsShellPrompt: (adapterName) =>
       `${adapterName} ne peut pas transmettre un prompt en sécurité via ce wrapper shell Windows. Configure un exécutable natif, un shim PowerShell .ps1 ou, si la CLI le supporte, promptMode "stdin".`,
     unsafeWindowsShellModel: (adapterName) =>
@@ -100,7 +100,7 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
     usageLimit: (adapterName, detail) => `${adapterName} hit a usage limit: ${detail}`,
     unsupportedModel: (adapterName, detail) => `${adapterName} cannot use this model: ${detail}`,
     openCodePureRemoved: (adapterName) =>
-      `${adapterName}: OpenCode 2 no longer accepts the --pure option. If this agent's arguments are still the old default ["run", "--pure"], run \`palabre config --sync-agents\` to replace them with ["run"]; otherwise remove --pure from "args" in your configuration yourself. OpenCode then keeps its usual environment: its configured plugins, MCP servers and permissions stay active.`,
+      `${adapterName}: OpenCode 2 no longer accepts the --pure option. Remove it yourself from this agent's custom arguments ("args") in your configuration: Palabre never changes custom arguments (only the exact old default ["run", "--pure"] is replaced automatically with ["run"]). OpenCode then keeps its usual environment: its configured plugins, MCP servers and permissions stay active.`,
     unsafeWindowsShellPrompt: (adapterName) =>
       `${adapterName} cannot safely pass a prompt through this Windows shell wrapper. Configure a native executable, a PowerShell .ps1 shim, or promptMode "stdin" if the CLI supports it.`,
     unsafeWindowsShellModel: (adapterName) =>

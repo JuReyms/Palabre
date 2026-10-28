@@ -277,35 +277,53 @@ export function syncDetectedAgents(config: PalabreConfig, discovery: ToolDiscove
   return missingAgents;
 }
 
+/** Anciens défauts d'arguments exactement reconnus, et leur remplacement actuel. */
+const LEGACY_ARGS_MIGRATIONS: { agent: string; previous: string[][]; next: string[] }[] = [
+  { agent: "codex", previous: [["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only", "-"]], next: CODEX_SAFE_ARGS },
+  { agent: "claude", previous: [["--print", "--output-format", "text", "--no-session-persistence"]], next: CLAUDE_SAFE_ARGS },
+  // Ancien défaut exact seulement : une configuration personnalisée qui contient `--pure` reste intacte.
+  { agent: "opencode", previous: [["run", "--pure"]], next: OPENCODE_DEFAULT_ARGS },
+  {
+    agent: "vibe",
+    previous: [["--output", "text", "--trust", "--prompt"], ["--output", "text", "--agent", "plan", "--trust", "--prompt"]],
+    next: VIBE_SAFE_ARGS
+  }
+];
+
 /**
  * Remplace des anciens défauts d'arguments **exactement** reconnus par les défauts actuels ; tout
  * tableau personnalisé est conservé tel quel. OpenCode : `["run", "--pure"]` devient `["run"]`.
+ * Appliqué en mémoire par `loadConfig` : le fichier garde l'ancien tableau jusqu'à une écriture.
  */
 function migrateKnownAgentDefaults(config: PalabreConfig): void {
-  migrateExactCliArgs(config, "codex", [[
-    "exec",
-    "--skip-git-repo-check",
-    "--color",
-    "never",
-    "--sandbox",
-    "read-only",
-    "-"
-  ]], CODEX_SAFE_ARGS);
-  migrateExactCliArgs(config, "claude", [[
-    "--print",
-    "--output-format",
-    "text",
-    "--no-session-persistence"
-  ]], CLAUDE_SAFE_ARGS);
-  // Ancien défaut exact seulement : une configuration personnalisée qui contient `--pure` reste intacte.
-  migrateExactCliArgs(config, "opencode", [[
-    "run",
-    "--pure"
-  ]], OPENCODE_DEFAULT_ARGS);
-  migrateExactCliArgs(config, "vibe", [
-    ["--output", "text", "--trust", "--prompt"],
-    ["--output", "text", "--agent", "plan", "--trust", "--prompt"]
-  ], VIBE_SAFE_ARGS);
+  for (const { agent, previous, next } of LEGACY_ARGS_MIGRATIONS) migrateExactCliArgs(config, agent, previous, next);
+}
+
+/**
+ * Agents dont le fichier `configPath` contient encore un ancien défaut d'arguments exact, avant la
+ * migration en mémoire de `loadConfig`. Fichier illisible ou invalide : aucun.
+ */
+export async function legacyArgsInConfigFile(configPath: string): Promise<string[]> {
+  let raw: unknown;
+  try { raw = JSON.parse(await readFile(path.resolve(configPath), "utf8")); } catch { return []; }
+  const agents = (raw as { agents?: Record<string, { type?: unknown; args?: unknown }> } | null)?.agents;
+  if (!agents || typeof agents !== "object") return [];
+  return LEGACY_ARGS_MIGRATIONS
+    .filter(({ agent, previous }) => agents[agent]?.type === "cli" && previous.some((args) => JSON.stringify(agents[agent]?.args) === JSON.stringify(args)))
+    .map(({ agent }) => agent);
+}
+
+/**
+ * `palabre config --sync-agents` : synchronise les agents détectés et écrit la configuration si
+ * elle change, **y compris** quand seul un ancien défaut d'arguments reste dans le fichier (déjà
+ * migré en mémoire par `loadConfig`). L'écriture rafraîchit une approbation existante.
+ */
+export async function persistAgentSync(configPath: string, config: PalabreConfig, discovery: ToolDiscovery): Promise<DetectedAgentsSyncResult> {
+  const legacy = await legacyArgsInConfigFile(configPath);
+  const result = syncDetectedAgentsDetailed(config, discovery);
+  const changed = result.changed || legacy.length > 0;
+  if (changed) await writeConfig(configPath, config);
+  return { addedAgents: result.addedAgents, changed };
 }
 
 function migrateExactCliArgs(

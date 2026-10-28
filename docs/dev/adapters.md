@@ -57,7 +57,8 @@ habituel, comme Relay sur copie. Plugins, MCP et permissions configures restent 
 neutralisation ni lecture seule n'est promise. OpenCode 2 n'a plus `--pure` (absent des 2.0.0) et aucun
 remplacant n'est qualifie (`--standalone` charge toujours les plugins ; une liste de plugins vide ou
 une politique injectee ne donnent pas de garantie universelle). La migration ne remplace que
-l'ancien defaut exact `["run", "--pure"]` par `["run"]` ; le refus `Unrecognized flag: --pure` donne un
+l'ancien defaut exact `["run", "--pure"]` par `["run"]` (en memoire a chaque chargement ; `--sync-agents`,
+via `persistAgentSync`, l'ecrit aussi quand seul le fichier garde l'ancien tableau) ; le refus exact `Unrecognized flag: --pure in command opencode run` donne un
 `non-zero-exit` avec la marche a suivre. Les fichiers de contexte et messages du transcript restent
 explicitement marques comme donnees non fiables dans les prompts. Les migrations ne remplacent
 que les tableaux `args` exactement identiques aux anciens defaults ; toute personnalisation

@@ -391,11 +391,26 @@ test("CliAdapter explique le refus de --pure par OpenCode 2, sans promettre de n
     adapter.generate(basePrompt()),
     (error) => error instanceof AdapterError
       && error.kind === "non-zero-exit"
-      && error.message.includes("palabre config --sync-agents")
+      && error.message.includes("--pure")
       && error.message.includes("[\"run\"]")
       && error.message.includes("plugins")
       && !/lecture seule|read-only/i.test(error.message)
   );
+});
+
+test("CliAdapter : ni un autre drapeau ni une autre commande ne passent pour le refus OpenCode de --pure", async () => {
+  for (const line of ["Unrecognized flag: --pure-extra in command opencode run", "Unrecognized flag: --pure in command other-tool run"]) {
+    const script = `process.stderr.write(${JSON.stringify(`ERROR\n${line}\n`)}); process.exit(1)`;
+    const adapter = new CliAdapter("opencode", cliConfig({ args: ["-e", script] }));
+    await assert.rejects(
+      adapter.generate(basePrompt()),
+      (error) => error instanceof AdapterError
+        && error.kind === "non-zero-exit"
+        && error.message.includes(line)
+        && !error.message.includes("environnement habituel"),
+      line
+    );
+  }
 });
 
 test("CliAdapter classifies unsupported model errors even when the CLI exits empty", async () => {

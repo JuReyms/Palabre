@@ -426,8 +426,11 @@ function createKnownCliError(adapterName: string, exitCode: number | undefined, 
   return undefined;
 }
 
-/** Refus observé avec OpenCode 2.0.32 : « Unrecognized flag: --pure in command opencode run ». */
-const OPENCODE_PURE_REJECTED = /Unrecognized flag:\s*--pure\b/i;
+/**
+ * Refus observé avec OpenCode 2.0.32, ligne exacte : « Unrecognized flag: --pure in command opencode run ».
+ * Un autre drapeau (`--pure-extra`) ou une autre commande ne déclenchent jamais ce diagnostic.
+ */
+const OPENCODE_PURE_REJECTED = /^\s*Unrecognized flag: --pure in command opencode run\s*$/m;
 
 /** Cherche dans stderr une ligne signalant un modèle non supporté, pour classer l'erreur en `unsupported-model`. */
 function extractUnsupportedModelMessage(stderr: string): string | undefined {
