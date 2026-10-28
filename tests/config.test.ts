@@ -257,7 +257,7 @@ test("sync-agents écrit la migration exacte d'OpenCode même déjà appliquée 
   assert.equal((await persistAgentSync(file, await loadConfig(file), async () => noDetectedTools())).changed, false, "seconde synchronisation sans écriture");
 });
 
-test("sync-agents n'écrase jamais une édition faite depuis le chargement", async (t) => {
+test("sync-agents refuse d'écrire après une édition faite depuis le chargement ou pendant la découverte", async (t) => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "palabre-sync-race-"));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const file = path.join(dir, "palabre.config.json");

@@ -326,11 +326,12 @@ export interface PersistedAgentSync extends DetectedAgentsSyncResult {
  * elle change, **y compris** quand seul un ancien défaut d'arguments reste dans le fichier (déjà
  * migré en mémoire par `loadConfig`). L'écriture rafraîchit une approbation existante.
  *
- * Jamais d'écrasement d'une édition concurrente : le fichier relu au départ doit correspondre à
+ * Protection contre une édition concurrente : le fichier relu au départ doit correspondre à
  * `config` (chargé et migré), puis rester identique octet pour octet jusqu'à l'écriture ; sinon
  * `conflict`, sans écriture. On ne reconstruit pas depuis le fichier modifié, qui n'a pas été
  * approuvé : l'écriture rafraîchirait son approbation. La découverte (`discover`) peut être lente,
- * d'où le contrôle avant écriture ; il réduit la course sans la rendre atomique.
+ * d'où le contrôle avant écriture ; il réduit la course sans la rendre atomique : une édition entre ce
+ * dernier contrôle et le remplacement du fichier peut encore être écrasée.
  */
 export async function persistAgentSync(
   configPath: string,
