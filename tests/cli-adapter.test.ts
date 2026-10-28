@@ -382,6 +382,22 @@ test("CliAdapter classifies unsupported model errors", async () => {
   );
 });
 
+test("CliAdapter explique le refus de --pure par OpenCode 2, sans promettre de neutralisation", async () => {
+  // Sortie observée avec OpenCode 2.0.32 pour l'ancien défaut `opencode run --pure`.
+  const script = "process.stderr.write('ERROR\\nUnrecognized flag: --pure in command opencode run\\n'); process.exit(1)";
+  const adapter = new CliAdapter("opencode", cliConfig({ args: ["-e", script] }));
+
+  await assert.rejects(
+    adapter.generate(basePrompt()),
+    (error) => error instanceof AdapterError
+      && error.kind === "non-zero-exit"
+      && error.message.includes("palabre config --sync-agents")
+      && error.message.includes("[\"run\"]")
+      && error.message.includes("plugins")
+      && !/lecture seule|read-only/i.test(error.message)
+  );
+});
+
 test("CliAdapter classifies unsupported model errors even when the CLI exits empty", async () => {
   const script = "process.stderr.write('ERROR: ' + JSON.stringify({ type: 'error', status: 400, error: { type: 'invalid_request_error', message: \"The 'gpt-5.3-codex' model is not supported when using Codex with a ChatGPT account.\" } }));";
   const adapter = new CliAdapter("codex", cliConfig({

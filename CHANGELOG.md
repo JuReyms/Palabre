@@ -27,6 +27,11 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Changed
 
+- OpenCode en Débat, Ask et Chat, synthèses comprises : environnement habituel d'OpenCode, comme pour Relay sur copie (décision du propriétaire du 28 octobre 2026).
+  - OpenCode 2 n'a plus `--pure` (absent dès 2.0.0), et aucun remplaçant fiable n'est qualifié. L'ancien défaut `opencode run --pure` échouait avec « Unrecognized flag: --pure ».
+  - Le défaut devient `opencode run`. Les plugins, serveurs MCP et permissions configurés restent actifs ; Palabre ne promet ni neutralisation ni lecture seule.
+  - `palabre config --sync-agents` ne migre que l'ancien défaut exact `["run", "--pure"]` vers `["run"]`. Des arguments personnalisés ne sont jamais modifiés ; s'ils contiennent encore `--pure`, l'erreur explique quoi faire.
+  - Guides FR/EN, contrat développeur et skill alignés. Copies installées du skill : `palabre skill --sync` après accord humain, puis recharger le skill.
 - Documentation : distinction explicite entre Palabre (produit) et ses quatre modes dans le README FR/EN ; `AGENTS.md` devient un point d’entrée court avec règles critiques et lectures obligatoires par domaine. Contrats détaillés conservés sous `docs/dev/`, anciennes qualifications archivées, renvois des prototypes et de la JSDoc actualisés. Tests de budget et de liens pour éviter de reconstituer un fichier monolithique ; aucune modification du comportement CLI ni des copies installées du skill.
 
 - README FR/EN recentré sur la coopération via Relay et les modes complémentaires d'avis/décision : accroche globale, vocabulaire simplifié, petits schémas et premier Relay. Parcours terminal/TUI et demandes conversationnelles depuis un assistant CLI/Desktop distingués ; voix possible via l'application hôte, pas fournie par Palabre. Confidentialité mise en avant (aucune collecte ni télémétrie Palabre), parcours Ollama local et limites des outils distants précisés aussi dans les guides d'introduction. Tableau des outils par mode, avec pilote Relay OpenCode distinct. Rôles conservés avec leur portée explicite (Débat, Ask, Chat) et détails dans les guides. Aucun comportement CLI modifié.

@@ -41,7 +41,13 @@ const CODEX_SAFE_ARGS = [
   "--sandbox",
   "read-only"
 ];
-const OPENCODE_SAFE_ARGS = ["run", "--pure"];
+/**
+ * OpenCode 2 n'a plus `--pure` (absent dès 2.0.0) et aucun remplaçant n'est qualifié : décision du
+ * propriétaire du 28 octobre 2026, Débat/Ask/Chat utilisent l'environnement habituel d'OpenCode,
+ * comme Relay sur copie. Plugins, MCP et permissions configurés restent actifs ; aucune lecture
+ * seule ni neutralisation n'est promise.
+ */
+const OPENCODE_DEFAULT_ARGS = ["run"];
 const VIBE_SAFE_ARGS = [
   "--output",
   "text",
@@ -102,7 +108,7 @@ export const exampleConfig: PalabreConfig = {
     opencode: {
       type: "cli",
       command: "opencode",
-      args: [...OPENCODE_SAFE_ARGS],
+      args: [...OPENCODE_DEFAULT_ARGS],
       promptMode: "stdin",
       modelArg: "--model",
       shell: process.platform === "win32",
@@ -271,6 +277,10 @@ export function syncDetectedAgents(config: PalabreConfig, discovery: ToolDiscove
   return missingAgents;
 }
 
+/**
+ * Remplace des anciens défauts d'arguments **exactement** reconnus par les défauts actuels ; tout
+ * tableau personnalisé est conservé tel quel. OpenCode : `["run", "--pure"]` devient `["run"]`.
+ */
 function migrateKnownAgentDefaults(config: PalabreConfig): void {
   migrateExactCliArgs(config, "codex", [[
     "exec",
@@ -287,9 +297,11 @@ function migrateKnownAgentDefaults(config: PalabreConfig): void {
     "text",
     "--no-session-persistence"
   ]], CLAUDE_SAFE_ARGS);
+  // Ancien défaut exact seulement : une configuration personnalisée qui contient `--pure` reste intacte.
   migrateExactCliArgs(config, "opencode", [[
-    "run"
-  ]], OPENCODE_SAFE_ARGS);
+    "run",
+    "--pure"
+  ]], OPENCODE_DEFAULT_ARGS);
   migrateExactCliArgs(config, "vibe", [
     ["--output", "text", "--trust", "--prompt"],
     ["--output", "text", "--agent", "plan", "--trust", "--prompt"]

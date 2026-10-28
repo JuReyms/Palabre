@@ -189,7 +189,7 @@ test("syncDetectedAgentsDetailed migrates legacy Vibe plan args", () => {
   );
 });
 
-test("syncDetectedAgentsDetailed hardens unchanged Claude and OpenCode defaults", () => {
+test("syncDetectedAgentsDetailed hardens unchanged Claude defaults and keeps OpenCode run", () => {
   const discovery = noDetectedTools();
   discovery.claude = { available: true, command: "claude", path: "C:/bin/claude.exe" };
   discovery.opencode = { available: true, command: "opencode", path: "C:/bin/opencode.cmd" };
@@ -210,10 +210,33 @@ test("syncDetectedAgentsDetailed hardens unchanged Claude and OpenCode defaults"
     config.agents.claude?.type === "cli" ? config.agents.claude.args : undefined,
     ["--print", "--output-format", "text", "--no-session-persistence", "--tools", "Read,Glob,Grep"]
   );
+  // OpenCode 2 n'a plus `--pure` : `run` seul est le défaut actuel, plus jamais « durci ».
   assert.deepEqual(
     config.agents.opencode?.type === "cli" ? config.agents.opencode.args : undefined,
-    ["run", "--pure"]
+    ["run"]
   );
+});
+
+test("syncDetectedAgentsDetailed migre seulement l'ancien défaut OpenCode exact", () => {
+  const discovery = noDetectedTools();
+  discovery.opencode = { available: true, command: "opencode", path: "C:/bin/opencode.cmd" };
+
+  const exact = createConfigFromDiscovery(noDetectedTools());
+  if (exact.agents.opencode?.type === "cli") exact.agents.opencode.args = ["run", "--pure"];
+  assert.equal(syncDetectedAgentsDetailed(exact, discovery).changed, true);
+  assert.deepEqual(exact.agents.opencode?.type === "cli" ? exact.agents.opencode.args : undefined, ["run"]);
+
+  for (const custom of [["run", "--pure", "--agent", "plan"], ["--pure", "run"], ["run", "--model", "x", "--pure"]]) {
+    const config = createConfigFromDiscovery(noDetectedTools());
+    if (config.agents.opencode?.type === "cli") config.agents.opencode.args = [...custom];
+    syncDetectedAgentsDetailed(config, discovery);
+    assert.deepEqual(config.agents.opencode?.type === "cli" ? config.agents.opencode.args : undefined, custom, JSON.stringify(custom));
+  }
+});
+
+test("exampleConfig : OpenCode lancé avec run seul, sans --pure", () => {
+  const opencode = createConfigFromDiscovery(noDetectedTools()).agents.opencode;
+  assert.deepEqual(opencode?.type === "cli" ? opencode.args : undefined, ["run"]);
 });
 
 test("syncDetectedAgentsDetailed preserves custom Claude and OpenCode args", () => {

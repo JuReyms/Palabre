@@ -48,7 +48,7 @@ Excerpt from the `agents` block:
 "opencode": {
   "type": "cli",
   "command": "opencode",
-  "args": ["run", "--pure"],
+  "args": ["run"],
   "promptMode": "stdin",
   "modelArg": "--model",
   "shell": true,
@@ -57,8 +57,7 @@ Excerpt from the `agents` block:
 }
 ```
 
-`--pure` prevents external plugins from loading. This OpenCode command does not currently expose
-a tool allowlist equivalent to Claude's or Vibe's.
+OpenCode runs in its **usual environment**: its configured plugins, MCP servers and permissions stay active, in Debate, Ask and Chat as well as for summaries. Palabre promises neither plugin neutralization nor read-only access. OpenCode 2 no longer has the `--pure` option, and no reliable replacement exists for this command. Check OpenCode's permissions in its own configuration yourself.
 
 ## Usage
 
@@ -67,4 +66,8 @@ palabre codex-opencode "Review this MVP" -t 4
 palabre opencode-claude "Compare these options" -t 3
 ```
 
-In the Windows example, `shell` is `true`; elsewhere it is `false`. `--pure` prevents external plugins but does not prohibit all writing tools: OpenCode permissions remain defined in its own configuration. The [OpenCode Relay copy pilot](/en/usage/relay) uses a separate path with the usual environment preserved, for Windows and OpenCode CLI 2.0.32 only.
+In the Windows example, `shell` is `true`; elsewhere it is `false`.
+
+If an older configuration still contains `["run", "--pure"]`, OpenCode 2 refuses to start and Palabre explains how to fix it. `palabre config --sync-agents` replaces that exact old default with `["run"]`; custom arguments are never changed, so remove `--pure` from them yourself.
+
+The [OpenCode Relay copy pilot](/en/usage/relay) uses a separate path with the usual environment preserved, for Windows and OpenCode CLI 2.0.32 only.

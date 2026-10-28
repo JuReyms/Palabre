@@ -45,8 +45,7 @@
       "type": "cli",
       "command": "opencode",
       "args": [
-        "run",
-        "--pure"
+        "run"
       ],
       "promptMode": "stdin",
       "modelArg": "--model",
