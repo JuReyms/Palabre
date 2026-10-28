@@ -2,8 +2,8 @@
 title: Introduction
 description: Comprendre ce que fait PALABRE, comment il orchestre vos agents IA et quelles garanties de confidentialité il apporte.
 seo:
-  title: Débats entre agents IA depuis le terminal
-  description: PALABRE orchestre Claude Code, Codex et Ollama en débats structurés depuis votre terminal. Comprendre son fonctionnement et ce qui reste en local.
+  title: Faites coopérer vos outils IA
+  description: Faites coopérer vos outils IA, croisez leurs analyses et gardez la décision. Découvrez les modes de Palabre et ce qui reste sur votre machine.
 ---
 
 PALABRE fait coopérer les agents IA déjà installés sur votre machine pour **mieux décider avant d'agir**. Vous gardez vos outils, vos abonnements et vos modèles ; PALABRE organise les échanges et garde une trace Markdown.
@@ -38,11 +38,11 @@ Débat, Ask et Chat lancent un nouvel appel d'agent pour chaque réponse. PALABR
 
 ## Confidentialité
 
-**PALABRE ne collecte pas vos données : aucun compte PALABRE, aucune télémétrie, aucun serveur PALABRE pour recevoir vos conversations.** La CLI s'exécute sur votre machine et enregistre ses exports localement ; ils peuvent contenir des informations sensibles, à relire avant tout partage.
+**Le CLI PALABRE ne collecte pas vos données : aucun compte PALABRE, aucune télémétrie dans le CLI, aucun serveur PALABRE pour recevoir vos conversations.** La CLI s'exécute sur votre machine et enregistre ses exports localement ; ils peuvent contenir des informations sensibles, à relire avant tout partage.
 
 Avec un **serveur Ollama et des modèles locaux sur votre machine**, Débat, Ask et Chat peuvent garder leurs échanges IA en local. Tous les participants et l'éventuel agent de synthèse doivent utiliser des modèles locaux. Lancez la session directement dans le terminal si vous ne voulez pas qu'un assistant hôte distant reçoive votre demande ou les résultats.
 
-Si vous faites participer des outils ou modèles distants, les prompts, fichiers et échanges nécessaires leur sont transmis selon leurs politiques et vos réglages. Un serveur Ollama distant reçoit lui aussi les données qui lui sont envoyées. Utiliser un seul participant local ne rend pas toute la session locale.
+Si vous faites participer des outils ou modèles distants, les prompts, fichiers et échanges nécessaires leur sont transmis selon leurs politiques et vos réglages. Un serveur Ollama distant reçoit lui aussi les données qui lui sont envoyées. Un modèle cloud utilisé via Ollama reste distant, même si le serveur Ollama tourne sur votre machine. Utiliser un seul participant local ne rend pas toute la session locale.
 
 « Échanges IA locaux » ne signifie pas « aucune requête réseau » : PALABRE peut notamment consulter le registre npm pour vérifier les mises à jour. Cette vérification ne transmet pas vos prompts, fichiers ou conversations.
 
