@@ -16,7 +16,9 @@ Référence de développement extraite d’`AGENTS.md`. Lire [les règles commun
 - `ollama`
 - l'API Ollama locale via `GET http://localhost:11434/api/tags`
 
-La config generee conserve les blocs agents connus pour rester editable, mais ajuste `defaults.agentA` et `defaults.agentB` avec une paire detectee quand c'est possible. A chaque ouverture de l'accueil TUI, Palabre synchronise prudemment les agents connus detectes : il ajoute les agents connus manquants et rafraichit les noms de commande connus, sans toucher aux agents custom, aux roles, aux modeles ni aux defaults utilisateur. `palabre config --sync-agents` applique la meme logique explicitement.
+La config generee conserve les blocs agents connus pour rester editable, mais ajuste `defaults.agentA` et `defaults.agentB` avec une paire detectee quand c'est possible. A chaque ouverture de l'accueil TUI, Palabre synchronise prudemment les agents connus detectes : il ajoute les agents connus manquants et rafraichit les noms de commande connus, sans toucher aux agents custom, aux roles, aux modeles ni aux defaults utilisateur. `palabre config --sync-agents` applique la meme logique explicitement, comme l'action « synchroniser » de l'assistant `palabre config`.
+
+Les trois parcours passent par `persistAgentSync` (`src/config.ts`) : le fichier relu au depart doit correspondre a la configuration chargee et migree, puis rester identique octet pour octet jusqu'a l'ecriture. Sinon rien n'est ecrit (`conflict`, message `config.syncConflict`) et on ne reconstruit jamais depuis le fichier modifie : non approuve, il verrait son approbation rafraichie par `writeConfig`. L'accueil TUI garde alors la configuration chargee pour la session ; l'assistant et `--sync-agents` sortent avec le code 1. Le dernier controle et le remplacement du fichier ne sont pas atomiques. L'accueil TUI, automatique, n'ecrit pas pour un ancien defaut d'arguments seul (`persistLegacyArgs: false`) ; les parcours explicites l'ecrivent.
 
 Au lancement, Palabre ne doit pas utiliser de fallback agent code en dur : sans preset, sans agents explicites et sans defaults de config, il doit afficher une erreur actionnable.
 
