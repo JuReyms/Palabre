@@ -22,11 +22,13 @@ Palabre calls the AI assistants you bring into the work **agents**, for example 
 
 ### Your data, your tools
 
-**Palabre does not collect your data: no Palabre account, no telemetry, no Palabre server receiving your conversations.** It runs on your machine.
+**The Palabre CLI does not collect your data: no Palabre account, no CLI telemetry, no Palabre server receiving your conversations.** It runs on your machine.
 
 - **Local AI exchanges:** Debate, Ask and Chat can use a local Ollama server and local models, including for summaries. Launch them from your terminal, without a remote AI assistant, to keep these exchanges on your machine.
 - **Your choice of providers:** if you include a remote tool or model, it receives the prompts and context it needs, under its own privacy policy. Palabre adds no intermediary collecting your conversations.
 - **Local records:** Palabre saves its Markdown exports on your machine. You choose whether to share them.
+
+**Ollama does not always mean local:** a cloud model or a remote server sends the necessary data off your machine, even if you access the cloud model through a local Ollama server. All participants, including summaries, must use local models for local AI exchanges.
 
 [Privacy and what stays local](https://palab.re/en/get-started/introduction#privacy)
 
@@ -89,7 +91,7 @@ These are the tools Palabre can call, once installed and configured — regardle
 | Mistral Vibe | No | Yes | Yes | Yes |
 | Ollama (local models) | No | Yes | Yes | Yes |
 
-> **Note (1) — OpenCode Relay:** this pilot works on a copy of an existing conversation. Windows, CLI 2.0.32 only, not yet released; Desktop use has not been verified. [Relay requirements and limits](https://palab.re/en/usage/relay).
+> **Note (1) — OpenCode Relay:** this experimental pilot works on a copy of an existing conversation. Windows, CLI 2.0.32 only; Desktop use has not been verified. It uses your usual OpenCode environment, with no enforced read-only mode. [Relay requirements and limits](https://palab.re/en/usage/relay).
 
 Codex and Claude Code can also coordinate Relay exchanges.
 
@@ -164,11 +166,13 @@ Palabre appelle **agents** les assistants IA que vous faites participer, par exe
 
 ### Vos données, vos outils
 
-**Palabre ne collecte pas vos données : aucun compte Palabre, aucune télémétrie, aucun serveur Palabre pour recevoir vos conversations.** Il fonctionne sur votre machine.
+**Le CLI Palabre ne collecte pas vos données : aucun compte Palabre, aucune télémétrie dans le CLI, aucun serveur Palabre pour recevoir vos conversations.** Il fonctionne sur votre machine.
 
 - **Des échanges IA locaux :** Débat, Ask et Chat peuvent utiliser un serveur Ollama et des modèles locaux, y compris pour la synthèse. Lancez-les depuis votre terminal, sans assistant IA distant, pour garder ces échanges sur votre machine.
 - **Vos fournisseurs, votre choix :** si vous faites participer un outil ou un modèle distant, il reçoit les prompts et le contexte nécessaires, selon sa propre politique de confidentialité. Palabre n'ajoute pas d'intermédiaire qui collecte vos conversations.
 - **Des traces locales :** Palabre enregistre ses exports Markdown sur votre machine. Vous choisissez de les partager ou non.
+
+**Ollama ne signifie pas toujours local :** un modèle cloud ou un serveur distant transmet les données nécessaires hors de votre machine, même si vous accédez au modèle cloud depuis un serveur Ollama local. Tous les participants, synthèses comprises, doivent utiliser des modèles locaux pour des échanges IA locaux.
 
 [Confidentialité et données locales](https://palab.re/fr/get-started/introduction#confidentialité)
 
@@ -231,7 +235,7 @@ Voici les outils que Palabre peut appeler, une fois installés et configurés �
 | Mistral Vibe | Non | Oui | Oui | Oui |
 | Ollama (modèles locaux) | Non | Oui | Oui | Oui |
 
-> **Note (1) — OpenCode Relay :** ce pilote travaille sur une copie d'une conversation existante. Windows, CLI 2.0.32 seulement, pas encore publié ; l'utilisation depuis Desktop n'est pas encore validée. [Prérequis et limites Relay](https://palab.re/fr/usage/relay).
+> **Note (1) — OpenCode Relay :** ce pilote expérimental travaille sur une copie d'une conversation existante. Windows, CLI 2.0.32 seulement ; l'utilisation depuis Desktop n'est pas encore validée. Il utilise votre environnement OpenCode habituel, sans lecture seule imposée. [Prérequis et limites Relay](https://palab.re/fr/usage/relay).
 
 Codex et Claude Code peuvent aussi coordonner les échanges Relay.
 
