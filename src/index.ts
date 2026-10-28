@@ -798,8 +798,13 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   }
 
   if (flags["sync-agents"]) {
-    const discovery = await discoverLocalToolsForConfig(config, optionalString(flags["ollama-url"]));
-    const result = await persistAgentSync(configPath, config, discovery);
+    const result = await persistAgentSync(configPath, config, () => discoverLocalToolsForConfig(config, optionalString(flags["ollama-url"])));
+
+    if (result.conflict) {
+      console.error(messages.config.syncConflict(configPath));
+      process.exitCode = 1;
+      return;
+    }
 
     if (!result.changed) {
       console.log(messages.config.syncNoMissing(configPath));

@@ -299,13 +299,8 @@ function migrateKnownAgentDefaults(config: PalabreConfig): void {
   for (const { agent, previous, next } of LEGACY_ARGS_MIGRATIONS) migrateExactCliArgs(config, agent, previous, next);
 }
 
-/**
- * Agents dont le fichier `configPath` contient encore un ancien défaut d'arguments exact, avant la
- * migration en mémoire de `loadConfig`. Fichier illisible ou invalide : aucun.
- */
-export async function legacyArgsInConfigFile(configPath: string): Promise<string[]> {
-  let raw: unknown;
-  try { raw = JSON.parse(await readFile(path.resolve(configPath), "utf8")); } catch { return []; }
+/** Agents dont le JSON brut contient encore un ancien défaut d'arguments exact. */
+function legacyArgsAgents(raw: unknown): string[] {
   const agents = (raw as { agents?: Record<string, { type?: unknown; args?: unknown }> } | null)?.agents;
   if (!agents || typeof agents !== "object") return [];
   return LEGACY_ARGS_MIGRATIONS
@@ -314,16 +309,49 @@ export async function legacyArgsInConfigFile(configPath: string): Promise<string
 }
 
 /**
+ * Agents dont le fichier `configPath` contient encore un ancien défaut d'arguments exact, avant la
+ * migration en mémoire de `loadConfig`. Fichier illisible ou invalide : aucun.
+ */
+export async function legacyArgsInConfigFile(configPath: string): Promise<string[]> {
+  try { return legacyArgsAgents(JSON.parse(await readFile(path.resolve(configPath), "utf8"))); } catch { return []; }
+}
+
+/** Résultat de `persistAgentSync` ; `conflict` : fichier modifié depuis son chargement, rien n'est écrit. */
+export interface PersistedAgentSync extends DetectedAgentsSyncResult {
+  conflict?: true;
+}
+
+/**
  * `palabre config --sync-agents` : synchronise les agents détectés et écrit la configuration si
  * elle change, **y compris** quand seul un ancien défaut d'arguments reste dans le fichier (déjà
  * migré en mémoire par `loadConfig`). L'écriture rafraîchit une approbation existante.
+ *
+ * Jamais d'écrasement d'une édition concurrente : le fichier relu au départ doit correspondre à
+ * `config` (chargé et migré), puis rester identique octet pour octet jusqu'à l'écriture ; sinon
+ * `conflict`, sans écriture. On ne reconstruit pas depuis le fichier modifié, qui n'a pas été
+ * approuvé : l'écriture rafraîchirait son approbation. La découverte (`discover`) peut être lente,
+ * d'où le contrôle avant écriture ; il réduit la course sans la rendre atomique.
  */
-export async function persistAgentSync(configPath: string, config: PalabreConfig, discovery: ToolDiscovery): Promise<DetectedAgentsSyncResult> {
-  const legacy = await legacyArgsInConfigFile(configPath);
-  const result = syncDetectedAgentsDetailed(config, discovery);
-  const changed = result.changed || legacy.length > 0;
-  if (changed) await writeConfig(configPath, config);
-  return { addedAgents: result.addedAgents, changed };
+export async function persistAgentSync(
+  configPath: string,
+  config: PalabreConfig,
+  discover: () => Promise<ToolDiscovery>
+): Promise<PersistedAgentSync> {
+  const resolved = path.resolve(configPath);
+  const conflict: PersistedAgentSync = { addedAgents: [], changed: false, conflict: true };
+  const initial = await readFile(resolved, "utf8");
+  let raw: unknown;
+  try { raw = JSON.parse(initial); } catch { return conflict; }
+  const reloaded = structuredClone(raw) as PalabreConfig;
+  if (reloaded?.relay !== undefined) reloaded.relay = validateRelayPolicy(reloaded.relay);
+  migrateKnownAgentDefaults(reloaded);
+  if (JSON.stringify(reloaded) !== JSON.stringify(config)) return conflict;
+  const legacy = legacyArgsAgents(raw);
+  const result = syncDetectedAgentsDetailed(config, await discover());
+  if (!result.changed && legacy.length === 0) return { addedAgents: result.addedAgents, changed: false };
+  if (await readFile(resolved, "utf8") !== initial) return conflict;
+  await writeConfig(resolved, config);
+  return { addedAgents: result.addedAgents, changed: true };
 }
 
 function migrateExactCliArgs(
