@@ -22,6 +22,10 @@ Les trois parcours passent par `persistAgentSync` (`src/config.ts`) : le fichier
 
 Au lancement, Palabre ne doit pas utiliser de fallback agent code en dur : sans preset, sans agents explicites et sans defaults de config, il doit afficher une erreur actionnable.
 
+Le nouveau défaut Antigravity et sa migration fixent `shell` à vrai sur Windows (faux ailleurs) pour activer la résolution CLI prudente : natif, shim npm/pnpm reconnu, shim PowerShell ; jamais de wrapper shell restant avec prompt en argument. Le processus natif ou shim reconnu est lancé sans shell. Une commande simple qui ne résout que vers un shim garde ainsi ce parcours.
+
+Antigravity : migration en mémoire du seul agent `antigravity` avec ancien défaut exact (`type: cli-pty`, commande reconnue `agy`/`antigravity`, chemin absolu conservé, args `["--print-timeout", "5m0s", "--print"]`, `promptMode: argument`, sans `cols`, `rows`, `shell`, `idleTimeoutMs` ou `responseFormat`, ni wrapper explicite `.cmd`/`.bat`/`.ps1`). Il devient `cli`, arguments JSON et `responseFormat: antigravity-json` ; autres champs conservés. Args, commande, transport ou dimensions personnalisés : aucune migration. Comme les anciens args, `persistAgentSync` inclut cette migration dans son contrôle initial et l'écriture explicite ; l'accueil automatique seul n'écrit pas pour cette migration. Aucun fichier ni approbation modifié par `loadConfig`.
+
 Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` quand disponible. Ollama reste configure et accessible via presets, mais il est plutot destine aux power users ou aux roles locaux (`critic`, `scout`, `summarizer`). Les defaults utilisateur se gerent par `palabre config`, `palabre config --set-defaults <agentA> <agentB>`, `palabre config --mode <chat|debate|ask>`, `palabre config --interface <tui|terminal>`, `palabre config --ask-agents <agents...>`, `palabre config --summary-agent <agent|none>`, `palabre config --ask-summary-agent <agent|none>` et `palabre config --clear-defaults`. Les roles persistants se gerent par `palabre agent-role <agent> <role>` ou par edition JSON explicite.
 
 ## New

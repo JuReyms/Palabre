@@ -1,3 +1,4 @@
+/** @file Régressions de configuration, migrations exactes et synchronisation sans écrasement. */
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -71,7 +72,7 @@ test("createConfigFromDiscovery applies the detected Antigravity command alias",
   const config = createConfigFromDiscovery(discovery);
   const antigravity = config.agents.antigravity;
 
-  assert.equal(antigravity?.type, "cli-pty");
+  assert.equal(antigravity?.type, "cli");
   assert.equal(antigravity?.command, "antigravity");
 });
 
@@ -92,7 +93,7 @@ test("syncDetectedAgents refreshes commands for already configured known agents"
 
   assert.deepEqual(added, ["antigravity"]);
   assert.equal(config.agents.claude?.type === "cli" ? config.agents.claude.command : undefined, "claude");
-  assert.equal(config.agents.antigravity?.type, "cli-pty");
+  assert.equal(config.agents.antigravity?.type, "cli");
 });
 
 test("sync-agents et accueil TUI préservent le chemin choisi, sans annoncer de faux rafraîchissement", () => {

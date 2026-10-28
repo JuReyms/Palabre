@@ -1,5 +1,7 @@
+/** @file Diagnostics localisés des adapters et prochaines actions pour l'utilisateur. */
 import type { AdapterFailureKind, Language } from "../types.js";
 
+/** Contrat FR/EN des diagnostics d'adapter et de leurs actions correctives. */
 export interface AdapterErrorMessages {
   suggestionPrefix: string;
   hint(kind: AdapterFailureKind): string | undefined;
@@ -9,6 +11,10 @@ export interface AdapterErrorMessages {
   unsupportedModel(adapterName: string, detail: string): string;
   /** OpenCode 2 refuse l'ancien argument `--pure` : migration exacte ou retrait manuel, sans neutralisation promise. */
   openCodePureRemoved(adapterName: string): string;
+  /** JSON Antigravity inconnu, erroné ou sans réponse : aucun repli texte. */
+  invalidAntigravityJson(adapterName: string): string;
+  /** Format configuré inconnu : refus avant tout lancement. */
+  invalidResponseFormat(adapterName: string): string;
   /** Refus de transmettre un prompt non fiable via un wrapper shell Windows. */
   unsafeWindowsShellPrompt(adapterName: string): string;
   /** Refus d'un identifiant de modèle contenant des métacaractères de shell Windows. */
@@ -69,6 +75,8 @@ const enHints: Partial<Record<AdapterFailureKind, string>> = {
 
 export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
   fr: {
+    invalidAntigravityJson: (name) => `${name} : réponse JSON Antigravity invalide, en erreur ou vide. Vérifie la version avec agy --help et les arguments --output-format json --print ; seul un objet avec status SUCCESS et response non vide est accepté. Aucun repli texte ou PTY.`,
+    invalidResponseFormat: (name) => `${name} : responseFormat invalide pour cet adapter. Configure "text" ou "antigravity-json" avec "type": "cli", ou retire responseFormat pour conserver ton transport.`,
     suggestionPrefix: "Suggestion",
     hint: (kind) => frHints[kind],
     usageLimit: (adapterName, detail) => `${adapterName} a atteint une limite d'utilisation: ${detail}`,
@@ -95,6 +103,8 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
     ollamaUnloadFailed: (model, status) => `Impossible de décharger le modèle Ollama ${model}: HTTP ${status}`
   },
   en: {
+    invalidAntigravityJson: (name) => `${name}: invalid, failed or empty Antigravity JSON response. Check the version with agy --help and the --output-format json --print arguments; only an object with status SUCCESS and a nonempty response is accepted. No text or PTY fallback.`,
+    invalidResponseFormat: (name) => `${name}: invalid responseFormat for this adapter. Configure "text" or "antigravity-json" with "type": "cli", or remove responseFormat to keep your transport.`,
     suggestionPrefix: "Suggestion",
     hint: (kind) => enHints[kind],
     usageLimit: (adapterName, detail) => `${adapterName} hit a usage limit: ${detail}`,

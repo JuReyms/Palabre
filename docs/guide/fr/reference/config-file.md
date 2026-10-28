@@ -74,6 +74,7 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 | `command` | string | Commande à lancer. |
 | `args` | string[] | Arguments transmis. |
 | `promptMode` | `stdin` ou `argument` | Manière de transmettre le prompt. |
+| `responseFormat` | `text` ou `antigravity-json` | Adapter `cli` seulement ; texte par défaut. JSON Antigravity : extrait uniquement `response` si `status` vaut `SUCCESS`, sans repli. |
 | `shell` | boolean | Active la résolution prudente des wrappers Windows ; les natifs et shims reconnus restent lancés sans shell. Ignoré par Relay. |
 | `role` | string | Rôle de l'agent. |
 | `tier` | `primary` / `local` | Classe de l’agent ; sans effet sur la consigne de rôle. |
@@ -82,7 +83,7 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 | `timeoutMs` | number | Délai global en millisecondes, 180 000 par défaut pour CLI/PTY. |
 | `idleTimeoutMs` | number | Timeout d'inactivité. |
 | `maxOutputBytes` | number | Taille maximale cumulée de stdout et stderr, 50 Mio par défaut. |
-| `allowEmptyOutput` | boolean | Autorise exceptionnellement une réponse CLI vide. |
+| `allowEmptyOutput` | boolean | Autorise exceptionnellement une réponse CLI texte vide ; sans effet sur le refus d'un JSON Antigravity vide ou invalide. |
 | `cols` / `rows` | number | Dimensions du pseudo-terminal pour `cli-pty`. |
 
 ## Agent Ollama

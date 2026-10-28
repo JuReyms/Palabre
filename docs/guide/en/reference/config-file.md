@@ -74,6 +74,7 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 | `command` | string | Command to run. |
 | `args` | string[] | Arguments passed. |
 | `promptMode` | `stdin` or `argument` | How the prompt is passed. |
+| `responseFormat` | `text` or `antigravity-json` | `cli` adapter only; text by default. Antigravity JSON extracts only `response` when `status` is `SUCCESS`, without fallback. |
 | `shell` | boolean | Runs through the system shell. Generated configuration only enables it for selected Windows wrappers. |
 | `role` | string | Agent role. |
 | `tier` | `primary` / `local` | Agent class; no effect on its role instruction. |
@@ -82,7 +83,7 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 | `timeoutMs` | number | Global timeout in milliseconds, 180,000 by default for CLI/PTY. |
 | `idleTimeoutMs` | number | Idle timeout. |
 | `maxOutputBytes` | number | Maximum combined stdout and stderr size, 50 MiB by default. |
-| `allowEmptyOutput` | boolean | Exceptionally allows an empty CLI response. |
+| `allowEmptyOutput` | boolean | Exceptionally allows an empty CLI text response; does not allow empty or invalid Antigravity JSON. |
 | `cols` / `rows` | number | Pseudo-terminal dimensions for `cli-pty`. |
 
 ## Ollama agent
