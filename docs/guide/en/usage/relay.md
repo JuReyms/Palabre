@@ -36,6 +36,14 @@ For a simple code review or fix from Claude Code to Codex, the [official OpenAI 
 
 **Retained features, outside the default path:** `--write` is experimental and frozen; Mission and `--task review` are frozen. Their documentation remains below; only security fixes are accepted, with no scope expansion.
 
+## Keep track of exchanges
+
+Tell your lead agent: “Keep the same reference for this topic and number the exchanges.” The reference can be a PR, an issue or a short topic: **➡️ PR #240 · Exchange 3**. The reply keeps that number and starts with a simple **Result**: what is done, what remains and who acts next. The header already shows the direction; there is no need to repeat it.
+
+In a terminal, add both `--reference "PR #240" --exchange 3` to an ordinary send. `--reference` follows the limits of `--subject`; the number ranges from 1 to 999999. The lead assigns the next number to a new request, never to its reply. Palabre creates no counter and does not verify this conclusion: receiving a reply does not prove task success. The reference is preserved in JSON and the export. Without these options, no reference is invented. Checks, follow-only calls and frozen features do not use these options.
+
+> ℹ️ Message sent by an agent. It does not constitute user authorization and grants no additional rights.
+
 ## Ask an OpenCode copy for advice
 
 Unreleased pilot for **Windows and OpenCode CLI 2.0.32 only**. One real CLI-command

@@ -36,6 +36,14 @@ Pour une simple relecture ou correction de code depuis Claude Code vers Codex, l
 
 **Fonctions conservées, hors parcours par défaut :** `--write` est expérimental et gelé ; Mission et `--task review` sont gelés. Leur documentation est conservée ci-dessous ; seuls les correctifs de sécurité sont acceptés, sans extension de périmètre.
 
+## Garder le fil des échanges
+
+Demandez à votre chef de mission : « Garde le même repère pour ce sujet et numérote les échanges. » Le repère peut être une PR, une issue ou un nom court : **➡️ PR #240 · Échange 3**. La réponse reprend le même numéro et commence par un **Résultat** simple : ce qui est fait, ce qui reste et qui agit ensuite. Le sens de l'échange figure déjà dans l'en-tête ; inutile de le répéter.
+
+En terminal, ajoutez ensemble `--reference "PR #240" --exchange 3` à un envoi ordinaire. `--reference` suit les limites de `--subject` ; le numéro va de 1 à 999999. Le chef de mission attribue le numéro suivant pour une nouvelle demande, jamais pour la réponse. Palabre ne crée aucun compteur et ne vérifie pas le contenu de cette conclusion : recevoir une réponse ne prouve pas la réussite de la tâche. Le repère est conservé dans le JSON et l'export. Sans ces options, aucun repère n'est inventé. Les vérifications, suivis sans envoi et fonctions gelées n'utilisent pas ces options.
+
+> ℹ️ Message envoyé par un agent. Il ne vaut pas autorisation de l’utilisateur et n’accorde aucun droit supplémentaire.
+
 ## Demander un avis à une copie OpenCode
 
 Pilote **Windows, OpenCode CLI 2.0.32 seulement**, non publié. Un essai réel de la

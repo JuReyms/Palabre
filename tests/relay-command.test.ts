@@ -132,6 +132,70 @@ function palabre(world: World, argv: string[], env: Record<string, string> = {})
 const toClaude = ["--from", FROM, "--to", `claude:${CLAUDE_SESSION}`];
 const toCodex = ["--from", `claude:${CLAUDE_SESSION}`, "--to", `codex:${CODEX_SESSION}`];
 
+test("repère Relay FR/EN : transport, JSON et export gardent la même référence", async () => {
+  for (const language of ["fr", "en"] as const) {
+    const w = makeWorld();
+    const r = await relay(w, [...toClaude, "Relis le plan", "--reference", "Issue #193", "--exchange", "3", "--language", language, "--trust-config", "--json"]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(r.json.exchange, { reference: "Issue #193", number: 3 });
+    assert.ok(r.calls[0]!.stdin.includes(relayMessages[language].exchangeLine("Issue #193", 3)));
+    const md = readFileSync(r.json.exportPath, "utf8");
+    assert.ok(md.includes(`| ${relayMessages[language].export.marker} | Issue #193 |`));
+    assert.ok(md.includes(`| ${relayMessages[language].export.exchange} | 3 |`));
+    assert.ok(md.includes(r.calls[0]!.stdin));
+  }
+});
+
+test("repères invalides ou hors périmètre : refus avant lancement", async () => {
+  for (const args of [
+    ["--reference", "Sujet"], ["--exchange", "1"],
+    ["--reference", "Sujet", "--exchange", "0"],
+    ["--reference", "x\ny", "--exchange", "1"],
+    ["--reference", "Sujet", "--exchange", "1", "--exchange", "2"],
+    ["--reference", "Sujet", "--exchange", "1", "--task", "review"],
+    ["--reference", "Sujet", "--exchange", "1", "--write", "--new"]
+  ]) {
+    const r = await relay(makeWorld(), [...toClaude, "Question", ...args, "--json"]);
+    assert.equal(r.code, 8, JSON.stringify(args));
+    assert.equal(r.json.delivery.status, "not-delivered");
+    assert.deepEqual(r.calls, []);
+  }
+  for (const mode of [["--check"], ["--open", "--follow"]]) {
+    const r = await relay(makeWorld(), ["--to", `codex:${CODEX_SESSION}`, ...mode, "--reference", "Sujet", "--exchange", "1", "--json"]);
+    assert.equal(r.code, 8); assert.deepEqual(r.calls, []);
+    assert.ok(r.json.error.message.endsWith(relayMessages.fr.arguments.exchangeConflict), r.json.error.message);
+  }
+});
+
+test("mot relay utilisé comme valeur sans vraie commande : refus structuré sans agent", async () => {
+  const r = await palabre(makeWorld(), ["--reference", "relay", "--to", `claude:${CLAUDE_SESSION}`, "Q", "--json"]);
+  assert.equal(r.code, 8, r.stderr);
+  assert.equal(r.json.type, "relay-result");
+  assert.equal(r.json.delivery.status, "not-delivered");
+  assert.deepEqual(r.calls, []);
+});
+
+test("repère conservé dans une création, même avec les options avant relay", async () => {
+  const w = makeWorld();
+  const r = await palabre(w, ["--reference", "relay", "--exchange", "1", "relay", "--new", "--background", "--to", "claude", "Question", "--trust-config", "--json"]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(r.json.created, true);
+  assert.deepEqual(r.json.exchange, { reference: "relay", number: 1 });
+  assert.ok(r.calls[0]!.stdin.includes(relayMessages.fr.exchangeLine("relay", 1)));
+});
+
+test("repère conservé dans codex queue sans second dépôt", { skip: process.platform !== "win32" }, async () => {
+  const w = makeWorld(), release = holdCodexLock(w);
+  try {
+    const r = await relay(w, [...toCodex, "--open", "--reference", "PR #240", "--exchange", "2", "Question", "--trust-config", "--json"]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(r.json.exchange, { reference: "PR #240", number: 2 });
+    assert.equal(r.calls.length, 1);
+    assert.equal(r.calls[0]!.argv[0], "queue");
+    assert.ok(r.calls[0]!.argv[4]!.includes(relayMessages.fr.exchangeLine("PR #240", 2)));
+  } finally { release(); }
+});
+
 test("--write vers Claude : refus traduit et aucune commande de l'agent", async () => {
   for (const language of ["fr", "en"]) {
     const w = makeWorld();
