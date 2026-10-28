@@ -321,36 +321,54 @@ export interface PersistedAgentSync extends DetectedAgentsSyncResult {
   conflict?: true;
 }
 
+/** Options de `persistAgentSync`. */
+export interface PersistAgentSyncOptions {
+  /**
+   * Écrire aussi quand seul un ancien défaut d'arguments reste dans le fichier (vrai par défaut :
+   * synchronisation demandée explicitement). L'accueil TUI, automatique, le désactive.
+   */
+  persistLegacyArgs?: boolean;
+}
+
 /**
- * `palabre config --sync-agents` : synchronise les agents détectés et écrit la configuration si
- * elle change, **y compris** quand seul un ancien défaut d'arguments reste dans le fichier (déjà
- * migré en mémoire par `loadConfig`). L'écriture rafraîchit une approbation existante.
+ * Synchronise les agents détectés et écrit la configuration si elle change, **y compris** quand seul
+ * un ancien défaut d'arguments reste dans le fichier (déjà migré en mémoire par `loadConfig`), sauf
+ * `persistLegacyArgs: false`. L'écriture rafraîchit une approbation existante. Parcours partagés :
+ * `palabre config --sync-agents`, action « synchroniser » de l'assistant `palabre config` et accueil TUI.
  *
  * Protection contre une édition concurrente : le fichier relu au départ doit correspondre à
  * `config` (chargé et migré), puis rester identique octet pour octet jusqu'à l'écriture ; sinon
- * `conflict`, sans écriture. On ne reconstruit pas depuis le fichier modifié, qui n'a pas été
- * approuvé : l'écriture rafraîchirait son approbation. La découverte (`discover`) peut être lente,
- * d'où le contrôle avant écriture ; il réduit la course sans la rendre atomique : une édition entre ce
- * dernier contrôle et le remplacement du fichier peut encore être écrasée.
+ * `conflict`, sans écriture. Un fichier devenu illisible ou invalide compte comme modifié. On ne
+ * reconstruit pas depuis le fichier modifié, qui n'a pas été approuvé : l'écriture rafraîchirait son
+ * approbation. Après un conflit, `config` peut déjà contenir la synchronisation en mémoire. La
+ * découverte (`discover`) peut être lente, d'où le contrôle avant écriture ; il réduit la course sans
+ * la rendre atomique : une édition entre ce dernier contrôle et le remplacement du fichier peut encore
+ * être écrasée.
  */
 export async function persistAgentSync(
   configPath: string,
   config: PalabreConfig,
-  discover: () => Promise<ToolDiscovery>
+  discover: () => Promise<ToolDiscovery>,
+  options: PersistAgentSyncOptions = {}
 ): Promise<PersistedAgentSync> {
   const resolved = path.resolve(configPath);
   const conflict: PersistedAgentSync = { addedAgents: [], changed: false, conflict: true };
-  const initial = await readFile(resolved, "utf8");
+  const initial = await readFile(resolved, "utf8").catch(() => undefined);
+  if (initial === undefined) return conflict;
   let raw: unknown;
-  try { raw = JSON.parse(initial); } catch { return conflict; }
-  const reloaded = structuredClone(raw) as PalabreConfig;
-  if (reloaded?.relay !== undefined) reloaded.relay = validateRelayPolicy(reloaded.relay);
-  migrateKnownAgentDefaults(reloaded);
-  if (JSON.stringify(reloaded) !== JSON.stringify(config)) return conflict;
-  const legacy = legacyArgsAgents(raw);
+  try {
+    raw = JSON.parse(initial);
+    const reloaded = structuredClone(raw) as PalabreConfig;
+    if (reloaded?.relay !== undefined) reloaded.relay = validateRelayPolicy(reloaded.relay);
+    migrateKnownAgentDefaults(reloaded);
+    if (JSON.stringify(reloaded) !== JSON.stringify(config)) return conflict;
+  } catch {
+    return conflict;
+  }
+  const legacy = options.persistLegacyArgs === false ? [] : legacyArgsAgents(raw);
   const result = syncDetectedAgentsDetailed(config, await discover());
   if (!result.changed && legacy.length === 0) return { addedAgents: result.addedAgents, changed: false };
-  if (await readFile(resolved, "utf8") !== initial) return conflict;
+  if (await readFile(resolved, "utf8").catch(() => undefined) !== initial) return conflict;
   await writeConfig(resolved, config);
   return { addedAgents: result.addedAgents, changed: true };
 }
@@ -456,11 +474,36 @@ export function setOllamaBaseUrl(config: PalabreConfig, baseUrl: string): number
 }
 
 /** Écrit `config` sérialisé en JSON dans `configPath`. Crée le répertoire parent si nécessaire. */
+/** Configurations en mémoire dont le fichier a changé hors de cette session : voir `lockConfigWrites`. */
+const writeLockedConfigs = new WeakSet<PalabreConfig>();
+
+/**
+ * Interdit toute écriture ultérieure de `config` par `writeConfig`. Utilisé par l'accueil TUI après un
+ * conflit de `persistAgentSync` : l'objet chargé ne correspond plus au fichier, et le réécrire
+ * écraserait l'édition humaine tout en rafraîchissant son approbation. Seul un rechargement (relancer
+ * `palabre`) repasse par la validation et l'approbation normales.
+ */
+export function lockConfigWrites(config: PalabreConfig): void {
+  writeLockedConfigs.add(config);
+}
+
+/** Vrai si `lockConfigWrites` a été appelé pour cet objet de configuration. */
+export function isConfigWriteLocked(config: PalabreConfig): boolean {
+  return writeLockedConfigs.has(config);
+}
+
+/**
+ * Écrit la configuration (atomiquement) et rafraîchit une approbation existante. Refuse, par une
+ * erreur, un objet verrouillé par `lockConfigWrites` : garde-fou si un appelant oublie son contrôle.
+ */
 export async function writeConfig(
   configPath = DEFAULT_CONFIG_PATH,
   config: PalabreConfig = exampleConfig
 ): Promise<void> {
   const resolved = path.resolve(configPath);
+  if (writeLockedConfigs.has(config)) {
+    throw new Error(`Configuration write blocked: ${resolved} changed outside this session; restart palabre to reload it.`);
+  }
   await writeTextFileAtomically(resolved, `${JSON.stringify(config, null, 2)}\n`);
   await refreshTrustedConfig(resolved);
 }

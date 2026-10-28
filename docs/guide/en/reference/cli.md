@@ -24,7 +24,7 @@ This page lists the main Palabre commands.
 
 ## Configuration
 
-The TUI home screen performs the same conservative known-agent synchronization as `palabre config --sync-agents`: it adds newly detected known agents and refreshes known command names while preserving custom agents and user defaults.
+The TUI home screen performs the same conservative known-agent synchronization as `palabre config --sync-agents`: it adds newly detected known agents and refreshes known command names while preserving custom agents and user defaults. If the configuration file changed after it was loaded, nothing is written: a warning says so and the home screen continues with the loaded configuration, but saves no setting for the rest of the session; restart `palabre` to reload the file. `palabre config --sync-agents` and the `palabre config` wizard stop the same way, without writing.
 
 | Command | Description |
 |---------|-------------|

@@ -381,7 +381,9 @@ async function main(): Promise<void> {
       getPackageVersion()
     ]);
     const tuiUpdateInfo = await getUpdateInfo(currentVersion);
-    if (!tuiNotice && syncResult.addedAgents.length > 0) {
+    if (syncResult.conflict) {
+      tuiNotice = messages.config.tuiSyncConflict(configPath);
+    } else if (!tuiNotice && syncResult.addedAgents.length > 0) {
       tuiNotice = messages.config.syncAdded(configPath, syncResult.addedAgents.join(", "));
     }
 
