@@ -24,7 +24,7 @@ Cette page liste les commandes principales de Palabre.
 
 ## Configuration
 
-L'accueil TUI applique la même synchronisation prudente des agents connus que `palabre config --sync-agents` : il ajoute les agents connus nouvellement détectés et rafraîchit leurs commandes sans toucher aux agents custom ni aux defaults utilisateur.
+L'accueil TUI applique la même synchronisation prudente des agents connus que `palabre config --sync-agents` : il ajoute les agents connus nouvellement détectés et rafraîchit leurs commandes sans toucher aux agents custom ni aux defaults utilisateur. Si le fichier de configuration a été modifié depuis son chargement, rien n'est écrit : un avertissement l'indique et l'accueil continue avec la configuration chargée. `palabre config --sync-agents` et l'assistant `palabre config` s'arrêtent de même, sans écrire.
 
 | Commande                                     | Description                               |
 | -------------------------------------------- | ----------------------------------------- |

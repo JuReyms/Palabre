@@ -1,5 +1,5 @@
 /** @file Contrôleur des interactions TUI qui lisent et persistent la configuration Palabre. */
-import { setOllamaBaseUrl, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeConfig } from "./config.js";
+import { persistAgentSync, setOllamaBaseUrl, setOllamaModel, syncOllamaModel, writeConfig } from "./config.js";
 import { activeConfiguredAgentNames, isRetiredAgentName } from "./agentRegistry.js";
 import { discoverLocalToolsForConfig, type ToolDiscovery } from "./discovery.js";
 import { AdapterError, formatAdapterError } from "./errors.js";
@@ -308,23 +308,29 @@ async function syncTuiOllamaModel(configPath: string, config: PalabreConfig, mes
 }
 
 /**
- * Synchronise les agents connus détectés avant l'affichage de l'accueil TUI.
+ * Synchronise les agents connus détectés avant l'affichage de l'accueil TUI, via `persistAgentSync` :
+ * si le fichier a changé depuis son chargement, rien n'est écrit (`conflict`) et la session garde la
+ * configuration en mémoire. Un ancien défaut d'arguments seul ne provoque pas d'écriture automatique.
  *
  * @param configPath - Fichier à réécrire uniquement si la synchronisation change la config.
  * @param config - Configuration chargée et mise à jour en mémoire.
- * @returns Les agents ajoutés et la découverte réutilisée par l'accueil.
+ * @param discover - Découverte des outils locaux ; injectable pour les tests.
+ * @returns Les agents ajoutés, la découverte réutilisée par l'accueil et un éventuel conflit.
  */
-export async function syncInteractiveDetectedAgents(configPath: string, config: PalabreConfig): Promise<{ addedAgents: string[]; discovery: ToolDiscovery }> {
-  const discovery = await discoverLocalToolsForConfig(config);
-  const result = syncDetectedAgentsDetailed(config, discovery);
-
-  if (result.changed) {
-    await writeConfig(configPath, config);
-  }
+export async function syncInteractiveDetectedAgents(
+  configPath: string,
+  config: PalabreConfig,
+  discover: (config: PalabreConfig) => Promise<ToolDiscovery> = discoverLocalToolsForConfig
+): Promise<{ addedAgents: string[]; discovery: ToolDiscovery; conflict?: true }> {
+  // Découverte d'abord : l'accueil en a besoin même en cas de conflit. Le contrôle initial de
+  // `persistAgentSync`, fait ensuite, couvre aussi une édition faite pendant cette découverte.
+  const discovery = await discover(config);
+  const result = await persistAgentSync(configPath, config, async () => discovery, { persistLegacyArgs: false });
 
   return {
     addedAgents: result.addedAgents,
-    discovery
+    discovery,
+    ...(result.conflict ? { conflict: true as const } : {})
   };
 }
 
