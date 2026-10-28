@@ -124,10 +124,18 @@ export function rawCommandName(args: readonly string[]): string {
  * Position du premier argument positionnel, c'est-à-dire de la commande éventuelle, sans rien
  * valider ni lever. Suit la même table d'arité que `parseArgs` : une valeur consommée par une
  * option (`--config relay`, `-s relay`) n'est jamais prise pour la commande. Sert à aiguiller
- * `relay` avant les validations et handlers généraux.
+ * `relay` avant les validations et handlers généraux. Une première recherche saute aussi les
+ * valeurs de --reference et --exchange, mais n'est retenue que si elle désigne vraiment Relay.
+ * Sinon la recherche générale reste inchangée (y compris pour une commande mal formée).
  * @returns L'index du jeton, ou `-1` s'il n'y a aucun positionnel.
  */
 export function findFirstPositionalIndex(args: readonly string[]): number {
+  const relayIndex = positionalIndex(args, true);
+  return relayIndex >= 0 && args[relayIndex] === "relay" ? relayIndex : positionalIndex(args, false);
+}
+
+/** Recherche sans validation ; les options propres à Relay ne changent pas l'aiguillage général. */
+function positionalIndex(args: readonly string[], relayValues: boolean): number {
   for (let index = 0; index < args.length; index += 1) {
     const value = args[index]!;
     if (!value.startsWith("-")) return index;
@@ -138,7 +146,7 @@ export function findFirstPositionalIndex(args: readonly string[]): number {
     }
     if (!value.startsWith("--")) continue;
     const spec = FLAG_SPECS[normalizeFlagName(value.slice(2))];
-    if (spec?.arity === "single") {
+    if (spec?.arity === "single" || (relayValues && (value === "--reference" || value === "--exchange"))) {
       if (args[index + 1] !== undefined && !args[index + 1]!.startsWith("-")) index += 1;
     } else if (spec?.arity === "multi") {
       let consumed = 0;

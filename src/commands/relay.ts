@@ -46,7 +46,7 @@ import { runCopyRelay, type CopyReport } from "../externalSessions/copyRelay.js"
 import { OpenCodeCopyTransport } from "../externalSessions/opencodeTransport.js";
 import { parseOpenCodeRef } from "../externalSessions/opencodeCopy.js";
 import { relayCopyText } from "../messages/relayCopy.js";
-import { buildEnvelope, buildOpenEnvelope, createNonce, isSessionId, MAX_RELAY_MESSAGE_BYTES, parseAgentName, parseSenderRef, parseSessionRef, validMissionHeader, validateRelayMessage, validateRelaySubject, type MissionEnvelopeHeader } from "../externalSessions/envelope.js";
+import { buildEnvelope, buildOpenEnvelope, createNonce, isSessionId, MAX_RELAY_MESSAGE_BYTES, parseAgentName, parseSenderRef, parseSessionRef, validMissionHeader, validateRelayMessage, validateRelaySubject, validateRelayExchange, type RelayExchange, type MissionEnvelopeHeader } from "../externalSessions/envelope.js";
 import type { OpenTurnContext } from "../externalSessions/openReader.js";
 import { defaultOpenRelayDeps, runFollowRelay, runOpenRelay, type FollowRelayResult, type OpenQueueReport, type OpenRelayResult } from "../externalSessions/openRelay.js";
 import { locateOpenRollout, readLastTurnContext, readLastCodexQuota } from "../externalSessions/openRollout.js";
@@ -90,7 +90,7 @@ export const MIN_RELAY_TIMEOUT_SECONDS = 10;
 export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 
 /** Options de `palabre relay` qui attendent une valeur. */
-const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "then-follow", "config", "language", "task", "pr", "subject", "dir"]);
+const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "then-follow", "config", "language", "task", "pr", "subject", "dir", "reference", "exchange"]);
 /** Options de `palabre relay` sans valeur. */
 const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "background", "new", "write", "follow", "check", "copy"]);
 /** Alias acceptés, comme pour les autres commandes. */
@@ -132,6 +132,8 @@ export interface RelayResultV1 {
   readAccess?: ReadAccessDiagnostic;
   /** Objet explicite inchangé ; absent si --subject n'est pas fourni. */
   subject?: string;
+  /** Repère de lecture facultatif, non authentifié ; jamais un verdict de tâche. */
+  exchange?: RelayExchange;
   /** Human confirmation command; the agent may open it, but must never answer for the owner. */
   remedy?: string;
   /** CLI inspected before a Claude review, including on compatibility refusal. */
@@ -200,6 +202,7 @@ interface RelayContext {
   writeRequest?: string;
   write?: WriteReport;
   subject?: string;
+  exchange?: RelayExchange;
   header?: MissionEnvelopeHeader;
   /** Annulation du chef de mission ; ne confère aucun droit supplémentaire. */
   signal?: AbortSignal;
@@ -391,6 +394,14 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     if (!subject.ok) throw invalid(subject.reason, messages.relay.arguments.subjectInvalid);
     context.subject = subject.value;
   }
+  if (flags.reference !== undefined || flags.exchange !== undefined) {
+    const exchange = validateRelayExchange(String(flags.reference ?? ""), String(flags.exchange ?? ""));
+    if (!exchange.ok) throw invalid("invalid-arguments", messages.relay.arguments.exchangeInvalid);
+    if (context.check || context.follow || context.header || flags.task !== undefined || flags.write) {
+      throw invalid("invalid-arguments", messages.relay.arguments.exchangeConflict);
+    }
+    context.exchange = exchange.value;
+  }
   try {
     resolveLanguage({ explicitLanguage: optionalString(flags.language) });
   } catch (error) {
@@ -476,7 +487,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   }
   if (defaultReviewMessage) message = context.messages.relay.defaultReviewMessage;
   const nonce = createNonce();
-  const envelopeInput = { from: context.from, to: to.value, nonce, message, subject: context.subject, header: context.header };
+  const envelopeInput = { from: context.from, to: to.value, nonce, message, subject: context.subject, exchange: context.exchange, header: context.header };
   const frame = flags.copy ? { ...context.messages.relay, envelopePermissions: relayCopyText(context.language ?? "fr").permissions } : flags.write ? {
     ...context.messages.relay, envelopePermissions: relayWriteText(context.language ?? "fr").envelopePermissions
   } : context.messages.relay;
@@ -821,7 +832,7 @@ async function relayCopy(context: RelayContext, input: {
     const copied = await runCopyRelay({ source: input.source, cwd: context.cwd!, timeoutMs: input.timeoutMs, signal: controller.signal,
       envelope: id => {
         envelope = buildEnvelope({ from: context.from, to: { agent: input.agent, sessionId: id }, message: input.message,
-          nonce: input.nonce, subject: context.subject }, { ...context.messages.relay, envelopePermissions: text.permissions });
+          nonce: input.nonce, subject: context.subject, exchange: context.exchange }, { ...context.messages.relay, envelopePermissions: text.permissions });
         return envelope;
       }
     }, { transport: new OpenCodeCopyTransport(input.executable, context.cwd!, input.timeoutMs) });
@@ -1059,6 +1070,7 @@ function buildResult(
     ...(context.writeRequest ? { writeRequest: context.writeRequest } : {}),
     ...(context.write ? { write: context.write } : {}),
     ...(context.subject !== undefined ? { subject: context.subject } : {}),
+    ...(context.exchange ? { exchange: context.exchange } : {}),
     ...(context.task ? { task: context.task } : {}),
     ...(context.cli ? { cli: context.cli } : {}),
     ...(context.remedy ? { remedy: context.remedy } : {}),
@@ -1124,6 +1136,7 @@ async function exportRelay(
       nonce: input.nonce,
       startedAt: new Date(input.startedAt).toISOString(),
       ...(result.subject !== undefined ? { subject: result.subject } : {}),
+      ...(result.exchange ? { exchange: result.exchange } : {}),
       message: input.message,
       ...(input.envelope !== undefined ? { envelope: input.envelope } : {}),
       reply: result.reply,

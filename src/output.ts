@@ -209,6 +209,8 @@ export interface RelayExport {
   retryAfter?: number | string;
   readAccess?: ReadAccessDiagnostic;
   subject?: string;
+  /** Repère humain déclaratif, sans compteur ni autorité ; absent des anciens exports. */
+  exchange?: import("./externalSessions/envelope.js").RelayExchange;
   cli?: { path: string; version: string | null };
   task?: { name: "review"; pr: string; headSha?: string; publication: string; reviewUrl?: string; error?: string };
   from: { agent: string; session?: string } | null;
@@ -297,6 +299,7 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     ...(report.readAccess ? [[labels.readAccess, `${report.readAccess.status}; ${report.readAccess.reason}; failedCommands=${report.readAccess.failedCommands}${report.readAccess.succeededCommands === undefined ? "" : `; succeededCommands=${report.readAccess.succeededCommands}`}`]] : []),
     ...(report.retryAfter !== undefined ? [[labels.retryAfter, String(report.retryAfter)]] : []),
     ...(report.subject !== undefined ? [[labels.subject, report.subject]] : []),
+    ...(report.exchange ? [[labels.marker, report.exchange.reference], [labels.exchange, String(report.exchange.number)]] : []),
     ...(report.cli ? [[labels.cliPath, report.cli.path], [labels.cliVersion, report.cli.version ?? labels.unknown]] : []),
     ...(report.task ? [
       [labels.task, report.task.name], [labels.pullRequest, report.task.pr], [labels.commit, report.task.headSha ?? labels.unknown],
