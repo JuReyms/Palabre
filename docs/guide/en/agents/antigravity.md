@@ -1,14 +1,14 @@
 ---
 title: Antigravity
-description: Configure Antigravity CLI in Palabre with the experimental PTY adapter.
+description: Configure Antigravity CLI in Palabre with JSON responses that preserve spaces and paragraphs.
 seo:
-  title: "Antigravity CLI setup: PTY and --print-timeout"
-  description: Configure Google Antigravity CLI with Palabre, understand cli-pty and --print-timeout, and troubleshoot agy timeouts or empty output.
+  title: "Antigravity CLI setup: JSON and --print-timeout"
+  description: Configure Google Antigravity CLI with Palabre, understand JSON output and troubleshoot invalid responses or agy timeouts.
 ---
 
 Antigravity CLI can be used as a Palabre agent through the `agy` command.
 
-Antigravity needs the `cli-pty` adapter: in testing, `agy --print` answers in a real console but does not produce capturable stdout when launched with plain Node pipes.
+Palabre uses `agy --output-format json --print` without a pseudo-terminal. It keeps only the response text, preserving its spaces and paragraphs; conversation and usage metadata are not added to your exchange.
 
 ## Installation
 
@@ -40,10 +40,12 @@ Excerpt from the `agents` block:
 
 ```json
 "antigravity": {
-  "type": "cli-pty",
+  "type": "cli",
   "command": "agy",
-  "args": ["--print-timeout", "5m0s", "--print"],
+  "args": ["--print-timeout", "5m0s", "--output-format", "json", "--print"],
+  "responseFormat": "antigravity-json",
   "promptMode": "argument",
+  "shell": true,
   "role": "reviewer",
   "tier": "primary",
   "timeoutMs": 300000
@@ -51,6 +53,8 @@ Excerpt from the `agents` block:
 ```
 
 ## Examples
+
+The example uses `shell: true` for safe Windows resolution (false elsewhere in generated configuration). Native executables and recognized shims run without a shell; any remaining shell wrapper is rejected with an argument prompt.
 
 ```bash
 palabre codex-antigravity "Compare this architecture approach" -t 4
@@ -61,4 +65,8 @@ palabre antigravity-ollama "Critique this migration plan" -t 3
 
 Official documentation: [Antigravity CLI — headless mode](https://antigravity.google/docs/cli/headless/).
 
-A standalone quota message such as “Individual quota reached” in a short output is classified as `usage-limit`, even with exit code 0. It is not treated as a normal answer. The prompt is a command-line argument and may exceed the command-line size, especially on Windows. PALABRE defaults bound calls to 5 minutes (`timeoutMs` and `--print-timeout`); adjust both together. The PTY merges stdout and stderr. Antigravity is not a Relay target.
+A probe on Antigravity 1.4.9 on Windows confirmed JSON capture and preserved paragraphs. Other versions and platforms remain unqualified. The format must contain a single JSON object, `status: "SUCCESS"` and a nonempty `response` field. Errors, unknown or incomplete JSON are rejected even with `allowEmptyOutput`: there is no automatic text or PTY fallback. Check `agy --help` and the arguments above if rejected. Recognized stderr quota errors still produce `usage-limit`; JSON error statuses have not been qualified more precisely.
+
+The exact old default (`cli-pty`, command `agy` or `antigravity`, arguments `["--print-timeout", "5m0s", "--print"]`, `promptMode: "argument"`, no custom PTY dimensions, `shell`, idle timeout or response format, no explicit `.cmd`/`.bat`/`.ps1` wrapper) is converted in memory when loaded. `palabre config --sync-agents` persists it on request; a concurrent external edit prevents writing. Custom arguments or transports are preserved: adapt them yourself to the example if you want JSON. The legacy PTY may lose spaces or paragraphs when cleaning cursor movements. `palabre doctor` reports unknown or incompatible `responseFormat`; on PTY, the field is rejected before launch.
+
+The prompt is a command-line argument and may exceed the command-line size, especially on Windows. Palabre defaults bound calls to 5 minutes (`timeoutMs` and `--print-timeout`); adjust both together. This output format change does not restrict Antigravity tools, plugins or permissions. Antigravity is not a Relay target.

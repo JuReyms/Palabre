@@ -2,7 +2,7 @@
 import { access, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { applyDetectedCommands, detectedAgentNames } from "./agentRegistry.js";
+import { applyDetectedCommands, detectedAgentNames, normalizeCommandName } from "./agentRegistry.js";
 import { refreshTrustedConfig } from "./configTrust.js";
 import { validateRelayPolicy } from "./externalSessions/review.js";
 import { writeTextFileAtomically } from "./atomicFile.js";
@@ -48,6 +48,8 @@ const CODEX_SAFE_ARGS = [
  * seule ni neutralisation n'est promise.
  */
 const OPENCODE_DEFAULT_ARGS = ["run"];
+const ANTIGRAVITY_LEGACY_ARGS = ["--print-timeout", "5m0s", "--print"];
+const ANTIGRAVITY_JSON_ARGS = ["--print-timeout", "5m0s", "--output-format", "json", "--print"];
 const VIBE_SAFE_ARGS = [
   "--output",
   "text",
@@ -93,14 +95,12 @@ export const exampleConfig: PalabreConfig = {
       tier: "primary"
     },
     antigravity: {
-      type: "cli-pty",
+      type: "cli",
       command: "agy",
-      args: [
-        "--print-timeout",
-        "5m0s",
-        "--print"
-      ],
+      args: [...ANTIGRAVITY_JSON_ARGS],
+      responseFormat: "antigravity-json",
       promptMode: "argument",
+      shell: process.platform === "win32",
       role: "reviewer",
       tier: "primary",
       timeoutMs: 300_000
@@ -293,19 +293,38 @@ const LEGACY_ARGS_MIGRATIONS: { agent: string; previous: string[][]; next: strin
 /**
  * Remplace des anciens défauts d'arguments **exactement** reconnus par les défauts actuels ; tout
  * tableau personnalisé est conservé tel quel. OpenCode : `["run", "--pure"]` devient `["run"]`.
- * Appliqué en mémoire par `loadConfig` : le fichier garde l'ancien tableau jusqu'à une écriture.
+ * Antigravity migre aussi son ancien transport exact vers JSON batch ; les réglages de transport
+ * personnalisés sont exclus. Appliqué en mémoire par `loadConfig` : le fichier reste intact.
  */
 function migrateKnownAgentDefaults(config: PalabreConfig): void {
   for (const { agent, previous, next } of LEGACY_ARGS_MIGRATIONS) migrateExactCliArgs(config, agent, previous, next);
+  const agent = config.agents.antigravity;
+  if (isLegacyAntigravity(agent)) {
+    // Même résolution prudente que les autres CLI : natif/shim reconnu sans shell ; wrapper inconnu refusé.
+    config.agents.antigravity = { ...agent, type: "cli", args: [...ANTIGRAVITY_JSON_ARGS], responseFormat: "antigravity-json", shell: process.platform === "win32" } as CliAgentConfig;
+  }
 }
 
-/** Agents dont le JSON brut contient encore un ancien défaut d'arguments exact. */
+/** Ancien transport exact uniquement : aucun réglage PTY, shell, idle ou format personnalisé ni wrapper explicite. */
+function isLegacyAntigravity(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const agent = value as Record<string, unknown>;
+  return agent.type === "cli-pty" && typeof agent.command === "string"
+    && ["agy", "antigravity"].includes(normalizeCommandName(agent.command))
+    && JSON.stringify(agent.args) === JSON.stringify(ANTIGRAVITY_LEGACY_ARGS)
+    && agent.promptMode === "argument" && agent.responseFormat === undefined
+    && agent.cols === undefined && agent.rows === undefined
+    && agent.shell === undefined && agent.idleTimeoutMs === undefined
+    && !/\.(cmd|bat|ps1)$/i.test(agent.command);
+}
+
+/** Agents dont le JSON brut contient un ancien défaut exact (arguments, ou transport Antigravity). */
 function legacyArgsAgents(raw: unknown): string[] {
   const agents = (raw as { agents?: Record<string, { type?: unknown; args?: unknown }> } | null)?.agents;
   if (!agents || typeof agents !== "object") return [];
-  return LEGACY_ARGS_MIGRATIONS
+  return [...LEGACY_ARGS_MIGRATIONS
     .filter(({ agent, previous }) => agents[agent]?.type === "cli" && previous.some((args) => JSON.stringify(agents[agent]?.args) === JSON.stringify(args)))
-    .map(({ agent }) => agent);
+    .map(({ agent }) => agent), ...(isLegacyAntigravity(agents.antigravity) ? ["antigravity"] : [])];
 }
 
 /**

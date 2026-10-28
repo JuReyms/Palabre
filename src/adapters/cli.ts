@@ -7,13 +7,15 @@ import { directNpmShimLaunch, withShimNodePath } from "../npmShim.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
+import { isCliResponseFormatValid } from "../types.js";
 import { clipLine, DEFAULT_TIMEOUT_MS, extractRetryAfter, extractUsageLimitMessage, resolveMaxOutputBytes, stripLogPrefix, uniqueNonEmptyLines, utf8ChildProcessEnv, withModelArgs } from "./cli-shared.js";
-import { cleanTerminalOutput } from "./terminal.js";
+import { cleanTerminalOutput, sanitizeTerminalText } from "./terminal.js";
 
 /**
  * Adapter pour les CLIs batch (Codex, Claude, OpenCode, Vibe...).
  * Lance un sous-processus, injecte le prompt via stdin ou argument, capture stdout.
- * Garantit : rejection des sorties vides (sauf `allowEmptyOutput`), des timeouts et des exit codes non nuls sans stdout.
+ * Garantit : rejet des sorties vides (sauf texte avec `allowEmptyOutput`), des timeouts et de tout exit non nul.
+ * Le format JSON explicite ne revient jamais au texte/PTY en cas de format inconnu.
  */
 export class CliAdapter implements AgentAdapter {
   readonly role;
@@ -36,7 +38,7 @@ export class CliAdapter implements AgentAdapter {
         supportsStderr: true
       },
       guarantees: {
-        rejectsEmptyOutput: !config.allowEmptyOutput,
+        rejectsEmptyOutput: config.responseFormat === "antigravity-json" || !config.allowEmptyOutput,
         rejectsNonZeroExit: true,
         rejectsTimeout: true,
         returnsRawOutput: true
@@ -51,6 +53,9 @@ export class CliAdapter implements AgentAdapter {
 
     const renderedPrompt = formatAgentPrompt(prompt);
     const errorMessages = createTranslator(prompt.language ?? "fr").adapterErrors;
+    if (!isCliResponseFormatValid(this.config)) {
+      throw new AdapterError("spawn-failed", this.name, errorMessages.invalidResponseFormat(this.name));
+    }
     const promptMode = this.config.promptMode ?? "stdin";
     const spawnSafety = resolveWindowsSpawnSafety(
       this.config.command,
@@ -99,7 +104,17 @@ export class CliAdapter implements AgentAdapter {
 
         const stdout = decodeCliBytes(stdoutChunks);
         const stderr = decodeCliBytes(stderrChunks);
-        const content = cleanCliOutput(stdout);
+        let content: string;
+        try {
+          // Parser le JSON original, jamais une sortie préalablement nettoyée ou extraite des logs.
+          content = this.config.responseFormat === "antigravity-json"
+            ? parseAntigravityResponse(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(stdoutChunks)), this.name, errorMessages)
+            : cleanCliOutput(stdout);
+        } catch (error) {
+          reject(createKnownCliError(this.name, undefined, stderr, errorMessages)
+            ?? (error instanceof AdapterError ? error : new AdapterError("unknown", this.name, errorMessages.invalidAntigravityJson(this.name))));
+          return;
+        }
 
         if (!content && !this.config.allowEmptyOutput) {
           const knownError = createKnownCliError(this.name, undefined, stderr, errorMessages);
@@ -210,6 +225,26 @@ export class CliAdapter implements AgentAdapter {
       child.stdin.end();
     });
   }
+}
+
+/**
+ * Accepte un seul objet JSON Antigravity réussi. Les métadonnées ne deviennent jamais une réponse.
+ * Préserve espaces et paragraphes du champ response ; assainit seulement les contrôles terminal.
+ * Une forme inconnue ou un statut d'erreur est refusé, même avec allowEmptyOutput.
+ */
+function parseAntigravityResponse(stdout: string, name: string, messages: AdapterErrorMessages): string {
+  let value: unknown;
+  try { value = JSON.parse(stdout); } catch {
+    throw new AdapterError("unknown", name, messages.invalidAntigravityJson(name));
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)
+    || (value as { status?: unknown }).status !== "SUCCESS"
+    || typeof (value as { response?: unknown }).response !== "string") {
+    throw new AdapterError("unknown", name, messages.invalidAntigravityJson(name));
+  }
+  const content = sanitizeTerminalText((value as { response: string }).response);
+  if (!content.trim()) throw new AdapterError("empty-output", name, messages.invalidAntigravityJson(name));
+  return content;
 }
 
 function decodeCliBytes(chunks: readonly Buffer[]): string {

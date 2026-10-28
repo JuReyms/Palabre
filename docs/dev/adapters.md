@@ -11,9 +11,11 @@ Référence de développement extraite d’`AGENTS.md`. Lire [les règles commun
 - OpenCode : `opencode run` (environnement habituel, voir plus bas)
 - Mistral Vibe : `vibe --output text --trust --enabled-tools read --enabled-tools grep --prompt <prompt>`
 
-Antigravity utilise un adapter separe :
+Antigravity utilise aussi l'adapter batch, avec un format explicite :
 
-- Antigravity : `agy --print <prompt>` via `cli-pty`
+- Antigravity : `agy --print-timeout 5m0s --output-format json --print <prompt>`, `type: cli`, `responseFormat: antigravity-json`.
+
+Ce format accepte un seul objet JSON UTF-8 avec `status: SUCCESS` et `response` texte non vide, même avec `allowEmptyOutput`. Extraction avant tout nettoyage ; seuls les contrôles terminal sont assainis dans le texte extrait, sans trim ni suppression de paragraphes. Métadonnées exclues de `content`, stdout original dans `raw`. JSON invalide, statut inconnu/erreur ou structure inconnue : `unknown` (diagnostic FR/EN), réponse vide : `empty-output`, format configuré inconnu ou placé sur PTY : `spawn-failed` avant lancement, également signalé par `doctor`. Aucun repli vers texte/PTY. Exit non nul, annulation et budgets gardent leur priorité ; quota stderr reconnu reste classé en erreur. Aucun changement d'outils/permissions. Sonde Windows 1.4.9 du 28 octobre 2026 : succès et espaces/paragraphes conservés ; schémas d'erreur et autres versions/plateformes non qualifiés.
 
 Sur Windows, garder `"shell": true` uniquement pour les wrappers npm qui lisent le prompt sur
 stdin. L'adapter resout et lance directement les executables natifs sans shell ; il refuse un
@@ -70,6 +72,7 @@ Il supporte :
 - `command`
 - `args`
 - `promptMode: "stdin" | "argument"`
+- `responseFormat: "text" | "antigravity-json"` (batch uniquement, texte par défaut)
 - `timeoutMs`
 - `idleTimeoutMs`
 - `maxOutputBytes`
@@ -104,9 +107,9 @@ Il ne supporte pas encore :
 
 ## Adapter CLI PTY
 
-`src/adapters/cli-pty.ts` lance une CLI dans un pseudo-terminal via `node-pty`. Il sert les outils qui exigent une vraie console. Antigravity CLI en a besoin : en console directe, `agy` affiche une reponse ; lance depuis Node avec stdout/stderr pipes, il sort avec code 0 sans contenu capturable.
+`src/adapters/cli-pty.ts` lance une CLI dans un pseudo-terminal via `node-pty`. Il reste disponible pour les configurations personnalisées qui exigent une vraie console. Antigravity utilisait ce transport pour sa sortie texte, vide avec des pipes dans les anciens essais ; son défaut utilise maintenant JSON batch. Sous ConPTY, des sauts de ligne peuvent être remplacés par des mouvements de curseur : leur suppression au nettoyage peut coller les paragraphes. Ce lot ne répare pas le décodeur PTY générique.
 
-Le premier usage supporte est `agy --print-timeout 5m0s --print <prompt>` avec `promptMode: "argument"`. L'adapter nettoie les sequences ANSI/OSC via `src/adapters/terminal.ts` et retourne le raw PTY output dans `raw`.
+L'adapter nettoie les séquences ANSI/OSC via `src/adapters/terminal.ts` et retourne le raw PTY output dans `raw`.
 
 Le flux PTY fusionne stdout et stderr : une sortie courte (moins de 400 caracteres) qui matche un signal de quota connu (ex. "Individual quota reached" d'Antigravity) est classee `usage-limit`, quel que soit l'exit code, plutot que retournee comme reponse valide ou classee `empty-output`/`non-zero-exit`. La detection est partagee avec l'adapter CLI via `extractUsageLimitMessage` dans `cli-shared.ts`.
 

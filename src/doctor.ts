@@ -12,6 +12,7 @@ import { DEFAULT_TURNS, MAX_TURNS } from "./limits.js";
 import { configuredOllamaTargets, normalizeOllamaBaseUrl } from "./ollamaUrl.js";
 import { compareSemver, getLatestPackageVersion, getPackageVersion } from "./version.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
+import { isCliResponseFormatValid } from "./types.js";
 import type { Messages } from "./messages/index.js";
 import { sanitizeTerminalText } from "./adapters/terminal.js";
 
@@ -379,6 +380,9 @@ function inspectAgents(
 }
 
 function inspectAgentShape(name: string, agent: AgentConfig, lines: DiagnosticLine[], t: Messages): void {
+  if (!isCliResponseFormatValid(agent)) {
+    lines.push(error(t.adapterErrors.invalidResponseFormat(name)));
+  }
   if (!agent.role) {
     lines.push(error(t.doctor.roleMissing(name)));
   }
