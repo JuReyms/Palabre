@@ -11,11 +11,69 @@ import { describe, test, type TestContext } from "node:test";
 import { executeRelay } from "../src/commands/relay.js";
 import { trustConfig } from "../src/configTrust.js";
 import { CodexSessionAdapter } from "../src/externalSessions/codex.js";
-import { historyFootprint, refusalChecks, refusalPrecondition, smokeRelayArgs } from "../scripts/smoke_relay_plan.js";
+import { CLAUDE_ATTACHED_LABEL, blockedSmokeStartup, claudeAttachedArgs, claudeRefusalPrecondition,
+  historyFootprint, ownedClaudeAttachment, refusalChecks, refusalPrecondition, smokeProcessStopCheck,
+  smokeRelayArgs } from "../scripts/smoke_relay_plan.js";
 
 const CODEX = "0199aaaa-bbbb-7ccc-8ddd-eeeeeeeeeeee";
 const CLAUDE = "44444444-4444-4444-8444-444444444444";
 const exe = (name: string) => (process.platform === "win32" ? `${name}.exe` : name);
+
+describe("smoke Claude attaché : processus non interactif possédé", () => {
+  const owner = { pid: 42, exited: false, preexistingPids: [11] };
+  const probe = { attachment: "attached", processes: [{ pid: 42, liveness: "alive" }] };
+  const history = { files: 1, lines: 3 };
+
+  test("arguments : stream-json en lecture limitée, aucun prompt ni confiance forcée", () => {
+    assert.deepEqual(claudeAttachedArgs(CLAUDE), ["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
+      "--resume", CLAUDE, "--permission-mode", "plan", "--tools", "Read,Glob,Grep", "--strict-mcp-config",
+      "--settings", JSON.stringify({ disableAllHooks: true })]);
+  });
+
+  test("seul le PID lancé, vivant et non préexistant établit l'attachement", () => {
+    assert.equal(ownedClaudeAttachment(probe, owner), true);
+    for (const processes of [[], [{ pid: 11, liveness: "alive" }], [{ pid: 42, liveness: "dead" }], [{ pid: 42, liveness: "unverifiable" }]]) {
+      assert.equal(ownedClaudeAttachment({ attachment: "attached", processes }, owner), false);
+    }
+    assert.equal(ownedClaudeAttachment(probe, { ...owner, preexistingPids: [42] }), false);
+    for (const pid of [undefined, 0, -1, NaN]) assert.equal(ownedClaudeAttachment(probe, { ...owner, pid }), false);
+    assert.equal(ownedClaudeAttachment({ ...probe, attachment: "unknown" }, owner), false);
+    assert.equal(ownedClaudeAttachment(undefined, owner), false);
+  });
+
+  test("sonde refaite, processus terminé ou historique absent : aucun envoi", () => {
+    assert.deepEqual(claudeRefusalPrecondition(probe, owner, history), { send: true });
+    for (const current of [undefined, { attachment: "detached" }, { attachment: "unknown" }, { attachment: "attached", processes: [{ pid: 11, liveness: "alive" }] }]) {
+      assert.deepEqual(claudeRefusalPrecondition(current, owner, history), { send: false, reason: blockedSmokeStartup() });
+    }
+    assert.equal(claudeRefusalPrecondition(probe, { ...owner, exited: true }, history).send, false);
+    for (const missing of [undefined, { files: 0, lines: 0 }, { files: 1, lines: 0 }]) {
+      assert.equal(claudeRefusalPrecondition(probe, owner, missing).send, false);
+    }
+    assert.equal(ownedClaudeAttachment(probe, { ...owner, exited: true }), false);
+    assert.match(blockedSmokeStartup(), /démarrage bloqué, cause non établie : aucun message envoyé/);
+    assert.doesNotMatch(blockedSmokeStartup(), /confiance/);
+  });
+
+  test("verdict renommé : ni PID étranger ni scénario non joué ne donnent un succès global", () => {
+    const busy = { code: 3, json: { status: "target-busy", mode: "background", modeSource: "explicit", delivery: { status: "not-delivered" } } };
+    const input = { probe, owner, call: busy, before: history, after: history };
+    const checks = refusalChecks(CLAUDE_ATTACHED_LABEL, input);
+    assert.deepEqual(checks.map((item) => item.ok), [true, true, true]);
+    assert.equal(checks[0]!.name, "Claude attaché (processus non interactif) : sonde");
+    assert.equal(refusalChecks(CLAUDE_ATTACHED_LABEL, { ...input, owner: { ...owner, pid: 11 } }).every((item) => item.ok), false);
+    assert.equal(refusalChecks(CLAUDE_ATTACHED_LABEL, { ...input, call: undefined }).every((item) => item.ok), false);
+  });
+
+  test("arrêt confirmé seulement si sortie, flux fermés, PID mort et aucune erreur", () => {
+    const stopped = { exited: true, closed: true, liveness: "dead" };
+    assert.equal(smokeProcessStopCheck(CLAUDE_ATTACHED_LABEL, stopped).ok, true);
+    for (const state of [{ ...stopped, exited: false }, { ...stopped, closed: false },
+      { ...stopped, liveness: "alive" }, { ...stopped, liveness: "unverifiable" }, { ...stopped, failure: "output-too-large" }, { ...stopped, failure: "annulation" }]) {
+      assert.equal(smokeProcessStopCheck(CLAUDE_ATTACHED_LABEL, state).ok, false);
+    }
+  });
+});
 
 describe("smoke Relay : arguments des appels", () => {
   test("arrière-plan explicite, une seule fois, jamais --open", () => {
