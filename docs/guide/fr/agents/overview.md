@@ -94,7 +94,7 @@ Quand vous utilisez `--model-a`, `--model-b` ou `--summary-model`, Palabre ne v�
 
 [Relay](/fr/usage/relay) vise des conversations Codex ou Claude Code : fermées par défaut ; `--open` vise seulement Codex sous Windows, macOS ou Linux (pilote, avec `python3` requis sur POSIX). Mission, option de Relay, utilise les conversations fermées. Antigravity, OpenCode, Mistral Vibe et Ollama participent à Débat, Ask et Chat, pas aux cibles Relay.
 
-Les agents CLI sont lancés depuis le dossier courant. Les défauts demandent la lecture seule quand elle est disponible : Claude `Read,Glob,Grep`, Codex `--sandbox read-only`, Vibe `read,grep`. OpenCode `--pure` désactive les plugins, **sans garantir une liste d'outils en lecture seule**. Des arguments personnalisés restent sous votre contrôle ; les migrations ne remplacent que d'anciens défauts exacts. Une limite connue donne `usage-limit`, sans renvoi automatique.
+Les agents CLI sont lancés depuis le dossier courant. Les défauts demandent la lecture seule quand elle est disponible : Claude `Read,Glob,Grep`, Codex `--sandbox read-only`, Vibe `read,grep`. OpenCode garde son environnement habituel : plugins, serveurs MCP et permissions configurés restent actifs, **sans lecture seule ni neutralisation promises**. Des arguments personnalisés restent sous votre contrôle ; les migrations ne remplacent que d'anciens défauts exacts. Une limite connue donne `usage-limit`, sans renvoi automatique.
 
 ## Windows
 

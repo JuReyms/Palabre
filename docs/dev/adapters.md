@@ -8,7 +8,7 @@ Référence de développement extraite d’`AGENTS.md`. Lire [les règles commun
 
 - Codex : `codex exec ...`
 - Claude : `claude --print --tools Read,Glob,Grep`
-- OpenCode : `opencode run --pure`
+- OpenCode : `opencode run` (environnement habituel, voir plus bas)
 - Mistral Vibe : `vibe --output text --trust --enabled-tools read --enabled-tools grep --prompt <prompt>`
 
 Antigravity utilise un adapter separe :
@@ -51,8 +51,16 @@ reconnue ligne à ligne par `npmNativeShimLaunch`, cible .exe/.com interne exist
 lancée directement ; jamais de PowerShell, pnpm ou wrapper modifié. Reprises Codex/Claude inchangées.
 
 Les defaults Palabre appliquent une politique d'outils en lecture seule quand la CLI l'expose :
-Claude est limite a `Read,Glob,Grep`, Vibe a `read,grep`, et OpenCode utilise `--pure` pour
-neutraliser les plugins externes. Les fichiers de contexte et messages du transcript restent
+Claude est limite a `Read,Glob,Grep` et Vibe a `read,grep`. OpenCode n'en expose pas : decision du
+proprietaire du 28 octobre 2026, Debat/Ask/Chat (syntheses comprises) utilisent son environnement
+habituel, comme Relay sur copie. Plugins, MCP et permissions configures restent actifs ; aucune
+neutralisation ni lecture seule n'est promise. OpenCode 2 n'a plus `--pure` (absent des 2.0.0) et aucun
+remplacant n'est qualifie (`--standalone` charge toujours les plugins ; une liste de plugins vide ou
+une politique injectee ne donnent pas de garantie universelle). La migration ne remplace que
+l'ancien defaut exact `["run", "--pure"]` par `["run"]` (en memoire a chaque chargement ; `--sync-agents`,
+via `persistAgentSync`, l'ecrit aussi quand seul le fichier garde l'ancien tableau ; fichier modifie depuis son chargement :
+conflit, aucune ecriture) ; le refus exact `Unrecognized flag: --pure in command opencode run` donne un
+`non-zero-exit` avec la marche a suivre. Les fichiers de contexte et messages du transcript restent
 explicitement marques comme donnees non fiables dans les prompts. Les migrations ne remplacent
 que les tableaux `args` exactement identiques aux anciens defaults ; toute personnalisation
 utilisateur est preservee.

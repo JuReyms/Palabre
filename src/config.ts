@@ -41,7 +41,13 @@ const CODEX_SAFE_ARGS = [
   "--sandbox",
   "read-only"
 ];
-const OPENCODE_SAFE_ARGS = ["run", "--pure"];
+/**
+ * OpenCode 2 n'a plus `--pure` (absent dès 2.0.0) et aucun remplaçant n'est qualifié : décision du
+ * propriétaire du 28 octobre 2026, Débat/Ask/Chat utilisent l'environnement habituel d'OpenCode,
+ * comme Relay sur copie. Plugins, MCP et permissions configurés restent actifs ; aucune lecture
+ * seule ni neutralisation n'est promise.
+ */
+const OPENCODE_DEFAULT_ARGS = ["run"];
 const VIBE_SAFE_ARGS = [
   "--output",
   "text",
@@ -102,7 +108,7 @@ export const exampleConfig: PalabreConfig = {
     opencode: {
       type: "cli",
       command: "opencode",
-      args: [...OPENCODE_SAFE_ARGS],
+      args: [...OPENCODE_DEFAULT_ARGS],
       promptMode: "stdin",
       modelArg: "--model",
       shell: process.platform === "win32",
@@ -271,29 +277,82 @@ export function syncDetectedAgents(config: PalabreConfig, discovery: ToolDiscove
   return missingAgents;
 }
 
+/** Anciens défauts d'arguments exactement reconnus, et leur remplacement actuel. */
+const LEGACY_ARGS_MIGRATIONS: { agent: string; previous: string[][]; next: string[] }[] = [
+  { agent: "codex", previous: [["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only", "-"]], next: CODEX_SAFE_ARGS },
+  { agent: "claude", previous: [["--print", "--output-format", "text", "--no-session-persistence"]], next: CLAUDE_SAFE_ARGS },
+  // Ancien défaut exact seulement : une configuration personnalisée qui contient `--pure` reste intacte.
+  { agent: "opencode", previous: [["run", "--pure"]], next: OPENCODE_DEFAULT_ARGS },
+  {
+    agent: "vibe",
+    previous: [["--output", "text", "--trust", "--prompt"], ["--output", "text", "--agent", "plan", "--trust", "--prompt"]],
+    next: VIBE_SAFE_ARGS
+  }
+];
+
+/**
+ * Remplace des anciens défauts d'arguments **exactement** reconnus par les défauts actuels ; tout
+ * tableau personnalisé est conservé tel quel. OpenCode : `["run", "--pure"]` devient `["run"]`.
+ * Appliqué en mémoire par `loadConfig` : le fichier garde l'ancien tableau jusqu'à une écriture.
+ */
 function migrateKnownAgentDefaults(config: PalabreConfig): void {
-  migrateExactCliArgs(config, "codex", [[
-    "exec",
-    "--skip-git-repo-check",
-    "--color",
-    "never",
-    "--sandbox",
-    "read-only",
-    "-"
-  ]], CODEX_SAFE_ARGS);
-  migrateExactCliArgs(config, "claude", [[
-    "--print",
-    "--output-format",
-    "text",
-    "--no-session-persistence"
-  ]], CLAUDE_SAFE_ARGS);
-  migrateExactCliArgs(config, "opencode", [[
-    "run"
-  ]], OPENCODE_SAFE_ARGS);
-  migrateExactCliArgs(config, "vibe", [
-    ["--output", "text", "--trust", "--prompt"],
-    ["--output", "text", "--agent", "plan", "--trust", "--prompt"]
-  ], VIBE_SAFE_ARGS);
+  for (const { agent, previous, next } of LEGACY_ARGS_MIGRATIONS) migrateExactCliArgs(config, agent, previous, next);
+}
+
+/** Agents dont le JSON brut contient encore un ancien défaut d'arguments exact. */
+function legacyArgsAgents(raw: unknown): string[] {
+  const agents = (raw as { agents?: Record<string, { type?: unknown; args?: unknown }> } | null)?.agents;
+  if (!agents || typeof agents !== "object") return [];
+  return LEGACY_ARGS_MIGRATIONS
+    .filter(({ agent, previous }) => agents[agent]?.type === "cli" && previous.some((args) => JSON.stringify(agents[agent]?.args) === JSON.stringify(args)))
+    .map(({ agent }) => agent);
+}
+
+/**
+ * Agents dont le fichier `configPath` contient encore un ancien défaut d'arguments exact, avant la
+ * migration en mémoire de `loadConfig`. Fichier illisible ou invalide : aucun.
+ */
+export async function legacyArgsInConfigFile(configPath: string): Promise<string[]> {
+  try { return legacyArgsAgents(JSON.parse(await readFile(path.resolve(configPath), "utf8"))); } catch { return []; }
+}
+
+/** Résultat de `persistAgentSync` ; `conflict` : fichier modifié depuis son chargement, rien n'est écrit. */
+export interface PersistedAgentSync extends DetectedAgentsSyncResult {
+  conflict?: true;
+}
+
+/**
+ * `palabre config --sync-agents` : synchronise les agents détectés et écrit la configuration si
+ * elle change, **y compris** quand seul un ancien défaut d'arguments reste dans le fichier (déjà
+ * migré en mémoire par `loadConfig`). L'écriture rafraîchit une approbation existante.
+ *
+ * Protection contre une édition concurrente : le fichier relu au départ doit correspondre à
+ * `config` (chargé et migré), puis rester identique octet pour octet jusqu'à l'écriture ; sinon
+ * `conflict`, sans écriture. On ne reconstruit pas depuis le fichier modifié, qui n'a pas été
+ * approuvé : l'écriture rafraîchirait son approbation. La découverte (`discover`) peut être lente,
+ * d'où le contrôle avant écriture ; il réduit la course sans la rendre atomique : une édition entre ce
+ * dernier contrôle et le remplacement du fichier peut encore être écrasée.
+ */
+export async function persistAgentSync(
+  configPath: string,
+  config: PalabreConfig,
+  discover: () => Promise<ToolDiscovery>
+): Promise<PersistedAgentSync> {
+  const resolved = path.resolve(configPath);
+  const conflict: PersistedAgentSync = { addedAgents: [], changed: false, conflict: true };
+  const initial = await readFile(resolved, "utf8");
+  let raw: unknown;
+  try { raw = JSON.parse(initial); } catch { return conflict; }
+  const reloaded = structuredClone(raw) as PalabreConfig;
+  if (reloaded?.relay !== undefined) reloaded.relay = validateRelayPolicy(reloaded.relay);
+  migrateKnownAgentDefaults(reloaded);
+  if (JSON.stringify(reloaded) !== JSON.stringify(config)) return conflict;
+  const legacy = legacyArgsAgents(raw);
+  const result = syncDetectedAgentsDetailed(config, await discover());
+  if (!result.changed && legacy.length === 0) return { addedAgents: result.addedAgents, changed: false };
+  if (await readFile(resolved, "utf8") !== initial) return conflict;
+  await writeConfig(resolved, config);
+  return { addedAgents: result.addedAgents, changed: true };
 }
 
 function migrateExactCliArgs(

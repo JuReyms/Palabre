@@ -7,7 +7,7 @@
  */
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
-import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH, loadConfig, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeConfig } from "./config.js";
+import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH, loadConfig, persistAgentSync, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeConfig } from "./config.js";
 import { isConfigTrusted, isImplicitProjectConfig, trustConfig } from "./configTrust.js";
 import { loadProjectInputs } from "./context.js";
 import { discoverLocalTools, discoverLocalToolsForConfig, type ToolDiscovery } from "./discovery.js";
@@ -798,15 +798,19 @@ async function runConfigCommand(flags: Record<string, string | string[] | boolea
   }
 
   if (flags["sync-agents"]) {
-    const discovery = await discoverLocalToolsForConfig(config, optionalString(flags["ollama-url"]));
-    const result = syncDetectedAgentsDetailed(config, discovery);
+    const result = await persistAgentSync(configPath, config, () => discoverLocalToolsForConfig(config, optionalString(flags["ollama-url"])));
+
+    if (result.conflict) {
+      console.error(messages.config.syncConflict(configPath));
+      process.exitCode = 1;
+      return;
+    }
 
     if (!result.changed) {
       console.log(messages.config.syncNoMissing(configPath));
       return;
     }
 
-    await writeConfig(configPath, config);
     console.log(result.addedAgents.length > 0
       ? messages.config.syncAdded(configPath, result.addedAgents.join(", "))
       : messages.config.syncRefreshed(configPath));

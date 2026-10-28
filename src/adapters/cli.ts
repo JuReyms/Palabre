@@ -410,8 +410,27 @@ function createKnownCliError(adapterName: string, exitCode: number | undefined, 
     );
   }
 
+  // OpenCode 2 refuse l'ancien `--pure` : reste un `non-zero-exit`, avec la marche à suivre.
+  if (OPENCODE_PURE_REJECTED.test(cleanedStderr)) {
+    return new AdapterError(
+      "non-zero-exit",
+      adapterName,
+      messages.openCodePureRemoved(adapterName),
+      {
+        ...(exitCode === undefined ? {} : { exitCode }),
+        stderr: cleanedStderr
+      }
+    );
+  }
+
   return undefined;
 }
+
+/**
+ * Refus observé avec OpenCode 2.0.32, ligne exacte : « Unrecognized flag: --pure in command opencode run ».
+ * Un autre drapeau (`--pure-extra`) ou une autre commande ne déclenchent jamais ce diagnostic.
+ */
+const OPENCODE_PURE_REJECTED = /^\s*Unrecognized flag: --pure in command opencode run\s*$/m;
 
 /** Cherche dans stderr une ligne signalant un modèle non supporté, pour classer l'erreur en `unsupported-model`. */
 function extractUnsupportedModelMessage(stderr: string): string | undefined {

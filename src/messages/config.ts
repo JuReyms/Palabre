@@ -5,6 +5,8 @@ export interface ConfigMessages {
   syncNoMissing(path: string): string;
   syncAdded(path: string, agents: string): string;
   syncRefreshed(path: string): string;
+  /** --sync-agents : configuration modifiée depuis son chargement ; rien n'est écrit. */
+  syncConflict(path: string): string;
   ollamaModelNoChange(path: string, model: string | undefined): string;
   ollamaModelUpdated(path: string, previousModel: string, nextModel: string): string;
   ollamaModelUnavailable(model: string): string;
@@ -57,6 +59,7 @@ export const configMessages: Record<Language, ConfigMessages> = {
     syncNoMissing: (path) => `Aucun agent détecté manquant dans ${path}.`,
     syncAdded: (path, agents) => `Agents ajoutés dans ${path}: ${agents}.`,
     syncRefreshed: (path) => `Agents détectés rafraîchis dans ${path}.`,
+    syncConflict: (path) => `La configuration ${path} a changé pendant la synchronisation : rien n'a été écrit, pour ne pas écraser cette modification. Vérifie le fichier, puis relance \`palabre config --sync-agents\`.`,
     ollamaModelNoChange: (path, model) => `Modèle Ollama inchangé dans ${path}: ${model ?? "aucun"}.`,
     ollamaModelUpdated: (path, previousModel, nextModel) => `Modèle Ollama mis à jour dans ${path}: ${previousModel} -> ${nextModel}.`,
     ollamaModelUnavailable: (model) => `Modèle Ollama non installé: ${model}. Action: choisis un modèle installé ou lance \`ollama pull ${model}\`.`,
@@ -115,6 +118,7 @@ export const configMessages: Record<Language, ConfigMessages> = {
     syncNoMissing: (path) => `No missing detected agent in ${path}.`,
     syncAdded: (path, agents) => `Agents added to ${path}: ${agents}.`,
     syncRefreshed: (path) => `Detected agents refreshed in ${path}.`,
+    syncConflict: (path) => `The configuration ${path} changed during synchronization: nothing was written, so that change is not overwritten. Check the file, then run \`palabre config --sync-agents\` again.`,
     ollamaModelNoChange: (path, model) => `Ollama model unchanged in ${path}: ${model ?? "none"}.`,
     ollamaModelUpdated: (path, previousModel, nextModel) => `Ollama model updated in ${path}: ${previousModel} -> ${nextModel}.`,
     ollamaModelUnavailable: (model) => `Ollama model is not installed: ${model}. Action: choose an installed model or run \`ollama pull ${model}\`.`,

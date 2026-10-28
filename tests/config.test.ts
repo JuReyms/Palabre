@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { assertRunnableConfig, DEFAULT_OUTPUT_DIR, createConfigFromDiscovery, exampleConfig, loadConfig, resolveOutputDir, setOllamaBaseUrl, setOllamaModel, syncDetectedAgents, syncDetectedAgentsDetailed, syncOllamaModel } from "../src/config.js";
+import { assertRunnableConfig, DEFAULT_OUTPUT_DIR, createConfigFromDiscovery, exampleConfig, legacyArgsInConfigFile, loadConfig, persistAgentSync, resolveOutputDir, setOllamaBaseUrl, setOllamaModel, syncDetectedAgents, syncDetectedAgentsDetailed, syncOllamaModel } from "../src/config.js";
 import { createTranslator } from "../src/i18n.js";
 import type { ToolDiscovery } from "../src/discovery.js";
 
@@ -189,7 +189,7 @@ test("syncDetectedAgentsDetailed migrates legacy Vibe plan args", () => {
   );
 });
 
-test("syncDetectedAgentsDetailed hardens unchanged Claude and OpenCode defaults", () => {
+test("syncDetectedAgentsDetailed hardens unchanged Claude defaults and keeps OpenCode run", () => {
   const discovery = noDetectedTools();
   discovery.claude = { available: true, command: "claude", path: "C:/bin/claude.exe" };
   discovery.opencode = { available: true, command: "opencode", path: "C:/bin/opencode.cmd" };
@@ -210,10 +210,86 @@ test("syncDetectedAgentsDetailed hardens unchanged Claude and OpenCode defaults"
     config.agents.claude?.type === "cli" ? config.agents.claude.args : undefined,
     ["--print", "--output-format", "text", "--no-session-persistence", "--tools", "Read,Glob,Grep"]
   );
+  // OpenCode 2 n'a plus `--pure` : `run` seul est le défaut actuel, plus jamais « durci ».
   assert.deepEqual(
     config.agents.opencode?.type === "cli" ? config.agents.opencode.args : undefined,
-    ["run", "--pure"]
+    ["run"]
   );
+});
+
+test("syncDetectedAgentsDetailed migre seulement l'ancien défaut OpenCode exact", () => {
+  const discovery = noDetectedTools();
+  discovery.opencode = { available: true, command: "opencode", path: "C:/bin/opencode.cmd" };
+
+  const exact = createConfigFromDiscovery(noDetectedTools());
+  if (exact.agents.opencode?.type === "cli") exact.agents.opencode.args = ["run", "--pure"];
+  assert.equal(syncDetectedAgentsDetailed(exact, discovery).changed, true);
+  assert.deepEqual(exact.agents.opencode?.type === "cli" ? exact.agents.opencode.args : undefined, ["run"]);
+
+  for (const custom of [["run", "--pure", "--agent", "plan"], ["--pure", "run"], ["run", "--model", "x", "--pure"]]) {
+    const config = createConfigFromDiscovery(noDetectedTools());
+    if (config.agents.opencode?.type === "cli") config.agents.opencode.args = [...custom];
+    syncDetectedAgentsDetailed(config, discovery);
+    assert.deepEqual(config.agents.opencode?.type === "cli" ? config.agents.opencode.args : undefined, custom, JSON.stringify(custom));
+  }
+});
+
+test("sync-agents écrit la migration exacte d'OpenCode même déjà appliquée en mémoire", async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "palabre-sync-opencode-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const file = path.join(dir, "palabre.config.json");
+  const stored = structuredClone(exampleConfig);
+  if (stored.agents.opencode?.type === "cli") stored.agents.opencode.args = ["run", "--pure"];
+  if (stored.agents.claude?.type === "cli") stored.agents.claude.args = ["--print", "--pure", "--custom"];
+  await writeFile(file, JSON.stringify(stored, null, 2));
+  assert.deepEqual(await legacyArgsInConfigFile(file), ["opencode"]);
+
+  const loaded = await loadConfig(file);
+  assert.deepEqual(loaded.agents.opencode?.type === "cli" ? loaded.agents.opencode.args : undefined, ["run"], "migré en mémoire au chargement");
+  const result = await persistAgentSync(file, loaded, async () => noDetectedTools());
+  assert.equal(result.changed, true, "fichier encore ancien : la synchronisation doit l'écrire");
+  assert.equal(result.conflict, undefined);
+
+  const written = JSON.parse(await readFile(file, "utf8")) as typeof stored;
+  assert.deepEqual(written.agents.opencode?.type === "cli" ? written.agents.opencode.args : undefined, ["run"]);
+  assert.deepEqual(written.agents.claude?.type === "cli" ? written.agents.claude.args : undefined, ["--print", "--pure", "--custom"], "arguments personnalisés intacts");
+  assert.deepEqual(await legacyArgsInConfigFile(file), []);
+  assert.equal((await persistAgentSync(file, await loadConfig(file), async () => noDetectedTools())).changed, false, "seconde synchronisation sans écriture");
+});
+
+test("sync-agents refuse d'écrire après une édition faite depuis le chargement ou pendant la découverte", async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "palabre-sync-race-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const file = path.join(dir, "palabre.config.json");
+  const stored = structuredClone(exampleConfig);
+  if (stored.agents.opencode?.type === "cli") { stored.agents.opencode.args = ["run", "--pure"]; stored.agents.opencode.model = "avant-edition"; }
+  await writeFile(file, JSON.stringify(stored, null, 2));
+  const edited = structuredClone(stored);
+  if (edited.agents.opencode?.type === "cli") edited.agents.opencode.model = "edition-humaine";
+  const editedText = JSON.stringify(edited, null, 2);
+
+  // Édition pendant la découverte des outils, après le premier contrôle.
+  const duringDiscovery = await persistAgentSync(file, await loadConfig(file), async () => {
+    await writeFile(file, editedText);
+    return noDetectedTools();
+  });
+  assert.deepEqual(duringDiscovery, { addedAgents: [], changed: false, conflict: true });
+  assert.equal(await readFile(file, "utf8"), editedText, "édition humaine conservée");
+
+  // Édition entre le chargement et la synchronisation.
+  await writeFile(file, JSON.stringify(stored, null, 2));
+  const loaded = await loadConfig(file);
+  await writeFile(file, editedText);
+  let discovered = false;
+  const afterLoad = await persistAgentSync(file, loaded, async () => { discovered = true; return noDetectedTools(); });
+  assert.equal(afterLoad.conflict, true);
+  assert.equal(discovered, false, "refus avant toute découverte");
+  assert.equal(await readFile(file, "utf8"), editedText);
+});
+
+test("exampleConfig : OpenCode lancé avec run seul, sans --pure", () => {
+  const opencode = createConfigFromDiscovery(noDetectedTools()).agents.opencode;
+  assert.deepEqual(opencode?.type === "cli" ? opencode.args : undefined, ["run"]);
 });
 
 test("syncDetectedAgentsDetailed preserves custom Claude and OpenCode args", () => {
