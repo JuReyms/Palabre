@@ -49,6 +49,8 @@ Les releases sont gerees via des tags Git. Trois workflows GitHub Actions sont e
 
 ### Preparer et publier une release
 
+Pour la préparation de 0.21.0, consulter le [bilan de qualification](../release-0.21.0-qualification.md) : il sépare les révisions testées, les limites et les contrôles restant avant publication.
+
 ```bash
 # Depuis une branche de release, sans creer de tag local
 pnpm version patch --no-git-tag-version   # ou minor / major
