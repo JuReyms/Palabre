@@ -7,6 +7,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 ### Added
 
 - Skill : après une mise à jour directe de la CLI (npm, pnpm, Yarn, Bun), `palabre --version`, `palabre --help` et l'accueil TUI rappellent, en terminal humain seulement, de vérifier avec `palabre skill --check`, de synchroniser si nécessaire avec `palabre skill --sync` après lecture du plan, puis de recharger le skill. Le rappel apparaît seulement si une copie détectée diffère ou n'est pas comparable, sur stderr pour l'aide et la version (stdout inchangé). Aucune inspection supplémentaire en sortie `--json`/NDJSON, Relay, Mission, Chat ou hors TTY, et aucun script postinstall. Copies installées inchangées.
+- Relay OpenCode `--copy --model fournisseur/modele[#variante]` : choix explicite sur la seule copie, catalogue et sélection vérifiés avant prompt, variante `default` si omise. Sans option, comportement inchangé. Modèle absent ou choix non confirmé : arrêt sans message, copie conservée ; aucun remplacement ni retry. JSON/export : `copy.model` facultatif distingue demande, source et sélection vérifiée ; `observedModels` reste lié à la réponse. Sources officielles 2.0.32, tests simulés et essai réel gratuit du 23 octobre 2026 : DeepSeek high → GLM-5.3-Flash Free low sur copie, original et quatre fichiers fictifs inchangés, coût de copie rapporté zéro ; pilote toujours Windows et non publié (Refs #136). Copies du skill : `palabre skill --sync` après accord humain, puis recharger le skill.
 
 ### Changed
 

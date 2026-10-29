@@ -91,7 +91,7 @@ These are the tools Palabre can call, once installed and configured — regardle
 | Mistral Vibe | No | Yes | Yes | Yes |
 | Ollama (local models) | No | Yes | Yes | Yes |
 
-> **Note (1) — OpenCode Relay:** this experimental pilot works on a copy of an existing conversation. Windows, CLI 2.0.32 only; Desktop use has not been verified. It uses your usual OpenCode environment, with no enforced read-only mode. [Relay requirements and limits](https://palab.re/en/usage/relay).
+> **Note (1) — OpenCode Relay:** this experimental pilot works on a copy of an existing conversation. Windows, CLI 2.0.32 only; Desktop use has not been verified. It uses your usual OpenCode environment, with no enforced read-only mode; `--model provider/model[#variant]` changes the model of the copy only. [Relay requirements and limits](https://palab.re/en/usage/relay).
 
 Codex and Claude Code can also coordinate Relay exchanges.
 
@@ -235,7 +235,7 @@ Voici les outils que Palabre peut appeler, une fois installés et configurés �
 | Mistral Vibe | Non | Oui | Oui | Oui |
 | Ollama (modèles locaux) | Non | Oui | Oui | Oui |
 
-> **Note (1) — OpenCode Relay :** ce pilote expérimental travaille sur une copie d'une conversation existante. Windows, CLI 2.0.32 seulement ; l'utilisation depuis Desktop n'est pas encore validée. Il utilise votre environnement OpenCode habituel, sans lecture seule imposée. [Prérequis et limites Relay](https://palab.re/fr/usage/relay).
+> **Note (1) — OpenCode Relay :** ce pilote expérimental travaille sur une copie d'une conversation existante. Windows, CLI 2.0.32 seulement ; l'utilisation depuis Desktop n'est pas encore validée. Il utilise votre environnement OpenCode habituel, sans lecture seule imposée ; `--model fournisseur/modele[#variante]` change le modèle de la copie seulement. [Prérequis et limites Relay](https://palab.re/fr/usage/relay).
 
 Codex et Claude Code peuvent aussi coordonner les échanges Relay.
 

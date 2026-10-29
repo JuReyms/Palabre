@@ -1,12 +1,13 @@
 /** @file Déroulé sur copie, IO injectées et preuves mémorisées ; ne reprend jamais la source. */
 import { realpath } from "node:fs/promises";
 import path from "node:path";
+import { parseCopyModel, validateCopyModelCatalogue, validateCopyModelSelection, type CopyModelRef } from "./opencodeModel.js";
 import { validateRelayMessage } from "./envelope.js";
 import { RELAY_EXIT_CODES } from "./outcome.js";
 import type { ExternalProcessResult } from "./process.js";
 import type { DeliveryVerdict, RelayOutcome, SessionIdentity } from "./types.js";
 import { CopyFailure, copyMessagePersisted, copyObject, inspectCopyClient, inspectCopyReply, isOpenCodeSessionId,
-  sameCopySnapshot, validateCopyFork, validateCopySource, type OpenCodeSnapshot } from "./opencodeCopy.js";
+  sameCopySnapshot, validateCopyFork, validateCopySource, copyModelLabel, type OpenCodeSnapshot } from "./opencodeCopy.js";
 
 /** Métadonnées de copie conservées aussi après un échec ; jamais une promesse de confinement. */
 export interface CopyReport {
@@ -17,6 +18,8 @@ export interface CopyReport {
   sourceCheck: "unchanged" | "changed" | "unknown";
   serverStop: "confirmed" | "unknown";
   diagnostic?: string;
+  /** Seulement avec --model ; preuve de sélection distincte de la provenance du fork. */
+  model?: { requested: string; source?: string; selected?: string; verified: boolean };
 }
 
 /** Arrêt observé et cause éventuelle, relevée après drainage des sorties, sans effacer la réponse. */
@@ -31,6 +34,8 @@ export interface CopyTransport {
   start(signal: AbortSignal): Promise<void>;
   snapshot(id: string, signal: AbortSignal): Promise<OpenCodeSnapshot>;
   fork(id: string, signal: AbortSignal): Promise<unknown>;
+  models(signal: AbortSignal): Promise<unknown>;
+  selectModel(id: string, model: CopyModelRef, signal: AbortSignal): Promise<void>;
   run(id: string, envelope: string, signal: AbortSignal): Promise<ExternalProcessResult>;
   interrupt(id: string, signal: AbortSignal): Promise<void>;
   stop(signal: AbortSignal): Promise<CopyStopResult>;
@@ -43,6 +48,8 @@ export interface CopyRelayInput {
   timeoutMs: number;
   envelope(copyId: string): string;
   signal?: AbortSignal;
+  /** provider/model[#variant] ; absent = sélection source inchangée. */
+  model?: string;
 }
 
 /** Issue globale distincte de la réception de la réponse, et des effets serveur/fork. */
@@ -64,7 +71,8 @@ export interface CopyRelayDeps {
 }
 
 /**
- * Un fork au plus, un envoi au plus. Tout échec est rendu avec les ID/preuves déjà acquis.
+ * Un fork, une sélection explicite facultative et un envoi au plus. Aucun POST répété.
+ * Tout échec est rendu avec les ID/preuves déjà acquis ; la sélection précède le prompt.
  * Le budget d'appel comprend les sondes ; le nettoyage dispose de 10 s supplémentaires.
  */
 export async function runCopyRelay(input: CopyRelayInput, deps: CopyRelayDeps): Promise<CopyRelayResult> {
@@ -80,6 +88,7 @@ export async function runCopyRelay(input: CopyRelayInput, deps: CopyRelayDeps): 
     if (expired || controller.signal.aborted) throw new CopyFailure("timeout", "timeout");
   };
   const copy: CopyReport = { source: input.source, verified: false, retention: "none", sourceCheck: "unknown", serverStop: "confirmed" };
+  if (input.model !== undefined) copy.model = { requested: input.model, verified: false };
   let status: RelayOutcome["status"] = "no-valid-reply";
   let reason: RelayOutcome["reason"];
   let source: OpenCodeSnapshot | undefined, before: OpenCodeSnapshot | undefined, prompt: string | undefined;
@@ -93,6 +102,7 @@ export async function runCopyRelay(input: CopyRelayInput, deps: CopyRelayDeps): 
   try {
     check();
     if (!isOpenCodeSessionId(input.source)) throw new CopyFailure("invalid-request", "session-id");
+    const requested = input.model === undefined ? undefined : parseCopyModel(input.model);
     if ((deps.platform ?? process.platform) !== "win32") {
       reason = "opencode-cli-unsupported"; throw new CopyFailure("invalid-request", "unsupported-platform");
     }
@@ -107,6 +117,7 @@ export async function runCopyRelay(input: CopyRelayInput, deps: CopyRelayDeps): 
     await transport.start(controller.signal); check();
     source = await transport.snapshot(input.source, controller.signal); check();
     const recorded = validateCopySource(source, input.source);
+    if (copy.model) copy.model.source = copyModelLabel(source.info.model as Record<string, unknown>);
     let sourceDirectory: string;
     try {
       if (!path.isAbsolute(recorded)) throw Error();
@@ -131,6 +142,19 @@ export async function runCopyRelay(input: CopyRelayInput, deps: CopyRelayDeps): 
     copy.verified = true;
     prompt = input.envelope(copy.session);
     if (!validateRelayMessage(prompt).ok) { reason = "message-too-large"; throw new CopyFailure("invalid-request", "envelope-size"); }
+    if (requested) {
+      const catalogue = await transport.models(controller.signal); check();
+      validateCopyModelCatalogue(catalogue, requested);
+      // Un seul POST, même si son accusé est perdu. Aucun run avant le relevé contrôlé.
+      await transport.selectModel(copy.session, requested, controller.signal); check();
+      const selected = await transport.snapshot(copy.session, controller.signal); check();
+      validateCopyModelSelection(before, selected, requested);
+      before = selected;
+      copy.model!.selected = copyModelLabel(selected.info.model as Record<string, unknown>);
+      copy.model!.verified = true;
+      const unchanged = await transport.snapshot(input.source, controller.signal); check();
+      if (!sameCopySnapshot(source, unchanged)) { copy.sourceCheck = "changed"; throw new CopyFailure("no-valid-reply", "source-changed"); }
+    }
     check();
     // Conservateur dès l'appel du lanceur : même une dépendance qui lève après spawn ne perd pas l'incertitude.
     attempted = true;
