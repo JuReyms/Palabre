@@ -103,6 +103,8 @@ Avec le choix explicite `relay.view: auto` (« Privilégier la conversation ouve
 - `readLastTurnContext` (`openRollout.ts`) lit au plus le dernier Mio du rollout, plus l'octet qui le précède pour savoir si sa première ligne est complète ; `lastTurnContext` (`openReader.ts`, pur) prend le dernier `turn_context` lisible, ligne partielle ignorée. Ces permissions sont **indicatives** : le tour suivant peut en appliquer d'autres. Absentes de cette fin : `"unknown"`.
 - L'état peut changer entre `--check` et l'envoi ; l'envoi revérifie toujours, sans repli plus permissif. `neutralization-failed` reste possible à l'envoi. Tests : `tests/relay-check.test.ts`, profil fictif et sonde simulée.
 
+Pour Claude (#250), les valeurs techniques `open`/`closed` restent compatibles mais le texte explique l'attachement : « déjà utilisée par Claude » ou « aucun processus attaché détecté ». Une fenêtre visible, masquée ou une application lancée ne suffit pas à établir cet état ; `closed` ne prouve pas la fermeture de Desktop. Le conseil `error.hint` ne déclenche aucune action et `--check` ne crée jamais de passation. Voir [le contrat de passation locale](relay.md#claude-déjà-utilisée-et-passation-locale-250).
+
 ### Hors périmètre de cette version
 
 - Le fork d'une conversation Codex ou Claude Code ; le pilote OpenCode `--copy` est distinct.

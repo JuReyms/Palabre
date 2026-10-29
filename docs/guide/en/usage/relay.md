@@ -16,7 +16,7 @@ You choose the **mission lead**: Claude Code or Codex. Your agent can become the
 
 With the skill, the mission lead offers to delegate on its own when work can be split: a review, a search, an independent batch, a check. For a small expected task, such as a review without changes in work you have already approved, it announces it in one line and then does it. For delegation that commits more (writing, several teammates, a lot of quota, a new piece of work), it asks you one clear question, once for the whole batch: it does not ask again at every call. An agent never reviews its own work. For a simple question, it answers alone: each call takes time and uses quota. Delegating grants the teammate no additional rights.
 
-> **Good to know:** Relay connects Claude Code and Codex both ways, in the background. To hand a task to a conversation that is **already open** (desktop app or terminal), only Codex can receive it for now, on Windows, macOS and Linux (`python3` required on POSIX). Codex to an open Claude conversation is tracked in issue [#96](https://github.com/JuReyms/Palabre/issues/96).
+> **Good to know:** Relay connects Claude Code and Codex both ways, in the background. To hand a task to a conversation that is **already open** (desktop app or terminal), only Codex can receive it for now, on Windows, macOS and Linux (`python3` required on POSIX). Sending to an open Claude conversation remains separate research ([#193](https://github.com/JuReyms/Palabre/issues/193)); a Claude conversation already in use is refused without sending anything (see [Claude conversation already in use](#claude-conversation-already-in-use)).
 
 ```text
 palabre relay --from codex:<sender-session> --to claude:<target-session> --subject "Plan review" "Read the plan in docs/plan.md and list the risks."
@@ -464,7 +464,22 @@ palabre relay --open --follow --to codex:<target-session> --timeout 1800
 
 In background mode, the target conversation must be **closed**: no TUI, desktop, IDE or running exec may be attached to it. Otherwise the relay is refused before anything is sent (`target-busy`). It is also refused when PALABRE cannot verify the conversation state (`target-state-unknown`).
 
-For an **open** Codex conversation, use `--open` (see above). On macOS/Linux, first check `python3 --version`. Relaying to an open Claude Code conversation is not available yet; it is tracked in issue [#96](https://github.com/JuReyms/Palabre/issues/96).
+For an **open** Codex conversation, use `--open` (see above). On macOS/Linux, first check `python3 --version`. Relaying to an open Claude Code conversation is not available; research into an official mechanism is tracked in [#193](https://github.com/JuReyms/Palabre/issues/193).
+
+## Claude conversation already in use
+
+"Open" is ambiguous for Claude: displaying the app does not mean a process is attached to the conversation, and a conversation can be attached without being displayed. PALABRE reads Claude Code's session registry: an attached process, even idle, makes the conversation unavailable for a new send (`target-busy`, code 3, nothing sent). This is common when both Desktop apps are in use, without being a general Desktop incompatibility or specific to Mac. A macOS report ([#250](https://github.com/JuReyms/Palabre/issues/250)) indicates the Claude process can stay attached after a turn visibly ends; no duration is guaranteed, and this observation does not apply to every version.
+
+The message then says: "This conversation is already in use by Claude (app, terminal or integration). Palabre cannot add a new message to it right now." PALABRE guesses neither the active surface nor a running reply, and does not ask you to close the whole application. The hint (`error.hint` in JSON) separates two cases:
+
+- **Answering a Relay request you received?** Answer in this same turn: the reply returns to the caller through the current call. A Relay to the conversation that wrote to you is not the way back.
+- **New initiative later?** Pass the handoff on through the human, or check again with `palabre relay --check --to claude:<identifier>`, then decide on a new send. Nothing is resent, awaited, opened, closed or re-permissioned for you.
+
+**Local handoff.** For an ordinary send to an existing Claude conversation refused this way, PALABRE keeps the original message body in a `palabre-handoff-….handoff.md` file in the export directory (`.palabre/` by default). It is marked **NOT SENT, TO PASS ON**, with target, declared sender, optional subject and reference, date and `not-delivered`. The path is shown on stderr and in `handoff.path`. This file does not notify Claude, is not a successful exchange, does not appear in `relay recent` and is never resent; `exportPath` stays `null`. With `--no-export`, nothing is written (`handoff.status: disabled`): include the content in your reply. If writing fails (`failed`), no path is announced. No handoff for `--check`, `--follow`, `--then-follow`, `--new`, `--copy`, Mission, `--task review`, `--write`, Codex or an unverifiable state. The content can be sensitive: export privacy rules apply, and `--no-export` avoids this record.
+
+With `--check`, PALABRE says "already in use by Claude" (JSON `check.target: open`) or "no attached Claude process detected" (`closed`), which does not prove the app is closed.
+
+**Reply and display.** A Relay to an existing conversation does not create a new one: it adds a turn. The reply returns to the caller in the same call; it is not a new autonomous message in the sender's conversation. An app that is already open may show this turn only after you reopen the conversation, with no universal guarantee. On the Codex side, opening a conversation to view it can attach it: a `--background` send to it is then refused, and `--open` would use its tools and permissions, to be explained before any choice.
 
 ## What the resume does
 

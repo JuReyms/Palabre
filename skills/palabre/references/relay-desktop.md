@@ -116,6 +116,11 @@ forcé, archivage, suppression ou renvoi. Preuve détaillée : docs/relay-deskto
 **Suite** : l'humain peut relire ou continuer lui-même dans Claude Desktop, après
 avoir vérifié ses permissions : ne pas promettre que les outils limités/MCP/hooks
 du tour Relay sont maintenus dans l'app. Aucun droit n'est ajouté par l'agent.
+« Déjà utilisée par Claude » signifie qu'un processus est attaché à cette conversation,
+même au repos ; cela ne désigne pas simplement une fenêtre visible. Une application Desktop
+lancée n'empêche pas à elle seule tout Relay. Sur ce refus ordinaire, annoncer la passation
+locale non envoyée (`handoff`), sans prétendre que Claude en a été informée ; détails dans
+[le contrat Relay](relay.md). Pour répondre à une demande Relay reçue, répondre dans le même tour.
 Le transport --open ne prend toujours pas en charge Claude (#193) :
 demander sa fermeture avant un nouvel envoi autorisé, et contrôler la délivrance
 pour ne pas dupliquer un message. Ne pas utiliser les parcours --check --open,

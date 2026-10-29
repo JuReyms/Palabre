@@ -127,8 +127,9 @@ This path keeps a separate Git copy, or **worktree**, without your uncommitted c
 Mission and `--task review` are frozen: retained and documented, with no scope expansion; only security fixes are accepted.
 
 - Keep the returned identifier to explicitly continue advice or a review with `--to codex:<identifier>` or `--to claude:<identifier>`, without `--new`. Never choose “the latest conversation” instead of the target.
-- Without `--open`, an existing conversation must be closed during the call. With `--open`, only Codex is supported, on Windows, macOS, or Linux (`python3` on POSIX); the two-terminal path still needs more testing.
+- In the background, no other process may be using the target conversation: showing or hiding its window is not enough to tell. Codex can be reached in its app with `--open`, on Windows, macOS or Linux (`python3` on POSIX); the two-terminal path still needs more testing.
 - Receiving an identifier does not prove task success. Read status, delivery and the report's evidence. After a failure, never resend the request automatically.
+- "This conversation is already in use by Claude": nothing was sent. To answer a received request, answer in the same turn; otherwise pass the handoff on through the human. The announced `.handoff.md` file does not notify Claude. See [Claude conversation already in use](/en/usage/relay#claude-conversation-already-in-use).
 - In the experimental path, `--write` permits no commit, push, merge or dependency installation by the teammate. A blocked test stays reported; PALABRE does not widen permissions to make it pass. Approval is consumed even on failure.
 - To create the teammate in another project, use `--dir "../other-project"` with `--new`. The experimental writing path requires the root of a Git repository.
 

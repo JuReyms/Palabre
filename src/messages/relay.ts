@@ -2,9 +2,12 @@
 import type { DeliveryStatus, InvalidRequestReason, ReadAccessDiagnostic, RelayStatus } from "../externalSessions/types.js";
 import type { Language } from "../types.js";
 import { relayCopyText } from "./relayCopy.js";
+import { relayClaudeText } from "./relayClaude.js";
 
 /** Textes du relay ; la langue suit `--language`, `PALABRE_LANGUAGE` puis la config. */
 export interface RelayMessages {
+  /** Refus Claude ordinaire et passation, localisés avec le reste du dictionnaire. */
+  claude: ReturnType<typeof relayClaudeText>;
   /** Consultation OpenCode sur copie, distincte des garanties des reprises UUID. */
   copy: ReturnType<typeof relayCopyText>;
   terminalSender: string;
@@ -281,6 +284,7 @@ const enInvalid: Record<InvalidRequestReason, string> = {
 
 export const relayMessages: Record<Language, RelayMessages> = {
   fr: {
+    claude: relayClaudeText("fr"),
     copy: relayCopyText("fr"),
     usageLimit: retry => "Codex a atteint sa limite d'usage. " + (retry === undefined
       ? "La CLI n'indique pas de reprise exploitable."
@@ -456,6 +460,7 @@ Le propriétaire l'ouvre lui-même ou le demande à son agent ; un agent ne l'ou
     }
   },
   en: {
+    claude: relayClaudeText("en"),
     copy: relayCopyText("en"),
     usageLimit: retry => "Codex has reached its usage limit. " + (retry === undefined
       ? "The CLI provides no usable retry indication."

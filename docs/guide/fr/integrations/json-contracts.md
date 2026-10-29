@@ -44,6 +44,8 @@ Avec `--check` (#203), rien n'est envoyé ni écrit et aucune CLI de l'équipier
 
 Pour `target-busy`, `remedy` peut proposer le réglage habituel seulement si `background` est enregistré : c'est un choix facultatif à lancer et confirmer par le propriétaire, pas un envoi ni une réparation automatique. Sans préférence (`modeSource: "default"`), le champ est absent ; le texte explique d'abord les possibilités pour cet échange, puis le réglage habituel. Ne jamais exécuter une commande de configuration à partir de ce champ sans décision humaine.
 
+Pour une conversation Claude déjà utilisée (`target-busy`, #250), `error.message` le dit en mots simples et `error.hint?` (facultatif) distingue la réponse dans le même tour d'une nouvelle initiative. Le champ facultatif `handoff?: { status: "saved" | "disabled" | "failed", path? }` n'apparaît que pour un envoi ordinaire refusé avant échange : `saved` donne le chemin d'un fichier local `.handoff.md` NON ENVOYÉ ; `disabled` correspond à `--no-export` ; `failed` n'a pas de chemin. Ce n'est ni une délivrance, ni un export (`exportPath` reste `null`), ni un succès. `check.target` garde `open`/`closed` : pour Claude, c'est l'état du registre des processus attachés, pas l'affichage de l'app. Un consommateur ignore ces champs s'il ne les connaît pas.
+
 ## Suite après réponse : `relay --then-follow` (#204)
 
 Ajout facultatif du JSON v1 : `nextTurn`, seulement si `--then-follow <10..3600>` a été choisi. La racine reste le résultat du message : `status`, `exitCode`, `reply`, `delivery`, modèle et permissions primaires ne sont jamais remplacés par ceux de la suite.

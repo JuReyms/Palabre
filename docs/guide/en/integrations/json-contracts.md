@@ -44,6 +44,8 @@ With `--check` (#203), nothing is sent or written and no teammate CLI is started
 
 For `target-busy`, `remedy` may suggest the usual setting only when `background` is saved: it is an optional choice the owner runs and confirms, not a send or an automatic repair. With no preference (`modeSource: "default"`), the field is absent; the text explains the choices for this exchange first, then the usual setting. Never execute a configuration command from this field without a human decision.
 
+For a Claude conversation already in use (`target-busy`, #250), `error.message` says so in plain words and the optional `error.hint?` separates answering in the same turn from a new initiative. The optional `handoff?: { status: "saved" | "disabled" | "failed", path? }` field appears only for an ordinary send refused before any exchange: `saved` gives the path of a local `.handoff.md` file that was NOT SENT; `disabled` means `--no-export`; `failed` has no path. It is neither a delivery, nor an export (`exportPath` stays `null`), nor a success. `check.target` keeps `open`/`closed`: for Claude, it reflects the registry of attached processes, not the app display. Consumers ignore these fields when unknown.
+
 ## Continuation after a reply: `relay --then-follow` (#204)
 
 Optional JSON v1 field `nextTurn`, only when `--then-follow <10..3600>` was requested. Root `status`, `exitCode`, `reply`, `delivery`, models and permissions retain the primary message result, never the continuation's.

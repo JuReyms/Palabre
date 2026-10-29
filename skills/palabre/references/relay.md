@@ -51,7 +51,7 @@ Pour un avis ou une relecture sans modification, `palabre relay --new --backgrou
 
 Un timeout ne prouve pas l'échec du travail. En mode ouvert, un message déjà déposé peut encore être traité après le délai ou Ctrl+C ; l'arrêt de l'attente ne retire ni le message ni une action engagée. Dire ce qui est connu (enregistré ou inconnu, réponse non recueillie), sans annoncer un échec définitif de l'équipier ni renvoyer automatiquement.
 
-`--json` écrit un seul objet `relay-result` v1 sur stdout, quelle que soit l'issue : `status`, `exitCode`, `reply` (conservée aussi après un échec de lecture ou de publication), `delivery`, `identity`, `observedModels`, `error` (`kind`, `message`, `reason`), `exportPath`. Avec `--new`, `created` et `cwd` sont à la racine, l'identifiant est dans `to.session`, et aucune commande de continuation n'est ajoutée au JSON ni à l'export. La sortie texte est la seule à imprimer cette commande prête à copier.
+`--json` écrit un seul objet `relay-result` v1 sur stdout, quelle que soit l'issue : `status`, `exitCode`, `reply` (conservée aussi après un échec de lecture ou de publication), `delivery`, `identity`, `observedModels`, `error` (`kind`, `message`, `reason`, `hint?`), `exportPath`, `handoff?`. Avec `--new`, `created` et `cwd` sont à la racine, l'identifiant est dans `to.session`, et aucune commande de continuation n'est ajoutée au JSON ni à l'export. La sortie texte est la seule à imprimer cette commande prête à copier.
 
 Avec `--open`, `delivery.inActiveBranch` vaut actuellement `"unknown"`, y compris avec `correlation.reason: "correlated-final"` : la réponse est corrélée au tour déposé, mais PALABRE ne reconstruit pas la branche active d'un historique toujours écrit par Codex. Décider d'un renvoi avec `delivery.status`, jamais avec ce diagnostic.
 
@@ -64,7 +64,7 @@ Avec `--open`, `delivery.inActiveBranch` vaut actuellement `"unknown"`, y compri
 | `persisted-no-reply` | Le message est dans la cible sans réponse : **ne pas renvoyer**, un renvoi le dupliquerait |
 | `unknown` | **Ne pas renvoyer** sans vérifier la conversation cible |
 
-Issues fréquentes : `target-busy` (cible ouverte, code 3), `target-state-unknown` (état invérifiable, code 3 ; sur macOS/Linux, vérifier `python3 --version`), `session-not-found` (code 6), `invalid-request` avec `error.reason` (code 8), `cli-failure` (code 2), `timeout` (code 4). Palabre ne renvoie jamais automatiquement.
+Issues fréquentes : `target-busy` (cible ouverte, code 3 ; pour Claude, « déjà utilisée par Claude » = processus attaché, sans preuve d'affichage ni de génération en cours : suivre `error.hint`, répondre à une demande reçue dans le même tour, sinon passation via l'humain ou nouveau `--check` puis décision ; `handoff` signale un fichier local `.handoff.md` NON ENVOYÉ, qui n'informe pas Claude et ne se renvoie jamais), `target-state-unknown` (état invérifiable, code 3 ; sur macOS/Linux, vérifier `python3 --version`), `session-not-found` (code 6), `invalid-request` avec `error.reason` (code 8), `cli-failure` (code 2), `timeout` (code 4). Palabre ne renvoie jamais automatiquement.
 
 ## Export
 

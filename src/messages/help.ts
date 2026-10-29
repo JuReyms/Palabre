@@ -282,7 +282,7 @@ Options :
   --check                     vérifie mode, conversation et permissions connues, sans rien envoyer
   --timeout <secondes>        délai maximal, de 10 à 3600 (défaut : 600)
   --json                      sortie JSON v1 pour les intégrations
-  --no-export                 n'écrit pas l'export .relay.md
+  --no-export                 n'écrit ni l'export .relay.md ni la passation .handoff.md
   --config <chemin>           chemin de config explicite
   --trust-config              approuve la config résolue (aucune question n'est posée)
   --language <fr|en>          force la langue
@@ -290,6 +290,14 @@ Options :
 Message exact : pour un envoi ordinaire, le texte complet, enveloppe comprise, est conservé
 dans l'export et son chemin est annoncé. Avec --no-export, Palabre n'en garde pas de copie
 locale ; l'outil IA peut la garder. Cette trace ne prouve pas la réception et n'inclut pas tout le contexte de l'outil.
+
+Conversation Claude déjà utilisée (#250) : target-busy, code 3, rien envoyé. Un processus
+Claude (app, terminal ou intégration) y est attaché, même au repos ; ni l'affichage ni une
+génération en cours n'en sont déduits. Répondre à une demande reçue dans le même tour ;
+sinon passation via l'humain, ou --check puis décision d'un nouvel envoi (error.hint).
+Envoi ordinaire seulement : corps original gardé dans <sortie>/palabre-handoff-….handoff.md,
+NON ENVOYÉ, jamais renvoyé ni notifié (JSON handoff) ; exportPath reste null. Avec --no-export,
+rien n'est écrit. Mêmes règles de confidentialité que les exports.
 
 Retrouver un échange Relay (#206) :
   palabre relay recent [--limit 1-100] [--json] [--config <chemin>] [--language fr|en]
@@ -926,7 +934,7 @@ Flags:
   --check                     checks mode, conversation and known permissions, sends nothing
   --timeout <seconds>         maximum duration, 10 to 3600 (default: 600)
   --json                      JSON v1 output for integrations
-  --no-export                 does not write the .relay.md export
+  --no-export                 writes neither the .relay.md export nor the .handoff.md handoff
   --config <path>             explicit config path
   --trust-config              trusts the resolved config (no question is asked)
   --language <fr|en>          force language
@@ -934,6 +942,14 @@ Flags:
 Exact message: for an ordinary send, the complete text, including envelope, is kept in the
 export and its path is displayed. With --no-export, Palabre saves no local copy; the AI tool
 may retain one. This record does not prove receipt or include the tool's entire context.
+
+Claude conversation already in use (#250): target-busy, code 3, nothing sent. A Claude process
+(app, terminal or integration) is attached, even idle; neither display nor a running generation
+is inferred. Answer a received request in the same turn; otherwise pass the handoff on through
+the human, or --check then decide on a new send (error.hint). Ordinary sends only: the original
+body is kept in <output>/palabre-handoff-….handoff.md, NOT SENT, never resent or notified
+(JSON handoff); exportPath stays null. With --no-export, nothing is written. Same privacy
+rules as exports.
 
 Find a Relay exchange (#206):
   palabre relay recent [--limit 1-100] [--json] [--config <path>] [--language fr|en]

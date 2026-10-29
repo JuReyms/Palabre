@@ -16,7 +16,7 @@ Vous choisissez le **chef de mission** : Claude Code ou Codex. Votre agent peut 
 
 Avec le skill, le chef de mission propose de lui-même de déléguer quand un travail se découpe : une relecture, une recherche, un lot indépendant, une vérification. Pour une petite tâche attendue, comme une relecture sans modification dans un travail que vous avez déjà validé, il l'annonce en une ligne puis la fait. Pour une délégation qui engage davantage (écriture, plusieurs équipiers, beaucoup de quota, nouveau chantier), il vous pose une question claire, une seule fois pour tout le lot : il ne vous redemande pas à chaque appel. Un agent ne relit jamais son propre travail. Pour une question simple, il répond seul : chaque appel prend du temps et consomme des quotas. Déléguer ne donne aucun droit supplémentaire à l'équipier.
 
-> **Bon à savoir :** Relay relie Claude Code et Codex dans les deux sens, en arrière-plan. Pour confier une tâche à une conversation **déjà ouverte** (application desktop ou terminal), seul Codex peut la recevoir pour l'instant, sous Windows, macOS et Linux (`python3` requis sur POSIX). Le suivi de Codex vers une conversation Claude ouverte est l'issue [#96](https://github.com/JuReyms/Palabre/issues/96).
+> **Bon à savoir :** Relay relie Claude Code et Codex dans les deux sens, en arrière-plan. Pour confier une tâche à une conversation **déjà ouverte** (application desktop ou terminal), seul Codex peut la recevoir pour l'instant, sous Windows, macOS et Linux (`python3` requis sur POSIX). L'envoi vers une conversation Claude ouverte reste une recherche séparée ([#193](https://github.com/JuReyms/Palabre/issues/193)) ; une conversation Claude déjà utilisée est refusée sans rien envoyer (voir [Conversation Claude déjà utilisée](#conversation-claude-déjà-utilisée)).
 
 ```text
 palabre relay --from codex:<session-expéditeur> --to claude:<session-cible> --subject "Revue du plan" "Relis le plan dans docs/plan.md et liste les risques."
@@ -468,7 +468,22 @@ palabre relay --open --follow --to codex:<session-cible> --timeout 1800
 
 En mode arrière-plan, la conversation cible doit être **fermée** : aucun TUI, desktop, IDE ni exécution en cours ne doit y être attaché. Sinon, le relay est refusé avant tout envoi (`target-busy`). Il est aussi refusé quand PALABRE ne peut pas vérifier l'état de la conversation (`target-state-unknown`).
 
-Pour une conversation Codex **ouverte**, utilisez `--open` (voir plus haut). Sous macOS/Linux, vérifiez d'abord `python3 --version`. Le relay vers une conversation Claude Code ouverte n'est pas encore disponible ; il est suivi dans l'issue [#96](https://github.com/JuReyms/Palabre/issues/96).
+Pour une conversation Codex **ouverte**, utilisez `--open` (voir plus haut). Sous macOS/Linux, vérifiez d'abord `python3 --version`. Le relay vers une conversation Claude Code ouverte n'est pas disponible ; la recherche d'un mécanisme officiel est suivie dans [#193](https://github.com/JuReyms/Palabre/issues/193).
+
+## Conversation Claude déjà utilisée
+
+« Ouverte » est ambigu pour Claude : afficher l'app ne veut pas dire qu'un processus est attaché à la conversation, et une conversation peut être attachée sans être affichée. PALABRE lit le registre des sessions de Claude Code : un processus attaché, même au repos, rend la conversation indisponible pour un nouvel envoi (`target-busy`, code 3, rien envoyé). Ce cas est fréquent quand les deux applications Desktop sont utilisées, sans être une incompatibilité générale de Desktop ni propre au Mac. Un retour sous macOS ([#250](https://github.com/JuReyms/Palabre/issues/250)) indique que le processus Claude peut rester attaché après la fin visible d'un tour ; aucune durée n'est garantie, et ce constat ne vaut pas pour toutes les versions.
+
+Le message dit alors : « Cette conversation est déjà utilisée par Claude (app, terminal ou intégration). Palabre ne peut pas y ajouter un nouveau message pour le moment. » PALABRE ne devine ni la surface active ni une réponse en cours, et ne vous demande pas de fermer toute l'application. Le conseil (`error.hint` en JSON) distingue deux cas :
+
+- **Vous répondez à une demande Relay reçue ?** Répondez dans ce même tour : la réponse revient à l'appelant par l'appel en cours. Un Relay vers la conversation qui vous a écrit n'est pas le chemin du retour.
+- **Nouvelle initiative plus tard ?** Transmettez la passation par l'humain, ou vérifiez à nouveau avec `palabre relay --check --to claude:<identifiant>`, puis décidez d'un nouvel envoi. Aucun renvoi, attente, ouverture, fermeture ni changement de permissions n'est fait pour vous.
+
+**Passation locale.** Pour un envoi ordinaire vers une conversation Claude existante refusé ainsi, PALABRE conserve le corps original du message dans un fichier `palabre-handoff-….handoff.md` du dossier des exports (`.palabre/` par défaut). Il est marqué **NON ENVOYÉ, À TRANSMETTRE**, avec cible, expéditeur déclaré, objet et repère éventuels, date et `not-delivered`. Le chemin est annoncé sur stderr et dans `handoff.path`. Ce fichier n'informe pas Claude, n'est pas un échange réussi, n'apparaît pas dans `relay recent` et n'est jamais renvoyé ; `exportPath` reste `null`. Avec `--no-export`, rien n'est écrit (`handoff.status: disabled`) : reprenez le contenu dans votre réponse. Si l'écriture échoue (`failed`), aucun chemin n'est annoncé. Aucune passation pour `--check`, `--follow`, `--then-follow`, `--new`, `--copy`, Mission, `--task review`, `--write`, Codex ni un état invérifiable. Le contenu peut être sensible : les règles de confidentialité des exports s'appliquent, et `--no-export` évite cet enregistrement.
+
+Avec `--check`, PALABRE dit « déjà utilisée par Claude » (JSON `check.target: open`) ou « aucun processus Claude attaché détecté » (`closed`), ce qui ne prouve pas que l'app est fermée.
+
+**Retour et affichage.** Un Relay vers une conversation existante n'en crée pas une nouvelle : il y ajoute un tour. La réponse revient à l'appelant dans le même appel ; ce n'est pas un nouveau message autonome dans la conversation de l'expéditeur. Une app déjà ouverte peut n'afficher ce tour qu'après réouverture de la conversation, sans garantie universelle. Côté Codex, ouvrir une conversation pour la consulter peut l'attacher : un `--background` vers elle est alors refusé, et `--open` utiliserait ses outils et permissions, à expliquer avant tout choix.
 
 ## Ce que fait la reprise
 

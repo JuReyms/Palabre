@@ -127,8 +127,9 @@ Ce parcours conserve une copie Git séparée, ou **worktree**, sans vos changeme
 Mission et `--task review` sont gelés : conservés et documentés, sans extension de périmètre ; seuls les correctifs de sécurité sont acceptés.
 
 - Gardez l'identifiant rendu pour continuer explicitement un avis ou une relecture avec `--to codex:<identifiant>` ou `--to claude:<identifiant>`, sans `--new`. Ne choisissez jamais « la dernière conversation » à la place de la cible.
-- Sans `--open`, une conversation existante doit être fermée pendant l'appel. Avec `--open`, seul Codex est pris en charge, sous Windows, macOS ou Linux (`python3` sur POSIX) ; le parcours à deux terminaux reste à éprouver davantage.
+- En arrière-plan, aucun autre processus ne doit utiliser la conversation visée : afficher ou masquer sa fenêtre ne suffit pas à le savoir. Codex peut être joint dans son application avec `--open`, sous Windows, macOS ou Linux (`python3` sur POSIX) ; le parcours à deux terminaux reste à éprouver davantage.
 - Un identifiant reçu ne prouve pas que la tâche a réussi. Lisez le statut, la délivrance et les preuves du compte rendu. En cas d'échec, ne renvoyez pas automatiquement la demande.
+- « Cette conversation est déjà utilisée par Claude » : rien n'a été envoyé. Pour répondre à une demande reçue, répondez dans le même tour ; sinon transmettez la passation via l'humain. Le fichier `.handoff.md` annoncé n'informe pas Claude. Voir [Conversation Claude déjà utilisée](/fr/usage/relay#conversation-claude-déjà-utilisée).
 - Dans le parcours expérimental, `--write` ne permet ni commit, ni push, ni fusion, ni installation de dépendances par l'équipier. Un test bloqué reste signalé ; PALABRE n'élargit pas les permissions pour le faire passer. L'accord est consommé même en échec.
 - Pour créer l'équipier dans un autre projet, utilisez `--dir "../autre-projet"` avec `--new`. Le parcours expérimental d'écriture exige la racine d'un dépôt Git.
 
