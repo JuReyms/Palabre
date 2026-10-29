@@ -110,9 +110,10 @@ export type RelayMode = "background" | "open" | "follow" | "copy";
 
 /**
  * Rapport de `--check` (#203), présent sur tout résultat de vérification, réussi ou refusé.
- * `target` n'est connu qu'une fois la conversation retrouvée et sondée. En mode ouvert,
- * `lastPermissions` vient du dernier `turn_context` lisible à la fin de l'historique : c'est
- * une indication, pas une garantie pour le tour suivant.
+ * `target` n'est connu qu'une fois la conversation retrouvée et sondée. En mode ouvert, ou pour
+ * un Codex encore utilisé en arrière-plan (`target-busy`, #250), `lastPermissions` vient du
+ * dernier `turn_context` lisible à la fin de l'historique : c'est une indication datée, pas une
+ * garantie pour le tour suivant, et jamais `targetPermissions` (réservé au tour ouvert corrélé).
  */
 export interface RelayCheckReport {
   /** Dernier relevé de quota daté de Codex, indicatif ; absent si non reconnu ou indisponible. */
@@ -723,6 +724,9 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
  * Partagé par l'envoi et par `--check` (#203), qui doivent rendre les mêmes refus.
  * #250 : pour un envoi ordinaire ou `--check` (`ordinary`), une Claude attachée, même au repos,
  * reçoit un message clair et `error.hint`, sans déduire surface, affichage ni génération en cours.
+ * Une Codex encore utilisée (`default`, `setting`, `--background` explicite) reçoit aussi un
+ * `error.hint` : vérification `--check --open`, puis nouvel envoi décidé par l'humain ou libération
+ * de la conversation. Aucune passation, aucune action sur l'app ni sur le verrou.
  */
 function assessClosedTarget(context: RelayContext, adapter: ExternalSessionAdapter, to: SessionRef, configPath: string, explicitBackground: boolean, ordinary = false): ExternalTarget {
   const located = adapter.locate(to);
@@ -733,31 +737,47 @@ function assessClosedTarget(context: RelayContext, adapter: ExternalSessionAdapt
   context.cwd = located.target.cwd;
   const decision = assessTarget(adapter.probe(located.target));
   if (!decision.allowed) {
+    // #250 : conseil seulement pour l'envoi ordinaire et --check, avec la même cible et la même config.
+    const codexHint = () => ordinary ? context.messages.relayView.busyHint(relayCheckCommand(to, configPath, true)) : undefined;
     if (context.provider === "codex" && decision.status === "target-busy" && (context.modeSource === "setting" || context.modeSource === "default")) {
       const command = relayViewCommand(configPath);
       if (context.modeSource === "setting") context.remedy = command;
-      throw new RelayRefusal({ status: decision.status }, relayViewText(context.language ?? "fr").busy(command));
+      throw new RelayRefusal({ status: decision.status }, relayViewText(context.language ?? "fr").busy(command), codexHint());
     }
     if (context.provider === "codex" && decision.status === "target-busy" && explicitBackground) {
-      throw new RelayRefusal({ status: decision.status }, context.messages.relayView.busyExplicit);
+      throw new RelayRefusal({ status: decision.status }, context.messages.relayView.busyExplicit, codexHint());
     }
     if (context.provider === "claude" && decision.status === "target-busy" && ordinary) {
       const text = context.messages.relay.claude;
-      throw new RelayRefusal({ status: decision.status }, text.busy, text.busyHint(claudeCheckCommand(to, configPath)));
+      throw new RelayRefusal({ status: decision.status }, text.busy, text.busyHint(relayCheckCommand(to, configPath)));
     }
     throw new RelayRefusal({ status: decision.status });
   }
   return located.target;
 }
 
-/** Conseil sans exécution : même cible et même config, littéraux adaptés au shell de l'hôte. */
-function claudeCheckCommand(to: SessionRef, configPath: string): string | undefined {
+/**
+ * Conseil sans exécution : même cible et même config, littéraux adaptés au shell de l'hôte.
+ * `open` ajoute `--open` (vérification d'un futur envoi dans une Codex encore utilisée, #250).
+ */
+function relayCheckCommand(to: SessionRef, configPath: string, open = false): string | undefined {
   const values = [`${to.agent}:${to.sessionId}`, path.resolve(configPath)];
   // Ne jamais assainir un chemin pour en fabriquer un autre ; omettre le raccourci si nécessaire.
   if (values.some(value => /[\p{Cc}\p{Cf}\u2028\u2029]/u.test(value)
     || (process.platform === "win32" && /[\u2018-\u201b\u201c-\u201e]/u.test(value)))) return undefined;
   const quote = (value: string) => process.platform === "win32" ? `'${value.replaceAll("'", "''")}'` : `'${value.replaceAll("'", "'\\''")}'`;
-  return `palabre relay --check --to ${quote(values[0]!)} --config ${quote(values[1]!)}`;
+  return `palabre relay --check${open ? " --open" : ""} --to ${quote(values[0]!)} --config ${quote(values[1]!)}`;
+}
+
+/**
+ * Dernières permissions lues à la fin bornée de l'historique Codex (#203, #250), sans CLI ni
+ * réseau : indicatives et datées, jamais celles du prochain tour ni `targetPermissions`.
+ */
+async function lastPermissionsReport(home: string, sessionId: string): Promise<Pick<RelayCheckReport, "lastPermissions" | "lastPermissionsAt">> {
+  const last = await readLastTurnContext({ home, sessionId });
+  const { model: _model, ...permissions } = last?.context ?? {};
+  const known = Object.keys(permissions).length > 0;
+  return { lastPermissions: known ? permissions : "unknown", ...(known && last?.observedAt ? { lastPermissionsAt: last.observedAt } : {}) };
 }
 
 /**
@@ -766,7 +786,8 @@ function claudeCheckCommand(to: SessionRef, configPath: string): string | undefi
  * ou `target-not-open` (fermée) ; il reste absent pour un état invérifiable.
  * Ni enveloppe, ni processus de la CLI cible, ni export ; sous macOS/Linux, la sonde de verrou
  * Codex lance `python3`, comme pour un envoi. Un refus garde le statut qu'aurait l'envoi. En mode
- * ouvert, les permissions du dernier tour connu sont relevées, à titre indicatif. La liste MCP de
+ * ouvert, ou sur un Codex encore utilisé en arrière-plan (#250), les permissions du dernier tour
+ * connu sont relevées, à titre indicatif. La liste MCP de
  * Codex (arrière-plan) n'est pas lancée : un échec `neutralization-failed` reste possible à l'envoi.
  */
 async function relayCheck(
@@ -795,15 +816,7 @@ async function relayCheck(
       context.checkReport = { target: "closed", ...(quota ? { quota } : {}) };
       throw new RelayRefusal({ status: "target-not-open" });
     }
-    const last = await readLastTurnContext({ home, sessionId: input.to.sessionId });
-    const { model: _model, ...permissions } = last?.context ?? {};
-    const known = Object.keys(permissions).length > 0;
-    context.checkReport = {
-      target: "open",
-      ...(quota ? { quota } : {}),
-      lastPermissions: known ? permissions : "unknown",
-      ...(known && last?.observedAt ? { lastPermissionsAt: last.observedAt } : {})
-    };
+    context.checkReport = { target: "open", ...(quota ? { quota } : {}), ...(await lastPermissionsReport(home, input.to.sessionId)) };
   } else {
     const adapter: ExternalSessionAdapter = input.provider === "claude"
       ? new ClaudeSessionAdapter({ operatorFrame: context.messages.relay.operatorFrame, safeMode: false })
@@ -811,8 +824,15 @@ async function relayCheck(
     try {
       assessClosedTarget(context, adapter, input.to, input.configPath, input.explicitBackground, true);
     } catch (error) {
-      // Une cible attachée est ouverte : l'état est connu, même si l'envoi serait refusé.
-      if (error instanceof RelayRefusal && error.refusal.status === "target-busy") context.checkReport = { target: "open", ...(quota ? { quota } : {}) };
+      // Une cible attachée est ouverte : l'état est connu, même si l'envoi serait refusé. Pour Codex
+      // (#250), les dernières permissions lues sont ajoutées, indicatives, sans CLI ni réseau.
+      if (error instanceof RelayRefusal && error.refusal.status === "target-busy") {
+        context.checkReport = {
+          target: "open",
+          ...(quota ? { quota } : {}),
+          ...(input.provider === "codex" ? await lastPermissionsReport(path.join(os.homedir(), ".codex"), input.to.sessionId) : {})
+        };
+      }
       throw error;
     }
     context.checkReport = { target: "closed", ...(quota ? { quota } : {}) };
@@ -1405,6 +1425,8 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
   const lines: string[] = [];
   const quota = result.check?.quota ?? result.quota;
   const claudeBusy = result.to?.provider === "claude" && result.status === "target-busy" && Boolean(result.error?.hint);
+  // #250 : refus ordinaire d'une Codex encore utilisée ; pas d'invitation à renvoyer en arrière-plan.
+  const codexBusy = result.to?.provider === "codex" && result.status === "target-busy" && result.mode === "background" && Boolean(result.error?.hint);
   let stdout = result.reply !== undefined && !options.primaryPrinted ? `${sanitizeTerminalText(result.reply)}\n` : "";
   if (result.nextTurn) {
     const label = messages.relayThenFollow.label;
@@ -1432,10 +1454,11 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
     if (result.error?.hint) lines.push(result.error.hint);
     // Le suivi et la vérification n'envoient rien : une consigne de renvoi n'aurait pas de sens.
     if (result.check) lines.push(messages.relay.check.nothingSent);
-    else if (result.mode !== "follow" && !claudeBusy) lines.push(messages.relay.delivery(result.delivery.status));
+    else if (result.mode !== "follow" && !claudeBusy && !codexBusy) lines.push(messages.relay.delivery(result.delivery.status));
   }
   // Mode annoncé à chaque échange (#190), sauf refus d'arguments ou de configuration : rien n'a eu lieu.
   if (result.status !== "invalid-request") lines.push(claudeBusy ? messages.relay.claude.busyMode
+    : codexBusy ? messages.relayView.busyMode
     : messages.relay.modeLine(result.mode, result.to?.agent ?? "", Boolean(result.write)));
   if (result.status !== "invalid-request" && result.modeSource) lines.push(messages.relayView.source(result.modeSource));
   if (quota) lines.push(messages.relayQuota(quota));

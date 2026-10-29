@@ -21,8 +21,14 @@ messageSent toujours false. attached/code 0 ne prouve ni surface, ni visibilité
 ni changement de droits ; ne pas annoncer « affiché » sur cette seule base.
 Envoi séparé, tâche déjà autorisée et --open explicite après --check --open.
 Si l'avis doit rester sans modification, l'ouverture ne change pas la règle
---background : fermeture par l'humain, ou accord distinct pour un avis avec les
-permissions de l'app ; jamais un repli automatique plus permissif.
+--background. Consulter peut attacher la conversation : un --background est alors
+refusé (« encore utilisée par Codex »). Fermer la fenêtre peut ne pas suffire
+(retour macOS #250, app ChatGPT). Proposer à l'humain soit un nouvel envoi --open
+approuvé (permissions de la conversation, écriture comprise si autorisée), soit
+la libération de la conversation par lui ; jamais de repli automatique, de
+fermeture ni d'action sur le verrou par l'agent. Même identifiant ne veut pas dire
+même mode. Après une réponse en arrière-plan, l'app peut n'afficher le tour
+qu'après réouverture du lien exact ; aucune actualisation garantie.
 Refus ou échéance : rapporter l'état, aucun retry ni envoi de substitution.
 
 Sous Windows, le seul code 1 d'Explorer est non concluant : launcher.status

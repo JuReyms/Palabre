@@ -346,8 +346,11 @@ Préférence du propriétaire :
   libre -> arrière-plan. Une conversation quittée mais encore chargée compte comme ouverte, sans
   garantie d'affichage. Les réglages auto déjà enregistrés sont conservés.
   Verrou invérifiable : target-state-unknown, aucun envoi. Aucun repli après refus.
-  Cible ouverte en arrière-plan : target-busy, rien envoyé ; --open permet un choix pour cet échange,
-  après explication des permissions ; seul le propriétaire décide après un refus --background.
+  Codex encore utilisé en arrière-plan (verrou tenu) : target-busy, rien envoyé. Fermer la fenêtre
+  peut laisser la conversation chargée (retour macOS #250). error.hint propose --check --open, puis
+  un NOUVEL envoi --open décidé par l'humain (permissions de la conversation), ou sa libération
+  par l'humain. Même identifiant ne veut dire ni même mode ni mêmes permissions ; aucune bascule.
+  Après une réponse en arrière-plan, rouvrir le lien exact peut être nécessaire pour l'afficher.
   --open et --background priment sur le réglage sans le changer ; ensemble, refusés.
   --new, Mission, --task review, --write et Claude Code restent en arrière-plan.
   Le propriétaire lance palabre config --relay-view <auto|background> : chemin/changement affichés,
@@ -996,8 +999,11 @@ Owner's preference:
   free -> background. A conversation you left that is still loaded counts as open, with no
   display guarantee. Previously saved auto settings are preserved.
   Unverifiable lock: target-state-unknown, nothing sent. No fallback after refusal.
-  Open target in background: target-busy, nothing sent; --open is a choice for this exchange,
-  after explaining permissions; only the owner decides after a --background refusal.
+  Codex still in use in background (lock held): target-busy, nothing sent. Closing the window can
+  leave the conversation loaded (macOS report #250). error.hint suggests --check --open, then a NEW
+  --open send decided by the human (conversation permissions), or the human frees it. The same
+  identifier means neither the same mode nor the same permissions; no automatic switch.
+  After a background reply, reopening the exact link may be needed to display it.
   --open and --background override the setting without changing it; both together are refused.
   --new, Mission, --task review, --write and Claude Code remain in background.
   The owner runs palabre config --relay-view <auto|background>: file/change displayed,
