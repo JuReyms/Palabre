@@ -200,7 +200,7 @@ test("commande Windows : copie et export FR/EN sous auto/background ; refus avan
       } }));
       await trustConfig(config);
       const args = ["relay", "--copy", "--to", `laboratoire:${sourceId}`, "--dir", w.cwd, "--config", config, "--language", language,
-        "--model", "fake/other#high", "Lis le projet sans le modifier."];
+        "--model", "fake/other#high", "--reference", "Avis OpenCode", "--exchange", "4", "Lis le projet sans le modifier."];
       const r = await executeRelay(args);
       assert.equal(r.status, "replied", JSON.stringify(r)); assert.equal(r.mode, "copy"); assert.equal(r.to?.session, copyId);
       assert.equal(r.modeSource, "explicit");
@@ -223,6 +223,10 @@ test("commande Windows : copie et export FR/EN sous auto/background ; refus avan
       assert.doesNotMatch(rendered.stderr + exported, /codex:\/\/|undefined/);
       const stored = JSON.parse(readFileSync(w.state, "utf8"));
       assert.ok(stored.copy.context.find((m: { type: string; text?: string }) => m.type === "user" && m.text?.includes("PALABRE")));
+      const envelope = stored.copy.context.find((m: { type: string; text?: string }) => m.type === "user" && m.text?.includes("PALABRE")).text;
+      assert.deepEqual(r.exchange, { reference: "Avis OpenCode", number: 4 });
+      assert.ok(envelope.includes(createTranslator(language).relay.exchangeLine("Avis OpenCode", 4)));
+      assert.ok(exported.includes(`\x60\x60\x60text\n${envelope}\n\x60\x60\x60\n`), "même enveloppe dans la copie et l'export, sans reconstruction");
       const count = w.readCalls().length;
       for (const conflict of ["--new", "--open", "--background", "--check", "--follow", "--then-follow", "--write", "--task", "--pr"]) {
         const extra = conflict === "--then-follow" ? [conflict, "10"] : conflict === "--task" ? [conflict, "review"] : conflict === "--pr" ? [conflict, "https://github.com/o/r/pull/1"] : [conflict];
@@ -281,6 +285,10 @@ test("commande : échec export conserve réponse/délivrance ; --no-export conse
       assert.equal(r.reply, "Avis fictif transport"); assert.equal(r.delivery.status, "replied");
       assert.equal(r.copy?.session, copyId); assert.equal(r.copy?.retention, "retained");
       if (!disabled) assert.equal(r.copy?.diagnostic, "export-failed");
+      const messages = createTranslator("fr");
+      const rendered = renderRelayText(r, messages, { messageCopy: disabled ? "disabled" : "failed" });
+      assert.equal(rendered.stderr.includes(messages.relay.messageCopy.failed), false, "pas de second avertissement après l'erreur copie");
+      assert.ok(rendered.stderr.includes(disabled ? messages.relay.messageCopy.disabled : messages.relay.copy.exportFailed));
     } finally { w.restore(); }
   }
 });

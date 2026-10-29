@@ -24,7 +24,7 @@ This page lists the main Palabre commands.
 
 ## Configuration
 
-The TUI home screen performs the same conservative known-agent synchronization as `palabre config --sync-agents`: it adds newly detected known agents and refreshes known command names while preserving custom agents and user defaults.
+The TUI home screen performs the same conservative known-agent synchronization as `palabre config --sync-agents`: it adds newly detected known agents and refreshes known command names while preserving custom agents and user defaults. If the configuration file changed after it was loaded, nothing is written: a warning says so and the home screen continues with the loaded configuration, but saves no setting for the rest of the session; restart `palabre` to reload the file. `palabre config --sync-agents` and the `palabre config` wizard stop the same way, without writing.
 
 | Command | Description |
 |---------|-------------|
@@ -73,6 +73,10 @@ Resume keeps every complete response and calls only the next Debate turn, remain
 `palabre sessions` shows the 20 most recent checkpoints by default, including their status, mode, response count, and next phase. `--limit <1-100>` bounds the list. A corrupted JSON file is reported as invalid without hiding other entries. Deletion displays the exact target and asks for confirmation; non-interactive use requires `--yes`. It never removes Markdown exports or sibling checkpoints.
 
 ## Relay
+
+To find an exchange without sending or opening: `palabre relay recent [--limit 1-100] [--json] [--config <path>] [--language fr|en]`.
+Confirm date, subject and tool before resuming; exports are unauthenticated
+metadata. [Find an exchange](/en/usage/relay#find-a-recent-exchange).
 
 | Command | Description |
 | --- | --- |

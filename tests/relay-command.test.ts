@@ -53,10 +53,10 @@ function installFakeCli(bin: string, name: "claude" | "codex"): void {
 }
 
 /** Environnement complet : dossier personnel, projet approuvable, historiques Claude et Codex. */
-function makeWorld() {
+function makeWorld(workspaceName = "workspace") {
   const base = path.join(root, `case-${++counter}`);
   const home = path.join(base, "home");
-  const workspace = path.join(base, "workspace");
+  const workspace = path.join(base, workspaceName);
   const bin = path.join(base, "bin");
   mkdirSync(workspace, { recursive: true });
   installFakeCli(bin, "claude");
@@ -131,6 +131,70 @@ function palabre(world: World, argv: string[], env: Record<string, string> = {})
 
 const toClaude = ["--from", FROM, "--to", `claude:${CLAUDE_SESSION}`];
 const toCodex = ["--from", `claude:${CLAUDE_SESSION}`, "--to", `codex:${CODEX_SESSION}`];
+
+test("repère Relay FR/EN : transport, JSON et export gardent la même référence", async () => {
+  for (const language of ["fr", "en"] as const) {
+    const w = makeWorld();
+    const r = await relay(w, [...toClaude, "Relis le plan", "--reference", "Issue #193", "--exchange", "3", "--language", language, "--trust-config", "--json"]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(r.json.exchange, { reference: "Issue #193", number: 3 });
+    assert.ok(r.calls[0]!.stdin.includes(relayMessages[language].exchangeLine("Issue #193", 3)));
+    const md = readFileSync(r.json.exportPath, "utf8");
+    assert.ok(md.includes(`| ${relayMessages[language].export.marker} | Issue #193 |`));
+    assert.ok(md.includes(`| ${relayMessages[language].export.exchange} | 3 |`));
+    assert.ok(md.includes(r.calls[0]!.stdin));
+  }
+});
+
+test("repères invalides ou hors périmètre : refus avant lancement", async () => {
+  for (const args of [
+    ["--reference", "Sujet"], ["--exchange", "1"],
+    ["--reference", "Sujet", "--exchange", "0"],
+    ["--reference", "x\ny", "--exchange", "1"],
+    ["--reference", "Sujet", "--exchange", "1", "--exchange", "2"],
+    ["--reference", "Sujet", "--exchange", "1", "--task", "review"],
+    ["--reference", "Sujet", "--exchange", "1", "--write", "--new"]
+  ]) {
+    const r = await relay(makeWorld(), [...toClaude, "Question", ...args, "--json"]);
+    assert.equal(r.code, 8, JSON.stringify(args));
+    assert.equal(r.json.delivery.status, "not-delivered");
+    assert.deepEqual(r.calls, []);
+  }
+  for (const mode of [["--check"], ["--open", "--follow"]]) {
+    const r = await relay(makeWorld(), ["--to", `codex:${CODEX_SESSION}`, ...mode, "--reference", "Sujet", "--exchange", "1", "--json"]);
+    assert.equal(r.code, 8); assert.deepEqual(r.calls, []);
+    assert.ok(r.json.error.message.endsWith(relayMessages.fr.arguments.exchangeConflict), r.json.error.message);
+  }
+});
+
+test("mot relay utilisé comme valeur sans vraie commande : refus structuré sans agent", async () => {
+  const r = await palabre(makeWorld(), ["--reference", "relay", "--to", `claude:${CLAUDE_SESSION}`, "Q", "--json"]);
+  assert.equal(r.code, 8, r.stderr);
+  assert.equal(r.json.type, "relay-result");
+  assert.equal(r.json.delivery.status, "not-delivered");
+  assert.deepEqual(r.calls, []);
+});
+
+test("repère conservé dans une création, même avec les options avant relay", async () => {
+  const w = makeWorld();
+  const r = await palabre(w, ["--reference", "relay", "--exchange", "1", "relay", "--new", "--background", "--to", "claude", "Question", "--trust-config", "--json"]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(r.json.created, true);
+  assert.deepEqual(r.json.exchange, { reference: "relay", number: 1 });
+  assert.ok(r.calls[0]!.stdin.includes(relayMessages.fr.exchangeLine("relay", 1)));
+});
+
+test("repère conservé dans codex queue sans second dépôt", { skip: process.platform !== "win32" }, async () => {
+  const w = makeWorld(), release = holdCodexLock(w);
+  try {
+    const r = await relay(w, [...toCodex, "--open", "--reference", "PR #240", "--exchange", "2", "Question", "--trust-config", "--json"]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(r.json.exchange, { reference: "PR #240", number: 2 });
+    assert.equal(r.calls.length, 1);
+    assert.equal(r.calls[0]!.argv[0], "queue");
+    assert.ok(r.calls[0]!.argv[4]!.includes(relayMessages.fr.exchangeLine("PR #240", 2)));
+  } finally { release(); }
+});
 
 test("--write vers Claude : refus traduit et aucune commande de l'agent", async () => {
   for (const language of ["fr", "en"]) {
@@ -425,6 +489,7 @@ describe("palabre relay : réponse", () => {
     const exported = readFileSync(json.exportPath, "utf8");
     assert.match(exported, /Peux-tu relire ce plan \?/);
     assert.match(exported, /FAKE-OK/);
+    assert.ok(exported.includes(`\x60\x60\x60text\n${result.calls[0]!.stdin}\n\x60\x60\x60\n`), "texte réellement passé à stdin conservé intégralement");
     assert.equal(result.calls.length, 1);
     assert.match(result.calls[0]!.stdin, /\n\nPeux-tu relire ce plan \?\n\n---\n/);
     assert.equal(result.calls[0]!.stdin.split("\n")[0], `### ${relayMessages.fr.envelopeHeader("codex", "claude")}`);
@@ -438,10 +503,30 @@ describe("palabre relay : réponse", () => {
     assert.equal(fr.code, 0, fr.stderr);
     assert.equal(fr.stdout, "FAKE-OK\n");
     assert.match(fr.stderr, /Relay : réponse reçue de claude\./);
-    assert.match(fr.stderr, /Export : /);
+    assert.match(fr.stderr, /Message Relay \(sans objet\).*texte exact, enveloppe comprise : /);
     const en = await relay(world, [...toClaude, "Hello", "--language", "en", "--no-export"]);
     assert.equal(en.code, 0, en.stderr);
     assert.match(en.stderr, /Relay: reply received from claude\./);
+    assert.match(en.stderr, /--no-export: Palabre did not save a local copy/);
+  });
+
+  test("#210 : texte FR/EN avec/sans objet, export ou --no-export", async () => {
+    for (const language of ["fr", "en"] as const) {
+      for (const subject of [undefined, "Relire le plan éà"] as const) {
+        for (const disabled of [false, true]) {
+          const world = makeWorld();
+          const r = await relay(world, [...toClaude, "Question", "--trust-config", "--language", language,
+            ...(subject ? ["--subject", subject] : []), ...(disabled ? ["--no-export"] : [])]);
+          assert.equal(r.code, 0, r.stderr); assert.equal(r.stdout, "FAKE-OK\n");
+          assert.equal(r.calls.length, 1, "aucun second envoi pour la trace");
+          if (disabled) assert.ok(r.stderr.includes(relayMessages[language].messageCopy.disabled));
+          else {
+            assert.match(r.stderr, language === "fr" ? /texte exact, enveloppe comprise/ : /exact text, including envelope/);
+            assert.ok(r.stderr.includes(subject ?? (language === "fr" ? "sans objet" : "no subject")));
+          }
+        }
+      }
+    }
   });
 
   test("Claude : cadre opérateur fixe dans la langue du relay, message absent du cadre (D22)", async () => {
@@ -461,15 +546,35 @@ describe("palabre relay : réponse", () => {
     }
   });
 
+  test("#210 : échec export signalé en texte, réponse/délivrance conservées et aucun renvoi", async () => {
+    for (const language of ["fr", "en"] as const) {
+      const world = makeWorld();
+      writeFileSync(path.join(world.workspace, ".palabre"), "collision fictive : dossier indisponible");
+      const r = await relay(world, [...toClaude, "Question", "--trust-config", "--language", language]);
+      assert.equal(r.code, 0, r.stderr);
+      assert.equal(r.stdout, "FAKE-OK\n");
+      assert.equal(r.calls.length, 1);
+      assert.ok(r.stderr.includes(relayMessages[language].messageCopy.failed));
+      assert.ok(r.stderr.includes(relayMessages[language].replied("claude")));
+    }
+  });
+
   test("accents et fins de ligne transmis intacts, sans passer par PowerShell (D21)", async () => {
-    const world = makeWorld();
-    const file = path.join(world.base, "message.txt");
-    writeFileSync(file, "Sujet accentué : éèàçœ\nDeuxième ligne", "utf8");
-    const result = await relay(world, [...toClaude, "--message-file", file, "--trust-config", "--json", "--no-export"]);
-    assert.equal(result.code, 0, result.stderr);
-    const stdin = result.calls[0]!.stdin;
-    assert.ok(stdin.includes("\n\nSujet accentué : éèàçœ\nDeuxième ligne\n\n---\n"), JSON.stringify(stdin));
-    assert.equal(stdin.includes("\r\n"), false);
+    for (const newline of ["\n", "\r\n"]) {
+      const world = makeWorld();
+      const file = path.join(world.base, "message.txt");
+      const body = `Sujet accentué : éèàçœ${newline}**Détail :**\n\x60\x60\x60\x60\nDeuxième ligne`;
+      writeFileSync(file, body, "utf8");
+      const result = await relay(world, [...toClaude, "--message-file", file, "--trust-config", "--json"]);
+      assert.equal(result.code, 0, result.stderr);
+      const stdin = result.calls[0]!.stdin;
+      assert.ok(stdin.includes(`\n\n${body}\n\n---\n`), JSON.stringify(stdin));
+      if (newline === "\n") assert.equal(stdin.includes("\r\n"), false);
+      const exported = readFileSync(result.json.exportPath, "utf8");
+      assert.ok(exported.includes(`\x60\x60\x60\x60\x60text\n${stdin}\n\x60\x60\x60\x60\x60\n`));
+      assert.equal("envelope" in result.json, false);
+      assert.equal("messageCopy" in result.json, false);
+    }
   });
 
   test("Codex : liste MCP puis reprise neutralisée dans le dossier de la cible", async () => {
@@ -735,18 +840,18 @@ describe("relay.view (#190)", () => {
       for (const view of [undefined, "auto", "background"] as const) {
         const world = makeWorld(); if (view) setting(world, view);
         const r = await palabre(world, ["agents", "--json", "--trust-config"], { OLLAMA_HOST: `http://127.0.0.1:${port}` });
-        assert.equal(r.code, 0, r.stderr); assert.equal(r.json.defaults.relayView, view ?? "auto");
+        assert.equal(r.code, 0, r.stderr); assert.equal(r.json.defaults.relayView, view ?? "background");
         assert.equal(r.json.v, 1); assert.equal(r.calls.length, 0);
       }
     } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
   });
 
-  test("auto par défaut, auto explicite et --background : cible fermée, reprise sans queue", async () => {
+  test("arrière-plan par défaut, auto explicite et --background : cible fermée, reprise sans queue", async () => {
     for (const view of [undefined, "auto", "background"] as const) {
       const world = makeWorld(); if (view) setting(world, view);
       const r = await relay(world, [...toCodex, "Bonjour", "--trust-config", "--json"]);
       assert.equal(r.code, 0, r.stderr); assert.equal(r.json.mode, "background");
-      assert.equal(r.json.modeSource, view === "background" ? "setting" : "auto");
+      assert.equal(r.json.modeSource, view === undefined ? "default" : view === "auto" ? "auto" : "setting");
       assert.equal(r.calls.filter(x => x.argv[0] === "queue").length, 0);
       assert.equal(r.calls.filter(x => x.argv[0] === "exec").length, 1);
       assert.ok(r.calls.find(x => x.argv[0] === "exec")!.stdin.includes(relayMessages.fr.envelopePermissions));
@@ -757,7 +862,8 @@ describe("relay.view (#190)", () => {
   });
 
   test("auto : verrou tenu, un seul dépôt et enveloppe avec permissions de la conversation", { skip: process.platform !== "win32" }, async () => {
-    const world = makeWorld(), release = holdCodexLock(world);
+    const world = makeWorld(); setting(world, "auto");
+    const release = holdCodexLock(world);
     try {
       const r = await relay(world, [...toCodex, "Bonjour", "--trust-config", "--json"]);
       assert.equal(r.code, 0, r.stderr); assert.equal(r.json.mode, "open"); assert.equal(r.json.modeSource, "auto");
@@ -768,21 +874,24 @@ describe("relay.view (#190)", () => {
   });
 
   test("background imposé : cible ouverte refusée sans CLI ; --open ponctuel n'écrit pas le réglage", { skip: process.platform !== "win32" }, async () => {
-    for (const explicit of [false, true]) {
-      const world = makeWorld(); setting(world, explicit ? "auto" : "background");
+    for (const choice of ["default", "setting", "explicit"] as const) {
+      const explicit = choice === "explicit";
+      const world = makeWorld(); if (choice !== "default") setting(world, explicit ? "auto" : "background");
       const file = path.join(world.workspace, "palabre.config.json"), before = readFileSync(file, "utf8");
       const release = holdCodexLock(world);
       try {
         const r = await relay(world, [...(explicit ? ["--background"] : []), ...toCodex, "Bonjour", "--trust-config", "--json"]);
         assert.equal(r.code, 3); assert.equal(r.json.mode, "background"); assert.equal(r.json.status, "target-busy");
-        assert.equal(r.json.modeSource, explicit ? "explicit" : "setting"); assert.equal(r.calls.length, 0);
+        assert.equal(r.json.modeSource, choice === "default" ? "default" : explicit ? "explicit" : "setting"); assert.equal(r.calls.length, 0);
         if (explicit) {
-          assert.match(r.json.error.message, /Fermez-la dans Codex, puis relancez/);
-          assert.match(r.json.error.message, /Sans --background, avec auto.*permissions.*à ne faire que si/);
+          assert.match(r.json.error.message, /--background impose l'arrière-plan/);
+          assert.match(r.json.error.message, /--open.*permissions.*écriture/);
           assert.equal(r.json.remedy, undefined);
           assert.ok(!r.json.error.message.includes("config --relay-view"));
         } else {
-          assert.match(r.json.error.message, /fermer cette conversation/); assert.match(r.json.remedy, /config --relay-view auto --config/);
+          assert.match(r.json.error.message, /Privilégier la conversation ouverte/);
+          if (choice === "default") assert.equal(r.json.remedy, undefined);
+          else assert.match(r.json.remedy, /config --relay-view auto --config/);
         }
         assert.equal(readFileSync(file, "utf8"), before);
       } finally { release(); }
@@ -921,6 +1030,7 @@ describe("palabre relay --open", () => {
       assert.equal(call!.stdin, "");
       assert.equal(path.resolve(call!.cwd).toLowerCase(), path.resolve(world.workspace).toLowerCase());
       const exported = readFileSync(json.exportPath, "utf8");
+      assert.ok(exported.includes(`\x60\x60\x60text\n${envelope}\n\x60\x60\x60\n`), "queue reçoit exactement le bloc exporté");
       assert.match(exported, /\| Mode \| open — dans l'app desktop \|/);
       assert.match(exported, /accepted=true/);
       assert.match(exported, /aucune lecture seule n'est garantie/);
@@ -954,6 +1064,7 @@ describe("palabre relay --open", () => {
       assert.equal(result.json.delivery.status, "unknown");
       assert.match(result.json.error.message, /Réception non observée/);
       assert.ok(result.json.exportPath && existsSync(result.json.exportPath), "tentative exportée");
+      assert.ok(readFileSync(result.json.exportPath, "utf8").includes(`\x60\x60\x60text\n${result.calls[0]!.argv[4]}\n\x60\x60\x60\n`), "trace conservée sans transformer unknown en reçu");
     } finally {
       release();
     }
@@ -1148,11 +1259,13 @@ describe('Relay : création et expéditeur facultatif', () => {
   }
 
   test('lien Codex Desktop en arrière-plan : création et reprise, commande d\'ouverture, jamais en JSON (#190)', async () => {
-    const opener = process.platform === 'win32' ? 'explorer.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open';
-    const created = await relay(makeWorld(), ['--new', '--to', 'codex', 'Question', '--trust-config', '--language', 'en', '--no-export']);
+    const w = makeWorld();
+    const quotedConfig = (workspace: string) => "'" + path.join(workspace, 'palabre.config.json').replaceAll("'", process.platform === 'win32' ? "''" : "'\\''") + "'";
+    const created = await relay(w, ['--new', '--to', 'codex', 'Question', '--trust-config', '--language', 'en', '--no-export']);
     assert.equal(created.code, 0, created.stderr);
     assert.ok(created.stderr.includes(`Codex Desktop link, to hand to the owner: codex://threads/${NEW_IDS.codex}`));
-    assert.ok(created.stderr.includes(`To open it yourself: ${opener} "codex://threads/${NEW_IDS.codex}"`));
+    assert.ok(created.stderr.includes(`To open it yourself (${process.platform === 'win32' ? 'PowerShell' : 'POSIX'}): palabre relay open --to codex:${NEW_IDS.codex} --config ${quotedConfig(w.workspace)}`));
+    assert.deepEqual(created.calls.map(c => c.argv[0]), ['mcp', 'exec'], 'seuls la sonde MCP et le tour demandé sont lancés');
     assert.ok(created.stderr.includes('Mode: background — no visible window; PALABRE requests read-only access.'));
     // Sortie non TTY : aucune séquence OSC 8.
     assert.ok(!created.stderr.includes('\u001b]8;;'));
@@ -1160,10 +1273,12 @@ describe('Relay : création et expéditeur facultatif', () => {
     assert.equal(resumed.code, 0, resumed.stdout + resumed.stderr);
     assert.equal(resumed.json.mode, 'background');
     assert.ok(!JSON.stringify(resumed.json).includes('codex://'), 'aucun champ JSON de lien');
+    assert.ok(!JSON.stringify(resumed.json).includes('desktopConfigPath'), 'métadonnée de présentation privée');
     assert.match(readFileSync(resumed.json.exportPath, 'utf8'), new RegExp(`\\| Lien Codex Desktop \\| codex://threads/${CODEX_SESSION} \\|`));
-    const text = await relay(makeWorld(), ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--no-export']);
+    const resumedWorld = makeWorld();
+    const text = await relay(resumedWorld, ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--no-export']);
     assert.ok(text.stderr.includes(`Pour suivre cette conversation dans Codex Desktop : codex://threads/${CODEX_SESSION}`));
-    assert.ok(text.stderr.includes(`Pour l'ouvrir vous-même : ${opener} "codex://threads/${CODEX_SESSION}"`));
+    assert.ok(text.stderr.includes(`Pour l'ouvrir vous-même (${process.platform === 'win32' ? 'PowerShell' : 'POSIX'}) : palabre relay open --to codex:${CODEX_SESSION} --config ${quotedConfig(resumedWorld.workspace)}`));
     const claude = await relay(makeWorld(), ['--to', `claude:${CLAUDE_SESSION}`, 'Question', '--trust-config', '--no-export']);
     assert.ok(!claude.stderr.includes('codex://'), 'jamais pour Claude');
     assert.ok(claude.stderr.includes('Mode : arrière-plan — sans fenêtre visible ; PALABRE demande la lecture seule.'));
@@ -1172,6 +1287,68 @@ describe('Relay : création et expéditeur facultatif', () => {
     assert.equal(missing.code, 6, missing.stderr);
     assert.ok(!missing.stderr.includes('codex://'), 'jamais pour une conversation introuvable');
     assert.ok(missing.stderr.includes('Mode : arrière-plan — sans fenêtre visible'));
+  });
+
+  test('suggestion Codex : alias et config relative explicite conservés depuis un autre dossier', async () => {
+    const w = makeWorld("source O'Brien $()");
+    const configPath = path.join(w.workspace, 'palabre.config.json');
+    const config = JSON.parse(readFileSync(configPath, 'utf8'));
+    config.agents['codex-reviewer'] = config.agents.codex;
+    writeFileSync(configPath, JSON.stringify(config));
+    const caller = path.join(w.base, 'autre-projet');
+    mkdirSync(caller);
+    const r = await relay({ ...w, workspace: caller }, ['--to', `codex-reviewer:${CODEX_SESSION}`, '--config', path.relative(caller, configPath), 'Question', '--trust-config', '--no-export']);
+    assert.equal(r.code, 0, r.stderr);
+    const quoted = configPath.replaceAll("'", process.platform === 'win32' ? "''" : "'\\''");
+    assert.ok(r.stderr.includes(`palabre relay open --to codex-reviewer:${CODEX_SESSION} --config '${quoted}'`), r.stderr);
+    assert.ok(r.calls.every(c => c.cwd === w.workspace));
+    assert.deepEqual(r.calls.map(c => c.argv[0]), ['mcp', 'exec'], 'aucune ouverture en affichant la suggestion');
+    assert.doesNotMatch(r.stderr, /explorer\.exe|xdg-open/);
+  });
+
+  test('ouverture Claude fr/en : création/reprise exactes, même CLI et aucun lancement Desktop', async () => {
+    for (const language of ['fr', 'en'] as const) {
+      for (const fresh of [false, true]) {
+        const w = makeWorld();
+        const args = fresh ? ['--new', '--to', 'claude'] : ['--to', `claude:${CLAUDE_SESSION}`];
+        const r = await relay(w, [...args, 'Question', '--trust-config', '--language', language, '--no-export']);
+        assert.equal(r.code, 0, r.stderr);
+        if (process.platform === 'win32' || process.platform === 'darwin') {
+          assert.ok(r.stderr.includes("'--desktop' '--resume'"), r.stderr);
+          assert.ok(r.stderr.includes(fresh ? NEW_IDS.claude : CLAUDE_SESSION));
+          // Résolution npm Node sous Windows, binaire direct ailleurs ; jamais une autre CLI PATH.
+          assert.ok(r.stderr.includes(w.bin.replaceAll("'", "''")), r.stderr);
+          assert.match(r.stderr, /TTY/);
+          assert.ok(r.stderr.includes(w.workspace), 'le dossier exact accompagne la commande, même en reprise');
+          assert.match(r.stderr, language === 'fr' ? /Aucun message envoyé/ : /No message sent/);
+        } else assert.ok(!r.stderr.includes("'--desktop'"));
+        assert.equal(r.calls.filter(c => c.argv.includes('-p')).length, 1);
+        assert.ok(r.calls.every(c => !c.argv.includes('--desktop')), 'la sortie ne lance jamais Desktop');
+        const json = await relay(makeWorld(), [...args, 'Question', '--trust-config', '--language', language, '--json', '--no-export']);
+        assert.equal(json.code, 0);
+        assert.ok(!JSON.stringify(json.json).includes('--desktop'), 'JSON inchangé, pas de commande exécutable');
+      }
+    }
+    const missing = await relay(makeWorld(), ['--to', 'claude:0199bbbb-bbbb-7bbb-8bbb-bbbbbbbbbbbb', 'Question', '--trust-config', '--no-export']);
+    assert.equal(missing.code, 6);
+    assert.ok(!missing.stderr.includes("'--desktop'"));
+    assert.equal(missing.calls.length, 0);
+  });
+
+  test('reprise Claude depuis un autre projet : ouverture liée au dossier source avec apostrophe', async () => {
+    const w = makeWorld("source O'Brien $()");
+    const caller = path.join(w.base, 'autre-projet');
+    mkdirSync(caller);
+    const r = await relay({ ...w, workspace: caller }, ['--to', `claude:${CLAUDE_SESSION}`, '--config', path.join(w.workspace, 'palabre.config.json'), 'Question', '--trust-config', '--no-export']);
+    assert.equal(r.code, 0, r.stderr);
+    assert.ok(r.calls.every(c => c.cwd === w.workspace));
+    if (process.platform === 'win32') {
+      assert.ok(r.stderr.includes(`Push-Location -LiteralPath '${w.workspace.replaceAll("'", "''")}' -ErrorAction Stop`), r.stderr);
+      assert.match(r.stderr, /finally \{ Pop-Location \}/);
+    } else if (process.platform === 'darwin') {
+      assert.ok(r.stderr.includes(`(cd -- '${w.workspace.replaceAll("'", "'\\''")}' && `), r.stderr);
+    }
+    assert.ok(r.calls.every(c => !c.argv.includes('--desktop')));
   });
 
   test('refus d\'arguments : mode présent en JSON, aucune ligne Mode ni lien', async () => {
@@ -1250,14 +1427,35 @@ describe("palabre relay --then-follow (#204)", () => {
 
   test("auto fermé et Claude refusés, sans reprise ni dépôt", async () => {
     for (const to of [`codex:${CODEX_SESSION}`, `claude:${CLAUDE_SESSION}`]) {
-      const result = await relay(makeWorld(), ["--to", to, "Question", "--then-follow", "10", "--trust-config", "--json"]);
+      const world = makeWorld(), file = path.join(world.workspace, "palabre.config.json");
+      const config = JSON.parse(readFileSync(file, "utf8"));
+      config.relay = { view: "auto" }; writeFileSync(file, JSON.stringify(config));
+      const result = await relay(world, ["--to", to, "Question", "--then-follow", "10", "--trust-config", "--json"]);
       assert.equal(result.code, 8, result.stderr); assert.equal(result.calls.length, 0);
+    }
+  });
+
+  test("défaut et cible ouverte : then-follow exige un choix ouvert explicite, sans dépôt", { skip: process.platform !== "win32" }, async () => {
+    for (const language of ["fr", "en"]) {
+      const world = makeWorld(), release = holdCodexLock(world);
+      const file = path.join(world.workspace, "palabre.config.json"), before = readFileSync(file, "utf8");
+      try {
+        const r = await relay(world, [...toCodex, "Question", "--then-follow", "10", "--language", language, "--trust-config", "--json"]);
+        assert.equal(r.code, 8); assert.equal(r.json.error.reason, "invalid-arguments");
+        assert.equal(r.json.modeSource, "default"); assert.equal(r.json.delivery.status, "not-delivered");
+        assert.match(r.json.error.message, language === "fr" ? /--open.*Privilégier la conversation ouverte/ : /--open.*Prefer the open conversation/);
+        assert.equal(r.calls.length, 0); assert.equal(readFileSync(file, "utf8"), before);
+      } finally { release(); }
     }
   });
 
   test("ouvert explicite/auto, fr/en, JSON/texte/export : deux réponses et un seul dépôt", { skip: process.platform !== "win32" }, async () => {
     for (const language of ["fr", "en"]) for (const json of [true, false]) for (const explicit of [true, false]) {
-      const world = makeWorld(), release = holdCodexLock(world);
+      const world = makeWorld();
+      const file = path.join(world.workspace, "palabre.config.json");
+      const config = JSON.parse(readFileSync(file, "utf8"));
+      config.relay = { view: "auto" }; writeFileSync(file, JSON.stringify(config));
+      const release = holdCodexLock(world);
       try {
         const result = await relay(world, [...(explicit ? ["--open"] : []), "--to", `codex:${CODEX_SESSION}`, "Question", "--then-follow", "10", "--language", language, "--trust-config", ...(json ? ["--json"] : [])], { FAKE_CODEX_QUEUE: "then-follow" });
         assert.equal(result.code, 0, result.stderr); assert.equal(result.calls.length, 1);

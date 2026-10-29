@@ -1,10 +1,11 @@
 /**
- * @file Adapter de session externe Codex (voir AGENTS.md, section "Relay externe").
+ * @file Adapter de session externe Codex (voir docs/dev/relay.md, section "Relay externe").
  *
  * Sources lues, toutes sous `~/.codex` (racine injectable pour les tests) :
- * - `sessions/**` et `archived_sessions/**` : rollout `rollout-*-<session>.jsonl`, dont la
- *   première entrée `session_meta` donne l'identifiant et le dossier de travail, et dont le dernier
- *   `turn_context` donne le modèle enregistré ;
+ * - `sessions/**` et `archived_sessions/**` : rollout `rollout-*-<session>.jsonl`, éventuellement
+ *   suivi de segments `rollout-*-<session>_<segment>.jsonl` dont la chaîne est validée par
+ *   `codexHistory.ts` ; la première entrée `session_meta` donne l'identifiant et le dossier de
+ *   travail, et le dernier `turn_context` de l'historique actif donne le modèle enregistré ;
  * - `thread-writer-locks/<session>.lock` : verrou tenu par l'écrivain de la conversation.
  *
  * Reprise vérifiée sur Codex CLI 0.151.0 :
@@ -16,13 +17,14 @@
  * cible, et refuse tout envoi si la liste n'est pas strictement conforme. Ces formats ne sont pas
  * documentés comme stables : toute ambiguïté est traitée prudemment (refus ou `unknown`).
  */
-import { closeSync, constants, existsSync, openSync, readdirSync, readFileSync } from "node:fs";
+import { closeSync, constants, existsSync, openSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { extractUsageLimitMessage } from "../adapters/cli-shared.js";
 import { PREPARATION_LIMITS, type ExternalSessionAdapter, type LocateResult, type PreparationResult, type PreparationRunner, type ProviderVerdict } from "./adapter.js";
 import { isSessionId } from "./envelope.js";
+import { historyRefusalDetail, resolveCodexHistory, type CodexSegment } from "./codexHistory.js";
 import { codexWindowsEnvironment } from "./codexWindowsEnvironment.js";
 import type { PreLaunchRefusal } from "./outcome.js";
 import { isUsableDirectory, type ExternalProcessResult } from "./process.js";
@@ -350,28 +352,12 @@ export function probeCodexLock(lock: LockProbe): TargetProbe {
   return { attachment, activity: "unknown", processes: [], evidence };
 }
 
-/**
- * Rollouts `rollout-*-<session>.jsonl` sous `<home>/sessions/**` et `<home>/archived_sessions/**`.
- * Un identifiant invalide ne désigne aucun fichier. Partagé par Relay A et par la localisation
- * bornée de B1 ; plusieurs résultats signifient une cible ambiguë, refusée par les appelants.
- */
-export function findCodexRollouts(home: string, sessionId: string): string[] {
-  if (!isSessionId(sessionId)) return [];
-  const suffix = `-${sessionId.toLowerCase()}.jsonl`;
-  const found: string[] = [];
-  for (const root of [path.join(home, "sessions"), path.join(home, "archived_sessions")]) {
-    let entries: string[];
-    try {
-      entries = readdirSync(root, { recursive: true }) as string[];
-    } catch {
-      continue;
-    }
-    for (const entry of entries) {
-      const name = path.basename(entry).toLowerCase();
-      if (name.startsWith("rollout-") && name.endsWith(suffix)) found.push(path.join(root, entry));
-    }
-  }
-  return found;
+/** Partie active d'un segment, puis sa fin abandonnée par le segment suivant (vide pour la tête). */
+function segmentTexts(segment: CodexSegment, isHead: boolean): { active: string; abandoned: string } {
+  const bytes = readFileSync(segment.path);
+  // La tête a pu grandir depuis la résolution : tout son contenu reste actif.
+  const end = isHead ? bytes.length : segment.activeEnd;
+  return { active: bytes.subarray(0, end).toString("utf8"), abandoned: bytes.subarray(end).toString("utf8") };
 }
 
 /** Refus de l'étape préalable selon l'échec de lancement de `codex mcp list`. */
@@ -397,36 +383,33 @@ export class CodexSessionAdapter implements ExternalSessionAdapter {
     this.lockProbe = options.lockProbe ?? exclusiveOpenProbe;
   }
 
-  /** Rollouts portant l'identifiant, dans les sessions actives et archivées. */
-  private rollouts(sessionId: string): string[] {
-    return findCodexRollouts(this.home, sessionId);
-  }
-
   /**
-   * Localise le rollout. La première entrée doit être un `session_meta` dont l'identifiant égale
-   * la session : sinon le rollout est incohérent et refusé. Le dossier de travail est
-   * `session_meta.cwd` ; le modèle est celui du dernier `turn_context`, repris pour éviter un
-   * changement de modèle dans l'historique de la cible. Sans modèle enregistré, `-m` est omis.
+   * Localise le rollout. La chaîne de segments est résolue strictement (`resolveCodexHistory`) :
+   * racine unique, liens validés, jamais le fichier le plus récent ; chaque première entrée est un
+   * `session_meta` de la session. Le dossier de travail est `session_meta.cwd` de la tête ; le
+   * modèle est celui du dernier `turn_context` de l'historique actif (tête d'abord, puis parties
+   * actives des fichiers précédents), repris pour éviter un changement de modèle dans l'historique
+   * de la cible. Sans modèle enregistré, `-m` est omis.
    */
   locate(ref: SessionRef): LocateResult {
-    const found = this.rollouts(ref.sessionId);
-    if (found.length === 0) return { status: "session-not-found", detail: "aucun rollout Codex pour cette session" };
-    if (found.length > 1) return { status: "session-not-found", detail: `${found.length} rollouts pour cette session : cible ambiguë` };
-    const historyPath = found[0]!;
-    let entries: JsonObject[];
+    const resolved = resolveCodexHistory(this.home, ref.sessionId);
+    if (resolved.status === "not-found") return { status: "session-not-found", detail: "aucun rollout Codex pour cette session" };
+    if (resolved.status === "refused") return { status: "session-not-found", detail: historyRefusalDetail(resolved.reason), history: resolved.reason };
+    const segments = resolved.segments;
+    const head = segments[segments.length - 1]!;
+    const cwd = asString(head.meta.cwd);
+    if (!cwd) return { status: "invalid-working-directory", detail: "aucun dossier de travail dans session_meta" };
+    if (!isUsableDirectory(cwd)) return { status: "invalid-working-directory", detail: "dossier de travail de la session introuvable" };
+    let contexts: JsonObject[] = [];
     try {
-      entries = parseJsonLines(readFileSync(historyPath, "utf8"));
+      for (let index = segments.length - 1; index >= 0 && contexts.length === 0; index -= 1) {
+        const entries = parseJsonLines(segmentTexts(segments[index]!, index === segments.length - 1).active);
+        contexts = entries.filter((entry) => entry.type === "turn_context");
+      }
     } catch {
       return { status: "session-not-found", detail: "rollout Codex illisible" };
     }
-    const meta = entries[0]?.type === "session_meta" ? asObject(entries[0].payload) : undefined;
-    if (asString(meta?.id)?.toLowerCase() !== ref.sessionId.toLowerCase()) {
-      return { status: "session-not-found", detail: "rollout incohérent : session_meta absent ou d'une autre session" };
-    }
-    const cwd = asString(meta?.cwd);
-    if (!cwd) return { status: "invalid-working-directory", detail: "aucun dossier de travail dans session_meta" };
-    if (!isUsableDirectory(cwd)) return { status: "invalid-working-directory", detail: "dossier de travail de la session introuvable" };
-    const contexts = entries.filter((entry) => entry.type === "turn_context");
+    const historyPath = head.path;
     const recorded = asString(asObject(contexts[contexts.length - 1]?.payload)?.model);
     const model = recorded !== undefined && RECORDED_MODEL.test(recorded) ? recorded : undefined;
     const evidence = model ? [] : ["modèle non enregistré ou non conforme : Codex utilisera son modèle par défaut"];
@@ -494,13 +477,27 @@ export class CodexSessionAdapter implements ExternalSessionAdapter {
     return { interpretation, certainRefusal, usageLimit: extractUsageLimitMessage(failureText) !== undefined };
   }
 
+  /**
+   * Cherche le nonce dans toute la chaîne. Dans une partie active : sur la branche active. Seulement
+   * dans une fin abandonnée par un segment suivant : persisté, hors branche active. Chaîne absente,
+   * refusée ou illisible : inconnu.
+   */
   findNonce(target: ExternalTarget, nonce: string): DeliveryEvidence {
-    const found = this.rollouts(target.sessionId);
-    if (found.length !== 1) return { persisted: "unknown", inActiveBranch: "unknown", detail: "rollout introuvable ou ambigu" };
+    const resolved = resolveCodexHistory(this.home, target.sessionId);
+    if (resolved.status !== "found") return { persisted: "unknown", inActiveBranch: "unknown", detail: "rollout introuvable ou ambigu" };
+    let abandoned = false;
     try {
-      return findNonceInCodexRollout(readFileSync(found[0]!, "utf8"), nonce);
+      for (const [index, segment] of resolved.segments.entries()) {
+        const texts = segmentTexts(segment, index === resolved.segments.length - 1);
+        const found = findNonceInCodexRollout(texts.active, nonce);
+        if (found.persisted === true) return found;
+        abandoned ||= findNonceInCodexRollout(texts.abandoned, nonce).persisted === true;
+      }
     } catch {
       return { persisted: "unknown", inActiveBranch: "unknown", detail: "rollout illisible" };
     }
+    return abandoned
+      ? { persisted: true, inActiveBranch: false, detail: "nonce dans une fin d'historique abandonnée par un segment suivant" }
+      : { persisted: false, inActiveBranch: "unknown", detail: "nonce absent du rollout" };
   }
 }

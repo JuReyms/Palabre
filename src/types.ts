@@ -55,6 +55,8 @@ export interface CliAgentConfig extends BaseAgentConfig {
   command: string;
   args?: string[];
   promptMode?: CliPromptMode;
+  /** Décode uniquement `status: SUCCESS` et `response` du JSON Antigravity ; texte brut par défaut. */
+  responseFormat?: "text" | "antigravity-json";
   modelArg?: string;
   model?: string;
   shell?: boolean;
@@ -89,13 +91,19 @@ export interface OllamaAgentConfig extends BaseAgentConfig {
  * Config d'un adapter CLI lancé dans un pseudo-terminal.
  * À utiliser uniquement pour les CLIs qui ne produisent pas de stdout capturable en mode batch.
  */
-export interface CliPtyAgentConfig extends Omit<CliAgentConfig, "type"> {
+export interface CliPtyAgentConfig extends Omit<CliAgentConfig, "type" | "responseFormat"> {
   type: "cli-pty";
   cols?: number;
   rows?: number;
 }
 
 export type AgentConfig = CliAgentConfig | CliPtyAgentConfig | OllamaAgentConfig;
+
+/** Valide le format depuis du JSON runtime : tout format explicite exige le transport batch CLI. */
+export function isCliResponseFormatValid(config: AgentConfig): boolean {
+  const format = "responseFormat" in config ? config.responseFormat : undefined;
+  return format === undefined || (config.type === "cli" && (format === "text" || format === "antigravity-json"));
+}
 
 /** Config racine issue de `palabre.config.json`. */
 export interface PalabreConfig {

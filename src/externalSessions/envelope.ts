@@ -1,6 +1,6 @@
 /**
  * @file Validation des références de session et du message, nonce et enveloppe du relay (voir
- * AGENTS.md, section "Relay externe").
+ * docs/dev/relay.md, section "Relay externe").
  *
  * L'enveloppe identifie l'expéditeur et porte un nonce à usage unique. Le nonce sert ensuite de
  * preuve de délivrance dans l'historique de la cible : il n'est jamais réutilisé.
@@ -17,6 +17,9 @@ export const MAX_RELAY_SUBJECT_CHARACTERS = 200;
 /** En-tête transmis par Mission via l'API interne, jamais par une option CLI. */
 export interface MissionEnvelopeHeader { kind: "mission"; id: string; step: number }
 
+/** Repère humain déclaratif, attribué par le chef de mission ; aucun compteur automatique. */
+export interface RelayExchange { reference: string; number: number }
+
 /** Entrées déjà validées par la commande Relay ou le contrôleur Mission. */
 export interface RelayEnvelopeInput {
   from: SenderRef | null;
@@ -24,6 +27,7 @@ export interface RelayEnvelopeInput {
   nonce: string;
   message: string;
   subject?: string;
+  exchange?: RelayExchange;
   header?: MissionEnvelopeHeader;
 }
 
@@ -33,6 +37,13 @@ export function validateRelaySubject(subject: string): ValidationResult<string> 
     return { ok: false, reason: "invalid-arguments" };
   }
   return { ok: true, value: subject };
+}
+
+/** Même grammaire que l'objet ; numéro explicite, sans stockage ni lien GitHub implicite. */
+export function validateRelayExchange(reference: string, number: string): ValidationResult<RelayExchange> {
+  const label = validateRelaySubject(reference);
+  if (!label.ok || !/^[1-9]\d{0,5}$/.test(number)) return { ok: false, reason: "invalid-arguments" };
+  return { ok: true, value: { reference: label.value, number: Number(number) } };
 }
 
 /** Validation de la métadonnée interne avant toute lecture ou exécution Relay. */
@@ -111,11 +122,15 @@ function buildRelayEnvelope(input: RelayEnvelopeInput, messages: RelayMessages, 
   const title = input.header
     ? messages.missionHeader(input.header.id, input.header.step, from, to)
     : messages.envelopeHeader(from, to);
-  return [`### ${title}`, "", messages.envelopeWarning, "", "---", "",
+  return [`### ${title}`, "",
+    ...(input.exchange ? [messages.exchangeLine(inline(input.exchange.reference), input.exchange.number), "", "---", ""] : []),
+    messages.envelopeWarning, "", "---", "",
     ...(input.subject !== undefined ? [messages.subjectLine(inline(input.subject)), ""] : []),
     input.message, "", "---", "", `#### ${messages.agentSection}`, "", messages.envelopeProvenance,
     messages.envelopeSession(input.from?.sessionId, input.nonce), "", messages.envelopeNotice,
-    open ? messages.openPermissions : messages.envelopePermissions, "", messages.envelopeReplyHint].join("\n");
+    open ? messages.openPermissions : messages.envelopePermissions, "",
+    ...(input.exchange ? [messages.exchangeReplyHint(inline(input.exchange.reference), input.exchange.number), ""] : []),
+    messages.envelopeReplyHint].join("\n");
 }
 
 /** Variante de reprise en lecture seule ; le nonce reste présent dans le message utilisateur. */

@@ -1,4 +1,4 @@
-/** @file Adapter pseudo-terminal (`node-pty`) pour les CLIs qui exigent une vraie console (ex. Antigravity `agy`). */
+/** @file Adapter pseudo-terminal (`node-pty`) pour les CLIs personnalisées qui exigent une vraie console ; aucun décodage JSON. */
 import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
 import { resolveExecutablePath, resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePowerShellShim } from "../exec.js";
@@ -6,6 +6,7 @@ import { directNpmShimLaunch, withShimNodePath } from "../npmShim.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
 import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliPtyAgentConfig } from "../types.js";
+import { isCliResponseFormatValid } from "../types.js";
 import { DEFAULT_TIMEOUT_MS, extractPtyUsageLimitMessage, extractRetryAfter, resolveMaxOutputBytes, utf8ChildProcessEnv, withModelArgs } from "./cli-shared.js";
 import { cleanPtyOutput, cleanTerminalOutput } from "./terminal.js";
 
@@ -51,6 +52,10 @@ export class CliPtyAdapter implements AgentAdapter {
 
     const renderedPrompt = formatAgentPrompt(prompt);
     const errorMessages = createTranslator(prompt.language ?? "fr").adapterErrors;
+    // Un champ JSON issu d'une configuration non typée ne doit pas être ignoré silencieusement.
+    if (!isCliResponseFormatValid(this.config)) {
+      throw new AdapterError("spawn-failed", this.name, errorMessages.invalidResponseFormat(this.name));
+    }
     const promptMode = this.config.promptMode ?? "stdin";
     const baseArgs = withModelArgs(this.config.args ?? [], this.config.model, this.config.modelArg ?? "--model");
     const adapterArgs = promptMode === "argument"

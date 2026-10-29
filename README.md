@@ -8,354 +8,294 @@
   <a href="https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode"><img src="https://img.shields.io/badge/VS%20Code-Marketplace-7C3AED?style=flat&colorA=18181B&logo=visualstudiocode&logoColor=white" alt="VS Code Marketplace"></a>
 </p>
 
-![PALABRE CLI orchestrating a debate between AI agents](docs/assets/palabre-cli-orchestre-debates-between-AI-agents.png)
+![PALABRE](docs/assets/palabre-logo-text-og.png)
 
 [English](#english) | [Français](#français)
 
 ## English
 
-PALABRE lets the AI agents already installed on your machine work with you and with each other. It helps you **make better decisions before acting**, and orchestrates the exchanges between your agents.
+**Let your AI tools work together. Compare views. Move your work and decisions forward.**
 
-**Compatible agents:** Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe and Ollama (local).
+Palabre offers several ways to work with your usual AI tools: cooperate, examine a proposal or inform a decision. Choose the mode that fits your need; you stay in control.
 
-**Privacy:** PALABRE CLI has no server. Your data only goes to the agents you choose. And with Ollama and a local model, nothing leaves your machine.
+Palabre calls the AI assistants you bring into the work **agents**, for example through Codex, Claude Code, OpenCode or a local model with Ollama. **Models** are the AI engines those tools use.
 
-PALABRE does not replace your tools: it drives them. You keep your subscriptions, default models, habits and local files.
+### Your data, your tools
 
-**Where to use it:** in the terminal (TUI or commands), in VS Code with the extension, or directly from your AI agent with the PALABRE skill, from the command line as well as in desktop apps.
+**The Palabre CLI does not collect your data: no Palabre account, no CLI telemetry, no Palabre server receiving your conversations.** It runs on your machine.
 
-**Several modes, depending on your need:** Debate, Relay, Ask and Chat, detailed below.
+- **Local AI exchanges:** Debate, Ask and Chat can use a local Ollama server and local models, including for summaries. Launch them from your terminal, without a remote AI assistant, to keep these exchanges on your machine.
+- **Your choice of providers:** if you include a remote tool or model, it receives the prompts and context it needs, under its own privacy policy. Palabre adds no intermediary collecting your conversations.
+- **Local records:** Palabre saves its Markdown exports on your machine. You choose whether to share them.
 
-### Which mode for what?
+**Ollama does not always mean local:** a cloud model or a remote server sends the necessary data off your machine, even if you access the cloud model through a local Ollama server. All participants, including summaries, must use local models for local AI exchanges.
 
-| Mode | The question it answers | Example |
+[Privacy and what stays local](https://palab.re/en/get-started/introduction#privacy)
+
+### Where can you use Palabre?
+
+- **In your usual AI assistant**, in its CLI or desktop app: ask it to use Palabre in plain language. With the Palabre skill and permission to run local commands, it can launch Relay, Debate, Ask or Chat and report back to you.
+- **In a terminal**: run `palabre` for interactive menus (TUI) to use Debate, Ask and Chat, or use the direct commands, including Relay.
+
+The conversational route works with compatible assistants such as Codex and Claude Code, not with every chat app. If your app supports voice input, you can dictate the same request: voice comes from your app, not Palabre.
+
+### One product, four modes
+
+| Mode | When it helps | Shape |
 | --- | --- | --- |
-| **Debate** | "I want two positions to confront each other." Two agents answer in turn, then a summary sets out agreements and disagreements. | `palabre codex-claude "Review this plan" -t 4` |
-| **Relay** *(new)* | "I want my conversations to talk to each other, without copying and pasting." Choose Claude Code or Codex as mission lead, and a new or specific conversation as teammate. | `palabre relay --new --to claude "Review the plan in docs/plan.md"` |
-| **Ask** | "I want several independent opinions." 1 to 4 agents answer without seeing each other's answers, then a summary compares them. | `palabre ask "Compare these two approaches" --agents codex claude` |
-| **Chat** | "I'm chatting with an agent, and sometimes need a second opinion to double-check an answer." Ask another agent with `/consult`, without leaving the conversation. | `palabre chat --agent-a codex` |
+| **Relay** | Delegate a task to another agent and bring its reply back. | `you → A → B → A → you` |
+| **Debate** | Work through two positions and their disagreements. | `A ↔ B → summary` |
+| **Ask** | Compare 1–4 independent opinions, without mutual influence. | `question → separate answers → comparison` |
+| **Chat** | Advance with one interlocutor and occasionally request another opinion. | `you ↔ A`, with a one-off consultation of B |
 
-*From Codex desktop, the path to closed Claude has been verified on Windows with host approval for each command. Codex CLI as sender still needs testing. Open Codex can receive a task with `--open` on Windows, macOS and Linux; POSIX systems require `python3` to probe the conversation lock, and the two-terminal path still has limited testing. No automatic resend.*
+Debate, Ask and Chat start new exchanges; unlike Relay, they do not pick up your existing Codex or Claude Code conversations.
 
-The **Mission** option is frozen: it remains available and documented, with no scope expansion.
+### Relay mode: cooperate from your usual conversation
 
-In doubt: **Debate** for a decision with stakes, **Relay** to orchestrate work across several agents, **Ask** for several opinions, **Chat** to talk with one agent.
+Talk to your usual tool, the lead. It sends a task or review request to a teammate and brings the result back — without you copying messages between windows. This lead/teammate workflow belongs to **Relay**.
 
-### Installation
-
-Requirements: Node.js 20 or newer, and at least one installed and authenticated agent. Two agents are needed for a Debate.
-
-```bash
-npm install -g palabre
-# or: pnpm add --global palabre
-# or: yarn global add palabre
-# or: bun add --global palabre
-palabre --version
+```text
+You → Your tool (lead) → Palabre Relay → Teammate
+          ↑                               │
+          └────────── reply ───────────────┘
 ```
 
-### Quick start
+For example, from Codex:
 
-```bash
-palabre doctor   # checks your configuration and the agents found on your machine
-palabre          # opens the interactive interface (TUI)
+> Use Palabre to ask Claude Code to review these changes without modifying files. Explain its findings and any disagreements.
+
+Relay can create a new conversation or continue one you choose. Each send is explicit; it does not start an autonomous conversation loop. The [Palabre skill](https://palab.re/en/get-started/skill) gives your assistant instructions for using Palabre and reporting back to you.
+
+Each tool keeps its own conversation and quotas. The request must carry the useful context; Relay does not automatically share their memories. Cross-checking can help catch errors, but agreement between tools is not proof of correctness.
+
+**Relay currently connects Codex and Claude Code conversations.** Relay can also send a message to a Codex conversation you are already using in its app or terminal. Sending to Claude Code while its conversation is in use in a terminal or desktop app is not yet supported. See the [Relay guide](https://palab.re/en/usage/relay) for setup, platform requirements and the OpenCode pilot.
+
+#### A real example: writing this README
+
+Codex drafted this README and asked Claude Code for a critical review through Palabre Relay. Their exchanges revealed ambiguities; the maintainer chose the changes to apply. Finally, a test of the Relay copy pilot checked what OpenCode understood from the document.
+
+You can use the same approach:
+
+> Write the README with me. Use Palabre Relay to ask Claude Code for a critical review, discuss its findings, then present the proposed changes to me before applying them.
+
+### Which tools work with which modes?
+
+These are the tools Palabre can call, once installed and configured — regardless of which compatible assistant you use to launch Palabre.
+
+| AI tool | Relay | Debate | Ask | Chat |
+| --- | --- | --- | --- | --- |
+| Codex | Yes | Yes | Yes | Yes |
+| Claude Code | Yes, in the background | Yes | Yes | Yes |
+| OpenCode | Experimental, on a copy (1) | Yes | Yes | Yes |
+| Antigravity CLI | No | Yes | Yes | Yes |
+| Mistral Vibe | No | Yes | Yes | Yes |
+| Ollama (local models) | No | Yes | Yes | Yes |
+
+> **Note (1) — OpenCode Relay:** this experimental pilot works on a copy of an existing conversation. Windows, CLI 2.0.32 only; Desktop use has not been verified. It uses your usual OpenCode environment, with no enforced read-only mode; `--model provider/model[#variant]` changes the model of the copy only. [Relay requirements and limits](https://palab.re/en/usage/relay).
+
+Codex and Claude Code can also coordinate Relay exchanges.
+
+**Roles complement Debate, Ask and Chat.** For example, an `implementer` proposes a solution while a `reviewer` looks for risks. Roles change the instruction, not the model or permissions. They do not configure Relay; “lead” and “teammate” describe coordination instead. [Roles and configuration](https://palab.re/en/get-started/configuration).
+
+### Install and try
+
+The commands below require Node.js 20+ and pnpm — [other package managers](https://palab.re/en/get-started/installation). You also need an installed, authenticated AI tool (or a configured local Ollama model). A Debate needs two configured agents. Your tools' own subscriptions, costs and quotas still apply.
+
+```powershell
+pnpm add --global palabre
+palabre
 ```
 
-On first launch, the TUI creates the global configuration if needed and detects known agents. Useful commands in the TUI:
+The first interactive launch creates the global configuration if needed and detects installed tools. Use `palabre doctor` for diagnostics.
 
-| Command | What it does |
-| --- | --- |
-| `/new` | Compose a conversation step by step. |
-| `/chat`, `/ask` | Switch to Chat or Ask (Debate is the default mode). |
-| `/consult <agent>` | In Chat, get a second opinion from another agent. |
-| `/agents`, `/roles` | Choose the agents and their roles. |
-| `/history` | See recent exports. |
-| `/home` | Back to the home screen. |
+#### From your assistant — desktop app or CLI
 
-`--terminal` forces the raw renderer for logs and scripts. `palabre init` remains available for an explicit setup, especially with `--local`.
+Install the skill for the assistant you use, then reload it in that assistant:
 
-Relay lets your agent delegate a task to another agent (Claude Code, Codex) and bring its reply back to you, without copying and pasting: in a new conversation, or in a specific conversation you have already had with it. Each keeps its own permissions, and you decide what happens next.
-
-You choose the **mission lead**: Claude Code or Codex. Your agent can become the mission lead in any conversation, even one you have just opened: PALABRE only needs to be installed on the machine and the agent needs to have the PALABRE skill.
-
-With the [Palabre skill](https://palab.re/en/get-started/skill), ask your agent to reach a new conversation or the one you designate. To request a review from a terminal:
-
-```bash
-palabre relay --new --to codex "Review this project without changing any file."
+```powershell
+palabre skill --install codex
+# For Claude Code instead: palabre skill --install claude
 ```
 
-This command returns the conversation identifier. Follow [Your first Relay](https://palab.re/en/get-started/first-relay) to choose your mission lead, continue the same exchange and understand Codex desktop’s one-time approvals.
+Continue in your usual conversation. No Palabre command to memorize:
 
-Unreleased OpenCode CLI pilot (Windows, 2.0.32): `palabre relay --copy --to opencode:ses_... --dir "C:\projects\example" "Give advice without changing files"`. Explicit source, verified copy, usual permissions/plugins/MCP kept; no enforced read-only mode and no project sandbox. Source and copy are retained. One real CLI trial succeeded on a fictional project; Desktop remains unqualified. See the [Relay guide](https://palab.re/en/usage/relay).
+> Use Palabre Relay to ask Claude Code to review this plan without changing files.
 
-### How it works
+Or, to have two agents challenge the plan together:
 
-In the OpenCode pilot, optional `--model provider/model[#variant]` selects only on the copy;
-without a variant it selects `default`. Catalogue and selection are checked before prompting,
-with no replacement or retry. One real trial verified DeepSeek → GLM-5.3-Flash Free
-on the copy; other models, variants and Desktop remain unqualified.
+> Use Palabre Debate to have Codex and Claude Code discuss this plan, challenge each other's proposals and summarize their agreements and disagreements.
 
-- **PALABRE drives your CLIs.** Each agent runs with its own tool, account and default model. PALABRE does not list models: `--model-a`, `--model-b` and `--summary-model` pass the raw value to the agent.
-- **Context.** `--files` injects specific files (64 KiB per file, 192 KiB in total). `--context` scans folders with limits and exclusions. `--show-prompt` shows exactly what will be sent; `palabre context scan` previews the context.
-- **Final summary.** At the end of a Debate, a summary agent writes four sections: **Consensus**, **Disagreements / uncertainties**, **Proposed actions**, **Conclusion**. At the end of an Ask, it summarizes each answer then compares them: **Faithful summary by agent**, **Comparison**, **Watchpoints / uncertainties**, **Proposed actions**, **Conclusion**. Choose the summary agent with `--summary-agent`, or turn the summary off with `--no-summary`.
-- **Early stop.** A Debate (1 to 20 responses in total) can stop after a full round when an explicit agreement is detected. Turn it off with `--no-early-stop`.
-- **Relay.** PALABRE finds a specific conversation, sends one message and returns an attributable reply. Ordinary calls to a closed conversation provide advice and reviews; `--open` keeps the Codex conversation’s tools and permissions. The message grants no rights on its own and triggers no automatic resend.
-- **Exports.** Each conversation is saved as Markdown (`.debate.md`, `.ask.md`, `.chat.md`, `.relay.md`). If an agent fails, a partial export is kept whenever possible.
-- **Conversations.** `--checkpoint` makes a Debate or an Ask resumable with `palabre resume <session-id>`; `palabre sessions` lists or deletes checkpoints.
+Ask and Chat are also available for independent opinions or a conversation with one agent. Type your request, or dictate it if your app supports voice input. Your assistant runs Palabre locally and brings the result back into your conversation.
 
-More examples:
+[Set up the skill](https://palab.re/en/get-started/skill) · [Your first Relay](https://palab.re/en/get-started/first-relay)
 
-```bash
-palabre codex-claude "Review this architecture" --context src docs
-palabre claude-ollama "Review this file" --files README.md
-palabre codex-claude "Preview" --context src --show-prompt
-palabre context scan src docs --json
-palabre codex-claude "A resumable decision" --checkpoint
-palabre sessions
+#### Directly from a terminal
+
+Run `palabre` to choose a mode from the menus. For direct commands instead:
+
+```powershell
+palabre relay --new --background --to claude --subject "Review the plan" "Read docs/plan.md without changing files."
+palabre codex-claude --mode debate "Challenge this plan" -t 4 --files docs/plan.md
 ```
 
-### Roles
+### What stays under your control
 
-Each agent has a role. **A role changes the instruction sent to the agent, not the model.**
+Relay messages grant no extra permissions. **Background is the default** for Codex/Claude, with limited tools and a closed conversation required. If the Codex conversation is open, your agent explains the choice: keep background, or send into that conversation with its current tools and permissions, **including writing if allowed**. You can choose this for one exchange, or confirm **Prefer the open conversation** as your usual setting (technical value `auto`); a closed conversation then runs in background. Existing explicit settings are preserved. If delivery is uncertain, Palabre does not send again automatically.
 
-| Role | What the agent does |
-| --- | --- |
-| `implementer` | Proposes a concrete solution. |
-| `reviewer` | Looks for risks, regressions and missing tests. |
-| `critic` | Challenges assumptions. |
-| `architect` | Structures the technical options. |
-| `scout` | Explores a topic quickly. |
-| `summarizer` | Writes a faithful summary. |
+### Keep a record of your exchanges
 
-Combinations that work well:
+Palabre saves exchanges as Markdown files in `.palabre/` by default: `.relay.md`, `.debate.md`, `.ask.md` and `.chat.md`. Debate and Ask also include a summary when enabled. Read them again, keep them with your project or share them after checking for sensitive information. [Export details](https://palab.re/en/usage/exports).
 
-- **`implementer` + `reviewer`**: one proposes, the other looks for what could break.
-- **`architect` + `critic`**: lay out the options, then challenge them.
-- **`scout`**: a quick first look before a deeper conversation.
-- **`summarizer`**: for the final summary agent.
+### Documentation and integrations
 
-For one conversation: `--role-a`, `--role-b`, or `/roles` in the TUI. To change an agent's default role: `palabre agent-role <agent> <role>`.
+Full documentation: **[palab.re](https://palab.re/en)** — [Relay](https://palab.re/en/usage/relay), [Debate](https://palab.re/en/get-started/first-debate), [CLI reference](https://palab.re/en/reference/cli), [Troubleshooting](https://palab.re/en/troubleshooting).
 
-### Compatible agents
+For agents: operating instructions in [`skills/palabre/SKILL.md`](./skills/palabre/SKILL.md).
 
-| Agent | How PALABRE runs it |
-| --- | --- |
-| Claude Code | `claude --print` |
-| Codex CLI | `codex exec` |
-| Antigravity CLI | `agy --print`, in a pseudo-terminal |
-| OpenCode | `opencode run` |
-| Mistral Vibe | `vibe --output text --trust --prompt` |
-| Ollama | local HTTP API: models run on your machine, without a subscription |
+[VS Code extension](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode): Debate, Ask and Chat from a sidebar. [Integration contracts](https://palab.re/en/integrations/ndjson): JSON/NDJSON for other clients.
 
-### Going further
-
-- **VS Code extension.** [PALABRE for VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode) adds a sidebar to run Debate, Chat or Ask, attach workspace context, follow each conversation live and open its export. In Chat, you can switch the active agent or ask another agent for a one-off opinion. It stays a thin client: it launches the local `palabre` CLI and uses the public JSON/NDJSON contracts.
-- **Integrations.** Versioned JSON outputs: `palabre agents --json`, `palabre presets --json`, `palabre context scan --json`, and `--renderer ndjson` or `--json` to follow a debate event by event. The NDJSON v1 stream is a public integration API: compatible additions do not break v1, breaking changes change the `v` field.
-- **Skill for AI agents.** A ready-to-use skill teaches an AI agent when to use PALABRE and which mode to choose. It follows the open [agentskills.io](https://agentskills.io) standard. Install the running CLI's bundled skill with `palabre skill --install claude` or `palabre skill --install codex`. `palabre skill --sync` refreshes detected copies without network access; `palabre update` includes them in its single confirmation, with backups and preserved junctions. Reload the skill afterwards. Details and other agents: [PALABRE skill](https://palab.re/en/get-started/skill).
-
-### Relay: experimental path and frozen features
-
-`--write` is experimental, frozen and outside the default path: only on an explicit human request, with one-time approval. Mission and `--task review` are also frozen; only security fixes are accepted, with no scope expansion. Their documentation remains in the [Relay guide](https://palab.re/en/usage/relay).
-
-### Documentation
-
-[palab.re](https://palab.re) (mirror: [palabre.netlify.app](https://palabre.netlify.app)) — [Installation](https://palab.re/en/get-started/installation), [Configuration](https://palab.re/en/get-started/configuration), [First conversation](https://palab.re/en/get-started/first-debate), [CLI reference](https://palab.re/en/reference/cli), [Troubleshooting](https://palab.re/en/troubleshooting), [Roadmap](https://palab.re/en/roadmap).
-
-### Privacy
-
-PALABRE runs locally and does not send data to a PALABRE-owned server. Data sent to agents depends on the tools you use: check the privacy policies of Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe, Ollama, or any custom agent you configure.
-
-### Contributing / local development
-
-```bash
-git clone https://github.com/JuReyms/Palabre.git
-cd Palabre
-pnpm install
-pnpm build
-pnpm link --global
-palabre --version
-```
-
-Useful commands: `pnpm check`, `pnpm test`, `pnpm build`.
-
-Before publishing, `pnpm smoke:real-presets -- --mode both --keep-going` runs real Debate and Ask conversations for the 10 active priority CLI pairs to validate the full agent → NDJSON → summary → export flow. This smoke test calls real AI CLIs and may consume quota, so it is not part of `pnpm test`.
-
-Public roadmap: [docs/guide/fr/roadmap.md](./docs/guide/fr/roadmap.md). Changes: [CHANGELOG.md](./CHANGELOG.md). Agent/contributor guide: [AGENTS.md](./AGENTS.md).
-
-### License
-
-MIT. See [LICENSE](./LICENSE).
-
-![PALABRE](docs/assets/palabre-logo-text-og.png)
+[Contributing and local development](./AGENTS.md) · [Changelog](./CHANGELOG.md) · [Roadmap](https://palab.re/en/roadmap) · [MIT license](./LICENSE)
 
 ## Français
 
-PALABRE fait travailler avec vous, et entre eux, les agents IA déjà installés sur votre machine. Il vous aide à **mieux décider avant d'agir**, et orchestre les échanges entre vos agents.
+**Faites coopérer vos outils IA, croisez leurs avis et avancez dans vos décisions comme dans votre travail.**
 
-**Agents compatibles :** Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe et Ollama (en local).
+Palabre propose plusieurs façons de travailler avec vos outils IA habituels : coopérer, examiner une proposition ou éclairer une décision. Choisissez le mode adapté ; vous gardez la main.
 
-**Confidentialité :** PALABRE CLI n'a aucun serveur. Vos données ne vont qu'aux agents que vous choisissez. Et avec Ollama et un modèle local, rien ne quitte votre machine.
+Palabre appelle **agents** les assistants IA que vous faites participer, par exemple via Codex, Claude Code, OpenCode ou un modèle local avec Ollama. Les **modèles** sont les moteurs IA de ces outils.
 
-PALABRE ne remplace pas vos outils : il les pilote. Vous gardez vos abonnements, vos modèles par défaut, vos habitudes et vos fichiers en local.
+### Vos données, vos outils
 
-**Où l'utiliser :** dans le terminal (interface TUI ou commandes), dans VS Code avec l'extension, ou directement depuis votre agent IA grâce au skill PALABRE, en ligne de commande comme dans les applications desktop.
+**Le CLI Palabre ne collecte pas vos données : aucun compte Palabre, aucune télémétrie dans le CLI, aucun serveur Palabre pour recevoir vos conversations.** Il fonctionne sur votre machine.
 
-**Plusieurs modes, selon votre besoin :** Débat, Relay, Ask et Chat, détaillés ci-dessous.
+- **Des échanges IA locaux :** Débat, Ask et Chat peuvent utiliser un serveur Ollama et des modèles locaux, y compris pour la synthèse. Lancez-les depuis votre terminal, sans assistant IA distant, pour garder ces échanges sur votre machine.
+- **Vos fournisseurs, votre choix :** si vous faites participer un outil ou un modèle distant, il reçoit les prompts et le contexte nécessaires, selon sa propre politique de confidentialité. Palabre n'ajoute pas d'intermédiaire qui collecte vos conversations.
+- **Des traces locales :** Palabre enregistre ses exports Markdown sur votre machine. Vous choisissez de les partager ou non.
 
-### Quel mode pour quoi ?
+**Ollama ne signifie pas toujours local :** un modèle cloud ou un serveur distant transmet les données nécessaires hors de votre machine, même si vous accédez au modèle cloud depuis un serveur Ollama local. Tous les participants, synthèses comprises, doivent utiliser des modèles locaux pour des échanges IA locaux.
 
-| Mode | La question à laquelle il répond | Exemple |
+[Confidentialité et données locales](https://palab.re/fr/get-started/introduction#confidentialité)
+
+### Où utiliser Palabre ?
+
+- **Dans votre assistant IA habituel**, en ligne de commande (CLI) ou dans son application de bureau (Desktop) : demandez-lui d'utiliser Palabre en langage naturel. Avec le skill Palabre et l'autorisation d'exécuter des commandes locales, il peut lancer Relay, Débat, Ask ou Chat et vous en rapporter le résultat.
+- **Dans un terminal** : lancez `palabre` pour utiliser Débat, Ask et Chat avec des menus interactifs (TUI), ou utilisez les commandes directes, y compris pour Relay.
+
+Le parcours conversationnel fonctionne avec des assistants compatibles comme Codex et Claude Code, pas avec toutes les applications de chat. Si votre application propose la saisie vocale, vous pouvez dicter la même demande : la voix vient de votre application, pas de Palabre.
+
+### Un produit, quatre modes
+
+| Mode | Quand l'utiliser | Schéma |
 | --- | --- | --- |
-| **Débat** | « Je veux confronter deux positions. » Deux agents répondent à tour de rôle, puis une synthèse dégage les accords et les désaccords. | `palabre codex-claude "Critique ce plan" -t 4` |
-| **Relay** *(nouveau)* | « Je veux faire se parler mes conversations, sans copier-coller. » Choisissez Claude Code ou Codex comme chef de mission, et une nouvelle conversation ou une conversation précise comme équipier. | `palabre relay --new --to claude "Relis le plan dans docs/plan.md"` |
-| **Ask** | « Je veux plusieurs avis indépendants. » De 1 à 4 agents répondent sans voir les réponses des autres, puis une synthèse les compare. | `palabre ask "Compare ces deux approches" --agents codex claude` |
-| **Chat** | « Je discute avec un agent, et j'ai parfois besoin d'un second avis pour vérifier une réponse. » Consultez un autre agent avec `/consult`, sans quitter la conversation. | `palabre chat --agent-a codex` |
+| **Relay** | Confier une tâche à un autre agent et récupérer sa réponse. | `vous → A → B → A → vous` |
+| **Débat** | Travailler deux positions et leurs désaccords. | `A ↔ B → synthèse` |
+| **Ask** | Comparer 1 à 4 avis indépendants, sans influence mutuelle. | `question → réponses séparées → comparaison` |
+| **Chat** | Avancer avec un interlocuteur et demander parfois un autre avis. | `vous ↔ A`, avec consultation ponctuelle de B |
 
-*Depuis Codex desktop, le parcours vers Claude fermée est vérifié sous Windows avec une autorisation de l’hôte pour chaque commande. Codex CLI comme expéditeur reste à éprouver. Une conversation Codex ouverte peut recevoir la tâche avec `--open` sous Windows, macOS et Linux ; les systèmes POSIX exigent `python3` pour éprouver le verrou de conversation, et le parcours à deux terminaux reste peu testé. Aucun renvoi automatique.*
+Débat, Ask et Chat lancent de nouveaux échanges ; contrairement à Relay, ils ne reprennent pas vos conversations existantes dans Codex ou Claude Code.
 
-L'option **Mission** est gelée : elle reste disponible et documentée, sans extension de périmètre.
+### Mode Relay : coopérer depuis votre conversation habituelle
 
-En cas de doute : **Débat** pour une décision qui compte, **Relay** pour orchestrer le travail avec plusieurs agents, **Ask** pour plusieurs avis, **Chat** pour discuter avec un agent.
+Échangez avec votre outil habituel, le chef de mission. Il confie une tâche ou une relecture à un équipier et vous rapporte le résultat — sans copier vous-même les messages entre les fenêtres. Ce parcours chef de mission/équipier est propre au **mode Relay**.
 
-### Installation
-
-Prérequis : Node.js 20 ou plus, et au moins un agent installé et authentifié. Deux agents sont nécessaires pour un Débat.
-
-```bash
-npm install -g palabre
-# ou : pnpm add --global palabre
-# ou : yarn global add palabre
-# ou : bun add --global palabre
-palabre --version
+```text
+Vous → Votre outil (chef de mission) → Palabre Relay → Équipier
+               ↑                                       │
+               └────────────── réponse ─────────────────┘
 ```
 
-### Démarrage rapide
+Par exemple, depuis Codex :
 
-```bash
-palabre doctor   # vérifie la configuration et les agents trouvés sur votre machine
-palabre          # ouvre l'interface interactive (TUI)
+> Avec Palabre, demande à Claude Code de relire ces changements sans modifier de fichier. Explique-moi ses remarques et les éventuels désaccords.
+
+Relay peut créer une nouvelle conversation ou poursuivre celle que vous choisissez. Chaque envoi est explicite ; il ne déclenche pas de boucle autonome entre les conversations. Le [skill Palabre](https://palab.re/fr/get-started/skill) donne à votre assistant les consignes pour utiliser Palabre et vous rendre compte du résultat.
+
+Chaque outil garde sa conversation et ses quotas. Le contexte utile doit accompagner la demande ; Relay ne partage pas automatiquement leurs mémoires. Croiser les regards peut aider à repérer des erreurs, mais un accord entre outils ne prouve pas qu'une proposition est correcte.
+
+**Relay relie aujourd'hui les conversations Codex et Claude Code.** Relay peut aussi envoyer un message à une conversation Codex que vous utilisez déjà dans l'application ou le terminal. L'envoi à Claude Code pendant que sa conversation est utilisée dans le terminal ou l'application de bureau n'est pas encore pris en charge. Installation, prérequis par plateforme et pilote OpenCode : [guide Relay](https://palab.re/fr/usage/relay).
+
+#### Un exemple réel : la rédaction de ce README
+
+Codex a rédigé ce README et demandé à Claude Code une relecture critique via Palabre Relay. Leurs échanges ont fait ressortir des ambiguïtés ; le mainteneur a choisi les modifications à appliquer. Enfin, un essai du pilote Relay sur copie a permis de vérifier ce qu'OpenCode comprenait du document.
+
+Vous pouvez reprendre cette méthode :
+
+> Rédige le README avec moi. Utilise Palabre Relay pour demander à Claude Code une relecture critique, discute ses remarques, puis présente-moi les changements proposés avant de les appliquer.
+
+### Quels outils pour quels modes ?
+
+Voici les outils que Palabre peut appeler, une fois installés et configurés — quel que soit l'assistant compatible depuis lequel vous lancez Palabre.
+
+| Outil IA | Relay | Débat | Ask | Chat |
+| --- | --- | --- | --- | --- |
+| Codex | Oui | Oui | Oui | Oui |
+| Claude Code | Oui, en arrière-plan | Oui | Oui | Oui |
+| OpenCode | Expérimental, sur copie (1) | Oui | Oui | Oui |
+| Antigravity CLI | Non | Oui | Oui | Oui |
+| Mistral Vibe | Non | Oui | Oui | Oui |
+| Ollama (modèles locaux) | Non | Oui | Oui | Oui |
+
+> **Note (1) — OpenCode Relay :** ce pilote expérimental travaille sur une copie d'une conversation existante. Windows, CLI 2.0.32 seulement ; l'utilisation depuis Desktop n'est pas encore validée. Il utilise votre environnement OpenCode habituel, sans lecture seule imposée ; `--model fournisseur/modele[#variante]` change le modèle de la copie seulement. [Prérequis et limites Relay](https://palab.re/fr/usage/relay).
+
+Codex et Claude Code peuvent aussi coordonner les échanges Relay.
+
+**Les rôles complètent Débat, Ask et Chat.** Par exemple, un `implementer` propose une solution et un `reviewer` cherche les risques. Ils changent la consigne, pas le modèle ni les permissions. Ils ne règlent pas Relay ; « chef de mission » et « équipier » décrivent plutôt la coordination. [Rôles et configuration](https://palab.re/fr/get-started/configuration).
+
+### Installer et essayer
+
+Pour les commandes ci-dessous : Node.js 20+ et pnpm — [autres gestionnaires de paquets](https://palab.re/fr/get-started/installation). Il faut aussi un outil IA installé et connecté (ou un modèle Ollama local configuré). Un Débat demande deux agents configurés. Les abonnements, coûts et quotas propres à vos outils continuent de s'appliquer.
+
+```powershell
+pnpm add --global palabre
+palabre
 ```
 
-Au premier lancement, la TUI crée la configuration globale si nécessaire et détecte les agents connus. Commandes utiles dans la TUI :
+Au premier lancement interactif, Palabre crée la configuration globale si nécessaire et détecte les outils installés. `palabre doctor` fournit les diagnostics.
 
-| Commande | Ce qu'elle fait |
-| --- | --- |
-| `/new` | Composer une conversation pas à pas. |
-| `/chat`, `/ask` | Passer en Chat ou en Ask (le Débat est le mode par défaut). |
-| `/consult <agent>` | En Chat, demander un second avis à un autre agent. |
-| `/agents`, `/roles` | Choisir les agents et leurs rôles. |
-| `/history` | Voir les derniers exports. |
-| `/home` | Revenir à l'accueil. |
+#### Depuis votre assistant — application de bureau ou CLI
 
-`--terminal` force le rendu brut pour les logs et les scripts. `palabre init` reste disponible pour un setup explicite, notamment avec `--local`.
+Installez le skill correspondant à votre assistant, puis rechargez-le dans cet outil :
 
-Relay permet à votre agent de confier une tâche à un autre agent (Claude Code, Codex) et de vous rapporter sa réponse, sans copier-coller : dans une nouvelle conversation, ou dans une conversation précise que vous avez déjà eue avec lui. Chacun garde ses propres permissions, et vous décidez de la suite.
-
-Vous choisissez le **chef de mission** : Claude Code ou Codex. Votre agent peut devenir chef de mission dans n'importe quelle conversation, même celle que vous venez d'ouvrir : il faut seulement que PALABRE soit installé sur la machine et que l'agent dispose du skill PALABRE.
-
-Avec le [skill Palabre](https://palab.re/fr/get-started/skill), demandez à votre agent de joindre une nouvelle conversation ou celle que vous désignez. Pour une relecture depuis le terminal :
-
-```bash
-palabre relay --new --to codex "Relis ce projet sans modifier de fichier."
+```powershell
+palabre skill --install codex
+# Pour Claude Code : palabre skill --install claude
 ```
 
-Cette commande rend l’identifiant de la conversation. Suivez [Premier Relay](https://palab.re/fr/get-started/first-relay) pour choisir votre chef de mission, continuer le même échange et comprendre les autorisations ponctuelles de Codex desktop.
+Continuez dans votre conversation habituelle. Aucune commande Palabre à mémoriser :
 
-Pilote OpenCode CLI non publié (Windows, 2.0.32) : `palabre relay --copy --to opencode:ses_... --dir "C:\projets\exemple" "Donne un avis sans modifier de fichier"`. Source explicite, copie vérifiée, permissions/plugins/MCP habituels conservés ; aucune lecture seule imposée ni bac à sable pour le projet. Source et copie restent conservées. Un essai réel CLI sur projet fictif a réussi ; Desktop reste non qualifié. Voir le [guide Relay](https://palab.re/fr/usage/relay).
+> Avec Palabre Relay, demande à Claude Code de relire ce plan sans modifier de fichier.
 
-### Comment ça fonctionne
+Ou, pour faire examiner le plan par deux agents qui se répondent :
 
-Dans le pilote OpenCode, `--model fournisseur/modele[#variante]` choisit uniquement sur la copie ;
-sans variante, il choisit `default`. Catalogue et sélection sont contrôlés avant le prompt,
-sans remplacement ni retry. Un essai réel a vérifié DeepSeek → GLM-5.3-Flash Free
-sur la copie ; les autres modèles, variantes et Desktop restent à qualifier.
+> Avec Palabre Débat, fais débattre Codex et Claude Code sur ce plan. Qu'ils confrontent leurs propositions, puis résument leurs accords et désaccords.
 
-- **PALABRE pilote vos CLI.** Chaque agent tourne avec son outil, son compte et son modèle par défaut. PALABRE ne liste pas les modèles : `--model-a`, `--model-b` et `--summary-model` transmettent la valeur brute à l'agent.
-- **Contexte.** `--files` injecte des fichiers précis (64 Kio par fichier, 192 Kio au total). `--context` parcourt des dossiers avec des limites et des exclusions. `--show-prompt` montre exactement ce qui sera envoyé ; `palabre context scan` prévisualise le contexte.
-- **Synthèse finale.** À la fin d'un Débat, un agent de synthèse rédige quatre sections : **Consensus**, **Désaccords / incertitudes**, **Actions proposées**, **Conclusion**. À la fin d'un Ask, il résume chaque réponse puis les compare : **Résumé fidèle par agent**, **Comparaison**, **Points de vigilance / incertitudes**, **Actions proposées**, **Conclusion**. Choisissez l'agent de synthèse avec `--summary-agent`, ou désactivez la synthèse avec `--no-summary`.
-- **Arrêt anticipé.** Un Débat (1 à 20 réponses au total) peut s'arrêter après un tour complet quand un accord explicite est détecté. Désactivez-le avec `--no-early-stop`.
-- **Relay.** PALABRE retrouve une conversation précise, transmet un message et rapporte une réponse attribuable. Les appels ordinaires vers une conversation fermée servent aux avis et relectures ; `--open` conserve les outils et permissions de la conversation Codex. Le message ne donne aucun droit à lui seul et ne déclenche aucun renvoi automatique.
-- **Exports.** Chaque conversation est enregistrée en Markdown (`.debate.md`, `.ask.md`, `.chat.md`, `.relay.md`). Si un agent échoue, un export partiel est conservé quand c'est possible.
-- **Conversations.** `--checkpoint` rend un Débat ou un Ask reprenable avec `palabre resume <session-id>` ; `palabre sessions` liste ou supprime les points de reprise.
+Ask et Chat restent disponibles pour recueillir des avis indépendants ou échanger avec un agent. Écrivez votre demande, ou dictez-la si votre application le permet. Votre assistant exécute Palabre localement et vous rapporte le résultat dans la conversation.
 
-Plus d'exemples :
+[Configurer le skill](https://palab.re/fr/get-started/skill) · [Premier Relay](https://palab.re/fr/get-started/first-relay)
 
-```bash
-palabre codex-claude "Relis cette architecture" --context src docs
-palabre claude-ollama "Critique ce fichier" --files README.md
-palabre codex-claude "Preview" --context src --show-prompt
-palabre context scan src docs --json
-palabre codex-claude "Une décision reprenable" --checkpoint
-palabre sessions
+#### Directement depuis un terminal
+
+Lancez `palabre` pour choisir un mode dans les menus. Pour utiliser plutôt les commandes directes :
+
+```powershell
+palabre relay --new --background --to claude --subject "Relire le plan" "Lis docs/plan.md sans modifier de fichier."
+palabre codex-claude --mode debate "Critique ce plan" -t 4 --files docs/plan.md
 ```
 
-### Rôles
+### Ce qui reste sous votre contrôle
 
-Chaque agent a un rôle. **Le rôle change la consigne envoyée à l'agent, pas le modèle.**
+Un message Relay n'accorde aucun droit supplémentaire. **L'arrière-plan est le défaut** pour Codex/Claude, avec des outils limités et une conversation fermée requise. Si la conversation Codex est ouverte, votre agent explique le choix : garder l'arrière-plan, ou y envoyer la demande avec ses outils et permissions actuelles, **y compris l'écriture si elle est autorisée**. Vous pouvez choisir pour cet échange, ou confirmer **Privilégier la conversation ouverte** comme réglage habituel (valeur technique `auto`) ; une conversation fermée part alors en arrière-plan. Les réglages explicites existants sont conservés. Si la délivrance est incertaine, Palabre ne renvoie pas le message automatiquement.
 
-| Rôle | Ce que fait l'agent |
-| --- | --- |
-| `implementer` | Propose une solution concrète. |
-| `reviewer` | Cherche les risques, les régressions et les tests manquants. |
-| `critic` | Challenge les hypothèses. |
-| `architect` | Structure les options techniques. |
-| `scout` | Explore rapidement un sujet. |
-| `summarizer` | Produit une synthèse fidèle. |
+### Garder une trace des échanges
 
-Des combinaisons qui marchent bien :
+Palabre enregistre les échanges dans des fichiers Markdown, dans `.palabre/` par défaut : `.relay.md`, `.debate.md`, `.ask.md` et `.chat.md`. Débat et Ask y ajoutent leur synthèse lorsqu'elle est activée. Vous pouvez les relire, les conserver avec votre projet ou les partager après avoir vérifié les informations sensibles. [Détail des exports](https://palab.re/fr/usage/exports).
 
-- **`implementer` + `reviewer`** : l'un propose, l'autre cherche ce qui pourrait casser.
-- **`architect` + `critic`** : poser les options, puis les challenger.
-- **`scout`** : un premier tour d'horizon rapide avant une conversation plus poussée.
-- **`summarizer`** : pour l'agent de synthèse finale.
+### Documentation et intégrations
 
-Pour une conversation : `--role-a`, `--role-b`, ou `/roles` dans la TUI. Pour changer le rôle par défaut d'un agent : `palabre agent-role <agent> <rôle>`.
+Documentation complète : **[palab.re](https://palab.re/fr)** — [Relay](https://palab.re/fr/usage/relay), [Débat](https://palab.re/fr/get-started/first-debate), [Référence CLI](https://palab.re/fr/reference/cli), [Dépannage](https://palab.re/fr/troubleshooting).
 
-### Agents compatibles
+Pour les agents : consignes d'utilisation dans [`skills/palabre/SKILL.md`](./skills/palabre/SKILL.md).
 
-| Agent | Comment PALABRE le lance |
-| --- | --- |
-| Claude Code | `claude --print` |
-| Codex CLI | `codex exec` |
-| Antigravity CLI | `agy --print`, en pseudo-terminal |
-| OpenCode | `opencode run` |
-| Mistral Vibe | `vibe --output text --trust --prompt` |
-| Ollama | API HTTP locale : les modèles tournent sur votre machine, sans abonnement |
+[Extension VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode) : Débat, Ask et Chat dans une barre latérale. [Contrats d'intégration](https://palab.re/fr/integrations/ndjson) : JSON/NDJSON pour les autres clients.
 
-### Pour aller plus loin
-
-- **Extension VS Code.** [PALABRE pour VS Code](https://marketplace.visualstudio.com/items?itemName=JuReyms.palabre-vscode) ajoute une barre latérale pour lancer Débat, Chat ou Ask, ajouter du contexte de workspace, suivre chaque conversation en direct et ouvrir son export. En Chat, vous pouvez changer l'agent actif ou demander ponctuellement l'avis d'un autre agent. Elle reste un client mince : elle lance le CLI local `palabre` et utilise les contrats JSON/NDJSON publics.
-- **Intégrations.** Sorties JSON versionnées : `palabre agents --json`, `palabre presets --json`, `palabre context scan --json`, et `--renderer ndjson` ou `--json` pour suivre un débat événement par événement. Le flux NDJSON v1 est une API publique d'intégration : les ajouts compatibles ne cassent pas v1, les changements cassants changent le champ `v`.
-- **Skill pour agents IA.** Un skill prêt à l'emploi apprend à un agent IA quand utiliser PALABRE et quel mode choisir. Il suit le standard ouvert [agentskills.io](https://agentskills.io). Installez celui du paquet CLI exécuté avec `palabre skill --install claude` ou `palabre skill --install codex`. `palabre skill --sync` rafraîchit les copies détectées sans réseau ; `palabre update` les inclut dans sa confirmation unique, avec sauvegardes et jonctions conservées. Rechargez ensuite le skill. Détails et autres agents : [Skill PALABRE](https://palab.re/fr/get-started/skill).
-
-### Relay : parcours expérimental et fonctions gelées
-
-`--write` est expérimental, gelé et hors parcours par défaut : uniquement sur demande explicite de l’humain, avec un accord ponctuel. Mission et `--task review` sont également gelés ; seule leur sécurité sera corrigée, sans extension de périmètre. Leur documentation reste dans le [guide Relay](https://palab.re/fr/usage/relay).
-
-### Documentation
-
-[palab.re](https://palab.re) (miroir : [palabre.netlify.app](https://palabre.netlify.app)) — [Installation](https://palab.re/fr/get-started/installation), [Configuration](https://palab.re/fr/get-started/configuration), [Première conversation](https://palab.re/fr/get-started/first-debate), [Référence CLI](https://palab.re/fr/reference/cli), [Dépannage](https://palab.re/fr/troubleshooting), [Roadmap](https://palab.re/fr/roadmap).
-
-### Confidentialité
-
-PALABRE tourne localement et n'envoie aucune donnée à un serveur appartenant à PALABRE. Les données envoyées aux agents dépendent des outils que vous utilisez : vérifiez les politiques de confidentialité de Claude Code, Codex CLI, Antigravity CLI, OpenCode, Mistral Vibe, Ollama ou de tout autre agent configuré.
-
-### Contribution / développement local
-
-```bash
-git clone https://github.com/JuReyms/Palabre.git
-cd Palabre
-pnpm install
-pnpm build
-pnpm link --global
-palabre --version
-```
-
-Commandes utiles : `pnpm check`, `pnpm test`, `pnpm build`.
-
-Avant une publication, `pnpm smoke:real-presets -- --mode both --keep-going` lance des conversations Débat et Ask réelles sur les 10 paires CLI prioritaires actives afin de vérifier le flux complet agent → NDJSON → synthèse → export. Ce smoke test appelle de vraies CLI IA et peut consommer des quotas ; il n'est donc pas lancé par `pnpm test`.
-
-Roadmap publique : [docs/guide/fr/roadmap.md](./docs/guide/fr/roadmap.md). Changements : [CHANGELOG.md](./CHANGELOG.md). Guide agents/contributeurs : [AGENTS.md](./AGENTS.md).
-
-### Licence
-
-MIT. Voir [LICENSE](./LICENSE).
+[Contribution et développement local](./AGENTS.md) · [Changelog](./CHANGELOG.md) · [Roadmap](https://palab.re/fr/roadmap) · [Licence MIT](./LICENSE)

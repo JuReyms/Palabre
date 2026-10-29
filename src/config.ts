@@ -2,7 +2,7 @@
 import { access, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { applyDetectedCommands, detectedAgentNames } from "./agentRegistry.js";
+import { applyDetectedCommands, detectedAgentNames, normalizeCommandName } from "./agentRegistry.js";
 import { refreshTrustedConfig } from "./configTrust.js";
 import { validateRelayPolicy } from "./externalSessions/review.js";
 import { writeTextFileAtomically } from "./atomicFile.js";
@@ -41,7 +41,15 @@ const CODEX_SAFE_ARGS = [
   "--sandbox",
   "read-only"
 ];
-const OPENCODE_SAFE_ARGS = ["run", "--pure"];
+/**
+ * OpenCode 2 n'a plus `--pure` (absent dès 2.0.0) et aucun remplaçant n'est qualifié : décision du
+ * propriétaire du 28 octobre 2026, Débat/Ask/Chat utilisent l'environnement habituel d'OpenCode,
+ * comme Relay sur copie. Plugins, MCP et permissions configurés restent actifs ; aucune lecture
+ * seule ni neutralisation n'est promise.
+ */
+const OPENCODE_DEFAULT_ARGS = ["run"];
+const ANTIGRAVITY_LEGACY_ARGS = ["--print-timeout", "5m0s", "--print"];
+const ANTIGRAVITY_JSON_ARGS = ["--print-timeout", "5m0s", "--output-format", "json", "--print"];
 const VIBE_SAFE_ARGS = [
   "--output",
   "text",
@@ -87,14 +95,12 @@ export const exampleConfig: PalabreConfig = {
       tier: "primary"
     },
     antigravity: {
-      type: "cli-pty",
+      type: "cli",
       command: "agy",
-      args: [
-        "--print-timeout",
-        "5m0s",
-        "--print"
-      ],
+      args: [...ANTIGRAVITY_JSON_ARGS],
+      responseFormat: "antigravity-json",
       promptMode: "argument",
+      shell: process.platform === "win32",
       role: "reviewer",
       tier: "primary",
       timeoutMs: 300_000
@@ -102,7 +108,7 @@ export const exampleConfig: PalabreConfig = {
     opencode: {
       type: "cli",
       command: "opencode",
-      args: [...OPENCODE_SAFE_ARGS],
+      args: [...OPENCODE_DEFAULT_ARGS],
       promptMode: "stdin",
       modelArg: "--model",
       shell: process.platform === "win32",
@@ -271,29 +277,119 @@ export function syncDetectedAgents(config: PalabreConfig, discovery: ToolDiscove
   return missingAgents;
 }
 
+/** Anciens défauts d'arguments exactement reconnus, et leur remplacement actuel. */
+const LEGACY_ARGS_MIGRATIONS: { agent: string; previous: string[][]; next: string[] }[] = [
+  { agent: "codex", previous: [["exec", "--skip-git-repo-check", "--color", "never", "--sandbox", "read-only", "-"]], next: CODEX_SAFE_ARGS },
+  { agent: "claude", previous: [["--print", "--output-format", "text", "--no-session-persistence"]], next: CLAUDE_SAFE_ARGS },
+  // Ancien défaut exact seulement : une configuration personnalisée qui contient `--pure` reste intacte.
+  { agent: "opencode", previous: [["run", "--pure"]], next: OPENCODE_DEFAULT_ARGS },
+  {
+    agent: "vibe",
+    previous: [["--output", "text", "--trust", "--prompt"], ["--output", "text", "--agent", "plan", "--trust", "--prompt"]],
+    next: VIBE_SAFE_ARGS
+  }
+];
+
+/**
+ * Remplace des anciens défauts d'arguments **exactement** reconnus par les défauts actuels ; tout
+ * tableau personnalisé est conservé tel quel. OpenCode : `["run", "--pure"]` devient `["run"]`.
+ * Antigravity migre aussi son ancien transport exact vers JSON batch ; les réglages de transport
+ * personnalisés sont exclus. Appliqué en mémoire par `loadConfig` : le fichier reste intact.
+ */
 function migrateKnownAgentDefaults(config: PalabreConfig): void {
-  migrateExactCliArgs(config, "codex", [[
-    "exec",
-    "--skip-git-repo-check",
-    "--color",
-    "never",
-    "--sandbox",
-    "read-only",
-    "-"
-  ]], CODEX_SAFE_ARGS);
-  migrateExactCliArgs(config, "claude", [[
-    "--print",
-    "--output-format",
-    "text",
-    "--no-session-persistence"
-  ]], CLAUDE_SAFE_ARGS);
-  migrateExactCliArgs(config, "opencode", [[
-    "run"
-  ]], OPENCODE_SAFE_ARGS);
-  migrateExactCliArgs(config, "vibe", [
-    ["--output", "text", "--trust", "--prompt"],
-    ["--output", "text", "--agent", "plan", "--trust", "--prompt"]
-  ], VIBE_SAFE_ARGS);
+  for (const { agent, previous, next } of LEGACY_ARGS_MIGRATIONS) migrateExactCliArgs(config, agent, previous, next);
+  const agent = config.agents.antigravity;
+  if (isLegacyAntigravity(agent)) {
+    // Même résolution prudente que les autres CLI : natif/shim reconnu sans shell ; wrapper inconnu refusé.
+    config.agents.antigravity = { ...agent, type: "cli", args: [...ANTIGRAVITY_JSON_ARGS], responseFormat: "antigravity-json", shell: process.platform === "win32" } as CliAgentConfig;
+  }
+}
+
+/** Ancien transport exact uniquement : aucun réglage PTY, shell, idle ou format personnalisé ni wrapper explicite. */
+function isLegacyAntigravity(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const agent = value as Record<string, unknown>;
+  return agent.type === "cli-pty" && typeof agent.command === "string"
+    && ["agy", "antigravity"].includes(normalizeCommandName(agent.command))
+    && JSON.stringify(agent.args) === JSON.stringify(ANTIGRAVITY_LEGACY_ARGS)
+    && agent.promptMode === "argument" && agent.responseFormat === undefined
+    && agent.cols === undefined && agent.rows === undefined
+    && agent.shell === undefined && agent.idleTimeoutMs === undefined
+    && !/\.(cmd|bat|ps1)$/i.test(agent.command);
+}
+
+/** Agents dont le JSON brut contient un ancien défaut exact (arguments, ou transport Antigravity). */
+function legacyArgsAgents(raw: unknown): string[] {
+  const agents = (raw as { agents?: Record<string, { type?: unknown; args?: unknown }> } | null)?.agents;
+  if (!agents || typeof agents !== "object") return [];
+  return [...LEGACY_ARGS_MIGRATIONS
+    .filter(({ agent, previous }) => agents[agent]?.type === "cli" && previous.some((args) => JSON.stringify(agents[agent]?.args) === JSON.stringify(args)))
+    .map(({ agent }) => agent), ...(isLegacyAntigravity(agents.antigravity) ? ["antigravity"] : [])];
+}
+
+/**
+ * Agents dont le fichier `configPath` contient encore un ancien défaut d'arguments exact, avant la
+ * migration en mémoire de `loadConfig`. Fichier illisible ou invalide : aucun.
+ */
+export async function legacyArgsInConfigFile(configPath: string): Promise<string[]> {
+  try { return legacyArgsAgents(JSON.parse(await readFile(path.resolve(configPath), "utf8"))); } catch { return []; }
+}
+
+/** Résultat de `persistAgentSync` ; `conflict` : fichier modifié depuis son chargement, rien n'est écrit. */
+export interface PersistedAgentSync extends DetectedAgentsSyncResult {
+  conflict?: true;
+}
+
+/** Options de `persistAgentSync`. */
+export interface PersistAgentSyncOptions {
+  /**
+   * Écrire aussi quand seul un ancien défaut d'arguments reste dans le fichier (vrai par défaut :
+   * synchronisation demandée explicitement). L'accueil TUI, automatique, le désactive.
+   */
+  persistLegacyArgs?: boolean;
+}
+
+/**
+ * Synchronise les agents détectés et écrit la configuration si elle change, **y compris** quand seul
+ * un ancien défaut d'arguments reste dans le fichier (déjà migré en mémoire par `loadConfig`), sauf
+ * `persistLegacyArgs: false`. L'écriture rafraîchit une approbation existante. Parcours partagés :
+ * `palabre config --sync-agents`, action « synchroniser » de l'assistant `palabre config` et accueil TUI.
+ *
+ * Protection contre une édition concurrente : le fichier relu au départ doit correspondre à
+ * `config` (chargé et migré), puis rester identique octet pour octet jusqu'à l'écriture ; sinon
+ * `conflict`, sans écriture. Un fichier devenu illisible ou invalide compte comme modifié. On ne
+ * reconstruit pas depuis le fichier modifié, qui n'a pas été approuvé : l'écriture rafraîchirait son
+ * approbation. Après un conflit, `config` peut déjà contenir la synchronisation en mémoire. La
+ * découverte (`discover`) peut être lente, d'où le contrôle avant écriture ; il réduit la course sans
+ * la rendre atomique : une édition entre ce dernier contrôle et le remplacement du fichier peut encore
+ * être écrasée.
+ */
+export async function persistAgentSync(
+  configPath: string,
+  config: PalabreConfig,
+  discover: () => Promise<ToolDiscovery>,
+  options: PersistAgentSyncOptions = {}
+): Promise<PersistedAgentSync> {
+  const resolved = path.resolve(configPath);
+  const conflict: PersistedAgentSync = { addedAgents: [], changed: false, conflict: true };
+  const initial = await readFile(resolved, "utf8").catch(() => undefined);
+  if (initial === undefined) return conflict;
+  let raw: unknown;
+  try {
+    raw = JSON.parse(initial);
+    const reloaded = structuredClone(raw) as PalabreConfig;
+    if (reloaded?.relay !== undefined) reloaded.relay = validateRelayPolicy(reloaded.relay);
+    migrateKnownAgentDefaults(reloaded);
+    if (JSON.stringify(reloaded) !== JSON.stringify(config)) return conflict;
+  } catch {
+    return conflict;
+  }
+  const legacy = options.persistLegacyArgs === false ? [] : legacyArgsAgents(raw);
+  const result = syncDetectedAgentsDetailed(config, await discover());
+  if (!result.changed && legacy.length === 0) return { addedAgents: result.addedAgents, changed: false };
+  if (await readFile(resolved, "utf8").catch(() => undefined) !== initial) return conflict;
+  await writeConfig(resolved, config);
+  return { addedAgents: result.addedAgents, changed: true };
 }
 
 function migrateExactCliArgs(
@@ -397,11 +493,36 @@ export function setOllamaBaseUrl(config: PalabreConfig, baseUrl: string): number
 }
 
 /** Écrit `config` sérialisé en JSON dans `configPath`. Crée le répertoire parent si nécessaire. */
+/** Configurations en mémoire dont le fichier a changé hors de cette session : voir `lockConfigWrites`. */
+const writeLockedConfigs = new WeakSet<PalabreConfig>();
+
+/**
+ * Interdit toute écriture ultérieure de `config` par `writeConfig`. Utilisé par l'accueil TUI après un
+ * conflit de `persistAgentSync` : l'objet chargé ne correspond plus au fichier, et le réécrire
+ * écraserait l'édition humaine tout en rafraîchissant son approbation. Seul un rechargement (relancer
+ * `palabre`) repasse par la validation et l'approbation normales.
+ */
+export function lockConfigWrites(config: PalabreConfig): void {
+  writeLockedConfigs.add(config);
+}
+
+/** Vrai si `lockConfigWrites` a été appelé pour cet objet de configuration. */
+export function isConfigWriteLocked(config: PalabreConfig): boolean {
+  return writeLockedConfigs.has(config);
+}
+
+/**
+ * Écrit la configuration (atomiquement) et rafraîchit une approbation existante. Refuse, par une
+ * erreur, un objet verrouillé par `lockConfigWrites` : garde-fou si un appelant oublie son contrôle.
+ */
 export async function writeConfig(
   configPath = DEFAULT_CONFIG_PATH,
   config: PalabreConfig = exampleConfig
 ): Promise<void> {
   const resolved = path.resolve(configPath);
+  if (writeLockedConfigs.has(config)) {
+    throw new Error(`Configuration write blocked: ${resolved} changed outside this session; restart palabre to reload it.`);
+  }
   await writeTextFileAtomically(resolved, `${JSON.stringify(config, null, 2)}\n`);
   await refreshTrustedConfig(resolved);
 }

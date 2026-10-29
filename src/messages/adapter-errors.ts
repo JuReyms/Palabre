@@ -1,5 +1,7 @@
+/** @file Diagnostics localisés des adapters et prochaines actions pour l'utilisateur. */
 import type { AdapterFailureKind, Language } from "../types.js";
 
+/** Contrat FR/EN des diagnostics d'adapter et de leurs actions correctives. */
 export interface AdapterErrorMessages {
   suggestionPrefix: string;
   hint(kind: AdapterFailureKind): string | undefined;
@@ -7,6 +9,12 @@ export interface AdapterErrorMessages {
   usageLimit(adapterName: string, detail: string): string;
   /** Message `unsupported-model` : modèle refusé par la CLI de l'agent. */
   unsupportedModel(adapterName: string, detail: string): string;
+  /** OpenCode 2 refuse l'ancien argument `--pure` : migration exacte ou retrait manuel, sans neutralisation promise. */
+  openCodePureRemoved(adapterName: string): string;
+  /** JSON Antigravity inconnu, erroné ou sans réponse : aucun repli texte. */
+  invalidAntigravityJson(adapterName: string): string;
+  /** Format configuré inconnu : refus avant tout lancement. */
+  invalidResponseFormat(adapterName: string): string;
   /** Refus de transmettre un prompt non fiable via un wrapper shell Windows. */
   unsafeWindowsShellPrompt(adapterName: string): string;
   /** Refus d'un identifiant de modèle contenant des métacaractères de shell Windows. */
@@ -67,10 +75,14 @@ const enHints: Partial<Record<AdapterFailureKind, string>> = {
 
 export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
   fr: {
+    invalidAntigravityJson: (name) => `${name} : réponse JSON Antigravity invalide, en erreur ou vide. Vérifie la version avec agy --help et les arguments --output-format json --print ; seul un objet avec status SUCCESS et response non vide est accepté. Aucun repli texte ou PTY.`,
+    invalidResponseFormat: (name) => `${name} : responseFormat invalide pour cet adapter. Configure "text" ou "antigravity-json" avec "type": "cli", ou retire responseFormat pour conserver ton transport.`,
     suggestionPrefix: "Suggestion",
     hint: (kind) => frHints[kind],
     usageLimit: (adapterName, detail) => `${adapterName} a atteint une limite d'utilisation: ${detail}`,
     unsupportedModel: (adapterName, detail) => `${adapterName} ne peut pas utiliser ce modèle: ${detail}`,
+    openCodePureRemoved: (adapterName) =>
+      `${adapterName} : OpenCode 2 n'accepte plus l'option --pure. Retire-la toi-même des arguments ("args") personnalisés de cet agent dans ta configuration : Palabre ne modifie jamais des arguments personnalisés (seul l'ancien défaut exact ["run", "--pure"] est remplacé automatiquement par ["run"]). OpenCode garde alors son environnement habituel : ses plugins, serveurs MCP et permissions configurés restent actifs.`,
     unsafeWindowsShellPrompt: (adapterName) =>
       `${adapterName} ne peut pas transmettre un prompt en sécurité via ce wrapper shell Windows. Configure un exécutable natif, un shim PowerShell .ps1 ou, si la CLI le supporte, promptMode "stdin".`,
     unsafeWindowsShellModel: (adapterName) =>
@@ -91,10 +103,14 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
     ollamaUnloadFailed: (model, status) => `Impossible de décharger le modèle Ollama ${model}: HTTP ${status}`
   },
   en: {
+    invalidAntigravityJson: (name) => `${name}: invalid, failed or empty Antigravity JSON response. Check the version with agy --help and the --output-format json --print arguments; only an object with status SUCCESS and a nonempty response is accepted. No text or PTY fallback.`,
+    invalidResponseFormat: (name) => `${name}: invalid responseFormat for this adapter. Configure "text" or "antigravity-json" with "type": "cli", or remove responseFormat to keep your transport.`,
     suggestionPrefix: "Suggestion",
     hint: (kind) => enHints[kind],
     usageLimit: (adapterName, detail) => `${adapterName} hit a usage limit: ${detail}`,
     unsupportedModel: (adapterName, detail) => `${adapterName} cannot use this model: ${detail}`,
+    openCodePureRemoved: (adapterName) =>
+      `${adapterName}: OpenCode 2 no longer accepts the --pure option. Remove it yourself from this agent's custom arguments ("args") in your configuration: Palabre never changes custom arguments (only the exact old default ["run", "--pure"] is replaced automatically with ["run"]). OpenCode then keeps its usual environment: its configured plugins, MCP servers and permissions stay active.`,
     unsafeWindowsShellPrompt: (adapterName) =>
       `${adapterName} cannot safely pass a prompt through this Windows shell wrapper. Configure a native executable, a PowerShell .ps1 shim, or promptMode "stdin" if the CLI supports it.`,
     unsafeWindowsShellModel: (adapterName) =>

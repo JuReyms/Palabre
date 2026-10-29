@@ -1,6 +1,6 @@
 /**
  * @file Relay B1 (`palabre relay --open`) : corrélation d'une réponse Codex dans un rollout (voir
- * AGENTS.md, section "Relay externe", et `scripts/prototypes/relay/CONTRAT-B1.md`), et suivi du tour
+ * docs/dev/relay-open.md, section "Relay vers une conversation ouverte", et `scripts/prototypes/relay/CONTRAT-B1.md`), et suivi du tour
  * suivant sans dépôt (`--open --follow`, #195, `inspectFollowedTurn`).
  * Fonctions pures : aucun accès disque, envoi, attente, reprise ni appel de modèle. Le dialecte
  * expérimental utilise les item_completed liés à un thread et à un tour, observés avec Codex 0.151.0
@@ -8,12 +8,19 @@
  */
 import { createHash } from "node:crypto";
 import { extractRetryAfter } from "../adapters/cli-shared.js";
+import type { HistoryPart } from "./codexHistory.js";
 
 /** Offset avant dépôt et empreintes bornées ; ne garantit pas l'intégrité de tout l'historique. */
 export interface OpenBaseline {
   bytes: number;
   firstLineSha256: string;
   sha256: string;
+  /**
+   * Historique en segments : fichiers traversés jusqu'à la référence. Les parties précédentes
+   * gardent leur fin ; la dernière a pour `end` la position physique de la référence. Sert à
+   * vérifier structurellement qu'aucune coupure n'est passée avant elle (le témoin ne suffit pas).
+   */
+  layout?: readonly HistoryPart[];
 }
 
 /** Première ligne et derniers octets avant l'offset, lus sans charger l'historique. */
@@ -26,6 +33,20 @@ export interface OpenReference {
 /** Seul l'ajout depuis l'offset est fourni au lecteur ; la taille totale peut dépasser 50 Mio. */
 export interface OpenSnapshot extends OpenReference {
   added: Uint8Array;
+  /** Historique en segments : parties du flux logique lu, de l'ancrage à la tête. */
+  layout?: readonly HistoryPart[];
+}
+
+/**
+ * Disposition jusqu'à l'offset logique `bytes` : parties entières avant celle qui le contient, puis
+ * celle-ci arrêtée à la position physique de l'offset. Un offset sur une frontière reste dans la
+ * partie qui se termine là. `undefined` si l'offset sort du flux.
+ */
+export function layoutUntil(parts: readonly HistoryPart[], bytes: number): HistoryPart[] | undefined {
+  const index = parts.findIndex((part) => bytes >= part.logicalStart && bytes <= part.logicalStart + part.end - part.start);
+  if (index < 0) return undefined;
+  const containing = parts[index]!;
+  return [...parts.slice(0, index), { ...containing, end: containing.start + bytes - containing.logicalStart }];
 }
 
 /** Le nonce et l'enveloppe exacte sont propres à une seule tentative. */
@@ -402,8 +423,13 @@ function referenceAfterRow(snapshot: OpenSnapshot, baseline: OpenBaseline, rowIn
   let row = 0, start = 0;
   for (let end = added.indexOf(10); end >= 0; end = added.indexOf(10, start)) {
     if (added.subarray(start, end).toString("utf8").trim() && row++ === rowIndex) {
-      return captureOpenBaseline({ bytes: baseline.bytes + end + 1, firstLine: snapshot.firstLine,
+      const bytes = baseline.bytes + end + 1;
+      const reference = captureOpenBaseline({ bytes, firstLine: snapshot.firstLine,
         witness: Buffer.concat([Buffer.from(snapshot.witness), added.subarray(0, end + 1)]).subarray(-OPEN_READ_LIMITS.witnessBytes) });
+      if (!snapshot.layout) return reference;
+      const layout = layoutUntil(snapshot.layout, bytes);
+      if (!layout) throw new Error("completion-boundary-missing");
+      return { ...reference, layout };
     }
     start = end + 1;
   }

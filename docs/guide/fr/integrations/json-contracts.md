@@ -40,7 +40,9 @@ Avec `--check` (#203), rien n'est envoyé ni écrit et aucune CLI de l'équipier
 `palabre config --ollama-models --json` expose `v`, `agent`, `available`, `baseUrl`, `currentModel`, `currentModelInstalled`, `installedModels`, sans génération de modèle.
 
 
-`palabre agents --json` ajoute `defaults.relayView` (`auto` par défaut, ou `background`), issu de `relay.view`. Une intégration ne choisit ni ne déduit le mode. Relay v1 ajoute `modeSource?` : `explicit` (option `--open`/`--background`, y compris suivi explicite), `auto` (verrou ou parcours imposé), `setting` (préférence `background`). Absent si la validation s'arrête avant résolution, ainsi que dans les versions antérieures. Les champs du mode `open` existent aussi quand `auto` l'a sélectionné. `mode` décrit le transport retenu ou demandé, pas une preuve d'envoi ; une sonde inconnue refuse sans envoi et ne donne jamais `open`. Les exclusions restent en arrière-plan, `modeSource: "auto"`, sauf option explicite compatible.
+`palabre agents --json` ajoute `defaults.relayView` (`background` par défaut, ou `auto` explicitement enregistré), issu de `relay.view`. Une intégration ne choisit ni ne déduit le mode. Relay v1 ajoute `modeSource?` : `explicit` (option `--open`/`--background`, y compris suivi explicite), `auto` (verrou ou parcours imposé), `default` (arrière-plan sans préférence enregistrée, nouvelle valeur v1), `setting` (`background` explicitement enregistré). Absent si la validation s'arrête avant résolution, ainsi que dans les versions antérieures. Les champs du mode `open` existent aussi quand `auto` l'a sélectionné. `mode` décrit le transport retenu ou demandé, pas une preuve d'envoi ; une sonde inconnue refuse sans envoi et ne donne jamais `open`. Les exclusions restent en arrière-plan, `modeSource: "auto"`, sauf option explicite compatible.
+
+Pour `target-busy`, `remedy` peut proposer le réglage habituel seulement si `background` est enregistré : c'est un choix facultatif à lancer et confirmer par le propriétaire, pas un envoi ni une réparation automatique. Sans préférence (`modeSource: "default"`), le champ est absent ; le texte explique d'abord les possibilités pour cet échange, puis le réglage habituel. Ne jamais exécuter une commande de configuration à partir de ce champ sans décision humaine.
 
 ## Suite après réponse : `relay --then-follow` (#204)
 
@@ -78,3 +80,53 @@ Le mode conserve le profil habituel d'OpenCode, sans lecture seule imposée.
 Ni préférence `relay.view`, ni quota/lien Codex, ni champs de suivi dans ce parcours.
 `--background`, `--open`, `--check`, `--follow` et `--then-follow` sont refusés avec `--copy`.
 Pilote Windows/OpenCode CLI 2.0.32 seulement ; source et copie sont conservées.
+
+## Ouverture Codex sans message (#219)
+
+`palabre relay open --to codex:<uuid> --json` rend un objet **distinct** v1,
+`type: relay-open-result`. Champs : `status`, `exitCode`, `to`, `launcher`
+(`attempted`, `status`, `exitCode?`), `attachment` (`attached`, `detached`, `unknown`),
+`reason`, `display: unverified`, `messageSent: false`, `error`, `durationMs`.
+Aucun `reply`, `delivery`, `mode`, `targetPermissions` ou export. Le JSON d'échange
+relay-result reste inchangé. Code 0/attached signifie verrou tenu, jamais preuve
+d'affichage ni d'app Desktop ; le lanceur est une preuve séparée. Code 3 pour
+verrou libre à l'échéance/inconnu ; 4 pour délai pendant validation/lanceur/sonde ;
+7 lanceur absent ; 2 échec lanceur ; 130 annulation. Refus de validation conservés.
+Ne pas assimiler ce résultat à un message reçu. Un envoi autorisé est séparé et
+utilise --open explicite. Sous Windows seulement, Explorer code 1 donne
+`launcher.status: unverified`, `launcher.exitCode: 1` conservé, puis sonde du verrou
+sans relance. Un verrou déjà tenu ne prouve aucun nouvel affichage. Deux ouvertures
+ont été confirmées sous Windows avant ce correctif ; une ouverture corrigée a ensuite
+rendu `launcher: unverified`/1 et `attached`/0, avec affichage confirmé séparément
+par le propriétaire. Cela ne qualifie pas une transition de fermé à ouvert ni
+toutes les versions. Claude/OpenCode refusés ; macOS/Linux non vérifiés.
+
+## Inventaire Relay JSON
+
+`palabre relay recent --json` rend un objet unique, pas un flux NDJSON :
+
+```json
+{"v":1,"type":"relay-recent-result","status":"listed","exitCode":0,"entries":[],"warnings":[],"truncated":false,"scanTruncated":false,"error":null}
+```
+
+- `entries[]` : `fileName` relatif au dossier de sortie, `date` ISO de l'export,
+  `subject` ou null, `agent` (alias), `provider`, `to: {agent, session}` (session
+  éventuellement nulle), `mode` ou null pour un ancien export, `status`, `delivery`.
+- OpenCode sur copie : `to: null`, `copy: {source, session, verified}` distinct ;
+  jamais substituer la source à une copie absente ni proposer une reprise directe.
+- `warnings[]` : `fileName` relatif et `reason` stable (`unreadable`, `invalid-header`,
+  `header-too-large`, `not-regular`, `changed`, `invalid-name`). Pour `invalid-name`,
+  le nom est remplacé par `[invalid-name]`, sans afficher de chemin ou contrôle.
+  Un fichier invalide ne compte pas
+  dans `--limit` et n'empêche pas de présenter les autres.
+- `truncated` : fichiers non présentés. `scanTruncated` : plafond de scan/lecture,
+  liste potentiellement incomplète, sans garantie des plus récents globalement.
+- Codes : 0 liste (même vide), 8 arguments/config refusés, 2 dossier illisible.
+  Sur erreur : `status: invalid-request|read-failed`, `error: {reason, message}` ;
+  listes vides, aucun repli ni écriture.
+
+Aucun chemin de fichier absolu ajouté, prompt, réponse, permission ou commande
+fabriquée. L'objet peut contenir des informations privées choisies par l'utilisateur.
+Ces métadonnées sont non authentifiées : confirmer humainement l'échange, puis
+valider à nouveau la cible et la configuration avant toute ouverture ou envoi.
+Le contrat `history` et les résultats d'envoi Relay ne changent pas.

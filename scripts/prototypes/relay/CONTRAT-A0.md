@@ -1,6 +1,6 @@
 # Lot A0 : contrat de `palabre relay` pour les conversations fermées
 
-Statut : **contrat validé par Codex, reporté dans `AGENTS.md`** (section « Relay externe »), qui en est désormais la seule source. Ce document conserve deux éléments :
+Statut : **contrat validé par Codex, initialement reporté dans `AGENTS.md`**. Depuis l’allègement du 26 octobre 2026, sa référence de développement est [docs/dev/relay.md](../../../docs/dev/relay.md). Ce document conserve deux éléments historiques :
 
 1. les décisions explicites, avec leur état et leur origine ;
 2. les points à vérifier pendant les lots suivants.
@@ -9,7 +9,7 @@ Les constats cités viennent du prototype `scripts/prototypes/relay/` (légende 
 
 ## Partie 1 : texte du contrat
 
-Il est dans `AGENTS.md`, section « Relay externe » : syntaxe, résolution de la commande, déroulé, engagements et limites, statuts de délivrance, issues et codes de sortie, sortie `--json` v1, hors périmètre.
+Il est dans [docs/dev/relay.md](../../../docs/dev/relay.md) : syntaxe, résolution de la commande, déroulé, engagements et limites, statuts de délivrance, issues et codes de sortie, sortie `--json` v1. Le parcours ouvert a sa [référence distincte](../../../docs/dev/relay-open.md).
 
 ## Partie 2 : décisions explicites
 

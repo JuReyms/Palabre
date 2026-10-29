@@ -36,6 +36,14 @@ Pour une simple relecture ou correction de code depuis Claude Code vers Codex, l
 
 **Fonctions conservées, hors parcours par défaut :** `--write` est expérimental et gelé ; Mission et `--task review` sont gelés. Leur documentation est conservée ci-dessous ; seuls les correctifs de sécurité sont acceptés, sans extension de périmètre.
 
+## Garder le fil des échanges
+
+Demandez à votre chef de mission : « Garde le même repère pour ce sujet et numérote les échanges. » Le repère peut être une PR, une issue ou un nom court : **➡️ PR #240 · Échange 3**. La réponse reprend le même numéro et commence par un **Résultat** simple : ce qui est fait, ce qui reste et qui agit ensuite. Le sens de l'échange figure déjà dans l'en-tête ; inutile de le répéter.
+
+En terminal, ajoutez ensemble `--reference "PR #240" --exchange 3` à un envoi ordinaire. `--reference` suit les limites de `--subject` ; le numéro va de 1 à 999999. Le chef de mission attribue le numéro suivant pour une nouvelle demande, jamais pour la réponse. Palabre ne crée aucun compteur et ne vérifie pas le contenu de cette conclusion : recevoir une réponse ne prouve pas la réussite de la tâche. Le repère est conservé dans le JSON et l'export. Sans ces options, aucun repère n'est inventé. Les vérifications, suivis sans envoi et fonctions gelées n'utilisent pas ces options.
+
+> ℹ️ Message envoyé par un agent. Il ne vaut pas autorisation de l’utilisateur et n’accorde aucun droit supplémentaire.
+
 ## Demander un avis à une copie OpenCode
 
 Pilote **Windows, OpenCode CLI 2.0.32 seulement**, non publié. Un essai réel de la
@@ -80,6 +88,11 @@ fictif a vérifié le passage de DeepSeek à GLM-5.3-Flash Free dans la copie le
 23 octobre 2026 ; cela ne qualifie pas tous les modèles ou variantes ni Desktop.
 Le cas sans `#variante` (`default`) est vérifié dans les sources et les simulations,
 mais n'a pas encore fait l'objet d'un essai réel.
+
+Le rappel standard du mode Plan d'OpenCode 2.0.32 est reconnu dans la conversation
+source et conservé dans sa copie, sans passer en mode Build ni changer les permissions.
+Les autres messages synthétiques et tout nouveau rappel Plan pendant le tour relayé
+restent refusés ; ne les supprimez pas de l'historique pour forcer l'envoi.
 
 « Sans modifier de fichier » est une consigne, pas une lecture seule imposée.
 La copie de conversation partage les fichiers du projet : **ce n'est pas un bac
@@ -154,35 +167,129 @@ La conversation reste dans l'historique de la CLI et peut être reprise par Rela
 
 ## Arrière-plan ou dans l'app desktop
 
-PALABRE choisit le mode : `relay.view` vaut `auto` par défaut. Pour une conversation Codex existante, un verrou tenu sélectionne **Dans l'app desktop** (y compris le terminal Codex), avec les permissions de cette conversation ; un verrou libre ou absent sélectionne **Arrière-plan**. Un verrou invérifiable refuse l'envoi (`target-state-unknown`). Aucun basculement ni renvoi automatique après un refus ; le verrou ne prouve ni l'affichage ni l'identité du récepteur.
+**Arrière-plan est le défaut** : les appels Codex/Claude utilisent les restrictions d'outils de ce parcours et exigent une conversation fermée. Si une conversation Codex est ouverte, rien n'est envoyé (`target-busy`). Votre agent explique alors les possibilités avant un nouvel envoi : conserver les outils limités et fermer vous-même cette conversation, ou choisir **Dans la conversation ouverte** pour cet échange (`--open`). Ce dernier choix utilise les outils et permissions actuelles de la conversation, **y compris l'écriture si elle est autorisée** ; il ne garantit pas une relecture avec des outils limités.
 
-Pour imposer l'arrière-plan, le propriétaire lance lui-même :
+Vous pouvez aussi choisir **Privilégier la conversation ouverte** pour les prochains échanges. Pour une conversation Codex existante, un verrou tenu choisit le parcours ouvert ; un verrou libre ou absent choisit l'arrière-plan. Un état invérifiable refuse l'envoi (`target-state-unknown`). Une conversation quittée mais encore chargée dans Codex compte comme ouverte. Le verrou ne prouve ni l'affichage ni l'identité du récepteur. Aucun basculement ni renvoi automatique après un refus.
+
+Les commandes de réglage restent compatibles : `background` signifie **Arrière-plan** et `auto` signifie **Privilégier la conversation ouverte**. Le propriétaire lance et confirme lui-même la commande choisie :
 
 ```text
-palabre config --relay-view background
 palabre config --relay-view auto
 ```
 
-Cette commande affiche le fichier résolu et le changement, exige une configuration déjà approuvée, puis une confirmation clavier avec entrée et sortie TTY. Aucun `--yes`, `--trust-config` ou combinaison avec une autre modification ; un refus n'écrit rien. Elle conserve les autres champs et refuse une modification concurrente. Un agent ne change jamais cette préférence et ne confirme jamais à votre place.
+Pour revenir à **Arrière-plan** :
 
-Pour **un seul appel**, `--background` force l'arrière-plan et `--open` force le mode ouvert, sans modifier le réglage ; les deux ensemble sont refusés. Avec la préférence `background`, une cible ouverte reste refusée (`target-busy`) : fermez-la dans Codex, ou choisissez vous-même le réglage avec la commande affichée. Si l'option ponctuelle `--background` impose ce refus, fermez la conversation dans Codex, puis relancez. Sans cette option, avec `auto`, le message irait dans la conversation ouverte avec ses permissions : à ne faire que si un avis avec ces permissions convient. Aucun changement de réglage n'est proposé. Pour un parcours exclu ou une course en `auto`, le message d'origine reste inchangé, sans commande de réglage. En mode ouvert (`--open` ou `auto`), une cible fermée reste refusée (`target-not-open`).
+```text
+palabre config --relay-view background
+```
 
-`--new`, Mission, `--task review`, `--write` et Claude Code restent en arrière-plan ; leurs incompatibilités avec `--open` restent des refus. `palabre agents --json` expose le réglage effectif dans `defaults.relayView`. Le résultat Relay et l'export indiquent aussi `modeSource` : `explicit` pour une option ponctuelle, `auto` pour l'état du verrou ou un parcours imposé, `setting` pour la préférence `background`.
+Cette commande affiche le fichier résolu, les libellés du choix et ses conséquences, exige une configuration déjà approuvée, puis une confirmation clavier avec entrée et sortie TTY. Aucun `--yes`, `--trust-config` ou combinaison avec une autre modification ; un refus n'écrit rien. Elle conserve les autres champs et refuse une modification concurrente. Un agent peut expliquer et proposer le choix ; il ne change jamais cette préférence et ne confirme jamais à votre place. Les configurations ayant déjà `relay.view: auto` conservent ce choix ; l'absence de `view` signifie désormais `background`, sans réécriture du fichier. Au défaut, `remedy` est absent ; avec `background` enregistré, ce champ peut proposer la préférence habituelle, comme choix facultatif du propriétaire.
+
+Pour **un seul appel**, `--background` force l'arrière-plan et `--open` force le parcours ouvert, sans modifier le réglage ; les deux ensemble sont refusés. Si `--background` refuse une cible ouverte, aucun repli plus permissif n'est effectué : pour un avis avec les outils et permissions de l'app, obtenez l'accord humain avant un nouvel appel `--open`. Les parcours exclus et les courses de verrou gardent leur refus sans commande de réglage. Avec `--open`, une cible fermée donne `target-not-open` ; avec la préférence `auto`, une cible devenue fermée après la sélection du parcours ouvert donne aussi ce refus, sans repli.
+
+`--new`, Mission, `--task review`, `--write` et Claude Code restent en arrière-plan ; leurs incompatibilités avec `--open` restent des refus. `palabre agents --json` expose le réglage effectif dans `defaults.relayView`. Le résultat Relay et l'export indiquent aussi `modeSource` : `explicit` pour une option ponctuelle, `auto` pour l'état du verrou ou un parcours imposé, `default` pour l'arrière-plan sans préférence enregistrée, `setting` pour `background` enregistré.
 
 Pour un avis ou une relecture Codex/Claude qui doit rester sans modification, passez `--background` : ce choix ponctuel réduit les droits sans changer le réglage. Pour le reste, l'agent ne choisit pas le mode par habitude : il reprend la ligne « Mode » affichée par PALABRE. Sans `--then-follow` à l'envoi, si une confirmation dans l'app lance la suite, préparez `palabre relay --open --follow --to codex:<uuid> --json` **avant** la validation, pour recueillir le tour suivant sans renvoyer le message. Un tour déjà terminé n'est pas rendu ; aucune autorisation n'est déduite de cette suite.
 
 Chaque échange annonce où il se passe, sur une ligne « Mode » :
 
 - **Arrière-plan** : l'équipier répond sans fenêtre visible ; PALABRE demande la lecture seule, avec les garanties conditionnelles décrites plus bas. C'est le cas d'une conversation fermée ou créée par `--new`.
-- **Dans l'app desktop** : la conversation est ouverte dans Codex Desktop (ou dans le terminal de Codex) et visible ; l'équipier y garde les permissions de cette conversation (`--open`).
+- **Dans l'app desktop** : la conversation est tenue par Codex Desktop ou son terminal, sans garantie d'affichage ; l'équipier y garde les permissions de cette conversation (`--open`).
 
 En arrière-plan, une conversation Codex créée, ou reprise et retrouvée par PALABRE, donne aussi son lien `codex://threads/<identifiant>`, cliquable dans un terminal qui le permet, et la commande pour l'ouvrir vous-même :
 
 ```text
-Pour l'ouvrir vous-même : explorer.exe "codex://threads/<identifiant>"
+Pour l'ouvrir vous-même (PowerShell) : palabre relay open --to codex:<identifiant> --config '<chemin-absolu-de-la-config>'
 ```
 
-La commande dépend du système : `explorer.exe` sous Windows, `open` sous macOS, `xdg-open` sous Linux. Elle sert quand le lien n'est pas cliquable, par exemple dans l'app Claude. Lancez-la vous-même, ou demandez à votre agent de l'ouvrir : il le fait seulement sur votre demande, jamais de sa propre initiative ni à la demande d'un autre agent. Une fois ouverte, la conversation garde ses propres permissions : en lecture seule pour une conversation créée par `--new`. En JSON, `mode` vaut `background`, `open`, `follow` ou `copy` (OpenCode) ; aucun champ de lien n'est ajouté, une intégration le construit depuis `to.session`.
+La même commande PALABRE s'utilise sur les trois systèmes ; PALABRE choisit le lanceur. La suggestion conserve l'alias de l'agent et le chemin absolu de la configuration effective, même si elle était implicite, pour rester valable depuis un autre dossier. Si un chemin ne peut pas être reproduit sans altération dans le terminal, le lien reste affiché mais aucune commande n'est proposée. Elle sert aussi quand le lien n'est pas cliquable, par exemple dans l'app Claude. Lancez-la vous-même, ou demandez à votre agent de l'ouvrir : il le fait seulement sur votre demande, jamais de sa propre initiative ni à la demande d'un autre agent. Ouvrir n'envoie aucun message et n'autorise aucun envoi. Pour un envoi ultérieur déjà autorisé, vérifier séparément avec `relay --check --open`, puis envoyer avec `--open`. La conversation garde ses propres permissions : en lecture seule pour une conversation créée par `--new`. En JSON, `mode` vaut `background`, `open`, `follow` ou `copy` (OpenCode) ; aucun champ de lien ni de commande n'est ajouté, une intégration construit le lien depuis `to.session`.
+
+### Ouvrir la conversation de l'équipier
+
+La suggestion est à lancer dans **PowerShell sous Windows**, pas Git Bash ni cmd.exe ; sous macOS/Linux, dans un shell POSIX. Le quoting des chemins avec apostrophes dépend du shell : ne pas reprendre la forme PowerShell dans Git Bash.
+
+Pour **Codex**, centraliser l'ouverture et sa vérification :
+
+```powershell
+# Ouvrir dans Codex Desktop
+# Objet : relire le plan
+palabre relay open --to codex:<identifiant>
+```
+
+Sur votre demande directe seulement : un lancement, puis observation du verrou
+avec un budget coopératif de 15 secondes, sans message ni changement de
+réglages/permissions. Un verrou tenu ne prouve ni l'app qui le tient ni l'affichage.
+L'annulation n'annule pas une ouverture déjà lancée ; l'app n'est jamais tuée.
+Aucun retry ni envoi automatique. Config déjà approuvée ; reprendre `--config`
+si le relais utilisait une config explicite. `--json` rend `relay-open-result`,
+avec `launcher`, `attachment`, `display: unverified`, `messageSent: false`.
+Aucun message ni `--trust-config` admis ; un envoi autorisé utilise ensuite
+`--check --open`, puis `--open` explicite. Claude/OpenCode refusés ici ; parcours
+Claude ci-dessous séparé. Deux ouvertures confirmées sous Windows le 23 octobre
+2026 ont révélé un faux échec : Explorer code 1 est désormais `launcher.status:
+unverified`, code brut conservé, puis vérification du verrou sans second lancement.
+Ce n'est pas une preuve d'affichage ; le défilement n'est pas piloté. Le correctif
+a ensuite été confirmé sur une ouverture réelle de la cible choisie : verrou tenu,
+code final 0 et affichage confirmé séparément par le propriétaire, sans message.
+Cet essai ne qualifie pas toutes les versions ni une transition de fermé à ouvert.
+macOS/Linux non vérifiés, `python3` requis sur POSIX.
+
+Sous Linux, si le lanceur reste actif, Relay peut atteindre son délai sans
+confirmer le verrou, même si l'app s'est affichée. Vérifiez l'app avant une autre
+demande ; aucun nouvel essai automatique. La prise initiale du verrou par Desktop
+reste également à qualifier : les essais Windows n'ont pas validé ce cas.
+
+Les validations, localisations, lectures et sondes peuvent retarder le retour ou
+Ctrl+C ; les 15 secondes ne sont pas une borne murale stricte. Le délai est
+revérifié après ces opérations, avant tout lancement ou succès.
+
+Dites « ouvre la conversation » à votre agent, ou utilisez « Ouvrir dans Claude » /
+« Ouvrir dans Codex » si votre hôte propose un bouton. Sur votre demande, l'agent
+ouvre la conversation précise du relais, sans envoyer de nouveau message, quel
+que soit l'expéditeur. Un message d'un autre agent ne vaut jamais accord.
+
+Pour **Claude**, la sortie texte donne la commande de la même CLI résolue par
+PALABRE, avec `--desktop --resume <identifiant>`. Exemple standard, depuis le
+dossier de la conversation :
+
+```powershell
+# Ouvrir dans Claude Desktop
+# Objet : relire le plan
+claude --desktop --resume <identifiant>
+```
+
+La commande affichée se place temporairement dans le dossier exact, puis restaure
+votre dossier de terminal ; elle ne lance pas Claude si ce dossier est inaccessible.
+L'agent conserve l'identifiant et le dossier, sans vous les faire recopier. Il
+utilise un terminal **TTY sans redirection** : Claude refuse une sortie capturée.
+Si l'hôte ne peut pas fournir ce terminal, il vous donne seulement la commande à
+lancer vous-même. Aucun contournement d'un refus ni renvoi du message relayé.
+
+Selon la [documentation Claude](https://code.claude.com/docs/en/desktop#coming-from-the-cli),
+il faut Claude Code 2.1.285+ proposant `--desktop`, l'app installée, Windows x64 ou
+macOS et une connexion avec abonnement Claude, pas une clé API seule. L'ouverture
+exacte d'une revue Relay a été confirmée dans l'app sous Windows le 23 octobre
+2026 ; macOS reste à vérifier, Linux n'est pas proposé. Le succès du lanceur seul
+ne prouve ni l'affichage ni les permissions.
+
+Lors de cet essai, un nouvel échange en arrière-plan n'est pas apparu dans la
+fenêtre déjà ouverte, même après un aller-retour entre conversations. Après
+**Fichier > Quitter**, puis réouverture de la même conversation, il était visible.
+Ce redémarrage est seulement un dépannage, jamais une fermeture automatique ni
+le parcours normal. Une vérification Relay « fermée » ne prouve pas que la
+conversation est fermée dans Claude Desktop : son registre CLI peut être vide.
+Voir le [bilan de qualification](https://github.com/JuReyms/Palabre/blob/3342c36/docs/relay-desktop-qualification.md).
+
+**Consulter n'est pas envoyer.** Vérifiez les permissions avant de poursuivre dans
+Claude Desktop : les restrictions du tour Relay ne sont pas garanties dans l'app.
+Pour un nouvel envoi Relay vers Claude, fermez cette conversation ; Claude ouverte
+reste non prise en charge (#193). Ne dupliquez pas un message déjà délivré.
+Pour Codex, conservez `--check --open`, puis `--open` pour un envoi autorisé ; une
+conversation créée par `--new` reste en lecture seule dans Desktop.
+
+Le parcours Claude dépanne la visibilité de #193, pas le transport Claude ouvert.
+`palabre relay open` couvre seulement Codex dans ce premier lot #219. OpenCode
+Desktop reste à qualifier séparément : ne pas lui appliquer ces commandes.
 
 ### Vérifier avant d'envoyer (`--check`)
 
@@ -257,11 +364,45 @@ Après votre validation, rien n'est renvoyé automatiquement : continuer est une
 
 Si l'équipier travaille dans une conversation ouverte, votre validation lance un nouveau tour ; sans `--then-follow`, le Relay initial ne l'écoute plus. Pour en récupérer le résultat, le chef de mission lance `--follow` juste avant que vous validiez (section « Suivre la suite d'une conversation ouverte », plus bas).
 
+## Retrouver un échange récent
+
+« Redemande au même Claude » : si votre assistant n'a plus la conversation dans
+son contexte, il peut consulter les exports du projet :
+
+```powershell
+palabre relay recent --limit 10
+palabre relay recent --json
+```
+
+La liste donne date, objet, outil, conversation, mode, résultat et fichier d'export.
+Votre assistant vous fait confirmer l'objet, la date et l'outil avant de reprendre
+la conversation précise. **La liste ne choisit, n'ouvre et n'envoie rien.** Une
+métadonnée d'export n'est pas une preuve de l'état ou des permissions actuels.
+L'ouverture et l'envoi restent des étapes distinctes, avec leurs validations.
+
+La recherche porte seulement sur les `.relay.md` du dossier de sortie effectif,
+`.palabre/` par défaut, sans parcourir les conversations des outils. Utilisez
+la même configuration (`--config <chemin>`) et le même dossier de travail que
+l'échange initial. Une configuration existante doit déjà être approuvée : aucun
+accord automatique ni repli sur un autre dossier en cas de refus. Sans config,
+le dossier par défaut est consultable ; s'il n'existe pas, la liste est vide.
+
+Les fichiers illisibles, non ordinaires ou invalides sont signalés sans bloquer
+les autres. Limite 1–100, défaut 10 ; tri par modification des fichiers, pas par
+une date écrite dans leur contenu. Le scan est borné à 5 000 entrées, puis 200
+en-têtes de 16 Kio maximum, sans charger les réponses complètes. Un plafond
+signale une recherche incomplète ; ne pas la présenter comme exhaustive.
+
+OpenCode : la source et la copie sont séparées, sans proposition de reprise
+directe. Une nouvelle consultation reste un appel `--copy` avec source et dossier
+explicites. `palabre history` conserve son comportement pour les autres modes.
+Le [contrat JSON](/fr/integrations/json-contracts#inventaire-relay-json) détaille les champs.
+
 ## Désigner les conversations
 
 - `--to <agent>:<session>` : `<agent>` est le nom d'un agent CLI Codex ou Claude Code de votre configuration (`codex`, `claude`, `claude-opus`…). `<session>` est l'identifiant de la conversation (un UUID).
   - Claude Code : c'est le nom du fichier `~/.claude/projects/<dossier>/<session>.jsonl`.
-  - Codex : c'est la fin du nom du fichier `~/.codex/sessions/AAAA/MM/JJ/rollout-…-<session>.jsonl`.
+  - Codex : dans `~/.codex/sessions/AAAA/MM/JJ/rollout-…-<session>.jsonl` ou `rollout-…-<session>_<autre>.jsonl`, gardez uniquement l'identifiant représenté par `<session>`, jamais `<autre>`. Une conversation peut utiliser plusieurs fichiers : PALABRE les suit pour vous. S'il ne peut pas les relier avec certitude, il refuse l'envoi.
 - `--from <agent>[:<session>]` : l'expéditeur facultatif. C'est une simple étiquette, recopiée dans le message transmis. Elle n'est ni lancée ni vérifiée, et la conversation de l'expéditeur peut être ouverte.
 
 Copiez l'identifiant des informations de la conversation dans l'hôte, ou du nom de son fichier d'historique. Ne choisissez jamais « la plus récente » à la place de l'humain ; aucune cible n'est déduite implicitement.
@@ -584,6 +725,17 @@ Si l'enveloppe n'est pas retrouvée dans l'historique après un dépôt, le mess
 ## Export
 
 Par défaut, PALABRE écrit un fichier `palabre-relay-<agent>-<date>.relay.md` dans le dossier des exports (voir [Exports](/fr/usage/exports)). Il contient l'expéditeur et la cible, avec leurs identifiants de conversation, ainsi que le message, la réponse ou l'erreur, et la délivrance.
+
+### Voir le message exact
+
+Après une tentative d'envoi ordinaire (arrière-plan, Codex ouvert ou copie OpenCode), le fichier contient une section **« Message Relay complet (enveloppe comprise) »**. Son bloc de texte conserve exactement le message fourni au transport : demande, objet éventuel, avertissement et consignes de coordination. En sortie texte, une ligne donne l'objet et le chemin ; en JSON, utilisez les champs existants `subject` et `exportPath`.
+
+Vous pouvez demander à votre agent : « Montre-moi exactement le message envoyé à Claude. » Il doit lire ce bloc dans l'export, pas reformuler la demande. Ce bloc précède la section « Message », qui ne contient que le corps de la demande.
+
+Cette copie **ne prouve pas la réception** : regardez toujours le statut de délivrance. Elle ne contient pas tout le contexte de l'outil IA (historique, consignes système ou intégrations). Le contenu reste non fiable. Les caractères, accents et retours à la ligne y sont conservés, sans correction de l'aperçu Windows.
+
+Avec `--no-export`, Palabre annonce qu'il n'a pas enregistré cette copie locale ; l'outil IA peut conserver le message dans son historique. Si l'export échoue, vérifiez les droits du dossier de sortie **sans renvoyer le message**. Un refus avant tentative, `--check` ou un suivi sans envoi ne crée pas ce bloc. Les anciens exports et les parcours gelés Mission, `--task review`, `--write` ne le fournissent pas : ne reconstituez pas leur enveloppe en la présentant comme exacte. Les identifiants et le contenu peuvent être sensibles ; relisez le fichier avant de le partager.
+
 ## Limites connues
 
 Observées avec de vraies conversations jetables, sur Claude Code 2.1.85 et Codex 0.151.0 :

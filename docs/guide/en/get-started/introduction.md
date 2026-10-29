@@ -2,8 +2,8 @@
 title: Introduction
 description: Understand what PALABRE does, how it orchestrates your AI agents, and what privacy guarantees it provides.
 seo:
-  title: Multi-agent AI debates from your terminal
-  description: PALABRE orchestrates Claude Code, Codex, and Ollama into structured debates from your terminal. See how it works and what stays on your machine.
+  title: Let your AI tools work together
+  description: Let your AI tools work together, compare their analyses and keep the decision. Discover Palabre's modes and what stays on your machine.
 ---
 
 PALABRE lets the AI agents already installed on your machine cooperate to **make better decisions before acting**. You keep your tools, subscriptions and models; PALABRE organizes the exchanges and keeps a Markdown record.
@@ -38,7 +38,13 @@ Debate, Ask and Chat make a new agent call for each reply. PALABRE supplies the 
 
 ## Privacy
 
-PALABRE runs locally and has no server. Prompts, files and exchanges go to your chosen agents, subject to their policies and your settings. With Ollama **and a local model on your machine**, requests stay local; a remote Ollama server receives the data sent to it.
+**The PALABRE CLI does not collect your data: no PALABRE account, no CLI telemetry, no PALABRE server receiving your conversations.** The CLI runs on your machine and saves its exports locally; these can contain sensitive information, so review them before sharing.
+
+With a **local Ollama server and local models on your machine**, Debate, Ask and Chat can keep their AI exchanges local. All participants and any summary agent must use local models. Launch the session directly from your terminal if you do not want a remote host assistant to receive your request or the results.
+
+If you include remote tools or models, they receive the necessary prompts, files and exchanges, subject to their policies and your settings. A remote Ollama server also receives the data sent to it. A cloud model used through Ollama is still remote, even when the Ollama server runs on your machine. Using just one local participant does not make the whole session local.
+
+“Local AI exchanges” does not mean “no network requests”: PALABRE can, for example, query the npm registry to check for updates. This check does not send your prompts, files or conversations.
 
 ## Next
 

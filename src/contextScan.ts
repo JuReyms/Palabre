@@ -23,7 +23,7 @@ export interface ContextScanFolderItem {
 /** Union discriminée par `kind`, utilisée telle quelle dans `items[]`. */
 export type ContextScanItem = ContextScanFolderItem | ContextScanFileItem;
 
-/** Contrat JSON v1 renvoyé par `palabre context scan --json` (voir AGENTS.md, section "Contexte projet"). */
+/** Contrat JSON v1 renvoyé par `palabre context scan --json` (voir docs/dev/orchestration.md, section "Contexte projet"). */
 export interface ContextScanResult {
   v: 1;
   root: string;

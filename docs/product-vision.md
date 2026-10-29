@@ -2,31 +2,56 @@
 
 ## Promesse
 
-> Palabre aide à mieux décider avant d’agir.
+> Mieux travailler et se corriger entre outils, tout en gardant l’humain dans la boucle.
 
-Palabre est un harnais d’intelligence collective orchestrée. Il organise des avis contradictoires entre les outils IA choisis par l’utilisateur, rend les décisions explicites et peut préparer une action qui reste sous son contrôle.
+Palabre est le produit global : il facilite la coopération entre les outils IA choisis par l’utilisateur, les avis croisés et l’aide à la décision. Il rend les échanges et les arbitrages plus simples à suivre et peut préparer une action sous contrôle humain. Il ne remplace pas les outils IA existants : sa valeur doit se mesurer à ce qu’il épargne à l’utilisateur en manipulations, pertes de fil et vérifications de coordination.
 
-```text
-Question → avis contradictoires → décision explicite → plan → action sous contrôle
-```
+## Produit et modes : deux niveaux distincts
 
-Palabre ne remplace pas les assistants de code ni les outils spécialisés. Son différenciateur est le désaccord organisé, la synthèse explicite et l’action sous contrôle.
+**Décision du propriétaire, 26 octobre 2026.** Cette distinction doit rester explicite dans les consignes aux agents, le README, la documentation et le site. Une promesse propre à un mode ne doit pas être présentée comme le fonctionnement de tout Palabre.
 
-## Une session, trois modes
+### 1. Palabre, le produit
 
-Les évolutions appartiennent à une même session Palabre, plutôt qu’à une multiplication de modes ou de silos :
+Formulation de référence pour présenter l’ensemble :
 
-- **Chat** : discuter avec un agent, demander un second avis, poursuivre ou changer d’agent.
-- **Débat** : confronter deux agents puis synthétiser les désaccords et arbitrages.
-- **Ask** : recueillir plusieurs réponses indépendantes puis les comparer ou les synthétiser.
+> Faites coopérer vos outils IA, croisez leurs avis et avancez dans vos décisions comme dans votre travail.
 
-Le parcours actuel reste le chemin court : un utilisateur peut continuer à lancer un Débat ou un Ask sans rencontrer les capacités avancées. Les suites de session sont contextuelles et optionnelles.
+Cette promesse rassemble plusieurs usages. Elle ne signifie pas que chaque mode confronte des arguments, délègue des tâches ou relie des conversations existantes.
+
+### 2. Les modes, des usages précis
+
+| Mode | Besoin auquel il répond |
+| --- | --- |
+| **Relay** | Faire communiquer et travailler des outils IA entre leurs conversations précises : confier une tâche, demander un avis ou une relecture, récupérer le résultat. L’exécution dépend des capacités et permissions du parcours. |
+| **Débat** | Confronter les arguments de deux agents au fil des tours, puis synthétiser les désaccords et arbitrages. |
+| **Ask** | Recueillir plusieurs avis indépendants sur une même question, puis les comparer ou les synthétiser. |
+| **Chat** | Échanger avec un agent, avec la possibilité d’en consulter un autre. |
+
+Ces modes partagent les intentions de consultation, décision et action sous contrôle ; ils ne partagent pas nécessairement les mêmes transports, permissions ou interfaces. Relay peut être mis en avant dans la présentation sans devenir la définition du produit entier. Ne pas employer « mode Palabre » comme synonyme de Relay ou de Débat.
+
+## Le parcours de coopération propre à Relay
+
+L’utilisateur échange dans son outil habituel avec un **chef de mission** qui coordonne le travail. Un **coéquipier**, dans un autre outil, reçoit une tâche ou une demande de relecture. L’humain garde la main et peut consulter les conversations pour comprendre les échanges, les résultats et les désaccords. Ces termes décrivent la coordination Relay, pas les rôles configurables de Débat, Ask et Chat.
+
+Exemple : l’utilisateur prépare une modification avec Codex, Claude la relit, puis Codex corrige et vérifie à partir de cette relecture. Chaque étape est une demande explicite, pas une boucle automatique. La priorité est de rendre ce parcours utile, visible et facile à reprendre, avant d’ajouter de nouvelles fonctions.
+
+La visibilité en direct est un objectif du parcours, pas une garantie sur toutes les interfaces. En particulier, ne pas présenter l’envoi dans une conversation Claude Desktop ouverte comme acquis. Les capacités effectivement prises en charge restent décrites dans les guides [Relay français](guide/fr/usage/relay.md) et [anglais](guide/en/usage/relay.md), par outil et parcours.
+
+## Contexte, quotas et vérification croisée
+
+- **Même projet, conversations distinctes.** Partager les fichiers ne partage pas automatiquement la mémoire. Le chef de mission transmet l’objectif, les décisions et le contexte utile ; les agents conservent leurs conversations propres. Ne pas promettre une mémoire commune sans mécanisme explicite.
+- **Plusieurs outils, quotas distincts.** Répartir les tâches permet d’utiliser les outils et abonnements déjà disponibles. Les échanges consomment aussi du temps et des quotas : ni fusion des quotas, ni économie garantie, ni bascule automatique au premier épuisement.
+- **Mieux se corriger, pas garantir la vérité.** Les agents peuvent repérer les erreurs des autres, mais aussi se tromper ensemble. Préserver les avis indépendants quand ils sont utiles, expliciter les désaccords et demander des preuves et vérifications. Un accord entre modèles ne prouve pas que la proposition est correcte.
+
+## Règle de rédaction pour les agents
+
+Avant de rédiger une accroche, un exemple ou une explication, nommer son niveau : **Palabre globalement** ou **un mode précis**. Présenter d’abord le bénéfice du produit, puis le fonctionnement du mode concerné. Ne pas généraliser à tous les modes le chef de mission, les conversations reliées ou la visibilité Relay ; ne pas généraliser non plus à tout Palabre les tours contradictoires et la synthèse de Débat. Distinguer les capacités actuelles, leurs limites et les objectifs futurs.
 
 ## Rôles respectifs
 
 ```text
-Les CLIs raisonnent.
-Palabre organise, compare, mémorise et gouverne.
+Les outils IA analysent et réalisent les tâches autorisées.
+Palabre facilite la coordination et la restitution des résultats.
 L’utilisateur décide.
 ```
 

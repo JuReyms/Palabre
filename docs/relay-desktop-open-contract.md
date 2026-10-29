@@ -1,0 +1,110 @@
+# Contrat `palabre relay open` — lot Codex de #219
+
+Une ouverture sur demande humaine directe, phrase ou bouton de l'hôte. Un message
+d'agent ne vaut jamais accord ; le succès de la commande ne peut pas l'authentifier.
+
+```powershell
+palabre relay open --to codex:<uuid> --json
+```
+
+Seulement `--to`, `--config`, `--language`/`--lang`, `--json`, chacun une fois.
+Pas de message, reprise implicite, `--new`, `--open`, `--trust-config`, réglage,
+export, envoi chaîné ou suivi. Claude/OpenCode sont refusés. Le dépannage Claude
+de #225 reste séparé : #193 n'est pas livré ici.
+
+## Déroulé et limites
+
+1. Analyse stricte des arguments/UUID, puis validation commune `relay --check --open` :
+   configuration déjà approuvée, agent Codex, exécutable compatible, localisation
+   bornée et sonde. Accepter seulement `checked` ou `target-not-open` ; conserver
+   les autres refus. Aucun processus Codex, modèle ni liste MCP ; le verrou POSIX
+   peut lancer `python3`.
+2. Retrouver le dossier par la même localisation bornée, sans l'inventer.
+3. Lancer une seule fois le lien construit depuis l'UUID : Explorer natif sous
+   Windows, `/usr/bin/open` sur macOS, `xdg-open` sur Linux. Arguments structurés,
+   sans shell, stdin/flux ignorés. Aucune donnée libre envoyée au lanceur.
+4. Après code 0 du lanceur, ou code 1 non concluant d'Explorer sous Windows,
+   sonder immédiatement puis toutes les 500 ms au plus,
+   sous budget coopératif de 15 s incluant validation et lancement. Vérifier annulation
+   et délai après chaque IO avant d'accepter un verrou tardif. Validation, localisation,
+   lectures et sondes peuvent retarder le retour et Ctrl+C : ce n'est pas une borne
+   murale stricte. Aucun lancement ni succès accepté après le budget.
+5. Rendre lancement et verrou séparément, jamais une preuve de fenêtre visible.
+
+Le code 1 d'Explorer a accompagné deux ouvertures confirmées par le propriétaire.
+Ce seul cas donne `launcher.status: unverified`, avec `exitCode: 1` conservé :
+pas `succeeded`, ni échec bloquant la sonde. Un verrou tenu permet `attached` ;
+libre ou invérifiable, il garde son diagnostic habituel. Les autres codes,
+plateformes, erreurs de spawn, délais et annulations restent inchangés.
+Un attachement préexistant ne prouve pas que ce lancement a ouvert la cible.
+Le défilement n'est pas piloté ; aucune garantie d'arrivée au dernier message.
+
+Une conversation peut être déjà tenue : `attached` ne prouve ni que l'ouverture
+a créé cet attachement, ni quelle surface le possède, ni la visibilité de la cible.
+À échéance/annulation du lanceur, détacher sans tuer : Desktop peut être son
+descendant. Une ouverture déjà lancée peut aboutir plus tard. Aucun retrait promis,
+kill d'app, modification de verrou, retry ou repli vers un envoi en arrière-plan.
+Le lanceur est créé dans un groupe isolé (`detached: true`, flux ignorés), pour ne
+pas recevoir le Ctrl+C du terminal appelant sous POSIX ; `unref` seul ne suffit pas.
+
+## JSON v1 distinct
+
+`type: relay-open-result` évite de confondre ouverture et échange.
+
+| Champ | Signification |
+| --- | --- |
+| `status`, `exitCode` | Issue d'ouverture/observation, pas une réponse d'agent |
+| `to` | Référence exacte validée, ou null avant validation |
+| `launcher` | `attempted`, `status`, `exitCode?` ; `unverified` pour Explorer Windows code 1, succès distinct de l'affichage |
+| `attachment` | `attached`, `detached`, `unknown`, dernière sonde terminée |
+| `reason` | Validation, verrou tenu, délai, sonde inconnue, lanceur, annulation |
+| `display` | Toujours `unverified` |
+| `messageSent` | Toujours false |
+| `error`, `durationMs` | Diagnostic/durée, jamais sortie brute du lanceur |
+
+Ni `reply`, `delivery`, `mode`, `targetPermissions` ni `exportPath` : aucun tour
+envoyé. Le JSON d'échange `relay-result` reste inchangé. Une intégration ne traite
+pas un type/statut inconnu comme une réponse reçue.
+
+Codes : 0 `attached` ; 3 `target-not-open` à l'échéance après sondes libres ou
+`target-state-unknown` ; 4 `timeout` pendant validation/lancement/sonde ;
+7 `command-not-found` (lanceur) ; 2 `cli-failure` (lanceur) ; 130 `cancelled`.
+Les refus de validation gardent leur statut, code et motif.
+
+Après succès, l'envoi exige une tâche autorisée. Vérifier `relay --check --open`,
+puis envoyer avec `--open` explicite pour refuser une cible relâchée entre-temps.
+Ouvrir ne change ni les permissions de création (`--new` reste en lecture seule)
+ni `relay.view`. Aucun bouton natif Palabre ajouté : l'hôte fournit sa présentation.
+
+## Qualification
+
+Tests simulés/profils fictifs via `scripts/test.mjs`. Deux ouvertures par la nouvelle
+commande, sur cibles choisies par le propriétaire sous Windows le 23 octobre 2026,
+ont été confirmées à l'écran malgré le faux échec Explorer code 1. La première
+n'était pas au bas de l'historique. Bilan : docs/relay-codex-desktop-qualification.md.
+Le correctif du code 1 est testé hors ligne et confirmé sur une ouverture réelle
+de la première cible au commit 4d464e2 : `launcher: unverified`/1, `attached`/0,
+728 ms, aucun message ; bonne conversation affichée selon le propriétaire.
+Cela ne qualifie ni toutes les versions ni une transition de fermé à ouvert.
+macOS/Linux restent non vérifiés. Aucun modèle n'est nécessaire pour une ouverture ;
+l'échange Codex → Codex relaté dans le bilan est un test séparé explicitement autorisé.
+
+## Risques à vérifier, sans garantie supplémentaire
+
+La revue de Claude Opus 5.5 sur b931a15 n'a pas relevé de défaut bloquant, mais
+ces scénarios restent à vérifier ; ce ne sont pas des pannes observées :
+
+- Si `xdg-open` ne se termine pas avant l'échéance, l'attente du lanceur utilise
+  le budget restant et aucune sonde après lancement n'a lieu. Le rapport peut
+  être `timeout`/4, `attachment: unknown`, même si l'app s'est ouverte. Ne pas
+  relancer automatiquement ; constater l'état de l'app. Qualification Linux requise.
+- Le lanceur Linux est résolu par le PATH depuis le dossier de la cible. Un PATH
+  comportant `.` ou une entrée relative peut donc sélectionner un exécutable du
+  projet. Ce lot ne durcit pas cette résolution : ne pas annoncer d'isolation
+  supplémentaire ni modifier le PATH utilisateur pour un essai.
+- La sonde Windows prend puis relâche brièvement un accès exclusif si le verrou
+  est libre. Sa concurrence avec la prise du verrou par Desktop n'a pas été
+  qualifiée ; les essais réels ne prouvent pas une transition fermé → ouvert.
+
+Un changement du lancement, de la résolution PATH ou de la stratégie de sonde
+demande un lot séparé avec ses tests ; ne pas improviser de repli dans une intégration.

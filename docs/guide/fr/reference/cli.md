@@ -24,7 +24,7 @@ Cette page liste les commandes principales de Palabre.
 
 ## Configuration
 
-L'accueil TUI applique la même synchronisation prudente des agents connus que `palabre config --sync-agents` : il ajoute les agents connus nouvellement détectés et rafraîchit leurs commandes sans toucher aux agents custom ni aux defaults utilisateur.
+L'accueil TUI applique la même synchronisation prudente des agents connus que `palabre config --sync-agents` : il ajoute les agents connus nouvellement détectés et rafraîchit leurs commandes sans toucher aux agents custom ni aux defaults utilisateur. Si le fichier de configuration a été modifié depuis son chargement, rien n'est écrit : un avertissement l'indique et l'accueil continue avec la configuration chargée, sans plus enregistrer aucun réglage pendant cette session ; relancez `palabre` pour recharger le fichier. `palabre config --sync-agents` et l'assistant `palabre config` s'arrêtent de même, sans écrire.
 
 | Commande                                     | Description                               |
 | -------------------------------------------- | ----------------------------------------- |
@@ -73,6 +73,10 @@ La reprise conserve les réponses complètes et relance uniquement le prochain t
 `palabre sessions` affiche les 20 checkpoints les plus récents par défaut, avec leur état, mode, nombre de réponses et prochaine phase. `--limit <1-100>` borne la liste. Un JSON corrompu est signalé comme invalide sans empêcher l'affichage des autres. La suppression montre le fichier exact et demande confirmation ; en mode non interactif, `--yes` est obligatoire. Elle ne supprime jamais les exports Markdown ni les autres checkpoints.
 
 ## Relay
+
+Pour retrouver un échange sans envoyer ni ouvrir : `palabre relay recent [--limit 1-100] [--json] [--config <chemin>] [--language fr|en]`.
+Date, objet et outil à confirmer avant reprise ; les exports sont des métadonnées
+non authentifiées. [Retrouver un échange](/fr/usage/relay#retrouver-un-échange-récent).
 
 | Commande | Description |
 | --- | --- |

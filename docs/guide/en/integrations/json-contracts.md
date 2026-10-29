@@ -40,7 +40,9 @@ With `--check` (#203), nothing is sent or written and no teammate CLI is started
 `palabre config --ollama-models --json` exposes `v`, `agent`, `available`, `baseUrl`, `currentModel`, `currentModelInstalled`, `installedModels`, without model generation.
 
 
-`palabre agents --json` adds `defaults.relayView` (`auto` by default, or `background`), from `relay.view`. An integration must not choose or infer the mode. Relay v1 adds `modeSource?`: `explicit` (`--open`/`--background`, including explicit follow), `auto` (lock or required path), `setting` (`background` preference). Absent when validation stops before resolution, and in earlier versions. Open-mode fields also exist when `auto` selected it. `mode` describes the selected or requested transport, not proof of sending; an unknown probe refuses without sending and never selects `open`. Excluded paths stay in background with `modeSource: "auto"`, unless a compatible explicit option is supplied.
+`palabre agents --json` adds `defaults.relayView` (`background` by default, or explicitly saved `auto`), from `relay.view`. An integration must not choose or infer the mode. Relay v1 adds `modeSource?`: `explicit` (`--open`/`--background`, including explicit follow), `auto` (lock or required path), `default` (background with no saved preference, new v1 value), `setting` (explicitly saved `background`). Absent when validation stops before resolution, and in earlier versions. Open-mode fields also exist when `auto` selected it. `mode` describes the selected or requested transport, not proof of sending; an unknown probe refuses without sending and never selects `open`. Excluded paths stay in background with `modeSource: "auto"`, unless a compatible explicit option is supplied.
+
+For `target-busy`, `remedy` may suggest the usual setting only when `background` is saved: it is an optional choice the owner runs and confirms, not a send or an automatic repair. With no preference (`modeSource: "default"`), the field is absent; the text explains the choices for this exchange first, then the usual setting. Never execute a configuration command from this field without a human decision.
 
 ## Continuation after a reply: `relay --then-follow` (#204)
 
@@ -78,3 +80,53 @@ This mode preserves OpenCode's usual profile, without enforced read-only access.
 No `relay.view` preference, Codex quota/link or follow-up fields apply to this path.
 `--background`, `--open`, `--check`, `--follow` and `--then-follow` are refused with `--copy`.
 Windows/OpenCode CLI 2.0.32 pilot only; source and copy are retained.
+
+## Codex opening without a message (#219)
+
+`palabre relay open --to codex:<uuid> --json` returns a **distinct** v1 object,
+`type: relay-open-result`. Fields: `status`, `exitCode`, `to`, `launcher`
+(`attempted`, `status`, `exitCode?`), `attachment` (`attached`, `detached`, `unknown`),
+`reason`, `display: unverified`, `messageSent: false`, `error`, `durationMs`.
+No `reply`, `delivery`, `mode`, `targetPermissions` or export. The exchange
+relay-result JSON is unchanged. Code 0/attached means a held lock, never proof
+of display or Desktop; the launcher is separate evidence. Code 3: free at
+deadline/unknown; 4: timeout during validation/launcher/probe; 7: missing launcher;
+2: launcher failure; 130: cancelled. Validation refusals are preserved. Never
+treat this result as a received message. A later authorized send is separate and
+uses explicit --open. On Windows only, Explorer code 1 yields `launcher.status:
+unverified`, retaining `launcher.exitCode: 1`, then probing the lock without a
+relaunch. An already held lock proves no new display. Two openings were confirmed
+on Windows before this fix; a corrected opening then returned `launcher: unverified`/1
+and `attached`/0, with display confirmed separately by the owner. This does not
+qualify a transition from closed to open or all versions. Claude/OpenCode refused;
+macOS/Linux unverified.
+
+## Relay inventory JSON
+
+`palabre relay recent --json` returns one object, not an NDJSON stream:
+
+```json
+{"v":1,"type":"relay-recent-result","status":"listed","exitCode":0,"entries":[],"warnings":[],"truncated":false,"scanTruncated":false,"error":null}
+```
+
+- `entries[]`: `fileName` relative to the output directory, export ISO `date`,
+  `subject` or null, `agent` alias, `provider`, `to: {agent, session}` (session may
+  be null), `mode` or null for an old export, `status`, `delivery`.
+- OpenCode copy: `to: null`, separate `copy: {source, session, verified}`; never
+  substitute source for a missing copy or suggest direct resume.
+- `warnings[]`: relative `fileName` and stable `reason` (`unreadable`, `invalid-header`,
+  `header-too-large`, `not-regular`, `changed`, `invalid-name`). For `invalid-name`,
+  the name is replaced by `[invalid-name]`, without displaying a path or control.
+  Invalid files do not count toward
+  `--limit` and do not prevent presenting the others.
+- `truncated`: files not shown. `scanTruncated`: scan/read cap reached; potentially
+  incomplete list, with no guarantee of globally newest entries.
+- Exit codes: 0 listed (even empty), 8 invalid arguments/config, 2 unreadable directory.
+  On failure: `status: invalid-request|read-failed`, `error: {reason, message}`;
+  empty lists, no fallback or writes.
+
+No absolute file path added, prompt, reply, permission or generated command.
+Subjects can contain private information chosen by the user. This metadata is
+unauthenticated: confirm the exchange with the owner, then validate the exact
+target and current config before any opening or send. The existing `history`
+contract and Relay send results remain unchanged.

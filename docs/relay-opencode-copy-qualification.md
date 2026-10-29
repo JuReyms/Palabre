@@ -261,6 +261,75 @@ de `default`. La création d'un fork avant contrôle du catalogue est conservée
 comme annoncé dans le contrat : un modèle absent peut laisser une copie sans
 message, conservée et identifiée. Optimiser cet ordre reste hors de ce lot.
 
+## Essai du 24 octobre : source Plan et compréhension du README
+
+Le parcours de compréhension du README de la PR #229 (`a34647c`) a été repris
+avec la commande produit `relay --copy`. Le premier test de lecture avait été
+lancé directement dans OpenCode, **hors Palabre** : il ne prouvait pas Relay.
+Pour cet essai, une conversation de laboratoire distincte a été préparée avec
+le README en texte et un code de contexte fictif, puis laissée fermée. Cette
+préparation directe a reçu seulement un accusé de réception ; l'explication
+du document a été demandée ensuite par Palabre, dans une copie.
+
+Le précontrôle a révélé un refus `source-context`, avant fork ou appel modèle :
+OpenCode 2.0.32 ajoute un message `synthetic` standard après la sélection de
+l'agent `plan`. Ce rappel demande de discuter le plan, de ne pas modifier les
+fichiers et de rester en Plan jusqu'au changement d'agent par le propriétaire.
+Retirer ce rappel ou passer en Build n'est pas une solution acceptable.
+
+Le correctif reconnaît uniquement cette forme dans le **préfixe source** :
+agent Plan, message précédent `agent-switched` vers Plan, clés et texte entiers
+connus, horodatage entier positif ou nul, chemin Windows absolu normalisé vers
+`.opencode\plan`. Le chemin reste une donnée ; il n'est ni lu ni utilisé pour
+accorder un droit. Le rappel est copié intégralement. Les autres synthétiques,
+et même ce rappel dans le nouveau tour, restent refusés. Les contrôles du fork,
+de la réponse, du modèle et des permissions ne sont pas assouplis.
+
+**Un seul envoi Relay réel a été admis après correction**, sans renvoi :
+`replied`/0, `delivery.status: replied`, `persisted: true`,
+`identity: same-as-target`, `copy.verified: true`, `sourceCheck: unchanged`,
+`serverStop: confirmed`. L'export `.relay.md` a été lu entièrement.
+Même binaire Windows 2.0.32 et empreinte que ci-dessus ; agent `plan` et modèle
+`opencode/deepseek-v4.1-flash-free#default` conservés, sans override ni repli.
+Durée rapportée : environ 22,1 s. Aucune application n'a été ouverte.
+
+La réponse retrouve le code absent de la demande Relay et distingue correctement
+Relay, Débat, Ask et Chat, les parcours CLI/Desktop, les outils pris en charge,
+les limites OpenCode/Claude, la confidentialité et les exports. Elle décrit sa
+compréhension, pas une vérification des fonctions présentées dans le README.
+Cet essai prouve le passage du contexte copié, pas une lecture indépendante
+du document ni une qualification générale de toutes les intégrations.
+
+Un audit séparé sans appel modèle confirme le relevé complet source identique
+avant/après, les mêmes agent, modèle et permissions dans la copie, et zéro appel
+d'outil dans le nouveau tour. Le dossier fictif reste vide, sans fichier ajouté.
+La configuration personnelle Palabre garde la même empreinte. Cela ne constitue
+ni un verrou global de la source ni une garantie d'absence d'effets externes.
+Source, copie et export sont conservés ; leurs identifiants, chemins personnels,
+code de contexte et traces brutes ne sont pas publiés.
+
+Vérifications et revue :
+
+- 38 tests ciblés OpenCode réussis, dont rappel source conservé, refus avant
+  fork, nouveau rappel refusé sans renvoi, chemins UNC/non normalisés refusés
+  et profils Windows avec espaces/accents acceptés sans accès au chemin.
+- Dernière suite complète officielle : 1 103 tests, 1 098 réussis, 5 ignorés,
+  aucun échec ni intervention, vrai profil Palabre inchangé avec garde actif.
+  Le premier passage avait un dépassement du délai PowerShell préexistant de
+  2 s ; ce test passe ensuite, sans changement de délai. Un passage ciblé dans
+  le bac à sable a nécessité l'arrêt de son seul sous-processus fictif
+  d'annulation ; il n'est pas retenu comme preuve verte de cette suite.
+- Typage, build, validation du skill et génération documentaire locale vérifiés.
+  Aide CLI, guides FR/EN et référence livrée du skill mis à jour ensemble ;
+  aucune copie installée synchronisée.
+- Relecture indépendante par Claude via Palabre Relay, modèle observé
+  `claude-opus-5-5` : aucun blocage. Ses cas de tests complémentaires ont été
+  ajoutés sans élargir le code produit.
+
+Ce lot ne qualifie pas le parcours batch `opencode run --pure`, ne modifie pas
+la configuration habituelle et n'ajoute aucune garantie de lecture seule.
+Desktop, autres versions et autres plateformes restent hors périmètre.
+
 ## Limites conservées
 
 L'extension `--model fournisseur/modele[#variante]` repose sur les sources

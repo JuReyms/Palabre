@@ -1,5 +1,7 @@
 # Faisabilité de `palabre relay` : reprise de sessions externes Codex et Claude Code
 
+Note de lecture du 26 octobre 2026 : ce rapport garde la chronologie du prototype. Ses références à des sections de l’ancien `AGENTS.md` sont historiques ; lire les contrats actuels [Relay](../../../docs/dev/relay.md) et [Relay ouvert/Desktop](../../../docs/dev/relay-open.md), après [les règles communes](../../../AGENTS.md).
+
 Compte rendu du prototype isolé pour l'issue #96, en quatorze passes :
 
 1. faisabilité ;

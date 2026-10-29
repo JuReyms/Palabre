@@ -26,8 +26,8 @@ In an open Codex conversation, the teammate can act with its usual permissions. 
 
 - **Mission lead**: the agent you talk to. It delegates the task and reports back to you.
 - **Teammate**: the agent receiving the task.
-- **Open conversation**: a conversation currently displayed in Codex desktop or in a terminal. The teammate works there with its usual settings, as if you were writing to it yourself.
-- **Closed conversation**: an existing conversation that no window is displaying. PALABRE reopens it for one exchange, then closes it.
+- **Open conversation**: a conversation Codex desktop or its terminal keeps loaded, even after you leave it. It may not be displayed. The teammate uses that conversation's tools and permissions; the Relay message is not human authorization.
+- **Closed conversation**: an existing conversation with no process attached, according to the tool's checks. The absence of a window does not prove this. PALABRE resumes it for one background exchange.
 - **Background**: the teammate works without a window. PALABRE launches it for a single task, waits for its reply, then stops.
 - **Conversation identifier**: the number identifying a specific conversation. Keep it to continue with the same teammate.
 - **Delivery**: knowing whether the message arrived. A delivered message does not mean the task succeeded.
@@ -47,7 +47,7 @@ palabre relay --help
 
 Help must list `--new`. Otherwise, use a PALABRE version that includes it; see [Installation and updates](/en/get-started/installation).
 
-Also install the [Palabre skill](/en/get-started/skill) for your usual agent. Copy the entire folder, including references, then open a new conversation so the agent can see it. After a skill update, its installed copy must be updated manually.
+Also install the [Palabre skill](/en/get-started/skill) with `palabre skill --install codex` for Codex, or `palabre skill --install claude` for Claude Code. Palabre shows the plan before you confirm. To refresh existing copies, use `palabre skill --sync`; `palabre update` also includes this refresh in its plan. Then reload the skill or open a new conversation so the agent can see it.
 
 Each call uses the selected agent's account and model. Check what you share before delegating sensitive files.
 
@@ -59,7 +59,7 @@ From your conversation with Claude Code, say for example:
 
 The skill creates a conversation if you have not designated one. If you choose an existing conversation, it keeps that specific target, never "the latest".
 
-To work in an already open Codex conversation on Windows, macOS, or Linux, identify it and describe the task. PALABRE chooses the mode with `auto` based on the lock; on POSIX, `python3` must be available. The teammate keeps its permissions, with no rights added by the message.
+To work in an already open Codex conversation on Windows, macOS, or Linux, identify it and describe the task. Background is the default and refuses an open target. Your agent explains how to send into that conversation with `--open`: it keeps its tools and permissions, including writing if allowed. This can be a one-off choice or become your preference after your confirmation. On POSIX, `python3` must be available. The message grants no extra permissions.
 
 ### Codex as mission lead
 
@@ -77,9 +77,28 @@ This path has been verified on Windows from Codex desktop. It still needs testin
 
 > Continue with the same Claude to clarify the main risk, without changing files.
 
-The mission lead reuses the identifier, reads the reply and reports back to you in plain words, without asking you to copy the identifier or a command. The exchange stays in the teammate's conversation and in the `.relay.md` export, which the agent points to if you ask. With the verified Codex versions, a conversation created by `--new` is not listed in Codex Desktop, but Relay can keep reaching it. To follow it in the app, run the opening command your agent gives you (Run button when the app shows one), or simply ask it to open the conversation; once open in Desktop, the agent reaches it in the app, with its permissions. The reply returns to the caller without being added automatically to the sender's conversation. Opening this Desktop link is verified on Windows only; macOS and Linux remain unverified.
+The mission lead reuses the identifier, reads the reply and reports back to you in plain words, without asking you to copy the identifier or a command. The exchange stays in the teammate's conversation and in the `.relay.md` export, which the agent points to if you ask. With the verified Codex versions, a conversation created by `--new` is not listed in Codex Desktop, but Relay can keep reaching it. To follow it in the app, run the opening command your agent gives you (Run button when the app shows one), or simply ask it to open the conversation; once open in Desktop, the agent reaches it in the app, with that conversation's permissions. The reply returns to the caller without being added automatically to the sender's conversation. Opening this Desktop link is verified on Windows only; macOS and Linux remain unverified.
 
-If the teammate changes files in an open conversation, they stay in its working directory. They appear on GitHub only after a separately authorized commit and push. Receiving a reply does not prove the work or tests succeeded.
+With the verified versions, a **Codex conversation created by Relay** (`--new`) stays read-only even when opened in Desktop: opening it lets you inspect it, not grant it permission to change files. To delegate changes to Codex, create its conversation yourself in Codex Desktop with the permissions you choose, then designate that conversation to your mission lead.
+
+If the teammate changes files in an open conversation with those permissions, they stay in its working directory. They appear on GitHub only after a separately authorized commit and push. Receiving a reply does not prove the work or tests succeeded.
+
+For **Codex**, the agent uses `palabre relay open --to codex:<identifier>`:
+one launch, then a lock check, with no message. Opening authorizes neither sending
+nor writing; display still needs confirmation in the app. Explorer may return code
+1 despite opening: Relay marks it unverified and checks the lock without relaunching.
+Scrolling to the latest message is not guaranteed. A separate Relay exchange can
+be processed without leaving the original conversation (Windows test).
+
+For **Claude**, also say “open the conversation”: the agent uses
+`claude --desktop --resume <identifier>` from the relay's directory, with the same
+Claude installation, in a TTY terminal without redirection. The agent retains the
+identifier; the host may offer an “Open in Claude” button. This opens for viewing
+without a new message. It was verified on Windows with the installed app and a
+Claude subscription (CLI 2.1.285+ required; macOS unverified). Check permissions in
+the app before continuing yourself. Before another Relay send to Claude, close
+this conversation: sending to open Claude remains unavailable. See the
+[opening workflow](../usage/relay#open-the-teammates-conversation).
 
 ## Without an agent
 
@@ -116,4 +135,4 @@ Mission and `--task review` are frozen: retained and documented, with no scope e
 Details, statuses and limits for each path are in the [full Relay guide](/en/usage/relay).
 
 
-For advice or a review that must not change files, pass `--background`: this per-call choice reduces permissions without changing the setting. For other requests, PALABRE chooses the mode, not the agent: by default `auto` follows the Codex lock; a closed conversation runs in background, an open one keeps its own permissions. An unverifiable state refuses sending, without a more permissive fallback. To require background, run `palabre config --relay-view background` yourself; to restore the default, use `palabre config --relay-view auto`. The file and change are displayed before keyboard confirmation in a visible terminal (TTY input/output), without `--yes` or `--trust-config`, using an already trusted configuration. An agent must not choose or confirm this setting. Per-call `--background` and `--open` do not change it. See [Relay mode](/en/usage/relay).
+For advice or a review that must not change files, pass `--background`: this per-call choice keeps limited tools even if you saved a different preference. **Background is the default.** If the Codex conversation is open, your agent explains permissions before suggesting `--open` for this exchange; there is no automatic switch. You can also choose **Prefer the open conversation** for future exchanges with `palabre config --relay-view auto`; a closed conversation then runs in background. To return to the default: `palabre config --relay-view background`. Run and confirm this setting yourself in a visible terminal (TTY input/output), using an already trusted configuration, without `--yes` or `--trust-config`. The agent must not change or confirm it. If you often work with an open Codex conversation, you can save this preference once, after understanding its permissions. Existing explicit settings are preserved. See [Relay mode](/en/usage/relay).

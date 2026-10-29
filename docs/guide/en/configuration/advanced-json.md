@@ -69,6 +69,7 @@ Useful options:
 | `command` | Command to run. |
 | `args` | Arguments passed to the command. |
 | `promptMode` | `stdin` or `argument`. |
+| `responseFormat` | `text` by default, or `antigravity-json` to extract a successful Antigravity JSON response (`cli` adapter only). |
 | `modelArg` | Flag used to pass a model. |
 | `model` | Default model for this agent. |
 | `shell` | Useful on Windows for certain npm or PowerShell wrappers. |

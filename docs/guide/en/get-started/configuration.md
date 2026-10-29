@@ -108,6 +108,12 @@ Here:
 - `claude` produces the final summary;
 - `-t 4` requests up to four responses in total (two per agent if all are played, excluding the summary).
 
+## Roles complementing the modes
+
+Roles shape agent instructions in **Debate, Ask and Chat**, not Relay. They complement the selected mode: an `implementer` proposes, a `reviewer` looks for risks, a `critic` challenges assumptions, an `architect` structures options and a `scout` explores. They change neither the model nor permissions. The final summary automatically uses the `summarizer` instruction, regardless of the chosen agent's usual role.
+
+For one session: `--role-a` / `--role-b` in Debate, `--ask-role` in Ask, `--role-a` for the initial interlocutor in Chat. For a default role: `palabre agent-role <agent> <role>`. In Relay, “lead” and “teammate” describe who delegates and who receives the task; they are not these configurable roles. See the [CLI reference](/en/reference/cli).
+
 ## Add agents detected later
 
 If you install Claude Code, Codex, Antigravity, OpenCode, Mistral Vibe, or Ollama after creating the configuration:

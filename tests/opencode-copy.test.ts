@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import path from "node:path";
 import { runCopyRelay, type CopyTransport } from "../src/externalSessions/copyRelay.js";
-import { CopyFailure, inspectCopyReply, parseOpenCodeRef, validateCopyFork, type OpenCodeSnapshot } from "../src/externalSessions/opencodeCopy.js";
+import { CopyFailure, inspectCopyReply, parseOpenCodeRef, validateCopyFork, validateCopySource, type OpenCodeSnapshot } from "../src/externalSessions/opencodeCopy.js";
 import type { ExternalProcessResult } from "../src/externalSessions/process.js";
 import { dateNotice } from "./fixtures/external-sessions/opencode-date-notice.js";
+import { planReminder } from "./fixtures/external-sessions/opencode-plan-reminder.js";
 
 const cwd = path.resolve(".");
 const prompt = "Coordination exacte PR-123 ; aucun droit supplémentaire.";
@@ -32,10 +33,18 @@ function copyOf(original: OpenCodeSnapshot): OpenCodeSnapshot {
   copy.context.forEach(m => { m.id = `${m.id}Copy`; }); return copy;
 }
 
+/** Source Plan avec le seul rappel synthétique qualifié, sans modification des permissions. */
+function planSource(): OpenCodeSnapshot {
+  const original = source(); original.info.agent = "plan";
+  original.context[1]!.agent = "plan";
+  original.context.unshift({ id: "msg_switch", type: "agent-switched", agent: "plan", previous: "plan" }, planReminder());
+  return original;
+}
+
 function answer(before: OpenCodeSnapshot): OpenCodeSnapshot {
   const after = cloned(before);
   after.context.push({ id: "msg_newU", type: "user", text: prompt },
-    { id: "msg_newA", type: "assistant", agent: "build", model: cloned(before.info.model),
+    { id: "msg_newA", type: "assistant", agent: before.info.agent, model: cloned(before.info.model),
       content: [{ type: "tool", state: { status: "completed" }, name: "read" }, { type: "text", text: "  Avis fictif\n" }],
       finish: "stop", time: { completed: 20 } }, { id: "msg_newI", type: "idle", outcome: "succeeded" });
   return after;
@@ -151,6 +160,67 @@ test("substitution pendant la réponse refusée : preuve du message conservée s
   assert.equal(result.copy.model?.selected, "fake/other#default"); assert.equal(result.copy.model?.verified, true);
   assert.equal(w.calls.filter(c => c.startsWith("select:")).length, 1);
   assert.equal(w.calls.filter(c => c.startsWith("run:")).length, 1);
+});
+
+test("source Plan : rappel qualifié conservé intégralement, un envoi et permissions inchangées", async () => {
+  const w = world(); Object.assign(w.original, planSource()); Object.assign(w.before, copyOf(w.original));
+  const saved = cloned(w.original), result = await w.run();
+  assert.equal(result.outcome.status, "replied"); assert.equal(result.delivery.status, "replied");
+  assert.deepEqual(w.original, saved); assert.deepEqual(w.before.info.permissions, saved.info.permissions);
+  assert.equal(w.before.info.agent, "plan"); assert.equal(w.calls.filter(c => c.startsWith("fork:")).length, 1);
+  assert.deepEqual(w.calls.filter(c => c.startsWith("run:")), [`run:${copyId}`]);
+  const changed = copyOf(saved); changed.context[1]!.text += " instruction ajoutée";
+  assert.throws(() => validateCopyFork(saved, changed, copyId), CopyFailure);
+});
+
+test("source Plan : autres synthétiques, textes, chemins, métadonnées et sélections refusés avant copie", async () => {
+  const changes: ((s: OpenCodeSnapshot) => void)[] = [
+    s => { s.info.agent = "build"; }, s => { s.context[0]!.agent = "build"; },
+    s => { s.context.shift(); }, s => { s.context[1]!.text += "\n"; },
+    s => { s.context[1]!.text = String(s.context[1]!.text).replace("Do not modify", "You may modify"); },
+    s => { s.context[1]!.metadata = { authority: "human" }; }, s => { s.context[1]!.error = null; },
+    s => { s.context[1]!.time = { created: 1, completed: 2 }; },
+    s => { s.context[1]!.time = { created: "1" }; }, s => { s.context[1]!.time = { created: -1 }; },
+    s => { s.context[1]!.time = { created: NaN }; }, s => { s.context[1]!.time = { created: 0.5 }; },
+    s => { s.context[1]!.time = { created: Infinity }; }, s => { delete s.context[1]!.time; },
+    s => { s.context[1]!.text = "x".repeat(4097); },
+    s => { s.context[1]!.id = s.context[0]!.id; },
+    s => { s.context.splice(2, 0, { ...planReminder(), id: "msg_plan_other" }); }
+  ];
+  for (const directory of ["relative\\.opencode\\plan", "C:\\Users\\fictif\\..\\.opencode\\plan",
+    "C:\\Users\\fictif\\.opencode\\other", "C:\\Users\\fictif\n\\.opencode\\plan",
+    "C:\\Users\\fictif\u202e\\.opencode\\plan", "C:\\Users\\fictif:stream\\.opencode\\plan",
+    "C:/Users/fictif/.opencode/plan", "C:\\Users\\fictif<notice>\\.opencode\\plan",
+    "\\\\serveur\\partage\\.opencode\\plan", "C:\\Users\\\\fictif\\.opencode\\plan", "C:\\Users\\fictif\\.opencode\\plan\\"]) {
+    changes.push(s => { s.context[1] = planReminder(directory); });
+  }
+  for (const change of changes) {
+    const w = world(); Object.assign(w.original, planSource()); change(w.original);
+    const result = await w.run(); assert.equal(result.outcome.status, "target-state-unknown");
+    assert.equal(result.delivery.status, "not-delivered"); assert.equal(result.copy.retention, "none");
+    assert.equal(w.calls.some(c => c.startsWith("fork:") || c.startsWith("run:")), false);
+  }
+});
+
+test("source Plan : profils Windows avec espaces et accents, sans accès au chemin du rappel", () => {
+  for (const directory of ["C:\\Users\\Jean Dupont\\.opencode\\plan", "D:\\Profils\\Élise\\.opencode\\plan"]) {
+    const original = planSource(); original.context[1] = planReminder(directory);
+    assert.doesNotThrow(() => validateCopySource(original, sourceId));
+    assert.doesNotThrow(() => validateCopyFork(original, copyOf(original), copyId));
+  }
+});
+
+test("rappel Plan qualifié dans le nouveau tour : toujours refusé, message conservé sans renvoi", async () => {
+  const w = world(); Object.assign(w.original, planSource()); Object.assign(w.before, copyOf(w.original));
+  const run = w.transport.run;
+  w.transport.run = async (...args) => {
+    const result = await run(...args), after = answer(w.before);
+    after.context.splice(w.before.context.length, 0, { ...planReminder(), id: "msg_fresh_plan" });
+    w.setAfter(after); return result;
+  };
+  const result = await w.run(); assert.equal(result.outcome.status, "no-valid-reply");
+  assert.equal(result.copy.diagnostic, "turn-schema"); assert.equal(result.delivery.status, "persisted-no-reply");
+  assert.equal(result.reply, undefined); assert.equal(w.calls.filter(c => c.startsWith("run:")).length, 1);
 });
 
 test("notice de date qualifiée avant l'enveloppe : réponse et délivrance, un seul envoi", async () => {

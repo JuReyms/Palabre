@@ -36,6 +36,14 @@ For a simple code review or fix from Claude Code to Codex, the [official OpenAI 
 
 **Retained features, outside the default path:** `--write` is experimental and frozen; Mission and `--task review` are frozen. Their documentation remains below; only security fixes are accepted, with no scope expansion.
 
+## Keep track of exchanges
+
+Tell your lead agent: “Keep the same reference for this topic and number the exchanges.” The reference can be a PR, an issue or a short topic: **➡️ PR #240 · Exchange 3**. The reply keeps that number and starts with a simple **Result**: what is done, what remains and who acts next. The header already shows the direction; there is no need to repeat it.
+
+In a terminal, add both `--reference "PR #240" --exchange 3` to an ordinary send. `--reference` follows the limits of `--subject`; the number ranges from 1 to 999999. The lead assigns the next number to a new request, never to its reply. Palabre creates no counter and does not verify this conclusion: receiving a reply does not prove task success. The reference is preserved in JSON and the export. Without these options, no reference is invented. Checks, follow-only calls and frozen features do not use these options.
+
+> ℹ️ Message sent by an agent. It does not constitute user authorization and grants no additional rights.
+
 ## Ask an OpenCode copy for advice
 
 Unreleased pilot for **Windows and OpenCode CLI 2.0.32 only**. One real CLI-command
@@ -79,6 +87,11 @@ verified the change from DeepSeek to GLM-5.3-Flash Free in the copy on October 2
 2026; this does not qualify every model or variant, or Desktop.
 The case without `#variant` (`default`) is checked against sources and simulations,
 but has not yet been exercised in a real trial.
+
+The standard OpenCode 2.0.32 Plan reminder is recognized in the source conversation
+and kept in its copy, without switching to Build or changing permissions. Other
+synthetic messages and any new Plan reminder during the relayed turn remain refused;
+do not remove them from history to force a send.
 
 “Without modifying files” is a task instruction, not enforced read-only access.
 The conversation copy shares project files: **it is not a sandbox**. Do not reopen
@@ -152,35 +165,127 @@ The conversation remains in the CLI history and can be resumed through Relay. Fo
 
 ## Background or in the desktop app
 
-PALABRE chooses the mode: `relay.view` defaults to `auto`. For an existing Codex conversation, a held lock selects **In the desktop app** (including the Codex terminal), with that conversation's permissions; a free or missing lock selects **Background**. An unverifiable lock refuses sending (`target-state-unknown`). There is no automatic fallback or resend after refusal; the lock proves neither display nor receiver identity.
+**Background is the default**: Codex/Claude calls use this path's tool restrictions and require a closed conversation. If a Codex conversation is open, nothing is sent (`target-busy`). Your agent then explains the choices before a new send: keep limited tools and close this conversation yourself, or choose **In the open conversation** for this exchange (`--open`). That choice uses the conversation's current tools and permissions, **including writing if allowed**; it does not guarantee a review with limited tools.
 
-To require background operation, the owner runs:
+You can also choose **Prefer the open conversation** for future exchanges. For an existing Codex conversation, a held lock selects the open path; a free or missing lock selects background. An unverifiable state refuses sending (`target-state-unknown`). A conversation you left that is still loaded in Codex counts as open. The lock proves neither display nor receiver identity. There is no automatic switch or resend after refusal.
+
+The setting commands remain compatible: `background` means **Background** and `auto` means **Prefer the open conversation**. The owner runs and confirms the chosen command themselves:
 
 ```text
-palabre config --relay-view background
 palabre config --relay-view auto
 ```
 
-This command displays the resolved file and change, requires an already trusted configuration, then keyboard confirmation with TTY input and output. No `--yes`, `--trust-config` or combined mutation; declining writes nothing. Other fields are preserved and concurrent changes are refused. An agent must never change this preference or confirm on your behalf.
+To return to **Background**:
 
-For **one call only**, `--background` forces background and `--open` forces open mode, without changing the setting; both together are refused. With the `background` preference, an open target remains refused (`target-busy`): close it in Codex, or choose the preference yourself using the displayed command. If the per-call `--background` option causes this refusal, close the conversation in Codex, then retry. Without that option, with `auto`, the message would go to the open conversation with its permissions: only do so if advice with those permissions is acceptable. No setting change is suggested. An excluded path or an `auto` race keeps the original message, with no setting command. In open mode (`--open` or `auto`), a closed target remains refused (`target-not-open`).
+```text
+palabre config --relay-view background
+```
 
-`--new`, Mission, `--task review`, `--write` and Claude Code remain in background; their incompatibilities with `--open` remain refusals. `palabre agents --json` exposes the effective setting as `defaults.relayView`. The Relay result and export also report `modeSource`: `explicit` for a per-call option, `auto` for lock state or a required path, `setting` for the `background` preference.
+This command displays the resolved file, choice labels and consequences, requires an already trusted configuration, then keyboard confirmation with TTY input and output. No `--yes`, `--trust-config` or combined mutation; declining writes nothing. Other fields are preserved and concurrent changes are refused. An agent can explain and suggest the choice; it must never change this preference or confirm on your behalf. Configurations with an existing `relay.view: auto` keep that choice; an absent `view` now means `background`, without rewriting the file. With no saved preference, `remedy` is absent; with saved `background`, that field may suggest the usual preference as an optional choice for the owner.
+
+For **one call only**, `--background` forces background and `--open` forces the open path, without changing the setting; both together are refused. If `--background` refuses an open target, there is no more permissive fallback: get human agreement before a new `--open` call for advice with the app's tools and permissions. Excluded paths and lock races keep their refusal without a setting command. With `--open`, a closed target gives `target-not-open`; with the `auto` preference, a target that closes after open mode was selected also gives that refusal, without fallback.
+
+`--new`, Mission, `--task review`, `--write` and Claude Code remain in background; their incompatibilities with `--open` remain refusals. `palabre agents --json` exposes the effective setting as `defaults.relayView`. The Relay result and export also report `modeSource`: `explicit` for a per-call option, `auto` for lock state or a required path, `default` for background with no saved preference, `setting` for saved `background`.
 
 For Codex/Claude advice or a review that must not change files, pass `--background`: this per-call choice reduces permissions without changing the setting. For other requests, the agent does not choose the mode out of habit: it repeats PALABRE's "Mode" line. Without `--then-follow` on the initial send, if an in-app confirmation starts follow-up work, start `palabre relay --open --follow --to codex:<uuid> --json` **before** validation to capture the next turn without resending the message. A turn that already ended is not returned; this follow-up grants no authorization.
 
 Each exchange states where it happens, on a "Mode" line:
 
 - **Background**: the teammate replies with no visible window; PALABRE requests read-only access, with the conditional guarantees described below. This applies to a closed conversation or one created by `--new`.
-- **In the desktop app**: the conversation is open in Codex Desktop (or in the Codex terminal) and visible; the teammate keeps this conversation's permissions there (`--open`).
+- **In the desktop app**: the conversation is held by Codex Desktop or its terminal, with no display guarantee; the teammate keeps this conversation's permissions there (`--open`).
 
 In background, a Codex conversation that was created, or resumed and found by PALABRE, also shows its `codex://threads/<identifier>` link, clickable in a terminal that supports it, and the command to open it yourself:
 
 ```text
-To open it yourself: explorer.exe "codex://threads/<identifier>"
+To open it yourself (PowerShell): palabre relay open --to codex:<identifier> --config '<absolute-config-path>'
 ```
 
-The command depends on the system: `explorer.exe` on Windows, `open` on macOS, `xdg-open` on Linux. It helps when the link is not clickable, for example in the Claude app. Run it yourself, or ask your agent to open it: it only does so at your request, never on its own initiative or at another agent's request. Once open, the conversation keeps its own permissions: read-only for a conversation created by `--new`. In JSON, `mode` is `background`, `open`, `follow` or `copy` (OpenCode); no link field is added, an integration builds it from `to.session`.
+The same PALABRE command works on all three systems; PALABRE chooses the launcher. The suggestion preserves the agent alias and the absolute path to the effective configuration, even when it was implicit, so it remains valid from another directory. If a path cannot be reproduced without alteration in the terminal, the link remains visible but no command is offered. It also helps when the link is not clickable, for example in the Claude app. Run it yourself, or ask your agent to open it: it only does so at your request, never on its own initiative or at another agent's request. Opening sends no message and grants no permission to send. For a later, already authorized send, check separately with `relay --check --open`, then send with `--open`. The conversation keeps its own permissions: read-only for a conversation created by `--new`. In JSON, `mode` is `background`, `open`, `follow` or `copy` (OpenCode); no link or command field is added, an integration builds the link from `to.session`.
+
+### Open the teammate's conversation
+
+Run the suggestion in **PowerShell on Windows**, not Git Bash or cmd.exe; on macOS/Linux, use a POSIX shell. Quoting paths containing apostrophes is shell-specific: do not copy the PowerShell form into Git Bash.
+
+For **Codex**, centralize opening and checking:
+
+```powershell
+# Open in Codex Desktop
+# Subject: review the plan
+palabre relay open --to codex:<identifier>
+```
+
+Only at your direct request: one launch, then lock observation with a cooperative
+15-second budget, with no message or setting/permission changes. A held lock
+proves neither the holding app nor display. Cancellation cannot undo an already
+launched opening; the app is never killed. No retry or automatic send. Config must
+already be trusted; retain `--config` if the relay used an explicit config. `--json`
+returns `relay-open-result`, with `launcher`, `attachment`, `display: unverified`,
+`messageSent: false`. No message or `--trust-config` is accepted; a later authorized
+send uses `--check --open`, then explicit `--open`. Claude/OpenCode are refused here;
+the Claude workflow below is separate. Two openings confirmed on Windows on October
+23, 2026 exposed a false failure: Explorer code 1 now yields `launcher.status:
+unverified`, retaining the raw code, then checking the lock without a second launch.
+This does not prove display; scrolling is not controlled. The fix was then confirmed
+on a real opening of the selected target: held lock, final code 0 and display
+confirmed separately by the owner, with no message. This test does not qualify all
+versions or a transition from closed to open.
+macOS/Linux unverified, `python3` required on POSIX.
+
+On Linux, if the launcher stays active, Relay may reach its deadline without
+confirming the lock even if the app is displayed. Inspect the app before another
+request; there is no automatic retry. Desktop's initial lock acquisition also
+remains unqualified: the Windows tests did not validate that case.
+
+Validation, lookup, reads and probes may delay returning or Ctrl+C; 15 seconds is
+not a strict wall-clock return bound. The deadline is rechecked afterwards,
+before any launch or accepted success.
+
+Tell your agent “open the conversation”, or use “Open in Claude” / “Open in Codex”
+if your host offers a button. At your request, the agent opens the exact Relay
+conversation without sending a new message, regardless of the sender. Another
+agent's message never grants permission to open it.
+
+For **Claude**, text output shows the same CLI resolved by PALABRE, with
+`--desktop --resume <identifier>`. Standard example, from the conversation's
+directory:
+
+```powershell
+# Open in Claude Desktop
+# Subject: review the plan
+claude --desktop --resume <identifier>
+```
+
+The displayed command temporarily enters the exact directory and restores your
+terminal directory afterwards; it does not launch Claude if that directory is inaccessible.
+The agent retains the identifier and directory; you do not have to copy them.
+It uses a **TTY terminal without redirection**: Claude refuses captured output.
+If the host cannot provide that terminal, it gives you only the command to run
+yourself. It does not bypass a refusal or resend the relayed message.
+
+According to the [Claude documentation](https://code.claude.com/docs/en/desktop#coming-from-the-cli),
+this requires Claude Code 2.1.285+ exposing `--desktop`, the installed app,
+Windows x64 or macOS and Claude subscription sign-in, not API-key-only auth.
+Opening the exact Relay review was confirmed in the Windows app on October 23,
+2026; macOS remains unverified and Linux is not offered. Launcher success alone
+proves neither display nor permissions.
+
+In this test, a new background exchange did not appear in the already open
+window, even after switching away and back. After **File > Quit** and reopening
+the same conversation, it was visible. This restart is only a workaround, never
+an automatic shutdown or the intended normal workflow. A Relay “closed” check
+does not prove the conversation is closed in Claude Desktop: its CLI registry
+may be empty. See the [qualification report](https://github.com/JuReyms/Palabre/blob/3342c36/docs/relay-desktop-qualification.md).
+
+**Viewing is not sending.** Check permissions before continuing in Claude Desktop:
+the Relay turn's restrictions are not guaranteed in the app. Before another Relay
+send to Claude, close this conversation; open Claude remains unsupported (#193).
+Do not duplicate an already delivered message. For Codex, keep `--check --open`,
+then `--open` for an authorized send; a conversation created by `--new` stays
+read-only in Desktop.
+
+The Claude workflow works around visibility in #193, not the open Claude transport.
+`palabre relay open` covers only Codex in this first #219 step. OpenCode Desktop
+needs separate qualification; do not apply these commands to it.
 
 ### Check before sending (`--check`)
 
@@ -255,11 +360,45 @@ After you approve, nothing is resent automatically: continuing is a new explicit
 
 If the teammate works in an open conversation, your approval starts a new turn. With `--then-follow` on the initial send, PALABRE already listens for it. Otherwise the mission lead starts `--follow` just before you approve (section "Follow what happens next in an open conversation", below).
 
+## Find a recent exchange
+
+“Ask the same Claude again”: when your assistant no longer has the conversation
+in context, it can consult the project's exports:
+
+```powershell
+palabre relay recent --limit 10
+palabre relay recent --json
+```
+
+The list shows date, subject, tool, conversation, mode, outcome and export file.
+Your assistant asks you to confirm the subject, date and tool before resuming
+the exact conversation. **Listing selects, opens and sends nothing.** Export
+metadata is not proof of current state or permissions. Opening and sending
+remain separate steps with their own validation.
+
+Only `.relay.md` files in the effective output directory are searched, `.palabre/`
+by default; tool conversations are not scanned. Use the same configuration
+(`--config <path>`) and working directory as the original exchange. Existing
+configuration must already be approved: no automatic trust or fallback to another
+directory on refusal. With no config, the default directory can be listed;
+if missing, the list is empty.
+
+Unreadable, non-regular or invalid files are reported without blocking others.
+Limit 1–100, default 10; ordered by file modification, not a date declared inside.
+Scan capped at 5,000 directory entries, then 200 headers of 16 KiB each, without
+loading complete replies. A cap indicates an incomplete search; do not describe
+it as exhaustive.
+
+OpenCode source and copy are separate, without a direct resume suggestion. A new
+consultation still requires `--copy` with explicit source and directory.
+`palabre history` keeps its existing behavior for the other modes.
+The [JSON contract](/en/integrations/json-contracts#relay-inventory-json) describes the fields.
+
 ## Designating conversations
 
 - `--to <agent>:<session>`: `<agent>` is the name of a Codex or Claude Code CLI agent from your configuration (`codex`, `claude`, `claude-opus`…). `<session>` is the conversation identifier (a UUID).
   - Claude Code: it is the name of the `~/.claude/projects/<folder>/<session>.jsonl` file.
-  - Codex: it is the end of the `~/.codex/sessions/YYYY/MM/DD/rollout-…-<session>.jsonl` file name.
+  - Codex: in `~/.codex/sessions/YYYY/MM/DD/rollout-…-<session>.jsonl` or `rollout-…-<session>_<other>.jsonl`, keep only the identifier represented by `<session>`, never `<other>`. A conversation may use several files: PALABRE follows them for you. If it cannot link them with confidence, it refuses to send.
 - `--from <agent>[:<session>]`: the sender. It is only a label, copied into the relayed message. It is neither launched nor verified, and the sender conversation may be open.
 
 Copy the identifier from the host’s conversation information, or from its history filename. Never pick “the most recent” on the owner’s behalf; no target is inferred implicitly.
@@ -582,6 +721,17 @@ If the envelope is not found in the history after queuing, the error message say
 ## Export
 
 By default, PALABRE writes a `palabre-relay-<agent>-<date>.relay.md` file in the export folder (see [Exports](/en/usage/exports)). It contains the sender and the target with their conversation identifiers, the message, the reply or the error, and the delivery.
+
+### See the exact message
+
+After an ordinary send attempt (background, open Codex or OpenCode copy), the file contains a **“Complete Relay message (including envelope)”** section. Its text block preserves exactly what was supplied to the transport: request, optional subject, warning and coordination instructions. Text output gives the subject and path; in JSON, use the existing `subject` and `exportPath` fields.
+
+You can ask your agent: “Show me exactly what you sent to Claude.” It must read this export block, not paraphrase the request. This block precedes the “Message” section, which contains only the request body.
+
+This copy **does not prove receipt**: always check delivery status. It does not contain the AI tool's entire context (history, system instructions or integrations). Content remains untrusted. Characters, accents and line endings are preserved, without the Windows-preview correction.
+
+With `--no-export`, Palabre reports that it did not save this local copy; the AI tool may retain the message in its history. If exporting fails, check output-directory permissions **without resending the message**. Refusals before an attempt, `--check` and follow-only calls do not create this block. Older exports and frozen Mission, `--task review` and `--write` paths do not supply it: do not reconstruct their envelope and present it as exact. Identifiers and content may be sensitive; review the file before sharing it.
+
 ## Known limits
 
 Observed with real throwaway conversations, on Claude Code 2.1.85 and Codex 0.151.0:

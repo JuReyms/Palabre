@@ -33,7 +33,7 @@ Résumer simplement : décision ou recommandation, désaccords restants, limites
 
 ## Appliquer le consensus
 
-Sur demande de l'utilisateur, implémenter les corrections sur lesquelles **les agents s'accordent** (sections Consensus / Actions). Ne toucher qu'aux points consensuels ; laisser de côté les points en désaccord. Après application, résumer les changements faits et lister ce qui a été volontairement écarté (et pourquoi). Pour approfondir un point, proposer un Chat avec la synthèse comme contexte initial (`references/chat.md`).
+Sur demande de l'utilisateur, implémenter les corrections sur lesquelles **les agents s'accordent** (sections Consensus / Actions). Ne toucher qu'aux points consensuels ; laisser de côté les points en désaccord. Après application, résumer les changements faits et lister ce qui a été volontairement écarté (et pourquoi). Pour approfondir un point, proposer un Chat avec la synthèse comme contexte initial (`chat.md`).
 
 ## Export ciblé
 

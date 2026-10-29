@@ -1,8 +1,8 @@
 /** @file Wizard interactif `palabre config` (sans sous-commande) pour éditer les defaults au clavier. */
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-import { syncDetectedAgents, writeConfig } from "./config.js";
-import { discoverLocalTools } from "./discovery.js";
+import { persistAgentSync, writeConfig } from "./config.js";
+import { discoverLocalTools, type ToolDiscovery } from "./discovery.js";
 import { activeConfiguredAgentEntries } from "./agentRegistry.js";
 import { DEFAULT_TURNS, MAX_TURNS, turnsOrDefault, validateTurns } from "./limits.js";
 import type { AgentConfig, PalabreConfig } from "./types.js";
@@ -63,16 +63,7 @@ export async function runConfigWizard(configPath: string, config: PalabreConfig,
     }
 
     if (action === "3") {
-      const discovery = await discoverLocalTools();
-      const addedAgents = syncDetectedAgents(config, discovery);
-
-      if (addedAgents.length === 0) {
-        console.log(messages.config.syncNoMissing(configPath));
-        return;
-      }
-
-      await writeConfig(configPath, config);
-      console.log(messages.config.syncAdded(configPath, addedAgents.join(", ")));
+      await syncConfigWizardAgents(configPath, config, messages);
       return;
     }
 
@@ -118,6 +109,37 @@ export async function runConfigWizard(configPath: string, config: PalabreConfig,
   } finally {
     rl.close();
   }
+}
+
+/**
+ * Action 3 du wizard : même parcours que `palabre config --sync-agents`, via `persistAgentSync`.
+ * Si le fichier a changé depuis son chargement, rien n'est écrit, l'avertissement part sur stderr et
+ * le code de sortie devient 1.
+ *
+ * @param discover - Découverte des outils locaux ; injectable pour les tests.
+ */
+export async function syncConfigWizardAgents(
+  configPath: string,
+  config: PalabreConfig,
+  messages: Messages,
+  discover: () => Promise<ToolDiscovery> = () => discoverLocalTools()
+): Promise<void> {
+  const result = await persistAgentSync(configPath, config, discover);
+
+  if (result.conflict) {
+    console.error(messages.config.syncConflict(configPath));
+    process.exitCode = 1;
+    return;
+  }
+
+  if (!result.changed) {
+    console.log(messages.config.syncNoMissing(configPath));
+    return;
+  }
+
+  console.log(result.addedAgents.length > 0
+    ? messages.config.syncAdded(configPath, result.addedAgents.join(", "))
+    : messages.config.syncRefreshed(configPath));
 }
 
 async function createQuestioner(): Promise<ConfigQuestioner> {

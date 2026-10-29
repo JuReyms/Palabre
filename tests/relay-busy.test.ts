@@ -11,7 +11,7 @@ import { createTranslator } from "../src/i18n.js";
 
 const id = "0199aaaa-bbbb-7ccc-8ddd-eeeeeeeeeeee";
 const header = { kind: "mission" as const, id, step: 1 };
-const cases = ["setting", "explicit", "review", "mission", "auto-race"] as const;
+const cases = ["default", "setting", "explicit", "review", "mission", "auto-race"] as const;
 for (const kind of cases) for (const language of ["fr", "en"] as const) test(`target-busy : ${kind}, ${language}`, async t => {
   const root = await mkdtemp(path.join(os.tmpdir(), "palabre-busy-"));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -21,7 +21,7 @@ for (const kind of cases) for (const language of ["fr", "en"] as const) test(`ta
   await writeFile(executable, "", { mode: 0o755 });
   const file = path.join(root, "palabre.config.json");
   await writeFile(file, JSON.stringify({ language, agents: { codex: { type: "cli", command: executable } }, relay: {
-    view: kind === "setting" ? "background" : "auto", allowedTasks: ["review"], reviewRepositories: ["owner/repo"]
+    ...(kind === "default" ? {} : { view: kind === "setting" ? "background" : "auto" }), allowedTasks: ["review"], reviewRepositories: ["owner/repo"]
   } }));
   await trustConfig(file);
   const day = path.join(root, ".codex", "sessions", "2026", "10", "21");
@@ -39,14 +39,22 @@ for (const kind of cases) for (const language of ["fr", "en"] as const) test(`ta
   assert.equal(result.status, "target-busy"); assert.equal(result.delivery.status, "not-delivered");
   assert.equal(result.mode, "background"); assert.equal(result.queue, undefined);
   const text = renderRelayText(result, createTranslator(language)).stderr;
-  if (kind === "setting") {
-    assert.match(result.remedy!, /config --relay-view auto --config/);
-    assert.ok(result.error!.message.includes(result.remedy!)); assert.ok(text.includes(result.remedy!));
+  if (kind === "setting" || kind === "default") {
+    assert.equal(result.modeSource, kind === "default" ? "default" : "setting");
+    if (kind === "setting") {
+      assert.match(result.remedy!, /config --relay-view auto --config/);
+      assert.ok(result.error!.message.includes(result.remedy!)); assert.ok(text.includes(result.remedy!));
+    } else assert.equal(result.remedy, undefined, "le défaut ne propose pas un réglage permanent dans remedy");
+    assert.match(text, language === "fr" ? /--open.*permissions.*écriture/ : /--open.*permissions.*writing/);
+    assert.match(text, language === "fr" ? /prochains échanges.*Privilégier la conversation ouverte/ : /future exchanges.*Prefer the open conversation/);
+    assert.ok(text.indexOf("--open") < text.indexOf("config --relay-view"), "choix ponctuel avant préférence facultative");
+    assert.match(result.error!.message, language === "fr" ? /^Rien n'a été envoyé\.\n/ : /^Nothing was sent\.\n/);
   } else {
     assert.equal(result.remedy, undefined); assert.ok(!text.includes("config --relay-view"));
     if (kind === "explicit") {
-      assert.match(text, language === "fr" ? /Fermez-la dans Codex, puis relancez/ : /Close it in Codex, then retry/);
-      assert.match(text, language === "fr" ? /Sans --background, avec auto.*permissions.*à ne faire que si/ : /Without --background, with auto.*permissions.*only do so if/);
+      assert.match(text, language === "fr" ? /--background impose l'arrière-plan/ : /--background requires background operation/);
+      assert.match(text, language === "fr" ? /--open.*permissions.*écriture/ : /--open.*permissions.*writing/);
+      assert.match(text, language === "fr" ? /aucun repli automatique/ : /no automatic fallback/);
       assert.doesNotMatch(text, /ou relancez sans --background|or retry without --background/);
     }
     else assert.equal(result.error!.message, createTranslator(language).relay.status("target-busy"));

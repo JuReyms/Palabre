@@ -8,6 +8,7 @@ import { detectionForCommand, isRetiredAgentName } from "../agentRegistry.js";
 import { VALID_AGENT_ROLES, type AgentConfig, type PalabreConfig } from "../types.js";
 import type { Messages } from "../messages/index.js";
 import { optionalString, type CommandFlags } from "./shared.js";
+import { DEFAULT_RELAY_VIEW } from "../externalSessions/relayView.js";
 
 /**
  * Liste les agents configurés avec leur disponibilité calculée par le CLI.
@@ -37,7 +38,7 @@ export async function runAgentsCommand(flags: CommandFlags): Promise<void> {
       roles: VALID_AGENT_ROLES,
       agents: listAgentsWithAvailability(config, discovery, messages),
       defaults: {
-        relayView: config.relay?.view ?? "auto",
+        relayView: config.relay?.view ?? DEFAULT_RELAY_VIEW,
         askAgents: config.defaults?.askAgents?.length
           ? config.defaults.askAgents.filter((name) => !isRetiredAgentName(name))
           : fallbackAskAgents

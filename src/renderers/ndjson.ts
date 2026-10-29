@@ -1,4 +1,4 @@
-/** @file Renderer NDJSON machine-readable, contrat public versionné pour les intégrations out-of-process (voir AGENTS.md, section "Renderer NDJSON"). */
+/** @file Renderer NDJSON machine-readable, contrat public versionné pour les intégrations out-of-process (voir docs/dev/interfaces.md, section "Renderer NDJSON"). */
 import type {
   AgentConfig,
   AgentRole,
@@ -22,7 +22,7 @@ import type {
  * - une ligne = un événement JSON valide, terminé par `\n` ;
  * - tous les événements portent un champ `v` (entier) pour le versioning ;
  * - toute évolution cassante du schéma doit incrémenter `v` et documenter
- *   la migration dans AGENTS.md (section "Renderer NDJSON").
+ *   la migration dans docs/dev/interfaces.md (section "Renderer NDJSON").
  *
  * Sortie : stdout uniquement. stderr reste libre pour les messages bas
  * niveau (Node, shell) que les consommateurs peuvent agréger comme ils

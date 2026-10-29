@@ -41,12 +41,22 @@
       "role": "reviewer",
       "tier": "primary"
     },
+    "antigravity": {
+      "type": "cli",
+      "command": "agy",
+      "args": ["--print-timeout", "5m0s", "--output-format", "json", "--print"],
+      "responseFormat": "antigravity-json",
+      "promptMode": "argument",
+      "shell": true,
+      "role": "reviewer",
+      "tier": "primary",
+      "timeoutMs": 300000
+    },
     "opencode": {
       "type": "cli",
       "command": "opencode",
       "args": [
-        "run",
-        "--pure"
+        "run"
       ],
       "promptMode": "stdin",
       "modelArg": "--model",

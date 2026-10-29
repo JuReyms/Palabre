@@ -1,6 +1,6 @@
 /**
  * @file Commande `palabre relay` : transmet un message à une conversation Codex ou Claude Code
- * neuve, fermée ou ouverte selon relay.view et le verrou (#190), en un seul appel.
+ * en arrière-plan par défaut, ou ouverte sur choix explicite ponctuel ou enregistré, en un appel.
  *
  * Déroulé strictement ordonné ; une étape refusée arrête le relay sans rien lancer :
  * arguments, config approuvée (sans question interactive), agent et fournisseur, exécutable,
@@ -27,6 +27,10 @@
  * `--copy` utilise un déroulé distinct, à source/dossier explicites, sans sonde d'attachement
  * fabriquée : fork OpenCode vérifié, environnement habituel, preuves conservées même après erreur.
  * Son --model facultatif vérifie une sélection sur la copie avant prompt, jamais sur la source.
+ * Les suggestions Codex utilisent `relay open`, sans envoi et avec la config effective absolue ;
+ * cette métadonnée de présentation ne fait pas partie du résultat JSON ni de l'export.
+ * `relay recent` consulte seulement les en-têtes des exports du dossier configuré ; résultat
+ * distinct, sans choix, ouverture, envoi ou modification du contrat d'échange ci-dessous.
  */
 import { readFile, realpath, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -44,10 +48,11 @@ import { OpenCodeCopyTransport } from "../externalSessions/opencodeTransport.js"
 import { parseOpenCodeRef } from "../externalSessions/opencodeCopy.js";
 import { parseCopyModel } from "../externalSessions/opencodeModel.js";
 import { relayCopyText } from "../messages/relayCopy.js";
-import { buildEnvelope, buildOpenEnvelope, createNonce, MAX_RELAY_MESSAGE_BYTES, parseAgentName, parseSenderRef, parseSessionRef, validMissionHeader, validateRelayMessage, validateRelaySubject, type MissionEnvelopeHeader } from "../externalSessions/envelope.js";
+import { buildEnvelope, buildOpenEnvelope, createNonce, isSessionId, MAX_RELAY_MESSAGE_BYTES, parseAgentName, parseSenderRef, parseSessionRef, validMissionHeader, validateRelayMessage, validateRelaySubject, validateRelayExchange, type RelayExchange, type MissionEnvelopeHeader } from "../externalSessions/envelope.js";
 import type { OpenTurnContext } from "../externalSessions/openReader.js";
 import { defaultOpenRelayDeps, runFollowRelay, runOpenRelay, type FollowRelayResult, type OpenQueueReport, type OpenRelayResult } from "../externalSessions/openRelay.js";
 import { locateOpenRollout, readLastTurnContext, readLastCodexQuota } from "../externalSessions/openRollout.js";
+import type { CodexHistoryRefusal } from "../externalSessions/codexHistory.js";
 import type { CodexQuota } from "../externalSessions/quota.js";
 import { assessTarget, classifyDelivery, RELAY_EXIT_CODES, refusalOutcome, type PreLaunchRefusal } from "../externalSessions/outcome.js";
 import { resolveExternalExecutable } from "../externalSessions/resolve.js";
@@ -74,10 +79,12 @@ import { runRelayAllowRepo, reviewAuthorizationCommand } from "./relayAllowRepo.
 import { createInterface } from "node:readline/promises";
 import { prepareWrite, readWriteRequest, approveWrite, consumeWrite, createWriteWorktree, WriteCodexAdapter, writeReport, writeHash, WriteError, type WriteRequest, type WriteReport } from "../externalSessions/write.js";
 import { relayWriteText } from "../messages/relayWrite.js";
-import { resolveRelayView, type RelayModeSource } from "../externalSessions/relayView.js";
+import { resolveRelayView, shouldProbeRelayView, type RelayModeSource } from "../externalSessions/relayView.js";
 import { relayViewText } from "../messages/relayView.js";
 import type { ThenFollowReport } from "../externalSessions/openRelay.js";
 import { relayViewCommand } from "./relayView.js";
+import { runRelayOpenCommand } from "./relayOpen.js";
+import { runRelayRecentCommand } from "./relayRecent.js";
 
 /** Timeout par défaut et bornes de `--timeout`, en secondes. */
 export const DEFAULT_RELAY_TIMEOUT_SECONDS = 600;
@@ -85,7 +92,7 @@ export const MIN_RELAY_TIMEOUT_SECONDS = 10;
 export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 
 /** Options de `palabre relay` qui attendent une valeur. */
-const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "then-follow", "config", "language", "task", "pr", "subject", "dir", "model"]);
+const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "then-follow", "config", "language", "task", "pr", "subject", "dir", "reference", "exchange", "model"]);
 /** Options de `palabre relay` sans valeur. */
 const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "background", "new", "write", "follow", "check", "copy"]);
 /** Alias acceptés, comme pour les autres commandes. */
@@ -127,6 +134,8 @@ export interface RelayResultV1 {
   readAccess?: ReadAccessDiagnostic;
   /** Objet explicite inchangé ; absent si --subject n'est pas fourni. */
   subject?: string;
+  /** Repère de lecture facultatif, non authentifié ; jamais un verdict de tâche. */
+  exchange?: RelayExchange;
   /** Human confirmation command; the agent may open it, but must never answer for the owner. */
   remedy?: string;
   /** CLI inspected before a Claude review, including on compatibility refusal. */
@@ -183,12 +192,19 @@ export interface RelayResultV1 {
 
 /** État partagé avec le gestionnaire d'erreur interne, pour qualifier la délivrance. */
 interface RelayContext {
+  /** Présentation privée : jamais ajoutée au contrat JSON v1. */
+  messageCopy?: "saved" | "disabled" | "failed";
+  /** CLI Claude déjà résolue, pour afficher une ouverture sans la lancer ni changer d'installation. */
+  desktopExecutable?: ExternalExecutable;
+  /** Config effective absolue, réservée à la commande de consultation proposée en texte. */
+  desktopConfigPath?: string;
   copy?: CopyReport;
   language?: "fr" | "en";
   approvedWrite?: WriteRequest;
   writeRequest?: string;
   write?: WriteReport;
   subject?: string;
+  exchange?: RelayExchange;
   header?: MissionEnvelopeHeader;
   /** Annulation du chef de mission ; ne confère aucun droit supplémentaire. */
   signal?: AbortSignal;
@@ -230,6 +246,15 @@ class RelayRefusal extends Error {
 
 const invalid = (reason: InvalidRequestReason, detail?: string) => new RelayRefusal({ status: "invalid-request", reason }, detail);
 
+/** Localisation refusée ; une chaîne de segments Codex cassée ou ambiguë est nommée clairement. */
+function locateRefusal(located: { status: "session-not-found" | "invalid-working-directory"; history?: CodexHistoryRefusal }, messages: Messages): RelayRefusal {
+  if (located.status !== "session-not-found") return invalid("invalid-working-directory");
+  return new RelayRefusal({ status: "session-not-found" }, located.history ? messages.relay.historyChain.refused(located.history) : undefined);
+}
+
+/** Diagnostic d'attente lié à un historique repris ou découpé (`history-*`, y compris en référence). */
+const isHistoryDiagnostic = (code: string | undefined) => code !== undefined && /(^|-)history-/.test(code);
+
 const NOT_DELIVERED: DeliveryVerdict = { status: "not-delivered", persisted: false, inActiveBranch: false };
 
 /** Langue de démarrage : `--language`, puis `PALABRE_LANGUAGE` ; une valeur invalide retombe sur le français. */
@@ -250,8 +275,24 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
     console.log(messages.help.renderCommand("relay"));
     return;
   }
+  // Routage seulement : ne pas confondre la valeur d'un --to/--from avec une sous-commande.
+  let actionIndex = -1;
+  for (let i = 1; i < rawArgs.length; i++) {
+    const token = rawArgs[i]!;
+    if (!token.startsWith("-")) { actionIndex = i; break; }
+    if ((RELAY_VALUE_FLAGS.has(token.slice(2)) || token === "--lang" || token === "--limit")
+      && rawArgs[i + 1] !== undefined && !rawArgs[i + 1]!.startsWith("-")) i++;
+  }
+  if (actionIndex > 0 && rawArgs[actionIndex] === "recent") {
+    await runRelayRecentCommand(["relay", "recent", ...rawArgs.slice(1, actionIndex), ...rawArgs.slice(actionIndex + 1)]);
+    return;
+  }
   if (rawArgs[1] === "approve-write" || rawArgs[1] === "run-write") {
     await manageWrite(rawArgs);
+    return;
+  }
+  if (rawArgs[1] === "open") {
+    await runRelayOpenCommand(rawArgs, (args, signal) => executeRelayWithMessages(args, { signal }), messages);
     return;
   }
   if (rawArgs[1] === "allow-repo") {
@@ -264,11 +305,11 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
   }
   let primaryPrinted = false;
   const json = rawArgs.includes("--json");
-  const { result, messages: resolvedMessages, targetLocated } = await executeRelayWithMessages(rawArgs, { onOpenReply: (reply, localized) => {
+  const { result, messages: resolvedMessages, targetLocated, desktopExecutable, desktopCwd, desktopConfigPath, messageCopy } = await executeRelayWithMessages(rawArgs, { onOpenReply: (reply, localized) => {
     if (!json) { process.stdout.write(`${sanitizeTerminalText(reply)}\n`); primaryPrinted = true; }
     process.stderr.write(`${localized.relayThenFollow.waiting}\n`);
   } });
-  writeResult(result, json, resolvedMessages, targetLocated, primaryPrinted);
+  writeResult(result, json, resolvedMessages, targetLocated, primaryPrinted, desktopExecutable, desktopCwd, desktopConfigPath, messageCopy);
   process.exitCode = result.exitCode;
 }
 
@@ -277,8 +318,8 @@ export async function executeRelay(rawArgs: string[], options: { signal?: AbortS
   return (await executeRelayWithMessages(rawArgs, options)).result;
 }
 
-/** Préserve la langue résolue dans la config pour le rendu de la commande historique. */
-async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader; approvedWrite?: WriteRequest; onOpenReply?: RelayContext["onOpenReply"] } = {}): Promise<{ result: RelayResultV1; messages: Messages; targetLocated: boolean }> {
+/** Préserve langue et contexte de consultation privés, sans enrichir le résultat public. */
+async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader; approvedWrite?: WriteRequest; onOpenReply?: RelayContext["onOpenReply"] } = {}): Promise<{ result: RelayResultV1; messages: Messages; targetLocated: boolean; desktopExecutable?: ExternalExecutable; desktopCwd?: string; desktopConfigPath?: string; messageCopy?: RelayContext["messageCopy"] }> {
   const context: RelayContext = {
     signal: options.signal,
     startedAt: Date.now(),
@@ -310,7 +351,7 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
         detail: error instanceof Error ? error.message : String(error)
       });
   }
-  return { result, messages: context.messages, targetLocated: context.targetLocated === true };
+  return { result, messages: context.messages, targetLocated: context.targetLocated === true, desktopExecutable: context.desktopExecutable, desktopCwd: context.cwd, desktopConfigPath: context.desktopConfigPath, messageCopy: context.messageCopy };
 }
 
 async function relay(rawArgs: string[], context: RelayContext): Promise<RelayResultV1> {
@@ -360,6 +401,14 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     const subject = validateRelaySubject(String(flags.subject));
     if (!subject.ok) throw invalid(subject.reason, messages.relay.arguments.subjectInvalid);
     context.subject = subject.value;
+  }
+  if (flags.reference !== undefined || flags.exchange !== undefined) {
+    const exchange = validateRelayExchange(String(flags.reference ?? ""), String(flags.exchange ?? ""));
+    if (!exchange.ok) throw invalid("invalid-arguments", messages.relay.arguments.exchangeInvalid);
+    if (context.check || context.follow || context.header || flags.task !== undefined || flags.write) {
+      throw invalid("invalid-arguments", messages.relay.arguments.exchangeConflict);
+    }
+    context.exchange = exchange.value;
   }
   try {
     resolveLanguage({ explicitLanguage: optionalString(flags.language) });
@@ -427,6 +476,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   try {
     configFingerprint = flags.task ? createHash("sha256").update(await readFile(configPath)).digest("hex") : undefined;
     config = await loadConfig(configPath);
+    context.desktopConfigPath = path.resolve(configPath);
   } catch {
     throw invalid("config-unavailable");
   }
@@ -446,7 +496,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   }
   if (defaultReviewMessage) message = context.messages.relay.defaultReviewMessage;
   const nonce = createNonce();
-  const envelopeInput = { from: context.from, to: to.value, nonce, message, subject: context.subject, header: context.header };
+  const envelopeInput = { from: context.from, to: to.value, nonce, message, subject: context.subject, exchange: context.exchange, header: context.header };
   const frame = flags.copy ? { ...context.messages.relay, envelopePermissions: relayCopyText(context.language ?? "fr").permissions } : flags.write ? {
     ...context.messages.relay, envelopePermissions: relayWriteText(context.language ?? "fr").envelopePermissions
   } : context.messages.relay;
@@ -475,6 +525,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const resolution = resolveExternalExecutable(agent.command, { allowNpmNative: flags.copy === true && provider === "opencode" });
   if (resolution.status === "command-not-found") throw new RelayRefusal({ status: "command-not-found" });
   if (resolution.status === "unsupported-executable") throw invalid("unsupported-executable");
+  if (provider === "claude") context.desktopExecutable = resolution.executable;
 
   if (flags.copy) {
     return relayCopy(context, { executable: resolution.executable, source: to.value.sessionId, agent: to.value.agent,
@@ -483,16 +534,16 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   // Choisir avant l'enveloppe. Les parcours exclus ne sondent pas pour ouvrir une cible ;
   // les transports conservent ensuite leurs propres contrôles, sans repli après refus.
   const excluded = Boolean(context.newSession || context.header || flags.task || flags.write);
+  const modeInput = { open: context.open, background: flags.background === true, excluded, provider, view: config.relay?.view };
   let probe: () => import("../externalSessions/types.js").TargetProbe = () => { throw new Error("unexpected-mode-probe"); };
-  if (!context.open && !flags.background && !excluded && provider === "codex" && config.relay?.view !== "background") {
+  if (shouldProbeRelayView(modeInput)) {
     const located = await locateOpenRollout(path.join(os.homedir(), ".codex"), to.value.sessionId);
-    if (located.status !== "found") throw located.status === "session-not-found"
-      ? new RelayRefusal({ status: "session-not-found" }) : invalid("invalid-working-directory");
+    if (located.status !== "found") throw locateRefusal(located, context.messages);
     context.targetLocated = true;
     const adapter = new CodexSessionAdapter();
     probe = () => adapter.probe({ ...to.value, provider: "codex", cwd: located.cwd });
   }
-  const mode = resolveRelayView({ open: context.open, background: flags.background === true, excluded, provider, view: config.relay?.view }, probe);
+  const mode = resolveRelayView(modeInput, probe);
   context.modeSource = mode.modeSource;
   context.open = mode.mode === "open";
   if (mode.refusal) throw new RelayRefusal({ status: mode.refusal });
@@ -617,9 +668,12 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     }
     applyReviewCancellation(result, controller.signal.aborted, context.messages);
     result.durationMs = Date.now() - context.startedAt;
+    // Parcours ordinaires seulement : Mission/review/écriture restent gelés.
+    const submitted = launched && !context.header && !context.task && !context.approvedWrite ? envelope : undefined;
     if (flags["no-export"] !== true) {
-      result.exportPath = await exportRelay(resolveOutputDir(config.outputDir), result, { nonce, message, startedAt: context.startedAt }, context.messages, context.targetLocated === true);
+      result.exportPath = await exportRelay(resolveOutputDir(config.outputDir), result, { nonce, message, envelope: submitted, startedAt: context.startedAt }, context.messages, context.targetLocated === true);
     }
+    recordMessageCopy(context, result, submitted, flags["no-export"] !== true);
     return result;
   } finally {
     context.signal?.removeEventListener("abort", onInterrupt);
@@ -629,23 +683,25 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
 
 /**
  * Arrière-plan : localise la conversation reprise, puis refuse une cible attachée ou invérifiable.
- * Sur une Codex attachée, le conseil dépend de la cause : préférence `background` (commande de
- * réglage) ou `--background` explicite (fermer la conversation) ; sinon, message d'origine.
+ * Sur une Codex attachée, l'arrière-plan par défaut/enregistré explique le choix ponctuel ou le
+ * réglage humain ; seul un choix enregistré expose ce réglage facultatif dans `remedy`.
+ * `--background` propose fermeture ou nouvel `--open` décidé par le propriétaire.
+ * Les parcours exclus et les courses de verrou gardent leur message d'origine.
  * Partagé par l'envoi et par `--check` (#203), qui doivent rendre les mêmes refus.
  */
 function assessClosedTarget(context: RelayContext, adapter: ExternalSessionAdapter, to: SessionRef, configPath: string, explicitBackground: boolean): ExternalTarget {
   const located = adapter.locate(to);
   if (located.status !== "found") {
-    throw located.status === "session-not-found"
-      ? new RelayRefusal({ status: "session-not-found" })
-      : invalid("invalid-working-directory");
+    throw locateRefusal(located, context.messages);
   }
   context.targetLocated = true;
+  context.cwd = located.target.cwd;
   const decision = assessTarget(adapter.probe(located.target));
   if (!decision.allowed) {
-    if (context.provider === "codex" && decision.status === "target-busy" && context.modeSource === "setting") {
-      context.remedy = relayViewCommand(configPath);
-      throw new RelayRefusal({ status: decision.status }, relayViewText(context.language ?? "fr").busy(context.remedy));
+    if (context.provider === "codex" && decision.status === "target-busy" && (context.modeSource === "setting" || context.modeSource === "default")) {
+      const command = relayViewCommand(configPath);
+      if (context.modeSource === "setting") context.remedy = command;
+      throw new RelayRefusal({ status: decision.status }, relayViewText(context.language ?? "fr").busy(command));
     }
     if (context.provider === "codex" && decision.status === "target-busy" && explicitBackground) {
       throw new RelayRefusal({ status: decision.status }, context.messages.relayView.busyExplicit);
@@ -673,7 +729,7 @@ async function relayCheck(
     // Métadonnée facultative seulement : sa localisation/lecture ne doit changer aucun refus.
     try {
       const located = await locateOpenRollout(path.join(os.homedir(), ".codex"), input.to.sessionId);
-      if (located.status === "found") quota = await readLastCodexQuota(located.historyPath);
+      if (located.status === "found") quota = await readLastCodexQuota({ home: path.join(os.homedir(), ".codex"), sessionId: input.to.sessionId });
     } catch { /* Quota inconnu, jamais zéro ni une erreur de Relay. */ }
   }
   if (context.open) {
@@ -681,7 +737,7 @@ async function relayCheck(
     const home = path.join(os.homedir(), ".codex");
     const located = await locateOpenRollout(home, input.to.sessionId);
     if (located.status !== "found") {
-      throw located.status === "session-not-found" ? new RelayRefusal({ status: "session-not-found" }) : invalid("invalid-working-directory");
+      throw locateRefusal(located, context.messages);
     }
     context.targetLocated = true;
     const attachment = new CodexSessionAdapter({ home }).probe({ ...input.to, provider: "codex", cwd: located.cwd }).attachment;
@@ -690,7 +746,7 @@ async function relayCheck(
       context.checkReport = { target: "closed", ...(quota ? { quota } : {}) };
       throw new RelayRefusal({ status: "target-not-open" });
     }
-    const last = await readLastTurnContext(located.historyPath);
+    const last = await readLastTurnContext({ home, sessionId: input.to.sessionId });
     const { model: _model, ...permissions } = last?.context ?? {};
     const known = Object.keys(permissions).length > 0;
     context.checkReport = {
@@ -727,7 +783,7 @@ async function relayOpen(
   const home = path.join(os.homedir(), ".codex");
   const located = await locateOpenRollout(home, input.to.sessionId);
   if (located.status !== "found") {
-    throw located.status === "session-not-found" ? new RelayRefusal({ status: "session-not-found" }) : invalid("invalid-working-directory");
+    throw locateRefusal(located, context.messages);
   }
   const adapter = new CodexSessionAdapter({ home });
   const target: ExternalTarget = { agent: input.to.agent, provider: "codex", sessionId: input.to.sessionId, cwd: located.cwd };
@@ -751,14 +807,14 @@ async function relayOpen(
       onAttempt: () => { context.exchangeStarted = true; },
       thenFollowMs: context.thenFollowMs,
       onReply: reply => context.onOpenReply?.(reply, context.messages)
-    }, defaultOpenRelayDeps(() => adapter.probe(target)));
+    }, defaultOpenRelayDeps(() => adapter.probe(target), { home, sessionId: input.to.sessionId }));
   } finally {
     process.removeListener("SIGINT", onInterrupt);
     context.signal?.removeEventListener("abort", onInterrupt);
   }
   const result = buildResult(context, {
     outcome: open.outcome,
-    quota: await readLastCodexQuota(located.historyPath),
+    quota: await readLastCodexQuota({ home, sessionId: input.to.sessionId }),
     delivery: open.delivery,
     reply: open.reply,
     identity: open.identity,
@@ -768,8 +824,9 @@ async function relayOpen(
   });
   // Un refus avant tentative n'a rien exécuté : pas d'export, comme pour Relay A.
   if (input.exportResult && open.queue.attempted) {
-    result.exportPath = await exportRelay(input.outputDir, result, { nonce, message: input.message, startedAt: context.startedAt }, context.messages, false);
+    result.exportPath = await exportRelay(input.outputDir, result, { nonce, message: input.message, envelope, startedAt: context.startedAt }, context.messages, false);
   }
+  recordMessageCopy(context, result, open.queue.attempted ? envelope : undefined, input.exportResult);
   return result;
 }
 
@@ -784,17 +841,22 @@ async function relayCopy(context: RelayContext, input: {
   if (context.signal?.aborted) interrupt();
   const text = relayCopyText(context.language ?? "fr");
   try {
+    let envelope: string | undefined;
     const copied = await runCopyRelay({ source: input.source, cwd: context.cwd!, timeoutMs: input.timeoutMs, signal: controller.signal, model: input.model,
-      envelope: id => buildEnvelope({ from: context.from, to: { agent: input.agent, sessionId: id }, message: input.message,
-        nonce: input.nonce, subject: context.subject }, { ...context.messages.relay, envelopePermissions: text.permissions })
+      envelope: id => {
+        envelope = buildEnvelope({ from: context.from, to: { agent: input.agent, sessionId: id }, message: input.message,
+          nonce: input.nonce, subject: context.subject, exchange: context.exchange }, { ...context.messages.relay, envelopePermissions: text.permissions });
+        return envelope;
+      }
     }, { transport: new OpenCodeCopyTransport(input.executable, context.cwd!, input.timeoutMs) });
     context.copy = copied.copy;
     context.to = { agent: input.agent, sessionId: copied.copy.verified ? copied.copy.session! : "" };
     const result = buildResult(context, { ...copied,
       message: copied.outcome.status === "replied" ? undefined : copied.outcome.reason === "opencode-cli-unsupported"
         ? text.unsupported : text.failure(copied.copy.diagnostic ?? copied.outcome.status) });
+    const submitted = copied.delivery.status !== "not-delivered" ? envelope : undefined;
     if (input.exportResult && copied.serverAttempted) {
-      result.exportPath = await exportRelay(input.outputDir, result, { nonce: input.nonce, message: input.message, startedAt: context.startedAt }, context.messages, false);
+      result.exportPath = await exportRelay(input.outputDir, result, { nonce: input.nonce, message: input.message, envelope: submitted, startedAt: context.startedAt }, context.messages, false);
       if (!result.exportPath) {
         if (result.status === "replied") {
           result.status = "cli-failure"; result.exitCode = RELAY_EXIT_CODES["cli-failure"];
@@ -802,6 +864,7 @@ async function relayCopy(context: RelayContext, input: {
         } else if (result.error) result.error.message += ` ${text.exportFailed}`;
       }
     }
+    recordMessageCopy(context, result, submitted, input.exportResult);
     result.durationMs = Date.now() - context.startedAt;
     return result;
   } finally {
@@ -822,7 +885,7 @@ async function relayFollow(
   const home = path.join(os.homedir(), ".codex");
   const located = await locateOpenRollout(home, input.to.sessionId);
   if (located.status !== "found") {
-    throw located.status === "session-not-found" ? new RelayRefusal({ status: "session-not-found" }) : invalid("invalid-working-directory");
+    throw locateRefusal(located, context.messages);
   }
   const adapter = new CodexSessionAdapter({ home });
   const target: ExternalTarget = { agent: input.to.agent, provider: "codex", sessionId: input.to.sessionId, cwd: located.cwd };
@@ -836,7 +899,7 @@ async function relayFollow(
       historyPath: located.historyPath,
       timeoutMs: input.timeoutMs,
       signal: controller.signal
-    }, defaultOpenRelayDeps(() => adapter.probe(target)));
+    }, defaultOpenRelayDeps(() => adapter.probe(target), { home, sessionId: input.to.sessionId }));
   } finally {
     process.removeListener("SIGINT", onInterrupt);
   }
@@ -862,6 +925,7 @@ function followErrorMessage(followed: FollowRelayResult, messages: Messages): st
     ? messages.relay.usageLimit(followed.retryAfter)
     : followed.outcome.status === "target-state-unknown" ? messages.relay.open.targetStateUnknown : errorMessage(followed.outcome, messages)];
   if (followed.diagnostic) parts.push(messages.relay.open.diagnostic(followed.diagnostic));
+  if (isHistoryDiagnostic(followed.diagnostic)) parts.push(messages.relay.historyChain.changed);
   return parts.join(" ");
 }
 
@@ -875,6 +939,7 @@ function openErrorMessage(open: OpenRelayResult, messages: Messages): string | u
     : open.outcome.status === "target-state-unknown" ? relayMessages.open.targetStateUnknown
     : tooLarge ? relayMessages.open.messageTooLarge(open.diagnostic ?? "") : errorMessage(open.outcome, messages)];
   if (open.diagnostic && !tooLarge) parts.push(relayMessages.open.diagnostic(open.diagnostic));
+  if (isHistoryDiagnostic(open.diagnostic)) parts.push(relayMessages.historyChain.changed);
   if (open.queue.attempted && !open.receptionObserved) parts.push(relayMessages.open.receptionNotObserved);
   return parts.join(" ");
 }
@@ -1018,6 +1083,7 @@ function buildResult(
     ...(context.writeRequest ? { writeRequest: context.writeRequest } : {}),
     ...(context.write ? { write: context.write } : {}),
     ...(context.subject !== undefined ? { subject: context.subject } : {}),
+    ...(context.exchange ? { exchange: context.exchange } : {}),
     ...(context.task ? { task: context.task } : {}),
     ...(context.cli ? { cli: context.cli } : {}),
     ...(context.remedy ? { remedy: context.remedy } : {}),
@@ -1045,17 +1111,25 @@ function buildResult(
   };
 }
 
+/** Un conseil target-busy est complet ; une consigne générique ne doit pas le précéder. */
 function refusalResult(context: RelayContext, refusal: RelayRefusal): RelayResultV1 {
   const detail = refusal.message !== refusal.refusal.status ? refusal.message : undefined;
+  const message = detail && refusal.refusal.status === "target-busy" ? detail
+    : detail && refusal.refusal.status === "session-not-found" ? `${context.messages.relay.status(refusal.refusal.status)} ${detail}` : undefined;
   return buildResult(context, { outcome: refusalOutcome(refusal.refusal), delivery: NOT_DELIVERED, detail,
-    ...(refusal.refusal.status === "target-busy" && detail ? { message: `${context.messages.relay.status("target-busy")} ${detail}` } : {}) });
+    ...(message ? { message } : {}) });
+}
+
+/** Qualifie la copie consultable sans confondre tentative, persistance et réponse reçue. */
+function recordMessageCopy(context: RelayContext, result: RelayResultV1, envelope: string | undefined, exportEnabled: boolean): void {
+  if (envelope !== undefined) context.messageCopy = result.exportPath ? "saved" : exportEnabled ? "failed" : "disabled";
 }
 
 /** Écrit l'export ; un échec d'écriture ne change pas l'issue du relay. */
 async function exportRelay(
   outputDir: string,
   result: RelayResultV1,
-  input: { nonce: string; message: string; startedAt: number },
+  input: { nonce: string; message: string; envelope?: string; startedAt: number },
   messages: Messages,
   targetLocated: boolean
 ): Promise<string | null> {
@@ -1077,7 +1151,9 @@ async function exportRelay(
       nonce: input.nonce,
       startedAt: new Date(input.startedAt).toISOString(),
       ...(result.subject !== undefined ? { subject: result.subject } : {}),
+      ...(result.exchange ? { exchange: result.exchange } : {}),
       message: input.message,
+      ...(input.envelope !== undefined ? { envelope: input.envelope } : {}),
       reply: result.reply,
       ...(result.nextTurn ? { nextTurn: result.nextTurn } : {}),
       error: result.error?.message,
@@ -1117,18 +1193,18 @@ async function exportRelay(
  * Sortie : `--json` écrit un seul objet sur stdout. En texte, la réponse va seule sur stdout ;
  * l'issue, la délivrance et l'export vont sur stderr. Tout texte affiché est assaini.
  */
-function writeResult(result: RelayResultV1, json: boolean, messages: Messages, targetLocated = false, primaryPrinted = false): void {
+function writeResult(result: RelayResultV1, json: boolean, messages: Messages, targetLocated = false, primaryPrinted = false, desktopExecutable?: ExternalExecutable, desktopCwd?: string, desktopConfigPath?: string, messageCopy?: RelayContext["messageCopy"]): void {
   if (json) {
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }
-  const text = renderRelayText(result, messages, { targetLocated, primaryPrinted });
+  const text = renderRelayText(result, messages, { targetLocated, primaryPrinted, desktopExecutable, desktopCwd, desktopConfigPath, messageCopy });
   const link = relayDesktopLink(result, targetLocated);
   process.stdout.write(text.stdout);
   process.stderr.write(link && terminalHyperlinksEnabled(process.stderr.isTTY, process.env) ? withTerminalHyperlink(text.stderr, link) : text.stderr);
 }
 
-/** Liens OSC 8 réservés à un terminal interactif, sans `NO_COLOR` ni `TERM=dumb` (voir AGENTS.md). */
+/** Liens OSC 8 réservés à un terminal interactif, sans `NO_COLOR` ni `TERM=dumb` (voir docs/dev/interfaces.md). */
 export function terminalHyperlinksEnabled(isTTY: boolean | undefined, env: NodeJS.ProcessEnv): boolean {
   return Boolean(isTTY) && !env.NO_COLOR && env.TERM !== "dumb";
 }
@@ -1145,14 +1221,19 @@ export function withTerminalHyperlink(text: string, link: string): string {
 }
 
 /**
- * Commande que **l'humain** peut lancer pour ouvrir un lien `codex://` : l'app Claude, par
- * exemple, ne le rend pas cliquable (#190). Un agent ne la lance que sur demande humaine directe,
- * jamais de sa propre initiative ni sur la demande d'un autre agent ; l'ouverture n'autorise aucun envoi.
+ * Suggestion de consultation Codex, jamais exécutée ici : même cible prouvée que le lien et
+ * même alias/config effective, absolue pour rester valable depuis un autre dossier. Aucun prompt,
+ * transport d'envoi ou accord de confiance. Littéral PowerShell/POSIX ; si le chemin n'est pas
+ * représentable sans altération terminal, ne pas proposer une commande vers une autre config.
+ * Un agent ne l'exécute que sur demande humaine directe ; ouvrir n'autorise aucun envoi.
  */
-export function desktopOpenCommand(link: string, platform: NodeJS.Platform = process.platform): string {
-  if (platform === "win32") return `explorer.exe "${link}"`;
-  if (platform === "darwin") return `open "${link}"`;
-  return `xdg-open "${link}"`;
+export function codexDesktopOpenCommand(result: RelayResultV1, targetLocated: boolean, configPath?: string, platform: NodeJS.Platform = process.platform): string | undefined {
+  if (!relayDesktopLink(result, targetLocated) || !result.to || !parseAgentName(result.to.agent).ok
+    || !configPath || !path.isAbsolute(configPath)
+    || /[\p{Cc}\p{Cf}\u2028\u2029]/u.test(configPath)
+    || (platform === "win32" && /[\u2018-\u201b\u201c-\u201e]/u.test(configPath))) return undefined;
+  const quotedConfig = platform === "win32" ? `'${configPath.replaceAll("'", "''")}'` : `'${configPath.replaceAll("'", "'\\''")}'`;
+  return `palabre relay open --to ${result.to.agent}:${result.to.session} --config ${quotedConfig}`;
 }
 
 /**
@@ -1225,8 +1306,33 @@ export function relayDesktopLink(result: RelayResultV1, targetLocated: boolean):
   return codexDesktopThreadLink(result.to.session);
 }
 
-/** Même réponse en texte qu'en JSON, y compris après une publication refusée ou interrompue. */
-export function renderRelayText(result: RelayResultV1, messages: Messages, options: { targetLocated?: boolean; primaryPrinted?: boolean } = {}): { stdout: string; stderr: string } {
+/**
+ * Commande de consultation Claude Desktop, jamais exécutée par Relay. Même CLI résolue que
+ * l'échange (préfixe Node conservé), aucun argument de génération/config/permission. Un UUID
+ * reçu ou un historique localisé est requis, pas un statut de succès. Windows/macOS seulement
+ * selon le contrat documenté de --desktop ; Linux n'est pas supposé compatible. Les littéraux
+ * sont quotés pour PowerShell ou POSIX, sans interpolation de chemins ni d'arguments.
+ * Le dossier exact est requis ; changement temporaire et restauré, échec de cd bloquant.
+ */
+export function claudeDesktopOpenCommand(result: RelayResultV1, targetLocated: boolean, executable?: ExternalExecutable, platform: NodeJS.Platform = process.platform, cwd = result.cwd): string | undefined {
+  if (!executable || result.mode !== "background" || result.to?.provider !== "claude"
+    || !result.to.session || !isSessionId(result.to.session) || (!result.created && !targetLocated)
+    || !cwd || (platform !== "win32" && platform !== "darwin")) return undefined;
+  const args = [executable.command, ...executable.prefixArgs, "--desktop", "--resume", result.to.session];
+  if ([...args, cwd].some(arg => /[\p{Cc}\p{Cf}\u2028\u2029]/u.test(arg)
+    || (platform === "win32" && /[\u2018-\u201b\u201c-\u201e]/u.test(arg)))) return undefined;
+  const quote = (arg: string) => platform === "win32" ? `'${arg.replaceAll("'", "''")}'` : `'${arg.replaceAll("'", "'\\''")}'`;
+  const command = `${platform === "win32" ? "& " : ""}${args.map(quote).join(" ")}`;
+  return platform === "win32"
+    ? `& { Push-Location -LiteralPath ${quote(cwd)} -ErrorAction Stop; try { ${command} } finally { Pop-Location } }`
+    : `(cd -- ${quote(cwd)} && ${command})`;
+}
+
+/**
+ * Même réponse en texte qu'en JSON, y compris après une publication refusée ou interrompue.
+ * `messageCopy` vient du parcours d'envoi, jamais déduit d'un ancien `exportPath` seul.
+ */
+export function renderRelayText(result: RelayResultV1, messages: Messages, options: { targetLocated?: boolean; primaryPrinted?: boolean; desktopExecutable?: ExternalExecutable; desktopCwd?: string; desktopConfigPath?: string; messageCopy?: RelayContext["messageCopy"] } = {}): { stdout: string; stderr: string } {
   const lines: string[] = [];
   const quota = result.check?.quota ?? result.quota;
   let stdout = result.reply !== undefined && !options.primaryPrinted ? `${sanitizeTerminalText(result.reply)}\n` : "";
@@ -1278,7 +1384,14 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
   const link = relayDesktopLink(result, options.targetLocated === true);
   if (link) {
     lines.push(result.created ? messages.relay.desktopLink(link) : messages.relay.desktopLinkExisting(link));
-    lines.push(messages.relay.openLinkCommand(desktopOpenCommand(link)));
+    const command = codexDesktopOpenCommand(result, options.targetLocated === true, options.desktopConfigPath);
+    if (command) lines.push(messages.relay.openLinkCommand(command, process.platform === "win32" ? "PowerShell" : "POSIX"));
+  }
+  const claudeCommand = claudeDesktopOpenCommand(result, options.targetLocated === true, options.desktopExecutable, process.platform, options.desktopCwd ?? result.cwd);
+  if (claudeCommand) {
+    lines.push(messages.relay.claudeDesktop);
+    if (options.desktopCwd) lines.push(`${messages.relay.export.cwd}: ${options.desktopCwd}`);
+    lines.push(messages.relay.openLinkCommand(claudeCommand));
   }
   if (result.check?.lastPermissions) {
     lines.push(result.check.lastPermissions === "unknown"
@@ -1302,7 +1415,14 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
   if (result.mode === "follow" && result.targetPermissions && result.targetPermissions !== "unknown") {
     lines.push(messages.relay.open.followPermissions(permissionsSummary(result.targetPermissions)));
   }
-  if (result.exportPath) lines.push(messages.relay.exportWritten(result.exportPath));
+  if (options.messageCopy === "saved" && result.exportPath) lines.push(messages.relay.messageCopy.saved(result.exportPath, result.subject));
+  else {
+    if (result.exportPath) lines.push(messages.relay.exportWritten(result.exportPath));
+    if (options.messageCopy === "disabled") lines.push(messages.relay.messageCopy.disabled);
+    if (options.messageCopy === "failed" && !(result.copy && result.error?.message.includes(messages.relay.copy.exportFailed))) {
+      lines.push(messages.relay.messageCopy.failed);
+    }
+  }
   if (result.write) {
     const text = relayWriteText(result.write.language);
     lines.push(text.report, `${messages.relay.export.cwd}: ${result.write.worktree}`,
@@ -1340,8 +1460,8 @@ async function manageWrite(rawArgs: string[]): Promise<void> {
       console.log(text.approved(id));
       return;
     }
-    const { result, messages, targetLocated } = await executeRelayWithMessages(request.args, { approvedWrite: request });
-    writeResult(result, rawArgs.includes("--json"), messages, targetLocated); process.exitCode = result.exitCode;
+    const { result, messages, targetLocated, desktopConfigPath } = await executeRelayWithMessages(request.args, { approvedWrite: request });
+    writeResult(result, rawArgs.includes("--json"), messages, targetLocated, false, undefined, undefined, desktopConfigPath); process.exitCode = result.exitCode;
   } catch (error) {
     const text = relayWriteText(language);
     const detail = error instanceof Error && error.message === "human-terminal-required" ? text.terminal + ` palabre relay approve-write ${rawArgs[2]}` : text.failure(error instanceof Error ? error.message : "invalid-request");

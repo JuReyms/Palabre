@@ -1,5 +1,5 @@
 /**
- * @file Adapter de session externe Claude Code (voir AGENTS.md, section "Relay externe").
+ * @file Adapter de session externe Claude Code (voir docs/dev/relay.md, section "Relay externe").
  *
  * Sources lues, toutes sous `~/.claude` (racine injectable pour les tests) :
  * - `projects/<dossier encodé>/<session>.jsonl` : transcript, dossier de travail, preuve du nonce ;

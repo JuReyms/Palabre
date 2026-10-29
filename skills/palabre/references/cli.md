@@ -1,6 +1,6 @@
 # Palabre — référence CLI (Débat, Ask et commun)
 
-Chat et Relay ont leur propre référence : `references/chat.md` et `references/relay.md`.
+Chat et Relay ont leur propre référence : `chat.md` et `relay.md`.
 
 ## Agents et disponibilité
 
@@ -11,6 +11,8 @@ palabre doctor --terminal
 ```
 
 Lire ces contrats plutôt que deviner : la disponibilité est calculée par le CLI.
+
+OpenCode tourne en Débat, Ask et Chat, synthèses comprises, dans son environnement habituel : ses plugins, serveurs MCP et permissions configurés restent actifs. Ne jamais le présenter comme en lecture seule, ni comme neutralisé. L'ancien défaut exact `["run", "--pure"]` est remplacé à chaque lancement ; `palabre config --sync-agents` l'écrit dans le fichier. Si OpenCode 2 refuse `--pure`, il vient d'arguments personnalisés : le dire à l'humain, qui les corrige lui-même.
 
 `doctor` guide l'arrivée sur une machine : approbation, alias PowerShell du Store sous Windows (paragraphe suivant), connexions Claude/Codex, agents archivés, skill, emplacements multiples. Il ne répare rien. Sans approbation, il n'exécute aucune commande d'agent et ne contacte pas les URLs configurées. Après approbation, seules les sondes `auth status --json` ou `login status` sont lancées (3 s, 32 Kio, aucun modèle) ; « non vérifié » ne signifie pas « déconnecté ». Une CLI présente n'est pas une connexion, un état connecté ne prouve pas la validité future du jeton. Les fichiers du skill détecté sont comparés au paquet de cette CLI, fins de ligne normalisées ; un écart peut être une personnalisation. Proposer `palabre skill --sync`, ou `palabre skill --install codex` / `--install claude` si absent. Installation et rafraîchissement demandent l'accord humain après affichage du plan, sauvegardent les copies remplacées hors des dossiers de skills et conservent les jonctions et ajouts privés. `palabre update` inclut ce rafraîchissement dans sa confirmation unique ; le skill vient du nouveau paquet. `--check` et `--dry-run` n'écrivent rien. Ne pas lancer ces changements d'instructions ni ajouter `--yes` sans accord humain ; recharger le skill ensuite. Aucun suivi de GitHub main ; ne pas approuver une configuration, installer ni reconnecter à la place de l'humain.
 
@@ -23,6 +25,8 @@ Une copie du skill non vérifiable reste affichée avec avertissement et intacte
 `palabre config --prune-trust --dry-run` affiche les approbations de fichiers disparus, sans rien modifier. Pour les retirer, proposez à l'humain de lancer lui-même `palabre config --prune-trust` dans son terminal : liste, confirmation au clavier et sauvegarde horodatée. Ne confirmez jamais à sa place ; aucun `--yes` n'est admis. Les configurations existantes ou inaccessibles sont conservées et aucun nouveau droit n'est accordé.
 
 ## Débat
+
+Les rôles complètent Débat, Ask et Chat, jamais Relay. Un rôle change la consigne, pas le modèle ni les permissions. « Chef de mission » et « équipier » sont des positions dans la coordination Relay, pas des rôles configurés. La synthèse utilise automatiquement le rôle summarizer, indépendamment du rôle habituel de l'agent choisi.
 
 Deux agents se répondent avec le sujet, le contexte et l'historique ; synthèse finale par défaut (consensus, désaccords, actions, conclusion).
 
@@ -96,6 +100,8 @@ palabre config --sync-agents                   # ajoute les agents connus détec
 Une config de projet doit être approuvée (empreinte SHA-256). En TTY, Palabre demande confirmation ; `--trust-config` l'approuve sans question : à n'utiliser que sur décision de l'utilisateur.
 
 ## Dépannage
+
+Antigravity utilise par défaut `cli` avec `--output-format json --print` et `responseFormat: "antigravity-json"` : seul le texte d'un objet `status: "SUCCESS"` non vide est accepté. Format inconnu, tronqué ou en erreur : arrêt, aucun repli texte/PTY. L'ancien défaut PTY exact est migré en mémoire ; `config --sync-agents` le persiste sur demande humaine. Réglages personnalisés conservés, à adapter avec l'utilisateur si nécessaire. Le transport JSON ne limite pas les permissions. Sonde Windows 1.4.9 uniquement ; pas une cible Relay.
 
 - **Agent non détecté** → vérifier qu'il fonctionne seul dans le terminal, puis proposer `palabre config --sync-agents`.
 - **Limite d'usage** (`usage-limit`) → changer d'agent ou attendre ; ne pas relancer en boucle.

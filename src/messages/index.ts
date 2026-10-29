@@ -20,13 +20,14 @@ import { relayMessages, type RelayMessages } from "./relay.js";
 import { relayViewText } from "./relayView.js";
 import { relayQuotaText } from "./relayQuota.js";
 import { relayThenFollowText } from "./relayThenFollow.js";
+import { relayDesktopOpenText } from "./relayDesktopOpen.js";
 import { rendererMessages, type RendererMessages } from "./renderers.js";
 import { resumeMessages, type ResumeMessages } from "./resume.js";
 import { sessionsMessages, type SessionsMessages } from "./sessions.js";
 import { tuiMessages, type TuiMessages } from "./tui.js";
 import { updateMessages, type UpdateMessages } from "./update.js";
 
-/** Dictionnaire complet des messages traduits, un domaine par surface CLI (voir AGENTS.md, section "Internationalisation"). */
+/** Dictionnaire complet des messages traduits, un domaine par surface CLI (voir docs/dev/interfaces.md, section "Internationalisation"). */
 export interface Messages {
   adapterErrors: AdapterErrorMessages;
   agents: AgentsMessages;
@@ -48,6 +49,7 @@ export interface Messages {
   relayView: ReturnType<typeof relayViewText>;
   relayQuota: ReturnType<typeof relayQuotaText>;
   relayThenFollow: ReturnType<typeof relayThenFollowText>;
+  relayDesktopOpen: ReturnType<typeof relayDesktopOpenText>;
   renderers: RendererMessages;
   resume: ResumeMessages;
   sessions: SessionsMessages;
@@ -78,6 +80,7 @@ export function createTranslator(language: Language): Messages {
     relayView: relayViewText(language),
     relayQuota: relayQuotaText(language),
     relayThenFollow: relayThenFollowText(language),
+    relayDesktopOpen: relayDesktopOpenText(language),
     renderers: rendererMessages[language],
     resume: resumeMessages[language],
     sessions: sessionsMessages[language],

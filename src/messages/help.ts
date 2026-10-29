@@ -163,7 +163,7 @@ Utilisation :
   palabre config --mode <chat|debate|ask>
   palabre config --ask-agents <noms...>
   palabre config --interface <tui|terminal>
-  palabre config --relay-view <auto|background> # propriétaire : confirmation clavier TTY, aucun --yes
+  palabre config --relay-view <auto|background> # arrière-plan par défaut ; auto = privilégier la conversation ouverte
   auto suit le verrou Codex (tenu : permissions de la conversation ouverte ; libre : arrière-plan).
   background impose l'arrière-plan. État invérifiable : aucun envoi.
   Config déjà approuvée, fichier/changement affichés ; entrée ET sortie TTY requises.
@@ -267,6 +267,10 @@ Options :
   Omettez --from et --dir s'ils n'ont pas de valeur ; une chaîne vide est refusée.
   --message-file <chemin>     lit le message dans un fichier (64 Kio au plus)
   --subject <objet>           objet facultatif : une ligne non vide, 200 caractères au plus, sans contrôle
+  --reference <repère>        PR, issue ou nom court stable (mêmes limites que --subject)
+  --exchange <numéro>         avec --reference : entier de 1 à 999999, choisi par le chef de mission
+  Même repère dans la réponse ; aucun compteur automatique ni réussite de tâche certifiée.
+  Repères réservés aux envois ordinaires, hors --check, --follow et fonctions gelées.
   --task review               gelé : rédige et publie une revue COMMENT si la config l'autorise
   --pr <url>                  PR github.com exacte ; obligatoire avec --task review
   --open                      vise une conversation Codex ouverte (TUI ou Codex desktop), pour cet appel
@@ -283,6 +287,44 @@ Options :
   --trust-config              approuve la config résolue (aucune question n'est posée)
   --language <fr|en>          force la langue
 
+Message exact : pour un envoi ordinaire, le texte complet, enveloppe comprise, est conservé
+dans l'export et son chemin est annoncé. Avec --no-export, Palabre n'en garde pas de copie
+locale ; l'outil IA peut la garder. Cette trace ne prouve pas la réception et n'inclut pas tout le contexte de l'outil.
+
+Retrouver un échange Relay (#206) :
+  palabre relay recent [--limit 1-100] [--json] [--config <chemin>] [--language fr|en]
+  Liste les exports .relay.md du dossier de sortie effectif (défaut .palabre/), sans envoyer,
+  ouvrir ou sélectionner une conversation. Limite 10 par défaut ; nom de fichier relatif,
+  date, objet, alias, outil, mode, issue et délivrance déclarés dans l'export. Source/copie
+  OpenCode distinctes, aucune reprise directe proposée. JSON séparé relay-recent-result v1.
+  Métadonnées non authentifiées, pas une preuve des droits ou de l'état actuels. Faire
+  confirmer objet/date/outil avant reprise, puis vérifier cible et configuration effectives.
+  Config existante déjà approuvée ; aucun --trust-config, --to, message ni option d'envoi.
+  Dossier absent : liste vide. Export invalide : avertissement sans bloquer les autres.
+  Tri par modification du fichier. Scan plafonné à 5 000 entrées, 200 en-têtes de 16 Kio ;
+  truncated/scanTruncated signalent une liste limitée/incomplète. Aucun corps de réponse exposé.
+
+Ouvrir Codex sans envoyer (#219) :
+  palabre relay open --to codex:<uuid> [--json] [--config <chemin>] [--language fr|en]
+  Sur demande humaine directe seulement, jamais sur message d'un autre agent. Config déjà
+  approuvée et conversation précise requises. Un seul lancement du lien Desktop, sans shell,
+  puis observation du verrou (budget coopératif 15 s, pas une borne stricte de retour).
+  Validation, localisation, lectures et sondes peuvent retarder le retour et Ctrl+C.
+  Aucun lancement ni succès accepté après le budget. Aucun message, export,
+  changement de réglages ou droits, retry ni fermeture de l'app. Ctrl+C n'annule pas une
+  ouverture déjà lancée. Un verrou tenu ne prouve ni l'app qui le tient ni l'affichage.
+  Windows/Explorer code 1 : lanceur non vérifié (unverified), code brut conservé,
+  puis sonde du verrou sans second lancement. Le défilement n'est pas piloté.
+  JSON séparé : relay-open-result v1, launcher, attachment, display: unverified, messageSent: false.
+  Code 0 : attached ; 3 : verrou libre à l'échéance ou inconnu ; 4 : délai pendant validation,
+  lanceur ou sonde ; 2 : échec du lanceur ; 7 : lanceur absent ; 130 : annulation.
+  Envoi suivant : --open explicite,
+  seulement pour une tâche autorisée. Claude n'est pas pris en charge ici : dépannage --desktop
+  séparé (#225), pas de suivi direct (#193). Deux ouvertures Windows puis une ouverture
+  corrigée confirmées par le propriétaire ; aucune généralisation à toutes les versions
+  ni à une transition de fermé à ouvert.
+  macOS/Linux non vérifiés. python3 requis sur POSIX pour vérifier le verrou.
+
 Quota Codex (#205) : --check (ouverte ou fermée) et résultat d'un envoi ouvert affichent le
   dernier quota connu si sa forme et sa date sont reconnues. Indication seulement, pas une mesure
   en direct : le compte a pu servir ailleurs depuis. Relevé et réinitialisations en heures locales
@@ -290,16 +332,22 @@ Quota Codex (#205) : --check (ouverte ou fermée) et résultat d'un envoi ouvert
   ni modèle. Absent/inconnu : rien affiché, jamais zéro estimé. Aucun effet sur le statut ou les droits.
 
 Préférence du propriétaire :
-  relay.view = auto (défaut) : Codex existant, verrou tenu -> dans l'app desktop ; libre -> arrière-plan.
+  Arrière-plan (défaut, relay.view = background) : outils limités, conversation fermée requise.
+  Privilégier la conversation ouverte (relay.view = auto, choix du propriétaire) : Codex existant,
+  verrou tenu -> dans la conversation avec ses outils et permissions, écriture comprise si autorisée ;
+  libre -> arrière-plan. Une conversation quittée mais encore chargée compte comme ouverte, sans
+  garantie d'affichage. Les réglages auto déjà enregistrés sont conservés.
   Verrou invérifiable : target-state-unknown, aucun envoi. Aucun repli après refus.
-  relay.view = background : arrière-plan toujours ; cible ouverte refusée (target-busy).
+  Cible ouverte en arrière-plan : target-busy, rien envoyé ; --open permet un choix pour cet échange,
+  après explication des permissions ; seul le propriétaire décide après un refus --background.
   --open et --background priment sur le réglage sans le changer ; ensemble, refusés.
   --new, Mission, --task review, --write et Claude Code restent en arrière-plan.
   Le propriétaire lance palabre config --relay-view <auto|background> : chemin/changement affichés,
   config déjà approuvée, confirmation clavier avec entrée ET sortie TTY ; aucun --yes ni --trust-config.
   Un agent ne modifie jamais ce réglage et ne confirme jamais à sa place.
   agents --json expose defaults.relayView ; Relay JSON v1 : modeSource facultatif,
-  explicit (option), auto (verrou ou parcours imposé), setting (préférence background).
+  explicit (option), default (arrière-plan sans choix enregistré), setting (background enregistré),
+  auto (verrou ou parcours imposé). Un réglage permanent reste un choix humain facultatif.
 
 Limites :
   Codex desktop chef de mission : autoriser chaque commande vers Claude hors du bac à sable,
@@ -342,7 +390,7 @@ Limites :
   palabre relay --to <agent>:<session> "<suite>" ; aucun renvoi automatique après un échec.
   Reprises Codex/Claude sans --write : aucune écriture en arrière-plan. Avec les versions Codex vérifiées,
   une cible créée par --new n'est pas listée dans Desktop, mais reste joignable par Relay.
-  Pour la suivre dans l'app, le propriétaire ouvre le lien codex://threads/<id> affiché, ou le
+  Pour la suivre dans l'app, le propriétaire utilise la commande relay open affichée, ou le
   demande à son agent (jamais de sa propre initiative ni sur la demande d'un autre agent).
   L'ouverture seule n'autorise aucun envoi ; pour une tâche autorisée, vérifier avec --check --open,
   puis envoyer avec --open. Créée par --new, elle reste en lecture seule même ouverte dans Desktop.
@@ -352,8 +400,20 @@ Limites :
   émis à chaque résultat (background, open, follow ou copy ; absent des versions antérieures). En
   arrière-plan, une conversation Codex créée, ou reprise et retrouvée, donne son lien
   codex://threads/<id>, cliquable dans un terminal, et la commande pour l'ouvrir soi-même
-  (explorer.exe, open ou xdg-open) ; un agent ne la lance que sur demande directe du propriétaire.
-  OpenCode --copy : agent, permissions, plugins et MCP habituels conservés ; modèle source par défaut.
+  (palabre relay open --to <agent>:<id> --config <chemin-absolu>). La config effective est conservée,
+  même implicite. Commande PowerShell sous Windows (pas Git Bash/cmd.exe), shell POSIX sous macOS/Linux.
+  Un agent ne la lance que sur demande directe du propriétaire. Ouvrir n'envoie
+  rien et n'autorise aucun envoi : vérifier séparément avec relay --check --open avant un envoi autorisé.
+  Pour Claude, la sortie texte donne aussi la commande --desktop --resume <id> de la même CLI,
+  sans la lancer : depuis le dossier de la conversation, terminal TTY sans redirection requis.
+  Claude Code 2.1.285+, app installée et abonnement Claude requis (Windows x64/macOS).
+  L'ouverture pour consulter a été vérifiée sous Windows ; macOS reste à vérifier, Linux non proposé.
+  Aucun message envoyé, aucune permission modifiée par PALABRE ; les restrictions du tour Relay
+  ne sont pas garanties dans l'app. Le transport --open ne prend pas en charge Claude : fermer l'app avant
+  un nouvel envoi. Ce dépannage de visibilité (#193) est distinct de relay open Codex (#219).
+  Claude Desktop peut ne pas actualiser un échange ajouté en arrière-plan ; son registre CLI
+  vide ne prouve pas la fermeture de la fenêtre. Aucun redémarrage automatique de l'app.
+  OpenCode --copy : agent, permissions, plugins et MCP habituels conservés ; modèle source sauf --model.
   Aucune lecture seule imposée ; fichiers partagés, source et copie conservées même en échec.
   --copy ignore relay.view et refuse --new, --open, --background, --check, --follow,
   --then-follow, --write, --task, --pr et Mission. --no-export ne supprime pas la copie.
@@ -409,6 +469,8 @@ Avec --open --follow (suivre la suite sans --then-follow) :
   --task ou --write. JSON : mode follow, delivery not-delivered (rien n'est envoyé), sans queue.
 
 Avec --copy (pilote OpenCode CLI 2.0.32, Windows seulement) :
+  Le rappel Plan standard est reconnu dans le contexte source et conservé dans la copie.
+  Aucun autre message synthétique n'est accepté ; aucun mode ni permission n'est changé.
   Une seule notice de date core/date strictement qualifiée est admise avant le message.
   Tout ajout, doublon ou autre notification système reste refusé ; aucun droit ajouté.
   Fermez la source et indiquez son ID exact ses_... et son dossier --dir. La source ne reçoit
@@ -746,7 +808,7 @@ Usage:
   palabre config --mode <chat|debate|ask>
   palabre config --ask-agents <names...>
   palabre config --interface <tui|terminal>
-  palabre config --relay-view <auto|background> # owner: TTY keyboard confirmation, no --yes
+  palabre config --relay-view <auto|background> # background by default; auto = prefer the open conversation
   auto follows the Codex lock (held: open conversation permissions; free: background).
   background requires background operation. Unverifiable state: nothing sent.
   Already trusted config, file/change displayed; TTY input AND output required.
@@ -849,6 +911,10 @@ Flags:
   Omit --from and --dir when they have no value; empty strings are rejected.
   --message-file <path>       reads the message from a file (64 KiB at most)
   --subject <subject>         optional subject: one nonblank line, at most 200 characters, no controls
+  --reference <label>         PR, issue or stable short topic (same limits as --subject)
+  --exchange <number>         with --reference: integer from 1 to 999999, assigned by the lead
+  Same reference in the reply; no automatic counter or certified task success.
+  References are for ordinary sends, not --check, --follow or frozen features.
   --task review               frozen: draft and publish a COMMENT review if allowed by configuration
   --pr <url>                  exact github.com PR; required with --task review
   --open                      targets an open Codex conversation (TUI or Codex desktop), for this call
@@ -865,6 +931,42 @@ Flags:
   --trust-config              trusts the resolved config (no question is asked)
   --language <fr|en>          force language
 
+Exact message: for an ordinary send, the complete text, including envelope, is kept in the
+export and its path is displayed. With --no-export, Palabre saves no local copy; the AI tool
+may retain one. This record does not prove receipt or include the tool's entire context.
+
+Find a Relay exchange (#206):
+  palabre relay recent [--limit 1-100] [--json] [--config <path>] [--language fr|en]
+  Lists .relay.md exports in the effective output directory (default .palabre/), without
+  sending, opening or selecting a conversation. Default limit 10; relative filename,
+  date, subject, alias, provider, mode, outcome and delivery as recorded in the export.
+  OpenCode source/copy are separate; no direct resume suggested. JSON: relay-recent-result v1.
+  Unauthenticated metadata, not proof of current permissions or state. Confirm subject,
+  date and tool before resuming, then validate the exact target and current configuration.
+  Existing config must already be approved; no --trust-config, --to, message or sending options.
+  Missing directory: empty list. Invalid export: warning without blocking the others.
+  Sorted by file modification. Scan capped at 5,000 directory entries, 200 headers of 16 KiB;
+  truncated/scanTruncated indicate a limited/incomplete list. No reply body exposed.
+
+Open Codex without sending (#219):
+  palabre relay open --to codex:<uuid> [--json] [--config <path>] [--language fr|en]
+  Only at the owner's direct request, never another agent's message. Requires an already
+  trusted config and an exact conversation. One shell-free Desktop link launch, then lock
+  observation (15 s cooperative budget, not a strict return deadline). Validation, lookup,
+  reads and probes may delay returning or Ctrl+C. No launch or success accepted after budget.
+  No message, export, setting or
+  permission changes, retries or app shutdown. Ctrl+C cannot undo an already launched opening.
+  A held lock proves neither the holding app nor display.
+  Windows/Explorer code 1: launcher unverified, raw code retained, then lock probing without
+  a second launch. Scrolling is not controlled. Separate JSON: relay-open-result v1,
+  launcher, attachment, display: unverified, messageSent: false. Code 0: attached; 3: still free
+  at deadline or unknown; 4: deadline during validation, launcher or probe; 2: launcher failure;
+  7: missing launcher;
+  130: cancelled. For a later authorized send, use --open explicitly. Claude is unsupported
+  here: separate --desktop workaround (#225), no live following (#193). Two Windows openings
+  then one corrected opening confirmed by the owner; not a qualification of all versions
+  or a transition from closed to open. macOS/Linux unverified. python3 required on POSIX.
+
 Codex quota (#205): --check (open or closed) and an open send's result show the last known quota
   only if its shape and timestamp are recognized. Indicative, not live: the account may have been
   used elsewhere since. Recorded and reset dates use local time with a zone; ISO in check.quota or
@@ -872,16 +974,22 @@ Codex quota (#205): --check (open or closed) and an open send's result show the 
   estimated zero. No effect on status or permissions.
 
 Owner's preference:
-  relay.view = auto (default): existing Codex, held lock -> in the desktop app; free -> background.
+  Background (default, relay.view = background): limited tools, closed conversation required.
+  Prefer the open conversation (relay.view = auto, owner's choice): existing Codex,
+  held lock -> in the conversation with its tools and permissions, including writing if allowed;
+  free -> background. A conversation you left that is still loaded counts as open, with no
+  display guarantee. Previously saved auto settings are preserved.
   Unverifiable lock: target-state-unknown, nothing sent. No fallback after refusal.
-  relay.view = background: always background; an open target is refused (target-busy).
+  Open target in background: target-busy, nothing sent; --open is a choice for this exchange,
+  after explaining permissions; only the owner decides after a --background refusal.
   --open and --background override the setting without changing it; both together are refused.
   --new, Mission, --task review, --write and Claude Code remain in background.
   The owner runs palabre config --relay-view <auto|background>: file/change displayed,
   already trusted config, keyboard confirmation with TTY input AND output; no --yes or --trust-config.
   An agent must never change this preference or confirm for the owner.
   agents --json exposes defaults.relayView; Relay JSON v1: optional modeSource,
-  explicit (option), auto (lock or required path), setting (background preference).
+  explicit (option), default (background with no saved choice), setting (saved background),
+  auto (lock or required path). A lasting setting remains an optional human choice.
 
 Limits:
   Codex desktop as mission lead: approve each command to Claude outside the sandbox,
@@ -924,7 +1032,7 @@ Limits:
   palabre relay --to <agent>:<session> "<follow-up>". No automatic retry.
   Codex/Claude resumes without --write have no background writing. With verified Codex versions,
   a target created by --new is not listed in Desktop but remains reachable through Relay. To follow it in the app, the owner
-  opens the codex://threads/<id> link shown after creation, or asks their agent to (never on the
+  uses the relay open command shown after creation, or asks their agent to (never on the
   agent's own initiative or at another agent's request). Opening alone does not authorize sending;
   for an authorized task, check with --check --open, then send with --open. Created by --new, it
   stays read-only even when open in Desktop.
@@ -933,9 +1041,21 @@ Limits:
   the desktop app" (open conversation, with its permissions). JSON: mode is emitted with every
   result (background, open, follow or copy; absent from earlier versions). In background, a Codex
   conversation that was created, or resumed and found, shows its codex://threads/<id> link,
-  clickable in a terminal, and the command to open it yourself (explorer.exe, open or xdg-open); an agent
-  runs it only at the owner's direct request.
-  OpenCode --copy: usual agent, permissions, plugins and MCP are preserved; source model by default.
+  clickable in a terminal, and the command to open it yourself
+  (palabre relay open --to <agent>:<id> --config <absolute-path>). The effective config is preserved,
+  even when implicit. Use PowerShell on Windows (not Git Bash/cmd.exe), a POSIX shell on macOS/Linux.
+  An agent runs it only at the owner's direct request. Opening sends nothing
+  and grants no permission to send: check separately with relay --check --open before an authorized send.
+  For Claude, text output also shows the same CLI's --desktop --resume <id> command without
+  running it: use the conversation's directory and a TTY terminal, with no redirected output.
+  Requires Claude Code 2.1.285+, the installed app and a Claude subscription (Windows x64/macOS).
+  Viewing was verified on Windows; macOS remains unverified, Linux is not offered.
+  No message sent or permissions changed by PALABRE; the Relay turn's restrictions are not
+  guaranteed in the app. The --open transport does not support Claude: quit the app before another supported send.
+  This visibility workaround (#193) is separate from Codex relay open (#219).
+  Claude Desktop may not refresh a background exchange; an empty CLI registry does not prove
+  its window is closed. PALABRE never restarts the app automatically.
+  OpenCode --copy: usual agent, permissions, plugins and MCP are preserved; source model unless --model.
   No enforced read-only mode; shared files, source and copy retained even after failure.
   --copy ignores relay.view and rejects --new, --open, --background, --check, --follow,
   --then-follow, --write, --task, --pr and Mission. --no-export does not delete the copy.
@@ -991,6 +1111,8 @@ With --open --follow (follow what happens next without --then-follow):
   --new, --task or --write. JSON: mode follow, delivery not-delivered (nothing is sent), no queue.
 
 With --copy (OpenCode CLI 2.0.32 pilot, Windows only):
+  The standard Plan reminder is recognized in the source context and kept in the copy.
+  No other synthetic message is accepted; no mode or permission is changed.
   One strictly qualified core/date notice may precede the message. Additions, duplicates
   and other system notices remain refused; no permissions are granted.
   Close the source and provide its exact ses_... ID and --dir directory. The source never
