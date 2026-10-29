@@ -197,8 +197,69 @@ Dernière suite complète isolée : 1 062 tests, 1 057 réussis, 5 ignorés, auc
 il ne vaut pas preuve verte, et aucun garde-fou n'a été modifié. Relecture
 indépendante de l'exception et de ses tests négatifs : aucun blocage relevé.
 
-Aucun nouveau modèle, serveur ou message depuis la correction. Le résultat
-historique n'est pas réécrit en succès ; les traces réelles restent locales.
+À l'issue de cette correction du 22 octobre, aucun nouveau modèle, serveur ou
+message n'avait été lancé. Le résultat historique n'est pas réécrit en succès ;
+les traces réelles restent locales.
+
+## Essai du choix explicite de modèle — 23 octobre 2026
+
+Le propriétaire a autorisé un essai avec un modèle gratuit, puis confirmé la
+fermeture CLI et Desktop. Un seul appel de la commande produit, au commit
+`664dc19`, a reçu `--model opencode/glm-5.3-flash-free#low`, sur une nouvelle
+copie de la source fictive explicitement conservée. Aucun renvoi ni modèle de
+remplacement, aucune reprise de l'original pour le prompt.
+
+Le catalogue du serveur privé annonçait ce modèle activé, la variante `low`
+et tous les tarifs input/output/cache à zéro avant l'envoi. La copie rapporte
+un coût de conversation de zéro ; cela décrit ce relevé, pas une garantie sur
+une offre future ni une vérification indépendante de facturation.
+
+Le résultat est `replied`/0 en environ 9,4 s, délivrance `replied`, identité
+`same-as-target`, `copy.verified: true`, `copy.model.verified: true` :
+
+- source : `opencode/deepseek-v4.1-flash-free#high` ;
+- demandé, sélection vérifiée et modèles des assistants :
+  `opencode/glm-5.3-flash-free#low` ;
+- original inchangé sur les informations/export/contexte/inbox/instructions ;
+- inventaire des quatre fichiers fictifs inchangé, aucun nouveau fichier ;
+- code de contexte retrouvé sans être donné dans la demande ;
+- trois outils `read` terminés, exactement README.md, src/total.mjs et
+  test/total.test.mjs ; aucune commande ou écriture observée dans le nouveau tour ;
+- export local relu, source/copie et choix du modèle distincts ;
+- arrêt du serveur produit et des serveurs de relevé confirmé ; aucun champ Codex.
+
+L'avis explique correctement la remise soustraite comme montant. Son exemple
+`total(12, 3, 10)` donne 26 avec le défaut, contre 32,4 attendus. Il propose les
+cas 10 %, 100 % et entrées nulles. Aucun test ni correctif n'a été exécuté par
+l'équipier. La justesse de cet exemple n'est pas une évaluation générale du modèle.
+
+Les relevés, identifiants, code de contexte et export bruts restent locaux.
+La preuve qualifie cet appel CLI Windows 2.0.32 seulement : ni Desktop,
+autre variante, tous les modèles ou concurrence, ni garantie de confinement.
+Il ne faut pas rejouer l'appel pour reproduire ce bilan.
+
+## Revue Claude après resynchronisation — 23 octobre 2026
+
+Revue Relay en arrière-plan, sans écriture ni test par l'équipier, sur la tête
+`3cedf63` resynchronisée avec main `eaa6aad`. Aucun bug bloquant établi ; revue
+ciblée des modules OpenCode, jonctions Relay, aide, tests et contrat, pas une
+lecture exhaustive de tous les autres fournisseurs ni du diff entier.
+L'hôte a comparé les quatre modules OpenCode du commit réel `664dc19` à
+`3cedf63` : aucun changement entre les deux, sans rejouer le modèle.
+
+Le risque signalé sur la variante omise a été vérifié dans les sources 2.0.32 :
+`SessionRunnerModel.resolve` transmet la variante à `ModelResolver.resolveModel` ;
+`withVariant` ne normalise `default` que pour les options, tandis que `ref` conserve
+la chaîne. `SessionStep.attempt` et `createLLMEventPublisher` la transmettent à
+`SessionEvent.Step.Started.model`, puis `message-updater` à l'assistant. Aucun
+assouplissement du lecteur strict n'est donc justifié par cette hypothèse.
+Provenance et cas négatifs : `tests/fixtures/external-sessions/opencode-model-default.md`.
+
+Le cas sans `#` est couvert par sources et simulations, **pas par un essai réel**.
+Seul `#low` a été essayé réellement ; ne pas annoncer une qualification réelle
+de `default`. La création d'un fork avant contrôle du catalogue est conservée,
+comme annoncé dans le contrat : un modèle absent peut laisser une copie sans
+message, conservée et identifiée. Optimiser cet ordre reste hors de ce lot.
 
 ## Essai du 24 octobre : source Plan et compréhension du README
 
@@ -271,6 +332,11 @@ Desktop, autres versions et autres plateformes restent hors périmètre.
 
 ## Limites conservées
 
+L'extension `--model fournisseur/modele[#variante]` repose sur les sources
+officielles 2.0.32, les tests simulés et l'essai distinct du 23 octobre ci-dessus.
+Les essais historiques sans override ne qualifient pas ce changement à eux seuls.
+Le choix explicite ne s'applique qu'à la copie vérifiée.
+
 Cette preuve concerne cette CLI, cette version Windows et ce contexte textuel
 simple. Ni Desktop, conversation concurrente, compaction, tous les contenus
 multimodaux, tous les MCP/plugins ni les erreurs réelles de quota ne sont
@@ -280,7 +346,7 @@ fictifs ; cela ne les transforme pas en essais réels du fournisseur.
 Le fork copie la conversation, pas les fichiers. Les permissions habituelles
 restent celles choisies par l'utilisateur ; aucune lecture seule imposée ni
 neutralisation générale. Les relevés ne sont pas un verrou global. Pas de
-retry, suppression automatique, changement de modèle ou extrapolation à Claude
+retry, suppression automatique, changement automatique de modèle ou extrapolation à Claude
 Code. Mission, review et `--write` restent gelés ; #136 n'est pas résolue par ce
 seul lot CLI. Copies installées : `palabre skill --sync` après accord humain,
 puis recharger le skill ; aucune copie installée n'est modifiée ici.
