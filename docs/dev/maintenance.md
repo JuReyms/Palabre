@@ -21,6 +21,8 @@ Les documents obsoletes ou historiques doivent etre deplaces dans `docs/archive/
 
 ## Skill livré
 
+`metadata.revision` du skill est un entier positif sûr, indépendant de la version CLI. L'incrémenter à chaque changement des consignes d'exécution (SKILL ou références) et aligner les littéraux `--skill-revision` dans ses recettes ; le validateur refuse une déclaration différente. Cette première révision amorce le protocole ; un numéro déclaré n'est pas une preuve de chargement. La lecture du paquet (`skill --read --json`) ne synchronise aucune copie installée. Les références du paquet sont résolues par la CLI, sans recherche depuis le cwd. Un agent peut les relire dans une tâche autorisée sans nouvel accord ; toute installation/remplacement disque garde son plan humain confirmé.
+
 Skill livré : `SKILL.md` garde routage, exemples sûrs, portée des rôles et invariants d'autorité/délivrance. Références conditionnelles : `relay.md` (bases), `relay-desktop.md`, `relay-opencode.md`, `relay-frozen.md`, plus Chat, CLI et exports. Le validateur contrôle présence/liens, au plus 120 lignes, 10 000 caractères et 1 200 caractères par paragraphe/élément de liste du point d'entrée ; ce budget ne prouve pas le comportement. Préserver les garde-fous lors des déplacements, faire évaluer des scénarios réalistes par un autre agent sans donner les réponses attendues. Copies installées seulement par plan confirmé, jamais depuis la branche Git.
 
 ## JSDoc

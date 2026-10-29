@@ -43,14 +43,19 @@ if (skill) {
     fail("SKILL.md must start with YAML frontmatter");
   } else {
     const fields = frontmatter[1].trim().split(/\r?\n/).filter(Boolean);
-    if (fields.length !== 2 || !fields[0].startsWith("name:") || !fields[1].startsWith("description:")) {
-      fail("SKILL.md frontmatter must contain only name and description");
+    if (fields.length !== 4 || !fields[0].startsWith("name:") || !fields[1].startsWith("description:") || fields[2] !== "metadata:" || !/^  revision: "[1-9]\d*"$/.test(fields[3]) || !Number.isSafeInteger(Number(fields[3].match(/"(\d+)"/)?.[1]))) {
+      fail("SKILL.md frontmatter requires name, description and a positive safe metadata.revision");
     } else {
       const description = fields[1].slice("description:".length).trim();
       if (description.length > MAX_DESCRIPTION_LENGTH) fail(`description exceeds ${MAX_DESCRIPTION_LENGTH} characters`);
       // La description sert à la découverte : elle doit nommer les quatre parcours.
       for (const route of ["Chat", "Débat", "Ask", "Relay"]) {
         if (!description.includes(route)) fail(`description must mention the ${route} route`);
+      }
+      const revision = fields[3].match(/"(\d+)"/)?.[1];
+      const declarations = [...skill.matchAll(/--skill-revision (\d+)/g)];
+      if (!declarations.length || !declarations.every(match => match[1] === revision)) {
+        fail("SKILL.md recipes must declare metadata.revision, not a different revision");
       }
     }
   }

@@ -56,6 +56,14 @@ Une copie non vérifiable est affichée avec un avertissement et laissée intact
 
 ## Quand l'agent voit le skill
 
+Une mise à jour des fichiers ne garantit pas qu'une conversation en cours a relu ses consignes. Avant de préparer une tâche, le skill demande désormais à l'agent de comparer sa révision déclarée avec celle du paquet Palabre exécuté. Si elle est absente ou différente, il lit les consignes actuelles et leurs références utiles, puis poursuit dans le cadre déjà autorisé. Vous n'avez pas à synchroniser un dossier ni redémarrer la conversation pour cette lecture. Une copie installée ancienne ou personnalisée reste intacte.
+
+Ce contrôle est local. La commande technique `palabre skill --read --json` fournit le texte du skill et les chemins de ses références depuis le paquet exécuté, sans configuration, réseau, installation ni appel à un agent. L'inventaire `agents --json` et la vérification `relay --check --json` peuvent comparer la révision que l'agent dit avoir lue. Une révision identique ne prouve pas sa mémoire interne. Une ancienne conversation doit encore rencontrer ce diagnostic ou relire le skill pour bénéficier du parcours ; Palabre ne pilote pas le rechargement interne des applications.
+
+Si le paquet est incomplet ou illisible, l'agent explique la limite lorsqu'elle bloque le travail. Une ancienne CLI qui ne connaît pas ce contrôle ne doit pas être présentée comme compatible : consulter son aide et distinguer la lecture des consignes d'une mise à jour de logiciel. Aucun renvoi Relay automatique pour réparer un skill.
+
+Les observations suivantes concernent la découverte native des skills par les applications, distincte de cette lecture par l'agent :
+
 Un agent charge la liste des skills quand une conversation démarre ou reprend. Après l'installation, ouvrez une nouvelle conversation ou reprenez-en une : une conversation déjà en cours ne voit pas forcément le skill.
 
 | Agent | Nouvelle conversation | Conversation reprise après l'installation |

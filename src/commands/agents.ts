@@ -9,14 +9,17 @@ import { VALID_AGENT_ROLES, type AgentConfig, type PalabreConfig } from "../type
 import type { Messages } from "../messages/index.js";
 import { optionalString, type CommandFlags } from "./shared.js";
 import { DEFAULT_RELAY_VIEW } from "../externalSessions/relayView.js";
+import { inspectSkillRuntime } from "../skillRuntime.js";
+import { skillRuntimeMessages } from "../messages/skillRuntime.js";
 
 /**
  * Liste les agents configurés avec leur disponibilité calculée par le CLI.
- * @param flags - Flags de langue, config, URL Ollama et format JSON.
+ * @param flags - Flags de langue, config, URL Ollama, JSON et révision déclarée du skill.
  * @returns Une promesse résolue après écriture de la sortie.
  * @throws {Error} Si aucune configuration n'est disponible.
  */
 export async function runAgentsCommand(flags: CommandFlags): Promise<void> {
+  if (flags["skill-revision"] !== undefined && flags.json !== true) throw new Error(skillRuntimeMessages[resolveLanguage({ explicitLanguage: optionalString(flags.language) })].optionScope);
   const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
   if (!(await configExists(configPath))) {
     const messages = createTranslator(resolveLanguage({ explicitLanguage: optionalString(flags.language) }));
@@ -24,10 +27,11 @@ export async function runAgentsCommand(flags: CommandFlags): Promise<void> {
   }
 
   const config = await loadConfig(configPath);
-  const messages = createTranslator(resolveLanguage({
+  const language = resolveLanguage({
     explicitLanguage: optionalString(flags.language),
     configLanguage: config.language
-  }));
+  });
+  const messages = createTranslator(language);
   const discovery = await discoverLocalToolsForConfig(config, optionalString(flags["ollama-url"]));
 
   if (flags.json) {
@@ -35,6 +39,7 @@ export async function runAgentsCommand(flags: CommandFlags): Promise<void> {
       .filter((name): name is string => typeof name === "string" && !isRetiredAgentName(name));
     process.stdout.write(JSON.stringify({
       v: 1,
+      skill: inspectSkillRuntime(flags["skill-revision"], language),
       roles: VALID_AGENT_ROLES,
       agents: listAgentsWithAvailability(config, discovery, messages),
       defaults: {

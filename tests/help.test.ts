@@ -18,7 +18,7 @@ assert.ok(flagTable, "table d'arité des flags absente ou format changé : adapt
 const flags = [...flagTable.matchAll(/^\s*(?:"([a-z-]+)"|([a-z]+)):\s*\{ arity:/gm)].map(m => m[1] ?? m[2]!);
 // Inventaire fermé : une nouvelle option du parseur exige un classement explicite.
 const launchFlags = ["help", "version", "tui", "terminal", "plain", "json", "no-summary", "no-early-stop", "show-prompt", "dry-run", "pull-models", "checkpoint", "trust-config", "agent-a", "agent-b", "config", "language", "model-a", "model-b", "role-a", "role-b", "ask-role", "ollama-url", "mode", "preset", "summary-agent", "summary-model", "topic", "turns", "renderer", "agents", "files", "context"];
-const otherCommandFlags = ["check", "yes", "prune-trust", "local", "apply", "clear-defaults", "sync-agents", "sync", "sync-ollama-model", "ollama-models", "interface", "relay-view", "install", "limit", "set-ollama-model", "ask-summary-agent", "ask-agents", "set-defaults"];
+const otherCommandFlags = ["check", "yes", "prune-trust", "local", "apply", "clear-defaults", "sync-agents", "sync", "sync-ollama-model", "ollama-models", "interface", "relay-view", "install", "limit", "set-ollama-model", "ask-summary-agent", "ask-agents", "set-defaults", "read", "skill-revision"];
 
 test("chaque option du parseur est classée : lancement ou autre commande", () => {
   assert.deepEqual([...launchFlags, ...otherCommandFlags].sort(), [...flags].sort());

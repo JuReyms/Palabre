@@ -57,6 +57,7 @@ import { activeConfiguredAgentNames, isRetiredAgentName } from "./agentRegistry.
 import { createResumedSessionCheckpointRuntime, createSessionCheckpointRuntime } from "./sessionCheckpointRuntime.js";
 import { prepareSessionResume } from "./sessionResume.js";
 import { startCliIdentity, type CliIdentity } from "./cliIdentity.js";
+import { skillRuntimeMessages } from "./messages/skillRuntime.js";
 
 let cliIdentity: CliIdentity | undefined;
 
@@ -80,6 +81,11 @@ async function main(): Promise<void> {
   const startupLanguage = resolveLanguage({ explicitLanguage: findRawLanguageFlag(rawArgs) });
   const startupMessages = createTranslator(startupLanguage);
   const parsed = parseArgs(rawArgs, startupMessages);
+  // Contrôle des consignes réservé aux lectures ; aucune option ignorée sur un envoi.
+  if ((parsed.flags.read && parsed.command !== "skill") ||
+      (parsed.flags["skill-revision"] !== undefined && !["agents", "agent", "skill"].includes(parsed.command))) {
+    throw new Error(skillRuntimeMessages[startupLanguage].optionScope);
+  }
 
   if (parsed.command === "version" || parsed.flags.version) {
     console.log(await getPackageVersion());
