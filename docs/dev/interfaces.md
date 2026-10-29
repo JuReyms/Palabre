@@ -52,6 +52,10 @@ L'aide principale (`palabre -h`, `palabre help`) doit rester minimaliste, inspir
 
 Ne pas transformer l'aide principale en reference complete. Les details doivent aller dans l'aide de commande (`palabre config --help`, `palabre init --help`, etc.) ou dans la documentation du site.
 
+Rappel du skill (`src/skillNotice.ts`) : après la sortie normale de l'aide et de `--version`, sur stderr seulement, quand stdin, stdout et stderr sont des TTY, hors `--json` et renderer NDJSON. Stdout reste identique. La comparaison réutilise `planSkillSync` avec le skill du paquet exécuté : lecture locale, sans réseau, écriture, configuration, registre de confiance ni agent. Le rappel apparaît seulement si une copie est `different` ou `unreadable`. Sa langue (option, environnement, langue enregistrée via `resolveCommandLanguage`) n'est résolue que si un rappel est affiché.
+
+En terminal humain, l'accueil TUI ajoute le même texte à sa notice initiale à partir du plan de `getUpdateInfo`, sans nouvelle détection ni remplacement d'une notice existante. Relay et Mission (aiguillés avant), les sessions Chat et les commandes non interactives ne déclenchent aucune inspection supplémentaire pour ce rappel. Une erreur du rappel est ignorée. Pas de postinstall : [npm masque par défaut la sortie de ces scripts](https://docs.npmjs.com/cli/v11/commands/npm-install/#foreground-scripts).
+
 ## Rendu Console
 
 `src/renderers/console.ts` contient le rendu console historique. Le rendu TUI leger, utilise par defaut quand stdout est un TTY, est decoupe en quatre modules : `src/renderers/tui-theme.ts` (primitives visuelles : couleurs, boites, largeurs, liens), `src/renderers/tui-screens.ts` (ecrans plein terminal : accueil, aide, agents, roles, historique, config), `src/renderers/tui-prompts.ts` (entrees readline et commandes slash) et `src/renderers/tui-renderer.ts` (renderer des evenements de debat). `src/renderers/tui.ts` reste le point d'entree public qui re-exporte cette API ; les imports externes ne doivent viser que lui.

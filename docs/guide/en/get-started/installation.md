@@ -84,4 +84,12 @@ Moving to another computer, including a previously used one? Follow [Change mach
 
 `palabre update` detects the installation and skill copies, shows the plan and asks for one confirmation in an interactive terminal. Copies are refreshed from the new package after backup outside skill directories, preserving junctions. `palabre update --check` checks without modifying the installation. For the skill only, without network: `palabre skill --sync`. Reload the skill after refreshing it; details: [Palabre skill](/en/get-started/skill).
 
+After a direct update with your package manager (for example `npm install --global palabre`), the CLI changes but installed skill copies do not. npm shows no reminder. In an interactive terminal, `palabre --version`, `palabre --help` and the `palabre` home screen point it out when a detected copy differs from the CLI (another version or a customization) or could not be compared. Nothing is shown for scripts, `--json` or NDJSON output, or outside a terminal. In every case:
+
+1. check with `palabre skill --check`;
+2. if needed, run `palabre skill --sync`, review the plan and confirm (replaced copies are backed up);
+3. reload the skill in each affected conversation, or start a new conversation.
+
+Identical files do not prove what the agent has loaded.
+
 Relay and its Mission option use existing Codex or Claude Code conversations. Each provider sets its own access conditions and limits; PALABRE does not replace them.

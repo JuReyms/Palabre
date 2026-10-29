@@ -20,6 +20,8 @@ Sous Windows, si la CLI Codex est détectée, `doctor` avertit (`WARN`) quand le
 
 Une copie du skill non vérifiable reste affichée avec avertissement et intacte ; elle ne bloque ni `update` ni les autres copies de `skill --sync`. Sans copie différente, `--sync` et `--install` ne demandent pas d'accord et n'écrivent rien. Une erreur de skill après installation réussie distingue la CLI mise à jour du skill restant à rafraîchir : relancer Palabre, puis `palabre skill --sync` pour lire le nouveau plan.
 
+Après une mise à jour directe de la CLI par npm, pnpm, Yarn ou Bun, les copies du skill ne changent pas. En terminal humain, `palabre --version`, `--help` et l'accueil TUI le rappellent si une copie diffère ou n'est pas comparable ; rien en `--json`, NDJSON, Relay, Mission, Chat ou hors TTY. Présenter à l'humain les trois étapes : `palabre skill --check`, si nécessaire `palabre skill --sync` après lecture et confirmation du plan, puis rechargement du skill dans chaque conversation concernée ou nouvelle conversation. Une différence peut être une personnalisation ; une comparaison ne prouve pas ce que l'agent a chargé, et une simple reprise n'est pas une garantie de rechargement.
+
 ## Approbations de configurations disparues
 
 `palabre config --prune-trust --dry-run` affiche les approbations de fichiers disparus, sans rien modifier. Pour les retirer, proposez à l'humain de lancer lui-même `palabre config --prune-trust` dans son terminal : liste, confirmation au clavier et sauvegarde horodatée. Ne confirmez jamais à sa place ; aucun `--yes` n'est admis. Les configurations existantes ou inaccessibles sont conservées et aucun nouveau droit n'est accordé.
