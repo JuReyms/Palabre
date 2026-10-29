@@ -65,10 +65,28 @@ versions are refused, without automatic updates. The Palabre configuration must
 be trusted as with other Relay paths.
 
 Palabre creates and verifies a copy, then sends one message to it. **The original
-is never resumed for this send.** The source agent, model and variant are kept,
+is never resumed for this send.** By default, the source agent, model and variant are kept,
 without a replacement model or implicit paid fallback. OpenCode connections,
 permissions, plugins, MCP and organization policies remain in effect. Integrations
 may start with the private server, before any message is sent.
+
+To choose another model only in the copy, add `--model provider/model#variant`
+to the command above, using the exact identifier offered by your OpenCode.
+Without `#variant`, `default` is selected: the source variant is not inherited
+on the new model. Other Relay paths reject this option. Your choice may use a
+paid model: no free or paid model is selected on your behalf.
+
+Relay checks the local catalogue, then the selection and its event in the copy
+before sending the message. Missing or disabled model, unknown variant or
+unconfirmed selection: stop without a message, retain the copy, no automatic retry.
+The catalogue proves neither authentication nor available quota. Neither the profile
+nor the original selection is modified. Result and export distinguish
+`copy.model.requested`, `source`, `selected` and `verified`; `observedModels` describes
+the validated reply, not just the request. One real trial on a fictional project
+verified the change from DeepSeek to GLM-5.3-Flash Free in the copy on October 23,
+2026; this does not qualify every model or variant, or Desktop.
+The case without `#variant` (`default`) is checked against sources and simulations,
+but has not yet been exercised in a real trial.
 
 The standard OpenCode 2.0.32 Plan reminder is recognized in the source conversation
 and kept in its copy, without switching to Build or changing permissions. Other

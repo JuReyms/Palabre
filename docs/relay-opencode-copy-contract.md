@@ -41,6 +41,7 @@ palabre relay --copy --to <agent-opencode>:<ses_...> --dir <dossier>
               [--from <agent>] [--subject <objet>] [--timeout <secondes>]
               [--json] [--no-export] [--config <chemin>] [--trust-config]
               [--language <fr|en>]
+              [--model <fournisseur/modele[#variante]>]
 ```
 
 - `<agent-opencode>` est une entrée CLI de la configuration approuvée ; le
@@ -55,10 +56,12 @@ palabre relay --copy --to <agent-opencode>:<ses_...> --dir <dossier>
   accessible et égal au dossier canonique enregistré dans la source. Ne pas
   retomber sur le dossier courant, importer un export, parcourir toutes les
   conversations ou choisir « la dernière ».
-- Le premier lot conserve l'agent et le modèle **explicites de la source**, variante
-  comprise. Aucun override de modèle, sélection gratuite automatique ou repli
-  payant ; un modèle absent ou indisponible arrête le parcours. Les arguments de
-  l'adapter de débat ne sont pas repris.
+- Sans `--model`, le parcours conserve l'agent et le modèle **explicites de la source**,
+  variante comprise, sans lecture de catalogue ni mutation de sélection. L'option
+  `--model fournisseur/modele[#variante]` choisit seulement dans la copie ; variante
+  omise = `default`, jamais héritée. Aucun alias ou modèle de remplacement, sélection
+  gratuite automatique ou repli payant. Le choix explicite peut être payant. Les
+  arguments de l'adapter de débat ne sont pas repris.
 - Refuser `--new`, `--open`, `--background`, `--check`, `--follow`, `--then-follow`,
   `--write`, `--task`, `--pr` et l'en-tête interne Mission
   avant serveur ou modèle. Pas de retour automatique vers l'expéditeur.
@@ -109,6 +112,17 @@ L'agent destinataire expose ses questions ou blocages dans sa réponse finale.
    64 Kio UTF-8, comme Relay. Envoyer une seule fois par stdin :
    `run --server <url-privée> --session <id-copie> --format json`.
    Aucun `--auto`, `--model`, `--agent`, `--pure` ou changement de permissions.
+   Si l'option Palabre `--model` est présente, avant le client `run` : lire une fois
+   `/api/model`, vérifier exactement providerID/id (pas modelID), enabled et variante
+   annoncée ; faire un seul POST `/api/session/<copie>/model` avec `{model:{providerID,id,variant}}`.
+   Accusé strict 204 sans corps, puis relevé de copie : sélection exacte, préfixe
+   complet inchangé, seul delta `model-switched` avec modèle/précédent/ID/time contrôlés,
+   agent/dossier/permissions/instructions/provenance inchangés et inbox vide.
+   Un choix équivalent peut être un no-op (variante absente/default, pas null) :
+   aucun nouveau message et sélection initiale exacte inchangée. Ce relevé devient
+   la référence du tour. Revérifier la source avant run. Catalogue ≠ connexion/quota
+   garantis ; modèle absent/désactivé, variante inconnue ou sélection incertaine
+   arrête avant prompt, sans répétition du POST ni suppression de la copie.
 8. Lire le résultat et le contexte de la copie ; accepter une réponse uniquement
    après les contrôles de la section 4. Revérifier la source ; ne pas masquer une
    dérive ou un relevé devenu illisible par un succès du client CLI.
@@ -187,6 +201,12 @@ changent pas. Exemple de champs additionnels après réussite :
 
 `copy.session` conserve tout ID distinct valide reçu du fork, même non vérifié ;
 `verified` dit si la provenance et les contrôles avant envoi ont été satisfaits.
+Avec `--model` seulement, `copy.model` contient `requested` (valeur CLI), `source?`
+(sélection source), `selected?` (sélection copie contrôlée) et `verified` (preuve
+de sélection avant prompt). `copy.verified` reste la provenance du fork, indépendante
+de `copy.model.verified` et du succès. `observedModels` vient seulement de la réponse
+validée. Sélection incertaine avant run = not-delivered, même si le modèle de copie
+a effectivement changé ; conserver les ID et ne pas refaire la sélection.
 `sourceCheck` vaut `unchanged`, `changed` ou `unknown` au dernier relevé ; ce n'est
 pas une garantie absolue sur l'original. `serverStop` vaut `confirmed` ou `unknown`.
 Pas de détournement de `created`, réservé à `--new`. En cas de création du fork
@@ -265,3 +285,20 @@ recharger le skill ; aucune modification des instructions installées dans ce lo
 Qualifier une fois la **commande produit** depuis l'hôte avec des données
 fictives ; le succès du lanceur de recherche ne remplace pas cette preuve.
 Ne pas annoncer #136 résolue ni mettre Desktop au vert avec ce seul lot CLI.
+
+Extension --model : sources officielles v2.0.32, commit
+`843a6c514e606b436a7fe713422ace0a93ad3d61`, `packages/schema/src/model.ts`,
+`packages/protocol/src/groups/{model,session}.ts`, `packages/server/src/handlers/{model,session}.ts`,
+`packages/core/src/session/{session,message-updater,info}.ts` et `model-resolver.ts`.
+Les simulations vérifient le contrat. Un appel produit réel le 23 octobre 2026
+a vérifié le passage DeepSeek high → GLM-5.3-Flash Free low sur la copie, avec
+original et quatre fichiers témoins inchangés. Sa portée reste celle décrite dans
+`docs/relay-opencode-copy-qualification.md`, pas une qualification générale.
+
+Variante omise : le chemin officiel `SessionRunnerModel.resolve` →
+`ModelResolver.resolveModel` → `SessionStep.attempt` → `createLLMEventPublisher`
+→ `session.step.started` → `message-updater` conserve `variant: "default"` dans
+la référence durable. `withVariant` normalise seulement les options de requête.
+Ce point est vérifié par sources et simulations, pas par un essai réel sans `#`.
+Ne pas étendre l'équivalence absent/default au lecteur de réponse sans nouvelle
+preuve ; une variante perdue reste refusée, avec délivrance conservée sans retry.

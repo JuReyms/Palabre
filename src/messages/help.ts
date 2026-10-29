@@ -261,6 +261,7 @@ Options :
   --to <agent>:<uuid>         cible existante ; nom d'agent seul avec --new
   --new                       crée une conversation persistante, lecture seule par défaut, sans --open
   --copy                      copie OpenCode explicite, profil habituel sans lecture seule imposée
+  --model <référence>         --copy seulement ; sans variante = default, pas héritée
   --write                     expérimental, gelé : tâche Codex Windows avec accord humain et worktree séparé
   --dir <chemin>              dossier de --new (défaut : courant), obligatoire et exact avec --copy
   Omettez --from et --dir s'ils n'ont pas de valeur ; une chaîne vide est refusée.
@@ -412,7 +413,7 @@ Limites :
   un nouvel envoi. Ce dépannage de visibilité (#193) est distinct de relay open Codex (#219).
   Claude Desktop peut ne pas actualiser un échange ajouté en arrière-plan ; son registre CLI
   vide ne prouve pas la fermeture de la fenêtre. Aucun redémarrage automatique de l'app.
-  OpenCode --copy : agent, modèle, variante, permissions, plugins et MCP habituels conservés.
+  OpenCode --copy : agent, permissions, plugins et MCP habituels conservés ; modèle source sauf --model.
   Aucune lecture seule imposée ; fichiers partagés, source et copie conservées même en échec.
   --copy ignore relay.view et refuse --new, --open, --background, --check, --follow,
   --then-follow, --write, --task, --pr et Mission. --no-export ne supprime pas la copie.
@@ -473,8 +474,12 @@ Avec --copy (pilote OpenCode CLI 2.0.32, Windows seulement) :
   Une seule notice de date core/date strictement qualifiée est admise avant le message.
   Tout ajout, doublon ou autre notification système reste refusé ; aucun droit ajouté.
   Fermez la source et indiquez son ID exact ses_... et son dossier --dir. La source ne reçoit
-  jamais le message : PALABRE vérifie un fork, puis lui demande un avis. Aucun --auto, modèle
-  imposé, retry ou repli payant. Agent, modèle et variante sont ceux de la source.
+  jamais le message : PALABRE vérifie un fork, puis lui demande un avis. Aucun --auto,
+  retry ou repli payant. Agent, modèle et variante sont ceux de la source, sauf --model explicite.
+  --model fournisseur/modèle[#variante] change seulement la copie ; sans # = variante default.
+  Catalogue et sélection contrôlés avant envoi. Choix absent/invérifiable = arrêt sans prompt.
+  Le catalogue ne garantit ni connexion ni quota. Aucun remplacement ; aucune modification du profil.
+  JSON copy.model (avec --model) : requested, source?, selected?, verified ; observedModels = réponse.
   Permissions, plugins et MCP habituels conservés : aucune lecture seule imposée. Le fork copie
   la conversation, pas les fichiers du projet. Ne réutilisez pas la source pendant l'appel :
   les relevés ne forment pas un verrou global. Source et copie restent dans OpenCode, même
@@ -900,6 +905,7 @@ Flags:
   --to <agent>:<uuid>         existing target; agent name only with --new
   --new                       creates a persistent conversation, read-only by default; no --open
   --copy                      explicit OpenCode copy, usual profile with no enforced read-only mode
+  --model <reference>         --copy only; omitted variant = default, not inherited
   --write                     experimental, frozen: Windows Codex task with human approval and separate worktree
   --dir <path>                --new directory (default: current), mandatory exact source directory with --copy
   Omit --from and --dir when they have no value; empty strings are rejected.
@@ -1049,7 +1055,7 @@ Limits:
   This visibility workaround (#193) is separate from Codex relay open (#219).
   Claude Desktop may not refresh a background exchange; an empty CLI registry does not prove
   its window is closed. PALABRE never restarts the app automatically.
-  OpenCode --copy: usual agent, model, variant, permissions, plugins and MCP are preserved.
+  OpenCode --copy: usual agent, permissions, plugins and MCP are preserved; source model unless --model.
   No enforced read-only mode; shared files, source and copy retained even after failure.
   --copy ignores relay.view and rejects --new, --open, --background, --check, --follow,
   --then-follow, --write, --task, --pr and Mission. --no-export does not delete the copy.
@@ -1110,8 +1116,12 @@ With --copy (OpenCode CLI 2.0.32 pilot, Windows only):
   One strictly qualified core/date notice may precede the message. Additions, duplicates
   and other system notices remain refused; no permissions are granted.
   Close the source and provide its exact ses_... ID and --dir directory. The source never
-  receives the message: PALABRE checks a fork, then asks it for advice. No --auto, imposed
-  model, retry or paid fallback. Agent, model and variant are inherited from the source.
+  receives the message: PALABRE checks a fork, then asks it for advice. No --auto,
+  retry or paid fallback. Agent, model and variant are inherited unless --model is explicit.
+  --model provider/model[#variant] changes only the copy; without #, the variant is default.
+  Catalogue and selection checked before sending. Missing/unverifiable choice = stop without prompt.
+  The catalogue guarantees neither authentication nor quota. No replacement or profile modification.
+  JSON copy.model (with --model): requested, source?, selected?, verified; observedModels = reply.
   Usual permissions, plugins and MCP are kept: no enforced read-only mode. A fork copies
   the conversation, not project files. Do not reuse the source during the call: snapshots
   are not a global lock. Source and copy remain in OpenCode, even after failure; --no-export

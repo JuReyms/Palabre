@@ -1,4 +1,4 @@
-/* OpenCode fictif : aucun compte, outil ou modèle ; API locale et historique dans un fichier jetable. */
+/* OpenCode fictif : aucun compte ou modèle ; cas default dérivé des sources, voir opencode-model-default.md. */
 const fs = require('node:fs');
 const http = require('node:http');
 const args = process.argv.slice(2);
@@ -21,6 +21,10 @@ if (args[0] === 'run') {
         content: [{ type: 'text', text: 'Avis fictif transport' }], finish: 'stop', time: { completed: 30 } },
       { id: 'msg_idleNew', type: 'idle', outcome: 'succeeded' });
     if (latest.mode === 'partial') latest.copy.context.pop();
+    if (latest.mode === 'model-variant-lost') {
+      const assistant = latest.copy.context.at(-2);
+      assistant.model = { ...assistant.model }; delete assistant.model.variant;
+    }
     if (latest.mode === 'source-changed') latest.source.info.title = 'changed';
     save(latest);
     console.log(JSON.stringify({ type: 'text', sessionID: id, text: 'Avis fictif transport' }));
@@ -44,6 +48,13 @@ if (args[0] === 'run') {
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       const latest = read();
+      latest.apiCalls ??= [];
+      latest.apiCalls.push({ route: req.url, method: req.method }); save(latest);
+      if (req.url === '/api/model' && req.method === 'GET') {
+        if (latest.mode === 'model-overflow') { res.end(JSON.stringify({ data: 'X'.repeat(4 * 1024 * 1024 + 1) })); return; }
+        const model = { providerID: 'fake', id: 'other', enabled: true, variants: [{ id: 'high' }] };
+        res.end(JSON.stringify({ data: latest.mode === 'model-duplicate' ? [model, model] : [model] })); return;
+      }
       const match = /^\/api\/(experimental\/)?session\/(ses_[A-Za-z0-9]+)(.*)$/.exec(req.url);
       if (!match) { res.writeHead(404).end('{}'); return; }
       const id = match[2], suffix = match[3];
@@ -53,6 +64,17 @@ if (args[0] === 'run') {
       if (suffix === '/fork' && req.method === 'POST') {
         if (id !== latest.source.info.id || body !== '{}') { res.writeHead(400).end(); return; }
         value = { id: latest.mode === 'bad-fork' ? latest.source.info.id : latest.copy.info.id };
+      } else if (suffix === '/model' && req.method === 'POST') {
+        if (id !== latest.copy.info.id || id === latest.source.info.id) { res.writeHead(400).end(); return; }
+        const model = JSON.parse(body).model;
+        if (latest.mode !== 'model-no-effect') {
+          latest.copy.context.push({ id: 'msg_modelSelection', type: 'model-switched', model,
+            previous: latest.copy.info.model, time: { created: 11 } });
+          latest.copy.info.model = model; save(latest);
+        }
+        if (latest.mode === 'model-ack-lost') { req.socket.destroy(); return; }
+        if (latest.mode === 'model-bad-ack') { res.end(JSON.stringify({ data: null })); return; }
+        res.writeHead(204).end(); return;
       } else if (suffix === '/interrupt' && req.method === 'POST') value = { interrupted: false };
       else if (suffix === '') value = snapshot.info;
       else if (suffix === '/context') value = snapshot.context;
