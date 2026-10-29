@@ -59,8 +59,8 @@ export async function runDebate(
   ]);
 
   const agents = [
-    createAgent(options.agentA, agentAConfig, { ollamaUrl: options.ollamaUrl }),
-    createAgent(options.agentB, agentBConfig, { ollamaUrl: options.ollamaUrl })
+    createAgent(options.agentA, agentAConfig, { ollamaUrl: options.ollamaUrl, configIdentity: options.configIdentity }),
+    createAgent(options.agentB, agentBConfig, { ollamaUrl: options.ollamaUrl, configIdentity: options.configIdentity })
   ];
 
   const transcript: DebateMessage[] = [...(options.resume?.transcript ?? [])];
@@ -99,7 +99,8 @@ export async function runDebate(
       session: options.session,
       files: options.files,
       transcript,
-      signal: options.signal
+      signal: options.signal,
+      onWaiting: options.onAgentWaiting
     }, { phase: "debate", agent: current.name, role: current.role, turn }, renderer, messages);
 
     if (outcome.failure) {
@@ -174,7 +175,7 @@ export async function runAsk(
     type: agentConfig.type
   })));
 
-  const agents = agentEntries.map(([name, agentConfig]) => createAgent(name, agentConfig, { ollamaUrl: options.ollamaUrl }));
+  const agents = agentEntries.map(([name, agentConfig]) => createAgent(name, agentConfig, { ollamaUrl: options.ollamaUrl, configIdentity: options.configIdentity }));
   const transcript: DebateMessage[] = [...(options.resume?.transcript ?? [])];
   const firstAgentIndex = options.resume?.phase === "summary" ? agents.length : transcript.length;
 
@@ -215,7 +216,8 @@ export async function runAsk(
       session: options.session,
       files: options.files,
       transcript: [],
-      signal: options.signal
+      signal: options.signal,
+      onWaiting: options.onAgentWaiting
     }, { phase: "ask", agent: current.name, role: current.role, turn: response }, renderer, messages);
 
     if (outcome.failure) {
@@ -404,7 +406,7 @@ async function generateSummary(
     throw new Error(messages.orchestrator.unknownSummaryAgent(summaryAgentName));
   }
 
-  const summaryAgent = createAgent(summaryAgentName, summaryConfig, { ollamaUrl: options.ollamaUrl });
+  const summaryAgent = createAgent(summaryAgentName, summaryConfig, { ollamaUrl: options.ollamaUrl, configIdentity: options.configIdentity });
   const role = SUMMARY_ROLE;
 
   renderer?.summaryStart(summaryAgent.name, role);
@@ -422,7 +424,8 @@ async function generateSummary(
     session: options.session,
     files: options.files,
     transcript,
-    signal: options.signal
+    signal: options.signal,
+    onWaiting: options.onAgentWaiting
   }).finally(() => renderer?.thinkingEnd());
 
   const summary: DebateSummary = {

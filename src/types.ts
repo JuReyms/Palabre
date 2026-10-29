@@ -99,6 +99,31 @@ export interface CliPtyAgentConfig extends Omit<CliAgentConfig, "type" | "respon
 
 export type AgentConfig = CliAgentConfig | CliPtyAgentConfig | OllamaAgentConfig;
 
+/**
+ * Profil d'exécution qualifié, dérivé du registre pour un défaut exact (jamais lu depuis la
+ * configuration utilisateur). `opencode-json` : sortie structurée d'OpenCode 2.0.32, session observée
+ * pour une lecture ultérieure sans renvoi.
+ */
+export interface CliRuntimeProfile {
+  output: "opencode-json";
+}
+
+/**
+ * Identité d'une configuration au moment du chargement : chemin canonique et SHA-256 du contenu.
+ * Sert à lier une lecture ultérieure à la configuration exacte de l'envoi ; n'accorde aucun droit.
+ */
+export interface ConfigIdentity {
+  path: string;
+  sha256: string;
+}
+
+/** Indication d'attente côté Palabre ; ne décrit jamais l'avancement du modèle. */
+export interface AgentWaitingEvent {
+  agent: string;
+  elapsedMs: number;
+  timeoutMs: number;
+}
+
 /** Valide le format depuis du JSON runtime : tout format explicite exige le transport batch CLI. */
 export function isCliResponseFormatValid(config: AgentConfig): boolean {
   const format = "responseFormat" in config ? config.responseFormat : undefined;
@@ -161,6 +186,10 @@ export interface DebateOptions {
   /** État validé d'une session existante ; jamais construit directement depuis des flags utilisateur. */
   resume?: SessionResumeState;
   signal?: AbortSignal;
+  /** Transmis aux prompts Débat, Ask et synthèse ; le rendu choisit stderr pour ne jamais polluer stdout. */
+  onAgentWaiting?: (event: AgentWaitingEvent) => void;
+  /** Identité stable de la configuration chargée ; absente si elle a changé pendant le chargement. */
+  configIdentity?: ConfigIdentity;
 }
 
 export interface SessionResumeState {
@@ -186,6 +215,9 @@ export interface ChatOptions {
   ollamaUrl?: string;
   pullModels: boolean;
   signal?: AbortSignal;
+  /** Même attente et même identité que les autres appels batch, consultations comprises. */
+  onAgentWaiting?: (event: AgentWaitingEvent) => void;
+  configIdentity?: ConfigIdentity;
 }
 
 /** Cause explicite inscrite dans tout export de conversation Chat. */
@@ -218,6 +250,14 @@ export interface AgentPrompt {
   availableAgents?: ChatAvailableAgent[];
   consultationRequester?: string;
   signal?: AbortSignal;
+  /**
+   * Indication d'attente facultative, appelée par un adapter compatible toutes les
+   * `waitingIntervalMs` (60 s par défaut) tant que l'appel n'est pas terminé. Elle mesure l'attente
+   * côté Palabre, jamais l'avancement du modèle ; une erreur du callback est ignorée.
+   */
+  onWaiting?: (event: AgentWaitingEvent) => void;
+  /** Intervalle d'indication en ms, 10 au minimum ; réservé aux tests et intégrations. */
+  waitingIntervalMs?: number;
 }
 
 /**

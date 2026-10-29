@@ -66,7 +66,7 @@ describe("relay --check (#203)", () => {
     const w = await world(t, { attachment: "attached" });
     const absent = await check(w.file, "--to", `codex:${CODEX}`);
     const old = await check(w.file, "--to", `codex:${CODEX}`, "--skill-revision", "999");
-    const current = await check(w.file, "--to", `codex:${CODEX}`, "--skill-revision", "1");
+    const current = await check(w.file, "--to", `codex:${CODEX}`, "--skill-revision", "2");
     for (const result of [absent, old, current]) {
       assert.equal(result.status, "target-busy");
       assert.equal(result.exitCode, 3);
@@ -74,14 +74,14 @@ describe("relay --check (#203)", () => {
       assert.equal(result.exportPath, null);
       assert.equal(result.queue, undefined);
       assert.equal(result.skill?.instructions, undefined);
-      assert.equal(result.skill?.revision, 1);
+      assert.equal(result.skill?.revision, 2);
     }
     assert.equal(absent.skill?.status, "unverified");
     assert.equal(old.skill?.status, "reload-required");
     assert.equal(current.skill?.status, "current");
     assert.equal(current.skill?.message, undefined);
     for (const extra of [["--new"], ["--copy"], ["--follow", "--open"], ["--task", "review"], []]) {
-      const rejected = await executeRelay(["relay", "--skill-revision", "1", "--to", `codex:${CODEX}`, ...extra]);
+      const rejected = await executeRelay(["relay", "--skill-revision", "2", "--to", `codex:${CODEX}`, ...extra]);
       assert.equal(rejected.status, "invalid-request");
       assert.equal(rejected.delivery.status, "not-delivered");
       assert.equal(rejected.skill, undefined, "aucune extension des envois, suivis ou tâches gelées");
