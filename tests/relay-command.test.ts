@@ -851,7 +851,7 @@ describe("relay.view (#190)", () => {
       const world = makeWorld(); if (view) setting(world, view);
       const r = await relay(world, [...toCodex, "Bonjour", "--trust-config", "--json"]);
       assert.equal(r.code, 0, r.stderr); assert.equal(r.json.mode, "background");
-      assert.equal(r.json.modeSource, view === "auto" ? "auto" : "setting");
+      assert.equal(r.json.modeSource, view === undefined ? "default" : view === "auto" ? "auto" : "setting");
       assert.equal(r.calls.filter(x => x.argv[0] === "queue").length, 0);
       assert.equal(r.calls.filter(x => x.argv[0] === "exec").length, 1);
       assert.ok(r.calls.find(x => x.argv[0] === "exec")!.stdin.includes(relayMessages.fr.envelopePermissions));
@@ -882,14 +882,16 @@ describe("relay.view (#190)", () => {
       try {
         const r = await relay(world, [...(explicit ? ["--background"] : []), ...toCodex, "Bonjour", "--trust-config", "--json"]);
         assert.equal(r.code, 3); assert.equal(r.json.mode, "background"); assert.equal(r.json.status, "target-busy");
-        assert.equal(r.json.modeSource, explicit ? "explicit" : "setting"); assert.equal(r.calls.length, 0);
+        assert.equal(r.json.modeSource, choice === "default" ? "default" : explicit ? "explicit" : "setting"); assert.equal(r.calls.length, 0);
         if (explicit) {
           assert.match(r.json.error.message, /--background impose l'arrière-plan/);
           assert.match(r.json.error.message, /--open.*permissions.*écriture/);
           assert.equal(r.json.remedy, undefined);
           assert.ok(!r.json.error.message.includes("config --relay-view"));
         } else {
-          assert.match(r.json.error.message, /Privilégier la conversation ouverte/); assert.match(r.json.remedy, /config --relay-view auto --config/);
+          assert.match(r.json.error.message, /Privilégier la conversation ouverte/);
+          if (choice === "default") assert.equal(r.json.remedy, undefined);
+          else assert.match(r.json.remedy, /config --relay-view auto --config/);
         }
         assert.equal(readFileSync(file, "utf8"), before);
       } finally { release(); }
@@ -1425,8 +1427,25 @@ describe("palabre relay --then-follow (#204)", () => {
 
   test("auto fermé et Claude refusés, sans reprise ni dépôt", async () => {
     for (const to of [`codex:${CODEX_SESSION}`, `claude:${CLAUDE_SESSION}`]) {
-      const result = await relay(makeWorld(), ["--to", to, "Question", "--then-follow", "10", "--trust-config", "--json"]);
+      const world = makeWorld(), file = path.join(world.workspace, "palabre.config.json");
+      const config = JSON.parse(readFileSync(file, "utf8"));
+      config.relay = { view: "auto" }; writeFileSync(file, JSON.stringify(config));
+      const result = await relay(world, ["--to", to, "Question", "--then-follow", "10", "--trust-config", "--json"]);
       assert.equal(result.code, 8, result.stderr); assert.equal(result.calls.length, 0);
+    }
+  });
+
+  test("défaut et cible ouverte : then-follow exige un choix ouvert explicite, sans dépôt", { skip: process.platform !== "win32" }, async () => {
+    for (const language of ["fr", "en"]) {
+      const world = makeWorld(), release = holdCodexLock(world);
+      const file = path.join(world.workspace, "palabre.config.json"), before = readFileSync(file, "utf8");
+      try {
+        const r = await relay(world, [...toCodex, "Question", "--then-follow", "10", "--language", language, "--trust-config", "--json"]);
+        assert.equal(r.code, 8); assert.equal(r.json.error.reason, "invalid-arguments");
+        assert.equal(r.json.modeSource, "default"); assert.equal(r.json.delivery.status, "not-delivered");
+        assert.match(r.json.error.message, language === "fr" ? /--open.*Privilégier la conversation ouverte/ : /--open.*Prefer the open conversation/);
+        assert.equal(r.calls.length, 0); assert.equal(readFileSync(file, "utf8"), before);
+      } finally { release(); }
     }
   });
 

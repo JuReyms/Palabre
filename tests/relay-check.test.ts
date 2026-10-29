@@ -153,6 +153,9 @@ describe("relay --check (#203)", () => {
       assert.match(text, /Vérification seulement : rien n'a été envoyé\. Un envoi recevrait ce même refus\./);
       assert.ok(!text.includes(fr.relay.delivery("not-delivered")), "pas de consigne de renvoi : rien n'a été envoyé");
       if (options.view === "background") assert.match(result.remedy!, /config --relay-view auto/);
+      if (status === "target-busy" && extra.length === 0 && options.view === undefined) {
+        assert.equal(result.modeSource, "default"); assert.equal(result.remedy, undefined);
+      }
       if (extra.includes("--background")) assert.match(result.error!.message, /--background impose l'arrière-plan/);
       if (status === "target-busy") assert.match(result.error!.message, /--open.*permissions.*écriture/);
     }

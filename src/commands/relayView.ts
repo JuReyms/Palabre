@@ -54,11 +54,14 @@ export async function runRelayViewCommand(tokens: readonly string[], io: AllowRe
   let original: string;
   let config: Record<string, unknown>;
   let before: string;
+  let beforeSaved: boolean;
   try {
     original = await readFile(file, "utf8");
     config = JSON.parse(original);
     if (!config || typeof config !== "object" || Array.isArray(config) || !config.agents || typeof config.agents !== "object" || Array.isArray(config.agents)) throw Error();
-    before = config.relay === undefined ? DEFAULT_RELAY_VIEW : validateRelayPolicy(config.relay).view ?? DEFAULT_RELAY_VIEW;
+    const saved = config.relay === undefined ? undefined : validateRelayPolicy(config.relay).view;
+    before = saved ?? DEFAULT_RELAY_VIEW;
+    beforeSaved = saved !== undefined;
   } catch { throw new Error(text.unreadable(file)); }
   language = resolveLanguage({ explicitLanguage: flags["--language"], configLanguage: config.language as string | undefined });
   text = relayViewText(language);
@@ -66,7 +69,7 @@ export async function runRelayViewCommand(tokens: readonly string[], io: AllowRe
     const command = relayViewCommand(file).replace("--relay-view auto ", "") + " --trust-config";
     throw new Error(createTranslator(language).relay.allowRepo.untrusted(file, command));
   }
-  io.print(text.plan(file, before, view));
+  io.print(text.plan(file, before, view, beforeSaved));
   io.print(text.notice);
   if (!(await io.confirm(text.confirm))) throw new Error(text.declined);
   if (await readFile(file, "utf8") !== original || !(await io.isTrusted(file))) throw new Error(text.changed(file));

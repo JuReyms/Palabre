@@ -40,10 +40,15 @@ for (const kind of cases) for (const language of ["fr", "en"] as const) test(`ta
   assert.equal(result.mode, "background"); assert.equal(result.queue, undefined);
   const text = renderRelayText(result, createTranslator(language)).stderr;
   if (kind === "setting" || kind === "default") {
-    assert.match(result.remedy!, /config --relay-view auto --config/);
-    assert.ok(result.error!.message.includes(result.remedy!)); assert.ok(text.includes(result.remedy!));
+    assert.equal(result.modeSource, kind === "default" ? "default" : "setting");
+    if (kind === "setting") {
+      assert.match(result.remedy!, /config --relay-view auto --config/);
+      assert.ok(result.error!.message.includes(result.remedy!)); assert.ok(text.includes(result.remedy!));
+    } else assert.equal(result.remedy, undefined, "le défaut ne propose pas un réglage permanent dans remedy");
     assert.match(text, language === "fr" ? /--open.*permissions.*écriture/ : /--open.*permissions.*writing/);
     assert.match(text, language === "fr" ? /prochains échanges.*Privilégier la conversation ouverte/ : /future exchanges.*Prefer the open conversation/);
+    assert.ok(text.indexOf("--open") < text.indexOf("config --relay-view"), "choix ponctuel avant préférence facultative");
+    assert.match(result.error!.message, language === "fr" ? /^Rien n'a été envoyé\.\n/ : /^Nothing was sent\.\n/);
   } else {
     assert.equal(result.remedy, undefined); assert.ok(!text.includes("config --relay-view"));
     if (kind === "explicit") {

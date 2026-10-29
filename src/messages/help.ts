@@ -345,7 +345,8 @@ Préférence du propriétaire :
   config déjà approuvée, confirmation clavier avec entrée ET sortie TTY ; aucun --yes ni --trust-config.
   Un agent ne modifie jamais ce réglage et ne confirme jamais à sa place.
   agents --json expose defaults.relayView ; Relay JSON v1 : modeSource facultatif,
-  explicit (option), auto (verrou ou parcours imposé), setting (background par défaut ou enregistré).
+  explicit (option), default (arrière-plan sans choix enregistré), setting (background enregistré),
+  auto (verrou ou parcours imposé). Un réglage permanent reste un choix humain facultatif.
 
 Limites :
   Codex desktop chef de mission : autoriser chaque commande vers Claude hors du bac à sable,
@@ -981,7 +982,8 @@ Owner's preference:
   already trusted config, keyboard confirmation with TTY input AND output; no --yes or --trust-config.
   An agent must never change this preference or confirm for the owner.
   agents --json exposes defaults.relayView; Relay JSON v1: optional modeSource,
-  explicit (option), auto (lock or required path), setting (default or saved background).
+  explicit (option), default (background with no saved choice), setting (saved background),
+  auto (lock or required path). A lasting setting remains an optional human choice.
 
 Limits:
   Codex desktop as mission lead: approve each command to Claude outside the sandbox,
