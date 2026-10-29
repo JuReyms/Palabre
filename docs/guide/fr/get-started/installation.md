@@ -82,6 +82,10 @@ Pour un setup explicite, des scripts ou une configuration locale au projet, cons
 
 Vous arrivez sur un autre ordinateur, même déjà utilisé ? Suivez [Changer de machine](/fr/get-started/change-machine) : inventaire sans modification, remise à niveau et nouvelle conversation Relay.
 
-`palabre update` détecte l'installation et les copies du skill, affiche le plan et demande une confirmation unique en terminal interactif. Les copies sont rafraîchies depuis le nouveau paquet après sauvegarde hors des dossiers de skills, en conservant les jonctions. `palabre update --check` vérifie sans modifier l'installation. Pour le skill seul, sans réseau : `palabre skill --sync`. Rechargez le skill après rafraîchissement ; détails : [Skill Palabre](/fr/get-started/skill).
+`palabre update` détecte l'installation et les copies du skill, affiche le plan et demande une confirmation unique en terminal interactif. Les copies sont rafraîchies depuis le nouveau paquet après sauvegarde hors des dossiers de skills, en conservant les jonctions. `palabre update --check` vérifie sans modifier l'installation. Pour le skill seul, sans réseau : `palabre skill --sync`. Votre assistant peut relire les consignes actuelles sans redémarrer ; détails : [Skill Palabre](/fr/get-started/skill).
+
+Après une mise à jour directe avec votre gestionnaire de paquets (par exemple `npm install --global palabre`), les copies installées restent intactes. Palabre signale les écarts en terminal interactif, sans modifier les sorties machine. Votre assistant peut relire les consignes actuelles du paquet et poursuivre dans le cadre autorisé, sans synchronisation ni redémarrage de votre part. Si vous souhaitez aussi aligner les fichiers installés, `palabre skill --check` vérifie leur état et `palabre skill --sync` affiche un plan à confirmer, avec sauvegarde des copies remplacées. Voir [Skill Palabre](/fr/get-started/skill).
+
+Des fichiers identiques ne prouvent pas ce que l'agent a chargé.
 
 Relay et son option Mission utilisent des conversations Codex ou Claude Code existantes. Chaque fournisseur fixe ses conditions d'accès et ses limites ; PALABRE ne les remplace pas.

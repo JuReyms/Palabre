@@ -46,13 +46,15 @@ Run only the command for your intended agent. The plan shows the destination and
 
 `palabre update` includes refreshing detected copies in its plan and single confirmation. After updating, it uses the new package's skill, including when pnpm changes stores. If the CLI is already current, refreshing a different skill is still offered. Missing copies are never installed implicitly.
 
-Before replacement, each physical copy is backed up under `~/.palabre/skill-backups/`, with a timestamp and unique suffix, outside directories loaded by agents. Root junctions remain intact; a directory shared by Claude and Codex is backed up only once. Customized bundled files are replaced after this consent; additional private files are preserved. An edit since the plan was displayed makes the refresh fail. Reload the skill or resume the agent conversation afterwards.
+Before replacement, each physical copy is backed up under `~/.palabre/skill-backups/`, with a timestamp and unique suffix, outside directories loaded by agents. Root junctions remain intact; a directory shared by Claude and Codex is backed up only once. Customized bundled files are replaced after this consent; additional private files are preserved. An edit since the plan was displayed makes the refresh fail. The agent can then reread the package instructions without restarting, as explained below.
 
 These commands follow the CLI package, not GitHub `main`. External tools such as `npx skills add/update` follow the repository and may provide a different skill from the installed CLI. On an older CLI without the `skill` command, manually copying the bundled folder remains possible.
 
 To start, tell Claude Code or Codex: "Use PALABRE to ask the other agent to review the plan in docs/plan.md without changing files. Keep the conversation for follow-up." You choose the mission lead. From Codex desktop, each command to Claude needs one-time host approval; follow [Your first Relay](/en/get-started/first-relay).
 
 An unverified copy is displayed with a warning and left untouched: it blocks neither the CLI update nor other skill copies. If no copy differs, `--sync` and `--install` do not ask for consent or write anything. If the CLI updates successfully but the skill refresh then fails, the message distinguishes these outcomes: restart Palabre, then run `palabre skill --sync` to inspect the new plan.
+
+**After a direct CLI update** (npm, pnpm, Yarn or Bun), installed copies remain untouched. In an interactive terminal, Palabre help, version and home screen report differing or unreadable copies. Your assistant can reread the current package instructions and continue working without asking you to synchronize files or restart the conversation; the path is explained below. To also align installed copies, if you wish, `palabre skill --check` shows their state and `palabre skill --sync` presents a plan to confirm. A difference can be a customization. No reminder appears without a detected copy, when all match, in machine output or outside a terminal; matching files do not prove what the agent read.
 
 ## When the agent sees the skill
 

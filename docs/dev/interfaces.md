@@ -56,6 +56,10 @@ L'aide principale (`palabre -h`, `palabre help`) doit rester minimaliste, inspir
 
 Ne pas transformer l'aide principale en reference complete. Les details doivent aller dans l'aide de commande (`palabre config --help`, `palabre init --help`, etc.) ou dans la documentation du site.
 
+Rappel du skill (`src/skillNotice.ts`) : après la sortie normale de l'aide et de `--version`, sur stderr seulement, quand stdin, stdout et stderr sont des TTY, hors `--json` et renderer NDJSON. Stdout reste identique. La comparaison réutilise `planSkillSync` avec le skill du paquet exécuté : lecture locale, sans réseau, écriture, configuration, registre de confiance ni agent. Le rappel apparaît seulement si une copie est `different` ou `unreadable`. Sa langue (option, environnement, langue enregistrée via `resolveCommandLanguage`) n'est résolue que si un rappel est affiché. Le texte distingue relecture des consignes par l’agent et synchronisation facultative des fichiers installés ; aucune liste obligatoire de manipulations ou de redémarrages.
+
+En terminal humain, l'accueil TUI ajoute le même texte à sa notice initiale à partir du plan de `getUpdateInfo`, sans nouvelle détection ni remplacement d'une notice existante. Relay et Mission (aiguillés avant), les sessions Chat et les commandes non interactives ne déclenchent aucune inspection supplémentaire pour ce rappel. Une erreur du rappel est ignorée. Pas de postinstall : [npm masque par défaut la sortie de ces scripts](https://docs.npmjs.com/cli/v11/commands/npm-install/#foreground-scripts).
+
 ## Rendu Console
 
 Relay Claude (#250) : `error.hint?` et la notice `handoff?` sont rendus sur stderr, assainis comme les autres textes. Stdout JSON reste un objet unique v1 ; les ajouts facultatifs ne changent ni statut ni délivrance. Le dictionnaire `messages.relay.claude` impose la même langue au refus, à la vérification et à la passation ; aucun second choix de langue au rendu. Détails et exclusions : [contrat Relay](relay.md#claude-déjà-utilisée-et-passation-locale-250).

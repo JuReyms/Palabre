@@ -31,7 +31,7 @@ import { findFirstPositionalIndex, getStringListFlag, parseArgs, type ParsedArgs
 import { clearTuiRunOverrides } from "./tuiState.js";
 import { formatOllamaUrlError, OllamaUrlError } from "./ollamaUrl.js";
 import { getPackageVersion } from "./version.js";
-import { isAgentRole, VALID_AGENT_ROLES, type AgentWaitingEvent, type ConfigIdentity, type DebateOptions, type PalabreConfig, type PalabreInterface } from "./types.js";
+import { isAgentRole, VALID_AGENT_ROLES, type AgentWaitingEvent, type ConfigIdentity, type DebateOptions, type Language, type PalabreConfig, type PalabreInterface } from "./types.js";
 import type { Messages } from "./messages/index.js";
 import { runAgentsCommand } from "./commands/agents.js";
 import { runContextCommand } from "./commands/context.js";
@@ -44,6 +44,7 @@ import { runRelayViewCommand } from "./commands/relayView.js";
 import { runMissionCommand } from "./commands/mission.js";
 import { runUpdateCommand } from "./commands/update.js";
 import { runSkillCommand } from "./commands/skill.js";
+import { isHumanTerminal, printSkillReminder, withSkillReminder } from "./skillNotice.js";
 import { runAgentResultCommand } from "./commands/result.js";
 import { sanitizeTerminalText } from "./adapters/terminal.js";
 import { runPruneTrustCommand } from "./commands/pruneTrust.js";
@@ -94,13 +95,16 @@ async function main(): Promise<void> {
     throw new Error(skillRuntimeMessages[startupLanguage].optionScope);
   }
 
+  // Rappel du skill après la sortie normale, inchangée : stderr d'un terminal humain seulement.
   if (parsed.command === "version" || parsed.flags.version) {
     console.log(await getPackageVersion());
+    await printSkillReminder({ flags: parsed.flags, language: () => resolveCommandLanguage(parsed.flags) });
     return;
   }
 
   if (parsed.command === "help" || parsed.flags.help) {
     printHelp(await resolveCommandMessages(parsed.flags), commandHelpTarget(parsed));
+    await printSkillReminder({ flags: parsed.flags, language: () => resolveCommandLanguage(parsed.flags) });
     return;
   }
 
@@ -400,6 +404,10 @@ async function main(): Promise<void> {
       tuiNotice = messages.config.tuiSyncConflict(configPath);
     } else if (!tuiNotice && syncResult.addedAgents.length > 0) {
       tuiNotice = messages.config.syncAdded(configPath, syncResult.addedAgents.join(", "));
+    }
+    // Plan déjà calculé par getUpdateInfo, sans nouvelle détection ; notice existante conservée.
+    if (isHumanTerminal(process, parsed.flags)) {
+      tuiNotice = withSkillReminder(tuiNotice, tuiUpdateInfo.skills, language);
     }
 
     stayInTuiAfterSession = true;
@@ -1281,6 +1289,15 @@ function commandHelpTarget(parsed: ParsedArgs): string | undefined {
 
 /** Résout les messages d'une commande qui peut être affichée avant le flux principal. */
 async function resolveCommandMessages(flags: Record<string, string | string[] | boolean>): Promise<Messages> {
+  return createTranslator(await resolveCommandLanguage(flags));
+}
+
+/**
+ * Langue d'une commande affichée avant le flux principal (aide, version, rappel du skill) :
+ * option, environnement, puis langue enregistrée lue sans écriture ni approbation. Une
+ * configuration absente ou invalide n'empêche pas l'affichage.
+ */
+async function resolveCommandLanguage(flags: Record<string, string | string[] | boolean>): Promise<Language> {
   const explicitLanguage = optionalString(flags.language);
   const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
   let configLanguage: string | undefined;
@@ -1293,7 +1310,7 @@ async function resolveCommandMessages(flags: Record<string, string | string[] | 
     configLanguage = undefined;
   }
 
-  return createTranslator(resolveLanguage({ explicitLanguage, configLanguage }));
+  return resolveLanguage({ explicitLanguage, configLanguage });
 }
 
 /**

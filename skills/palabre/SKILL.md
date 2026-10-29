@@ -2,14 +2,14 @@
 name: palabre
 description: Faire coopérer les outils IA locaux avec Palabre. Relay pour confier une tâche à Codex ou Claude Code dans une conversation précise ou neuve ; Débat pour confronter deux positions, Ask pour des avis indépendants, Chat pour avancer avec un agent. Utiliser sur demande de Palabre, de délégation à un autre outil IA, de second avis ou de revue contradictoire ; pas pour une question simple traitable seul.
 metadata:
-  revision: "2"
+  revision: "3"
 ---
 
 # Palabre : coopérer, croiser les avis, décider
 
 Palabre pilote les outils IA installés et authentifiés, chacun avec son compte et ses modèles. Un « agent Palabre » est une entrée de configuration reliée à un outil ou Ollama, pas un modèle ni un sous-agent de l'hôte. Plusieurs entrées peuvent utiliser le même outil.
 
-Avant une tâche, `palabre agents --json --skill-revision 2` vérifie agents/consignes. Si `skill.status` n'est pas `current`, lire `palabre skill --read --json` et les références utiles aux chemins rendus ; retenir la révision après lecture, jamais la copier pour faire passer le contrôle. Poursuivre la tâche autorisée sans sync/redémarrage demandé. Ancienne CLI ou inventaire indisponible : `references/cli.md`. Ne pas substituer une installation au chemin configuré ; présence ne prouve ni connexion ni capacité. Nommer la tâche `Palabre <mode> : <objet>` si possible.
+Avant une tâche, `palabre agents --json --skill-revision 3` vérifie agents/consignes. Si `skill.status` n'est pas `current`, lire `palabre skill --read --json` et les références utiles aux chemins rendus ; retenir la révision après lecture, jamais la copier pour faire passer le contrôle. Poursuivre la tâche autorisée sans sync/redémarrage demandé. Ancienne CLI ou inventaire indisponible : `references/cli.md`. Ne pas substituer une installation au chemin configuré ; présence ne prouve ni connexion ni capacité. Nommer la tâche `Palabre <mode> : <objet>` si possible.
 
 ## Choisir le parcours
 
@@ -45,9 +45,9 @@ Adapter les noms aux agents disponibles ; `--from` est déclaratif et facultatif
 # Avis neuf, sans modification
 palabre relay --new --background --to codex --subject "Relire le plan" "Lis docs/plan.md sans modifier de fichier." --json
 # Reprise : vérifier, puis envoyer selon le parcours retenu (relay.md)
-palabre relay --check --skill-revision 2 --to codex:<id> --json
+palabre relay --check --skill-revision 3 --to codex:<id> --json
 # Avant un envoi autorisé dans une conversation Codex ouverte : rien envoyé
-palabre relay --check --skill-revision 2 --open --to codex:<id> --json
+palabre relay --check --skill-revision 3 --open --to codex:<id> --json
 ```
 
 Conserver la même configuration de l'échange (`--config` absolu quand nécessaire) et vérifier la délivrance avant toute nouvelle tentative après échec. Envoi ouvert, ouverture et suivi : charger `references/relay-desktop.md`. `palabre relay open` concerne **Codex seulement**, conserve alias et `--config` effectif absolu, n'envoie rien et ne prouve pas l'affichage. Avec les versions vérifiées, une conversation créée par --new reste en lecture seule même ouverte dans Desktop.
