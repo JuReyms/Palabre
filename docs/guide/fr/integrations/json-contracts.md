@@ -19,6 +19,10 @@ Les catalogues ci-dessous écrivent un document JSON sur stdout sans lancer de s
 
 ## Règles de consommation
 
+`agents --json` et `relay --check --json` ajoutent un champ facultatif `skill` à la racine, sans changer les statuts existants. `status` vaut `current` (révisions déclarées identiques), `reload-required` (différentes), `unverified` (déclaration absente/invalide) ou `unavailable` (paquet non vérifiable). Si disponible : `revision` entier positif, `entrypoint` absolu et `references` (noms vers chemins absolus fixes du paquet). Sinon aucun chemin de remplacement n'est inventé. `action`/`message` guident la lecture ou signalent l'indisponibilité ; absents sur `current`. L'option `--skill-revision <révision>` est réservée à `agents --json`, `relay --check` et `skill --read --json`. Elle n'est ni une preuve de lecture ni une autorisation.
+
+`palabre skill --read --json` rend `{ "v": 1, "kind": "skill-runtime", ... }` avec ce même diagnostic et le texte `instructions` si le paquet est valide. Aucun profil/configuration/réseau ni copie installée lu ; aucune écriture. Incompatible avec sync/install/yes/check/dry-run/trust-config et tout chemin source fourni par l'appelant. `unavailable` donne le code 1 pour cette commande dédiée ; dans l'inventaire ou le check Relay, ce diagnostic ne change pas l'issue ni la délivrance. Le contenu complet ne figure ni dans ces précontrôles ni dans les exports Relay. Les consommateurs tolèrent l'absence du nouveau champ sur une ancienne CLI.
+
 - vérifier `v` ;
 - ignorer les champs inconnus et tolérer les valeurs d'énumération inconnues sans les assimiler à un succès ;
 - accepter l'absence des champs optionnels ;

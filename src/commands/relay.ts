@@ -21,6 +21,8 @@
  *
  * `--check` (#203) fait les mêmes contrôles qu'un envoi jusqu'à l'état de la conversation, puis
  * s'arrête : ni enveloppe, ni processus de la CLI cible, ni export. Issue `checked` ou refus identique.
+ * Sa métadonnée facultative skill compare seulement une révision déclarée au paquet exécuté,
+ * sans modifier l'issue ; --skill-revision est interdit sur un envoi ou un suivi.
  * --then-follow <secondes> ajoute un suivi après la réponse corrélée, sans second dépôt. Le résultat
  * primaire reste distinct de nextTurn, y compris après une échéance ou annulation secondaire.
  *
@@ -92,6 +94,7 @@ import { relayViewCommand } from "./relayView.js";
 import { runRelayOpenCommand } from "./relayOpen.js";
 import { runRelayRecentCommand } from "./relayRecent.js";
 import { saveRelayHandoff, type RelayHandoffReport } from "../relayHandoff.js";
+import { inspectSkillRuntime, type SkillRuntimeInfo } from "../skillRuntime.js";
 
 /** Timeout par défaut et bornes de `--timeout`, en secondes. */
 export const DEFAULT_RELAY_TIMEOUT_SECONDS = 600;
@@ -99,7 +102,7 @@ export const MIN_RELAY_TIMEOUT_SECONDS = 10;
 export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 
 /** Options de `palabre relay` qui attendent une valeur. */
-const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "then-follow", "config", "language", "task", "pr", "subject", "dir", "reference", "exchange", "model"]);
+const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "then-follow", "config", "language", "task", "pr", "subject", "dir", "reference", "exchange", "model", "skill-revision"]);
 /** Options de `palabre relay` sans valeur. */
 const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "background", "new", "write", "follow", "check", "copy"]);
 /** Alias acceptés, comme pour les autres commandes. */
@@ -129,6 +132,8 @@ export interface RelayCheckReport {
  * NDJSON : un ajout optionnel ne change pas `v`.
  */
 export interface RelayResultV1 {
+  /** Précontrôle seulement : révision déclarative du skill, sans effet sur issue/délivrance/droits. */
+  skill?: SkillRuntimeInfo;
   /** Relevé indicatif lu après un envoi ouvert vers Codex ; pas un quota attribué à ce seul tour. */
   quota?: CodexQuota;
   /** Suite facultative de --then-follow, distincte de reply et de la délivrance primaire. */
@@ -245,6 +250,8 @@ interface RelayContext {
   /** `--check` (#203) : contrôles d'avant envoi seulement, et leur rapport. */
   check?: boolean;
   checkReport?: RelayCheckReport;
+  /** Révision déclarée au précontrôle seulement ; aucune preuve de lecture dans le modèle. */
+  skillRevision?: string;
   newSession?: boolean;
   cwd?: string;
   /**
@@ -282,12 +289,17 @@ const NOT_DELIVERED: DeliveryVerdict = { status: "not-delivered", persisted: fal
 
 /** Langue de démarrage : `--language`, puis `PALABRE_LANGUAGE` ; une valeur invalide retombe sur le français. */
 function startupMessages(rawArgs: readonly string[]): Messages {
+  return createTranslator(startupLanguage(rawArgs));
+}
+
+/** Même résolution prudente pour les diagnostics annexes, y compris sur refus d'arguments précoce. */
+function startupLanguage(rawArgs: readonly string[]): "fr" | "en" {
   const index = rawArgs.findIndex((arg) => arg === "--language" || arg === "--lang");
   const explicit = index >= 0 ? rawArgs[index + 1] : undefined;
   try {
-    return createTranslator(resolveLanguage({ explicitLanguage: explicit }));
+    return resolveLanguage({ explicitLanguage: explicit });
   } catch {
-    return createTranslator("fr");
+    return "fr";
   }
 }
 
@@ -347,6 +359,7 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
     signal: options.signal,
     startedAt: Date.now(),
     messages: startupMessages(rawArgs),
+    language: startupLanguage(rawArgs),
     from: null,
     to: null,
     provider: null,
@@ -380,6 +393,7 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
       });
     }
   }
+  if (result.check) result.skill = inspectSkillRuntime(context.skillRevision, context.language ?? "fr");
   return { result, messages: context.messages, targetLocated: context.targetLocated === true, desktopExecutable: context.desktopExecutable, desktopCwd: context.cwd, desktopConfigPath: context.desktopConfigPath, messageCopy: context.messageCopy };
 }
 
@@ -387,6 +401,8 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (context.signal?.aborted) throw new RelayRefusal({ status: "cancelled" });
   const { messages } = context;
   const { flags, positionals } = parseRelayTokens(rawArgs.slice(1), messages);
+  if (flags["skill-revision"] !== undefined && !flags.check) throw invalid("invalid-arguments");
+  context.skillRevision = optionalString(flags["skill-revision"]);
   if (flags.model !== undefined) {
     const text = messages.relay.copy;
     if (!flags.copy) throw invalid("invalid-arguments", text.modelOnlyCopy);
@@ -440,7 +456,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     context.exchange = exchange.value;
   }
   try {
-    resolveLanguage({ explicitLanguage: optionalString(flags.language) });
+    context.language = resolveLanguage({ explicitLanguage: optionalString(flags.language) });
   } catch (error) {
     throw invalid("invalid-arguments", error instanceof Error ? error.message : undefined);
   }

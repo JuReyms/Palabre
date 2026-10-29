@@ -1,14 +1,23 @@
-/** @file Installation et rafraîchissement explicites du skill du paquet courant, hors config et réseau. */
+/** @file Lecture du skill du paquet courant, ou synchronisation disque confirmée, hors config et réseau. */
 import { createInterface } from "node:readline/promises";
 import { resolveLanguage } from "../i18n.js";
 import { applySkillSync, planSkillInstall, planSkillSync, SkillSyncError } from "../skillSync.js";
 import { formatSkillPlan, skillCommandMessages, skillSyncFailure } from "../messages/skillSync.js";
 import { optionalString, type CommandFlags } from "./shared.js";
+import { inspectSkillRuntime } from "../skillRuntime.js";
 
-/** Une seule confirmation couvre les cibles affichées et leurs sauvegardes ; previews sans écriture. */
+/** Lecture --read autonome sans mutation ; sinon une confirmation couvre les copies et sauvegardes du plan. */
 export async function runSkillCommand(flags: CommandFlags, positionals: string[]): Promise<void> {
   const language = resolveLanguage({ explicitLanguage: optionalString(flags.language) });
   const messages = skillCommandMessages[language];
+  // Lecture universelle avant une tâche : hors config/confiance, incompatible avec toute mutation.
+  if (flags.read) {
+    if (positionals.length || flags.json !== true || Object.keys(flags).some(flag => !["read", "json", "language", "skill-revision"].includes(flag))) throw Error(messages.usage);
+    const skill = inspectSkillRuntime(flags["skill-revision"], language, { includeInstructions: true });
+    console.log(JSON.stringify({ v: 1, kind: "skill-runtime", ...skill }));
+    if (skill.status === "unavailable") process.exitCode = 1;
+    return;
+  }
   if (positionals.length || Object.keys(flags).some(flag => !["sync", "install", "check", "dry-run", "yes", "language", "terminal", "plain"].includes(flag)) ||
       (flags.sync && flags.install) || (flags.install !== undefined && flags.install !== "codex" && flags.install !== "claude")) {
     throw Error(messages.usage);

@@ -62,6 +62,32 @@ const check = (file: string, ...args: string[]) => executeRelay(["relay", "--che
 const fr = createTranslator("fr");
 
 describe("relay --check (#203)", () => {
+  test("révision du skill : lecture indiquée avant la tâche, refus et délivrance inchangés", async t => {
+    const w = await world(t, { attachment: "attached" });
+    const absent = await check(w.file, "--to", `codex:${CODEX}`);
+    const old = await check(w.file, "--to", `codex:${CODEX}`, "--skill-revision", "999");
+    const current = await check(w.file, "--to", `codex:${CODEX}`, "--skill-revision", "1");
+    for (const result of [absent, old, current]) {
+      assert.equal(result.status, "target-busy");
+      assert.equal(result.exitCode, 3);
+      assert.equal(result.delivery.status, "not-delivered");
+      assert.equal(result.exportPath, null);
+      assert.equal(result.queue, undefined);
+      assert.equal(result.skill?.instructions, undefined);
+      assert.equal(result.skill?.revision, 1);
+    }
+    assert.equal(absent.skill?.status, "unverified");
+    assert.equal(old.skill?.status, "reload-required");
+    assert.equal(current.skill?.status, "current");
+    assert.equal(current.skill?.message, undefined);
+    for (const extra of [["--new"], ["--copy"], ["--follow", "--open"], ["--task", "review"], []]) {
+      const rejected = await executeRelay(["relay", "--skill-revision", "1", "--to", `codex:${CODEX}`, ...extra]);
+      assert.equal(rejected.status, "invalid-request");
+      assert.equal(rejected.delivery.status, "not-delivered");
+      assert.equal(rejected.skill, undefined, "aucune extension des envois, suivis ou tâches gelées");
+    }
+    assert.equal(w.probes(), 3, "seules les trois vérifications atteignent la sonde");
+  });
   test("quota Codex daté dans check, ouverte ou fermée ; jamais pour Claude", async t => {
     for (const attachment of ["attached", "detached"] as const) {
       const w = await world(t, { attachment, view: "auto", rolloutLines: [JSON.stringify(quotaEvent),
@@ -249,6 +275,9 @@ describe("relay --check (#203)", () => {
       const result = await check(w.file, "--to", `codex:${CODEX}`, ...extra);
       assert.equal(result.status, "invalid-request", extra.join(" "));
       assert.deepEqual(result.check, {});
+      const english = await check(w.file, "--language", "en", "--to", `codex:${CODEX}`, ...extra);
+      assert.equal(english.skill?.status, "unverified");
+      assert.match(english.skill!.message!, /^Before preparing/);
     }
   });
 });

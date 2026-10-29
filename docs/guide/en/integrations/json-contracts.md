@@ -19,6 +19,10 @@ These commands write one JSON document to stdout and exit without starting an AI
 
 ## Consumption rules
 
+`agents --json` and `relay --check --json` add an optional root `skill` field without changing existing statuses. Its `status` is `current` (matching declared revisions), `reload-required` (different), `unverified` (missing/invalid declaration) or `unavailable` (unverifiable package). When available: a positive integer `revision`, absolute `entrypoint` and `references` (fixed package filenames to absolute paths). No substitute path is invented otherwise. `action`/`message` guide reading or report unavailability; absent on `current`. `--skill-revision <revision>` is reserved for `agents --json`, `relay --check` and `skill --read --json`. It proves neither reading nor authorization.
+
+`palabre skill --read --json` returns `{ "v": 1, "kind": "skill-runtime", ... }` with this diagnostic and the `instructions` text when the package is valid. No profile/configuration/network or installed copy is read; no writes. Incompatible with sync/install/yes/check/dry-run/trust-config and caller-supplied source paths. `unavailable` exits with code 1 for this dedicated command; in the inventory or Relay check it changes neither outcome nor delivery. The full text appears neither in these prechecks nor Relay exports. Consumers tolerate the new field being absent on an older CLI.
+
 - check `v`;
 - ignore unknown fields and tolerate unknown enum values without treating them as success;
 - accept missing optional fields;

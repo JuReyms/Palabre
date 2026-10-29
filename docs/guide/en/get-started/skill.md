@@ -56,6 +56,14 @@ An unverified copy is displayed with a warning and left untouched: it blocks nei
 
 ## When the agent sees the skill
 
+Updating files does not guarantee that a running conversation has reread its instructions. Before preparing a task, the skill now asks the agent to compare its declared revision with the running Palabre package. If it is missing or different, the agent reads the current instructions and relevant references, then continues within existing authorization. You do not need to synchronize a directory or restart the conversation for this read. An old or customized installed copy remains untouched.
+
+This check is local. The technical command `palabre skill --read --json` supplies the skill text and reference paths from the running package, without configuration, network, installation or an AI call. The `agents --json` inventory and `relay --check --json` can compare the revision the agent says it read. Matching revisions do not prove its internal memory. An old conversation still needs to encounter this diagnostic or reread the skill to benefit; Palabre does not control applications' internal reload mechanisms.
+
+If the package is incomplete or unreadable, the agent explains the limitation when it blocks work. An old CLI that does not support this check must not be presented as compatible: consult its help and distinguish reading instructions from updating software. Never automatically resend a Relay to repair a skill.
+
+The following observations concern native skill discovery by applications, separate from the agent reading the package:
+
 An agent loads its skill list when a conversation starts or resumes. After installing, open a new conversation or resume one: a conversation that is already running may not see the skill.
 
 | Agent | New conversation | Conversation resumed after installing |

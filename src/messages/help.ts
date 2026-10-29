@@ -11,6 +11,8 @@ const frCommandHelp: Record<string, string> = {
   skill: `
 Garde le skill installé aligné sur le paquet de la CLI exécutée, sans réseau ni config.
   palabre skill                        affiche l'état et le plan, sans écrire
+  palabre skill --read --json          lit les consignes du paquet exécuté, sans config ni installation
+  --skill-revision <révision>          avec --read --json : révision réellement lue, facultative
   palabre skill --sync                 rafraîchit les copies détectées après confirmation
   palabre skill --install codex        installe dans ~/.agents/skills/palabre
   palabre skill --install claude       installe dans ~/.claude/skills/palabre
@@ -23,7 +25,9 @@ Sans copie différente, --sync et --install ne demandent aucun accord et n'écri
 Si la CLI est mise à jour mais pas le skill, le message le précise : palabre skill --sync.
 La source est skills/palabre du paquet courant ; aucun suivi de GitHub main.
 L'agent ne lance pas --sync, --install ou update sans accord humain sur ces instructions.
-Après rafraîchissement, rechargez le skill ou reprenez la conversation de l'agent.
+L'agent peut relire le paquet et poursuivre sans synchronisation ni redémarrage de votre part.
+agents --json et relay --check exposent skill ; --skill-revision compare la révision déclarée.
+current indique des révisions identiques, pas un chargement prouvé. Aucun droit ajouté.
 `,
   mission: `
 Un chef de mission appelle son équipier en arrière-plan ; vous prenez les décisions.
@@ -282,6 +286,8 @@ Options :
   --follow                    avec --open : ne dépose rien, attend le prochain tour terminé
   --then-follow <secondes>    après la réponse liée, écoute un seul tour supplémentaire (10 à 3600 s)
   --check                     vérifie mode, conversation et permissions connues, sans rien envoyer
+  --skill-revision <révision>
+                              avec --check seulement : compare les consignes déclarées, sans envoi
   --timeout <secondes>        délai maximal, de 10 à 3600 (défaut : 600)
   --json                      sortie JSON v1 pour les intégrations
   --no-export                 n'écrit ni l'export .relay.md ni la passation .handoff.md
@@ -670,6 +676,8 @@ const enCommandHelp: Record<string, string> = {
   skill: `
 Keeps installed skills aligned with the running CLI package, without network or config.
   palabre skill                        shows status and plan without writing
+  palabre skill --read --json          reads the running package's instructions, no config or installation
+  --skill-revision <revision>          with --read --json: revision actually read, optional
   palabre skill --sync                 refreshes detected copies after confirmation
   palabre skill --install codex        installs into ~/.agents/skills/palabre
   palabre skill --install claude       installs into ~/.claude/skills/palabre
@@ -682,7 +690,9 @@ Without a different copy, --sync and --install do not ask for consent or write a
 If the CLI updates but the skill fails, the message says so: palabre skill --sync.
 The source is the running package's skills/palabre, never GitHub main.
 Agents must not run --sync, --install or update without human consent for these instructions.
-Reload the skill or resume the agent conversation after refreshing it.
+The agent can reread the package and continue without asking you to synchronize or restart.
+agents --json and relay --check expose skill; --skill-revision compares the declared revision.
+current means matching revisions, not proven loading. No additional authority.
 `,
   mission: `
 A mission lead calls a teammate in the background; you make the decisions.
@@ -940,6 +950,8 @@ Flags:
   --follow                    with --open: queues nothing, waits for the next completed turn
   --then-follow <seconds>     after the correlated reply, listens for one more turn (10 to 3600 s)
   --check                     checks mode, conversation and known permissions, sends nothing
+  --skill-revision <revision>
+                              with --check only: compares declared instructions, sends nothing
   --timeout <seconds>         maximum duration, 10 to 3600 (default: 600)
   --json                      JSON v1 output for integrations
   --no-export                 writes neither the .relay.md export nor the .handoff.md handoff

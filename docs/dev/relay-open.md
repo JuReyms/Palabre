@@ -95,6 +95,8 @@ Un appel `--open` attend la réponse à son enveloppe, puis s'arrête. Quand l'�
 
 ### Vérifier avant d'envoyer (`--check`, #203)
 
+Le résultat peut aussi porter `skill` à la racine, contrôle déclaratif des consignes du paquet. `--skill-revision <entier>` est accepté sur le check seulement, refusé sur tout envoi/suivi/fonction gelée. Un écart ou une révision absente guide l'agent vers `palabre skill --read --json` avant de préparer la tâche, sans changer statut, permissions ni délivrance de la vérification. Aucun envoi automatique après cette lecture. Détails : [configuration et consignes du paquet](configuration.md#consignes-relues-dans-la-conversation).
+
 Avec le choix explicite `relay.view: auto` (« Privilégier la conversation ouverte »), le mode n'est connu qu'à l'envoi. `--check` rend ce choix visible avant, sans rien envoyer :
 
 - `relay()` refuse `--check` avec un message, `--message-file`, `--subject`, `--from`, `--new`, `--dir`, `--task`, `--pr`, `--write`, `--follow`, `--timeout`, `--no-export`, `--trust-config` (qui réécrirait le registre de confiance) ou un en-tête Mission (`invalid-arguments`). `--open` et `--background` gardent leur sens. `check` est porté dès les arguments bruts, donc sur tout résultat de `--check`, refus précoces compris.

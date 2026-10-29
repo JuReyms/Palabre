@@ -6,18 +6,18 @@ import { sanitizeTerminalText } from "../adapters/terminal.js";
 /** Textes de la commande dédiée, séparés du déroulé et de la confirmation. */
 export const skillCommandMessages = {
   fr: {
-    usage: "Usage : palabre skill [--sync | --install codex|claude] [--check | --dry-run] [--yes].",
+    usage: "Usage : palabre skill [--sync | --install codex|claude] [--check | --dry-run] [--yes] ; ou palabre skill --read --json [--skill-revision <révision>].",
     confirmationRequired: "Aucune écriture : relancez dans un terminal pour confirmer, ou utilisez explicitement --yes après lecture du plan.",
     confirm: "Installer ces instructions pour les agents ? [o/N] ",
     backup: (directory: string) => `Sauvegarde : ${sanitizeTerminalText(directory)}`,
-    complete: "Copies vérifiables du skill alignées sur la CLI exécutée. Rechargez le skill ou reprenez la conversation de l'agent. Les copies non vérifiées restent intactes."
+    complete: "Copies vérifiables du skill alignées sur la CLI exécutée. L'agent peut relire les consignes du paquet avec palabre skill --read --json et poursuivre sans redémarrage. Les copies non vérifiées restent intactes."
   },
   en: {
-    usage: "Usage: palabre skill [--sync | --install codex|claude] [--check | --dry-run] [--yes].",
+    usage: "Usage: palabre skill [--sync | --install codex|claude] [--check | --dry-run] [--yes]; or palabre skill --read --json [--skill-revision <revision>].",
     confirmationRequired: "Nothing written: run in a terminal to confirm, or explicitly use --yes after reading the plan.",
     confirm: "Install these agent instructions? [y/N] ",
     backup: (directory: string) => `Backup: ${sanitizeTerminalText(directory)}`,
-    complete: "Verifiable skill copies match the running CLI. Reload the skill or resume the agent conversation. Unverified copies remain untouched."
+    complete: "Verifiable skill copies match the running CLI. The agent can reread the package's instructions with palabre skill --read --json and continue without restarting. Unverified copies remain untouched."
   }
 } satisfies Record<Language, unknown>;
 

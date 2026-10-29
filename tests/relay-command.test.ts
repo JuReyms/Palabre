@@ -870,16 +870,22 @@ describe("relay.view (#190)", () => {
     config.relay = { view }; writeFileSync(file, JSON.stringify(config));
   }
 
-  test("agents JSON expose la préférence effective sans lancer un agent", async () => {
+  test("agents JSON expose préférence et consignes du paquet sans lancer un agent", async () => {
     const server = createServer((_req, res) => { res.setHeader("content-type", "application/json"); res.end('{"models":[]}'); });
     await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
     try {
       const port = (server.address() as { port: number }).port;
       for (const view of [undefined, "auto", "background"] as const) {
         const world = makeWorld(); if (view) setting(world, view);
-        const r = await palabre(world, ["agents", "--json", "--trust-config"], { OLLAMA_HOST: `http://127.0.0.1:${port}` });
+        const declared = view === undefined ? [] : ["--skill-revision", view === "auto" ? "999" : "1"];
+        const r = await palabre(world, ["agents", "--json", "--trust-config", ...declared], { OLLAMA_HOST: `http://127.0.0.1:${port}` });
         assert.equal(r.code, 0, r.stderr); assert.equal(r.json.defaults.relayView, view ?? "background");
         assert.equal(r.json.v, 1); assert.equal(r.calls.length, 0);
+        assert.equal(r.json.skill.status, view === undefined ? "unverified" : view === "auto" ? "reload-required" : "current");
+        assert.equal(r.json.skill.revision, 1);
+        assert.ok(path.isAbsolute(r.json.skill.entrypoint));
+        assert.ok(r.json.skill.references["relay.md"].endsWith(path.join("references", "relay.md")));
+        assert.equal(r.json.skill.instructions, undefined);
       }
     } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
   });

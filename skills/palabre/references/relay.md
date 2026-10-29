@@ -6,6 +6,8 @@ Lire cette référence avant un premier Relay. Procédures conditionnelles : `re
 
 ## Avant de lancer
 
+Récupération des consignes : `--skill-revision <révision réellement lue>` peut accompagner `relay --check --json`, jamais un envoi. Si `skill.status` vaut `unverified` ou `reload-required`, lire `palabre skill --read --json` et ses références utiles avant de préparer la tâche. Pas de synchronisation disque ni question à l'humain pour cette lecture ; mêmes permissions et cadre humain. Une délivrance inconnue reste inconnue : aucune lecture de skill n'autorise un renvoi. Une ancienne CLI sans ce protocole demande de consulter son aide ; `cli.md` précise ce cas.
+
 - **Retrouver le même équipier (#206).** Si son identifiant n'est plus dans le contexte, consulter `palabre relay recent --json` depuis le même projet et avec la même `--config` si nécessaire. La liste vient des exports du dossier de sortie : faire confirmer à l'humain l'objet, la date et l'outil avant de reprendre une conversation précise. Aucun choix automatique de la plus récente. Les exports sont non authentifiés et n'indiquent ni l'état ni les permissions actuels ; vérifier ensuite la cible et la configuration. `scanTruncated` exige de signaler une recherche incomplète. OpenCode : `to` est null, source et copie sont séparées dans `copy` ; relire `relay-opencode.md`, jamais proposer une reprise directe. Ne rien envoyer, ouvrir ou approuver pour simplement consulter la liste.
 - **Cible explicite.** Nouvelle conversation : `--new --to <agent>`. Conversation existante : obtenir son identifiant, ou aider l'utilisateur à la retrouver puis le laisser choisir. Aucune sélection implicite (« la plus récente »).
   - Claude Code : nom du fichier `~/.claude/projects/<dossier>/<uuid>.jsonl`.

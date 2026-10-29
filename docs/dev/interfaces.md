@@ -48,6 +48,8 @@ Ces formes courtes suivent le mode effectif, `--mode` puis `defaults.mode`, exac
 
 ## Aide CLI
 
+Le champ JSON facultatif `skill` dans agents/check est un diagnostic de révision déclarée, indépendant du résultat métier. Pas de notice humaine répétée lorsque les révisions concordent. `skill --read --json` fournit un seul objet v1 sans habillage terminal ; seules les instructions du paquet sont lues, aucune cible CLI n'est lancée. Le texte ne remplace pas l'autorité humaine ni les garde-fous de l'hôte. Voir [le contrat de lecture du paquet](configuration.md#consignes-relues-dans-la-conversation).
+
 L'aide principale (`palabre -h`, `palabre help`) doit rester minimaliste, inspiree de l'aide Ollama : description courte, usage, demarrage rapide, commandes principales, flags essentiels, lien vers la documentation publique localisee (`https://palab.re/fr` ou `/en`) et mention `palabre [command] --help`.
 
 Ne pas transformer l'aide principale en reference complete. Les details doivent aller dans l'aide de commande (`palabre config --help`, `palabre init --help`, etc.) ou dans la documentation du site.
