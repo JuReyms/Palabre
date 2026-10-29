@@ -1,6 +1,6 @@
 /**
  * @file Commande `palabre relay` : transmet un message à une conversation Codex ou Claude Code
- * neuve, fermée ou ouverte selon relay.view et le verrou (#190), en un seul appel.
+ * en arrière-plan par défaut, ou ouverte sur choix explicite ponctuel ou enregistré, en un appel.
  *
  * Déroulé strictement ordonné ; une étape refusée arrête le relay sans rien lancer :
  * arguments, config approuvée (sans question interactive), agent et fournisseur, exécutable,
@@ -526,7 +526,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   // les transports conservent ensuite leurs propres contrôles, sans repli après refus.
   const excluded = Boolean(context.newSession || context.header || flags.task || flags.write);
   let probe: () => import("../externalSessions/types.js").TargetProbe = () => { throw new Error("unexpected-mode-probe"); };
-  if (!context.open && !flags.background && !excluded && provider === "codex" && config.relay?.view !== "background") {
+  if (!context.open && !flags.background && !excluded && provider === "codex" && config.relay?.view === "auto") {
     const located = await locateOpenRollout(path.join(os.homedir(), ".codex"), to.value.sessionId);
     if (located.status !== "found") throw locateRefusal(located, context.messages);
     context.targetLocated = true;
@@ -673,8 +673,9 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
 
 /**
  * Arrière-plan : localise la conversation reprise, puis refuse une cible attachée ou invérifiable.
- * Sur une Codex attachée, le conseil dépend de la cause : préférence `background` (commande de
- * réglage) ou `--background` explicite (fermer la conversation) ; sinon, message d'origine.
+ * Sur une Codex attachée, l'arrière-plan par défaut/enregistré explique le choix ponctuel ou le
+ * réglage humain ; `--background` propose fermeture ou nouvel `--open` décidé par le propriétaire.
+ * Les parcours exclus et les courses de verrou gardent leur message d'origine.
  * Partagé par l'envoi et par `--check` (#203), qui doivent rendre les mêmes refus.
  */
 function assessClosedTarget(context: RelayContext, adapter: ExternalSessionAdapter, to: SessionRef, configPath: string, explicitBackground: boolean): ExternalTarget {

@@ -26,8 +26,8 @@ In an open Codex conversation, the teammate can act with its usual permissions. 
 
 - **Mission lead**: the agent you talk to. It delegates the task and reports back to you.
 - **Teammate**: the agent receiving the task.
-- **Open conversation**: a conversation currently displayed in Codex desktop or in a terminal. The teammate works there with its usual settings, as if you were writing to it yourself.
-- **Closed conversation**: an existing conversation that no window is displaying. PALABRE reopens it for one exchange, then closes it.
+- **Open conversation**: a conversation Codex desktop or its terminal keeps loaded, even after you leave it. It may not be displayed. The teammate uses that conversation's tools and permissions; the Relay message is not human authorization.
+- **Closed conversation**: an existing conversation with no process attached, according to the tool's checks. The absence of a window does not prove this. PALABRE resumes it for one background exchange.
 - **Background**: the teammate works without a window. PALABRE launches it for a single task, waits for its reply, then stops.
 - **Conversation identifier**: the number identifying a specific conversation. Keep it to continue with the same teammate.
 - **Delivery**: knowing whether the message arrived. A delivered message does not mean the task succeeded.
@@ -59,7 +59,7 @@ From your conversation with Claude Code, say for example:
 
 The skill creates a conversation if you have not designated one. If you choose an existing conversation, it keeps that specific target, never "the latest".
 
-To work in an already open Codex conversation on Windows, macOS, or Linux, identify it and describe the task. PALABRE chooses the mode with `auto` based on the lock; on POSIX, `python3` must be available. The teammate keeps its permissions, with no rights added by the message.
+To work in an already open Codex conversation on Windows, macOS, or Linux, identify it and describe the task. Background is the default and refuses an open target. Your agent explains how to send into that conversation with `--open`: it keeps its tools and permissions, including writing if allowed. This can be a one-off choice or become your preference after your confirmation. On POSIX, `python3` must be available. The message grants no extra permissions.
 
 ### Codex as mission lead
 
@@ -135,4 +135,4 @@ Mission and `--task review` are frozen: retained and documented, with no scope e
 Details, statuses and limits for each path are in the [full Relay guide](/en/usage/relay).
 
 
-For advice or a review that must not change files, pass `--background`: this per-call choice reduces permissions without changing the setting. For other requests, PALABRE chooses the mode, not the agent: by default `auto` follows the Codex lock; a closed conversation runs in background, an open one keeps its own permissions. An unverifiable state refuses sending, without a more permissive fallback. To require background, run `palabre config --relay-view background` yourself; to restore the default, use `palabre config --relay-view auto`. The file and change are displayed before keyboard confirmation in a visible terminal (TTY input/output), without `--yes` or `--trust-config`, using an already trusted configuration. An agent must not choose or confirm this setting. Per-call `--background` and `--open` do not change it. See [Relay mode](/en/usage/relay).
+For advice or a review that must not change files, pass `--background`: this per-call choice keeps limited tools even if you saved a different preference. **Background is the default.** If the Codex conversation is open, your agent explains permissions before suggesting `--open` for this exchange; there is no automatic switch. You can also choose **Prefer the open conversation** for future exchanges with `palabre config --relay-view auto`; a closed conversation then runs in background. To return to the default: `palabre config --relay-view background`. Run and confirm this setting yourself in a visible terminal (TTY input/output), using an already trusted configuration, without `--yes` or `--trust-config`. The agent must not change or confirm it. Existing explicit settings are preserved. See [Relay mode](/en/usage/relay).

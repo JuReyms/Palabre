@@ -840,18 +840,18 @@ describe("relay.view (#190)", () => {
       for (const view of [undefined, "auto", "background"] as const) {
         const world = makeWorld(); if (view) setting(world, view);
         const r = await palabre(world, ["agents", "--json", "--trust-config"], { OLLAMA_HOST: `http://127.0.0.1:${port}` });
-        assert.equal(r.code, 0, r.stderr); assert.equal(r.json.defaults.relayView, view ?? "auto");
+        assert.equal(r.code, 0, r.stderr); assert.equal(r.json.defaults.relayView, view ?? "background");
         assert.equal(r.json.v, 1); assert.equal(r.calls.length, 0);
       }
     } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
   });
 
-  test("auto par défaut, auto explicite et --background : cible fermée, reprise sans queue", async () => {
+  test("arrière-plan par défaut, auto explicite et --background : cible fermée, reprise sans queue", async () => {
     for (const view of [undefined, "auto", "background"] as const) {
       const world = makeWorld(); if (view) setting(world, view);
       const r = await relay(world, [...toCodex, "Bonjour", "--trust-config", "--json"]);
       assert.equal(r.code, 0, r.stderr); assert.equal(r.json.mode, "background");
-      assert.equal(r.json.modeSource, view === "background" ? "setting" : "auto");
+      assert.equal(r.json.modeSource, view === "auto" ? "auto" : "setting");
       assert.equal(r.calls.filter(x => x.argv[0] === "queue").length, 0);
       assert.equal(r.calls.filter(x => x.argv[0] === "exec").length, 1);
       assert.ok(r.calls.find(x => x.argv[0] === "exec")!.stdin.includes(relayMessages.fr.envelopePermissions));
@@ -862,7 +862,8 @@ describe("relay.view (#190)", () => {
   });
 
   test("auto : verrou tenu, un seul dépôt et enveloppe avec permissions de la conversation", { skip: process.platform !== "win32" }, async () => {
-    const world = makeWorld(), release = holdCodexLock(world);
+    const world = makeWorld(); setting(world, "auto");
+    const release = holdCodexLock(world);
     try {
       const r = await relay(world, [...toCodex, "Bonjour", "--trust-config", "--json"]);
       assert.equal(r.code, 0, r.stderr); assert.equal(r.json.mode, "open"); assert.equal(r.json.modeSource, "auto");
@@ -873,8 +874,9 @@ describe("relay.view (#190)", () => {
   });
 
   test("background imposé : cible ouverte refusée sans CLI ; --open ponctuel n'écrit pas le réglage", { skip: process.platform !== "win32" }, async () => {
-    for (const explicit of [false, true]) {
-      const world = makeWorld(); setting(world, explicit ? "auto" : "background");
+    for (const choice of ["default", "setting", "explicit"] as const) {
+      const explicit = choice === "explicit";
+      const world = makeWorld(); if (choice !== "default") setting(world, explicit ? "auto" : "background");
       const file = path.join(world.workspace, "palabre.config.json"), before = readFileSync(file, "utf8");
       const release = holdCodexLock(world);
       try {
@@ -882,12 +884,12 @@ describe("relay.view (#190)", () => {
         assert.equal(r.code, 3); assert.equal(r.json.mode, "background"); assert.equal(r.json.status, "target-busy");
         assert.equal(r.json.modeSource, explicit ? "explicit" : "setting"); assert.equal(r.calls.length, 0);
         if (explicit) {
-          assert.match(r.json.error.message, /Fermez-la dans Codex, puis relancez/);
-          assert.match(r.json.error.message, /Sans --background, avec auto.*permissions.*à ne faire que si/);
+          assert.match(r.json.error.message, /--background impose l'arrière-plan/);
+          assert.match(r.json.error.message, /--open.*permissions.*écriture/);
           assert.equal(r.json.remedy, undefined);
           assert.ok(!r.json.error.message.includes("config --relay-view"));
         } else {
-          assert.match(r.json.error.message, /fermer cette conversation/); assert.match(r.json.remedy, /config --relay-view auto --config/);
+          assert.match(r.json.error.message, /Privilégier la conversation ouverte/); assert.match(r.json.remedy, /config --relay-view auto --config/);
         }
         assert.equal(readFileSync(file, "utf8"), before);
       } finally { release(); }
@@ -1430,7 +1432,11 @@ describe("palabre relay --then-follow (#204)", () => {
 
   test("ouvert explicite/auto, fr/en, JSON/texte/export : deux réponses et un seul dépôt", { skip: process.platform !== "win32" }, async () => {
     for (const language of ["fr", "en"]) for (const json of [true, false]) for (const explicit of [true, false]) {
-      const world = makeWorld(), release = holdCodexLock(world);
+      const world = makeWorld();
+      const file = path.join(world.workspace, "palabre.config.json");
+      const config = JSON.parse(readFileSync(file, "utf8"));
+      config.relay = { view: "auto" }; writeFileSync(file, JSON.stringify(config));
+      const release = holdCodexLock(world);
       try {
         const result = await relay(world, [...(explicit ? ["--open"] : []), "--to", `codex:${CODEX_SESSION}`, "Question", "--then-follow", "10", "--language", language, "--trust-config", ...(json ? ["--json"] : [])], { FAKE_CODEX_QUEUE: "then-follow" });
         assert.equal(result.code, 0, result.stderr); assert.equal(result.calls.length, 1);

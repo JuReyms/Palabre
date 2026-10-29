@@ -28,6 +28,10 @@ Antigravity : migration en mémoire du seul agent `antigravity` avec ancien déf
 
 Le defaut produit doit favoriser les agents CLI premium : `codex <-> claude` quand disponible. Ollama reste configure et accessible via presets, mais il est plutot destine aux power users ou aux roles locaux (`critic`, `scout`, `summarizer`). Les defaults utilisateur se gerent par `palabre config`, `palabre config --set-defaults <agentA> <agentB>`, `palabre config --mode <chat|debate|ask>`, `palabre config --interface <tui|terminal>`, `palabre config --ask-agents <agents...>`, `palabre config --summary-agent <agent|none>`, `palabre config --ask-summary-agent <agent|none>` et `palabre config --clear-defaults`. Les roles persistants se gerent par `palabre agent-role <agent> <role>` ou par edition JSON explicite.
 
+## Préférence Relay
+
+Sans `relay.view`, le CLI utilise **Arrière-plan** (`background`), sans écrire de migration. Une valeur explicite `auto` reste compatible et signifie **Privilégier la conversation ouverte** : outils et permissions de la cible Codex ouverte, écriture comprise si autorisée ; sinon arrière-plan. `palabre config --relay-view <auto|background>` présente les libellés et conséquences avant confirmation clavier du propriétaire, avec les protections de confiance et de concurrence existantes. Un agent peut expliquer le choix ponctuel `--open` et le choix habituel ; il ne change ni ne confirme ce réglage. Voir [le contrat Relay](relay.md#préférence-de-mode-190-lot-b).
+
 ## New
 
 `palabre new` est l'assistant interactif de composition d'un debat ou d'une demande ask. Il detecte les outils locaux via `src/discovery.ts`, liste les agents de la config en mettant les agents detectes en premier, demande le mode, les agents puis le sujet, et laisse lancer avec les defaults ou ouvrir les options avancees.

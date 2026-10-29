@@ -95,7 +95,7 @@ Un appel `--open` attend la réponse à son enveloppe, puis s'arrête. Quand l'�
 
 ### Vérifier avant d'envoyer (`--check`, #203)
 
-Avec `relay.view: auto`, le mode n'est connu qu'à l'envoi. `--check` rend ce choix visible avant, sans rien envoyer :
+Avec le choix explicite `relay.view: auto` (« Privilégier la conversation ouverte »), le mode n'est connu qu'à l'envoi. `--check` rend ce choix visible avant, sans rien envoyer :
 
 - `relay()` refuse `--check` avec un message, `--message-file`, `--subject`, `--from`, `--new`, `--dir`, `--task`, `--pr`, `--write`, `--follow`, `--timeout`, `--no-export`, `--trust-config` (qui réécrirait le registre de confiance) ou un en-tête Mission (`invalid-arguments`). `--open` et `--background` gardent leur sens. `check` est porté dès les arguments bruts, donc sur tout résultat de `--check`, refus précoces compris.
 - Mêmes étapes qu'un envoi jusqu'à `resolveRelayView` inclus (config approuvée, agent, fournisseur, exécutable résolu, sonde `auto`), puis `relayCheck` : en mode ouvert, `locateOpenRollout` et sonde du verrou (`target-not-open` / `target-state-unknown`) ; en arrière-plan, `assessClosedTarget`, partagé avec l'envoi, donc mêmes refus et mêmes conseils `target-busy` (`setting`, `--background`). Ni enveloppe, ni `codex mcp list`, ni reprise, ni dépôt, ni export ; seule la sonde POSIX du verrou lance `python3`.

@@ -64,7 +64,7 @@ const fr = createTranslator("fr");
 describe("relay --check (#203)", () => {
   test("quota Codex daté dans check, ouverte ou fermée ; jamais pour Claude", async t => {
     for (const attachment of ["attached", "detached"] as const) {
-      const w = await world(t, { attachment, rolloutLines: [JSON.stringify(quotaEvent),
+      const w = await world(t, { attachment, view: "auto", rolloutLines: [JSON.stringify(quotaEvent),
         JSON.stringify({ ...quotaEvent, payload: { type: "token_count", rate_limits: null } })] });
       const result = await check(w.file, "--to", `codex:${CODEX}`);
       assert.equal(result.status, "checked"); assert.equal(result.exitCode, 0);
@@ -88,7 +88,7 @@ describe("relay --check (#203)", () => {
   });
 
   test("Codex ouverte en auto : checked, mode ouvert, dernières permissions indicatives, rien d'envoyé", async (t) => {
-    const w = await world(t, { attachment: "attached", rolloutLines: [
+    const w = await world(t, { attachment: "attached", view: "auto", rolloutLines: [
       turnContext("never", "read-only", false, "2026-10-22T08:00:00Z"),
       turnContext("on-request", "workspace-write", false, "2026-10-22T09:30:00Z")
     ] });
@@ -114,7 +114,7 @@ describe("relay --check (#203)", () => {
   });
 
   test("Codex fermée en auto : checked, arrière-plan, conversation fermée", async (t) => {
-    const w = await world(t, { attachment: "detached" });
+    const w = await world(t, { attachment: "detached", view: "auto" });
     const result = await check(w.file, "--to", `codex:${CODEX}`);
     assert.equal(result.status, "checked");
     assert.equal(result.mode, "background");
@@ -136,6 +136,7 @@ describe("relay --check (#203)", () => {
     // Dernier élément : état connu avant le refus (ouverte, fermée) ou absent si invérifiable.
     const cases: Array<[WorldOptions, string[], string, number, "open" | "closed" | undefined]> = [
       [{ attachment: "attached" }, ["--background"], "target-busy", 3, "open"],
+      [{ attachment: "attached" }, [], "target-busy", 3, "open"],
       [{ attachment: "attached", view: "background" }, [], "target-busy", 3, "open"],
       [{ attachment: "detached" }, ["--open"], "target-not-open", 3, "closed"],
       [{ attachment: "unknown" }, [], "target-state-unknown", 3, undefined]
@@ -152,7 +153,8 @@ describe("relay --check (#203)", () => {
       assert.match(text, /Vérification seulement : rien n'a été envoyé\. Un envoi recevrait ce même refus\./);
       assert.ok(!text.includes(fr.relay.delivery("not-delivered")), "pas de consigne de renvoi : rien n'a été envoyé");
       if (options.view === "background") assert.match(result.remedy!, /config --relay-view auto/);
-      if (extra.includes("--background")) assert.match(result.error!.message, /Fermez-la dans Codex, puis relancez/);
+      if (extra.includes("--background")) assert.match(result.error!.message, /--background impose l'arrière-plan/);
+      if (status === "target-busy") assert.match(result.error!.message, /--open.*permissions.*écriture/);
     }
   });
 
@@ -171,7 +173,7 @@ describe("relay --check (#203)", () => {
   });
 
   test("ouverte sans turn_context lisible : permissions inconnues", async (t) => {
-    const w = await world(t, { attachment: "attached", rolloutLines: ["{ ligne illisible", JSON.stringify({ type: "event_msg", payload: {} })] });
+    const w = await world(t, { attachment: "attached", view: "auto", rolloutLines: ["{ ligne illisible", JSON.stringify({ type: "event_msg", payload: {} })] });
     const result = await check(w.file, "--to", `codex:${CODEX}`);
     assert.equal(result.status, "checked");
     assert.deepEqual(result.check, { target: "open", lastPermissions: "unknown" });

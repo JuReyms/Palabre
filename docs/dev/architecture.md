@@ -161,7 +161,7 @@ palabre agents --json
 
 Le schéma JSON v1 exclut les agents retirés encore présents dans les anciennes configs (actuellement Gemini) et expose `agents[]` avec `name`, `type`, `role`,
 `available` et `unavailableReason` quand nécessaire, ainsi que
-`defaults.askAgents` et `defaults.relayView` (préférence effective `auto` ou `background`). La disponibilité vient de la même logique CLI que les
+`defaults.askAgents` et `defaults.relayView` (préférence effective `background` par défaut, ou `auto` explicitement enregistré). La disponibilité vient de la même logique CLI que les
 presets ; une intégration ne doit pas la recalculer.
 
 Liste les presets disponibles.

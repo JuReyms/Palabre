@@ -163,7 +163,7 @@ Utilisation :
   palabre config --mode <chat|debate|ask>
   palabre config --ask-agents <noms...>
   palabre config --interface <tui|terminal>
-  palabre config --relay-view <auto|background> # propriétaire : confirmation clavier TTY, aucun --yes
+  palabre config --relay-view <auto|background> # arrière-plan par défaut ; auto = privilégier la conversation ouverte
   auto suit le verrou Codex (tenu : permissions de la conversation ouverte ; libre : arrière-plan).
   background impose l'arrière-plan. État invérifiable : aucun envoi.
   Config déjà approuvée, fichier/changement affichés ; entrée ET sortie TTY requises.
@@ -331,16 +331,21 @@ Quota Codex (#205) : --check (ouverte ou fermée) et résultat d'un envoi ouvert
   ni modèle. Absent/inconnu : rien affiché, jamais zéro estimé. Aucun effet sur le statut ou les droits.
 
 Préférence du propriétaire :
-  relay.view = auto (défaut) : Codex existant, verrou tenu -> dans l'app desktop ; libre -> arrière-plan.
+  Arrière-plan (défaut, relay.view = background) : outils limités, conversation fermée requise.
+  Privilégier la conversation ouverte (relay.view = auto, choix du propriétaire) : Codex existant,
+  verrou tenu -> dans la conversation avec ses outils et permissions, écriture comprise si autorisée ;
+  libre -> arrière-plan. Une conversation quittée mais encore chargée compte comme ouverte, sans
+  garantie d'affichage. Les réglages auto déjà enregistrés sont conservés.
   Verrou invérifiable : target-state-unknown, aucun envoi. Aucun repli après refus.
-  relay.view = background : arrière-plan toujours ; cible ouverte refusée (target-busy).
+  Cible ouverte en arrière-plan : target-busy, rien envoyé ; --open permet un choix pour cet échange,
+  après explication des permissions ; seul le propriétaire décide après un refus --background.
   --open et --background priment sur le réglage sans le changer ; ensemble, refusés.
   --new, Mission, --task review, --write et Claude Code restent en arrière-plan.
   Le propriétaire lance palabre config --relay-view <auto|background> : chemin/changement affichés,
   config déjà approuvée, confirmation clavier avec entrée ET sortie TTY ; aucun --yes ni --trust-config.
   Un agent ne modifie jamais ce réglage et ne confirme jamais à sa place.
   agents --json expose defaults.relayView ; Relay JSON v1 : modeSource facultatif,
-  explicit (option), auto (verrou ou parcours imposé), setting (préférence background).
+  explicit (option), auto (verrou ou parcours imposé), setting (background par défaut ou enregistré).
 
 Limites :
   Codex desktop chef de mission : autoriser chaque commande vers Claude hors du bac à sable,
@@ -797,7 +802,7 @@ Usage:
   palabre config --mode <chat|debate|ask>
   palabre config --ask-agents <names...>
   palabre config --interface <tui|terminal>
-  palabre config --relay-view <auto|background> # owner: TTY keyboard confirmation, no --yes
+  palabre config --relay-view <auto|background> # background by default; auto = prefer the open conversation
   auto follows the Codex lock (held: open conversation permissions; free: background).
   background requires background operation. Unverifiable state: nothing sent.
   Already trusted config, file/change displayed; TTY input AND output required.
@@ -962,16 +967,21 @@ Codex quota (#205): --check (open or closed) and an open send's result show the 
   estimated zero. No effect on status or permissions.
 
 Owner's preference:
-  relay.view = auto (default): existing Codex, held lock -> in the desktop app; free -> background.
+  Background (default, relay.view = background): limited tools, closed conversation required.
+  Prefer the open conversation (relay.view = auto, owner's choice): existing Codex,
+  held lock -> in the conversation with its tools and permissions, including writing if allowed;
+  free -> background. A conversation you left that is still loaded counts as open, with no
+  display guarantee. Previously saved auto settings are preserved.
   Unverifiable lock: target-state-unknown, nothing sent. No fallback after refusal.
-  relay.view = background: always background; an open target is refused (target-busy).
+  Open target in background: target-busy, nothing sent; --open is a choice for this exchange,
+  after explaining permissions; only the owner decides after a --background refusal.
   --open and --background override the setting without changing it; both together are refused.
   --new, Mission, --task review, --write and Claude Code remain in background.
   The owner runs palabre config --relay-view <auto|background>: file/change displayed,
   already trusted config, keyboard confirmation with TTY input AND output; no --yes or --trust-config.
   An agent must never change this preference or confirm for the owner.
   agents --json exposes defaults.relayView; Relay JSON v1: optional modeSource,
-  explicit (option), auto (lock or required path), setting (background preference).
+  explicit (option), auto (lock or required path), setting (default or saved background).
 
 Limits:
   Codex desktop as mission lead: approve each command to Claude outside the sandbox,

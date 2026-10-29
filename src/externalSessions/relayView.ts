@@ -1,8 +1,10 @@
 /** @file Résolution du mode Relay : priorité explicite, exclusions, préférence, puis verrou. */
 import type { ExternalProvider, TargetProbe } from "./types.js";
 
-/** Préférence de l'opérateur ; l'absence équivaut à auto, sans écriture de migration. */
+/** Préférence de l'opérateur ; auto privilégie la conversation ouverte, sans changer ses droits. */
 export type RelayView = "auto" | "background";
+/** Sans choix enregistré, limiter le parcours à l'arrière-plan ; aucune migration de fichier. */
+export const DEFAULT_RELAY_VIEW: RelayView = "background";
 /** Origine du mode retenu, ajout facultatif au contrat JSON v1. */
 export type RelayModeSource = "explicit" | "auto" | "setting";
 /** Décision sans effet de bord ; une sonde inconnue n'autorise aucun transport. */
@@ -27,7 +29,7 @@ export function resolveRelayView(input: {
   if (input.open) return { mode: "open", modeSource: "explicit" };
   if (input.background) return { mode: "background", modeSource: "explicit" };
   if (input.excluded || input.provider !== "codex") return { mode: "background", modeSource: "auto" };
-  if (input.view === "background") return { mode: "background", modeSource: "setting" };
+  if ((input.view ?? DEFAULT_RELAY_VIEW) === "background") return { mode: "background", modeSource: "setting" };
   const attachment = probe().attachment;
   return {
     mode: attachment === "attached" ? "open" : "background",

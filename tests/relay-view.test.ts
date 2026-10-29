@@ -12,9 +12,14 @@ import { isConfigTrusted, trustConfig } from "../src/configTrust.js";
 
 test("auto : seul un verrou tenu autorise open ; inconnu refuse tout transport", () => {
   for (const attachment of ["attached", "detached", "unknown"] as const) {
-    const result = resolveRelayView({ open: false, background: false, provider: "codex", excluded: false }, () => ({ attachment, activity: "unknown", processes: [], evidence: [] }));
+    const result = resolveRelayView({ open: false, background: false, provider: "codex", excluded: false, view: "auto" }, () => ({ attachment, activity: "unknown", processes: [], evidence: [] }));
     assert.deepEqual(result, { mode: attachment === "attached" ? "open" : "background", modeSource: "auto", ...(attachment === "unknown" ? { refusal: "target-state-unknown" } : {}) });
   }
+});
+
+test("sans préférence : arrière-plan sans sonde de sélection ni ouverture implicite", () => {
+  assert.deepEqual(resolveRelayView({ open: false, background: false, provider: "codex", excluded: false },
+    () => { throw Error("must not probe for open"); }), { mode: "background", modeSource: "setting" });
 });
 
 test("priorités : explicite, exclusions, préférence ; aucune sonde hors auto ordinaire", () => {
@@ -55,7 +60,7 @@ test("confirmation : view seul, champs bruts conservés, fichier approuvé exact
   await runRelayViewCommand(["--relay-view", "background", "--config", w.file], w.io);
   assert.deepEqual(JSON.parse(await readFile(w.file, "utf8")), { ...w.config, relay: { view: "background" } });
   assert.equal(w.confirmations(), 1); assert.equal(await isConfigTrusted(w.file, w.trust), true);
-  assert.ok(w.lines.some(x => x.includes(w.file) && x.includes("auto -> background")));
+  assert.ok(w.lines.some(x => x.includes(w.file) && x.includes("Arrière-plan -> Arrière-plan")));
   assert.ok(w.lines.some(x => x.includes("contenu entier")));
 });
 
@@ -64,6 +69,8 @@ test("view et allow-repo se préservent mutuellement sans migrer les agents", as
   await runRelayAllowRepo(["owner/other", "--config", w.file], w.io);
   assert.equal(JSON.parse(await readFile(w.file, "utf8")).relay.view, "background");
   await runRelayViewCommand(["--relay-view", "auto", "--config", w.file], w.io);
+  assert.ok(w.lines.some(x => x.includes("Arrière-plan -> Privilégier la conversation ouverte")));
+  assert.ok(w.lines.some(x => x.includes("y compris l'écriture") && x.includes("si elle est fermée")));
   const result = JSON.parse(await readFile(w.file, "utf8"));
   assert.deepEqual(result.relay, { allowedTasks: ["review"], reviewRepositories: ["owner/repo", "owner/other"], view: "auto" });
   assert.deepEqual(result.agents, w.config.agents);

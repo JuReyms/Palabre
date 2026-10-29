@@ -140,7 +140,7 @@ palabre codex-claude --mode debate "Challenge this plan" -t 4 --files docs/plan.
 
 ### What stays under your control
 
-Relay messages grant no extra permissions. Background Codex/Claude calls restrict the teammate's tools; sending into a conversation in the Codex app uses that conversation's own permissions. If delivery is uncertain, Palabre does not send again automatically.
+Relay messages grant no extra permissions. **Background is the default** for Codex/Claude, with limited tools and a closed conversation required. If the Codex conversation is open, your agent explains the choice: keep background, or send into that conversation with its current tools and permissions, **including writing if allowed**. You can choose this for one exchange, or confirm **Prefer the open conversation** as your usual setting (technical value `auto`); a closed conversation then runs in background. Existing explicit settings are preserved. If delivery is uncertain, Palabre does not send again automatically.
 
 ### Keep a record of your exchanges
 
@@ -284,7 +284,7 @@ palabre codex-claude --mode debate "Critique ce plan" -t 4 --files docs/plan.md
 
 ### Ce qui reste sous votre contrôle
 
-Un message Relay n'accorde aucun droit supplémentaire. Les appels Codex/Claude en arrière-plan limitent les outils de l'équipier ; un envoi dans une conversation de l'application Codex utilise les permissions de cette conversation. Si la délivrance est incertaine, Palabre ne renvoie pas le message automatiquement.
+Un message Relay n'accorde aucun droit supplémentaire. **L'arrière-plan est le défaut** pour Codex/Claude, avec des outils limités et une conversation fermée requise. Si la conversation Codex est ouverte, votre agent explique le choix : garder l'arrière-plan, ou y envoyer la demande avec ses outils et permissions actuelles, **y compris l'écriture si elle est autorisée**. Vous pouvez choisir pour cet échange, ou confirmer **Privilégier la conversation ouverte** comme réglage habituel (valeur technique `auto`) ; une conversation fermée part alors en arrière-plan. Les réglages explicites existants sont conservés. Si la délivrance est incertaine, Palabre ne renvoie pas le message automatiquement.
 
 ### Garder une trace des échanges
 

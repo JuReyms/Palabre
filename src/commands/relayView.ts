@@ -11,6 +11,7 @@ import { validateRelayPolicy } from "../externalSessions/review.js";
 import { writeTextFileAtomically } from "../atomicFile.js";
 import { createTranslator, resolveLanguage } from "../i18n.js";
 import { relayViewText } from "../messages/relayView.js";
+import { DEFAULT_RELAY_VIEW } from "../externalSessions/relayView.js";
 import type { AllowRepoIo } from "./relayAllowRepo.js";
 
 const terminal: AllowRepoIo = {
@@ -57,7 +58,7 @@ export async function runRelayViewCommand(tokens: readonly string[], io: AllowRe
     original = await readFile(file, "utf8");
     config = JSON.parse(original);
     if (!config || typeof config !== "object" || Array.isArray(config) || !config.agents || typeof config.agents !== "object" || Array.isArray(config.agents)) throw Error();
-    before = config.relay === undefined ? "auto" : validateRelayPolicy(config.relay).view ?? "auto";
+    before = config.relay === undefined ? DEFAULT_RELAY_VIEW : validateRelayPolicy(config.relay).view ?? DEFAULT_RELAY_VIEW;
   } catch { throw new Error(text.unreadable(file)); }
   language = resolveLanguage({ explicitLanguage: flags["--language"], configLanguage: config.language as string | undefined });
   text = relayViewText(language);
