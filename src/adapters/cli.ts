@@ -1,13 +1,19 @@
-/** @file Adapter CLI batch minimal : spawn, injection du prompt, capture stdout, classement des erreurs connues. */
-import { spawn } from "node:child_process";
+/**
+ * @file Adapter CLI batch minimal : spawn, injection du prompt, capture stdout, classement des erreurs
+ * connues. Échéance honnête (arrêt local demandé, confirmé seulement par `exit`), indication d'attente
+ * facultative, sortie OpenCode structurée et référence de lecture sûre pour un profil qualifié.
+ */
+import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
 import { resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePowerShellShim } from "../exec.js";
 import { directNpmShimLaunch, withShimNodePath } from "../npmShim.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
-import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig } from "../types.js";
+import type { AdapterContract, AgentAdapter, AgentPrompt, AgentResponse, CliAgentConfig, CliRuntimeProfile, ConfigIdentity } from "../types.js";
 import { isCliResponseFormatValid } from "../types.js";
+import { encodeRecoveryReference, OpenCodeSessionObserver, parseOpenCodeRunOutput, sha256Hex } from "./opencodeJson.js";
+import { resolveTimeoutMs, resolveWaitingIntervalMs } from "./cli-shared.js";
 import { clipLine, DEFAULT_TIMEOUT_MS, extractRetryAfter, extractUsageLimitMessage, resolveMaxOutputBytes, stripLogPrefix, uniqueNonEmptyLines, utf8ChildProcessEnv, withModelArgs } from "./cli-shared.js";
 import { cleanTerminalOutput, sanitizeTerminalText } from "./terminal.js";
 
@@ -16,6 +22,9 @@ import { cleanTerminalOutput, sanitizeTerminalText } from "./terminal.js";
  * Lance un sous-processus, injecte le prompt via stdin ou argument, capture stdout.
  * Garantit : rejet des sorties vides (sauf texte avec `allowEmptyOutput`), des timeouts et de tout exit non nul.
  * Le format JSON explicite ne revient jamais au texte/PTY en cas de format inconnu.
+ * Un `runtime` qualifié (fourni par la factory, jamais par la config) lit la sortie OpenCode JSON
+ * et, à l'échéance, garde la session observée et l'empreinte du prompt exact pour une lecture sans
+ * renvoi. L'échéance n'est jamais un succès ni une preuve d'échec du modèle.
  */
 export class CliAdapter implements AgentAdapter {
   readonly role;
@@ -23,7 +32,9 @@ export class CliAdapter implements AgentAdapter {
 
   constructor(
     readonly name: string,
-    private readonly config: CliAgentConfig
+    private readonly config: CliAgentConfig,
+    private readonly runtime?: CliRuntimeProfile,
+    private readonly configIdentity?: ConfigIdentity
   ) {
     this.role = config.role;
     this.contract = {
@@ -38,7 +49,7 @@ export class CliAdapter implements AgentAdapter {
         supportsStderr: true
       },
       guarantees: {
-        rejectsEmptyOutput: config.responseFormat === "antigravity-json" || !config.allowEmptyOutput,
+        rejectsEmptyOutput: config.responseFormat === "antigravity-json" || runtime !== undefined || !config.allowEmptyOutput,
         rejectsNonZeroExit: true,
         rejectsTimeout: true,
         returnsRawOutput: true
@@ -52,6 +63,10 @@ export class CliAdapter implements AgentAdapter {
     }
 
     const renderedPrompt = formatAgentPrompt(prompt);
+    // Référence de la demande : empreinte du texte exact transmis, jamais le texte lui-même.
+    const requestSha256 = this.runtime ? sha256Hex(renderedPrompt) : undefined;
+    const cwd = process.cwd();
+    const timeoutMs = resolveTimeoutMs(this.config.timeoutMs);
     const errorMessages = createTranslator(prompt.language ?? "fr").adapterErrors;
     if (!isCliResponseFormatValid(this.config)) {
       throw new AdapterError("spawn-failed", this.name, errorMessages.invalidResponseFormat(this.name));
@@ -85,19 +100,30 @@ export class CliAdapter implements AgentAdapter {
       let outputBytes = 0;
       let hardTimer: ReturnType<typeof setTimeout>;
       let idleTimer: ReturnType<typeof setTimeout> | undefined;
+      let graceTimer: ReturnType<typeof setTimeout> | undefined;
+      let waitTimer: ReturnType<typeof setInterval> | undefined;
+      let stopRequested = false;
+      const startedAt = Date.now();
+      const observer = this.runtime ? new OpenCodeSessionObserver() : undefined;
       let abortListener: (() => void) | undefined;
       const maxOutputBytes = resolveMaxOutputBytes(this.config.maxOutputBytes);
+      // Profil qualifié : seul le client lancé est arrêté, jamais son arbre, pour ne pas toucher un
+      // service habituel qu'il aurait démarré. Autres CLIs : politique d'arbre inchangée.
+      const stopChild = () => killChildProcess(child, this.runtime === undefined);
 
       const finish = (error?: Error) => {
         if (settled) return;
         settled = true;
         clearTimeout(hardTimer);
         if (idleTimer) clearTimeout(idleTimer);
+        if (graceTimer) clearTimeout(graceTimer);
+        if (waitTimer) clearInterval(waitTimer);
         if (abortListener) {
           prompt.signal?.removeEventListener("abort", abortListener);
         }
 
         if (error) {
+          releaseChildProcessHandles(child);
           reject(error);
           return;
         }
@@ -109,14 +135,18 @@ export class CliAdapter implements AgentAdapter {
           // Parser le JSON original, jamais une sortie préalablement nettoyée ou extraite des logs.
           content = this.config.responseFormat === "antigravity-json"
             ? parseAntigravityResponse(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(stdoutChunks)), this.name, errorMessages)
-            : cleanCliOutput(stdout);
+            : this.runtime?.output === "opencode-json"
+              ? cleanTerminalOutput(parseOpenCodeRunOutput(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(stdoutChunks))).content)
+              : cleanCliOutput(stdout);
         } catch (error) {
           reject(createKnownCliError(this.name, undefined, stderr, errorMessages)
-            ?? (error instanceof AdapterError ? error : new AdapterError("unknown", this.name, errorMessages.invalidAntigravityJson(this.name))));
+            ?? (error instanceof AdapterError ? error : new AdapterError("unknown", this.name, this.runtime
+              ? errorMessages.invalidOpenCodeJson(this.name)
+              : errorMessages.invalidAntigravityJson(this.name))));
           return;
         }
 
-        if (!content && !this.config.allowEmptyOutput) {
+        if (!content && (this.runtime !== undefined || !this.config.allowEmptyOutput)) {
           const knownError = createKnownCliError(this.name, undefined, stderr, errorMessages);
 
           if (knownError) {
@@ -138,23 +168,41 @@ export class CliAdapter implements AgentAdapter {
       };
 
       abortListener = () => {
-        killChildProcess(child);
+        stopChild();
         finish(cancelledError(this.name));
       };
       prompt.signal?.addEventListener("abort", abortListener, { once: true });
 
+      // Échéance : arrêt du processus local demandé, confirmé seulement par son événement `exit` dans
+      // un court délai. Le code de `taskkill` n'est jamais une preuve ; l'état du service reste inconnu.
+      const timeoutError = (localExit: "confirmed" | "unconfirmed") => this.timeoutError(errorMessages, {
+        timeoutMs, waitedMs: Date.now() - startedAt, localExit, observer, requestSha256, cwd
+      });
       hardTimer = setTimeout(() => {
-        killChildProcess(child);
-        finish(new AdapterError("timeout", this.name, `${this.name} timed out after ${this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS}ms`, {
-          timeoutMs: this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS
-        }));
-      }, this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+        stopRequested = true;
+        if (idleTimer) clearTimeout(idleTimer);
+        if (waitTimer) clearInterval(waitTimer);
+        stopChild();
+        graceTimer = setTimeout(() => finish(timeoutError("unconfirmed")), STOP_CONFIRMATION_MS);
+      }, timeoutMs);
+      child.once("exit", () => {
+        if (stopRequested) finish(timeoutError("confirmed"));
+      });
+
+      // Attente côté Palabre seulement : jamais présentée comme un avancement du modèle.
+      const notify = prompt.onWaiting;
+      if (notify) {
+        waitTimer = setInterval(() => {
+          try { notify({ agent: this.name, elapsedMs: Date.now() - startedAt, timeoutMs }); }
+          catch { /* Indication facultative : n'affecte jamais l'appel. */ }
+        }, resolveWaitingIntervalMs(prompt.waitingIntervalMs));
+      }
 
       const bumpIdleTimer = () => {
-        if (!this.config.idleTimeoutMs) return;
+        if (!this.config.idleTimeoutMs || stopRequested) return;
         if (idleTimer) clearTimeout(idleTimer);
         idleTimer = setTimeout(() => {
-          killChildProcess(child);
+          stopChild();
           finish(new AdapterError(
             "idle-timeout",
             this.name,
@@ -166,11 +214,13 @@ export class CliAdapter implements AgentAdapter {
 
       bumpIdleTimer();
 
-      // stdout et stderr partagent le même budget `maxOutputBytes`.
-      const createDataHandler = (chunks: Buffer[]) => (chunk: Buffer) => {
+      // stdout et stderr partagent le même budget `maxOutputBytes`. Après une demande d'arrêt, la
+      // sortie tardive est ignorée : elle ne peut jamais devenir une réponse.
+      const createDataHandler = (chunks: Buffer[], observe = false) => (chunk: Buffer) => {
+        if (stopRequested || settled) return;
         outputBytes += chunk.length;
         if (outputBytes > maxOutputBytes) {
-          killChildProcess(child);
+          stopChild();
           finish(new AdapterError("output-too-large", this.name, `${this.name} produced more than ${maxOutputBytes} bytes of output`, {
             maxOutputBytes,
             outputBytes
@@ -178,14 +228,17 @@ export class CliAdapter implements AgentAdapter {
           return;
         }
         chunks.push(chunk);
+        if (observe) observer?.feed(chunk);
         bumpIdleTimer();
       };
 
-      child.stdout.on("data", createDataHandler(stdoutChunks));
+      child.stdout.on("data", createDataHandler(stdoutChunks, true));
 
       child.stderr.on("data", createDataHandler(stderrChunks));
 
       child.on("error", (error: NodeJS.ErrnoException) => {
+        // Après la demande d'arrêt, l'échéance reste l'issue : un échec tardif ne la remplace pas.
+        if (stopRequested) return;
         const kind = error.code === "ENOENT" ? "command-not-found" : "spawn-failed";
         finish(new AdapterError(kind, this.name, `${this.name} failed to start command "${this.config.command}": ${error.message}`, {
           code: error.code,
@@ -193,6 +246,11 @@ export class CliAdapter implements AgentAdapter {
         }));
       });
       const finishFromExitCode = (code: number | null, signal: NodeJS.Signals | null) => {
+        // Fin après la demande d'arrêt : l'échéance reste l'issue, jamais une réponse partielle.
+        if (stopRequested) {
+          finish(timeoutError("confirmed"));
+          return;
+        }
         if (code === null) {
           finish(new AdapterError(
             "non-zero-exit",
@@ -219,13 +277,49 @@ export class CliAdapter implements AgentAdapter {
 
       child.on("close", finishFromExitCode);
 
+      child.stdin.on("error", () => { /* Fermeture anticipée (EPIPE) : l'issue vient de exit/close. */ });
       if (promptMode === "stdin") {
         child.stdin.write(renderedPrompt);
       }
       child.stdin.end();
     });
   }
+
+  /**
+   * Erreur `timeout` (kind v1 inchangé). Détails facultatifs : attente, arrêt local demandé et
+   * confirmé ou non, travail distant inconnu, aucun renvoi ; pour un profil qualifié, la référence
+   * de lecture opaque (configuration approuvée exacte, commande, dossier, session et dernier message
+   * observés, SHA-256 du prompt exact, modèle demandé ; jamais le prompt) ou son absence nommée.
+   * Jamais une réponse ni un succès.
+   */
+  private timeoutError(messages: AdapterErrorMessages, input: {
+    timeoutMs: number; waitedMs: number; localExit: "confirmed" | "unconfirmed"; observer?: OpenCodeSessionObserver; requestSha256?: string; cwd: string;
+  }): AdapterError {
+    const observed = input.observer?.reference();
+    const reference = this.runtime && observed && input.requestSha256 && this.configIdentity
+      ? encodeRecoveryReference({
+        v: 1, agent: this.name, command: this.config.command, config: this.configIdentity, cwd: input.cwd,
+        session: observed.session, lastMessage: observed.lastMessage, requestSha256: input.requestSha256, model: this.config.model ?? null
+      })
+      : undefined;
+    const recovery = !this.runtime ? undefined : reference && observed
+      ? { available: true, reference, agent: this.name, session: observed.session }
+      : { available: false, reason: !this.configIdentity ? "config-unknown" : !observed ? "session-unknown" : "reference-unsafe" };
+    const command = reference ? `palabre result --reference ${reference}` : undefined;
+    return new AdapterError("timeout", this.name, messages.waitTimeout(this.name, input.timeoutMs, input.localExit, this.runtime !== undefined, command), {
+      timeoutMs: input.timeoutMs,
+      waitedMs: input.waitedMs,
+      stopRequested: true,
+      localExit: input.localExit,
+      remoteWork: "unknown",
+      resent: false,
+      ...(recovery ? { recovery } : {})
+    });
+  }
 }
+
+/** Délai d'observation de l'événement `exit` après la demande d'arrêt, avant « non confirmé ». */
+const STOP_CONFIRMATION_MS = 5_000;
 
 /**
  * Accepte un seul objet JSON Antigravity réussi. Les métadonnées ne deviennent jamais une réponse.
@@ -602,9 +696,11 @@ function quotePosixShellArg(value: string): string {
  * Termine le process et ses enfants (`/T`) sur Windows via `taskkill.exe`, car `child.kill()` seul
  * ne tue pas les sous-processus d'un wrapper npm/shim. `taskkill` est lancé en fire-and-forget :
  * seul son échec de spawn déclenche un `child.kill()` de repli, sans attendre sa fin.
+ * Avec `tree: false`, seul le processus lancé reçoit le signal (client OpenCode qualifié), jamais
+ * un service qu'il aurait démarré.
  */
-function killChildProcess(child: ReturnType<typeof spawn>): void {
-  if (process.platform === "win32" && child.pid) {
+export function killChildProcess(child: ReturnType<typeof spawn>, tree = true): void {
+  if (tree && process.platform === "win32" && child.pid) {
     const killer = spawn("taskkill.exe", ["/PID", String(child.pid), "/T", "/F"], {
       windowsHide: true,
       stdio: "ignore"
@@ -616,4 +712,32 @@ function killChildProcess(child: ReturnType<typeof spawn>): void {
   }
 
   child.kill();
+}
+
+/**
+ * Libère les canaux locaux après un échec, même sans arrêt confirmé. Ne tue aucun processus et
+ * n'atteste ni l'arrêt d'un descendant ni celui d'un service ; évite que leurs pipes retiennent Node.
+ */
+export function releaseChildProcessHandles(child: ReturnType<typeof spawn>): void {
+  child.stdin?.destroy();
+  child.stdout?.destroy();
+  child.stderr?.destroy();
+  child.unref();
+}
+
+/**
+ * Lance la commande configurée d'un agent CLI avec d'autres arguments, sans prompt ni modèle, avec la
+ * même résolution Windows que `generate` (natif, shim reconnu, sans shell quand c'est possible) et le
+ * même environnement. Sert aux lectures sans envoi (`palabre result`). La commande choisie n'est
+ * jamais remplacée par une autre installation ; l'appelant borne délai, sortie et annulation.
+ */
+export function spawnConfiguredCommand(name: string, config: CliAgentConfig, args: string[], options: { cwd?: string } = {}): ChildProcessWithoutNullStreams {
+  const safety = resolveWindowsSpawnSafety(config.command, config.shell ?? false, "stdin", undefined, name, createTranslator("fr").adapterErrors);
+  const spawnCommand = shellCommandForSpawn(safety.command, [...safety.argsPrefix, ...args], safety.shell);
+  return spawn(spawnCommand.command, spawnCommand.args, {
+    stdio: ["pipe", "pipe", "pipe"],
+    env: safety.nodePath === undefined ? utf8ChildProcessEnv() : withShimNodePath(utf8ChildProcessEnv(), safety.nodePath),
+    shell: safety.shell,
+    ...(options.cwd ? { cwd: options.cwd } : {})
+  });
 }

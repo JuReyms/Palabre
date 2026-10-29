@@ -1,5 +1,6 @@
 /** @file Aide CLI FR/EN : options, prochaines étapes et limites de chaque commande. */
 import type { Language } from "../types.js";
+import { agentResultText } from "./agentResult.js";
 
 /** Rendu de l'aide globale et des commandes, sans lancer d'agent ni modifier de configuration. */
 export interface HelpMessages {
@@ -8,6 +9,7 @@ export interface HelpMessages {
 }
 
 const frCommandHelp: Record<string, string> = {
+  result: agentResultText("fr").help,
   skill: `
 Garde le skill installé aligné sur le paquet de la CLI exécutée, sans réseau ni config.
   palabre skill                        affiche l'état et le plan, sans écrire
@@ -673,6 +675,7 @@ Options :
 };
 
 const enCommandHelp: Record<string, string> = {
+  result: agentResultText("en").help,
   skill: `
 Keeps installed skills aligned with the running CLI package, without network or config.
   palabre skill                        shows status and plan without writing
@@ -1364,6 +1367,7 @@ Commandes :
   presets    Lister les paires d'agents
   history    Lister les exports
   resume     Reprendre un Débat ou un Ask avec checkpoint
+  result     Relire une réponse OpenCode après un délai dépassé
   sessions   Lister ou supprimer les checkpoints
   context    Scanner les fichiers du projet
   config     Modifier les paramètres par défaut
@@ -1425,6 +1429,7 @@ Commands:
   presets    List agent pairs
   history    List exports
   resume     Resume a Debate or Ask checkpoint
+  result     Read an OpenCode reply after a timeout
   sessions   List or delete checkpoints
   context    Scan project files
   config     Edit default settings

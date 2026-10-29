@@ -55,6 +55,7 @@ The TUI home screen performs the same conservative known-agent synchronization a
 | `palabre run --subject "Subject" --agent-a codex --agent-b claude` | Launches with explicit agents. |
 | `palabre run --subject "Subject" --agent-a codex --agent-b claude --role-a architect --role-b critic` | Launches with temporary roles. |
 | `palabre ask "Subject" --agents codex claude` | Runs a request with independent responses. |
+| `palabre result --reference <reference> --json` | Reads without resending the reply to an OpenCode request whose wait expired; the reference comes from the timeout error and keeps the send's trusted configuration. |
 | `palabre chat --agent-a codex` | Opens a continued conversation with one agent. |
 
 ## Resume a session

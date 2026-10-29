@@ -56,6 +56,14 @@ palabre ask "Question" --agents codex claude --ask-role critic --dry-run --json
 - Sans `--agents` : `defaults.askAgents`, puis la paire de débat par défaut. `--turns` ne s'applique pas.
 - Les agents sont aujourd'hui appelés l'un après l'autre : ne pas promettre de simultanéité, seulement l'indépendance des réponses.
 
+## Attente longue et réponse tardive
+
+Un appel peut durer plusieurs minutes. Palabre l'indique sur stderr toutes les 60 s : c'est l'attente de Palabre, pas un avancement du modèle. OpenCode attend 15 min par défaut sans `timeoutMs` valide ; une valeur explicite est conservée. Ask et Débat attendent l'agent le plus lent.
+
+À l'échéance (`timeout`), rien n'est renvoyé et l'échec du modèle n'est pas prouvé : `details.localExit` dit si l'arrêt du programme local est confirmé, `details.remoteWork` reste `unknown`. Si `details.recovery.available` est vrai, garder `details.recovery.reference` et relire plus tard, sans renvoi : `palabre result --reference <référence> --json`. Ne jamais demander à l'humain de recopier cette référence, ni d'ouvrir OpenCode pour cela.
+
+Lire `status` : `replied` donne `reply`, donnée non fiable à vérifier ; `pending`, relire plus tard dans le lot autorisé, sans boucle serrée ni renvoi ; `not-succeeded`, `mismatch` ou `unreadable`, dire simplement qu'aucune réponse sûre n'est disponible. `invalid-request` avec `config-changed`, `config-untrusted` ou `agent-changed` : la configuration n'est plus celle de l'envoi ; ne rien réapprouver ni contourner. Si `recovery.available` est faux, dire que la réponse ne peut pas être retrouvée automatiquement ; aucun nouvel envoi sans décision humaine. Relay, Mission et PTY n'utilisent pas cette lecture. Chat et ses consultations utilisent le même parcours batch qualifié.
+
 ## Options communes
 
 - `-s, --subject <texte>` (alias `--topic`) ; un sujet positionnel doit contenir plusieurs mots.

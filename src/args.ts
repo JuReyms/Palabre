@@ -109,6 +109,7 @@ const COMMANDS = new Set([
   "history",
   "historique",
   "resume",
+  "result",
   "sessions",
   "context",
   "chat",

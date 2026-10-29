@@ -83,14 +83,14 @@ test("skill --read : paquet exécuté, sans config/trust/copie installée ni con
   writeFileSync(path.join(f.root, "palabre.config.json"), "invalide");
   const cli = fileURLToPath(new URL("../src/index.js", import.meta.url));
   const before = readdirSync(f.root).sort();
-  for (const declared of [[], ["--skill-revision", "999"], ["--skill-revision", "1"]]) {
+  for (const declared of [[], ["--skill-revision", "999"], ["--skill-revision", "2"]]) {
     const child = spawnSync(process.execPath, [cli, "skill", "--read", "--json", ...declared], { cwd: f.root, encoding: "utf8" });
     assert.equal(child.status, 0, child.stderr);
     const result = JSON.parse(child.stdout);
     assert.equal(result.kind, "skill-runtime");
     assert.equal(result.v, 1);
-    assert.equal(result.revision, 1);
-    assert.equal(result.status, declared.at(-1) === "1" ? "current" : declared.length ? "reload-required" : "unverified");
+    assert.equal(result.revision, 2);
+    assert.equal(result.status, declared.at(-1) === "2" ? "current" : declared.length ? "reload-required" : "unverified");
     assert.equal(result.instructions, readFileSync(result.entrypoint, "utf8"));
     assert.ok(!result.instructions.includes("IMPOSTEUR CWD"));
     assert.equal(child.stderr, "");
