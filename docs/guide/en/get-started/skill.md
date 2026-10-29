@@ -50,7 +50,9 @@ Before replacement, each physical copy is backed up under `~/.palabre/skill-back
 
 These commands follow the CLI package, not GitHub `main`. External tools such as `npx skills add/update` follow the repository and may provide a different skill from the installed CLI. On an older CLI without the `skill` command, manually copying the bundled folder remains possible.
 
-To start, tell Claude Code or Codex: "Use PALABRE to ask the other agent to review the plan in docs/plan.md without changing files. Keep the conversation for follow-up." You choose the mission lead. From Codex desktop, each command to Claude needs one-time host approval; follow [Your first Relay](/en/get-started/first-relay).
+You do not need to know the modes or options. Say for example "I'm unsure which of these two approaches to choose": with the skill loaded, the assistant should offer an independent opinion from another tool to spot a blind spot, or a debate to compare both options, and explain why. It then handles the commands and conversations, and gives you a clear result. You can always ask for the technical details. This guidance grants no additional rights and does not make an unavailable feature available; the approvals needed remain yours.
+
+To explicitly name a tool and a workflow, you can also say: "Use PALABRE to ask the other agent to review the plan in docs/plan.md without changing files. Keep the conversation for follow-up." You choose the mission lead. From Codex desktop, each command to Claude needs one-time host approval; follow [Your first Relay](/en/get-started/first-relay).
 
 An unverified copy is displayed with a warning and left untouched: it blocks neither the CLI update nor other skill copies. If no copy differs, `--sync` and `--install` do not ask for consent or write anything. If the CLI updates successfully but the skill refresh then fails, the message distinguishes these outcomes: restart Palabre, then run `palabre skill --sync` to inspect the new plan.
 

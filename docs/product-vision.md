@@ -43,6 +43,18 @@ La visibilité en direct est un objectif du parcours, pas une garantie sur toute
 - **Plusieurs outils, quotas distincts.** Répartir les tâches permet d’utiliser les outils et abonnements déjà disponibles. Les échanges consomment aussi du temps et des quotas : ni fusion des quotas, ni économie garantie, ni bascule automatique au premier épuisement.
 - **Mieux se corriger, pas garantir la vérité.** Les agents peuvent repérer les erreurs des autres, mais aussi se tromper ensemble. Préserver les avis indépendants quand ils sont utiles, expliciter les désaccords et demander des preuves et vérifications. Un accord entre modèles ne prouve pas que la proposition est correcte.
 
+## Expérience utilisateur
+
+**Décision du propriétaire, 29 octobre 2026.** Elle vaut pour Palabre et ses quatre modes. L'humain exprime un objectif, un doute ou un choix ; il n'a pas à connaître Palabre, un mode, un outil, un identifiant ou une option. L'agent propose la coopération adaptée et son bénéfice, l'explique sans jargon, puis prend en charge outils, conversations et contrôles dans les autorisations existantes.
+
+- Questions de travail : résultat attendu, compromis, périmètre ; ne pas faire choisir transport, identifiant ou option dans le parcours courant. Une cible ambiguë se lève en demandant le sujet ou le projet, jamais en choisissant la plus récente.
+- Proposer sans imposer : pas de consultation ni de formulaire ajoutés à une tâche simple.
+- L'explication accompagne l'action, pas seulement l'erreur. Une impossibilité réelle se dit : ce qui manque et une prochaine action compréhensible, sans cacher le blocage ni supposer un accord.
+- Données sensibles, nouvelles autorisations et actions non couvertes restent des décisions humaines ; les autorisations techniques de l'hôte restent distinctes. Modes, permissions et capacités conditionnelles ne changent pas.
+- Les détails techniques restent accessibles sur demande, pour diagnostiquer ou pour les utilisateurs avancés, sans en imposer la lecture.
+
+Critère : un nouvel utilisateur npm avance sans soulever le capot.
+
 ## Règle de rédaction pour les agents
 
 Avant de rédiger une accroche, un exemple ou une explication, nommer son niveau : **Palabre globalement** ou **un mode précis**. Présenter d’abord le bénéfice du produit, puis le fonctionnement du mode concerné. Ne pas généraliser à tous les modes le chef de mission, les conversations reliées ou la visibilité Relay ; ne pas généraliser non plus à tout Palabre les tours contradictoires et la synthèse de Débat. Distinguer les capacités actuelles, leurs limites et les objectifs futurs.
