@@ -1,6 +1,6 @@
 /**
  * @file Commande `palabre relay` : transmet un message à une conversation Codex ou Claude Code
- * neuve, fermée ou ouverte selon relay.view et le verrou (#190), en un seul appel.
+ * en arrière-plan par défaut, ou ouverte sur choix explicite ponctuel ou enregistré, en un appel.
  *
  * Déroulé strictement ordonné ; une étape refusée arrête le relay sans rien lancer :
  * arguments, config approuvée (sans question interactive), agent et fournisseur, exécutable,
@@ -77,7 +77,7 @@ import { runRelayAllowRepo, reviewAuthorizationCommand } from "./relayAllowRepo.
 import { createInterface } from "node:readline/promises";
 import { prepareWrite, readWriteRequest, approveWrite, consumeWrite, createWriteWorktree, WriteCodexAdapter, writeReport, writeHash, WriteError, type WriteRequest, type WriteReport } from "../externalSessions/write.js";
 import { relayWriteText } from "../messages/relayWrite.js";
-import { resolveRelayView, type RelayModeSource } from "../externalSessions/relayView.js";
+import { resolveRelayView, shouldProbeRelayView, type RelayModeSource } from "../externalSessions/relayView.js";
 import { relayViewText } from "../messages/relayView.js";
 import type { ThenFollowReport } from "../externalSessions/openRelay.js";
 import { relayViewCommand } from "./relayView.js";
@@ -525,15 +525,16 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   // Choisir avant l'enveloppe. Les parcours exclus ne sondent pas pour ouvrir une cible ;
   // les transports conservent ensuite leurs propres contrôles, sans repli après refus.
   const excluded = Boolean(context.newSession || context.header || flags.task || flags.write);
+  const modeInput = { open: context.open, background: flags.background === true, excluded, provider, view: config.relay?.view };
   let probe: () => import("../externalSessions/types.js").TargetProbe = () => { throw new Error("unexpected-mode-probe"); };
-  if (!context.open && !flags.background && !excluded && provider === "codex" && config.relay?.view !== "background") {
+  if (shouldProbeRelayView(modeInput)) {
     const located = await locateOpenRollout(path.join(os.homedir(), ".codex"), to.value.sessionId);
     if (located.status !== "found") throw locateRefusal(located, context.messages);
     context.targetLocated = true;
     const adapter = new CodexSessionAdapter();
     probe = () => adapter.probe({ ...to.value, provider: "codex", cwd: located.cwd });
   }
-  const mode = resolveRelayView({ open: context.open, background: flags.background === true, excluded, provider, view: config.relay?.view }, probe);
+  const mode = resolveRelayView(modeInput, probe);
   context.modeSource = mode.modeSource;
   context.open = mode.mode === "open";
   if (mode.refusal) throw new RelayRefusal({ status: mode.refusal });
@@ -673,8 +674,10 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
 
 /**
  * Arrière-plan : localise la conversation reprise, puis refuse une cible attachée ou invérifiable.
- * Sur une Codex attachée, le conseil dépend de la cause : préférence `background` (commande de
- * réglage) ou `--background` explicite (fermer la conversation) ; sinon, message d'origine.
+ * Sur une Codex attachée, l'arrière-plan par défaut/enregistré explique le choix ponctuel ou le
+ * réglage humain ; seul un choix enregistré expose ce réglage facultatif dans `remedy`.
+ * `--background` propose fermeture ou nouvel `--open` décidé par le propriétaire.
+ * Les parcours exclus et les courses de verrou gardent leur message d'origine.
  * Partagé par l'envoi et par `--check` (#203), qui doivent rendre les mêmes refus.
  */
 function assessClosedTarget(context: RelayContext, adapter: ExternalSessionAdapter, to: SessionRef, configPath: string, explicitBackground: boolean): ExternalTarget {
@@ -686,9 +689,10 @@ function assessClosedTarget(context: RelayContext, adapter: ExternalSessionAdapt
   context.cwd = located.target.cwd;
   const decision = assessTarget(adapter.probe(located.target));
   if (!decision.allowed) {
-    if (context.provider === "codex" && decision.status === "target-busy" && context.modeSource === "setting") {
-      context.remedy = relayViewCommand(configPath);
-      throw new RelayRefusal({ status: decision.status }, relayViewText(context.language ?? "fr").busy(context.remedy));
+    if (context.provider === "codex" && decision.status === "target-busy" && (context.modeSource === "setting" || context.modeSource === "default")) {
+      const command = relayViewCommand(configPath);
+      if (context.modeSource === "setting") context.remedy = command;
+      throw new RelayRefusal({ status: decision.status }, relayViewText(context.language ?? "fr").busy(command));
     }
     if (context.provider === "codex" && decision.status === "target-busy" && explicitBackground) {
       throw new RelayRefusal({ status: decision.status }, context.messages.relayView.busyExplicit);
@@ -1098,11 +1102,13 @@ function buildResult(
   };
 }
 
+/** Un conseil target-busy est complet ; une consigne générique ne doit pas le précéder. */
 function refusalResult(context: RelayContext, refusal: RelayRefusal): RelayResultV1 {
   const detail = refusal.message !== refusal.refusal.status ? refusal.message : undefined;
+  const message = detail && refusal.refusal.status === "target-busy" ? detail
+    : detail && refusal.refusal.status === "session-not-found" ? `${context.messages.relay.status(refusal.refusal.status)} ${detail}` : undefined;
   return buildResult(context, { outcome: refusalOutcome(refusal.refusal), delivery: NOT_DELIVERED, detail,
-    ...((refusal.refusal.status === "target-busy" || refusal.refusal.status === "session-not-found") && detail
-      ? { message: `${context.messages.relay.status(refusal.refusal.status)} ${detail}` } : {}) });
+    ...(message ? { message } : {}) });
 }
 
 /** Qualifie la copie consultable sans confondre tentative, persistance et réponse reçue. */

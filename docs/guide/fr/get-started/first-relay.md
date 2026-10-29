@@ -26,8 +26,8 @@ Dans une conversation Codex ouverte, l'équipier peut agir avec ses permissions 
 
 - **Chef de mission** : l'agent à qui vous parlez. Il confie la tâche et vous rend compte.
 - **Équipier** : l'agent qui reçoit la tâche.
-- **Conversation ouverte** : une conversation affichée en ce moment, dans Codex desktop ou dans un terminal. L'équipier y travaille avec ses réglages habituels, comme si vous lui écriviez vous-même.
-- **Conversation fermée** : une conversation déjà existante, mais qu'aucune fenêtre n'affiche. PALABRE la rouvre le temps d'un échange, puis la referme.
+- **Conversation ouverte** : une conversation que Codex desktop ou son terminal garde chargée, même si vous l'avez quittée. Elle peut ne pas être affichée. L'équipier y travaille avec les outils et permissions de cette conversation ; le message Relay ne vaut pas autorisation humaine.
+- **Conversation fermée** : une conversation existante à laquelle aucun processus n'est attaché, selon les contrôles propres à l'outil. L'absence de fenêtre ne suffit pas à le prouver. PALABRE la reprend pour un échange en arrière-plan.
 - **Arrière-plan** : l'équipier travaille sans fenêtre. PALABRE le lance pour une seule tâche, attend sa réponse, puis s'arrête.
 - **Identifiant de conversation** : le numéro qui désigne une conversation précise. Gardez-le pour continuer avec le même équipier.
 - **Délivrance** : savoir si le message est bien arrivé. Un message arrivé ne veut pas dire tâche réussie.
@@ -59,7 +59,7 @@ Depuis votre conversation avec Claude Code, dites par exemple :
 
 Le skill crée une conversation si vous n'en avez pas désigné une. Si vous choisissez une conversation existante, il garde cette cible précise, jamais « la dernière ».
 
-Pour travailler dans une conversation Codex déjà ouverte sous Windows, macOS ou Linux, désignez-la et dites le travail attendu. PALABRE choisit le mode avec `auto` selon le verrou ; sur POSIX, `python3` doit être disponible. L'équipier conserve ses permissions, sans droit ajouté par le message.
+Pour travailler dans une conversation Codex déjà ouverte sous Windows, macOS ou Linux, désignez-la et dites le travail attendu. L'arrière-plan est le défaut et refuse une cible ouverte. Votre agent explique comment envoyer dans cette conversation avec `--open` : elle garde ses outils et permissions, y compris l'écriture si elle est autorisée. Ce choix peut rester ponctuel ou devenir votre préférence après votre confirmation. Sur POSIX, `python3` doit être disponible. Le message n'accorde aucun droit supplémentaire.
 
 ### Codex chef de mission
 
@@ -135,4 +135,4 @@ Mission et `--task review` sont gelés : conservés et documentés, sans extensi
 Les détails, les statuts et les limites de chaque parcours sont dans le [guide Relay complet](/fr/usage/relay).
 
 
-Pour un avis ou une relecture qui doit rester sans modification, passez `--background` : ce choix ponctuel réduit les droits sans changer le réglage. Pour le reste, PALABRE choisit le mode, pas l'agent : par défaut `auto` suit le verrou de Codex ; une conversation fermée part en arrière-plan, une conversation ouverte garde ses permissions propres. Un état invérifiable refuse l'envoi, sans repli plus permissif. Pour imposer l'arrière-plan, lancez vous-même `palabre config --relay-view background` ; pour revenir au défaut, `palabre config --relay-view auto`. Le fichier et le changement sont affichés avant votre confirmation clavier dans un terminal visible (entrée/sortie TTY), sans `--yes` ni `--trust-config`, sur une config déjà approuvée. Un agent ne choisit ni ne confirme ce réglage. Les options ponctuelles `--background` et `--open` ne le changent pas. Voir [Mode Relay](/fr/usage/relay).
+Pour un avis ou une relecture qui doit rester sans modification, passez `--background` : ce choix ponctuel garde les outils limités même si vous avez enregistré une autre préférence. **Arrière-plan est le défaut.** Si la conversation Codex est ouverte, votre agent explique les permissions avant de proposer `--open` pour cet échange ; aucun basculement automatique. Vous pouvez aussi choisir **Privilégier la conversation ouverte** pour les prochains échanges avec `palabre config --relay-view auto` ; une conversation fermée part alors en arrière-plan. Pour revenir au défaut : `palabre config --relay-view background`. Lancez et confirmez vous-même ce réglage dans un terminal visible (entrée/sortie TTY), avec une configuration déjà approuvée, sans `--yes` ni `--trust-config`. L'agent ne le modifie ni ne le confirme. Si vous travaillez souvent avec une conversation Codex ouverte, vous pouvez enregistrer cette préférence une fois, après avoir compris ses permissions. Les réglages explicites existants sont conservés. Voir [Mode Relay](/fr/usage/relay).

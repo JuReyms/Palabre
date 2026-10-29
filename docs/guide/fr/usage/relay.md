@@ -148,27 +148,34 @@ La conversation reste dans l'historique de la CLI et peut être reprise par Rela
 
 ## Arrière-plan ou dans l'app desktop
 
-PALABRE choisit le mode : `relay.view` vaut `auto` par défaut. Pour une conversation Codex existante, un verrou tenu sélectionne **Dans l'app desktop** (y compris le terminal Codex), avec les permissions de cette conversation ; un verrou libre ou absent sélectionne **Arrière-plan**. Un verrou invérifiable refuse l'envoi (`target-state-unknown`). Aucun basculement ni renvoi automatique après un refus ; le verrou ne prouve ni l'affichage ni l'identité du récepteur.
+**Arrière-plan est le défaut** : les appels Codex/Claude utilisent les restrictions d'outils de ce parcours et exigent une conversation fermée. Si une conversation Codex est ouverte, rien n'est envoyé (`target-busy`). Votre agent explique alors les possibilités avant un nouvel envoi : conserver les outils limités et fermer vous-même cette conversation, ou choisir **Dans la conversation ouverte** pour cet échange (`--open`). Ce dernier choix utilise les outils et permissions actuelles de la conversation, **y compris l'écriture si elle est autorisée** ; il ne garantit pas une relecture avec des outils limités.
 
-Pour imposer l'arrière-plan, le propriétaire lance lui-même :
+Vous pouvez aussi choisir **Privilégier la conversation ouverte** pour les prochains échanges. Pour une conversation Codex existante, un verrou tenu choisit le parcours ouvert ; un verrou libre ou absent choisit l'arrière-plan. Un état invérifiable refuse l'envoi (`target-state-unknown`). Une conversation quittée mais encore chargée dans Codex compte comme ouverte. Le verrou ne prouve ni l'affichage ni l'identité du récepteur. Aucun basculement ni renvoi automatique après un refus.
+
+Les commandes de réglage restent compatibles : `background` signifie **Arrière-plan** et `auto` signifie **Privilégier la conversation ouverte**. Le propriétaire lance et confirme lui-même la commande choisie :
 
 ```text
-palabre config --relay-view background
 palabre config --relay-view auto
 ```
 
-Cette commande affiche le fichier résolu et le changement, exige une configuration déjà approuvée, puis une confirmation clavier avec entrée et sortie TTY. Aucun `--yes`, `--trust-config` ou combinaison avec une autre modification ; un refus n'écrit rien. Elle conserve les autres champs et refuse une modification concurrente. Un agent ne change jamais cette préférence et ne confirme jamais à votre place.
+Pour revenir à **Arrière-plan** :
 
-Pour **un seul appel**, `--background` force l'arrière-plan et `--open` force le mode ouvert, sans modifier le réglage ; les deux ensemble sont refusés. Avec la préférence `background`, une cible ouverte reste refusée (`target-busy`) : fermez-la dans Codex, ou choisissez vous-même le réglage avec la commande affichée. Si l'option ponctuelle `--background` impose ce refus, fermez la conversation dans Codex, puis relancez. Sans cette option, avec `auto`, le message irait dans la conversation ouverte avec ses permissions : à ne faire que si un avis avec ces permissions convient. Aucun changement de réglage n'est proposé. Pour un parcours exclu ou une course en `auto`, le message d'origine reste inchangé, sans commande de réglage. En mode ouvert (`--open` ou `auto`), une cible fermée reste refusée (`target-not-open`).
+```text
+palabre config --relay-view background
+```
 
-`--new`, Mission, `--task review`, `--write` et Claude Code restent en arrière-plan ; leurs incompatibilités avec `--open` restent des refus. `palabre agents --json` expose le réglage effectif dans `defaults.relayView`. Le résultat Relay et l'export indiquent aussi `modeSource` : `explicit` pour une option ponctuelle, `auto` pour l'état du verrou ou un parcours imposé, `setting` pour la préférence `background`.
+Cette commande affiche le fichier résolu, les libellés du choix et ses conséquences, exige une configuration déjà approuvée, puis une confirmation clavier avec entrée et sortie TTY. Aucun `--yes`, `--trust-config` ou combinaison avec une autre modification ; un refus n'écrit rien. Elle conserve les autres champs et refuse une modification concurrente. Un agent peut expliquer et proposer le choix ; il ne change jamais cette préférence et ne confirme jamais à votre place. Les configurations ayant déjà `relay.view: auto` conservent ce choix ; l'absence de `view` signifie désormais `background`, sans réécriture du fichier. Au défaut, `remedy` est absent ; avec `background` enregistré, ce champ peut proposer la préférence habituelle, comme choix facultatif du propriétaire.
+
+Pour **un seul appel**, `--background` force l'arrière-plan et `--open` force le parcours ouvert, sans modifier le réglage ; les deux ensemble sont refusés. Si `--background` refuse une cible ouverte, aucun repli plus permissif n'est effectué : pour un avis avec les outils et permissions de l'app, obtenez l'accord humain avant un nouvel appel `--open`. Les parcours exclus et les courses de verrou gardent leur refus sans commande de réglage. Avec `--open`, une cible fermée donne `target-not-open` ; avec la préférence `auto`, une cible devenue fermée après la sélection du parcours ouvert donne aussi ce refus, sans repli.
+
+`--new`, Mission, `--task review`, `--write` et Claude Code restent en arrière-plan ; leurs incompatibilités avec `--open` restent des refus. `palabre agents --json` expose le réglage effectif dans `defaults.relayView`. Le résultat Relay et l'export indiquent aussi `modeSource` : `explicit` pour une option ponctuelle, `auto` pour l'état du verrou ou un parcours imposé, `default` pour l'arrière-plan sans préférence enregistrée, `setting` pour `background` enregistré.
 
 Pour un avis ou une relecture Codex/Claude qui doit rester sans modification, passez `--background` : ce choix ponctuel réduit les droits sans changer le réglage. Pour le reste, l'agent ne choisit pas le mode par habitude : il reprend la ligne « Mode » affichée par PALABRE. Sans `--then-follow` à l'envoi, si une confirmation dans l'app lance la suite, préparez `palabre relay --open --follow --to codex:<uuid> --json` **avant** la validation, pour recueillir le tour suivant sans renvoyer le message. Un tour déjà terminé n'est pas rendu ; aucune autorisation n'est déduite de cette suite.
 
 Chaque échange annonce où il se passe, sur une ligne « Mode » :
 
 - **Arrière-plan** : l'équipier répond sans fenêtre visible ; PALABRE demande la lecture seule, avec les garanties conditionnelles décrites plus bas. C'est le cas d'une conversation fermée ou créée par `--new`.
-- **Dans l'app desktop** : la conversation est ouverte dans Codex Desktop (ou dans le terminal de Codex) et visible ; l'équipier y garde les permissions de cette conversation (`--open`).
+- **Dans l'app desktop** : la conversation est tenue par Codex Desktop ou son terminal, sans garantie d'affichage ; l'équipier y garde les permissions de cette conversation (`--open`).
 
 En arrière-plan, une conversation Codex créée, ou reprise et retrouvée par PALABRE, donne aussi son lien `codex://threads/<identifiant>`, cliquable dans un terminal qui le permet, et la commande pour l'ouvrir vous-même :
 

@@ -105,7 +105,7 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 
 ## `relay`
 
-`view` is optional: `auto` (default) or `background`. A `{ "view": "background" }` block is valid without authorizing reviews. In `auto`, PALABRE follows the lock of an existing Codex conversation; excluded paths remain in background. This setting may change a turn's permissions: only the owner changes it with `palabre config --relay-view <auto|background>`, after the file is displayed and TTY keyboard confirmation, without `--yes` or `--trust-config`. See [Relay mode](/en/usage/relay).
+`view` is optional: `background` (**Background**, default) or `auto` (**Prefer the open conversation**, explicit choice). Background limits tools and refuses an open target. In `auto`, an existing open Codex conversation uses its tools and permissions, including writing if allowed; when closed, it runs in background. A `{ "view": "background" }` block is valid without authorizing reviews. Existing explicit values are preserved, without file migration. Only the owner changes this setting with `palabre config --relay-view <auto|background>`, after the file, choice and consequences are displayed, then TTY keyboard confirmation, without `--yes` or `--trust-config`. See [Relay mode](/en/usage/relay).
 
 | Field | Type | Description |
 | --- | --- | --- |

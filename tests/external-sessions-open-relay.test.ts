@@ -181,7 +181,7 @@ describe("B1 : parcours nominal", () => {
   test("auto choisit open puis perd le verrou : refus sans dépôt ni repli arrière-plan", async () => {
     for (const remaining of ["detached", "unknown"] as const) {
       const file = rollout(), h = harness(file, { probes: ["attached", remaining] });
-      const mode = resolveRelayView({ open: false, background: false, excluded: false, provider: "codex" }, h.deps.probe);
+      const mode = resolveRelayView({ open: false, background: false, excluded: false, provider: "codex", view: "auto" }, h.deps.probe);
       assert.equal(mode.mode, "open");
       const result = await runOpenRelay(input(file), h.deps);
       assert.equal(result.outcome.status, remaining === "detached" ? "target-not-open" : "target-state-unknown");

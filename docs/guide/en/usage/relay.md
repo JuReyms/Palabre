@@ -147,27 +147,34 @@ The conversation remains in the CLI history and can be resumed through Relay. Fo
 
 ## Background or in the desktop app
 
-PALABRE chooses the mode: `relay.view` defaults to `auto`. For an existing Codex conversation, a held lock selects **In the desktop app** (including the Codex terminal), with that conversation's permissions; a free or missing lock selects **Background**. An unverifiable lock refuses sending (`target-state-unknown`). There is no automatic fallback or resend after refusal; the lock proves neither display nor receiver identity.
+**Background is the default**: Codex/Claude calls use this path's tool restrictions and require a closed conversation. If a Codex conversation is open, nothing is sent (`target-busy`). Your agent then explains the choices before a new send: keep limited tools and close this conversation yourself, or choose **In the open conversation** for this exchange (`--open`). That choice uses the conversation's current tools and permissions, **including writing if allowed**; it does not guarantee a review with limited tools.
 
-To require background operation, the owner runs:
+You can also choose **Prefer the open conversation** for future exchanges. For an existing Codex conversation, a held lock selects the open path; a free or missing lock selects background. An unverifiable state refuses sending (`target-state-unknown`). A conversation you left that is still loaded in Codex counts as open. The lock proves neither display nor receiver identity. There is no automatic switch or resend after refusal.
+
+The setting commands remain compatible: `background` means **Background** and `auto` means **Prefer the open conversation**. The owner runs and confirms the chosen command themselves:
 
 ```text
-palabre config --relay-view background
 palabre config --relay-view auto
 ```
 
-This command displays the resolved file and change, requires an already trusted configuration, then keyboard confirmation with TTY input and output. No `--yes`, `--trust-config` or combined mutation; declining writes nothing. Other fields are preserved and concurrent changes are refused. An agent must never change this preference or confirm on your behalf.
+To return to **Background**:
 
-For **one call only**, `--background` forces background and `--open` forces open mode, without changing the setting; both together are refused. With the `background` preference, an open target remains refused (`target-busy`): close it in Codex, or choose the preference yourself using the displayed command. If the per-call `--background` option causes this refusal, close the conversation in Codex, then retry. Without that option, with `auto`, the message would go to the open conversation with its permissions: only do so if advice with those permissions is acceptable. No setting change is suggested. An excluded path or an `auto` race keeps the original message, with no setting command. In open mode (`--open` or `auto`), a closed target remains refused (`target-not-open`).
+```text
+palabre config --relay-view background
+```
 
-`--new`, Mission, `--task review`, `--write` and Claude Code remain in background; their incompatibilities with `--open` remain refusals. `palabre agents --json` exposes the effective setting as `defaults.relayView`. The Relay result and export also report `modeSource`: `explicit` for a per-call option, `auto` for lock state or a required path, `setting` for the `background` preference.
+This command displays the resolved file, choice labels and consequences, requires an already trusted configuration, then keyboard confirmation with TTY input and output. No `--yes`, `--trust-config` or combined mutation; declining writes nothing. Other fields are preserved and concurrent changes are refused. An agent can explain and suggest the choice; it must never change this preference or confirm on your behalf. Configurations with an existing `relay.view: auto` keep that choice; an absent `view` now means `background`, without rewriting the file. With no saved preference, `remedy` is absent; with saved `background`, that field may suggest the usual preference as an optional choice for the owner.
+
+For **one call only**, `--background` forces background and `--open` forces the open path, without changing the setting; both together are refused. If `--background` refuses an open target, there is no more permissive fallback: get human agreement before a new `--open` call for advice with the app's tools and permissions. Excluded paths and lock races keep their refusal without a setting command. With `--open`, a closed target gives `target-not-open`; with the `auto` preference, a target that closes after open mode was selected also gives that refusal, without fallback.
+
+`--new`, Mission, `--task review`, `--write` and Claude Code remain in background; their incompatibilities with `--open` remain refusals. `palabre agents --json` exposes the effective setting as `defaults.relayView`. The Relay result and export also report `modeSource`: `explicit` for a per-call option, `auto` for lock state or a required path, `default` for background with no saved preference, `setting` for saved `background`.
 
 For Codex/Claude advice or a review that must not change files, pass `--background`: this per-call choice reduces permissions without changing the setting. For other requests, the agent does not choose the mode out of habit: it repeats PALABRE's "Mode" line. Without `--then-follow` on the initial send, if an in-app confirmation starts follow-up work, start `palabre relay --open --follow --to codex:<uuid> --json` **before** validation to capture the next turn without resending the message. A turn that already ended is not returned; this follow-up grants no authorization.
 
 Each exchange states where it happens, on a "Mode" line:
 
 - **Background**: the teammate replies with no visible window; PALABRE requests read-only access, with the conditional guarantees described below. This applies to a closed conversation or one created by `--new`.
-- **In the desktop app**: the conversation is open in Codex Desktop (or in the Codex terminal) and visible; the teammate keeps this conversation's permissions there (`--open`).
+- **In the desktop app**: the conversation is held by Codex Desktop or its terminal, with no display guarantee; the teammate keeps this conversation's permissions there (`--open`).
 
 In background, a Codex conversation that was created, or resumed and found by PALABRE, also shows its `codex://threads/<identifier>` link, clickable in a terminal that supports it, and the command to open it yourself:
 

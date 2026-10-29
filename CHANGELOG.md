@@ -4,6 +4,13 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Changed
+
+- Relay : **Arrière-plan devient le défaut** lorsque `relay.view` est absent, sans migration ni changement des configurations ayant explicitement choisi `auto`. Le choix habituel `auto` reste compatible et s'appelle **Privilégier la conversation ouverte** dans les explications : conversation Codex ouverte avec ses outils et permissions, écriture comprise si autorisée ; fermée, arrière-plan. Sur cible ouverte refusée, le CLI et le skill expliquent le choix ponctuel `--open` et le réglage habituel confirmé par le propriétaire, sans basculement ni renvoi automatique. Aide, README, guides FR/EN et contrats alignés. Copies installées du skill inchangées : `palabre skill --sync` après accord humain, puis recharger le skill (Refs #246).
+
+- Contrat JSON Relay v1 : `palabre agents --json` expose désormais `defaults.relayView: "background"` lorsque la configuration ne contient pas `relay.view` (auparavant `auto`). Nouvelle valeur `modeSource: "default"` pour le défaut d'une reprise Codex ordinaire ; `setting` reste réservé à `background` enregistré. Les autres sources et les parcours exclus conservent leur sens ; les consommateurs tolèrent la nouvelle valeur sans l'assimiler à une réussite.
+- Conseils Relay : sur cible ouverte, choix ponctuel avant réglage habituel facultatif, refus aérés et absence de `remedy` machine au défaut. Le réglage permanent reste confirmé par le propriétaire ; l'aperçu distingue défaut et valeur enregistrée. Sélection de la sonde centralisée ; cas sans préférence vers `auto` et `--then-follow` couverts sur profils fictifs.
+
 ## [0.21.0] - 2026-10-29
 
 <!-- social: Relay exchanges are easier to follow, with readable references, recent exchanges and exact message exports. OpenCode 2 and Antigravity compatibility fixes. -->
