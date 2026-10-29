@@ -39,6 +39,18 @@ for (const kind of cases) for (const language of ["fr", "en"] as const) test(`ta
   assert.equal(result.status, "target-busy"); assert.equal(result.delivery.status, "not-delivered");
   assert.equal(result.mode, "background"); assert.equal(result.queue, undefined);
   const text = renderRelayText(result, createTranslator(language)).stderr;
+  // #250 : conseil machine pour les seuls refus ordinaires, avec la cible et la config exactes.
+  if (kind === "default" || kind === "setting" || kind === "explicit") {
+    const messages = createTranslator(language);
+    const hint = result.error!.hint!;
+    assert.match(hint, language === "fr" ? /même identifiant désigne la même conversation, pas le même mode/ : /same identifier designates the same conversation, not the same mode/);
+    assert.ok(hint.includes(`--check --open --to `), "vérification ouverte proposée, sans envoi");
+    assert.ok(hint.includes(`codex:${id}`) && hint.includes(file), "même cible et même configuration");
+    assert.match(result.error!.message, language === "fr" ? /encore utilisée par Codex/ : /still in use by Codex/);
+    assert.doesNotMatch(result.error!.message, /fenêtre fermée|closed window/i);
+    assert.ok(text.includes(messages.relayView.busyMode), "mode demandé visible");
+    assert.ok(!text.includes(messages.relay.delivery("not-delivered")), "aucune invitation à renvoyer en arrière-plan");
+  } else assert.equal(result.error!.hint, undefined, "parcours gelé ou course auto : aucun conseil ajouté");
   if (kind === "setting" || kind === "default") {
     assert.equal(result.modeSource, kind === "default" ? "default" : "setting");
     if (kind === "setting") {

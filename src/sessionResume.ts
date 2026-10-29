@@ -54,6 +54,10 @@ export async function prepareSessionResume(
   }
 
   const config = await loadConfig(checkpoint.config.path);
+  const afterLoad = await getConfigIdentity(checkpoint.config.path);
+  if (afterLoad.path !== identity.path || afterLoad.sha256 !== identity.sha256) {
+    throw new Error(messages.resume.configChanged(checkpoint.config.path));
+  }
   assertRunnableConfig(config, messages, checkpoint.config.path);
   validateProgress(checkpoint, config, messages);
   const files = await loadCheckpointContext(workspace, checkpoint, messages);
@@ -85,7 +89,8 @@ export async function prepareSessionResume(
     plainOutput: Boolean(input.plainOutput),
     checkpoint: true,
     resume: { phase: checkpoint.nextPhase, transcript: [...checkpoint.transcript] },
-    signal: input.signal
+    signal: input.signal,
+    configIdentity: identity
   };
 
   return { checkpoint, config, options, messages };

@@ -12,7 +12,7 @@ With Relay mode, the agent you are talking to asks another AI tool, called the t
 
 - [PALABRE installed](/en/get-started/installation), along with Codex and Claude Code, each signed in with its usual account.
 - A [trusted configuration](/en/get-started/configuration#other-settings-and-approval): `palabre init` creates and trusts it; `palabre doctor` checks everything without querying a model.
-- The [Palabre skill](/en/get-started/skill) installed in the agent you talk to, then reloaded, or a new conversation opened.
+- The [Palabre skill](/en/get-started/skill) accessible to your assistant. It can reread the current package instructions before the task without asking you to synchronize or restart; initial skill discovery depends on your application.
 
 These preparations are yours: an agent can guide you, but you decide on and confirm installation, sign-in and approval. Your request and the files read are sent to the chosen tool; avoid sensitive data for this first try.
 
@@ -41,21 +41,21 @@ Your agent reports back in the original conversation:
 
 > Continue with the same teammate: detail the main risk and suggest a simple check, without changing files.
 
-The agent resumes the conversation created in step 1: no new conversation, nothing to copy. If the teammate is Claude and you opened its conversation to read it, close it first: sending to an open Claude conversation is not available.
+The agent resumes the conversation created in step 1: no new conversation, nothing to copy. If Claude is already using this conversation, Relay may be unable to reach it: your agent explains the limitation and the next possible step, without asking you to copy its identifier or automatically resending the request.
 
 In a new conversation, your agent no longer has this thread. Say "Find the recent Relay exchange about the Pricing page": it checks the exports and asks you to confirm the exchange before continuing ([Find a recent exchange](/en/usage/relay#find-a-recent-exchange)).
 
 ## If something blocks
 
 - **Untrusted configuration** (`config-untrusted`): nothing is sent. Read the file shown, then trust it yourself with `palabre config --config <file> --trust-config`, replacing `<file>` with the path shown (in quotes if it contains spaces), before asking again. The agent does not trust it for you.
-- **Unknown delivery or message without reply** (`unknown`, `persisted-no-reply`): do not resend the request, it may already have arrived. First check the teammate's conversation or the export; PALABRE never resends automatically. See [Outcome and delivery](/en/usage/relay#outcome-and-delivery).
+- **Unknown delivery or message without reply** (`unknown`, `persisted-no-reply`): do not resend the request, it may already have arrived. Your agent first checks what it can in the conversation or export and explains what is established; PALABRE never resends automatically. See [Outcome and delivery](/en/usage/relay#outcome-and-delivery).
 - **The teammate is waiting for permission**: your agent cannot grant it. It tells you where to approve and stops; continuing will be a new request from you.
 
 ## Choose where the teammate works
 
-**Background is the default**: the teammate replies without a window, with the limited tools described above. For advice without changes like this one, your agent keeps it explicitly (`--background`).
+This first try creates a background teammate: it replies without a window, with the limited tools described above. The CLI alone also uses background by default.
 
-You can also designate a Codex conversation you have open and ask to work there. This explicit choice (`--open`) keeps that conversation's tools and permissions, including writing if allowed. If a background review targets an open conversation, nothing is sent and your agent does not switch on its own to this more permissive path: you close the conversation, or you knowingly choose `--open`. Making it your habit is a setting you confirm yourself, explained in the [full Relay guide](/en/usage/relay).
+To continue, just describe the work you need. The agent checks how to reach the same conversation and respects your preference. It can continue in a Codex conversation already in use, after checking and explaining its usual permissions, when existing authorization allows it. A review still makes no changes. If you explicitly chose background, an exception remains your decision; if you require limited read-only tools, that path remains mandatory. No switch or resend after a refused send. The [full Relay guide](/en/usage/relay) explains these choices.
 
 ## Go further
 

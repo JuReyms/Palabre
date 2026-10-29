@@ -46,15 +46,27 @@ Exécutez seulement la commande correspondant à l'agent voulu. Le plan affiche 
 
 `palabre update` inclut le rafraîchissement des copies détectées dans son plan et sa confirmation unique. Après mise à jour, il utilise le skill du nouveau paquet, y compris avec un store pnpm différent. Si la CLI est déjà à jour, le rafraîchissement d'un skill différent reste proposé. Une copie absente n'est jamais installée implicitement.
 
-Avant remplacement, chaque copie physique est sauvegardée sous `~/.palabre/skill-backups/`, avec date et suffixe unique, hors des dossiers chargés par les agents. Les jonctions racines restent en place ; un même dossier visé par Claude et Codex n'est sauvegardé qu'une fois. Les fichiers personnalisés livrés sont remplacés après cet accord ; les fichiers supplémentaires sont conservés. Une édition depuis l'affichage du plan fait refuser le rafraîchissement. Rechargez ensuite le skill ou reprenez la conversation de l'agent.
+Avant remplacement, chaque copie physique est sauvegardée sous `~/.palabre/skill-backups/`, avec date et suffixe unique, hors des dossiers chargés par les agents. Les jonctions racines restent en place ; un même dossier visé par Claude et Codex n'est sauvegardé qu'une fois. Les fichiers personnalisés livrés sont remplacés après cet accord ; les fichiers supplémentaires sont conservés. Une édition depuis l'affichage du plan fait refuser le rafraîchissement. L’agent peut ensuite relire les consignes du paquet sans redémarrer, comme expliqué ci-dessous.
 
 Ces commandes suivent le paquet de la CLI, pas GitHub `main`. Un outil externe comme `npx skills add/update` suit le dépôt et peut donc fournir un skill différent de la version CLI installée. Sur une ancienne CLI sans commande `skill`, la copie manuelle du dossier embarqué reste possible.
 
-Pour commencer, dites à Claude Code ou à Codex : « Passe par PALABRE pour demander à l’autre agent de relire le plan dans docs/plan.md, sans modifier de fichier. Garde la conversation pour la suite. » Vous choisissez le chef de mission. Depuis Codex desktop, chaque commande vers Claude demande une autorisation ponctuelle de l’hôte ; suivez [Premier Relay](/fr/get-started/first-relay).
+Vous n'avez pas à connaître les modes ni les options. Dites par exemple « J'hésite entre ces deux approches » : avec le skill chargé, l'assistant devrait vous proposer un avis indépendant d'un autre outil pour repérer un angle mort, ou un débat pour confronter les deux options, en expliquant pourquoi. Il gère ensuite les commandes et les conversations, puis vous rend un résultat clair. Vous pouvez toujours demander le détail technique. Cette aide ne donne aucun droit supplémentaire et ne rend pas disponible une fonction absente ; les accords nécessaires restent les vôtres.
+
+Pour désigner explicitement un outil et un parcours, vous pouvez aussi dire : « Passe par PALABRE pour demander à l’autre agent de relire le plan dans docs/plan.md, sans modifier de fichier. Garde la conversation pour la suite. » Vous choisissez le chef de mission. Depuis Codex desktop, chaque commande vers Claude demande une autorisation ponctuelle de l’hôte ; suivez [Premier Relay](/fr/get-started/first-relay).
 
 Une copie non vérifiable est affichée avec un avertissement et laissée intacte : elle ne bloque ni la mise à jour CLI ni les autres copies du skill. Si aucune copie n'est différente, `--sync` et `--install` ne demandent pas d'accord et n'écrivent rien. Si la CLI est mise à jour mais que le rafraîchissement du skill échoue ensuite, le message distingue les deux résultats : relancez Palabre, puis `palabre skill --sync` pour examiner le nouveau plan.
 
+**Après une mise à jour directe de la CLI** (npm, pnpm, Yarn ou Bun), les copies installées restent intactes. En terminal interactif, l’aide, la version et l’accueil de Palabre signalent les copies différentes ou non comparables. Votre assistant peut relire les consignes actuelles du paquet et poursuivre le travail sans vous demander de synchroniser des fichiers ni de redémarrer la conversation ; le parcours est expliqué ci-dessous. Si vous souhaitez aussi aligner les copies installées, `palabre skill --check` montre leur état et `palabre skill --sync` présente un plan à confirmer. Une différence peut être une personnalisation. Aucun rappel sans copie détectée, si toutes sont identiques, en sortie machine ou hors terminal ; une copie identique ne prouve pas ce que l’agent a lu.
+
 ## Quand l'agent voit le skill
+
+Une mise à jour des fichiers ne garantit pas qu'une conversation en cours a relu ses consignes. Avant de préparer une tâche, le skill demande désormais à l'agent de comparer sa révision déclarée avec celle du paquet Palabre exécuté. Si elle est absente ou différente, il lit les consignes actuelles et leurs références utiles, puis poursuit dans le cadre déjà autorisé. Vous n'avez pas à synchroniser un dossier ni redémarrer la conversation pour cette lecture. Une copie installée ancienne ou personnalisée reste intacte.
+
+Ce contrôle est local. La commande technique `palabre skill --read --json` fournit le texte du skill et les chemins de ses références depuis le paquet exécuté, sans configuration, réseau, installation ni appel à un agent. L'inventaire `agents --json` et la vérification `relay --check --json` peuvent comparer la révision que l'agent dit avoir lue. Une révision identique ne prouve pas sa mémoire interne. Une ancienne conversation doit encore rencontrer ce diagnostic ou relire le skill pour bénéficier du parcours ; Palabre ne pilote pas le rechargement interne des applications.
+
+Si le paquet est incomplet ou illisible, l'agent explique la limite lorsqu'elle bloque le travail. Une ancienne CLI qui ne connaît pas ce contrôle ne doit pas être présentée comme compatible : consulter son aide et distinguer la lecture des consignes d'une mise à jour de logiciel. Aucun renvoi Relay automatique pour réparer un skill.
+
+Les observations suivantes concernent la découverte native des skills par les applications, distincte de cette lecture par l'agent :
 
 Un agent charge la liste des skills quand une conversation démarre ou reprend. Après l'installation, ouvrez une nouvelle conversation ou reprenez-en une : une conversation déjà en cours ne voit pas forcément le skill.
 
@@ -85,7 +97,7 @@ palabre agents
 
 Le point d'entrée présente les décisions et garde-fous communs ; l'agent charge ensuite la référence du parcours utile. Relay distingue les bases, l'ouverture/suivi Desktop, le pilote OpenCode et les fonctions gelées. Les détails des autres parcours ne sont pas chargés par défaut.
 
-Pour poursuivre un avis Codex/Claude sans modification, les recettes gardent `--background`, même si vous avez ouvert la conversation entre-temps : une cible occupée est refusée, sans basculement silencieux vers ses permissions. Ouvrir pour consulter et envoyer restent deux actions distinctes ; l'ouverture Codex conserve la configuration effective absolue.
+Pour poursuivre un avis, l'agent vérifie la conversation avant l'envoi et respecte votre préférence. Sans préférence enregistrée, il peut poursuivre avec Codex déjà utilisé, dans le cadre autorisé, en expliquant ses permissions habituelles : pas d'identifiant à recopier ni de fenêtre à fermer. Un choix explicite d'arrière-plan ou d'outils limités reste respecté. Une relecture reste sans modification quel que soit le parcours. Aucun basculement après refus d'envoi ; ouvrir pour consulter et envoyer restent distincts. Voir [Mode Relay](/fr/usage/relay).
 
 Ici, un agent Palabre est une entrée configurée reliée à un outil IA (par exemple Claude Code ou Codex) ou à Ollama, pas un modèle ni un sous-agent. Les rôles complètent Débat, Ask et Chat ; ils ne règlent pas Relay et n'accordent aucun droit.
 

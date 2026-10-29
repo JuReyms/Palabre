@@ -12,7 +12,7 @@ Avec le mode Relay, l'agent à qui vous parlez demande un avis à un autre outil
 
 - [PALABRE installé](/fr/get-started/installation), ainsi que Codex et Claude Code, chacun connecté avec son compte habituel.
 - Une [configuration approuvée](/fr/get-started/configuration#autres-réglages-et-approbation) : `palabre init` la crée et l'approuve ; `palabre doctor` vérifie l'ensemble sans interroger de modèle.
-- Le [skill Palabre](/fr/get-started/skill) installé dans l'agent à qui vous parlez, puis rechargé, ou une nouvelle conversation ouverte.
+- Le [skill Palabre](/fr/get-started/skill) accessible à votre assistant. Il peut relire les consignes du paquet courant avant la tâche, sans synchronisation ni redémarrage de votre part ; la découverte initiale du skill dépend de votre application.
 
 Ces préparations vous reviennent : un agent peut vous guider, mais c'est vous qui décidez et confirmez l'installation, la connexion et l'approbation. Votre demande et les fichiers lus partent vers l'outil choisi ; évitez les données sensibles pour cet essai.
 
@@ -41,21 +41,21 @@ Votre agent vous rend compte dans la conversation de départ :
 
 > Continue avec le même équipier : détaille le risque principal et propose une vérification simple, sans modifier de fichier.
 
-L'agent reprend la conversation créée à l'étape 1 : pas de nouvelle conversation, rien à recopier. Si l'équipier est Claude et que vous avez ouvert sa conversation pour la lire, fermez-la d'abord : l'envoi vers une conversation Claude ouverte n'est pas disponible.
+L'agent reprend la conversation créée à l'étape 1 : pas de nouvelle conversation, rien à recopier. Si Claude utilise déjà cette conversation, Relay peut ne pas pouvoir la joindre : votre agent explique le blocage et la suite possible, sans vous faire recopier son identifiant ni renvoyer la demande automatiquement.
 
 Dans une nouvelle conversation, votre agent n'a plus ce fil. Dites « Retrouve l'échange Relay récent sur la page Tarifs » : il consulte les exports et vous fait confirmer l'échange avant de continuer ([Retrouver un échange récent](/fr/usage/relay#retrouver-un-échange-récent)).
 
 ## Si ça bloque
 
 - **Configuration non approuvée** (`config-untrusted`) : rien n'est envoyé. Relisez le fichier indiqué, puis approuvez-le vous-même avec `palabre config --config <fichier> --trust-config`, en remplaçant `<fichier>` par le chemin indiqué (entre guillemets s'il contient des espaces), avant de redemander. L'agent ne l'approuve pas à votre place.
-- **Délivrance inconnue ou message sans réponse** (`unknown`, `persisted-no-reply`) : ne renvoyez pas la demande, elle est peut-être déjà arrivée. Vérifiez d'abord la conversation de l'équipier ou l'export ; PALABRE ne renvoie jamais automatiquement. Voir [Issue et délivrance](/fr/usage/relay#issue-et-délivrance).
+- **Délivrance inconnue ou message sans réponse** (`unknown`, `persisted-no-reply`) : ne renvoyez pas la demande, elle est peut-être déjà arrivée. Votre agent vérifie d'abord ce qui peut l'être dans la conversation ou l'export et vous explique ce qui est établi ; PALABRE ne renvoie jamais automatiquement. Voir [Issue et délivrance](/fr/usage/relay#issue-et-délivrance).
 - **L'équipier attend une autorisation** : votre agent ne peut pas la donner. Il vous dit où valider et s'arrête ; continuer sera une nouvelle demande de votre part.
 
 ## Choisir où travaille l'équipier
 
-**L'arrière-plan est le défaut** : l'équipier répond sans fenêtre, avec les outils limités décrits plus haut. Pour un avis sans modification comme celui-ci, votre agent le garde explicitement (`--background`).
+Ce premier essai crée un équipier en arrière-plan : il répond sans fenêtre, avec les outils limités décrits plus haut. Le CLI seul utilise aussi l’arrière-plan par défaut.
 
-Vous pouvez aussi désigner une conversation Codex que vous avez ouverte et demander d'y travailler. Ce choix explicite (`--open`) garde les outils et permissions de cette conversation, y compris l'écriture si elle est autorisée. Si une relecture en arrière-plan vise une conversation ouverte, rien n'est envoyé et votre agent ne bascule pas de lui-même vers ce parcours plus permissif : vous fermez la conversation, ou vous choisissez `--open` en connaissance de cause. En faire votre habitude est un réglage que vous confirmez vous-même, expliqué dans le [guide Relay complet](/fr/usage/relay).
+Pour la suite, dites simplement le travail attendu. L’agent vérifie comment joindre la même conversation et respecte votre préférence. Il peut poursuivre dans une conversation Codex déjà utilisée, après vérification et explication de ses permissions habituelles, quand le cadre autorisé le permet. La relecture reste sans modification. Si vous avez explicitement choisi l’arrière-plan, une dérogation reste votre décision ; si vous exigez des outils limités en lecture seule, ce parcours reste obligatoire. Aucun basculement ni renvoi après un refus d’envoi. Le [guide Relay complet](/fr/usage/relay) détaille ces choix.
 
 ## Aller plus loin
 

@@ -3,6 +3,7 @@ import type { Language } from "../types.js";
 import type { SkillSyncPlan, SkillSyncError } from "../skillSync.js";
 import { formatSkillPlan, skillSyncFailure } from "./skillSync.js";
 
+/** Diagnostic, confirmation et restitution du plan ; relire le paquet reste distinct d'une synchronisation. */
 export interface UpdateMessages {
   upToDate: string;
   automaticSourceOnly: string;
@@ -27,6 +28,7 @@ export interface UpdateMessages {
   }): string;
 }
 
+/** Textes localisés ; aucun message de réussite ne prouve le chargement du skill dans un agent. */
 export const updateMessages: Record<Language, UpdateMessages> = {
   fr: {
     upToDate: "PALABRE est a jour.",
@@ -38,7 +40,7 @@ export const updateMessages: Record<Language, UpdateMessages> = {
     skillPlan: (plan, afterUpdate) => formatSkillPlan(plan, "fr", afterUpdate),
     skillFailure: error => skillSyncFailure(error, "fr"),
     skillBackup: directory => `Sauvegarde du skill : ${directory}`,
-    skillReload: "Rechargez le skill ou reprenez la conversation de l'agent après le rafraîchissement.",
+    skillReload: "L'agent peut relire les consignes du paquet avec palabre skill --read --json avant sa prochaine tâche, sans synchronisation ni redémarrage supplémentaire de votre part.",
     skillAfterCliFailure: "La CLI a été mise à jour avec succès. Seul le rafraîchissement du skill a échoué : relancez Palabre, puis palabre skill --sync pour examiner un nouveau plan. Les copies illisibles restent intactes.",
     stepFailed: (command, args, exitCode) => `${command} ${args} a echoue avec le code ${exitCode}.`,
     instructions: (options) => formatInstructions("fr", options)
@@ -53,7 +55,7 @@ export const updateMessages: Record<Language, UpdateMessages> = {
     skillPlan: (plan, afterUpdate) => formatSkillPlan(plan, "en", afterUpdate),
     skillFailure: error => skillSyncFailure(error, "en"),
     skillBackup: directory => `Skill backup: ${directory}`,
-    skillReload: "Reload the skill or resume the agent conversation after refreshing it.",
+    skillReload: "The agent can reread the package's instructions with palabre skill --read --json before its next task, without asking you to synchronize or restart again.",
     skillAfterCliFailure: "The CLI was updated successfully. Only the skill refresh failed: restart Palabre, then run palabre skill --sync to inspect a new plan. Unreadable copies remain untouched.",
     stepFailed: (command, args, exitCode) => `${command} ${args} failed with exit code ${exitCode}.`,
     instructions: (options) => formatInstructions("en", options)

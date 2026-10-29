@@ -81,6 +81,16 @@ Il supporte :
 
 `idleTimeoutMs` doit rester optionnel pour les CLIs IA en mode batch. Certains modeles peuvent rester silencieux longtemps avant d'ecrire leur reponse ; dans ce cas, le timeout dur `timeoutMs` est le garde-fou principal.
 
+Attente et lecture tardive. `cliRuntimeProfile` (registre) donne 15 min à toute config OpenCode sans `timeoutMs` valide, arguments personnalisés compris. Il active la sortie `--format json` seulement pour le défaut exact `["run"]` sur stdin, sans `responseFormat`. Aucune écriture de config. La factory transmet ce profil et `configIdentity`, liée par `matchingConfigIdentity` dans `index.ts` au fichier approuvé et à l’objet effectivement chargé, y compris après les écritures TUI. Chat transmet les mêmes options aux réponses et consultations ; les reprises utilisent l’identité validée du checkpoint.
+
+`CliAdapter` appelle `AgentPrompt.onWaiting` toutes les 60 s ; le CLI l'écrit sur stderr. À l'échéance, pour ce profil, seul le client lancé est arrêté ; ailleurs, l'arbre est arrêté comme avant. `localExit` n'est confirmé que par `exit`/`close` sous 5 s, avec `remoteWork: unknown` et `resent: false`. Les handles locaux sont libérés même sans arrêt confirmé : aucun descendant ou service n’est tué pour libérer les pipes. `recovery` porte une référence opaque base64url (`opencodeJson.encodeRecoveryReference` : config canonique et SHA-256, commande, cwd, session et dernier message observés, empreinte du prompt, modèle ou `null`), ou une raison nommée.
+
+`palabre result --reference` (`src/commands/result.ts`) revérifie identité et approbation sans les accorder, puis la commande, le profil et le dossier. Il ne fait qu'une lecture `session export` bornée : UTF-8 strict, client seul arrêté. JSON `agent-result` v1 distinct, `sent: false`.
+
+Sortie `run` et export sont validés strictement : session unique, identifiants cohérents, dernier message annoncé, `idle` et `info.outcome` `succeeded`, `finish: stop`, `time.completed`, sans erreur. Seuls les messages `system` d'instructions sont tolérés. Tests : `tests/agent-wait-recovery.test.ts`, sur des CLIs simulées.
+
+Qualification Windows du 29 octobre 2026, OpenCode 2.0.32 : DeepSeek gratuit a lu un fichier de sonde et rendu le texte final attendu via `step_start`, `tool_use`, `step_finish`, `text`. Dans `tool_use`, `part.id` est l'identifiant opaque de l'appel d'outil et `part.partID` celui de la part (`prt_…`) ; les autres événements utilisent `part.id` pour la part. Une consultation antérieure terminée a aussi été relue par `result` avec correspondance exacte du prompt et du texte final, sans nouvel envoi ni appel de modèle. Cela ne qualifie pas les autres versions ou plateformes.
+
 `maxOutputBytes` protege le CLI contre les agents qui produisent une sortie enorme ou partent en boucle. Par defaut, les adapters CLI et PTY coupent a 50 Mio et levent `AdapterError("output-too-large")`. Le budget couvre stdout et stderr cumules : les deux flux sont bufferises en memoire par Palabre, et le flux PTY les fusionne de toute facon. C'est une protection memoire du process, pas seulement une limite sur la taille de la reponse.
 
 Une valeur `maxOutputBytes` invalide ne desactive jamais la protection : CLI, PTY et Ollama

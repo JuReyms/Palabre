@@ -48,11 +48,21 @@ Ces formes courtes suivent le mode effectif, `--mode` puis `defaults.mode`, exac
 
 ## Aide CLI
 
+`palabre result --reference <référence> --json` consulte une demande OpenCode batch exacte, sans envoi. Un seul objet `agent-result` v1 porte `status`, `exitCode`, `agent`, `session`, `sent: false`, `error` et, uniquement pour `replied`, `reply`. Codes : 0 réponse, 2 en cours/échec déclaré/illisible, 3 non-correspondance, 7 commande absente, 8 requête invalide, 130 annulation. La référence opaque reste locale ; elle contient l'identité de configuration et la corrélation, jamais le prompt. Les erreurs batch `timeout` gardent leur sens et ajoutent seulement des détails facultatifs : `waitedMs`, `stopRequested`, `localExit`, `remoteWork`, `resent`, `recovery`. Les indications d'attente sont assainies sur stderr, pas dans stdout JSON/NDJSON.
+
+Le champ JSON facultatif `skill` dans agents/check est un diagnostic de révision déclarée, indépendant du résultat métier. Pas de notice humaine répétée lorsque les révisions concordent. `skill --read --json` fournit un seul objet v1 sans habillage terminal ; seules les instructions du paquet sont lues, aucune cible CLI n'est lancée. Le texte ne remplace pas l'autorité humaine ni les garde-fous de l'hôte. Voir [le contrat de lecture du paquet](configuration.md#consignes-relues-dans-la-conversation).
+
 L'aide principale (`palabre -h`, `palabre help`) doit rester minimaliste, inspiree de l'aide Ollama : description courte, usage, demarrage rapide, commandes principales, flags essentiels, lien vers la documentation publique localisee (`https://palab.re/fr` ou `/en`) et mention `palabre [command] --help`.
 
 Ne pas transformer l'aide principale en reference complete. Les details doivent aller dans l'aide de commande (`palabre config --help`, `palabre init --help`, etc.) ou dans la documentation du site.
 
+Rappel du skill (`src/skillNotice.ts`) : après la sortie normale de l'aide et de `--version`, sur stderr seulement, quand stdin, stdout et stderr sont des TTY, hors `--json` et renderer NDJSON. Stdout reste identique. La comparaison réutilise `planSkillSync` avec le skill du paquet exécuté : lecture locale, sans réseau, écriture, configuration, registre de confiance ni agent. Le rappel apparaît seulement si une copie est `different` ou `unreadable`. Sa langue (option, environnement, langue enregistrée via `resolveCommandLanguage`) n'est résolue que si un rappel est affiché. Le texte distingue relecture des consignes par l’agent et synchronisation facultative des fichiers installés ; aucune liste obligatoire de manipulations ou de redémarrages.
+
+En terminal humain, l'accueil TUI ajoute le même texte à sa notice initiale à partir du plan de `getUpdateInfo`, sans nouvelle détection ni remplacement d'une notice existante. Relay et Mission (aiguillés avant), les sessions Chat et les commandes non interactives ne déclenchent aucune inspection supplémentaire pour ce rappel. Une erreur du rappel est ignorée. Pas de postinstall : [npm masque par défaut la sortie de ces scripts](https://docs.npmjs.com/cli/v11/commands/npm-install/#foreground-scripts).
+
 ## Rendu Console
+
+Relay Claude (#250) : `error.hint?` et la notice `handoff?` sont rendus sur stderr, assainis comme les autres textes. Stdout JSON reste un objet unique v1 ; les ajouts facultatifs ne changent ni statut ni délivrance. Le dictionnaire `messages.relay.claude` impose la même langue au refus, à la vérification et à la passation ; aucun second choix de langue au rendu. Détails et exclusions : [contrat Relay](relay.md#claude-déjà-utilisée-et-passation-locale-250).
 
 `src/renderers/console.ts` contient le rendu console historique. Le rendu TUI leger, utilise par defaut quand stdout est un TTY, est decoupe en quatre modules : `src/renderers/tui-theme.ts` (primitives visuelles : couleurs, boites, largeurs, liens), `src/renderers/tui-screens.ts` (ecrans plein terminal : accueil, aide, agents, roles, historique, config), `src/renderers/tui-prompts.ts` (entrees readline et commandes slash) et `src/renderers/tui-renderer.ts` (renderer des evenements de debat). `src/renderers/tui.ts` reste le point d'entree public qui re-exporte cette API ; les imports externes ne doivent viser que lui.
 

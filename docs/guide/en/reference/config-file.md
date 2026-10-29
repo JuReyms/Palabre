@@ -80,7 +80,7 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 | `tier` | `primary` / `local` | Agent class; no effect on its role instruction. |
 | `model` | string | Optional default model. |
 | `modelArg` | string | Optional model flag. |
-| `timeoutMs` | number | Global timeout in milliseconds, 180,000 by default for CLI/PTY. |
+| `timeoutMs` | number | Global timeout in milliseconds, 180,000 by default for CLI/PTY, 900,000 for OpenCode batch. |
 | `idleTimeoutMs` | number | Idle timeout. |
 | `maxOutputBytes` | number | Maximum combined stdout and stderr size, 50 MiB by default. |
 | `allowEmptyOutput` | boolean | Exceptionally allows an empty CLI text response; does not allow empty or invalid Antigravity JSON. |
@@ -114,4 +114,4 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 
 Use `palabre relay allow-repo owner/repository`: keyboard confirmation in your terminal, never by an agent. When `review` is allowed, the repository list cannot be empty.
 
-`tier` (`primary` / `local`) is optional for CLI and Ollama agents. `timeoutMs` is in milliseconds (180,000 by default for CLI/PTY, 300,000 in the Antigravity default). Relay ignores `shell`; adapters refuse a remaining shell wrapper for an argument prompt. `outputDir` defaults to `.palabre`; `.` is treated as `.palabre`. It also receives `.relay.md`; Mission keeps `.palabre/missions/<id>/` independently. The example above is a complete two-agent configuration, not the full generated agent set.
+`tier` (`primary` / `local`) is optional for CLI and Ollama agents. `timeoutMs` is in milliseconds (180,000 by default for CLI/PTY, 900,000 for OpenCode batch, 300,000 in the Antigravity default). Relay ignores `shell`; adapters refuse a remaining shell wrapper for an argument prompt. `outputDir` defaults to `.palabre`; `.` is treated as `.palabre`. It also receives `.relay.md`; Mission keeps `.palabre/missions/<id>/` independently. The example above is a complete two-agent configuration, not the full generated agent set.
