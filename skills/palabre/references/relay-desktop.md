@@ -20,15 +20,16 @@ attachment (attached/detached/unknown), reason, display toujours unverified et
 messageSent toujours false. attached/code 0 ne prouve ni surface, ni visibilité,
 ni changement de droits ; ne pas annoncer « affiché » sur cette seule base.
 Envoi séparé, tâche déjà autorisée et --open explicite après --check --open.
-Si l'avis doit rester sans modification, l'ouverture ne change pas la règle
---background. Consulter peut attacher la conversation : un --background est alors
-refusé (« encore utilisée par Codex »). Fermer la fenêtre peut ne pas suffire
-(retour macOS #250, app ChatGPT). Proposer à l'humain soit un nouvel envoi --open
-approuvé (permissions de la conversation, écriture comprise si autorisée), soit
-la libération de la conversation par lui ; jamais de repli automatique, de
-fermeture ni d'action sur le verrou par l'agent. Même identifiant ne veut pas dire
-même mode. Après une réponse en arrière-plan, l'app peut n'afficher le tour
-qu'après réouverture du lien exact ; aucune actualisation garantie.
+Une relecture sans modification n'impose pas --background : appliquer le choix
+avant envoi de relay.md, dans le cadre humain déjà autorisé. L'ouverture seule
+n'autorise toujours aucun envoi. Si des outils limités sont exigés, garder
+--background ; une préférence explicite d'arrière-plan exige une décision humaine
+pour y déroger, une fois par lot. Consulter peut attacher la conversation ;
+fermer sa fenêtre peut ne pas la libérer (retour macOS #250, app ChatGPT).
+Aucune fermeture ni action sur le verrou par l'agent, aucun repli après refus
+d'envoi. Même identifiant ne veut pas dire même mode. Après une réponse en
+arrière-plan, l'app peut n'afficher le tour qu'après réouverture du lien exact ;
+aucune actualisation garantie.
 Refus ou échéance : rapporter l'état, aucun retry ni envoi de substitution.
 
 Sous Windows, le seul code 1 d'Explorer est non concluant : launcher.status

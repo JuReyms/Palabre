@@ -275,8 +275,10 @@ Options :
   --pr <url>                  PR github.com exacte ; obligatoire avec --task review
   --open                      vise une conversation Codex ouverte (TUI ou Codex desktop), pour cet appel
   --background                force l'arrière-plan pour cet appel ; incompatible avec --open
-  Codex/Claude : pour un avis ou une relecture devant rester sans modification, passer --background :
-  réduction des droits pour cet appel, sans changer le réglage. Ne pas choisir le mode par habitude ailleurs.
+  Une relecture sans modification décrit la tâche ; des outils limités exigés imposent --background.
+  Codex existant : --check avant envoi, même cible/config. Respecter la préférence enregistrée.
+  Sans préférence enregistrée, cible attachée : --check --open puis --open dans le cadre déjà autorisé,
+  après explication des permissions habituelles. Aucun repli ni renvoi après refus d'envoi.
   --follow                    avec --open : ne dépose rien, attend le prochain tour terminé
   --then-follow <secondes>    après la réponse liée, écoute un seul tour supplémentaire (10 à 3600 s)
   --check                     vérifie mode, conversation et permissions connues, sans rien envoyer
@@ -347,9 +349,10 @@ Préférence du propriétaire :
   garantie d'affichage. Les réglages auto déjà enregistrés sont conservés.
   Verrou invérifiable : target-state-unknown, aucun envoi. Aucun repli après refus.
   Codex encore utilisé en arrière-plan (verrou tenu) : target-busy, rien envoyé. Fermer la fenêtre
-  peut laisser la conversation chargée (retour macOS #250). error.hint propose --check --open, puis
-  un NOUVEL envoi --open décidé par l'humain (permissions de la conversation), ou sa libération
-  par l'humain. Même identifiant ne veut dire ni même mode ni mêmes permissions ; aucune bascule.
+  peut laisser la conversation chargée (retour macOS #250). Sur vérification seule, sans préférence,
+  appliquer le choix préalable ci-dessus dans le cadre autorisé. Après refus d'envoi : arrêter,
+  sans renvoi automatique ; error.hint prépare une décision distincte, pas une relance.
+  Même identifiant ne veut dire ni même mode ni mêmes permissions ; aucune bascule.
   Après une réponse en arrière-plan, rouvrir le lien exact peut être nécessaire pour l'afficher.
   --open et --background priment sur le réglage sans le changer ; ensemble, refusés.
   --new, Mission, --task review, --write et Claude Code restent en arrière-plan.
@@ -930,8 +933,10 @@ Flags:
   --pr <url>                  exact github.com PR; required with --task review
   --open                      targets an open Codex conversation (TUI or Codex desktop), for this call
   --background                forces background for this call; incompatible with --open
-  Codex/Claude: for advice or a review that must not change files, pass --background:
-  fewer permissions for this call, without changing the setting. Do not choose the mode out of habit otherwise.
+  A review without changes describes the task; a requirement for limited tools forces --background.
+  Existing Codex: --check before sending, same target/config. Respect the saved preference.
+  No saved preference and attached target: --check --open then --open within existing authorization,
+  after explaining its usual permissions. No fallback or resend after a refused send.
   --follow                    with --open: queues nothing, waits for the next completed turn
   --then-follow <seconds>     after the correlated reply, listens for one more turn (10 to 3600 s)
   --check                     checks mode, conversation and known permissions, sends nothing
@@ -1000,9 +1005,10 @@ Owner's preference:
   display guarantee. Previously saved auto settings are preserved.
   Unverifiable lock: target-state-unknown, nothing sent. No fallback after refusal.
   Codex still in use in background (lock held): target-busy, nothing sent. Closing the window can
-  leave the conversation loaded (macOS report #250). error.hint suggests --check --open, then a NEW
-  --open send decided by the human (conversation permissions), or the human frees it. The same
-  identifier means neither the same mode nor the same permissions; no automatic switch.
+  leave the conversation loaded (macOS report #250). For a check alone with no saved preference,
+  use the prior choice above within existing authorization. After a refused send: stop,
+  without automatic resend; error.hint prepares a separate decision, not a retry.
+  The same identifier means neither the same mode nor the same permissions; no automatic switch.
   After a background reply, reopening the exact link may be needed to display it.
   --open and --background override the setting without changing it; both together are refused.
   --new, Mission, --task review, --write and Claude Code remain in background.

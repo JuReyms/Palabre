@@ -85,7 +85,7 @@ palabre agents
 
 Le point d'entrée présente les décisions et garde-fous communs ; l'agent charge ensuite la référence du parcours utile. Relay distingue les bases, l'ouverture/suivi Desktop, le pilote OpenCode et les fonctions gelées. Les détails des autres parcours ne sont pas chargés par défaut.
 
-Pour poursuivre un avis Codex/Claude sans modification, les recettes gardent `--background`, même si vous avez ouvert la conversation entre-temps : une cible occupée est refusée, sans basculement silencieux vers ses permissions. Ouvrir pour consulter et envoyer restent deux actions distinctes ; l'ouverture Codex conserve la configuration effective absolue.
+Pour poursuivre un avis, l'agent vérifie la conversation avant l'envoi et respecte votre préférence. Sans préférence enregistrée, il peut poursuivre avec Codex déjà utilisé, dans le cadre autorisé, en expliquant ses permissions habituelles : pas d'identifiant à recopier ni de fenêtre à fermer. Un choix explicite d'arrière-plan ou d'outils limités reste respecté. Une relecture reste sans modification quel que soit le parcours. Aucun basculement après refus d'envoi ; ouvrir pour consulter et envoyer restent distincts. Voir [Mode Relay](/fr/usage/relay).
 
 Ici, un agent Palabre est une entrée configurée reliée à un outil IA (par exemple Claude Code ou Codex) ou à Ollama, pas un modèle ni un sous-agent. Les rôles complètent Débat, Ask et Chat ; ils ne règlent pas Relay et n'accordent aucun droit.
 
