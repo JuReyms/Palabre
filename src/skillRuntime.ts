@@ -34,7 +34,7 @@ function revision(value: unknown): number | undefined {
   return Number.isSafeInteger(number) ? number : undefined;
 }
 
-/** Lit au plus 64 Kio + un octet par descripteur, même si le fichier grossit pendant la lecture. */
+/** Lit au plus 64 Kio + un octet ; préserve aussi le BOM dans le texte restitué, sans le confondre avec le frontmatter. */
 function readEntrypoint(file: string): string {
   const fd = openSync(file, "r");
   try {
@@ -47,7 +47,7 @@ function readEntrypoint(file: string): string {
       length += count;
     }
     if (length > MAX_SKILL_BYTES) throw Error("too-large");
-    return new TextDecoder("utf-8", { fatal: true }).decode(buffer.subarray(0, length));
+    return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(buffer.subarray(0, length));
   } finally { closeSync(fd); }
 }
 
@@ -73,9 +73,13 @@ export function inspectSkillRuntime(reported?: unknown, language: Language = "fr
       references[name] = file;
     }
     const instructions = readEntrypoint(entrypoint);
-    const frontmatter = instructions.replace(/\r\n/g, "\n").match(/^---\n([\s\S]*?)\n---(?:\n|$)/)?.[1];
-    const declared = frontmatter?.match(/^metadata:\n  revision: "([1-9]\d*)"$/m);
-    const expected = frontmatter?.match(/^metadata:$/gm)?.length === 1 ? revision(declared?.[1]) : undefined;
+    // Même structure que validate_skill.mjs : BOM optionnel, LF/CRLF, clôture --- seule,
+    // name/description/metadata.revision. Ne jamais accepter un préfixe de ligne de tirets.
+    const frontmatter = instructions.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").match(/^---\n([\s\S]*?)\n---(?:\n|$)/)?.[1];
+    const fields = frontmatter?.trim().split("\n").filter(Boolean);
+    const declared = fields?.length === 4 && fields[0]!.startsWith("name:") && fields[1]!.startsWith("description:") && fields[2] === "metadata:"
+      ? fields[3]!.match(/^  revision: "([1-9]\d*)"$/)?.[1] : undefined;
+    const expected = revision(declared);
     if (!expected) throw Error("revision");
     const loaded = revision(reported);
     const status = loaded === undefined ? "unverified" : loaded === expected ? "current" : "reload-required";

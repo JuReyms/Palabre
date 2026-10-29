@@ -38,12 +38,14 @@ test("révision absente, ancienne, actuelle et invalide : diagnostic déclaratif
 
 test("lecture complète Unicode/CRLF et chemins des références du paquet", t => {
   const f = fixture(t);
-  writeFileSync(f.file, f.content.replace(/\n/g, "\r\n"));
-  const result = inspectSkillRuntime("1", "en", { source: f.root, includeInstructions: true });
-  assert.equal(result.status, "reload-required");
-  assert.equal(result.instructions, readFileSync(f.file, "utf8"));
-  assert.equal(Object.keys(result.references!).length, 7);
-  assert.match(result.message!, /^Before preparing/);
+  for (const prefix of ["", "\uFEFF"]) {
+    writeFileSync(f.file, prefix + f.content.replace(/\n/g, "\r\n"));
+    const result = inspectSkillRuntime("1", "en", { source: f.root, includeInstructions: true });
+    assert.equal(result.status, "reload-required");
+    assert.equal(result.instructions, readFileSync(f.file, "utf8"), "BOM et fins de ligne restitués sans perte");
+    assert.equal(Object.keys(result.references!).length, 7);
+    assert.match(result.message!, /^Before preparing/);
+  }
 });
 
 test("source invalide ou incomplète : jamais current ni contenu de remplacement", t => {
