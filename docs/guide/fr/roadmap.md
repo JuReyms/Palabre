@@ -39,9 +39,12 @@ PALABRE propose quatre modes : **Débat**, **Relay**, **Ask** et **Chat**, avec 
 
 1. **Relay vers OpenCode, en CLI et en Desktop** : un autre point de vue avec des modèles gratuits ou locaux ([#136](https://github.com/JuReyms/Palabre/issues/136)).
 2. **Quotas** : afficher le quota restant de chaque agent et proposer des choix à l'humain ([#41](https://github.com/JuReyms/Palabre/issues/41)).
-3. **Relay vers une conversation Claude Code ouverte** ([#96](https://github.com/JuReyms/Palabre/issues/96)).
-4. **Lecture de Codex sous Windows** : apporter une solution aux lancements de commandes refusés signalés par `readAccess` ([#128](https://github.com/JuReyms/Palabre/issues/128)).
-5. **Agents locaux compatibles OpenAI** (llama.cpp, LM Studio…) pour Débat, Ask et Chat ([#120](https://github.com/JuReyms/Palabre/issues/120)).
+3. **Lecture de Codex sous Windows** : apporter une solution aux lancements de commandes refusés signalés par `readAccess` ([#128](https://github.com/JuReyms/Palabre/issues/128)).
+4. **Agents locaux compatibles OpenAI** (llama.cpp, LM Studio…) pour Débat, Ask et Chat ([#120](https://github.com/JuReyms/Palabre/issues/120)).
+
+## En exploration
+
+- **Relay vers une conversation Claude Code ouverte** : recherche d'un mécanisme officiel et d'une corrélation fiable des réponses ([#193](https://github.com/JuReyms/Palabre/issues/193)). Aucun délai ni garantie ; aujourd'hui, aucun envoi n'est possible vers une conversation Claude ouverte.
 
 ## Philosophie
 

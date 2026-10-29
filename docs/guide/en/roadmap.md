@@ -39,9 +39,12 @@ PALABRE offers four modes: **Debate**, **Relay**, **Ask** and **Chat**, with you
 
 1. **Relay to OpenCode, in the CLI and Desktop**: another viewpoint with free or local models ([#136](https://github.com/JuReyms/Palabre/issues/136)).
 2. **Quotas**: display each agent's remaining quota and offer choices to the human ([#41](https://github.com/JuReyms/Palabre/issues/41)).
-3. **Relay to an open Claude Code conversation** ([#96](https://github.com/JuReyms/Palabre/issues/96)).
-4. **Codex reading on Windows**: provide a solution to the refused command launches reported by `readAccess` ([#128](https://github.com/JuReyms/Palabre/issues/128)).
-5. **OpenAI-compatible local agents** (llama.cpp, LM Studio…) for Debate, Ask and Chat ([#120](https://github.com/JuReyms/Palabre/issues/120)).
+3. **Codex reading on Windows**: provide a solution to the refused command launches reported by `readAccess` ([#128](https://github.com/JuReyms/Palabre/issues/128)).
+4. **OpenAI-compatible local agents** (llama.cpp, LM Studio…) for Debate, Ask and Chat ([#120](https://github.com/JuReyms/Palabre/issues/120)).
+
+## Under exploration
+
+- **Relay to an open Claude Code conversation**: research into an official mechanism and reliable reply correlation ([#193](https://github.com/JuReyms/Palabre/issues/193)). No timeline or guarantee; sending to an open Claude conversation is not possible today.
 
 ## Philosophy
 

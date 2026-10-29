@@ -26,6 +26,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 - Contrat JSON Relay v1 : `palabre agents --json` expose désormais `defaults.relayView: "background"` lorsque la configuration ne contient pas `relay.view` (auparavant `auto`). Nouvelle valeur `modeSource: "default"` pour le défaut d'une reprise Codex ordinaire ; `setting` reste réservé à `background` enregistré. Les autres sources et les parcours exclus conservent leur sens ; les consommateurs tolèrent la nouvelle valeur sans l'assimiler à une réussite.
 - Conseils Relay : sur cible ouverte, choix ponctuel avant réglage habituel facultatif, refus aérés et absence de `remedy` machine au défaut. Le réglage permanent reste confirmé par le propriétaire ; l'aperçu distingue défaut et valeur enregistrée. Sélection de la sonde centralisée ; cas sans préférence vers `auto` et `--then-follow` couverts sur profils fictifs.
 
+- Documentation : page Premier Relay raccourcie autour d'un premier échange autonome, du résultat attendu et de sa suite ; la roadmap place l'envoi vers Claude ouverte en exploration (#193), sans délai ni garantie. Fiches préparées pour les essais manuels du paquet npm 0.21.0 sur Mac et du parcours débutant sur CoolMaster ; aucun résultat mesuré.
+
 ### Fixed
 
 - Lecture du skill : validateur et runtime acceptent les mêmes délimiteurs de frontmatter, avec BOM UTF-8 initial facultatif et LF/CRLF ; une ligne de cinq tirets n'est plus assimilée à une clôture. Le texte restitué conserve le BOM et les fins de ligne. Correction issue de la revue GLM de la PR #253, couverte par un test croisé.
