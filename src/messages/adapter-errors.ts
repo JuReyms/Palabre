@@ -13,6 +13,13 @@ export interface AdapterErrorMessages {
   openCodePureRemoved(adapterName: string): string;
   /** JSON Antigravity inconnu, erroné ou sans réponse : aucun repli texte. */
   invalidAntigravityJson(adapterName: string): string;
+  /**
+   * Échéance d'un appel : attente arrêtée, arrêt local confirmé ou non, travail distant inconnu,
+   * aucun renvoi ; commande de lecture sûre quand une référence exacte existe.
+   */
+  waitTimeout(adapterName: string, timeoutMs: number, localExit: "confirmed" | "unconfirmed", recoverable: boolean, command?: string): string;
+  /** Sortie `opencode run --format json` non reconnue : aucun repli texte. */
+  invalidOpenCodeJson(adapterName: string): string;
   /** Format configuré inconnu : refus avant tout lancement. */
   invalidResponseFormat(adapterName: string): string;
   /** Refus de transmettre un prompt non fiable via un wrapper shell Windows. */
@@ -43,10 +50,14 @@ export interface AdapterErrorMessages {
   ollamaUnloadFailed(model: string, status: number): string;
 }
 
+/** Durée lisible : secondes sous deux minutes, minutes au-delà. */
+const frDuration = (ms: number) => ms < 120_000 ? `${Math.round(ms / 1000)} s` : `${Math.round(ms / 60_000)} min`;
+const enDuration = (ms: number) => ms < 120_000 ? `${Math.round(ms / 1000)} s` : `${Math.round(ms / 60_000)} min`;
+
 const frHints: Partial<Record<AdapterFailureKind, string>> = {
   "command-not-found": "Verifie que la CLI est installee, authentifiee et disponible dans le PATH.",
   "spawn-failed": "Sur Windows, préfère un exécutable natif. Réserve \"shell\": true aux wrappers qui lisent le prompt sur stdin.",
-  timeout: "Augmente timeoutMs ou teste la commande directement dans le terminal.",
+  timeout: "Ne renvoie pas la demande sans vérifier : la réponse peut encore arriver chez l'outil. Augmente timeoutMs si cet outil répond souvent lentement, ou teste la commande dans le terminal.",
   "idle-timeout": "Desactive idleTimeoutMs pour les CLIs IA qui restent silencieuses pendant la generation.",
   "output-too-large": "Reduis le contexte, le nombre de tours ou configure maxOutputBytes pour cet agent si ce volume est attendu.",
   "empty-output": "Teste la commande en dehors de Palabre et verifie que le prompt est bien lu via stdin ou argument.",
@@ -61,7 +72,7 @@ const frHints: Partial<Record<AdapterFailureKind, string>> = {
 const enHints: Partial<Record<AdapterFailureKind, string>> = {
   "command-not-found": "Check that the CLI is installed, authenticated, and available in PATH.",
   "spawn-failed": "On Windows, prefer a native executable. Use \"shell\": true only for wrappers that read the prompt from stdin.",
-  timeout: "Increase timeoutMs or test the command directly in the terminal.",
+  timeout: "Do not resend the request without checking: the reply may still arrive in the tool. Increase timeoutMs if this tool often replies slowly, or test the command in the terminal.",
   "idle-timeout": "Disable idleTimeoutMs for AI CLIs that stay silent while generating.",
   "output-too-large": "Reduce context, turn count, or configure maxOutputBytes for this agent if this volume is expected.",
   "empty-output": "Test the command outside Palabre and check that the prompt is read through stdin or an argument.",
@@ -75,6 +86,11 @@ const enHints: Partial<Record<AdapterFailureKind, string>> = {
 
 export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
   fr: {
+    waitTimeout: (name, timeoutMs, localExit, recoverable, command) =>
+      `${name} n'a pas répondu dans le délai prévu (${frDuration(timeoutMs)}). Palabre a cessé d'attendre et a demandé l'arrêt du programme local (${localExit === "confirmed" ? "arrêt local confirmé" : "arrêt local non confirmé"}). Palabre ne sait pas si le travail continue chez l'outil ; rien n'a été renvoyé, et ce délai ne prouve pas un échec du modèle.`
+      + (command ? ` Pour lire plus tard la réponse de cette demande précise, sans la renvoyer : ${command}`
+        : recoverable ? " Aucune référence de lecture sûre n'est disponible : la réponse ne peut pas être retrouvée automatiquement ; vérifiez dans l'outil avant tout nouvel envoi." : ""),
+    invalidOpenCodeJson: (name) => `${name} : sortie JSON OpenCode non reconnue (attendu : opencode run --format json, version qualifiée 2.0.32). Aucun repli texte ; rien n'a été renvoyé.`,
     invalidAntigravityJson: (name) => `${name} : réponse JSON Antigravity invalide, en erreur ou vide. Vérifie la version avec agy --help et les arguments --output-format json --print ; seul un objet avec status SUCCESS et response non vide est accepté. Aucun repli texte ou PTY.`,
     invalidResponseFormat: (name) => `${name} : responseFormat invalide pour cet adapter. Configure "text" ou "antigravity-json" avec "type": "cli", ou retire responseFormat pour conserver ton transport.`,
     suggestionPrefix: "Suggestion",
@@ -103,6 +119,11 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
     ollamaUnloadFailed: (model, status) => `Impossible de décharger le modèle Ollama ${model}: HTTP ${status}`
   },
   en: {
+    waitTimeout: (name, timeoutMs, localExit, recoverable, command) =>
+      `${name} did not reply within the planned time (${enDuration(timeoutMs)}). Palabre stopped waiting and requested that the local program stop (${localExit === "confirmed" ? "local stop confirmed" : "local stop not confirmed"}). Palabre does not know whether the work continues in the tool; nothing was resent, and this delay does not prove the model failed.`
+      + (command ? ` To read this exact request's reply later, without resending it: ${command}`
+        : recoverable ? " No safe reading reference is available: the reply cannot be found automatically; check in the tool before any new send." : ""),
+    invalidOpenCodeJson: (name) => `${name}: unrecognized OpenCode JSON output (expected: opencode run --format json, qualified version 2.0.32). No text fallback; nothing was resent.`,
     invalidAntigravityJson: (name) => `${name}: invalid, failed or empty Antigravity JSON response. Check the version with agy --help and the --output-format json --print arguments; only an object with status SUCCESS and a nonempty response is accepted. No text or PTY fallback.`,
     invalidResponseFormat: (name) => `${name}: invalid responseFormat for this adapter. Configure "text" or "antigravity-json" with "type": "cli", or remove responseFormat to keep your transport.`,
     suggestionPrefix: "Suggestion",

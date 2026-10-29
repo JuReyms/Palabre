@@ -1,5 +1,6 @@
 /** @file Aide CLI FR/EN : options, prochaines étapes et limites de chaque commande. */
 import type { Language } from "../types.js";
+import { agentResultText } from "./agentResult.js";
 
 /** Rendu de l'aide globale et des commandes, sans lancer d'agent ni modifier de configuration. */
 export interface HelpMessages {
@@ -8,9 +9,12 @@ export interface HelpMessages {
 }
 
 const frCommandHelp: Record<string, string> = {
+  result: agentResultText("fr").help,
   skill: `
 Garde le skill installé aligné sur le paquet de la CLI exécutée, sans réseau ni config.
   palabre skill                        affiche l'état et le plan, sans écrire
+  palabre skill --read --json          lit les consignes du paquet exécuté, sans config ni installation
+  --skill-revision <révision>          avec --read --json : révision réellement lue, facultative
   palabre skill --sync                 rafraîchit les copies détectées après confirmation
   palabre skill --install codex        installe dans ~/.agents/skills/palabre
   palabre skill --install claude       installe dans ~/.claude/skills/palabre
@@ -23,7 +27,9 @@ Sans copie différente, --sync et --install ne demandent aucun accord et n'écri
 Si la CLI est mise à jour mais pas le skill, le message le précise : palabre skill --sync.
 La source est skills/palabre du paquet courant ; aucun suivi de GitHub main.
 L'agent ne lance pas --sync, --install ou update sans accord humain sur ces instructions.
-Après rafraîchissement, rechargez le skill ou reprenez la conversation de l'agent.
+L'agent peut relire le paquet et poursuivre sans synchronisation ni redémarrage de votre part.
+agents --json et relay --check exposent skill ; --skill-revision compare la révision déclarée.
+current indique des révisions identiques, pas un chargement prouvé. Aucun droit ajouté.
 `,
   mission: `
 Un chef de mission appelle son équipier en arrière-plan ; vous prenez les décisions.
@@ -275,14 +281,18 @@ Options :
   --pr <url>                  PR github.com exacte ; obligatoire avec --task review
   --open                      vise une conversation Codex ouverte (TUI ou Codex desktop), pour cet appel
   --background                force l'arrière-plan pour cet appel ; incompatible avec --open
-  Codex/Claude : pour un avis ou une relecture devant rester sans modification, passer --background :
-  réduction des droits pour cet appel, sans changer le réglage. Ne pas choisir le mode par habitude ailleurs.
+  Une relecture sans modification décrit la tâche ; des outils limités exigés imposent --background.
+  Codex existant : --check avant envoi, même cible/config. Respecter la préférence enregistrée.
+  Sans préférence enregistrée, cible attachée : --check --open puis --open dans le cadre déjà autorisé,
+  après explication des permissions habituelles. Aucun repli ni renvoi après refus d'envoi.
   --follow                    avec --open : ne dépose rien, attend le prochain tour terminé
   --then-follow <secondes>    après la réponse liée, écoute un seul tour supplémentaire (10 à 3600 s)
   --check                     vérifie mode, conversation et permissions connues, sans rien envoyer
+  --skill-revision <révision>
+                              avec --check seulement : compare les consignes déclarées, sans envoi
   --timeout <secondes>        délai maximal, de 10 à 3600 (défaut : 600)
   --json                      sortie JSON v1 pour les intégrations
-  --no-export                 n'écrit pas l'export .relay.md
+  --no-export                 n'écrit ni l'export .relay.md ni la passation .handoff.md
   --config <chemin>           chemin de config explicite
   --trust-config              approuve la config résolue (aucune question n'est posée)
   --language <fr|en>          force la langue
@@ -290,6 +300,14 @@ Options :
 Message exact : pour un envoi ordinaire, le texte complet, enveloppe comprise, est conservé
 dans l'export et son chemin est annoncé. Avec --no-export, Palabre n'en garde pas de copie
 locale ; l'outil IA peut la garder. Cette trace ne prouve pas la réception et n'inclut pas tout le contexte de l'outil.
+
+Conversation Claude déjà utilisée (#250) : target-busy, code 3, rien envoyé. Un processus
+Claude (app, terminal ou intégration) y est attaché, même au repos ; ni l'affichage ni une
+génération en cours n'en sont déduits. Répondre à une demande reçue dans le même tour ;
+sinon passation via l'humain, ou --check puis décision d'un nouvel envoi (error.hint).
+Envoi ordinaire seulement : corps original gardé dans <sortie>/palabre-handoff-….handoff.md,
+NON ENVOYÉ, jamais renvoyé ni notifié (JSON handoff) ; exportPath reste null. Avec --no-export,
+rien n'est écrit. Mêmes règles de confidentialité que les exports.
 
 Retrouver un échange Relay (#206) :
   palabre relay recent [--limit 1-100] [--json] [--config <chemin>] [--language fr|en]
@@ -338,8 +356,12 @@ Préférence du propriétaire :
   libre -> arrière-plan. Une conversation quittée mais encore chargée compte comme ouverte, sans
   garantie d'affichage. Les réglages auto déjà enregistrés sont conservés.
   Verrou invérifiable : target-state-unknown, aucun envoi. Aucun repli après refus.
-  Cible ouverte en arrière-plan : target-busy, rien envoyé ; --open permet un choix pour cet échange,
-  après explication des permissions ; seul le propriétaire décide après un refus --background.
+  Codex encore utilisé en arrière-plan (verrou tenu) : target-busy, rien envoyé. Fermer la fenêtre
+  peut laisser la conversation chargée (retour macOS #250). Sur vérification seule, sans préférence,
+  appliquer le choix préalable ci-dessus dans le cadre autorisé. Après refus d'envoi : arrêter,
+  sans renvoi automatique ; error.hint prépare une décision distincte, pas une relance.
+  Même identifiant ne veut dire ni même mode ni mêmes permissions ; aucune bascule.
+  Après une réponse en arrière-plan, rouvrir le lien exact peut être nécessaire pour l'afficher.
   --open et --background priment sur le réglage sans le changer ; ensemble, refusés.
   --new, Mission, --task review, --write et Claude Code restent en arrière-plan.
   Le propriétaire lance palabre config --relay-view <auto|background> : chemin/changement affichés,
@@ -653,9 +675,12 @@ Options :
 };
 
 const enCommandHelp: Record<string, string> = {
+  result: agentResultText("en").help,
   skill: `
 Keeps installed skills aligned with the running CLI package, without network or config.
   palabre skill                        shows status and plan without writing
+  palabre skill --read --json          reads the running package's instructions, no config or installation
+  --skill-revision <revision>          with --read --json: revision actually read, optional
   palabre skill --sync                 refreshes detected copies after confirmation
   palabre skill --install codex        installs into ~/.agents/skills/palabre
   palabre skill --install claude       installs into ~/.claude/skills/palabre
@@ -668,7 +693,9 @@ Without a different copy, --sync and --install do not ask for consent or write a
 If the CLI updates but the skill fails, the message says so: palabre skill --sync.
 The source is the running package's skills/palabre, never GitHub main.
 Agents must not run --sync, --install or update without human consent for these instructions.
-Reload the skill or resume the agent conversation after refreshing it.
+The agent can reread the package and continue without asking you to synchronize or restart.
+agents --json and relay --check expose skill; --skill-revision compares the declared revision.
+current means matching revisions, not proven loading. No additional authority.
 `,
   mission: `
 A mission lead calls a teammate in the background; you make the decisions.
@@ -919,14 +946,18 @@ Flags:
   --pr <url>                  exact github.com PR; required with --task review
   --open                      targets an open Codex conversation (TUI or Codex desktop), for this call
   --background                forces background for this call; incompatible with --open
-  Codex/Claude: for advice or a review that must not change files, pass --background:
-  fewer permissions for this call, without changing the setting. Do not choose the mode out of habit otherwise.
+  A review without changes describes the task; a requirement for limited tools forces --background.
+  Existing Codex: --check before sending, same target/config. Respect the saved preference.
+  No saved preference and attached target: --check --open then --open within existing authorization,
+  after explaining its usual permissions. No fallback or resend after a refused send.
   --follow                    with --open: queues nothing, waits for the next completed turn
   --then-follow <seconds>     after the correlated reply, listens for one more turn (10 to 3600 s)
   --check                     checks mode, conversation and known permissions, sends nothing
+  --skill-revision <revision>
+                              with --check only: compares declared instructions, sends nothing
   --timeout <seconds>         maximum duration, 10 to 3600 (default: 600)
   --json                      JSON v1 output for integrations
-  --no-export                 does not write the .relay.md export
+  --no-export                 writes neither the .relay.md export nor the .handoff.md handoff
   --config <path>             explicit config path
   --trust-config              trusts the resolved config (no question is asked)
   --language <fr|en>          force language
@@ -934,6 +965,14 @@ Flags:
 Exact message: for an ordinary send, the complete text, including envelope, is kept in the
 export and its path is displayed. With --no-export, Palabre saves no local copy; the AI tool
 may retain one. This record does not prove receipt or include the tool's entire context.
+
+Claude conversation already in use (#250): target-busy, code 3, nothing sent. A Claude process
+(app, terminal or integration) is attached, even idle; neither display nor a running generation
+is inferred. Answer a received request in the same turn; otherwise pass the handoff on through
+the human, or --check then decide on a new send (error.hint). Ordinary sends only: the original
+body is kept in <output>/palabre-handoff-….handoff.md, NOT SENT, never resent or notified
+(JSON handoff); exportPath stays null. With --no-export, nothing is written. Same privacy
+rules as exports.
 
 Find a Relay exchange (#206):
   palabre relay recent [--limit 1-100] [--json] [--config <path>] [--language fr|en]
@@ -980,8 +1019,12 @@ Owner's preference:
   free -> background. A conversation you left that is still loaded counts as open, with no
   display guarantee. Previously saved auto settings are preserved.
   Unverifiable lock: target-state-unknown, nothing sent. No fallback after refusal.
-  Open target in background: target-busy, nothing sent; --open is a choice for this exchange,
-  after explaining permissions; only the owner decides after a --background refusal.
+  Codex still in use in background (lock held): target-busy, nothing sent. Closing the window can
+  leave the conversation loaded (macOS report #250). For a check alone with no saved preference,
+  use the prior choice above within existing authorization. After a refused send: stop,
+  without automatic resend; error.hint prepares a separate decision, not a retry.
+  The same identifier means neither the same mode nor the same permissions; no automatic switch.
+  After a background reply, reopening the exact link may be needed to display it.
   --open and --background override the setting without changing it; both together are refused.
   --new, Mission, --task review, --write and Claude Code remain in background.
   The owner runs palabre config --relay-view <auto|background>: file/change displayed,
@@ -1324,6 +1367,7 @@ Commandes :
   presets    Lister les paires d'agents
   history    Lister les exports
   resume     Reprendre un Débat ou un Ask avec checkpoint
+  result     Relire une réponse OpenCode après un délai dépassé
   sessions   Lister ou supprimer les checkpoints
   context    Scanner les fichiers du projet
   config     Modifier les paramètres par défaut
@@ -1385,6 +1429,7 @@ Commands:
   presets    List agent pairs
   history    List exports
   resume     Resume a Debate or Ask checkpoint
+  result     Read an OpenCode reply after a timeout
   sessions   List or delete checkpoints
   context    Scan project files
   config     Edit default settings

@@ -55,6 +55,7 @@ L'accueil TUI applique la même synchronisation prudente des agents connus que `
 | `palabre run --subject "Sujet" --agent-a codex --agent-b claude` | Lance avec des agents explicites. |
 | `palabre run --subject "Sujet" --agent-a codex --agent-b claude --role-a architect --role-b critic` | Lance avec des rôles temporaires. |
 | `palabre ask "Sujet" --agents codex claude` | Lance une demande avec des réponses indépendantes. |
+| `palabre result --reference <référence> --json` | Relit sans renvoi la réponse d'une demande OpenCode dont l'attente a expiré ; la référence vient de l'erreur de délai et garde la configuration approuvée de l'envoi. |
 | `palabre chat --agent-a codex` | Ouvre une conversation suivie avec un seul agent. |
 
 ## Reprendre une session

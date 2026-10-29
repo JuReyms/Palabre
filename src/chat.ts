@@ -1,6 +1,6 @@
 /** @file Noyau stateless de conversation et de consultation entre agents. */
 import { createAgent } from "./adapters/index.js";
-import type { AgentConfig, AgentRole, ChatAvailableAgent, DebateMessage, Language, ProjectFileContext, SessionContext } from "./types.js";
+import type { AgentConfig, AgentRole, AgentWaitingEvent, ChatAvailableAgent, DebateMessage, Language, ProjectFileContext, SessionContext } from "./types.js";
 import type { AgentRuntimeOptions } from "./adapters/index.js";
 
 const RETAINED_MESSAGES = 6;
@@ -17,6 +17,8 @@ export interface ChatTurnInput {
   session: SessionContext;
   files: ProjectFileContext[];
   signal?: AbortSignal;
+  /** Le rendu de l'appelant reçoit l'attente locale, jamais une estimation du travail distant. */
+  onWaiting?: (event: AgentWaitingEvent) => void;
 }
 
 export interface ConsultationInput extends Omit<ChatTurnInput, "userMessage"> {
@@ -51,7 +53,8 @@ export async function runStatelessChatResponse(input: ChatTurnInput, transcript:
     files: input.files,
     transcript: retainRecentMessages(transcript),
     availableAgents: input.availableAgents,
-    signal: input.signal
+    signal: input.signal,
+    onWaiting: input.onWaiting
   });
   return { agent: input.agentName, role: adapter.role, content: response.content, createdAt: new Date().toISOString() };
 }
@@ -73,7 +76,8 @@ export async function runStatelessConsultation(input: ConsultationInput): Promis
     transcript: retainRecentMessages(input.transcript),
     availableAgents: input.availableAgents,
     consultationRequester: input.requesterName,
-    signal: input.signal
+    signal: input.signal,
+    onWaiting: input.onWaiting
   });
   return { agent: input.agentName, role: adapter.role, content: response.content, createdAt: new Date().toISOString() };
 }

@@ -38,13 +38,15 @@ for (const file of requiredFiles) {
 
 const skill = files.get("SKILL.md");
 if (skill) {
-  const frontmatter = skill.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  // Même délimitation que skillRuntime.ts ; le budget garde le texte original, BOM compris.
+  const normalized = skill.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n");
+  const frontmatter = normalized.match(/^---\n([\s\S]*?)\n---(?:\n|$)/);
   if (!frontmatter) {
     fail("SKILL.md must start with YAML frontmatter");
   } else {
     const fields = frontmatter[1].trim().split(/\r?\n/).filter(Boolean);
-    if (fields.length !== 2 || !fields[0].startsWith("name:") || !fields[1].startsWith("description:")) {
-      fail("SKILL.md frontmatter must contain only name and description");
+    if (fields.length !== 4 || !fields[0].startsWith("name:") || !fields[1].startsWith("description:") || fields[2] !== "metadata:" || !/^  revision: "[1-9]\d*"$/.test(fields[3]) || !Number.isSafeInteger(Number(fields[3].match(/"(\d+)"/)?.[1]))) {
+      fail("SKILL.md frontmatter requires name, description and a positive safe metadata.revision");
     } else {
       const description = fields[1].slice("description:".length).trim();
       if (description.length > MAX_DESCRIPTION_LENGTH) fail(`description exceeds ${MAX_DESCRIPTION_LENGTH} characters`);
@@ -52,12 +54,17 @@ if (skill) {
       for (const route of ["Chat", "Débat", "Ask", "Relay"]) {
         if (!description.includes(route)) fail(`description must mention the ${route} route`);
       }
+      const revision = fields[3].match(/"(\d+)"/)?.[1];
+      const declarations = [...skill.matchAll(/--skill-revision (\d+)/g)];
+      if (!declarations.length || !declarations.every(match => match[1] === revision)) {
+        fail("SKILL.md recipes must declare metadata.revision, not a different revision");
+      }
     }
   }
 
   if (skill.split(/\r?\n/).length > MAX_SKILL_LINES) fail(`SKILL.md exceeds ${MAX_SKILL_LINES} lines; move details to references`);
   if (skill.length > MAX_SKILL_CHARACTERS) fail(`SKILL.md exceeds ${MAX_SKILL_CHARACTERS} characters; move conditional detail to references`);
-  const body = skill.slice(frontmatter?.[0].length ?? 0);
+  const body = normalized.slice(frontmatter?.[0].length ?? 0);
   if (body.split(/\r?\n\s*\r?\n|\r?\n(?=- )/).some(paragraph => paragraph.length > MAX_BODY_PARAGRAPH_CHARACTERS)) {
     fail(`SKILL.md has a paragraph exceeding ${MAX_BODY_PARAGRAPH_CHARACTERS} characters`);
   }

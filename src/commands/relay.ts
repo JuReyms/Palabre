@@ -21,6 +21,8 @@
  *
  * `--check` (#203) fait les mêmes contrôles qu'un envoi jusqu'à l'état de la conversation, puis
  * s'arrête : ni enveloppe, ni processus de la CLI cible, ni export. Issue `checked` ou refus identique.
+ * Sa métadonnée facultative skill compare seulement une révision déclarée au paquet exécuté,
+ * sans modifier l'issue ; --skill-revision est interdit sur un envoi ou un suivi.
  * --then-follow <secondes> ajoute un suivi après la réponse corrélée, sans second dépôt. Le résultat
  * primaire reste distinct de nextTurn, y compris après une échéance ou annulation secondaire.
  *
@@ -31,6 +33,12 @@
  * cette métadonnée de présentation ne fait pas partie du résultat JSON ni de l'export.
  * `relay recent` consulte seulement les en-têtes des exports du dossier configuré ; résultat
  * distinct, sans choix, ouverture, envoi ou modification du contrat d'échange ci-dessous.
+ *
+ * #250 : une cible Claude attachée (`target-busy`) reçoit un refus en mots simples et un
+ * `error.hint` facultatif, pour l'envoi ordinaire et `--check` seulement. Un envoi ordinaire ainsi
+ * refusé avant échange garde son corps original dans une passation locale `.handoff.md`
+ * (`handoff?`), distincte de l'export et jamais renvoyée. Sondes, statuts, codes et parcours gelés
+ * inchangés.
  */
 import { readFile, realpath, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -85,6 +93,8 @@ import type { ThenFollowReport } from "../externalSessions/openRelay.js";
 import { relayViewCommand } from "./relayView.js";
 import { runRelayOpenCommand } from "./relayOpen.js";
 import { runRelayRecentCommand } from "./relayRecent.js";
+import { saveRelayHandoff, type RelayHandoffReport } from "../relayHandoff.js";
+import { inspectSkillRuntime, type SkillRuntimeInfo } from "../skillRuntime.js";
 
 /** Timeout par défaut et bornes de `--timeout`, en secondes. */
 export const DEFAULT_RELAY_TIMEOUT_SECONDS = 600;
@@ -92,7 +102,7 @@ export const MIN_RELAY_TIMEOUT_SECONDS = 10;
 export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 
 /** Options de `palabre relay` qui attendent une valeur. */
-const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "then-follow", "config", "language", "task", "pr", "subject", "dir", "reference", "exchange", "model"]);
+const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "then-follow", "config", "language", "task", "pr", "subject", "dir", "reference", "exchange", "model", "skill-revision"]);
 /** Options de `palabre relay` sans valeur. */
 const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "background", "new", "write", "follow", "check", "copy"]);
 /** Alias acceptés, comme pour les autres commandes. */
@@ -103,9 +113,10 @@ export type RelayMode = "background" | "open" | "follow" | "copy";
 
 /**
  * Rapport de `--check` (#203), présent sur tout résultat de vérification, réussi ou refusé.
- * `target` n'est connu qu'une fois la conversation retrouvée et sondée. En mode ouvert,
- * `lastPermissions` vient du dernier `turn_context` lisible à la fin de l'historique : c'est
- * une indication, pas une garantie pour le tour suivant.
+ * `target` n'est connu qu'une fois la conversation retrouvée et sondée. En mode ouvert, ou pour
+ * un Codex encore utilisé en arrière-plan (`target-busy`, #250), `lastPermissions` vient du
+ * dernier `turn_context` lisible à la fin de l'historique : c'est une indication datée, pas une
+ * garantie pour le tour suivant, et jamais `targetPermissions` (réservé au tour ouvert corrélé).
  */
 export interface RelayCheckReport {
   /** Dernier relevé de quota daté de Codex, indicatif ; absent si non reconnu ou indisponible. */
@@ -121,6 +132,8 @@ export interface RelayCheckReport {
  * NDJSON : un ajout optionnel ne change pas `v`.
  */
 export interface RelayResultV1 {
+  /** Précontrôle seulement : révision déclarative du skill, sans effet sur issue/délivrance/droits. */
+  skill?: SkillRuntimeInfo;
   /** Relevé indicatif lu après un envoi ouvert vers Codex ; pas un quota attribué à ce seul tour. */
   quota?: CodexQuota;
   /** Suite facultative de --then-follow, distincte de reply et de la délivrance primaire. */
@@ -160,8 +173,17 @@ export interface RelayResultV1 {
   delivery: DeliveryVerdict;
   identity: SessionIdentity | null;
   observedModels: string[];
-  error: { kind: RelayStatus; message: string; reason?: InvalidRequestReason } | null;
+  /**
+   * `hint?` (#250, ajout facultatif v1) : conseil humain, sans commande à exécuter automatiquement ;
+   * présent aujourd'hui pour une conversation Claude déjà utilisée (envoi ordinaire, `--check`).
+   */
+  error: { kind: RelayStatus; message: string; reason?: InvalidRequestReason; hint?: string } | null;
   exportPath: string | null;
+  /**
+   * #250 (ajout facultatif v1) : passation locale d'un envoi ordinaire vers Claude refusé avant
+   * échange. Jamais une délivrance, un export `.relay.md` ni un succès ; `exportPath` reste `null`.
+   */
+  handoff?: RelayHandoffReport;
   durationMs: number;
   /**
    * Mode de l'échange, émis à chaque résultat (#190). Ajout facultatif du contrat v1 : les
@@ -228,6 +250,8 @@ interface RelayContext {
   /** `--check` (#203) : contrôles d'avant envoi seulement, et leur rapport. */
   check?: boolean;
   checkReport?: RelayCheckReport;
+  /** Révision déclarée au précontrôle seulement ; aucune preuve de lecture dans le modèle. */
+  skillRevision?: string;
   newSession?: boolean;
   cwd?: string;
   /**
@@ -235,11 +259,17 @@ interface RelayContext {
    * donc que son lien Desktop a un sens (#190). Jamais déduit du statut final.
    */
   targetLocated?: boolean;
+  /**
+   * #250 : posé seulement après validation de la config, de l'identité et de l'enveloppe d'un
+   * envoi ordinaire vers une conversation Claude existante, avant la sonde. Utilisé uniquement
+   * par le catch externe pour un refus `target-busy` survenu avant tout échange.
+   */
+  pendingHandoff?: { outputDir: string; enabled: boolean; message: string; to: { agent: string; session: string } };
 }
 
-/** Erreur de validation : arrête le relay avec un refus avant lancement. */
+/** Erreur de validation : arrête le relay avec un refus avant lancement. `hint` devient `error.hint`. */
 class RelayRefusal extends Error {
-  constructor(readonly refusal: PreLaunchRefusal, message?: string) {
+  constructor(readonly refusal: PreLaunchRefusal, message?: string, readonly hint?: string) {
     super(message ?? refusal.status);
   }
 }
@@ -259,12 +289,17 @@ const NOT_DELIVERED: DeliveryVerdict = { status: "not-delivered", persisted: fal
 
 /** Langue de démarrage : `--language`, puis `PALABRE_LANGUAGE` ; une valeur invalide retombe sur le français. */
 function startupMessages(rawArgs: readonly string[]): Messages {
+  return createTranslator(startupLanguage(rawArgs));
+}
+
+/** Même résolution prudente pour les diagnostics annexes, y compris sur refus d'arguments précoce. */
+function startupLanguage(rawArgs: readonly string[]): "fr" | "en" {
   const index = rawArgs.findIndex((arg) => arg === "--language" || arg === "--lang");
   const explicit = index >= 0 ? rawArgs[index + 1] : undefined;
   try {
-    return createTranslator(resolveLanguage({ explicitLanguage: explicit }));
+    return resolveLanguage({ explicitLanguage: explicit });
   } catch {
-    return createTranslator("fr");
+    return "fr";
   }
 }
 
@@ -324,6 +359,7 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
     signal: options.signal,
     startedAt: Date.now(),
     messages: startupMessages(rawArgs),
+    language: startupLanguage(rawArgs),
     from: null,
     to: null,
     provider: null,
@@ -343,14 +379,21 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
     result = await relay(rawArgs, context);
   } catch (error) {
     const refusal = error instanceof WriteError ? invalid("write-approval-invalid", relayWriteText(context.language ?? "fr").failure(error.message)) : error;
-    result = refusal instanceof RelayRefusal
-      ? refusalResult(context, refusal)
-      : buildResult(context, {
+    if (refusal instanceof RelayRefusal) {
+      result = refusalResult(context, refusal);
+      // #250 : seul un envoi ordinaire vers Claude, refusé avant échange car déjà utilisé, garde sa passation.
+      if (context.pendingHandoff && !context.exchangeStarted && refusal.refusal.status === "target-busy" && result.delivery.status === "not-delivered") {
+        result.handoff = await keepHandoff(context, context.pendingHandoff);
+      }
+    } else {
+      result = buildResult(context, {
         outcome: { status: "internal-error", exitCode: RELAY_EXIT_CODES["internal-error"] },
         delivery: context.exchangeStarted ? { status: "unknown", persisted: "unknown", inActiveBranch: "unknown" } : NOT_DELIVERED,
         detail: error instanceof Error ? error.message : String(error)
       });
+    }
   }
+  if (result.check) result.skill = inspectSkillRuntime(context.skillRevision, context.language ?? "fr");
   return { result, messages: context.messages, targetLocated: context.targetLocated === true, desktopExecutable: context.desktopExecutable, desktopCwd: context.cwd, desktopConfigPath: context.desktopConfigPath, messageCopy: context.messageCopy };
 }
 
@@ -358,6 +401,8 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (context.signal?.aborted) throw new RelayRefusal({ status: "cancelled" });
   const { messages } = context;
   const { flags, positionals } = parseRelayTokens(rawArgs.slice(1), messages);
+  if (flags["skill-revision"] !== undefined && !flags.check) throw invalid("invalid-arguments");
+  context.skillRevision = optionalString(flags["skill-revision"]);
   if (flags.model !== undefined) {
     const text = messages.relay.copy;
     if (!flags.copy) throw invalid("invalid-arguments", text.modelOnlyCopy);
@@ -411,7 +456,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     context.exchange = exchange.value;
   }
   try {
-    resolveLanguage({ explicitLanguage: optionalString(flags.language) });
+    context.language = resolveLanguage({ explicitLanguage: optionalString(flags.language) });
   } catch (error) {
     throw invalid("invalid-arguments", error instanceof Error ? error.message : undefined);
   }
@@ -552,6 +597,11 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   const coordination = context.open ? buildOpenEnvelope(envelopeInput, frame) : buildEnvelope(envelopeInput, frame);
   const envelopeCheck = validateRelayMessage(coordination);
   if (!envelopeCheck.ok) throw invalid(envelopeCheck.reason);
+  // #250 : passation possible seulement pour un envoi ordinaire vers une conversation Claude
+  // existante (ni --new, Mission, review, --write ni mode ouvert), une fois tout validé.
+  if (provider === "claude" && !context.newSession && !context.header && flags.task === undefined && !flags.write && !context.open) {
+    context.pendingHandoff = { outputDir: resolveOutputDir(config.outputDir), enabled: flags["no-export"] !== true, message, to: { agent: to.value.agent, session: to.value.sessionId } };
+  }
 
   if (flags.write) {
     const text = relayWriteText(context.language ?? "fr");
@@ -593,7 +643,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     : context.approvedWrite ? new WriteCodexAdapter(context.approvedWrite) : new CodexSessionAdapter();
   const target: ExternalTarget = context.newSession
     ? { ...to.value, provider, cwd: context.cwd! }
-    : assessClosedTarget(context, adapter, to.value, configPath, flags.background === true && !excluded);
+    : assessClosedTarget(context, adapter, to.value, configPath, flags.background === true && !excluded, !excluded);
 
   if (pr && provider === "claude") {
     const checked = await checkClaudeReviewCli(resolution.executable, target.cwd);
@@ -688,8 +738,13 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
  * `--background` propose fermeture ou nouvel `--open` décidé par le propriétaire.
  * Les parcours exclus et les courses de verrou gardent leur message d'origine.
  * Partagé par l'envoi et par `--check` (#203), qui doivent rendre les mêmes refus.
+ * #250 : pour un envoi ordinaire ou `--check` (`ordinary`), une Claude attachée, même au repos,
+ * reçoit un message clair et `error.hint`, sans déduire surface, affichage ni génération en cours.
+ * Une Codex encore utilisée (`default`, `setting`, `--background` explicite) reçoit aussi un
+ * `error.hint` : vérification `--check --open`, puis nouvel envoi décidé par l'humain ou libération
+ * de la conversation. Aucune passation, aucune action sur l'app ni sur le verrou.
  */
-function assessClosedTarget(context: RelayContext, adapter: ExternalSessionAdapter, to: SessionRef, configPath: string, explicitBackground: boolean): ExternalTarget {
+function assessClosedTarget(context: RelayContext, adapter: ExternalSessionAdapter, to: SessionRef, configPath: string, explicitBackground: boolean, ordinary = false): ExternalTarget {
   const located = adapter.locate(to);
   if (located.status !== "found") {
     throw locateRefusal(located, context.messages);
@@ -698,17 +753,47 @@ function assessClosedTarget(context: RelayContext, adapter: ExternalSessionAdapt
   context.cwd = located.target.cwd;
   const decision = assessTarget(adapter.probe(located.target));
   if (!decision.allowed) {
+    // #250 : conseil seulement pour l'envoi ordinaire et --check, avec la même cible et la même config.
+    const codexHint = () => ordinary ? context.messages.relayView.busyHint(relayCheckCommand(to, configPath, true)) : undefined;
     if (context.provider === "codex" && decision.status === "target-busy" && (context.modeSource === "setting" || context.modeSource === "default")) {
       const command = relayViewCommand(configPath);
       if (context.modeSource === "setting") context.remedy = command;
-      throw new RelayRefusal({ status: decision.status }, relayViewText(context.language ?? "fr").busy(command));
+      throw new RelayRefusal({ status: decision.status }, relayViewText(context.language ?? "fr").busy(command), codexHint());
     }
     if (context.provider === "codex" && decision.status === "target-busy" && explicitBackground) {
-      throw new RelayRefusal({ status: decision.status }, context.messages.relayView.busyExplicit);
+      throw new RelayRefusal({ status: decision.status }, context.messages.relayView.busyExplicit, codexHint());
+    }
+    if (context.provider === "claude" && decision.status === "target-busy" && ordinary) {
+      const text = context.messages.relay.claude;
+      throw new RelayRefusal({ status: decision.status }, text.busy, text.busyHint(relayCheckCommand(to, configPath)));
     }
     throw new RelayRefusal({ status: decision.status });
   }
   return located.target;
+}
+
+/**
+ * Conseil sans exécution : même cible et même config, littéraux adaptés au shell de l'hôte.
+ * `open` ajoute `--open` (vérification d'un futur envoi dans une Codex encore utilisée, #250).
+ */
+function relayCheckCommand(to: SessionRef, configPath: string, open = false): string | undefined {
+  const values = [`${to.agent}:${to.sessionId}`, path.resolve(configPath)];
+  // Ne jamais assainir un chemin pour en fabriquer un autre ; omettre le raccourci si nécessaire.
+  if (values.some(value => /[\p{Cc}\p{Cf}\u2028\u2029]/u.test(value)
+    || (process.platform === "win32" && /[\u2018-\u201b\u201c-\u201e]/u.test(value)))) return undefined;
+  const quote = (value: string) => process.platform === "win32" ? `'${value.replaceAll("'", "''")}'` : `'${value.replaceAll("'", "'\\''")}'`;
+  return `palabre relay --check${open ? " --open" : ""} --to ${quote(values[0]!)} --config ${quote(values[1]!)}`;
+}
+
+/**
+ * Dernières permissions lues à la fin bornée de l'historique Codex (#203, #250), sans CLI ni
+ * réseau : indicatives et datées, jamais celles du prochain tour ni `targetPermissions`.
+ */
+async function lastPermissionsReport(home: string, sessionId: string): Promise<Pick<RelayCheckReport, "lastPermissions" | "lastPermissionsAt">> {
+  const last = await readLastTurnContext({ home, sessionId });
+  const { model: _model, ...permissions } = last?.context ?? {};
+  const known = Object.keys(permissions).length > 0;
+  return { lastPermissions: known ? permissions : "unknown", ...(known && last?.observedAt ? { lastPermissionsAt: last.observedAt } : {}) };
 }
 
 /**
@@ -717,7 +802,8 @@ function assessClosedTarget(context: RelayContext, adapter: ExternalSessionAdapt
  * ou `target-not-open` (fermée) ; il reste absent pour un état invérifiable.
  * Ni enveloppe, ni processus de la CLI cible, ni export ; sous macOS/Linux, la sonde de verrou
  * Codex lance `python3`, comme pour un envoi. Un refus garde le statut qu'aurait l'envoi. En mode
- * ouvert, les permissions du dernier tour connu sont relevées, à titre indicatif. La liste MCP de
+ * ouvert, ou sur un Codex encore utilisé en arrière-plan (#250), les permissions du dernier tour
+ * connu sont relevées, à titre indicatif. La liste MCP de
  * Codex (arrière-plan) n'est pas lancée : un échec `neutralization-failed` reste possible à l'envoi.
  */
 async function relayCheck(
@@ -746,24 +832,23 @@ async function relayCheck(
       context.checkReport = { target: "closed", ...(quota ? { quota } : {}) };
       throw new RelayRefusal({ status: "target-not-open" });
     }
-    const last = await readLastTurnContext({ home, sessionId: input.to.sessionId });
-    const { model: _model, ...permissions } = last?.context ?? {};
-    const known = Object.keys(permissions).length > 0;
-    context.checkReport = {
-      target: "open",
-      ...(quota ? { quota } : {}),
-      lastPermissions: known ? permissions : "unknown",
-      ...(known && last?.observedAt ? { lastPermissionsAt: last.observedAt } : {})
-    };
+    context.checkReport = { target: "open", ...(quota ? { quota } : {}), ...(await lastPermissionsReport(home, input.to.sessionId)) };
   } else {
     const adapter: ExternalSessionAdapter = input.provider === "claude"
       ? new ClaudeSessionAdapter({ operatorFrame: context.messages.relay.operatorFrame, safeMode: false })
       : new CodexSessionAdapter();
     try {
-      assessClosedTarget(context, adapter, input.to, input.configPath, input.explicitBackground);
+      assessClosedTarget(context, adapter, input.to, input.configPath, input.explicitBackground, true);
     } catch (error) {
-      // Une cible attachée est ouverte : l'état est connu, même si l'envoi serait refusé.
-      if (error instanceof RelayRefusal && error.refusal.status === "target-busy") context.checkReport = { target: "open", ...(quota ? { quota } : {}) };
+      // Une cible attachée est ouverte : l'état est connu, même si l'envoi serait refusé. Pour Codex
+      // (#250), les dernières permissions lues sont ajoutées, indicatives, sans CLI ni réseau.
+      if (error instanceof RelayRefusal && error.refusal.status === "target-busy") {
+        context.checkReport = {
+          target: "open",
+          ...(quota ? { quota } : {}),
+          ...(input.provider === "codex" ? await lastPermissionsReport(path.join(os.homedir(), ".codex"), input.to.sessionId) : {})
+        };
+      }
       throw error;
     }
     context.checkReport = { target: "closed", ...(quota ? { quota } : {}) };
@@ -1116,8 +1201,27 @@ function refusalResult(context: RelayContext, refusal: RelayRefusal): RelayResul
   const detail = refusal.message !== refusal.refusal.status ? refusal.message : undefined;
   const message = detail && refusal.refusal.status === "target-busy" ? detail
     : detail && refusal.refusal.status === "session-not-found" ? `${context.messages.relay.status(refusal.refusal.status)} ${detail}` : undefined;
-  return buildResult(context, { outcome: refusalOutcome(refusal.refusal), delivery: NOT_DELIVERED, detail,
+  const result = buildResult(context, { outcome: refusalOutcome(refusal.refusal), delivery: NOT_DELIVERED, detail,
     ...(message ? { message } : {}) });
+  if (refusal.hint && result.error) result.error.hint = refusal.hint;
+  return result;
+}
+
+/**
+ * Passation #250 : `--no-export` n'écrit rien (`disabled`) ; sinon une écriture exclusive sous le
+ * dossier de sortie, sans nouvelle tentative. Statut, code, délivrance et `exportPath` restent ceux
+ * du refus ; le fichier n'informe pas la cible.
+ */
+async function keepHandoff(context: RelayContext, pending: NonNullable<RelayContext["pendingHandoff"]>): Promise<RelayHandoffReport> {
+  if (!pending.enabled) return { status: "disabled" };
+  return saveRelayHandoff(pending.outputDir, {
+    createdAt: new Date(context.startedAt).toISOString(),
+    from: context.from ? { agent: context.from.agent, ...(context.from.sessionId ? { session: context.from.sessionId } : {}) } : null,
+    to: pending.to,
+    ...(context.subject !== undefined ? { subject: context.subject } : {}),
+    ...(context.exchange ? { exchange: context.exchange } : {}),
+    message: pending.message
+  }, context.messages.relay.claude.file);
 }
 
 /** Qualifie la copie consultable sans confondre tentative, persistance et réponse reçue. */
@@ -1331,10 +1435,14 @@ export function claudeDesktopOpenCommand(result: RelayResultV1, targetLocated: b
 /**
  * Même réponse en texte qu'en JSON, y compris après une publication refusée ou interrompue.
  * `messageCopy` vient du parcours d'envoi, jamais déduit d'un ancien `exportPath` seul.
+ * Les textes de passation suivent le dictionnaire reçu ; aucun second choix de langue.
  */
 export function renderRelayText(result: RelayResultV1, messages: Messages, options: { targetLocated?: boolean; primaryPrinted?: boolean; desktopExecutable?: ExternalExecutable; desktopCwd?: string; desktopConfigPath?: string; messageCopy?: RelayContext["messageCopy"] } = {}): { stdout: string; stderr: string } {
   const lines: string[] = [];
   const quota = result.check?.quota ?? result.quota;
+  const claudeBusy = result.to?.provider === "claude" && result.status === "target-busy" && Boolean(result.error?.hint);
+  // #250 : refus ordinaire d'une Codex encore utilisée ; pas d'invitation à renvoyer en arrière-plan.
+  const codexBusy = result.to?.provider === "codex" && result.status === "target-busy" && result.mode === "background" && Boolean(result.error?.hint);
   let stdout = result.reply !== undefined && !options.primaryPrinted ? `${sanitizeTerminalText(result.reply)}\n` : "";
   if (result.nextTurn) {
     const label = messages.relayThenFollow.label;
@@ -1353,15 +1461,21 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
     lines.push(messages.relay.open.followed(result.to?.agent ?? ""));
     if (result.correlation?.reason === "turn-started-before-follow") lines.push(messages.relay.open.followStartedBefore);
   } else if (result.status === "checked") {
-    lines.push(messages.relay.check.done(result.to?.agent ?? "", result.check?.target ?? "closed"));
+    // Claude : un registre sans processus attaché ne prouve pas que l'app est fermée (#250).
+    lines.push(result.to?.provider === "claude" && result.check?.target !== "open"
+      ? messages.relay.claude.checkClosed(result.to.agent)
+      : messages.relay.check.done(result.to?.agent ?? "", result.check?.target ?? "closed"));
   } else {
     lines.push(`${messages.relay.failed(result.status)} ${result.error?.message ?? ""}`.trim());
+    if (result.error?.hint) lines.push(result.error.hint);
     // Le suivi et la vérification n'envoient rien : une consigne de renvoi n'aurait pas de sens.
     if (result.check) lines.push(messages.relay.check.nothingSent);
-    else if (result.mode !== "follow") lines.push(messages.relay.delivery(result.delivery.status));
+    else if (result.mode !== "follow" && !claudeBusy && !codexBusy) lines.push(messages.relay.delivery(result.delivery.status));
   }
   // Mode annoncé à chaque échange (#190), sauf refus d'arguments ou de configuration : rien n'a eu lieu.
-  if (result.status !== "invalid-request") lines.push(messages.relay.modeLine(result.mode, result.to?.agent ?? "", Boolean(result.write)));
+  if (result.status !== "invalid-request") lines.push(claudeBusy ? messages.relay.claude.busyMode
+    : codexBusy ? messages.relayView.busyMode
+    : messages.relay.modeLine(result.mode, result.to?.agent ?? "", Boolean(result.write)));
   if (result.status !== "invalid-request" && result.modeSource) lines.push(messages.relayView.source(result.modeSource));
   if (quota) lines.push(messages.relayQuota(quota));
   // Visible même quand l'issue reste `replied` : sans cette ligne, un échange réussi ne dirait
@@ -1387,7 +1501,8 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
     const command = codexDesktopOpenCommand(result, options.targetLocated === true, options.desktopConfigPath);
     if (command) lines.push(messages.relay.openLinkCommand(command, process.platform === "win32" ? "PowerShell" : "POSIX"));
   }
-  const claudeCommand = claudeDesktopOpenCommand(result, options.targetLocated === true, options.desktopExecutable, process.platform, options.desktopCwd ?? result.cwd);
+  const claudeCommand = claudeBusy ? undefined
+    : claudeDesktopOpenCommand(result, options.targetLocated === true, options.desktopExecutable, process.platform, options.desktopCwd ?? result.cwd);
   if (claudeCommand) {
     lines.push(messages.relay.claudeDesktop);
     if (options.desktopCwd) lines.push(`${messages.relay.export.cwd}: ${options.desktopCwd}`);
@@ -1422,6 +1537,11 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
     if (options.messageCopy === "failed" && !(result.copy && result.error?.message.includes(messages.relay.copy.exportFailed))) {
       lines.push(messages.relay.messageCopy.failed);
     }
+  }
+  if (result.handoff) {
+    const handoff = messages.relay.claude.handoff;
+    lines.push(result.handoff.status === "saved" && result.handoff.path ? handoff.saved(result.handoff.path)
+      : result.handoff.status === "disabled" ? handoff.disabled : handoff.failed);
   }
   if (result.write) {
     const text = relayWriteText(result.write.language);

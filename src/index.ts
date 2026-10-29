@@ -8,7 +8,7 @@
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { assertRunnableConfig, configExists, createConfigFromDiscovery, DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH, loadConfig, persistAgentSync, resolveDefaultConfigPath, resolveOutputDir, setOllamaModel, syncDetectedAgentsDetailed, syncOllamaModel, writeConfig } from "./config.js";
-import { isConfigTrusted, isImplicitProjectConfig, trustConfig } from "./configTrust.js";
+import { getConfigIdentity, isConfigTrusted, isImplicitProjectConfig, trustConfig } from "./configTrust.js";
 import { loadProjectInputs } from "./context.js";
 import { discoverLocalTools, discoverLocalToolsForConfig, type ToolDiscovery } from "./discovery.js";
 import { runDoctor } from "./doctor.js";
@@ -31,7 +31,7 @@ import { findFirstPositionalIndex, getStringListFlag, parseArgs, type ParsedArgs
 import { clearTuiRunOverrides } from "./tuiState.js";
 import { formatOllamaUrlError, OllamaUrlError } from "./ollamaUrl.js";
 import { getPackageVersion } from "./version.js";
-import { isAgentRole, VALID_AGENT_ROLES, type DebateOptions, type PalabreConfig, type PalabreInterface } from "./types.js";
+import { isAgentRole, VALID_AGENT_ROLES, type AgentWaitingEvent, type ConfigIdentity, type DebateOptions, type Language, type PalabreConfig, type PalabreInterface } from "./types.js";
 import type { Messages } from "./messages/index.js";
 import { runAgentsCommand } from "./commands/agents.js";
 import { runContextCommand } from "./commands/context.js";
@@ -44,6 +44,9 @@ import { runRelayViewCommand } from "./commands/relayView.js";
 import { runMissionCommand } from "./commands/mission.js";
 import { runUpdateCommand } from "./commands/update.js";
 import { runSkillCommand } from "./commands/skill.js";
+import { isHumanTerminal, printSkillReminder, withSkillReminder } from "./skillNotice.js";
+import { runAgentResultCommand } from "./commands/result.js";
+import { sanitizeTerminalText } from "./adapters/terminal.js";
 import { runPruneTrustCommand } from "./commands/pruneTrust.js";
 import { optionalString } from "./commands/shared.js";
 import { runTuiAgentsWizard, runTuiConfigLoop, runTuiRolesWizard, syncInteractiveDetectedAgents } from "./tuiController.js";
@@ -57,6 +60,7 @@ import { activeConfiguredAgentNames, isRetiredAgentName } from "./agentRegistry.
 import { createResumedSessionCheckpointRuntime, createSessionCheckpointRuntime } from "./sessionCheckpointRuntime.js";
 import { prepareSessionResume } from "./sessionResume.js";
 import { startCliIdentity, type CliIdentity } from "./cliIdentity.js";
+import { skillRuntimeMessages } from "./messages/skillRuntime.js";
 
 let cliIdentity: CliIdentity | undefined;
 
@@ -77,17 +81,30 @@ async function main(): Promise<void> {
     await runMissionCommand(["mission", ...rawArgs.slice(commandIndex + 1), ...rawArgs.slice(0, commandIndex)]);
     return;
   }
+  // Lecture sans envoi d'une demande expirée : parseur strict propre, aucune question interactive.
+  if (commandIndex >= 0 && rawArgs[commandIndex] === "result") {
+    await runAgentResultCommand([...rawArgs.slice(0, commandIndex), ...rawArgs.slice(commandIndex + 1)]);
+    return;
+  }
   const startupLanguage = resolveLanguage({ explicitLanguage: findRawLanguageFlag(rawArgs) });
   const startupMessages = createTranslator(startupLanguage);
   const parsed = parseArgs(rawArgs, startupMessages);
+  // Contrôle des consignes réservé aux lectures ; aucune option ignorée sur un envoi.
+  if ((parsed.flags.read && parsed.command !== "skill") ||
+      (parsed.flags["skill-revision"] !== undefined && !["agents", "agent", "skill"].includes(parsed.command))) {
+    throw new Error(skillRuntimeMessages[startupLanguage].optionScope);
+  }
 
+  // Rappel du skill après la sortie normale, inchangée : stderr d'un terminal humain seulement.
   if (parsed.command === "version" || parsed.flags.version) {
     console.log(await getPackageVersion());
+    await printSkillReminder({ flags: parsed.flags, language: () => resolveCommandLanguage(parsed.flags) });
     return;
   }
 
   if (parsed.command === "help" || parsed.flags.help) {
     printHelp(await resolveCommandMessages(parsed.flags), commandHelpTarget(parsed));
+    await printSkillReminder({ flags: parsed.flags, language: () => resolveCommandLanguage(parsed.flags) });
     return;
   }
 
@@ -207,7 +224,7 @@ async function main(): Promise<void> {
   assertRunnableConfig(config, messages, configPath);
 
   if (isDirectChatLaunch(parsed, config)) {
-    await runChatCommand(parsed.flags, config, language, messages);
+    await runChatCommand(parsed.flags, config, language, messages, await matchingConfigIdentity(configPath, config));
     return;
   }
 
@@ -328,6 +345,8 @@ async function main(): Promise<void> {
           files: chatContext.files,
           signal: debateAbortSignal()
         }, messages);
+        chatOptions.onAgentWaiting = agentWaitingReporter(messages);
+        chatOptions.configIdentity = await matchingConfigIdentity(configPath, config);
         cliIdentity?.update("chat", language);
         const chatResult = await runTuiChatSession(
           config,
@@ -385,6 +404,10 @@ async function main(): Promise<void> {
       tuiNotice = messages.config.tuiSyncConflict(configPath);
     } else if (!tuiNotice && syncResult.addedAgents.length > 0) {
       tuiNotice = messages.config.syncAdded(configPath, syncResult.addedAgents.join(", "));
+    }
+    // Plan déjà calculé par getUpdateInfo, sans nouvelle détection ; notice existante conservée.
+    if (isHumanTerminal(process, parsed.flags)) {
+      tuiNotice = withSkillReminder(tuiNotice, tuiUpdateInfo.skills, language);
     }
 
     stayInTuiAfterSession = true;
@@ -446,7 +469,7 @@ async function main(): Promise<void> {
       if (selection.mode === "chat") {
         assertChatDryRunUnsupported(parsed.flags, messages);
         if (!stayInTuiAfterSession) {
-          await runChatCommand(parsed.flags, config, language, messages);
+          await runChatCommand(parsed.flags, config, language, messages, await matchingConfigIdentity(configPath, config));
           return;
         }
 
@@ -465,6 +488,8 @@ async function main(): Promise<void> {
           files: chatContext.files,
           signal: debateAbortSignal()
         }, messages);
+        chatOptions.onAgentWaiting = agentWaitingReporter(messages);
+        chatOptions.configIdentity = await matchingConfigIdentity(configPath, config);
         cliIdentity?.update("chat", language);
         const chatResult = await runTuiChatSession(
           config,
@@ -510,6 +535,8 @@ async function main(): Promise<void> {
       signal: debateAbortSignal()
     }, messages);
     cliIdentity?.update(options.mode, language);
+    options.onAgentWaiting = agentWaitingReporter(messages);
+    options.configIdentity = await matchingConfigIdentity(configPath, config);
     if (parsed.flags["show-prompt"]) {
       printContextWarnings(context.warnings, messages);
       printPromptPreview(config, options, language, messages);
@@ -571,6 +598,8 @@ async function main(): Promise<void> {
           files: options.files,
           signal: debateAbortSignal()
         }, messages);
+        handoffOptions.onAgentWaiting = agentWaitingReporter(messages);
+        handoffOptions.configIdentity = await matchingConfigIdentity(configPath, config);
         cliIdentity?.update("chat", language);
         const chatResult = await runTuiChatSession(
           config,
@@ -614,6 +643,7 @@ async function runResumeCommand(flags: ParsedArgs["flags"], id: string): Promise
   });
   const { checkpoint, config, options, messages } = prepared;
   cliIdentity?.update(options.mode, options.language);
+  options.onAgentWaiting = agentWaitingReporter(messages);
   const renderer = createRendererFromFlags(flags, options.plainOutput, config.defaults?.interface, messages);
   const rendererKind = rendererKindFromFlags(flags, messages);
 
@@ -1197,6 +1227,32 @@ function createAutoRenderer(
 }
 
 /**
+ * Indication d'attente d'un agent lent, toujours sur `stderr` (stdout JSON/NDJSON intact), assainie.
+ * Elle mesure l'attente de Palabre, jamais l'avancement du modèle ; une erreur d'écriture est ignorée.
+ */
+function agentWaitingReporter(messages: Messages): (event: AgentWaitingEvent) => void {
+  return (event) => {
+    try {
+      process.stderr.write(`${sanitizeTerminalText(messages.orchestrator.agentWaiting(event.agent, event.elapsedMs, event.timeoutMs))}\n`);
+    } catch { /* Indication facultative. */ }
+  };
+}
+
+/**
+ * Lie une future lecture à la configuration effectivement utilisée, après les éventuelles écritures
+ * TUI. Une édition externe différente de l'objet chargé reste sans référence ; aucun accord ajouté.
+ */
+async function matchingConfigIdentity(configPath: string, config: PalabreConfig): Promise<ConfigIdentity | undefined> {
+  try {
+    const before = await getConfigIdentity(configPath);
+    const loaded = await loadConfig(configPath);
+    if (JSON.stringify(loaded) !== JSON.stringify(config) || !(await isConfigTrusted(configPath))) return undefined;
+    const after = await getConfigIdentity(configPath);
+    return before.path === after.path && before.sha256 === after.sha256 ? after : undefined;
+  } catch { return undefined; }
+}
+
+/**
  * Écrit les avertissements de contexte sur `stderr`.
  * @param warnings - Messages d'avertissement issus du chargement des fichiers de contexte.
  */
@@ -1233,6 +1289,15 @@ function commandHelpTarget(parsed: ParsedArgs): string | undefined {
 
 /** Résout les messages d'une commande qui peut être affichée avant le flux principal. */
 async function resolveCommandMessages(flags: Record<string, string | string[] | boolean>): Promise<Messages> {
+  return createTranslator(await resolveCommandLanguage(flags));
+}
+
+/**
+ * Langue d'une commande affichée avant le flux principal (aide, version, rappel du skill) :
+ * option, environnement, puis langue enregistrée lue sans écriture ni approbation. Une
+ * configuration absente ou invalide n'empêche pas l'affichage.
+ */
+async function resolveCommandLanguage(flags: Record<string, string | string[] | boolean>): Promise<Language> {
   const explicitLanguage = optionalString(flags.language);
   const configPath = optionalString(flags.config) ?? await resolveDefaultConfigPath();
   let configLanguage: string | undefined;
@@ -1245,7 +1310,7 @@ async function resolveCommandMessages(flags: Record<string, string | string[] | 
     configLanguage = undefined;
   }
 
-  return createTranslator(resolveLanguage({ explicitLanguage, configLanguage }));
+  return resolveLanguage({ explicitLanguage, configLanguage });
 }
 
 /**
@@ -1301,7 +1366,7 @@ function assertChatPresetUnsupported(flags: ParsedArgs["flags"], messages: Messa
 }
 
 /** Lance une conversation locale stateless avec consultation explicite. */
-async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig, language: import("./types.js").Language, messages: Messages): Promise<void> {
+async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig, language: import("./types.js").Language, messages: Messages, configIdentity?: ConfigIdentity): Promise<void> {
   cliIdentity?.update("chat", language);
   assertChatDryRunUnsupported(flags, messages);
   assertChatPresetUnsupported(flags, messages);
@@ -1321,6 +1386,8 @@ async function runChatCommand(flags: ParsedArgs["flags"], config: PalabreConfig,
     files: context.files,
     signal: debateAbortSignal()
   }, messages);
+  options.onAgentWaiting = agentWaitingReporter(messages);
+  options.configIdentity = configIdentity;
   const chat = new ChatSession(config, options, messages);
   const readline = createInterface({ input: process.stdin, output: process.stdout });
   try {
