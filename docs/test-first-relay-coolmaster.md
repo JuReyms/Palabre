@@ -6,10 +6,10 @@
 
 Observer si une personne suit seule la page Premier Relay de #248 : demande fictive, avis, mode et trace, puis continuation avec le même équipier. Ce n'est ni un smoke ni une qualification de plateforme.
 
-Page à lire, figée au commit vérifié `ba99739` :
+Page à lire, figée au commit vérifié `decac18` :
 
-- FR : https://github.com/JuReyms/Palabre/blob/ba99739d16a2edc2155f6ed467922cfbe0dd5378/docs/guide/fr/get-started/first-relay.md
-- EN : https://github.com/JuReyms/Palabre/blob/ba99739d16a2edc2155f6ed467922cfbe0dd5378/docs/guide/en/get-started/first-relay.md
+- FR : https://github.com/JuReyms/Palabre/blob/decac18b87bd6c641d849b72abff4c6cfb7874ce/docs/guide/fr/get-started/first-relay.md
+- EN : https://github.com/JuReyms/Palabre/blob/decac18b87bd6c641d849b72abff4c6cfb7874ce/docs/guide/en/get-started/first-relay.md
 
 ## Participant et biais
 
