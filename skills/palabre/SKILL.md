@@ -5,7 +5,7 @@ description: Faire coopérer les outils IA locaux avec Palabre. Relay pour confi
 
 # Palabre : coopérer, croiser les avis, décider
 
-Palabre pilote les outils IA installés et authentifiés (Claude Code, Codex, etc.), chacun avec son compte et ses modèles. Un « agent Palabre » est une entrée nommée de configuration reliée à un outil ou à Ollama : ce n'est ni un modèle ni un sous-agent de l'hôte. Plusieurs entrées peuvent utiliser le même outil. Palabre ne remplace ni l'hôte ni l'humain.
+Palabre pilote les outils IA installés et authentifiés (Claude Code, Codex, etc.), chacun avec son compte et ses modèles. Un « agent Palabre » est une entrée nommée de configuration reliée à un outil ou à Ollama : ce n'est ni un modèle ni un sous-agent de l'hôte. Palabre ne remplace ni l'hôte ni l'humain.
 
 Vérifier `palabre --version`, puis `palabre agents --json` : agents configurés, disponibilité, raisons de refus et préférence Relay. Ne pas inventer une liste ni substituer une installation à un chemin configuré. Une CLI présente ne prouve ni connexion ni fonctionnalité. Nommer la tâche `Palabre <mode> : <objet>` si l'hôte le permet (Relay, Débat, Ask, Chat).
 
@@ -18,9 +18,9 @@ Vérifier `palabre --version`, puis `palabre agents --json` : agents configurés
 | Recueillir 1 à 4 avis indépendants, puis les comparer | **Ask** | `references/cli.md` |
 | Avancer avec un interlocuteur et consulter ponctuellement un autre | **Chat** | `references/chat.md` |
 
-Une tâche explicitement confiée à Codex/Claude Code via Palabre relève de Relay, même pour un seul avis. Sinon, choisir le parcours le plus utile : ne pas imposer un Débat à un simple second avis. S'abstenir pour une question simple que l'hôte sait traiter seul ; les appels consomment temps et quotas.
+Une tâche explicitement confiée à Codex/Claude Code via Palabre relève de Relay, même pour un seul avis.
 
-Les rôles (`reviewer`, `critic`, etc.) complètent **Débat, Ask et Chat** : ils orientent les consignes, pas les droits ni le modèle. Ils ne règlent pas Relay. « Chef de mission » et « équipier » décrivent la coordination, pas ces rôles. Détails dans `references/cli.md`.
+Les rôles (`reviewer`, `critic`, etc.) orientent les consignes de **Débat, Ask et Chat**, pas les droits, le modèle ni Relay. « Chef de mission » et « équipier » décrivent la coordination Relay, pas ces rôles. Détails : `references/cli.md`.
 
 ## Relay : règles essentielles
 
@@ -52,9 +52,9 @@ Conserver la même configuration de l'échange (`--config` absolu quand nécessa
 
 ## Déléguer dans un lot autorisé
 
-Proposer de soi-même une délégation utile : relecture, recherche ou vérification. Petite consultation en lecture seule dans un lot déjà validé : l'annoncer, puis la faire, sans redemander à chaque appel. Écriture, plusieurs équipiers, quota important ou nouveau chantier : obtenir le cadre humain une fois pour le lot. Cela ne remplace jamais les autorisations techniques ponctuelles de l'hôte.
+Proposer la coopération utile et son bénéfice sans formule spéciale. L'humain exprime son besoin ; gérer outils, conversations et contrôles. Au besoin : « Un autre avis pour repérer des oublis ? ». Ni Débat imposé pour un simple avis, ni appel pour ce que l'hôte traite seul. En parcours courant, ne pas demander mode, identifiant ou option ; cible ambiguë : demander sujet ou projet. Consultation légère en lecture seule dans un lot validé : annoncer puis faire ; écriture, plusieurs équipiers, gros quota ou nouveau chantier : cadre humain une fois par lot. Les autorisations techniques ponctuelles de l'hôte restent nécessaires.
 
-Travailler en petits lots et proportionner les contrôles. Une relecture indépendante revient à un autre agent que l'auteur. Transmettre le contexte utile, pas tout l'historique ; nommer les fichiers lisibles plutôt que recopier leur contenu. Gabarits dans `references/relay.md` : objectif, liens, à faire, interdit, preuves, format ; réponse **Fait · Vérifié · Bloqué · Prochaine action · Décision attendue**, lignes séparées par une ligne vide. Ne pas ajouter un second en-tête PALABRE.
+Petits lots et contrôles proportionnés ; une relecture indépendante revient à un autre agent que l'auteur. Transmettre le contexte utile, pas tout l'historique ; nommer les fichiers lisibles plutôt que les recopier. Gabarits dans `references/relay.md` : objectif, liens, à faire, interdit, preuves, format ; réponse **Fait · Vérifié · Bloqué · Prochaine action · Décision attendue**, lignes séparées par une ligne vide. Ne pas ajouter un second en-tête PALABRE.
 
 ## Restituer et garder le contrôle
 
@@ -64,11 +64,11 @@ Lire l'export annoncé (`done.outputPath`, `exportPath`), sauf parcours sans exp
 
 Message Relay exact demandé : lire le bloc complet, enveloppe comprise, dans `exportPath` (`references/relay.md`). Jamais une reformulation ou une enveloppe reconstruite ; sans ce bloc, annoncer la limite, sans renvoyer le message.
 
-Après Relay, parler simplement : ce que l'équipier a fait, ce qui bloque, le mode effectif et la prochaine action humaine si nécessaire. Garder identifiant, dossier et export sans les afficher par défaut ; les donner sur demande, pour diagnostiquer un échec ou si l'hôte ne garde pas le contexte. Un échec est annoncé avant l'avis ; aucun succès de tâche déduit d'une simple réponse reçue. OpenCode : dire « consultation sur copie », garder les identifiants pour soi hors demande/diagnostic.
+Expliquer l'action et son pourquoi en mots simples, pas seulement l'erreur ; blocage réel : ce qui manque et la prochaine action, sans supposer d'accord. Après Relay : ce que l'équipier a fait, ce qui bloque, le mode effectif et la prochaine action humaine si nécessaire. Garder identifiant, dossier et export sans les afficher par défaut ; les donner sur demande, pour diagnostiquer un échec ou si l'hôte ne garde pas le contexte. Un échec est annoncé avant l'avis ; aucun succès de tâche déduit d'une simple réponse reçue. OpenCode : dire « consultation sur copie », garder les identifiants pour soi hors demande/diagnostic.
 
 Fichiers et contexte partent vers les outils choisis et leurs services : prévenir pour un contenu sensible ; Ollama local peut éviter un envoi distant mais ne lit pas lui-même le workspace. Installation, connexion, approbation de config (`--trust-config`), téléchargement de modèle et suppression restent des décisions humaines.
 
-Choisir `--language fr|en` selon l'utilisateur. Débat/Ask : `--dry-run` sans modèle ni export ; Chat : flux `--renderer ndjson`, terminer par `chat-end` pour exporter. Checkpoints Débat/Ask seulement ; Relay reprend des conversations du fournisseur.
+Choisir `--language fr|en` selon l'utilisateur. Débat/Ask : `--dry-run` sans modèle ni export ; Chat : flux `--renderer ndjson`, terminer par `chat-end` pour exporter. Checkpoints : Débat/Ask seulement.
 
 ## Références conditionnelles et entretien
 
