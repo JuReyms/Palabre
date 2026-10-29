@@ -54,6 +54,8 @@ Ne pas transformer l'aide principale en reference complete. Les details doivent 
 
 ## Rendu Console
 
+Relay Claude (#250) : `error.hint?` et la notice `handoff?` sont rendus sur stderr, assainis comme les autres textes. Stdout JSON reste un objet unique v1 ; les ajouts facultatifs ne changent ni statut ni délivrance. Le dictionnaire `messages.relay.claude` impose la même langue au refus, à la vérification et à la passation ; aucun second choix de langue au rendu. Détails et exclusions : [contrat Relay](relay.md#claude-déjà-utilisée-et-passation-locale-250).
+
 `src/renderers/console.ts` contient le rendu console historique. Le rendu TUI leger, utilise par defaut quand stdout est un TTY, est decoupe en quatre modules : `src/renderers/tui-theme.ts` (primitives visuelles : couleurs, boites, largeurs, liens), `src/renderers/tui-screens.ts` (ecrans plein terminal : accueil, aide, agents, roles, historique, config), `src/renderers/tui-prompts.ts` (entrees readline et commandes slash) et `src/renderers/tui-renderer.ts` (renderer des evenements de debat). `src/renderers/tui.ts` reste le point d'entree public qui re-exporte cette API ; les imports externes ne doivent viser que lui.
 
 - `PrettyConsoleRenderer` : en-tete, separateurs, tours, synthese structuree, couleurs ANSI si TTY.

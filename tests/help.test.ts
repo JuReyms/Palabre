@@ -122,7 +122,8 @@ for (const language of ["fr", "en"] as const) {
     const text = help.renderCommand("relay")!;
     for (const flag of ["open", "follow", "background", "relay-view"]) assert.ok(text.includes(`--${flag}`));
     assert.match(text, language === "fr" ? /aucun renvoi automatique/i : /no automatic resend/i);
-    assert.match(text, language === "fr" ? /sans modification.*--background/s : /must not change files.*--background/s);
+    assert.match(text, language === "fr" ? /outils limités exigés imposent --background/ : /requirement for limited tools forces --background/);
+    assert.doesNotMatch(text, language === "fr" ? /relecture devant rester sans modification, passer --background/ : /review that must not change files, pass --background/);
     const opening = text.split(language === "fr" ? "Ouvrir Codex sans envoyer (#219) :" : "Open Codex without sending (#219):")[1]?.split("\n\n")[0];
     assert.ok(opening, "section d'ouverture Relay absente");
     assert.match(opening, language === "fr" ? /2 : échec du lanceur/ : /2: launcher failure/);

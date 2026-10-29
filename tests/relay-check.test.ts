@@ -147,7 +147,8 @@ describe("relay --check (#203)", () => {
       assert.equal(result.status, status, extra.join(" "));
       assert.equal(result.exitCode, exitCode);
       assert.equal(result.delivery.status, "not-delivered");
-      assert.deepEqual(result.check, target ? { target } : {}, `état connu avant le refus : ${status}`);
+      // #250 : une Codex encore utilisée ajoute les dernières permissions lues (inconnues dans ce profil).
+      assert.deepEqual(result.check, status === "target-busy" ? { target, lastPermissions: "unknown" } : target ? { target } : {}, `état connu avant le refus : ${status}`);
       assert.equal(result.queue, undefined);
       const text = renderRelayText(result, fr).stderr;
       assert.match(text, /Vérification seulement : rien n'a été envoyé\. Un envoi recevrait ce même refus\./);
@@ -158,6 +159,32 @@ describe("relay --check (#203)", () => {
       }
       if (extra.includes("--background")) assert.match(result.error!.message, /--background impose l'arrière-plan/);
       if (status === "target-busy") assert.match(result.error!.message, /--open.*permissions.*écriture/);
+      if (status === "target-busy") assert.ok(result.error!.hint!.includes("--check --open --to "));
+      else assert.equal(result.error!.hint, undefined, `aucun conseil pour ${status}`);
+    }
+  });
+
+  test("Codex encore utilisée en arrière-plan : dernières permissions indicatives, sans champ de tour ouvert (#250)", async (t) => {
+    const w = await world(t, { attachment: "attached", rolloutLines: [turnContext("never", "read-only", false, "2026-10-22T08:00:00Z")] });
+    for (const language of ["fr", "en"] as const) {
+      const result = await check(w.file, "--to", `codex:${CODEX}`, "--background", "--language", language);
+      assert.equal(result.status, "target-busy");
+      assert.equal(result.exitCode, 3);
+      assert.equal(result.mode, "background");
+      assert.equal(result.modeSource, "explicit");
+      assert.deepEqual(result.delivery, { status: "not-delivered", persisted: false, inActiveBranch: false });
+      assert.deepEqual(result.check, {
+        target: "open",
+        lastPermissions: { approvalPolicy: "never", sandbox: "read-only", network: "restricted" },
+        lastPermissionsAt: "2026-10-22T08:00:00.000Z"
+      });
+      for (const field of ["queue", "receiver", "targetPermissions", "correlation", "reply"]) assert.equal(field in result, false, field);
+      assert.equal(result.exportPath, null);
+      const messages = createTranslator(language);
+      const text = renderRelayText(result, messages).stderr;
+      assert.ok(text.includes(messages.relayView.busyMode));
+      assert.ok(text.includes("approval=never, sandbox=read-only, network=restricted"));
+      assert.match(result.error!.hint!, language === "fr" ? /ne sont qu'indicatives/ : /only indicative/);
     }
   });
 

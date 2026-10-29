@@ -781,7 +781,45 @@ describe("palabre relay : refus avant lancement", () => {
     assert.equal(result.code, 3);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /target-busy/);
-    assert.match(result.stderr, /sans risque de doublon/);
+    assert.match(result.stderr, /Rien n'a été envoyé/);
+    assert.doesNotMatch(result.stderr, /sans risque de doublon/);
+    assert.equal(result.calls.length, 0);
+  });
+});
+
+describe("palabre relay : conversation Claude déjà utilisée (#250)", () => {
+  /** Registre Claude fictif : un processus vivant attaché à la cible, au repos. */
+  function holdClaude(world: World): void {
+    writeFileSync(path.join(world.home, ".claude", "sessions", `${process.pid}.json`), JSON.stringify({ pid: process.pid, sessionId: CLAUDE_SESSION, status: "idle" }));
+  }
+
+  test("JSON : un seul objet, passation locale, aucune CLI lancée, export inchangé", async () => {
+    const world = makeWorld();
+    holdClaude(world);
+    const result = await relay(world, [...toClaude, "Passation « finale »", "--trust-config", "--json"]);
+    assert.equal(result.code, 3, result.stderr);
+    assert.equal(result.stdout.trim().split(/\r?\n/).length, 1, "stdout machine : un seul objet");
+    assert.equal(result.json.status, "target-busy");
+    assert.equal(result.json.delivery.status, "not-delivered");
+    assert.equal(result.json.exportPath, null);
+    assert.equal(result.json.handoff.status, "saved");
+    assert.ok(result.json.handoff.path.endsWith(".handoff.md"));
+    assert.ok(readFileSync(result.json.handoff.path, "utf8").includes("Passation « finale »"));
+    assert.match(result.json.error.hint, /même tour/);
+    assert.equal(result.calls.length, 0);
+  });
+
+  test("texte : refus, conseil et passation sur stderr, stdout vide", async () => {
+    const world = makeWorld();
+    holdClaude(world);
+    const result = await relay(world, [...toClaude, "x", "--trust-config"]);
+    assert.equal(result.code, 3);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /déjà utilisée par Claude/);
+    assert.match(result.stderr, /même tour/);
+    assert.match(result.stderr, /NON ENVOYÉE/);
+    assert.doesNotMatch(result.stderr, /--desktop/);
+    assert.match(result.stderr, /Mode demandé : arrière-plan/);
     assert.equal(result.calls.length, 0);
   });
 });
