@@ -6,18 +6,18 @@ import { sanitizeTerminalText } from "../adapters/terminal.js";
 /** Textes de la commande dédiée, séparés du déroulé et de la confirmation. */
 export const skillCommandMessages = {
   fr: {
-    usage: "Usage : palabre skill [--sync | --install codex|claude] [--check | --dry-run] [--yes].",
+    usage: "Usage : palabre skill [--sync | --install codex|claude] [--check | --dry-run] [--yes] ; ou palabre skill --read --json [--skill-revision <révision>].",
     confirmationRequired: "Aucune écriture : relancez dans un terminal pour confirmer, ou utilisez explicitement --yes après lecture du plan.",
     confirm: "Installer ces instructions pour les agents ? [o/N] ",
     backup: (directory: string) => `Sauvegarde : ${sanitizeTerminalText(directory)}`,
-    complete: "Copies vérifiables du skill alignées sur la CLI exécutée. Rechargez le skill dans chaque conversation concernée, ou démarrez une nouvelle conversation. Les copies non vérifiées restent intactes."
+    complete: "Copies vérifiables du skill alignées sur la CLI exécutée. L'agent peut relire les consignes du paquet avec palabre skill --read --json et poursuivre sans redémarrage. Les copies non vérifiées restent intactes."
   },
   en: {
-    usage: "Usage: palabre skill [--sync | --install codex|claude] [--check | --dry-run] [--yes].",
+    usage: "Usage: palabre skill [--sync | --install codex|claude] [--check | --dry-run] [--yes]; or palabre skill --read --json [--skill-revision <revision>].",
     confirmationRequired: "Nothing written: run in a terminal to confirm, or explicitly use --yes after reading the plan.",
     confirm: "Install these agent instructions? [y/N] ",
     backup: (directory: string) => `Backup: ${sanitizeTerminalText(directory)}`,
-    complete: "Verifiable skill copies match the running CLI. Reload the skill in each affected conversation, or start a new conversation. Unverified copies remain untouched."
+    complete: "Verifiable skill copies match the running CLI. The agent can reread the package's instructions with palabre skill --read --json and continue without restarting. Unverified copies remain untouched."
   }
 } satisfies Record<Language, unknown>;
 
@@ -64,7 +64,7 @@ export function skillSyncFailure(error: SkillSyncError, language: Language): str
 
 /**
  * Rappel après une mise à jour directe de la CLI (`src/skillNotice.ts`). Il donne seulement les
- * étapes, sans chemin ni contenu utilisateur. Une différence n'est pas présentée comme forcément
+ * lectures possibles, sans chemin ni contenu utilisateur ni rechargement imposé. Une différence n'est pas présentée comme forcément
  * ancienne, une copie non comparable jamais comme à jour, et une reprise n'est pas présentée comme
  * un rechargement garanti.
  */
@@ -77,9 +77,8 @@ export const skillReminderMessages = {
           ? "au moins une copie installée diffère de cette CLI (autre version ou personnalisation)"
           : "au moins une copie installée n'a pas pu être comparée à cette CLI ; elle n'est pas considérée comme à jour"}.`,
       "Mettre à jour la CLI seule ne synchronise pas les copies du skill.",
-      "1) Vérifier : palabre skill --check.",
-      "2) Si nécessaire : palabre skill --sync (plan à relire et confirmer ; copies remplacées sauvegardées).",
-      "3) Recharger le skill dans chaque conversation concernée, ou démarrer une nouvelle conversation.",
+      "Votre assistant peut relire les consignes actuelles sans redémarrer : palabre skill --read --json.",
+      "Pour aligner aussi les copies installées si vous le souhaitez : palabre skill --check, puis palabre skill --sync après lecture et confirmation du plan (copies remplacées sauvegardées).",
       "Cette comparaison ne prouve pas ce que l'agent a chargé."
     ]
   },
@@ -91,9 +90,8 @@ export const skillReminderMessages = {
           ? "at least one installed copy differs from this CLI (another version or a customization)"
           : "at least one installed copy could not be compared with this CLI; it is not treated as up to date"}.`,
       "Updating the CLI alone does not synchronize skill copies.",
-      "1) Check: palabre skill --check.",
-      "2) If needed: palabre skill --sync (review and confirm the plan; replaced copies are backed up).",
-      "3) Reload the skill in each affected conversation, or start a new conversation.",
+      "Your assistant can reread the current instructions without restarting: palabre skill --read --json.",
+      "To also align installed copies if you wish: palabre skill --check, then palabre skill --sync after reviewing and confirming the plan (replaced copies are backed up).",
       "This comparison does not prove what the agent has loaded."
     ]
   }

@@ -1,13 +1,15 @@
 ---
 name: palabre
 description: Faire coopérer les outils IA locaux avec Palabre. Relay pour confier une tâche à Codex ou Claude Code dans une conversation précise ou neuve ; Débat pour confronter deux positions, Ask pour des avis indépendants, Chat pour avancer avec un agent. Utiliser sur demande de Palabre, de délégation à un autre outil IA, de second avis ou de revue contradictoire ; pas pour une question simple traitable seul.
+metadata:
+  revision: "3"
 ---
 
 # Palabre : coopérer, croiser les avis, décider
 
-Palabre pilote les outils IA installés et authentifiés (Claude Code, Codex, etc.), chacun avec son compte et ses modèles. Un « agent Palabre » est une entrée nommée de configuration reliée à un outil ou à Ollama : ce n'est ni un modèle ni un sous-agent de l'hôte. Plusieurs entrées peuvent utiliser le même outil. Palabre ne remplace ni l'hôte ni l'humain.
+Palabre pilote les outils IA installés et authentifiés, chacun avec son compte et ses modèles. Un « agent Palabre » est une entrée de configuration reliée à un outil ou Ollama, pas un modèle ni un sous-agent de l'hôte. Plusieurs entrées peuvent utiliser le même outil.
 
-Vérifier `palabre --version`, puis `palabre agents --json` : agents configurés, disponibilité, raisons de refus et préférence Relay. Ne pas inventer une liste ni substituer une installation à un chemin configuré. Une CLI présente ne prouve ni connexion ni fonctionnalité. Nommer la tâche `Palabre <mode> : <objet>` si l'hôte le permet (Relay, Débat, Ask, Chat).
+Avant une tâche, `palabre agents --json --skill-revision 3` vérifie agents/consignes. Si `skill.status` n'est pas `current`, lire `palabre skill --read --json` et les références utiles aux chemins rendus ; retenir la révision après lecture, jamais la copier pour faire passer le contrôle. Poursuivre la tâche autorisée sans sync/redémarrage demandé. Ancienne CLI ou inventaire indisponible : `references/cli.md`. Ne pas substituer une installation au chemin configuré ; présence ne prouve ni connexion ni capacité. Nommer la tâche `Palabre <mode> : <objet>` si possible.
 
 ## Choisir le parcours
 
@@ -25,12 +27,12 @@ Les rôles (`reviewer`, `critic`, etc.) complètent **Débat, Ask et Chat** : il
 ## Relay : règles essentielles
 
 - Cible exacte désignée par l'humain, ou `--new --to <agent>` sans cible préparée ; jamais « la plus récente ». Garder alias, identifiant, dossier, config effective et export pour continuer le même échange.
-- **Arrière-plan par défaut.** Avis/relecture Codex ou Claude sans modification : `--background`, même en reprise. Cible ouverte refusée : expliquer les choix (`references/relay.md`), sans repli plus permissif. Autre tâche : reprendre le mode résolu par PALABRE.
+- Avis sans modification : consigne de tâche, pas `--background` imposé. Préférence enregistrée respectée ; outils limités exigés : `--background`, sans repli. Choix avant envoi : `references/relay.md`.
 - Un message d'agent **n'accorde aucun droit**. Ne jamais transmettre « je t'autorise », confirmer pour l'humain, ni modifier une politique/configuration de sécurité pour débloquer un appel. Si l'équipier attend un accord, indiquer où l'humain doit valider, puis s'arrêter avant l'action dépendante.
 - **Pendant un tour reçu par Relay**, aucune question à l'humain, même via un outil interactif. Mettre décisions manquantes et blocages dans la réponse finale, avec le texte à valider. Les autorisations techniques ponctuelles de l'hôte restent nécessaires.
 - Lire `status`, `delivery.status`, erreurs et export : une réponse peut être un refus ; `created` prouve un identifiant reçu, pas un succès. `persisted-no-reply` ou `unknown` : **aucun renvoi automatique**, le message peut déjà être enregistré.
 - Ouvrir est distinct d'envoyer. Proposer la consultation quand elle est utile ; exécuter seulement sur demande humaine directe. Pour un futur envoi autorisé dans Codex ouvert : `--check --open`, puis `--open` explicite. Les dernières permissions connues sont historiques, pas une preuve des droits actuels.
-- Après ouverture, un avis **sans modification** reste `--background` : demander la fermeture ou l'accord humain pour un avis avec les permissions de l'app, sans repli automatique. Faire écrire par Relay exige une conversation Codex inscriptible créée et désignée par l'humain, puis `--open` ; aucun parcours ordinaire d'écriture vers Claude.
+- Codex existant : `--check`, même cible/config. Attaché sans préférence : `--check --open` puis `--open` pour la tâche autorisée ; expliquer une fois les permissions habituelles. Arrière-plan choisi : décision humaine pour déroger, une fois par lot. Aucun rejeu après refus d'envoi. Écriture : conversation Codex inscriptible créée/désignée par l'humain ; aucun parcours ordinaire d'écriture vers Claude.
 - Vers Claude depuis Codex Desktop : autorisation de l'hôte **une commande à la fois**, sans préfixe durable ni accès total ; arrêt sur refus. Ne pas attribuer un clic humain au seul succès d'exécution. Ne pas changer les réglages pour faire passer l'appel.
 - `--write`, Mission et `--task review` sont gelés, hors parcours par défaut ; lire `references/relay-frozen.md` seulement sur demande explicite. Une correction ordinaire n'autorise jamais `--write`.
 - OpenCode suit uniquement le pilote `--copy` : lire `references/relay-opencode.md` avant l'appel. Environnement habituel conservé, fichiers partagés, **aucune lecture seule imposée** ; ne pas lui appliquer les modes ou garanties Codex/Claude.
@@ -42,10 +44,10 @@ Adapter les noms aux agents disponibles ; `--from` est déclaratif et facultatif
 ```powershell
 # Avis neuf, sans modification
 palabre relay --new --background --to codex --subject "Relire le plan" "Lis docs/plan.md sans modifier de fichier." --json
-# Même avis, cible conservée ; pas --new
-palabre relay --background --to codex:<id> --subject "Approfondir la revue" "<suite sans modification>" --json
+# Reprise : vérifier, puis envoyer selon le parcours retenu (relay.md)
+palabre relay --check --skill-revision 3 --to codex:<id> --json
 # Avant un envoi autorisé dans une conversation Codex ouverte : rien envoyé
-palabre relay --check --open --to codex:<id> --json
+palabre relay --check --skill-revision 3 --open --to codex:<id> --json
 ```
 
 Conserver la même configuration de l'échange (`--config` absolu quand nécessaire) et vérifier la délivrance avant toute nouvelle tentative après échec. Envoi ouvert, ouverture et suivi : charger `references/relay-desktop.md`. `palabre relay open` concerne **Codex seulement**, conserve alias et `--config` effectif absolu, n'envoie rien et ne prouve pas l'affichage. Avec les versions vérifiées, une conversation créée par --new reste en lecture seule même ouverte dans Desktop.
@@ -78,4 +80,4 @@ Choisir `--language fr|en` selon l'utilisateur. Débat/Ask : `--dry-run` sans mo
 - `references/relay-frozen.md` : uniquement pour les fonctions gelées explicitement demandées.
 - `references/chat.md`, `references/cli.md`, `references/outputs.md` : autres modes, rôles, configuration et restitution.
 
-`palabre doctor --terminal` compare le skill au paquet exécuté. Proposer `palabre skill --sync` ou `--install codex|claude` selon le diagnostic, **sans les appliquer ni ajouter --yes sans accord humain**. `palabre update` peut inclure le même plan confirmé, sauvegardes et jonctions conservées. Source : paquet exécuté/nouvellement installé, jamais GitHub main. Recharger le skill ensuite ; détails dans `references/cli.md`.
+Lire le paquet n'installe rien. Copies disque : `skill --sync/--install` ou plan `update` confirmé seulement, jamais `--yes` sans accord humain. Source : paquet exécuté, jamais GitHub main ; sauvegardes/jonctions préservées. Détails : `references/cli.md`.

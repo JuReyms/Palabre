@@ -59,6 +59,12 @@ Excerpt from the `agents` block:
 
 OpenCode runs in its **usual environment**: its configured plugins, MCP servers and permissions stay active, in Debate, Ask and Chat as well as for summaries. Palabre promises neither plugin neutralization nor read-only access. OpenCode 2 no longer has the `--pure` option, and Palabre has qualified no replacement for this command. Check OpenCode's permissions in its own configuration yourself.
 
+## Slow replies
+
+Some OpenCode models take several minutes to reply. Without `timeoutMs` in the configuration, Palabre waits up to 15 minutes; a value you set is kept. While waiting, Palabre says every minute that it is still waiting: this says nothing about the model's progress.
+
+If the time limit is exceeded, Palabre stops waiting, reports whether the local stop was confirmed and never resends the request. With the default arguments, it requests that only its OpenCode client stop, without stopping your application or its service. Your assistant can keep a reference to the request. With that reference, your assistant can read this exact request's reply later, without resending it, as long as the same trusted configuration is still in place. It simply tells you whether the reply is ready, still in progress or not found: you have no identifier to copy and no command to run. A reply found this way is checked like any agent reply.
+
 ## Usage
 
 ```bash

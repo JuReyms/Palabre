@@ -2,7 +2,7 @@
 import type { CommandDetection, ToolDiscovery } from "./discovery.js";
 import path from "node:path";
 import { statSync } from "node:fs";
-import type { AgentConfig, PalabreConfig } from "./types.js";
+import type { AgentConfig, CliAgentConfig, CliRuntimeProfile, PalabreConfig } from "./types.js";
 
 /**
  * Descripteur d'un agent CLI connu de Palabre.
@@ -24,6 +24,13 @@ interface KnownCliAgent {
    * "Relay externe"). Absent pour les CLIs dont la reprise de session n'est pas vérifiée.
    */
   externalSession?: "codex" | "claude" | "opencode";
+  /** Délai par défaut connu (ms) quand la configuration n'en fixe aucun valide, arguments personnalisés compris. */
+  defaultTimeoutMs?: number;
+  /**
+   * Sortie qualifiée, appliquée en mémoire au seul défaut exact d'arguments (`args`) avec prompt sur
+   * stdin et sans `responseFormat`. Une configuration personnalisée garde ses arguments.
+   */
+  batchProfile?: { args: readonly string[]; extraArgs: readonly string[]; output: CliRuntimeProfile["output"] };
 }
 
 /**
@@ -35,7 +42,9 @@ const KNOWN_CLI_AGENTS: readonly KnownCliAgent[] = [
   { configKey: "codex", commandAliases: ["codex"], discoveryKey: "codex", externalSession: "codex" },
   { configKey: "claude", commandAliases: ["claude"], discoveryKey: "claude", externalSession: "claude" },
   { configKey: "antigravity", commandAliases: ["agy", "antigravity"], discoveryKey: "antigravity" },
-  { configKey: "opencode", commandAliases: ["opencode"], discoveryKey: "opencode", externalSession: "opencode" },
+  // OpenCode 2.0.32 qualifié : sortie JSON structurée et 15 min par défaut (réponses lentes observées).
+  { configKey: "opencode", commandAliases: ["opencode"], discoveryKey: "opencode", externalSession: "opencode",
+    defaultTimeoutMs: 900_000, batchProfile: { args: ["run"], extraArgs: ["--format", "json"], output: "opencode-json" } },
   { configKey: "vibe", commandAliases: ["vibe"], discoveryKey: "vibe" }
 ];
 
@@ -81,6 +90,28 @@ export function normalizeCommandName(command: string): string {
 export function externalSessionProviderForCommand(command: string): "codex" | "claude" | "opencode" | undefined {
   const normalized = normalizeCommandName(command);
   return KNOWN_CLI_AGENTS.find((agent) => agent.commandAliases.includes(normalized))?.externalSession;
+}
+
+/**
+ * Profil d'exécution d'un agent CLI connu, ou `undefined`. Deux décisions séparées : le délai par
+ * défaut connu s'applique sans délai explicite valide, arguments personnalisés compris ; la sortie
+ * qualifiée (`runtime`) seulement au défaut exact d'arguments, prompt sur stdin, sans format explicite.
+ * Aucune détection par nom de modèle. Retourne une copie : commande gardée, valeurs explicites
+ * valides conservées, configuration chargée ou approuvée jamais modifiée ni écrite.
+ */
+export function cliRuntimeProfile(config: AgentConfig): { config: CliAgentConfig; runtime?: CliRuntimeProfile } | undefined {
+  if (config.type !== "cli") return undefined;
+  const known = KNOWN_CLI_AGENTS.find((agent) => agent.commandAliases.includes(normalizeCommandName(config.command)));
+  if (!known || (known.defaultTimeoutMs === undefined && !known.batchProfile)) return undefined;
+  const explicitTimeout = config.timeoutMs !== undefined && Number.isFinite(config.timeoutMs) && config.timeoutMs > 0;
+  const timeoutMs = explicitTimeout ? config.timeoutMs : known.defaultTimeoutMs ?? config.timeoutMs;
+  const output = known.batchProfile;
+  const exact = output !== undefined && config.responseFormat === undefined && (config.promptMode ?? "stdin") === "stdin"
+    && config.args !== undefined && JSON.stringify(config.args) === JSON.stringify(output.args);
+  return {
+    config: { ...config, ...(exact ? { args: [...output.args, ...output.extraArgs] } : {}), ...(timeoutMs !== undefined ? { timeoutMs } : {}) },
+    ...(exact ? { runtime: { output: output.output } } : {})
+  };
 }
 
 /**

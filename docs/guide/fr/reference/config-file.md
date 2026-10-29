@@ -80,7 +80,7 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 | `tier` | `primary` / `local` | Classe de l’agent ; sans effet sur la consigne de rôle. |
 | `model` | string | Modèle par défaut optionnel. |
 | `modelArg` | string | Flag modèle optionnel. |
-| `timeoutMs` | number | Délai global en millisecondes, 180 000 par défaut pour CLI/PTY. |
+| `timeoutMs` | number | Délai global en millisecondes, 180 000 par défaut pour CLI/PTY, 900 000 pour OpenCode batch. |
 | `idleTimeoutMs` | number | Timeout d'inactivité. |
 | `maxOutputBytes` | number | Taille maximale cumulée de stdout et stderr, 50 Mio par défaut. |
 | `allowEmptyOutput` | boolean | Autorise exceptionnellement une réponse CLI texte vide ; sans effet sur le refus d'un JSON Antigravity vide ou invalide. |
@@ -114,4 +114,4 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 
 Utilisez `palabre relay allow-repo proprietaire/depot` : confirmation au clavier dans votre terminal, jamais par un agent. Si `review` est autorisé, la liste de dépôts ne peut pas être vide.
 
-`tier` (`primary` / `local`) est optionnel pour les agents CLI et Ollama. `timeoutMs` est exprimé en millisecondes (180 000 par défaut pour CLI/PTY, 300 000 dans le défaut Antigravity). `shell` est ignoré par Relay ; les adapters refusent un wrapper shell restant pour un prompt en argument. `outputDir` vaut `.palabre` par défaut ; `.` est traité comme `.palabre`. Il reçoit aussi `.relay.md` ; Mission garde `.palabre/missions/<id>/`, indépendamment de ce réglage. L'exemple ci-dessus est une configuration complète avec deux agents, pas la totalité des agents générés.
+`tier` (`primary` / `local`) est optionnel pour les agents CLI et Ollama. `timeoutMs` est exprimé en millisecondes (180 000 par défaut pour CLI/PTY, 900 000 pour OpenCode batch, 300 000 dans le défaut Antigravity). `shell` est ignoré par Relay ; les adapters refusent un wrapper shell restant pour un prompt en argument. `outputDir` vaut `.palabre` par défaut ; `.` est traité comme `.palabre`. Il reçoit aussi `.relay.md` ; Mission garde `.palabre/missions/<id>/`, indépendamment de ce réglage. L'exemple ci-dessus est une configuration complète avec deux agents, pas la totalité des agents générés.

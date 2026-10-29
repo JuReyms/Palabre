@@ -59,6 +59,12 @@ Extrait du bloc `agents` :
 
 OpenCode s'exécute dans son **environnement habituel** : ses plugins, serveurs MCP et permissions configurés restent actifs, en Débat, Ask et Chat comme pour les synthèses. Palabre ne promet ni neutralisation des plugins ni lecture seule. OpenCode 2 n'a plus l'option `--pure`, et Palabre n'a qualifié aucun remplaçant pour cette commande. Vérifiez donc vous-même les permissions d'OpenCode dans sa configuration.
 
+## Réponses lentes
+
+Certains modèles d'OpenCode répondent en plusieurs minutes. Sans `timeoutMs` dans la configuration, Palabre attend jusqu'à 15 minutes ; une valeur que vous avez fixée est conservée. Pendant l'attente, Palabre indique chaque minute qu'il attend toujours : cela ne dit rien de l'avancement du modèle.
+
+Si le délai est dépassé, Palabre cesse d’attendre, indique si l’arrêt local est confirmé et ne renvoie jamais la demande. Avec les arguments par défaut, il demande seulement l’arrêt de son client OpenCode, sans arrêter votre application ou son service. Votre assistant peut alors conserver une référence de la demande. Avec cette référence, votre assistant peut relire plus tard la réponse de cette demande précise, sans la renvoyer, si la même configuration approuvée est toujours en place. Il vous dit simplement si la réponse est prête, encore en cours ou introuvable : vous n'avez ni identifiant à recopier ni commande à lancer. Une réponse retrouvée se vérifie comme toute réponse d'agent.
+
 ## Utilisation
 
 ```bash

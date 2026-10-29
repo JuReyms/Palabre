@@ -82,13 +82,9 @@ For explicit setup, scripts, or a project-local configuration, see [the configur
 
 Moving to another computer, including a previously used one? Follow [Change machines](/en/get-started/change-machine): inventory without changes, updates and a new Relay conversation.
 
-`palabre update` detects the installation and skill copies, shows the plan and asks for one confirmation in an interactive terminal. Copies are refreshed from the new package after backup outside skill directories, preserving junctions. `palabre update --check` checks without modifying the installation. For the skill only, without network: `palabre skill --sync`. Reload the skill after refreshing it; details: [Palabre skill](/en/get-started/skill).
+`palabre update` detects the installation and skill copies, shows the plan and asks for one confirmation in an interactive terminal. Copies are refreshed from the new package after backup outside skill directories, preserving junctions. `palabre update --check` checks without modifying the installation. For the skill only, without network: `palabre skill --sync`. Your assistant can reread the current instructions without restarting; details: [Palabre skill](/en/get-started/skill).
 
-After a direct update with your package manager (for example `npm install --global palabre`), the CLI changes but installed skill copies do not. npm shows no reminder. In an interactive terminal, `palabre --version`, `palabre --help` and the `palabre` home screen point it out when a detected copy differs from the CLI (another version or a customization) or could not be compared. Nothing is shown for scripts, `--json` or NDJSON output, or outside a terminal. In every case:
-
-1. check with `palabre skill --check`;
-2. if needed, run `palabre skill --sync`, review the plan and confirm (replaced copies are backed up);
-3. reload the skill in each affected conversation, or start a new conversation.
+After a direct update with your package manager (for example `npm install --global palabre`), installed copies remain untouched. Palabre reports differences in an interactive terminal, without changing machine output. Your assistant can reread the current package instructions and continue within existing authorization, without asking you to synchronize or restart. To also align installed files if you wish, `palabre skill --check` checks their state and `palabre skill --sync` shows a plan to confirm, backing up replaced copies. See [Palabre skill](/en/get-started/skill).
 
 Identical files do not prove what the agent has loaded.
 

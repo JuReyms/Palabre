@@ -62,6 +62,32 @@ const check = (file: string, ...args: string[]) => executeRelay(["relay", "--che
 const fr = createTranslator("fr");
 
 describe("relay --check (#203)", () => {
+  test("révision du skill : lecture indiquée avant la tâche, refus et délivrance inchangés", async t => {
+    const w = await world(t, { attachment: "attached" });
+    const absent = await check(w.file, "--to", `codex:${CODEX}`);
+    const old = await check(w.file, "--to", `codex:${CODEX}`, "--skill-revision", "999");
+    const current = await check(w.file, "--to", `codex:${CODEX}`, "--skill-revision", "3");
+    for (const result of [absent, old, current]) {
+      assert.equal(result.status, "target-busy");
+      assert.equal(result.exitCode, 3);
+      assert.equal(result.delivery.status, "not-delivered");
+      assert.equal(result.exportPath, null);
+      assert.equal(result.queue, undefined);
+      assert.equal(result.skill?.instructions, undefined);
+      assert.equal(result.skill?.revision, 3);
+    }
+    assert.equal(absent.skill?.status, "unverified");
+    assert.equal(old.skill?.status, "reload-required");
+    assert.equal(current.skill?.status, "current");
+    assert.equal(current.skill?.message, undefined);
+    for (const extra of [["--new"], ["--copy"], ["--follow", "--open"], ["--task", "review"], []]) {
+      const rejected = await executeRelay(["relay", "--skill-revision", "3", "--to", `codex:${CODEX}`, ...extra]);
+      assert.equal(rejected.status, "invalid-request");
+      assert.equal(rejected.delivery.status, "not-delivered");
+      assert.equal(rejected.skill, undefined, "aucune extension des envois, suivis ou tâches gelées");
+    }
+    assert.equal(w.probes(), 3, "seules les trois vérifications atteignent la sonde");
+  });
   test("quota Codex daté dans check, ouverte ou fermée ; jamais pour Claude", async t => {
     for (const attachment of ["attached", "detached"] as const) {
       const w = await world(t, { attachment, view: "auto", rolloutLines: [JSON.stringify(quotaEvent),
@@ -147,7 +173,8 @@ describe("relay --check (#203)", () => {
       assert.equal(result.status, status, extra.join(" "));
       assert.equal(result.exitCode, exitCode);
       assert.equal(result.delivery.status, "not-delivered");
-      assert.deepEqual(result.check, target ? { target } : {}, `état connu avant le refus : ${status}`);
+      // #250 : une Codex encore utilisée ajoute les dernières permissions lues (inconnues dans ce profil).
+      assert.deepEqual(result.check, status === "target-busy" ? { target, lastPermissions: "unknown" } : target ? { target } : {}, `état connu avant le refus : ${status}`);
       assert.equal(result.queue, undefined);
       const text = renderRelayText(result, fr).stderr;
       assert.match(text, /Vérification seulement : rien n'a été envoyé\. Un envoi recevrait ce même refus\./);
@@ -158,6 +185,32 @@ describe("relay --check (#203)", () => {
       }
       if (extra.includes("--background")) assert.match(result.error!.message, /--background impose l'arrière-plan/);
       if (status === "target-busy") assert.match(result.error!.message, /--open.*permissions.*écriture/);
+      if (status === "target-busy") assert.ok(result.error!.hint!.includes("--check --open --to "));
+      else assert.equal(result.error!.hint, undefined, `aucun conseil pour ${status}`);
+    }
+  });
+
+  test("Codex encore utilisée en arrière-plan : dernières permissions indicatives, sans champ de tour ouvert (#250)", async (t) => {
+    const w = await world(t, { attachment: "attached", rolloutLines: [turnContext("never", "read-only", false, "2026-10-22T08:00:00Z")] });
+    for (const language of ["fr", "en"] as const) {
+      const result = await check(w.file, "--to", `codex:${CODEX}`, "--background", "--language", language);
+      assert.equal(result.status, "target-busy");
+      assert.equal(result.exitCode, 3);
+      assert.equal(result.mode, "background");
+      assert.equal(result.modeSource, "explicit");
+      assert.deepEqual(result.delivery, { status: "not-delivered", persisted: false, inActiveBranch: false });
+      assert.deepEqual(result.check, {
+        target: "open",
+        lastPermissions: { approvalPolicy: "never", sandbox: "read-only", network: "restricted" },
+        lastPermissionsAt: "2026-10-22T08:00:00.000Z"
+      });
+      for (const field of ["queue", "receiver", "targetPermissions", "correlation", "reply"]) assert.equal(field in result, false, field);
+      assert.equal(result.exportPath, null);
+      const messages = createTranslator(language);
+      const text = renderRelayText(result, messages).stderr;
+      assert.ok(text.includes(messages.relayView.busyMode));
+      assert.ok(text.includes("approval=never, sandbox=read-only, network=restricted"));
+      assert.match(result.error!.hint!, language === "fr" ? /ne sont qu'indicatives/ : /only indicative/);
     }
   });
 
@@ -222,6 +275,9 @@ describe("relay --check (#203)", () => {
       const result = await check(w.file, "--to", `codex:${CODEX}`, ...extra);
       assert.equal(result.status, "invalid-request", extra.join(" "));
       assert.deepEqual(result.check, {});
+      const english = await check(w.file, "--language", "en", "--to", `codex:${CODEX}`, ...extra);
+      assert.equal(english.skill?.status, "unverified");
+      assert.match(english.skill!.message!, /^Before preparing/);
     }
   });
 });

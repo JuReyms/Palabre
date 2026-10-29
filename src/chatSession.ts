@@ -73,7 +73,7 @@ export class ChatSession {
     const assistant = await runStatelessChatResponse({
       agentName: this.activeName,
       agentConfig: this.runtimeConfig(this.activeName),
-      runtime: { ollamaUrl: this.options.ollamaUrl },
+      runtime: { ollamaUrl: this.options.ollamaUrl, configIdentity: this.options.configIdentity },
       topic: this.topicValue,
       userMessage,
       transcript: this.transcript,
@@ -81,7 +81,8 @@ export class ChatSession {
       language: this.options.language,
       session: this.options.session,
       files: this.options.files,
-      signal: this.options.signal
+      signal: this.options.signal,
+      onWaiting: this.options.onAgentWaiting
     }, this.transcript);
     this.transcript.push(assistant);
     return { user, assistant };
@@ -92,7 +93,7 @@ export class ChatSession {
     const opinion = await runStatelessConsultation({
       agentName,
       agentConfig: this.runtimeConfig(agentName),
-      runtime: { ollamaUrl: this.options.ollamaUrl },
+      runtime: { ollamaUrl: this.options.ollamaUrl, configIdentity: this.options.configIdentity },
       requesterName: this.activeName,
       topic: this.topicValue,
       transcript: this.transcript,
@@ -100,7 +101,8 @@ export class ChatSession {
       language: this.options.language,
       session: this.options.session,
       files: this.options.files,
-      signal: this.options.signal
+      signal: this.options.signal,
+      onWaiting: this.options.onAgentWaiting
     });
     this.transcript.push(opinion);
     return opinion;

@@ -46,7 +46,7 @@ Run only the command for your intended agent. The plan shows the destination and
 
 `palabre update` includes refreshing detected copies in its plan and single confirmation. After updating, it uses the new package's skill, including when pnpm changes stores. If the CLI is already current, refreshing a different skill is still offered. Missing copies are never installed implicitly.
 
-Before replacement, each physical copy is backed up under `~/.palabre/skill-backups/`, with a timestamp and unique suffix, outside directories loaded by agents. Root junctions remain intact; a directory shared by Claude and Codex is backed up only once. Customized bundled files are replaced after this consent; additional private files are preserved. An edit since the plan was displayed makes the refresh fail. Reload the skill in each affected conversation afterwards, or start a new conversation.
+Before replacement, each physical copy is backed up under `~/.palabre/skill-backups/`, with a timestamp and unique suffix, outside directories loaded by agents. Root junctions remain intact; a directory shared by Claude and Codex is backed up only once. Customized bundled files are replaced after this consent; additional private files are preserved. An edit since the plan was displayed makes the refresh fail. The agent can then reread the package instructions without restarting, as explained below.
 
 These commands follow the CLI package, not GitHub `main`. External tools such as `npx skills add/update` follow the repository and may provide a different skill from the installed CLI. On an older CLI without the `skill` command, manually copying the bundled folder remains possible.
 
@@ -54,9 +54,17 @@ To start, tell Claude Code or Codex: "Use PALABRE to ask the other agent to revi
 
 An unverified copy is displayed with a warning and left untouched: it blocks neither the CLI update nor other skill copies. If no copy differs, `--sync` and `--install` do not ask for consent or write anything. If the CLI updates successfully but the skill refresh then fails, the message distinguishes these outcomes: restart Palabre, then run `palabre skill --sync` to inspect the new plan.
 
-**After a direct CLI update** (npm, pnpm, Yarn or Bun), skill copies do not change and Palabre adds no reminder to the package manager output. In an interactive terminal, `palabre --version`, `palabre --help` and the `palabre` home screen list three steps when a detected copy differs from the CLI or could not be compared: `palabre skill --check`; if needed `palabre skill --sync` after reviewing and confirming the plan; then reload the skill in each affected conversation, or start a new conversation. A difference can be a customization. No reminder appears without a detected copy, when all copies match, with `--json` or NDJSON output, or outside a terminal. A matching copy does not prove what the agent has loaded.
+**After a direct CLI update** (npm, pnpm, Yarn or Bun), installed copies remain untouched. In an interactive terminal, Palabre help, version and home screen report differing or unreadable copies. Your assistant can reread the current package instructions and continue working without asking you to synchronize files or restart the conversation; the path is explained below. To also align installed copies, if you wish, `palabre skill --check` shows their state and `palabre skill --sync` presents a plan to confirm. A difference can be a customization. No reminder appears without a detected copy, when all match, in machine output or outside a terminal; matching files do not prove what the agent read.
 
 ## When the agent sees the skill
+
+Updating files does not guarantee that a running conversation has reread its instructions. Before preparing a task, the skill now asks the agent to compare its declared revision with the running Palabre package. If it is missing or different, the agent reads the current instructions and relevant references, then continues within existing authorization. You do not need to synchronize a directory or restart the conversation for this read. An old or customized installed copy remains untouched.
+
+This check is local. The technical command `palabre skill --read --json` supplies the skill text and reference paths from the running package, without configuration, network, installation or an AI call. The `agents --json` inventory and `relay --check --json` can compare the revision the agent says it read. Matching revisions do not prove its internal memory. An old conversation still needs to encounter this diagnostic or reread the skill to benefit; Palabre does not control applications' internal reload mechanisms.
+
+If the package is incomplete or unreadable, the agent explains the limitation when it blocks work. An old CLI that does not support this check must not be presented as compatible: consult its help and distinguish reading instructions from updating software. Never automatically resend a Relay to repair a skill.
+
+The following observations concern native skill discovery by applications, separate from the agent reading the package:
 
 An agent loads its skill list when a conversation starts or resumes. After installing, open a new conversation or resume one: a conversation that is already running may not see the skill.
 
@@ -87,7 +95,7 @@ palabre agents
 
 The entrypoint covers shared decisions and safeguards; the agent then loads the reference for the relevant route. Relay separates the basics, Desktop opening/follow-up, the OpenCode pilot and frozen features. Details for unrelated routes are not loaded by default.
 
-To continue Codex/Claude advice without changes, recipes keep `--background`, even if you opened the conversation meanwhile: a busy target is refused, without silently switching to its permissions. Opening to view and sending remain separate actions; Codex opening preserves the absolute effective configuration path.
+To continue a consultation, the agent checks the conversation before sending and respects your preference. With no saved preference, it can continue with Codex already in use, within existing authorization, explaining its usual permissions: no identifier to copy or window to close. An explicit background or limited-tools choice is still respected. A review makes no changes regardless of the path. No fallback after a refused send; opening to view and sending remain separate. See [Relay mode](/en/usage/relay).
 
 Here, a Palabre agent is a configured entry connected to an AI tool (such as Claude Code or Codex) or to Ollama, not a model or a subagent. Roles complement Debate, Ask and Chat; they do not configure Relay or grant permissions.
 

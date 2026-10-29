@@ -781,7 +781,45 @@ describe("palabre relay : refus avant lancement", () => {
     assert.equal(result.code, 3);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /target-busy/);
-    assert.match(result.stderr, /sans risque de doublon/);
+    assert.match(result.stderr, /Rien n'a été envoyé/);
+    assert.doesNotMatch(result.stderr, /sans risque de doublon/);
+    assert.equal(result.calls.length, 0);
+  });
+});
+
+describe("palabre relay : conversation Claude déjà utilisée (#250)", () => {
+  /** Registre Claude fictif : un processus vivant attaché à la cible, au repos. */
+  function holdClaude(world: World): void {
+    writeFileSync(path.join(world.home, ".claude", "sessions", `${process.pid}.json`), JSON.stringify({ pid: process.pid, sessionId: CLAUDE_SESSION, status: "idle" }));
+  }
+
+  test("JSON : un seul objet, passation locale, aucune CLI lancée, export inchangé", async () => {
+    const world = makeWorld();
+    holdClaude(world);
+    const result = await relay(world, [...toClaude, "Passation « finale »", "--trust-config", "--json"]);
+    assert.equal(result.code, 3, result.stderr);
+    assert.equal(result.stdout.trim().split(/\r?\n/).length, 1, "stdout machine : un seul objet");
+    assert.equal(result.json.status, "target-busy");
+    assert.equal(result.json.delivery.status, "not-delivered");
+    assert.equal(result.json.exportPath, null);
+    assert.equal(result.json.handoff.status, "saved");
+    assert.ok(result.json.handoff.path.endsWith(".handoff.md"));
+    assert.ok(readFileSync(result.json.handoff.path, "utf8").includes("Passation « finale »"));
+    assert.match(result.json.error.hint, /même tour/);
+    assert.equal(result.calls.length, 0);
+  });
+
+  test("texte : refus, conseil et passation sur stderr, stdout vide", async () => {
+    const world = makeWorld();
+    holdClaude(world);
+    const result = await relay(world, [...toClaude, "x", "--trust-config"]);
+    assert.equal(result.code, 3);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /déjà utilisée par Claude/);
+    assert.match(result.stderr, /même tour/);
+    assert.match(result.stderr, /NON ENVOYÉE/);
+    assert.doesNotMatch(result.stderr, /--desktop/);
+    assert.match(result.stderr, /Mode demandé : arrière-plan/);
     assert.equal(result.calls.length, 0);
   });
 });
@@ -832,16 +870,22 @@ describe("relay.view (#190)", () => {
     config.relay = { view }; writeFileSync(file, JSON.stringify(config));
   }
 
-  test("agents JSON expose la préférence effective sans lancer un agent", async () => {
+  test("agents JSON expose préférence et consignes du paquet sans lancer un agent", async () => {
     const server = createServer((_req, res) => { res.setHeader("content-type", "application/json"); res.end('{"models":[]}'); });
     await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
     try {
       const port = (server.address() as { port: number }).port;
       for (const view of [undefined, "auto", "background"] as const) {
         const world = makeWorld(); if (view) setting(world, view);
-        const r = await palabre(world, ["agents", "--json", "--trust-config"], { OLLAMA_HOST: `http://127.0.0.1:${port}` });
+        const declared = view === undefined ? [] : ["--skill-revision", view === "auto" ? "999" : "3"];
+        const r = await palabre(world, ["agents", "--json", "--trust-config", ...declared], { OLLAMA_HOST: `http://127.0.0.1:${port}` });
         assert.equal(r.code, 0, r.stderr); assert.equal(r.json.defaults.relayView, view ?? "background");
         assert.equal(r.json.v, 1); assert.equal(r.calls.length, 0);
+        assert.equal(r.json.skill.status, view === undefined ? "unverified" : view === "auto" ? "reload-required" : "current");
+        assert.equal(r.json.skill.revision, 3);
+        assert.ok(path.isAbsolute(r.json.skill.entrypoint));
+        assert.ok(r.json.skill.references["relay.md"].endsWith(path.join("references", "relay.md")));
+        assert.equal(r.json.skill.instructions, undefined);
       }
     } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
   });

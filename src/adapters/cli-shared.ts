@@ -6,6 +6,22 @@ export const DEFAULT_MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
 /** Timeout dur par défaut d'un appel d'agent CLI/PTY (3 minutes). */
 export const DEFAULT_TIMEOUT_MS = 180_000;
 
+/** Plus grand délai accepté par `setTimeout` ; au-delà, Node le ramènerait à 1 ms. */
+const MAX_TIMER_MS = 2_147_483_647;
+
+/**
+ * Délai effectif : une valeur absente, nulle, négative ou non finie revient au repli, et une valeur
+ * trop grande est plafonnée. Une valeur invalide ne désactive jamais l'échéance.
+ */
+export function resolveTimeoutMs(value: number | undefined, fallback = DEFAULT_TIMEOUT_MS): number {
+  return value !== undefined && Number.isFinite(value) && value > 0 ? Math.min(value, MAX_TIMER_MS) : fallback;
+}
+
+/** Intervalle de l'indication d'attente : 60 s par défaut, 10 ms au minimum (tests). */
+export function resolveWaitingIntervalMs(value: number | undefined): number {
+  return value !== undefined && Number.isFinite(value) && value >= 10 ? Math.min(value, MAX_TIMER_MS) : 60_000;
+}
+
 /**
  * Force les runtimes Python enfants à utiliser UTF-8 pour leurs flux standard.
  * Sous Windows, cela évite que les CLIs Python échouent en écrivant un caractère

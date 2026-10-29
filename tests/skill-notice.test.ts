@@ -67,7 +67,7 @@ test("terminal humain sans copie ou avec copies identiques : silence sans résou
   assert.equal(skillReminderText(undefined, "en"), undefined);
 });
 
-test("copie différente (FR) : trois étapes sur stderr, stdout intact, ni chemin ni verdict d'ancienneté", async () => {
+test("copie différente (FR) : relecture du paquet, copies facultatives et stdout intact", async () => {
   const terminal = fakeTerminal();
   await printSkillReminder({ flags: {}, streams: terminal.streams, plan: () => fakePlan("current", "different"), language: () => "fr" });
   assert.deepEqual(terminal.stdoutWrites, []);
@@ -78,11 +78,12 @@ test("copie différente (FR) : trois étapes sur stderr, stdout intact, ni chemi
     "palabre skill --check",
     "palabre skill --sync",
     "personnalisation",
-    "nouvelle conversation",
+    "palabre skill --read --json",
+    "sans redémarrer",
     "ne prouve pas ce que l'agent a chargé"
   ]) assert.ok(text.includes(expected), expected);
   assert.ok(!text.includes("/fictif"));
-  assert.doesNotMatch(text, /ancienne|reprenez/i);
+  assert.doesNotMatch(text, /ancienne|reprenez|recharger le skill|nouvelle conversation/i);
 });
 
 test("copie illisible (EN) : jamais présentée comme à jour", async () => {
@@ -91,6 +92,8 @@ test("copie illisible (EN) : jamais présentée comme à jour", async () => {
   const text = terminal.stderrWrites.join("");
   assert.match(text, /could not be compared/);
   assert.match(text, /not treated as up to date/);
+  assert.match(text, /palabre skill --read --json/);
+  assert.doesNotMatch(text, /reload the skill|start a new conversation/i);
   assert.match(text, /palabre skill --check/);
   assert.match(text, /does not prove what the agent has loaded/);
   assert.doesNotMatch(text, /matches the current CLI|customization/);
