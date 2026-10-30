@@ -73,6 +73,12 @@ Certains modèles d'OpenCode répondent en plusieurs minutes. Sans `timeoutMs` d
 
 Si le délai est dépassé, Palabre cesse d’attendre, indique si l’arrêt local est confirmé et ne renvoie jamais la demande. Avec les arguments par défaut, il demande seulement l’arrêt de son client OpenCode, sans arrêter votre application ou son service. Votre assistant peut alors conserver une référence de la demande. Avec cette référence, votre assistant peut relire plus tard la réponse de cette demande précise, sans la renvoyer, si la même configuration approuvée est toujours en place. Il vous dit simplement si la réponse est prête, encore en cours ou introuvable : vous n'avez ni identifiant à recopier ni commande à lancer. Une réponse retrouvée se vérifie comme toute réponse d'agent.
 
+## Réponse conservée mais non lisible
+
+Une réponse peut exister dans OpenCode alors que Palabre ne reconnaît pas sa forme. Votre assistant distingue alors ce qui a été reçu, conservé ou refusé ; il ne renvoie pas automatiquement la demande. Les réponses déjà validées dans Ask restent dans l’export même si la synthèse est indisponible.
+
+Les contrôles de compatibilité et leurs limites sont consignés dans le [bilan de la version](https://github.com/JuReyms/Palabre/blob/main/docs/release-0.22.1-qualification.md). Une vérification sur fichiers simulés ne garantit pas tous les parcours d’une version d’OpenCode.
+
 ## Utilisation
 
 ```bash

@@ -73,6 +73,12 @@ Some OpenCode models take several minutes to reply. Without `timeoutMs` in the c
 
 If the time limit is exceeded, Palabre stops waiting, reports whether the local stop was confirmed and never resends the request. With the default arguments, it requests that only its OpenCode client stop, without stopping your application or its service. Your assistant can keep a reference to the request. With that reference, your assistant can read this exact request's reply later, without resending it, as long as the same trusted configuration is still in place. It simply tells you whether the reply is ready, still in progress or not found: you have no identifier to copy and no command to run. A reply found this way is checked like any agent reply.
 
+## Saved reply that Palabre cannot read
+
+A reply may exist in OpenCode even when Palabre does not recognize its format. Your assistant distinguishes what was received, saved or rejected; it does not automatically resend the request. Previously validated Ask answers remain in the export when the summary is unavailable.
+
+Compatibility checks and their limits are recorded in the [release qualification](https://github.com/JuReyms/Palabre/blob/main/docs/release-0.22.1-qualification.md). Checks with simulated files do not guarantee every workflow of an OpenCode version.
+
 ## Usage
 
 ```bash

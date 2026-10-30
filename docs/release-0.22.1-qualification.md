@@ -83,6 +83,16 @@ Vérifications complémentaires autorisées : les cinq autres modèles gratuits 
 
 Le lanceur possédé de cette campagne est arrêté, sans fermer OpenCode ni son service. Les réponses déjà produites sont relues sans nouvelle génération. La qualification sur les outils mis à jour reste **incomplète** : ne pas transformer les 20/20 de la première campagne en réussite du candidat final, ni annoncer une correction du lecteur sans flux probant. Aucun nouvel essai programmé à une heure de remise à disposition.
 
+## Correctif ciblé du lecteur après revue
+
+La lecture du code officiel OpenCode [v2.2.3](https://github.com/anomalyco/opencode/blob/v2.2.3/packages/cli/src/run/noninteractive.ts) et de ses [tests](https://github.com/anomalyco/opencode/blob/v2.2.3/packages/cli/test/run/noninteractive.test.ts) identifie un format de compléments projetés rejeté par l’ancien validateur d’identifiants. Ce cas est reproduit par fichiers simulés. Le stdout de l’appel historique ayant été perdu, il n’est pas présenté comme la preuve certaine de sa cause.
+
+Le correctif lie les projections au même message/type/appel d’outil. Une fin ancienne ne remplace pas le dernier message connu. Une projection complète ordonnée est acceptée, ainsi qu’une fin projetée du même message après un texte live. Les textes live/projetés ambigus, les trous/doublons et un nouveau message seulement projeté après d’autres messages live sont refusés. Un premier bloc réellement vide mais non émis peut donc aussi être refusé. Aucun transport, modèle, permission, référence publique ou renvoi automatique ajouté.
+
+La première relecture interne et celle de Claude Sonnet 5.5 ont été distinguées. Claude a identifié deux risques silencieux dans la première proposition : inférence d’ordinal depuis l’ordre live et recul vers un ancien message lors de reconcile. Ils ont été corrigés, avec six nouveaux tests de format/ordre/observation ; les **22 tests ciblés** passent ensuite. La relecture interne et une seconde lecture par le même Claude Sonnet 5.5 confirment les corrections, sans défaut concret restant dans la logique. Statuts, identité, modèle observé et exports des deux échanges Claude ont été vérifiés ; les traces restent locales. Les consignes d’exécution du skill restent identiques, en révision 8. La suite complète sur ce correctif passe : **1 318 réussis, 6 ignorés, 0 échec**, sur 1 324 tests, profil réel inchangé. Types, build et validation du skill réussis ; paquet extrait de 158 entrées, lecteur réellement empaqueté éprouvé sur fin projetée liée et mélange ambigu refusé, skill 8 et sept références lisibles. Les 78 guides FR/EN et deux changelogs sont générés.
+
+L’inventaire des fournisseurs réellement configurés dans OpenCode ne déclare ici que opencode et opencode-go, sans autre connexion Claude ou ChatGPT disponible. Aucun compte n’a été connecté ni réglage changé. La qualification réelle finale reste à terminer avec un modèle disponible et autorisé ; utiliser Claude directement pour la revue ne remplace pas ce test de transport OpenCode.
+
 ## Vérifications restantes avant publication
 
 - Obtenir une CI verte et finaliser la revue du commit final de la PR de version.

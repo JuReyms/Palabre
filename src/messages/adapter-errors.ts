@@ -92,7 +92,7 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
       `${name} n'a pas répondu dans le délai prévu (${frDuration(timeoutMs)}). Palabre a cessé d'attendre et a demandé l'arrêt du programme local (${localExit === "confirmed" ? "arrêt local confirmé" : "arrêt local non confirmé"}). Palabre ne sait pas si le travail continue chez l'outil ; rien n'a été renvoyé, et ce délai ne prouve pas un échec du modèle.`
       + (command ? ` Pour lire plus tard la réponse de cette demande précise, sans la renvoyer : ${command}`
         : recoverable ? " Aucune référence de lecture sûre n'est disponible : la réponse ne peut pas être retrouvée automatiquement ; vérifiez dans l'outil avant tout nouvel envoi." : ""),
-    invalidOpenCodeJson: (name) => `${name} : sortie JSON OpenCode non reconnue (attendu : opencode run --format json, version qualifiée 2.0.32). Aucun repli texte ; rien n'a été renvoyé.`,
+    invalidOpenCodeJson: (name) => `${name} : sortie JSON OpenCode non reconnue (attendu : événements structurés de opencode run --format json). Aucun repli texte ; rien n'a été renvoyé.`,
     invalidAntigravityJson: (name) => `${name} : réponse JSON Antigravity invalide, en erreur ou vide. Vérifie la version avec agy --help et les arguments --output-format json --print ; seul un objet avec status SUCCESS et response non vide est accepté. Aucun repli texte ou PTY.`,
     invalidResponseFormat: (name) => `${name} : responseFormat invalide pour cet adapter. Configure "text" ou "antigravity-json" avec "type": "cli", ou retire responseFormat pour conserver ton transport.`,
     suggestionPrefix: "Suggestion",
@@ -128,7 +128,7 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
       `${name} did not reply within the planned time (${enDuration(timeoutMs)}). Palabre stopped waiting and requested that the local program stop (${localExit === "confirmed" ? "local stop confirmed" : "local stop not confirmed"}). Palabre does not know whether the work continues in the tool; nothing was resent, and this delay does not prove the model failed.`
       + (command ? ` To read this exact request's reply later, without resending it: ${command}`
         : recoverable ? " No safe reading reference is available: the reply cannot be found automatically; check in the tool before any new send." : ""),
-    invalidOpenCodeJson: (name) => `${name}: unrecognized OpenCode JSON output (expected: opencode run --format json, qualified version 2.0.32). No text fallback; nothing was resent.`,
+    invalidOpenCodeJson: (name) => `${name}: unrecognized OpenCode JSON output (expected: structured events from opencode run --format json). No text fallback; nothing was resent.`,
     invalidAntigravityJson: (name) => `${name}: invalid, failed or empty Antigravity JSON response. Check the version with agy --help and the --output-format json --print arguments; only an object with status SUCCESS and a nonempty response is accepted. No text or PTY fallback.`,
     invalidResponseFormat: (name) => `${name}: invalid responseFormat for this adapter. Configure "text" or "antigravity-json" with "type": "cli", or remove responseFormat to keep your transport.`,
     suggestionPrefix: "Suggestion",
