@@ -84,8 +84,12 @@ Moving to another computer, including a previously used one? Follow [Change mach
 
 `palabre update` detects the installation and skill copies, shows the plan and asks for one confirmation in an interactive terminal. Copies are refreshed from the new package after backup outside skill directories, preserving junctions. `palabre update --check` checks without modifying the installation. For the skill only, without network: `palabre skill --sync`. Your assistant can reread the current instructions without restarting; details: [Palabre skill](/en/get-started/skill).
 
+After installation through `palabre update`, Palabre automatically checks the version launched by the `palabre` command in its environment before refreshing the skill. If an older installation still takes priority or the check fails, it explains the next action and exits with an error without announcing a complete update. Skill copies remain untouched at this stage; no reinstall is attempted. This check does not cover aliases or caches in another terminal or installations run directly through npm/pnpm/Yarn/Bun.
+
 After a direct update with your package manager (for example `npm install --global palabre`), installed copies remain untouched. Palabre reports differences in an interactive terminal, without changing machine output. Your assistant can reread the current package instructions and continue within existing authorization, without asking you to synchronize or restart. To also align installed files if you wish, `palabre skill --check` checks their state and `palabre skill --sync` shows a plan to confirm, backing up replaced copies. See [Palabre skill](/en/get-started/skill).
 
 Identical files do not prove what the agent has loaded.
 
 Relay and its Mission option use existing Codex or Claude Code conversations. Each provider sets its own access conditions and limits; PALABRE does not replace them.
+
+On Windows, this check directly runs a native executable or a strictly recognized npm/pnpm launcher. An unknown launcher remains unverified, without trying another installation. Real Yarn and Bun launchers on Windows have not been qualified in this batch.

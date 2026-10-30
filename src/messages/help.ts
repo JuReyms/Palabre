@@ -223,6 +223,9 @@ Pour le skill seul sans réseau : palabre skill --sync.
 Utilisation :
   palabre update [flags]
 
+Après installation, vérifie une fois la version exécutée avant de rafraîchir le skill.
+Version différente/inconnue : arrêt expliqué, copies du skill intactes, sans réinstallation automatique.
+
 Options :
   --check                     vérifie canal et version sans modifier
   --dry-run                   prévisualise les étapes sans modifier
@@ -889,6 +892,9 @@ For skills only, without network: palabre skill --sync.
 
 Usage:
   palabre update [flags]
+
+After installation, checks the executed version once before refreshing the skill.
+Different/unknown version: explained stop, skill copies untouched, no automatic reinstall.
 
 Flags:
   --check                     checks channel and version without changing anything

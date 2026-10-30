@@ -229,6 +229,10 @@ When no client is declared, the invocation source is `direct-cli`.
 | `palabre skill --install codex` | Installs this CLI's skill into `~/.agents/skills/palabre`, after confirmation. Use `--install claude` for Claude Code. |
 | `palabre skill --sync --dry-run` | Preview without writes; `--check` is also read-only. |
 
+After installation through `palabre update`, Palabre checks the version launched by the `palabre` command in its environment before refreshing the skill. A different or unverified version stops the refresh and final success, with an explanation and a next action. Skill copies remain untouched at this stage; no reinstall is attempted. This does not cover aliases or caches in another terminal or updates run directly through a package manager.
+
 The single `palabre update` confirmation also covers detected skill copies, refreshed from the newly installed package. See [Palabre skill](/en/get-started/skill) for customization, backups and reloading in the agent.
 
 `palabre mission status <id> --json` returns a `mission-result` v1 object without calling an agent. Relay exports include the PALABRE version, but not the `PALABRE_CLIENT` provenance fields present in Debate, Ask and Chat exports.
+
+On Windows, this check directly runs a native executable or a strictly recognized npm/pnpm launcher. An unknown launcher remains unverified, without trying another installation. Real Yarn and Bun launchers on Windows have not been qualified in this batch.

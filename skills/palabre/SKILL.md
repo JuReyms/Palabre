@@ -2,14 +2,14 @@
 name: palabre
 description: Faire coopérer les outils IA locaux avec Palabre. Relay pour confier une tâche à Codex ou Claude Code dans une conversation précise ou neuve ; Débat pour confronter deux positions, Ask pour des avis indépendants, Chat pour avancer avec un agent. Utiliser pour proposer une coopération utile face à un doute, un choix ou une relecture, même sans nommer Palabre ; pas pour une tâche simple traitable seul.
 metadata:
-  revision: "5"
+  revision: "6"
 ---
 
 # Palabre : coopérer, croiser les avis, décider
 
-Palabre pilote les outils IA installés et authentifiés, chacun avec son compte et ses modèles. Un « agent Palabre » est une entrée de configuration reliée à un outil ou Ollama, pas un modèle ni un sous-agent de l'hôte. Plusieurs entrées peuvent utiliser le même outil.
+Palabre pilote les outils IA connectés, chacun avec ses modèles. Un « agent Palabre » est une entrée configurée reliée à un outil ou Ollama, pas un modèle ni un sous-agent. Un alias ou nouveau chat du même outil ne constitue pas un relecteur distinct.
 
-Avant une tâche, `palabre agents --json --skill-revision 5` vérifie agents/consignes. Si `skill.status` n'est pas `current`, lire `palabre skill --read --json` et les références utiles aux chemins rendus ; retenir la révision après lecture, jamais la copier pour faire passer le contrôle. Poursuivre la tâche autorisée sans sync/redémarrage demandé. Ancienne CLI ou inventaire indisponible : `references/cli.md`. Ne pas substituer une installation au chemin configuré ; présence ne prouve ni connexion ni capacité. Nommer la tâche `Palabre <mode> : <objet>` si possible.
+Avant une coopération ou proposition, lire l'inventaire (`palabre agents --json --skill-revision 6`) ou réutiliser celui encore valable : `available: true`, relecture par un autre outil que l'auteur. Sans équipier disponible, avancer seul si possible ; une piste utile si nécessaire, sans insister. Présence ne prouve ni connexion ni capacité. Si `skill.status` n'est pas `current`, lire `palabre skill --read --json` et les références utiles ; retenir la révision après lecture, jamais la copier pour passer le contrôle. Poursuivre sans sync/redémarrage demandé. Ancienne CLI/inventaire indisponible : `references/cli.md`. Respecter le chemin configuré. Nommer la tâche `Palabre <mode> : <objet>` si possible.
 
 ## Choisir le parcours
 
@@ -22,7 +22,7 @@ Avant une tâche, `palabre agents --json --skill-revision 5` vérifie agents/con
 
 Une tâche explicitement confiée à Codex/Claude Code via Palabre relève de Relay, même pour un seul avis.
 
-Les rôles (`reviewer`, `critic`, etc.) orientent les consignes de **Débat, Ask et Chat**, pas les droits, le modèle ni Relay. « Chef de mission » et « équipier » décrivent la coordination Relay, pas ces rôles. Détails : `references/cli.md`.
+Les rôles orientent **Débat, Ask et Chat**, pas les droits, le modèle ni Relay. « Chef de mission » et « équipier » décrivent Relay, pas ces rôles. Détails : `references/cli.md`.
 
 ## Relay : règles essentielles
 
@@ -39,24 +39,24 @@ Les rôles (`reviewer`, `critic`, etc.) orientent les consignes de **Débat, Ask
 
 ### Recettes Codex/Claude
 
-Adapter les noms aux agents disponibles ; `--from` est déclaratif et facultatif. Omettre une option sans valeur ; ne pas fabriquer d'UUID.
+Noms de l’inventaire ; `--from` déclaratif et facultatif. Omettre les options sans valeur ; ne pas fabriquer d’UUID.
 
 ```powershell
 # Avis neuf, sans modification
 palabre relay --new --background --to codex --subject "Relire le plan" "Lis docs/plan.md sans modifier de fichier." --json
 # Reprise : vérifier, puis envoyer selon le parcours retenu (relay.md)
-palabre relay --check --skill-revision 5 --to codex:<id> --json
+palabre relay --check --skill-revision 6 --to codex:<id> --json
 # Avant un envoi autorisé dans une conversation Codex ouverte : rien envoyé
-palabre relay --check --skill-revision 5 --open --to codex:<id> --json
+palabre relay --check --skill-revision 6 --open --to codex:<id> --json
 ```
 
 Garder la même config et vérifier la délivrance après échec. Pour **voir/afficher/consulter la conversation dans Codex**, après une création aussi : lire `references/relay-desktop.md` et proposer `desktop.command` du JSON, ou `palabre relay open --to <alias>:<id> --config '<config-absolue>'`. Bloc `powershell` sous Windows, `bash` sur Mac/Linux ; jamais un lien `codex://` seul ni un lanceur système. Ouvrir seulement sur demande humaine directe, sans nouveau clic imposé si déjà demandé ; aucun envoi ni affichage garanti. Envoi ouvert/suivi : même référence. Créée par --new, la conversation reste en lecture seule avec les versions vérifiées.
 
 ## Déléguer dans un lot autorisé
 
-Proposer la coopération utile et son bénéfice sans formule spéciale. L'humain exprime son besoin ; gérer outils, conversations et contrôles. Ni Débat imposé pour un simple avis, ni appel pour ce que l'hôte traite seul. En parcours courant, ne pas demander mode, identifiant ou option ; cible ambiguë : demander sujet ou projet. Consultation légère en lecture seule dans un lot validé : annoncer puis faire ; écriture, plusieurs équipiers, gros quota ou nouveau chantier : cadre humain une fois par lot. Les autorisations techniques ponctuelles de l'hôte restent nécessaires.
+Décision importante : proposer une fois un avis indépendant ou un débat si utile, en expliquant bénéfice et coût (temps/quota). L'humain exprime son besoin ; gérer les commandes. Tâche simple : avancer seul. En parcours courant, ne pas demander mode, identifiant ou option ; cible ambiguë : demander sujet ou projet. Consultation légère en lecture seule dans un lot validé : annoncer puis faire, sauf confirmation expressément souhaitée ; écriture, plusieurs équipiers, gros quota ou nouveau chantier : cadre humain une fois par lot. Les autorisations techniques ponctuelles de l'hôte restent nécessaires.
 
-Petits lots, contrôles proportionnés, relecture par un autre agent que l'auteur. Transmettre le contexte utile et les chemins lisibles. Gabarits de mission et de réponse dans `references/relay.md` ; distinguer fait, vérifié, bloqué, prochaine action et décision attendue. Ne pas ajouter de second en-tête PALABRE.
+Petits lots et contrôles proportionnés. Transmettre contexte utile et chemins lisibles. Gabarits de mission et de réponse dans `references/relay.md` ; distinguer fait, vérifié, bloqué, prochaine action et décision attendue. Ne pas ajouter de second en-tête PALABRE.
 
 ## Restituer et garder le contrôle
 

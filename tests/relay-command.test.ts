@@ -878,12 +878,12 @@ describe("relay.view (#190)", () => {
       const port = (server.address() as { port: number }).port;
       for (const view of [undefined, "auto", "background"] as const) {
         const world = makeWorld(); if (view) setting(world, view);
-        const declared = view === undefined ? [] : ["--skill-revision", view === "auto" ? "999" : "5"];
+        const declared = view === undefined ? [] : ["--skill-revision", view === "auto" ? "999" : "6"];
         const r = await palabre(world, ["agents", "--json", "--trust-config", ...declared], { OLLAMA_HOST: `http://127.0.0.1:${port}` });
         assert.equal(r.code, 0, r.stderr); assert.equal(r.json.defaults.relayView, view ?? "background");
         assert.equal(r.json.v, 1); assert.equal(r.calls.length, 0);
         assert.equal(r.json.skill.status, view === undefined ? "unverified" : view === "auto" ? "reload-required" : "current");
-        assert.equal(r.json.skill.revision, 5);
+        assert.equal(r.json.skill.revision, 6);
         assert.ok(path.isAbsolute(r.json.skill.entrypoint));
         assert.ok(r.json.skill.references["relay.md"].endsWith(path.join("references", "relay.md")));
         assert.equal(r.json.skill.instructions, undefined);

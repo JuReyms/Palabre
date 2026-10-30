@@ -1,7 +1,7 @@
 /**
  * @file Reconnaissance stricte des shims PowerShell générés par npm (#98) et par pnpm (#109).
  * La forme npm Node + script est partagée par Relay et les adapters CLI/PTY ; la variante native npm
- * sert aussi à l'opt-in OpenCode --copy ; les formes pnpm restent réservées aux adapters.
+ * sert aussi à l'opt-in OpenCode --copy ; les formes pnpm servent aux adapters et à la vérification post-update.
  * Les reprises Relay Codex/Claude gardent la décision D21.
  *
  * Avec Windows PowerShell 5.1, lancer ces shims refuse l'argument `-`, retire les guillemets
@@ -393,7 +393,7 @@ export interface DirectShimLaunch {
 /**
  * Lancement direct d'une commande d'agent via son shim frère (`codex` → `codex.ps1`) : forme npm
  * Node + script, variante native npm, puis forme pnpm. `undefined` si aucun shim reconnu et
- * complet n'existe. Utilisé par les adapters CLI/PTY sous Windows avant tout repli sur PowerShell.
+ * complet n'existe. Utilisé par les adapters CLI/PTY et la sonde post-update sous Windows. Les adapters seuls peuvent ensuite envisager leur repli PowerShell.
  * Relay n'accepte que la forme npm Node + script (décision D21).
  */
 export function directNpmShimLaunch(command: string): DirectShimLaunch | undefined {

@@ -229,6 +229,10 @@ supporter de futures intégrations. Sans déclaration, la source indiquée est
 | `palabre skill --install codex` | Installe le skill de cette CLI dans `~/.agents/skills/palabre`, après confirmation. Utiliser `--install claude` pour Claude Code. |
 | `palabre skill --sync --dry-run` | Aperçu sans écriture ; `--check` est aussi sans effet de bord. |
 
+Après installation par `palabre update`, Palabre vérifie automatiquement la version que la commande `palabre` lance dans son environnement avant de rafraîchir le skill. Si une ancienne installation reste prioritaire ou si la vérification échoue, il explique quoi faire et termine en erreur sans annoncer une mise à jour complète. Les copies du skill restent intactes à cette étape ; aucune réinstallation n'est tentée. Ce contrôle ne couvre pas les alias ou caches d'un autre terminal et ne s'applique pas à une installation lancée directement avec npm/pnpm/Yarn/Bun.
+
 La confirmation unique de `palabre update` couvre aussi les copies du skill détectées, rafraîchies depuis le paquet nouvellement installé. Voir [Skill Palabre](/fr/get-started/skill) pour les personnalisations, sauvegardes et le rechargement dans l'agent.
 
 `palabre mission status <id> --json` rend un objet `mission-result` v1 sans appel d’agent. Les exports Relay indiquent la version de PALABRE, mais ne portent pas les champs de provenance `PALABRE_CLIENT` des exports Débat, Ask et Chat.
+
+Sous Windows, cette vérification lance directement un exécutable ou un lanceur npm/pnpm strictement reconnu. Un lanceur inconnu reste non vérifié, sans essayer une autre installation. Les lanceurs réels de Yarn et Bun sous Windows n’ont pas été qualifiés dans ce lot.

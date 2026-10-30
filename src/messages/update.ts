@@ -1,4 +1,6 @@
 /** @file Messages localisés du diagnostic, de la confirmation et du plan de mise à jour. */
+import { sanitizeTerminalText } from "../adapters/terminal.js";
+import type { UpdateVerification } from "../updateVerification.js";
 import type { Language } from "../types.js";
 import type { SkillSyncPlan, SkillSyncError } from "../skillSync.js";
 import { formatSkillPlan, skillSyncFailure } from "./skillSync.js";
@@ -11,6 +13,8 @@ export interface UpdateMessages {
   confirmationRequired: string;
   confirmApply: string;
   updateComplete: string;
+  versionVerified(version: string): string;
+  versionNotVerified(result: UpdateVerification): string;
   stepFailed(command: string, args: string, exitCode: string): string;
   skillPlan(plan: SkillSyncPlan, afterUpdate: boolean): string;
   skillFailure(error: SkillSyncError): string;
@@ -37,6 +41,8 @@ export const updateMessages: Record<Language, UpdateMessages> = {
     confirmationRequired: "La mise a jour modifie une installation globale. Relance avec --yes en mode non interactif.",
     confirmApply: "Appliquer cette mise a jour ? [o/N] ",
     updateComplete: "Mise a jour terminee. Relance Palabre pour utiliser la nouvelle version.",
+    versionVerified: version => `Version exécutée vérifiée : ${version}.`,
+    versionNotVerified: result => formatVerificationFailure("fr", result),
     skillPlan: (plan, afterUpdate) => formatSkillPlan(plan, "fr", afterUpdate),
     skillFailure: error => skillSyncFailure(error, "fr"),
     skillBackup: directory => `Sauvegarde du skill : ${directory}`,
@@ -52,6 +58,8 @@ export const updateMessages: Record<Language, UpdateMessages> = {
     confirmationRequired: "Updating changes a global installation. Re-run with --yes in non-interactive mode.",
     confirmApply: "Apply this update? [y/N] ",
     updateComplete: "Update complete. Restart Palabre to use the new version.",
+    versionVerified: version => `Executed version verified: ${version}.`,
+    versionNotVerified: result => formatVerificationFailure("en", result),
     skillPlan: (plan, afterUpdate) => formatSkillPlan(plan, "en", afterUpdate),
     skillFailure: error => skillSyncFailure(error, "en"),
     skillBackup: directory => `Skill backup: ${directory}`,
@@ -123,4 +131,20 @@ function formatChannel(language: Language, channel: string): string {
         "yarn-global": "global Yarn", "bun-global": "global Bun", unknown: "unknown"
       };
   return labels[channel as keyof typeof labels] ?? channel;
+}
+
+/** Diagnostic sans sortie brute de processus ; les chemins restent des données terminal assainies. */
+function formatVerificationFailure(language: Language, result: UpdateVerification): string {
+  const fr = language === "fr";
+  const safe = (value: string) => sanitizeTerminalText(value).replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, " ").slice(0, 512);
+  const locate = process.platform === "win32" ? "Get-Command palabre -All | Select-Object Source" : "type -a palabre";
+  const terminal = process.platform === "win32" ? "PowerShell" : "Bash/Zsh";
+  return [
+    fr ? "L’installation s’est terminée, mais la version exécutée de Palabre n’est pas confirmée." : "Installation finished, but the executed Palabre version is not confirmed.",
+    ...(result.expectedVersion ? [fr ? `Version attendue : ${safe(result.expectedVersion)}.` : `Expected version: ${safe(result.expectedVersion)}.`] : []),
+    ...(result.actualVersion ? [fr ? `Version exécutée : ${safe(result.actualVersion)} ; une autre installation peut rester prioritaire.` : `Executed version: ${safe(result.actualVersion)}; another installation may still take priority.`] : []),
+    ...(result.command ? [fr ? `Commande trouvée : ${safe(result.command)}.` : `Resolved command: ${safe(result.command)}.`] : []),
+    fr ? `Ouvrez un nouveau terminal, puis lancez palabre --version. Si la version reste différente ou illisible, repérez les installations dans ${terminal} :\n${locate}` : `Open a new terminal, then run palabre --version. If the version still differs or cannot be read, locate the installations in ${terminal}:\n${locate}`,
+    fr ? "Les copies du skill n’ont pas été rafraîchies par cet appel. Une fois la bonne version confirmée, l’agent peut relire les consignes du paquet. Pour aligner aussi les fichiers, palabre skill --sync affiche un nouveau plan à confirmer. Aucune réinstallation automatique." : "Skill copies were not refreshed by this call. Once the correct version is confirmed, the agent can reread the package instructions. To also align files, palabre skill --sync shows a new plan to confirm. No automatic reinstall."
+  ].join("\n");
 }
