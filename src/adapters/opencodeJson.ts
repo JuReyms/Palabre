@@ -1,7 +1,10 @@
 /**
  * @file Lecture stricte de `opencode run --format json`, de `opencode session export <id>` et de la
- * référence opaque de lecture (OpenCode 2.0.32 qualifié). Fonctions pures, sans I/O ni autorité :
+ * référence opaque de lecture (OpenCode 2.0.32 qualifié ; projections 2.2.3 vérifiées sur sources/tests). Fonctions pures, sans I/O ni autorité :
  * les textes rendus restent des données non fiables.
+ * Les projections restent liées au même message/type. Mélanges de textes live/projetés, trous
+ * d’ordinal et message nouveau seulement projeté après du live restent refusés prudemment.
+ * Cette prise en charge sur sources/tests ne constitue pas une qualification réelle complète 2.2.3.
  *
  * `run` : chaque ligne est un événement JSON avec `type` et un `sessionID` valide ; `part.sessionID`,
  * `part.messageID` et `part.id`, s'ils existent, doivent être cohérents et bien formés. La réponse
@@ -56,10 +59,29 @@ export class OpenCodeOutputError extends Error {
   }
 }
 
-interface RunEvent { sessionId: string; messageId?: string; text?: string }
+interface RunEvent { sessionId: string; messageId: string; projected: boolean; text?: string; projectedTextOrdinal?: number }
 const RUN_PART_TYPES: Readonly<Record<string, string>> = {
   step_start: "step-start", step_finish: "step-finish", tool_use: "tool", text: "text", reasoning: "reasoning"
 };
+
+/** Suffixe projeté v2.2.3 lié au même message ; jamais un identifiant opaque élargi. */
+function projectedPartSuffix(id: unknown, messageID: string): string | undefined {
+  const prefix = "prt_" + messageID.slice(4) + "_";
+  return typeof id === "string" && id.startsWith(prefix) ? id.slice(prefix.length) : undefined;
+}
+
+/** Formats officiels de reconcile v2.2.3 : type exact, ordinal canonique ou même appel d'outil. */
+function validRunPartID(id: unknown, type: string, messageID: string, toolID?: unknown): boolean {
+  if (typeof id !== "string") return false;
+  if (OPENCODE_PART_ID.test(id)) return true;
+  const suffix = projectedPartSuffix(id, messageID);
+  if (suffix === undefined) return false;
+  if (type === "step_start") return suffix === "step-start";
+  if (type === "step_finish") return suffix === "step-finish";
+  if (type === "tool_use") return typeof toolID === "string" && suffix === "tool-" + toolID;
+  const ordinal = suffix.match(/^(text|reasoning)-(0|[1-9]\d{0,15})$/);
+  return ordinal?.[1] === type && Number.isSafeInteger(Number(ordinal[2]));
+}
 
 /** Valide une ligne d'événement `run` ; lève `OpenCodeOutputError` pour toute forme non qualifiée. */
 function readRunEvent(line: string): RunEvent {
@@ -73,18 +95,20 @@ function readRunEvent(line: string): RunEvent {
   const part = value.part;
   if (!isObject(part) || part.type !== RUN_PART_TYPES[value.type]) throw new OpenCodeOutputError("invalid-event");
   if (part.sessionID !== undefined && part.sessionID !== sessionId) throw new OpenCodeOutputError("session-conflict");
-  // OpenCode 2.0.32 : tool_use.id désigne l'appel d'outil (opaque), partID désigne la part.
-  // Les autres événements placent l'identifiant de part dans id. Ne jamais confondre ces identités.
-  if (value.type === "tool_use") {
-    if (!safeText(part.id, 4096) || typeof part.partID !== "string" || !OPENCODE_PART_ID.test(part.partID)) throw new OpenCodeOutputError("invalid-event");
-  } else if (part.id !== undefined && (typeof part.id !== "string" || !OPENCODE_PART_ID.test(part.id))) throw new OpenCodeOutputError("invalid-event");
   const messageId = part.messageID;
   if (typeof messageId !== "string" || !OPENCODE_MESSAGE_ID.test(messageId)) throw new OpenCodeOutputError("invalid-event");
+  // tool_use.id est l'appel opaque ; partID est sa part. Les projections doivent lier les deux.
+  if (value.type === "tool_use") {
+    if (!safeText(part.id, 4096) || !validRunPartID(part.partID, value.type, messageId, part.id)) throw new OpenCodeOutputError("invalid-event");
+  } else if (part.id !== undefined && !validRunPartID(part.id, value.type, messageId)) throw new OpenCodeOutputError("invalid-event");
+  const projected = projectedPartSuffix(value.type === "tool_use" ? part.partID : part.id, messageId) !== undefined;
   if (value.type === "text") {
-    if (part.type !== "text" || typeof part.text !== "string" || messageId === undefined) throw new OpenCodeOutputError("invalid-event");
-    return { sessionId, messageId, text: part.text };
+    if (part.type !== "text" || typeof part.text !== "string") throw new OpenCodeOutputError("invalid-event");
+    const suffix = projectedPartSuffix(part.id, messageId);
+    return { sessionId, messageId, projected, text: part.text,
+      ...(suffix === undefined ? {} : { projectedTextOrdinal: Number(suffix.slice("text-".length)) }) };
   }
-  return { sessionId, ...(messageId !== undefined ? { messageId } : {}) };
+  return { sessionId, messageId, projected };
 }
 
 /**
@@ -93,8 +117,8 @@ function readRunEvent(line: string): RunEvent {
  * ligne géante invalident définitivement la référence : rien n'est alors proposé.
  */
 export class OpenCodeSessionObserver {
+  private sequence = newRunSequence();
   private sessionId?: string;
-  private lastMessage?: string;
   private invalid = false;
   private buffer = "";
   private readonly decoder = new TextDecoder("utf-8", { fatal: true });
@@ -121,7 +145,7 @@ export class OpenCodeSessionObserver {
     try { this.buffer += this.decoder.decode(); }
     catch { this.invalidate(); }
     if (this.buffer.trim()) this.invalidate();
-    return !this.invalid && this.sessionId && this.lastMessage ? { session: this.sessionId, lastMessage: this.lastMessage } : undefined;
+    return !this.invalid && this.sessionId && this.sequence.lastMessage ? { session: this.sessionId, lastMessage: this.sequence.lastMessage } : undefined;
   }
 
   private observe(line: string): void {
@@ -129,7 +153,7 @@ export class OpenCodeSessionObserver {
       const event = readRunEvent(line);
       if (this.sessionId !== undefined && this.sessionId !== event.sessionId) throw new OpenCodeOutputError("session-conflict");
       this.sessionId = event.sessionId;
-      if (event.messageId !== undefined) this.lastMessage = event.messageId;
+      observeRunSequence(this.sequence, event);
     } catch {
       this.invalidate();
     }
@@ -137,9 +161,9 @@ export class OpenCodeSessionObserver {
 
   private invalidate(): void {
     this.invalid = true;
+    this.sequence = newRunSequence();
     this.buffer = "";
     this.sessionId = undefined;
-    this.lastMessage = undefined;
   }
 }
 
@@ -151,20 +175,59 @@ function textOf(parts: readonly unknown[]): string {
     .join("\n\n");
 }
 
+/** Ordre observé et origine des blocs : aucune reconstruction mixte ambiguë n'est acceptée. */
+interface RunSequence {
+  seen: Set<string>;
+  live: boolean;
+  lastMessage?: string;
+  texts: Map<string, { projected: boolean; count: number }>;
+}
+
+/** État local borné par la sortie de l'appel, sans texte conservé par l'observateur. */
+function newRunSequence(): RunSequence { return { seen: new Set(), live: false, texts: new Map() }; }
+
+/**
+ * Partagé par observateur et lecteur. Un message connu ne redevient jamais le dernier ; un message
+ * seulement projeté après d'autres messages live est ambigu. Les textes live/projetés d'un même
+ * message ne sont pas fusionnés : leur correspondance d'ordinal n'est pas prouvée par les IDs live.
+ */
+function observeRunSequence(state: RunSequence, event: RunEvent): number | undefined {
+  if (!state.seen.has(event.messageId)) {
+    if (event.projected && state.live) throw new OpenCodeOutputError("invalid-event");
+    state.seen.add(event.messageId);
+    state.lastMessage = event.messageId;
+  }
+  if (!event.projected) state.live = true;
+  if (event.text === undefined) return undefined;
+  const previous = state.texts.get(event.messageId);
+  if (previous && previous.projected !== event.projected) throw new OpenCodeOutputError("invalid-event");
+  const count = previous?.count ?? 0;
+  const index = event.projectedTextOrdinal ?? count;
+  if (index !== count) throw new OpenCodeOutputError("invalid-event");
+  state.texts.set(event.messageId, { projected: event.projected, count: count + 1 });
+  return index;
+}
+
 /** Analyse la sortie complète d'un `run` terminé avec le code 0 ; texte brut, assaini par l'appelant. */
 export function parseOpenCodeRunOutput(stdout: string): { sessionId: string; lastMessage?: string; content: string } {
   let sessionId: string | undefined;
-  let lastMessage: string | undefined;
+  const sequence = newRunSequence();
   const texts = new Map<string, string[]>();
   for (const line of stdout.split("\n")) {
     if (!line.trim()) continue;
     const event = readRunEvent(line);
     if (sessionId !== undefined && sessionId !== event.sessionId) throw new OpenCodeOutputError("session-conflict");
     sessionId = event.sessionId;
-    if (event.messageId !== undefined) lastMessage = event.messageId;
-    if (event.text !== undefined && event.messageId !== undefined) texts.set(event.messageId, [...(texts.get(event.messageId) ?? []), event.text]);
+    const index = observeRunSequence(sequence, event);
+    if (event.text !== undefined) {
+      const parts = texts.get(event.messageId) ?? [];
+      if (index !== parts.length) throw new OpenCodeOutputError("invalid-event");
+      parts.push(event.text);
+      texts.set(event.messageId, parts);
+    }
   }
   if (sessionId === undefined) throw new OpenCodeOutputError("no-session");
+  const lastMessage = sequence.lastMessage;
   return { sessionId, ...(lastMessage ? { lastMessage } : {}), content: lastMessage ? (texts.get(lastMessage) ?? []).join("\n\n") : "" };
 }
 

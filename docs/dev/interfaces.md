@@ -62,6 +62,8 @@ En terminal humain, l'accueil TUI ajoute le même texte à sa notice initiale à
 
 ## Rendu Console
 
+Ask (#261), renderers console plain/pretty : après l’écriture réussie de l’export, si des réponses valides précèdent un échec de phase summary, annoncer leur nombre et la synthèse indisponible. L’erreur et le code de sortie non nul sont conservés. Pas de bilan humain dans NDJSON, pas de changement TUI ni de relance ; ne pas annoncer un export si son écriture échoue.
+
 Relay ordinaire (#256) : champ JSON v1 facultatif `desktop` contenant `command` et `shell` (powershell/posix), pour consulter une Codex identifiée en arrière-plan avec la config effective absolue. Même builder que le texte, aucune exécution ni preuve d'affichage ou de réussite. Les consommateurs tolèrent absence/champs inconnus ; l'agent affiche un bloc PowerShell ou bash au lieu d'un lien seul dans Claude Code Desktop. Détails et exclusions : [suggestions d'ouverture](relay-open.md#suggestions-douverture-après-relay). Le skill décrit les actions en mots simples dans les questions/boutons ; les options restent exactes dans les commandes et diagnostics.
 
 Relay Claude (#250) : `error.hint?` et la notice `handoff?` sont rendus sur stderr, assainis comme les autres textes. Stdout JSON reste un objet unique v1 ; les ajouts facultatifs ne changent ni statut ni délivrance. Le dictionnaire `messages.relay.claude` impose la même langue au refus, à la vérification et à la passation ; aucun second choix de langue au rendu. Détails et exclusions : [contrat Relay](relay.md#claude-déjà-utilisée-et-passation-locale-250).

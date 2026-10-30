@@ -12,7 +12,7 @@ import { promisify } from "node:util";
 import { after, describe, test } from "node:test";
 import { CliAdapter } from "../src/adapters/cli.js";
 import { DEFAULT_TIMEOUT_MS, resolveTimeoutMs } from "../src/adapters/cli-shared.js";
-import { decodeRecoveryReference, encodeRecoveryReference, evaluateOpenCodeExport, OpenCodeOutputError, parseOpenCodeRunOutput, sha256Hex, type OpenCodeRecoveryReference } from "../src/adapters/opencodeJson.js";
+import { decodeRecoveryReference, encodeRecoveryReference, evaluateOpenCodeExport, OpenCodeOutputError, OpenCodeSessionObserver, parseOpenCodeRunOutput, sha256Hex, type OpenCodeRecoveryReference } from "../src/adapters/opencodeJson.js";
 import { cliRuntimeProfile } from "../src/agentRegistry.js";
 import { executeAgentResult, runOpenCodeExport, type ExportRunner } from "../src/commands/result.js";
 import { getConfigIdentity, trustConfig } from "../src/configTrust.js";
@@ -324,4 +324,79 @@ describe("lecture d'export bornée", () => {
     assert.equal((await runOpenCodeExport(input(dir, { signal: aborted.signal }))).status, "cancelled");
     assert.equal(existsSync(marker), false, "aucun lancement après annulation");
   });
+});
+
+
+/** Projections définies par reconcile/projectedPartID du tag officiel OpenCode v2.2.3. */
+const projectedEvent = (type: string, suffix: string, content = "", messageID = MSG) => {
+  const partType: Record<string,string> = { step_start:"step-start", step_finish:"step-finish", text:"text", reasoning:"reasoning", tool_use:"tool" };
+  const id = "prt_" + messageID.slice(4) + "_" + suffix;
+  return line({ type, sessionID:SESSION, part:{type:partType[type],sessionID:SESSION,messageID,
+    ...(type==="tool_use" ? {id:"call_read_1",partID:id} : {id}), ...(type==="text"||type==="reasoning" ? {text:content} : {})} });
+};
+
+test("OpenCode 2.2.3 : projections liées, sans transformer outils ou raisonnement en réponse", async () => {
+  const output=projectedEvent("step_start","step-start")+projectedEvent("reasoning","reasoning-0","PENSEE")
+    +projectedEvent("tool_use","tool-call_read_1")+projectedEvent("text","text-0","Réponse finale")+projectedEvent("step_finish","step-finish");
+  assert.deepEqual(parseOpenCodeRunOutput(output),{sessionId:SESSION,lastMessage:MSG,content:"Réponse finale"});
+  assert.equal((await fake("process.stdout.write("+JSON.stringify(output)+")").generate(prompt())).content,"Réponse finale");
+  assert.equal(parseOpenCodeRunOutput(step()+textEvent("Conservée")+projectedEvent("step_finish","step-finish")).content,"Conservée");
+});
+
+test("OpenCode 2.2.3 : mélanges de textes ambigus refusés, paragraphes projetés conservés", () => {
+  const output=step()+textEvent("A")+textEvent("C")+projectedEvent("text","text-0","B")+projectedEvent("step_finish","step-finish");
+  assert.throws(()=>parseOpenCodeRunOutput(output),error=>error instanceof OpenCodeOutputError&&error.reason==="invalid-event");
+  const observer=new OpenCodeSessionObserver();observer.feed(Buffer.from(output));assert.equal(observer.reference(),undefined);
+  const fallback=projectedEvent("step_start","step-start")+projectedEvent("text","text-0","A")+projectedEvent("text","text-1","C");
+  assert.equal(parseOpenCodeRunOutput(fallback).content,"A\n\nC");
+});
+
+test("OpenCode 2.2.3 : projection contradictoire, ordinal non canonique ou trou refusés", () => {
+  const invalid = [
+    projectedEvent("text","text-0","x").replace("prt_aaaaaaaa01_text-0","prt_aaaaaaaa02_text-0"),
+    projectedEvent("step_start","step-finish"),projectedEvent("text","reasoning-0","x"),
+    projectedEvent("tool_use","tool-call_other"),
+    ...["text--1","text-00","text-1.5","text-9007199254740992","text-1","unknown"].map(s=>projectedEvent("text",s,"x"))
+  ];
+  for(const output of invalid) {
+    assert.throws(()=>parseOpenCodeRunOutput(output),error=>error instanceof OpenCodeOutputError && error.reason==="invalid-event");
+    const observer=new OpenCodeSessionObserver();observer.feed(Buffer.from(output));assert.equal(observer.reference(),undefined);
+  }
+  assert.throws(()=>parseOpenCodeRunOutput(projectedEvent("text","text-0","x")+line({type:"error",sessionID:SESSION,error:{type:"provider.auth"}})),error=>error instanceof OpenCodeOutputError&&error.reason==="error-event");
+  assert.throws(()=>parseOpenCodeRunOutput(projectedEvent("text","text-0","x")+projectedEvent("step_finish","step-finish").replaceAll(SESSION,"ses_autre0000000000")),error=>error instanceof OpenCodeOutputError&&error.reason==="session-conflict");
+});
+
+test("OpenCode 2.2.3 : observation UTF-8 fragmentée et dernier nouveau message sans texte", () => {
+  const valid=projectedEvent("step_start","step-start")+projectedEvent("text","text-0","Été")+projectedEvent("step_finish","step-finish");
+  const observer=new OpenCodeSessionObserver();for(const byte of Buffer.from(valid))observer.feed(Buffer.from([byte]));
+  assert.deepEqual(observer.reference(),{session:SESSION,lastMessage:MSG});
+  const next=projectedEvent("step_start","step-start","","msg_aaaaaaaa02");
+  assert.equal(parseOpenCodeRunOutput(valid+next).content,"");
+});
+
+
+test("OpenCode 2.2.3 : une fin projetée ancienne ne remplace pas le dernier message connu", () => {
+  const newer="msg_aaaaaaaa02";
+  const live=step()+textEvent("Ancien")+step(newer)+textEvent("Final",newer);
+  const output=live+projectedEvent("step_finish","step-finish");
+  assert.equal(parseOpenCodeRunOutput(output).content,"Final");
+  const observer=new OpenCodeSessionObserver();observer.feed(Buffer.from(output));
+  assert.deepEqual(observer.reference(),{session:SESSION,lastMessage:newer});
+  const unseen=step(newer)+textEvent("Final",newer)+projectedEvent("step_start","step-start");
+  assert.throws(()=>parseOpenCodeRunOutput(unseen),error=>error instanceof OpenCodeOutputError&&error.reason==="invalid-event");
+  const ambiguous=new OpenCodeSessionObserver();ambiguous.feed(Buffer.from(unseen));assert.equal(ambiguous.reference(),undefined);
+});
+
+test("OpenCode 2.2.3 : absence d'ordinal live, doublon projeté et outil contradictoire refusés", () => {
+  const outputs=[
+    step()+textEvent("Bloc live dont l'ordinal est inconnu")+projectedEvent("text","text-0","Autre bloc"),
+    projectedEvent("text","text-0","A")+projectedEvent("text","text-0","B"),
+    projectedEvent("tool_use","tool-call_read_1").replace("prt_aaaaaaaa01_tool-","prt_aaaaaaaa02_tool-"),
+    projectedEvent("tool_use","tool-call_read_1").replace('"id":"call_read_1",',''),
+    projectedEvent("reasoning","reasoning-00","pensée")
+  ];
+  for(const output of outputs) {
+    assert.throws(()=>parseOpenCodeRunOutput(output),error=>error instanceof OpenCodeOutputError&&error.reason==="invalid-event");
+    const observer=new OpenCodeSessionObserver();observer.feed(Buffer.from(output));assert.equal(observer.reference(),undefined);
+  }
 });

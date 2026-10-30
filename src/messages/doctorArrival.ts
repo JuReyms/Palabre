@@ -9,6 +9,8 @@ export interface DoctorArrivalMessages {
   authDisconnected(name: string, command: string): string;
   authUnknown(name: string, command: string): string;
   authSkipped: string;
+  /** Constat local uniquement : aucune sonde ni appel modèle OpenCode. */
+  openCodeUnverified(name: string): string;
   retiredAgent(name: string): string;
   skillMissing: string;
   skillPresent(paths: string): string;
@@ -26,6 +28,7 @@ export const doctorArrivalMessages: Record<Language, DoctorArrivalMessages> = {
     authDisconnected: (name, command) => `${name} : CLI non connectée. Le propriétaire choisit son compte et lance lui-même : ${command}.`,
     authUnknown: (name, command) => `${name} : connexion non vérifiée (sonde indisponible, délai ou format non reconnu). Le propriétaire vérifie lui-même : ${command}. Aucun modèle appelé ; aide : https://palab.re/fr/get-started/change-machine.`,
     authSkipped: "Connexions non sondées : approuver d'abord la configuration ci-dessus. La présence d'une CLI ne prouve pas sa connexion.",
+    openCodeUnverified: name => `${name} : connexion et modèle OpenCode non vérifiés ; aucun appel modèle effectué. Le modèle choisi par la CLI peut différer de celui de l’interface. Un essai réel nécessite un accord car il consomme du quota.`,
     retiredAgent: name => `${name} : agent archivé encore déclaré, ignoré par PALABRE. Action : palabre agents pour voir les agents actifs ; le propriétaire peut ensuite retirer cette entrée selon https://palab.re/fr/configuration/advanced-json.`,
     skillMissing: "Skill PALABRE non trouvé dans les emplacements connus du projet et du dossier personnel. Le propriétaire peut installer celui de cette CLI : palabre skill --install codex ou palabre skill --install claude. Le plan demande confirmation.",
     skillPresent: paths => `Skill PALABRE repéré (${paths}). Le chargement dans l'agent reste à vérifier.`,
@@ -40,6 +43,7 @@ export const doctorArrivalMessages: Record<Language, DoctorArrivalMessages> = {
     authDisconnected: (name, command) => `${name}: CLI is not signed in. The owner chooses their account and runs: ${command}.`,
     authUnknown: (name, command) => `${name}: sign-in not verified (probe unavailable, timeout or unrecognized format). The owner checks: ${command}. No model called; help: https://palab.re/en/get-started/change-machine.`,
     authSkipped: "Sign-in not probed: approve the configuration above first. A detected CLI does not prove sign-in.",
+    openCodeUnverified: name => `${name}: OpenCode sign-in and model not verified; no model called. The CLI model may differ from the interface selection. A real test requires approval because it consumes quota.`,
     retiredAgent: name => `${name}: archived agent still declared, ignored by PALABRE. Action: palabre agents to see active agents; the owner can then remove this entry following https://palab.re/en/configuration/advanced-json.`,
     skillMissing: "PALABRE skill not found in known project and personal directories. The owner can install this CLI's skill: palabre skill --install codex or palabre skill --install claude. The plan asks for confirmation.",
     skillPresent: paths => `PALABRE skill found (${paths}). Loading in the agent remains unverified.`,

@@ -50,6 +50,11 @@ if (skill) {
     } else {
       const description = fields[1].slice("description:".length).trim();
       if (description.length > MAX_DESCRIPTION_LENGTH) fail(`description exceeds ${MAX_DESCRIPTION_LENGTH} characters`);
+      // Lecture ligne à ligne ici, mais YAML strict chez les hôtes (GitHub, chargeurs de skills) :
+      // « : » ou « # » précédé d'un espace, ou un indicateur initial, casse un scalaire non cité.
+      if (/:\s|\s#|:$/.test(description) || /^[-?:,[\]{}#&*!|>'"%@`]/.test(description)) {
+        fail("description must stay a plain YAML scalar: no ': ', ' #', trailing ':' or leading indicator");
+      }
       // La description sert à la découverte : elle doit nommer les quatre parcours.
       for (const route of ["Chat", "Débat", "Ask", "Relay"]) {
         if (!description.includes(route)) fail(`description must mention the ${route} route`);

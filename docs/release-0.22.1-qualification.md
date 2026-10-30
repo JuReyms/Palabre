@@ -1,0 +1,134 @@
+# Préparation de Palabre 0.22.1
+
+Bilan du 30 octobre 2026. Cette préparation ne prouve ni publication npm, ni création du tag, ni déploiement du site. La date du changelog est proposée ; l’ajuster si la publication est différée.
+
+## Périmètre
+
+Base : `cfa1d23`, après fusion des PR [#257](https://github.com/JuReyms/Palabre/pull/257), [#258](https://github.com/JuReyms/Palabre/pull/258) et [#259](https://github.com/JuReyms/Palabre/pull/259). Le premier candidat préparait la version du paquet et les notes. Le candidat final reprend aussi le correctif YAML de la PR [#262](https://github.com/JuReyms/Palabre/pull/262) et le premier lot de diagnostics #261 décrit ci-dessous, sans modification des permissions ni des transports Relay.
+
+- #256 : aide à consulter la conversation Codex concernée, commande structurée facultative en JSON et vocabulaire courant.
+- #165, premier lot : vérifier la version réellement lancée après une mise à jour effectuée par Palabre ; erreur claire avant la synchronisation du skill en cas d’écart ou de sonde non concluante.
+- #202 et critères regroupés de #209 : coopération utile proposée avec des outils disponibles, relecture par un outil distinct, respect des préférences humaines et absence de consultation superflue.
+- Codex → Codex reste une compatibilité utile ; parcours natif vérifié, autorisé et suffisant privilégié, demande explicite de Relay respectée. Aucun contournement de refus ou renvoi après réception incertaine.
+
+Le skill livré passe en révision 8 avec les consignes de diagnostic #261 ; la correction YAML seule ne nécessitait pas de bump. Le premier candidat testé ci-dessous avait la révision 7. Aucune copie installée n’est modifiée depuis cette branche. Mission, review et write restent gelés ; l’envoi vers Claude Desktop ouverte n’est pas ajouté. Le titre prévu est `v0.22.1`, stable sous npm `latest`, sans nouveau nom d’affichage.
+
+## Contrôles du premier candidat (941c299)
+
+Sur Windows, Node 24.19.0 et pnpm 10.18.3 :
+
+- `pnpm check` réussi ; suite complète via le lanceur isolé : **1 308 réussis, 6 ignorés, 0 échec**, sur 1 314 tests. Le vrai profil personnel est resté identique en contenu et métadonnées.
+- `pnpm pack --pack-destination .tmp/release-0221-package` réussi : validation du skill et build exécutés par prepack. Archive inspectée puis extraite : **158 entrées**, sans historique, profil, trace, dépendances installées ni dossier temporaire.
+- Paquet extrait : version réellement rendue **0.22.1**, aide Relay accessible, skill **révision 7** et sept références internes lisibles.
+- Profil fictif avec copie du skill 0.22.0 (révision 4) et configuration volontairement invalide : `skill --read --json --skill-revision 4` rend `reload-required` avec les consignes exactes du paquet ; déclaration 7 rend `current`. Un faux skill du dossier courant n’est pas utilisé. Copie ancienne, configuration et profil fictifs restent identiques ; aucune installation, connexion ou consultation d’agent réel.
+- Métadonnées de `v0.22.1` : version exacte, stable, `latest`, titre `v0.22.1`. Les marqueurs Bunny de 0.22.0 ne sont pas réutilisés. Conversion des 78 pages FR/EN et des deux changelogs réussie.
+
+Les captures et le tarball restent locaux. Les contrôles de livraison et les profils fictifs ne prouvent pas le chargement des consignes dans la mémoire d’une application réelle ni une mise à jour npm globale réelle.
+
+## Scénarios de compréhension
+
+Un autre agent interne a lu le skill du paquet extrait et les références utiles. Les six entrées ont été données sans résultats attendus ; aucune action des simulations n’a été exécutée.
+
+| Situation | Comportement observé dans la simulation |
+| --- | --- |
+| Ancienne conversation, révision 4 déclarée, diagnostic 7, tâche Relay déjà autorisée | Relire le paquet et les références, vérifier la même cible/configuration puis poursuivre dans le cadre autorisé, sans sync ni redémarrage imposé. |
+| L’humain demande de voir la conversation Codex créée | Employer la commande structurée avec les permissions habituelles, sans nouvel accord de consultation, envoi ni affichage supposé. |
+| Installation terminée, version PATH 0.22.0 au lieu de 0.22.1 | Distinguer installation et vérification, expliquer le blocage ; aucune réussite globale, synchronisation du skill ou réinstallation automatique. |
+| Nouvelle conversation avec ancien skill, aucun diagnostic rencontré | Ne pas annoncer de rechargement global ; appliquer la comparaison à la prochaine opération Palabre autorisée. |
+| Simple faute à corriger, seul Codex disponible | Corriger directement, sans consultation superflue ni autre chat présenté comme un outil indépendant. |
+| Réception Relay incertaine puis diagnostic de skill ancien | Relire les consignes et vérifier l’échange existant dans les droits disponibles, sans renvoyer ni changer de parcours. |
+
+Ces réponses sont cohérentes avec les critères. Cette relecture interne est distincte d’un croisement d’outils et d’un test utilisateur réel. Le [protocole général](skill-cooperation-evaluation.md) conserve les observations Claude du lot précédent et leurs limites.
+
+## Campagnes réelles du 30 octobre
+
+Les deux campagnes ont ensuite été explicitement autorisées par le mainteneur, y compris quotas, conversations de test, approbation de configuration temporaire et contrôle MCP. Exécution sur **`941c299`**, après build, paquet **0.22.1**. Versions Windows : Node 24.19.0, pnpm 10.18.3, Codex CLI 0.163.0, Claude Code 2.1.312, OpenCode 2.0.32, Antigravity 1.4.11 et Vibe 2.16.0.
+
+| Campagne | Résultat | Portée |
+| --- | --- | --- |
+| Presets Débat et Ask | **20/20 réussis, aucun échec ni cas ignoré**, 646.7 s | Dix paires prioritaires, deux tours de Débat, deux réponses indépendantes Ask et synthèses actives. Les vingt captures NDJSON et vingt exports ont été relus : réponses/synthèses présentes, aucune erreur, sorties réussies et contrôles officiels conservés. |
+| Relay | **22/22 vérifications réussies** | Sessions jetables Claude/Codex, contexte conservé, délivrance et identité, arrière-plan explicite, refus des cibles attachées avec historiques inchangés, outils Claude annoncés et comparaison des journaux MCP Codex. Les deux exports de réponse ont été lus. |
+
+Presets : un lanceur local reprend le smoke compilé officiel sans filtrer les vingt cas ni modifier son analyse NDJSON. Il ajoute le modèle explicite `opencode/deepseek-v4.1-flash-free` aux participants OpenCode et aux synthèses Ask configurées sur OpenCode, capture les sorties et vérifie l’empreinte de la configuration avant chaque appel. Options : `--mode both --keep-going`, synthèses conservées, sujet inédit de qualification. La comparaison indépendante a confirmé ces seules adaptations. Aucun changement de code produit ni de script versionné.
+
+Les **18 demandes OpenCode** correspondantes ont été relues via leur export natif, sans génération : sujet de qualification vérifié, résultat `succeeded` et modèle **`opencode/deepseek-v4.1-flash-free`** enregistré dans les réponses. La configuration globale Palabre est restée identique en contenu et date de modification ; le choix de modèle ne vaut que pour ces demandes.
+
+Relay : commande `pnpm smoke:real-relay`, avec `TERM=xterm-256color` limité au processus. Claude demandé avec `haiku` a annoncé `claude-sonnet-5-5` à la création et à la reprise ; ne pas confondre modèle demandé et observé. Codex avait `gpt-6.1-terra` enregistré dans sa conversation de test ; le résultat de reprise n’annonce pas de modèle observé. Le test Claude attaché utilise un processus non interactif dont l’arrêt est confirmé, pas son TUI ni Desktop. Les journaux MCP Codex restent un indice, sans garantie universelle d’absence d’exposition.
+
+Seules les données et approbations temporaires prévues par les essais ont été créées. Conversations, identifiants, messages, exports et captures restent locaux. Ces campagnes qualifient leurs parcours et contrats, sans certifier la justesse de chaque avis, le parcours d’un débutant dans son application ou une installation npm globale réelle.
+
+## Ajouts #261 et #262 après les premières campagnes
+
+Le correctif de #262 charge avec PyYAML strict ; le garde-fou et son test couvrent aussi une tabulation après deux-points. Les consignes d’exécution ne changent pas pour ce seul correctif.
+
+#261, premier lot : doctor indique connexion et modèle OpenCode non vérifiés sans appel modèle. Le profil batch qualifié ajoute une explication à un refus d’accès reconnu après exit non nul, sans changer le kind ni choisir un modèle. Les renderers console distinguent les réponses Ask exportées de la synthèse manquante, y compris après reprise depuis un checkpoint. L’erreur, le code de sortie et les contrats NDJSON restent conservés.
+
+La suite complète finale passe : **1 312 réussis, 6 ignorés, 0 échec**, sur 1 318 tests, vrai profil inchangé. Les types et le validateur du skill passent. Les 66 contrôles ciblés initiaux sont réussis. La revue indépendante a trouvé un compteur de réponses conservées oublié à la reprise ; il a été corrigé dans les deux renderers. Les 12 tests d’intégration de session passent ensuite, avec reprise depuis une réponse sur deux et reprise de synthèse seule, sans rejeu des réponses. Le paquet final a été reconstruit et extrait : 158 entrées, version 0.22.1, skill 8, YAML strict valide et sept références. Les sondes ancienne révision 4 / actuelle 8 passent, sur profil fictif inchangé ; 78 guides FR/EN et deux changelogs sont générés.
+
+L’autotest doctor consommant du quota, l’inférence de modèle depuis des formats non qualifiés, la reprise depuis un simple export et l’enrichissement de la version Git restent hors du lot. La migration mémoire de l’ancien défaut exact --pure et sa persistance par synchronisation confirmée sont déjà disponibles ; aucun réglage utilisateur n’est réécrit ici. #261 reste ouverte pour ces suites et l’essai utilisateur.
+
+OpenCode et Vibe ont été mis à jour après les premières campagnes : 2.2.3 et 3.0.4 remplacent 2.0.32 et 2.16.0 dans l’environnement. Les résultats sur 941c299 restent datés ; ils ne prouvent pas seuls la compatibilité de ces nouvelles versions. La validation finale doit distinguer les nouveaux essais des anciens, sans republier les traces privées.
+
+## Nouvelle qualification interrompue (OpenCode 2.2.3 / Vibe 3.0.4)
+
+Nouveaux essais autorisés sur **fa4c577**, après intégration de #261/#262. La nouvelle campagne conserve les vingt cas prévus, les synthèses et le modèle DeepSeek Free explicite, avec un sujet distinct. Elle a été arrêtée pour éviter des appels inutiles après les erreurs : **cinq scénarios capturés, trois réussis et deux échoués**, exports relus. Un autre scénario avait commencé sans capture finale ; il n’est pas validé. Les autres cas ne sont pas comptés comme exécutés.
+
+- Les trois Débats codex/claude, codex/antigravity et claude/antigravity réussissent.
+- Ask codex/claude conserve ses deux réponses mais refuse la lecture de la synthèse OpenCode avec un diagnostic de sortie JSON non reconnue. L’export natif de la demande précise montre une réponse DeepSeek terminée ; la cause exacte du refus de lecture Palabre reste à établir. Cette observation ne prouve pas une incompatibilité générale d’OpenCode 2.2.3.
+- Ask codex/antigravity échoue sur la réponse Antigravity vide ou non conforme au contrat JSON, avec une seule réponse conservée. La cause n’est pas établie ; aucun repli texte/PTY ni renvoi automatique.
+
+Une sonde technique distincte DeepSeek Free, destinée à capturer le flux exact, reçoit ensuite **provider.free-limit, HTTP 429**. Le mainteneur autorise alors tout autre modèle gratuit disposant de quota : GLM 5.3 Flash Free reçoit également **429** avec la même échéance indicative, puis Beam Free du fournisseur OpenCode Go reçoit **provider.auth, HTTP 401**. Les trois sondes sont des demandes distinctes, sans rejeu des messages précédents. Aucun modèle payant, changement de connexion ou de réglage ; aucun modèle gratuit utilisable confirmé parmi ces pistes. Les réponses privées, identifiants et flux bruts restent locaux.
+
+Vérifications complémentaires autorisées : les cinq autres modèles gratuits du fournisseur opencode présents au catalogue (Beam, Flint 40B, MiMo 2.6 Flash, Nemotron 3.5 Lightning et Super VL) reçoivent eux aussi provider.free-limit / 429. Les sept modèles gratuits de ce fournisseur testés sont donc limités dans cet environnement ; Beam Free côté OpenCode Go reste refusé pour authentification. Aucun modèle gratuit utilisable n’est confirmé parmi ces essais.
+
+Le lanceur possédé de cette campagne est arrêté, sans fermer OpenCode ni son service. Les réponses déjà produites sont relues sans nouvelle génération. À ce stade, la qualification sur les outils mis à jour restait **incomplète** ; la section finale OpenCode Go ci-dessous apporte les essais suivants : ne pas transformer les 20/20 de la première campagne en réussite du candidat final, ni annoncer une correction du lecteur sans flux probant. Aucun nouvel essai programmé à une heure de remise à disposition.
+
+## Correctif ciblé du lecteur après revue
+
+La lecture du code officiel OpenCode [v2.2.3](https://github.com/anomalyco/opencode/blob/v2.2.3/packages/cli/src/run/noninteractive.ts) et de ses [tests](https://github.com/anomalyco/opencode/blob/v2.2.3/packages/cli/test/run/noninteractive.test.ts) identifie un format de compléments projetés rejeté par l’ancien validateur d’identifiants. Ce cas est reproduit par fichiers simulés. Le stdout de l’appel historique ayant été perdu, il n’est pas présenté comme la preuve certaine de sa cause.
+
+Le correctif lie les projections au même message/type/appel d’outil. Une fin ancienne ne remplace pas le dernier message connu. Une projection complète ordonnée est acceptée, ainsi qu’une fin projetée du même message après un texte live. Les textes live/projetés ambigus, les trous/doublons et un nouveau message seulement projeté après d’autres messages live sont refusés. Un premier bloc réellement vide mais non émis peut donc aussi être refusé. Aucun transport, modèle, permission, référence publique ou renvoi automatique ajouté.
+
+La première relecture interne et celle de Claude Sonnet 5.5 ont été distinguées. Claude a identifié deux risques silencieux dans la première proposition : inférence d’ordinal depuis l’ordre live et recul vers un ancien message lors de reconcile. Ils ont été corrigés, avec six nouveaux tests de format/ordre/observation ; les **22 tests ciblés** passent ensuite. La relecture interne et une seconde lecture par le même Claude Sonnet 5.5 confirment les corrections, sans défaut concret restant dans la logique. Statuts, identité, modèle observé et exports des deux échanges Claude ont été vérifiés ; les traces restent locales. Les consignes d’exécution du skill restent identiques, en révision 8. La suite complète sur ce correctif passe : **1 318 réussis, 6 ignorés, 0 échec**, sur 1 324 tests, profil réel inchangé. Types, build et validation du skill réussis ; paquet extrait de 158 entrées, lecteur réellement empaqueté éprouvé sur fin projetée liée et mélange ambigu refusé, skill 8 et sept références lisibles. Les 78 guides FR/EN et deux changelogs sont générés.
+
+L’inventaire des fournisseurs réellement configurés dans OpenCode ne déclare ici que opencode et opencode-go, sans autre connexion Claude ou ChatGPT disponible. Aucun compte n’a été connecté ni réglage changé. À ce stade, la qualification réelle finale restait à terminer avec un modèle disponible et autorisé ; la section OpenCode Go ci-dessous décrit sa suite. Utiliser Claude directement pour la revue ne remplace pas ce test de transport OpenCode.
+
+## Campagne complémentaire hors OpenCode (927260d)
+
+Neuf nouvelles sessions réelles ont été exécutées dans le cadre autorisé, avec un sujet distinct : **9/9 réussies, aucun échec ni cas ignoré**, 335,0 s. Six Ask des paires codex/claude, codex/antigravity, claude/antigravity, codex/vibe, vibe/claude et antigravity/vibe, ainsi que les trois Débats comportant Vibe. Deux réponses par session et une synthèse valide ; neuf captures NDJSON et neuf exports relus intégralement. Le nouveau succès Ask avec Antigravity n’explique pas l’ancien échec de sortie vide, qui reste consigné.
+
+Le lanceur local conserve l’analyse et les critères du smoke officiel. Les six synthèses Ask choisissent explicitement Claude uniquement pour ces appels ; les Débats gardent la synthèse Antigravity. Modèles habituels, aucun override de modèle ni modification de configuration : empreinte et date de modification globales identiques. La relecture des captures confirme les agents de synthèse et l’absence d’OpenCode dans ces appels.
+
+Vibe est en 3.0.4 ; versions relues après ces essais : Claude Code 2.1.314, Codex CLI 0.163.0, Antigravity 1.4.11. Les trois autres Débats hors OpenCode restent datés sur fa4c577 ; il s’agit d’une couverture en plusieurs séquences et avec une synthèse Ask différente de la campagne initiale. Ces neuf réussites ne valident pas les paires ni le lecteur OpenCode 2.2.3. Les identifiants, demandes et traces restent locaux.
+
+## Relay actualisé avec Claude Code 2.1.314 (927260d)
+
+Après constat de la mise à jour Claude, la campagne Relay autorisée a été exécutée de nouveau sur le runtime du correctif : **22/22 vérifications réussies**. Versions relevées par le smoke : Claude Code 2.1.314, Codex CLI 0.163.0, Node 24.19.0 sous Windows. Modèle Claude demandé et observé à la création/reprise : claude-sonnet-5-5 ; Codex conserve son modèle configuré, gpt-6.1-terra enregistré sans modèle observé annoncé dans la reprise.
+
+Contexte, délivrance/identité, arrière-plan explicite et les deux exports de réponse ont été vérifiés. Les refus des cibles attachées conservent leurs historiques ; Claude reste un processus non interactif dont l’arrêt est confirmé, sans qualification de son TUI/Desktop. Les outils annoncés sont Read/Glob/Grep, sans MCP annoncé ; la comparaison MCP Codex reste un indice par journaux. La configuration globale Palabre reste identique en contenu et date de modification. Seules les données et approbations temporaires prévues par ce smoke sont ajoutées ; aucune trace ou identité privée n’est publiée.
+
+## Qualification finale avec OpenCode Go (6c6ac5d)
+
+Le mainteneur a ensuite souscrit OpenCode Go et autorisé ses modèles pour terminer les essais, les revues et la publication 0.22.1. Aucun compte connecté ni configuration modifiée par les agents. Le delta 927260d → 6c6ac5d ne contient que le bilan documentaire ; le runtime du lecteur reste celui testé sur 927260d. Les ajouts de qualification ci-dessous ne changent pas ce runtime.
+
+Quatorze scénarios distincts sont exécutés avec OpenCode 2.2.3, modèle explicite **opencode-go/deepseek-v4.1-flash**, uniquement pour ces appels. Les deux lanceurs reprennent l'analyse et les critères du smoke officiel sans les modifier, et se répartissent les scénarios sans rejeu. Résultat brut : **9 réussis et 5 signalés en échec**, en 482,1 s ; les quatorze exports et leurs captures sont lus, y compris les exports de sessions en erreur, qui ne deviennent pas des réponses valides.
+
+- **Six parcours OpenCode participant terminent correctement** : Débat et Ask avec Claude, Vibe et Antigravity. Le Débat OpenCode/Antigravity est toutefois signalé en échec par le script pour sa seule ligne stderr d'attente à 60 s. Inspection séparée : exit 0, NDJSON valide, deux réponses et une synthèse non vides, événements équilibrés, export complet. Ce faux négatif du smoke reste visible ; il n'est pas transformé en succès du script.
+- **Quatre autres Ask avec synthèse OpenCode terminent correctement** : codex/claude, codex/antigravity, vibe/claude et antigravity/vibe.
+- **Trois scénarios échouent sur le quota Codex avant tout appel OpenCode** : Débat et Ask codex/opencode, Ask codex/vibe. Ils restent non qualifiés dans cette séquence, sans renvoi à la réinitialisation.
+- **Ask claude/antigravity échoue sur une réponse Antigravity vide/non conforme**, une réponse Claude conservée et exportée. C'est un échec distinct des succès Antigravity consignés précédemment ; sa cause n'est pas établie et aucun repli ni rejeu n'est effectué.
+
+Le contrôle manuel du seul faux négatif donne ainsi **10 sessions aux contrats de sortie vérifiés**, sans annoncer 14/14 ni 20/20. Les **13 demandes OpenCode** de ces dix sessions sont relues via leur export natif, sans génération : modèle Go demandé et observé, dernière fin stop, et correspondance exacte des treize textes avec ceux reçus par Palabre. La configuration globale Palabre reste identique en contenu et date de modification. Identifiants, demandes, exports natifs et captures restent locaux.
+
+Une revue distincte par **opencode-go/deepseek-v4-pro**, via Ask, ne trouve pas de défaut concret reproductible dans la cohérence message/type/part ni de fausse promesse du bilan. Son export Palabre est lu, et le modèle natif confirmé ; elle rappelle les faux refus conservateurs déjà documentés, sans les lever universellement. Une dernière revue **Claude Sonnet 5.5**, par Relay en arrière-plan avec outils de lecture limités, ne trouve aucun blocage de cohérence version/changelog/skill/protocole ; réponse, délivrance, identité, modèle observé et export sont vérifiés.
+
+Ce complément valide les parcours batch OpenCode 2.2.3 observés avec Go, en plus des tests simulés et des campagnes précédentes. Il ne prouve ni la cause du flux historique perdu, ni toutes les projections mixtes, ni les paires Codex bloquées dans cette dernière séquence, ni le pilote Relay OpenCode sur copie. La publication est retenue avec ces limites explicites : aucun nouveau défaut du lecteur n'est observé, les refus sont conservés, les parcours hors OpenCode et Relay ont leurs qualifications distinctes ci-dessus.
+
+## Vérifications restantes avant publication
+
+- Obtenir une CI verte et finaliser la revue du commit final de la PR de version.
+- Les premières campagnes 20/20 et 22/22 restent datées sur 941c299. La qualification complémentaire finale et ses limites sont consignées ci-dessus, sans cumul présenté comme une campagne unique. Le [protocole](dev/verification.md) conserve les garanties conditionnelles ; les résultats de [0.22.0](release-0.22.0-qualification.md) restent des preuves historiques distinctes.
+- Les shims réels Yarn/Bun Windows, une installation globale npm et le parcours dans une ancienne conversation Desktop ne sont pas qualifiés par les processus fictifs. Le retour humain Mac et le test débutant CoolMaster restent distincts, sans résultat annoncé.
+- #165 et #202 restent partielles ; #256 attend la publication effective du correctif. #136 et #193 ne sont pas incluses dans ce lot.
+
+Le mainteneur a explicitement autorisé la fusion et la publication de `v0.22.1` après ces vérifications ; le déploiement du site reste une action distincte. Ne pas publier localement sur npm ni promouvoir le site avant publication. Après une éventuelle synchronisation des copies installées par un plan confirmé issu du paquet publié, recharger le skill dans l’outil concerné ; cette synchronisation n’est pas un préalable à la lecture du paquet par l’agent.

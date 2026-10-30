@@ -40,6 +40,14 @@ OpenCode can use free, paid, or local providers depending on your configuration.
 
 OpenCode retains its own default model. Generated configuration includes `modelArg: "--model"`: `--model-a`, `--model-b` or `--summary-model` pass the value to OpenCode, which validates it.
 
+## Sign-in and selected model
+
+A detected CLI or working interface does not prove that the default model also works in a noninteractive call. `palabre doctor` states this for OpenCode, without calling a model or changing settings.
+
+For a recognized sign-in refusal, your assistant explains that the interface and CLI may select different models. It can propose an explicit model for a future request using `--model-a`, `--model-b` or `--summary-model` as appropriate. Palabre does not sign in, change settings or automatically resend the request. A real test consumes quota and requires approval.
+
+The exact old default `["run", "--pure"]` may remain in the file: it is replaced in memory at runtime. The confirmed `palabre config --sync-agents` command can align it; customized arguments remain preserved.
+
 ## Typical configuration
 
 Excerpt from the `agents` block:
@@ -64,6 +72,12 @@ OpenCode runs in its **usual environment**: its configured plugins, MCP servers 
 Some OpenCode models take several minutes to reply. Without `timeoutMs` in the configuration, Palabre waits up to 15 minutes; a value you set is kept. While waiting, Palabre says every minute that it is still waiting: this says nothing about the model's progress.
 
 If the time limit is exceeded, Palabre stops waiting, reports whether the local stop was confirmed and never resends the request. With the default arguments, it requests that only its OpenCode client stop, without stopping your application or its service. Your assistant can keep a reference to the request. With that reference, your assistant can read this exact request's reply later, without resending it, as long as the same trusted configuration is still in place. It simply tells you whether the reply is ready, still in progress or not found: you have no identifier to copy and no command to run. A reply found this way is checked like any agent reply.
+
+## Saved reply that Palabre cannot read
+
+A reply may exist in OpenCode even when Palabre does not recognize its format. Your assistant distinguishes what was received, saved or rejected; it does not automatically resend the request. Previously validated Ask answers remain in the export when the summary is unavailable.
+
+Compatibility checks and their limits are recorded in the [release qualification](https://github.com/JuReyms/Palabre/blob/main/docs/release-0.22.1-qualification.md). Checks with simulated files do not guarantee every workflow of an OpenCode version.
 
 ## Usage
 

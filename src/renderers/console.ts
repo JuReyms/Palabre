@@ -3,6 +3,9 @@ import type { AgentRole, DebateFailure, DebateOptions, DebateRenderer, DebateSta
 import type { Messages } from "../messages/index.js";
 import { sanitizeTerminalText } from "../adapters/terminal.js";
 
+/** Progression humaine Ask, conservée jusqu’à done pour ne pas annoncer un export avant son écriture. */
+type AskProgress = { total: number; received: number; failedSummary?: string };
+
 const supportsColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
 const supportsInteractiveOutput = Boolean(process.stdout.isTTY);
 
@@ -16,6 +19,7 @@ export function createConsoleRenderer(plain: boolean, messages: Messages): Debat
  * Utilisé quand `stdout` est un TTY et que `--plain` n'est pas passé.
  */
 class PrettyConsoleRenderer implements DebateRenderer {
+  private ask?: AskProgress;
   private spinner?: ReturnType<typeof setInterval>;
   private spinnerFrame = 0;
   private renderingSummary = false;
@@ -33,6 +37,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
 
   /** Affiche l'en-tête du débat (sujet, agents, options). */
   start(options: DebateOptions, agents: DebateStartAgentInfo[] = []): void {
+    this.ask = options.mode === "ask" ? { total: formatResponseCount(options), received: options.resume?.transcript.length ?? 0 } : undefined;
     const title = "PALABRE CLI";
     process.stdout.write([
       "",
@@ -118,6 +123,7 @@ class PrettyConsoleRenderer implements DebateRenderer {
   }
 
   askResponseMessage(content: string): void {
+    if (this.ask) this.ask.received++;
     this.message(content);
   }
 
@@ -133,12 +139,16 @@ class PrettyConsoleRenderer implements DebateRenderer {
   }
 
   error(failure: DebateFailure): void {
+    if (this.ask && failure.phase === "summary") this.ask.failedSummary = failure.agent;
     this.thinkingEnd();
     process.stderr.write(`\n${this.c("red", this.messages.common.errorPrefix)} ${formatFailureLocation(failure, this.messages)}: ${sanitizeTerminalText(failure.message)}\n`);
   }
 
   /** Affiche le chemin du fichier de sortie en vert à la fin du débat. */
   done(outputPath: string): void {
+    if (this.ask?.failedSummary && this.ask.received > 0) {
+      this.notice(this.messages.renderers.askSummaryUnavailable(this.ask.received, this.ask.total, this.ask.failedSummary));
+    }
     process.stdout.write(`\n\n${this.c("green", this.messages.renderers.exported(sanitizeTerminalText(outputPath)))}\n\n`);
   }
 
@@ -181,10 +191,12 @@ class PrettyConsoleRenderer implements DebateRenderer {
  * Utilisé avec `--plain` ou quand `stdout` n'est pas un TTY.
  */
 class PlainConsoleRenderer implements DebateRenderer {
+  private ask?: AskProgress;
   constructor(private readonly messages: Messages) {}
 
   /** Affiche les informations de démarrage du débat en texte brut. */
   start(options: DebateOptions, agents: DebateStartAgentInfo[] = []): void {
+    this.ask = options.mode === "ask" ? { total: formatResponseCount(options), received: options.resume?.transcript.length ?? 0 } : undefined;
     process.stdout.write(this.messages.renderers.subject(sanitizeTerminalText(options.topic)) + "\n");
     process.stdout.write(this.messages.renderers.agents(formatAgentPair(options, agents)) + "\n");
     process.stdout.write(this.messages.renderers.responsesSummaryContext(formatResponseCount(options), formatSummary(options, this.messages), formatContext(options, this.messages)) + "\n");
@@ -221,6 +233,7 @@ class PlainConsoleRenderer implements DebateRenderer {
   }
 
   askResponseMessage(content: string): void {
+    if (this.ask) this.ask.received++;
     this.message(content);
   }
 
@@ -230,11 +243,15 @@ class PlainConsoleRenderer implements DebateRenderer {
   }
 
   error(failure: DebateFailure): void {
+    if (this.ask && failure.phase === "summary") this.ask.failedSummary = failure.agent;
     process.stderr.write(`\n${this.messages.common.errorPrefix}: ${formatFailureLocation(failure, this.messages)}: ${sanitizeTerminalText(failure.message)}\n`);
   }
 
   /** Affiche le chemin du fichier de sortie à la fin du débat. */
   done(outputPath: string): void {
+    if (this.ask?.failedSummary && this.ask.received > 0) {
+      this.notice(this.messages.renderers.askSummaryUnavailable(this.ask.received, this.ask.total, this.ask.failedSummary));
+    }
     process.stdout.write(`\n${this.messages.renderers.exported(sanitizeTerminalText(outputPath))}\n`);
   }
 }

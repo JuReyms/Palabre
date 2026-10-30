@@ -203,6 +203,7 @@ Options :
   doctor: `
 Vérifie l'approbation, PowerShell Windows, les connexions Claude/Codex et le skill.
 Ne modifie rien. Sondes status bornées sur configuration approuvée, aucun appel modèle.
+OpenCode : connexion et modèle non vérifiés ; le choix de la CLI peut différer de l’interface.
 
 Utilisation :
   palabre doctor [flags]
@@ -875,6 +876,7 @@ Flags:
   doctor: `
 Checks approval, Windows PowerShell, Claude/Codex sign-in and skill presence.
 Changes nothing. Bounded status probes on approved configs, no model calls.
+OpenCode sign-in and model remain unverified; the CLI selection may differ from the interface.
 
 Usage:
   palabre doctor [flags]

@@ -158,6 +158,8 @@ async function inspectArrival(
     if (agent.type !== "cli" && agent.type !== "cli-pty") continue;
     if (isRetiredAgentName(name) || isRetiredAgentName(normalizeCommandName(agent.command))) continue;
     const provider = externalSessionProviderForCommand(agent.command);
+    // Présence et sélection de modèle ne prouvent aucune connexion OpenCode ; aucune sonde ajoutée.
+    if (provider === "opencode") { lines.push(warn(m.openCodeUnverified(name))); continue; }
     // Les sondes d'authentification qualifiées ne concernent que Claude et Codex.
     // Un fournisseur Relay sur copie n'hérite jamais de leurs sous-commandes.
     if (!trusted || (provider !== "claude" && provider !== "codex")) continue;

@@ -35,3 +35,5 @@ Les agents sont appelés l'un après l'autre ; leur durée s'additionne. La [syn
 Options : `--ask-role critic` (rôle commun temporaire, comme `/roles critic`), `--files`, `--context`, `--checkpoint`. Forme équivalente : `palabre run --mode ask --agents codex claude -s "Sujet"`. Défaut durable : `palabre config --mode ask --ask-agents codex claude opencode`.
 
 En cas d'échec, PALABRE tente un export partiel. Avec `--checkpoint`, `palabre resume <session-id>` reprend l'agent restant qui n'a pas encore répondu, puis les suivants et la synthèse ; pas de rejeu des réponses acceptées.
+
+Si seule la synthèse échoue, les réponses valides restent dans l’export. Le rendu terminal précise combien ont été reçues et exportées, puis nomme la synthèse indisponible. Le code de sortie reste en échec ; aucune réponse ni synthèse n’est renvoyée automatiquement. Avec un checkpoint créé dès le lancement, la reprise peut cibler la synthèse seule, après validation ; un simple export ne suffit pas.

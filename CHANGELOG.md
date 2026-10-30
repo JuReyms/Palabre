@@ -4,14 +4,29 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.22.1] - 2026-10-30
+
+<!-- social: Palabre 0.22.1 clarifies Relay guidance, makes Codex conversations easier to consult and checks the command used after an update. -->
+
+Cette correction de Bunny facilite la coopération au quotidien : l’agent explique le travail en mots simples, aide à consulter la conversation concernée et vérifie la version réellement lancée après une mise à jour effectuée par Palabre.
+
+**Après mise à jour :** le skill livré passe en révision 8. Lorsqu’une ancienne conversation rencontre le diagnostic de révision, l’agent peut relire les consignes du paquet installé et poursuivre dans le cadre autorisé, sans imposer une synchronisation ni un redémarrage à l’utilisateur. Cela ne recharge pas automatiquement la mémoire de toutes les conversations. L’alignement des copies installées reste facultatif, via un plan confirmé `palabre skill --sync`, avec sauvegardes ; si ce plan est appliqué, recharger le skill dans l’outil concerné.
+
+**À savoir :** la vérification après installation concerne les mises à jour effectuées par Palabre, pas une installation directe par le gestionnaire de paquets. Les fonctions natives suffisantes et autorisées restent privilégiées entre conversations Codex ; une demande explicite de Relay est respectée. L’envoi vers Claude Desktop ouverte reste indisponible. Le [bilan de préparation](https://github.com/JuReyms/Palabre/blob/main/docs/release-0.22.1-qualification.md) distingue les contrôles du paquet, les essais réels et leurs limites.
+
 ### Changed
 
-- Positionnement Relay : Codex→Codex reste une compatibilité utile ; privilégier les fonctions natives vérifiées, autorisées et suffisantes de l’hôte, sauf demande explicite de Relay ou besoin précis de CLI/export. Vision produit, consignes, aide et guides FR/EN alignés ; aucune capacité retirée ni bascule après refus ou délivrance incertaine. Skill révision 7 : lecture du paquet par l’agent, copies installées uniquement par plan confirmé puis rechargement si appliqué.
+- Positionnement Relay : Codex→Codex reste une compatibilité utile ; privilégier les fonctions natives vérifiées, autorisées et suffisantes de l’hôte, sauf demande explicite de Relay ou besoin précis de CLI/export. Vision produit, consignes, aide et guides FR/EN alignés ; aucune capacité retirée ni bascule après refus ou délivrance incertaine. Skill révision 8 : lecture du paquet par l’agent, copies installées uniquement par plan confirmé puis rechargement si appliqué.
 
 ### Fixed
 
+- Lecture OpenCode : prise en charge ciblée des identifiants de compléments projetés par la CLI 2.2.3, vérifiés dans les sources officielles et des tests simulés. Message/type/appel d’outil liés, ordre des messages préservé ; textes mixtes ambigus et trous d’ordinal refusés, sans repli ni renvoi. Parcours batch 2.2.3 observés avec OpenCode Go : réponses, synthèses et exports natifs vérifiés ; les paires bloquées par quota et les refus conservateurs restent détaillés dans le bilan.
+
+- Skill (#262) : description de découverte compatible avec un lecteur YAML strict ; le validateur refuse aussi les séparateurs ambigus, y compris une tabulation après deux-points. Consignes de sécurité conservées.
+- OpenCode / Ask (#261, premier lot) : doctor indique connexion et modèle non vérifiés sans appel réel ; un refus d’accès reconnu sur le profil qualifié explique le choix CLI/interface sans changer de modèle. Si seule la synthèse Ask échoue, le terminal distingue les réponses reçues et exportées de la synthèse indisponible, en conservant l’erreur et le code de sortie. Aucun renvoi automatique ; tests, aide, guides FR/EN et skill alignés.
+
 - Update (#165, premier lot) : après installation, vérification unique et bornée de la version réellement lancée par la première commande Palabre du PATH. Une ancienne version prioritaire ou une sonde non concluante donne une action claire sans succès global, rafraîchissement du skill ni réinstallation automatique ; aperçus et skill seul inchangés. Contrôle limité à cet environnement, hors mises à jour directes du gestionnaire.
-- Accompagnement (#202, avec les critères de #209) : vérifier les équipiers avant de les proposer, choisir un relecteur distinct de l’auteur, expliquer une seule fois bénéfice/coût et avancer seul pour une tâche simple ou sans équipier. Skill révision 7 : lecture du paquet par l’agent ; fichiers installés uniquement par plan confirmé, puis rechargement si appliqué. Scénarios de compréhension distincts d’un essai utilisateur réel.
+- Accompagnement (#202, avec les critères de #209) : vérifier les équipiers avant de les proposer, choisir un relecteur distinct de l’auteur, expliquer une seule fois bénéfice/coût et avancer seul pour une tâche simple ou sans équipier. Skill révision 8 : lecture du paquet par l’agent ; fichiers installés uniquement par plan confirmé, puis rechargement si appliqué. Scénarios de compréhension distincts d’un essai utilisateur réel.
 
 - Relay (#256) : le résultat JSON ordinaire peut fournir une commande sûre pour consulter une conversation Codex créée ou retrouvée (`desktop.command`, `desktop.shell` facultatifs, v1). Même cible/config et quoting que le texte ; aucun lancement, droit, envoi ou affichage déduit. Exports et parcours gelés inchangés. Le skill cite directement « voir/afficher la conversation », propose un bloc shell plutôt qu'un lien seul dans Claude Code Desktop et distingue consultation et envoi.
 - Accompagnement : parler du travail et de ses conséquences (« continuer dans la conversation Codex déjà utilisée »), sans faire choisir --open ou d'autres options aux débutants. Les commandes et le dépannage restent précis ; préférences humaines et autorisations de l'hôte conservées, pas de nouvelle question de mode dans un cadre déjà autorisé. La lecture des consignes du paquet reste distincte des copies installées, remplacées uniquement par plan confirmé puis rechargées si ce plan est appliqué.

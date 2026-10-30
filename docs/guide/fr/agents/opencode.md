@@ -40,6 +40,14 @@ OpenCode peut utiliser des providers gratuits, payants ou locaux selon votre con
 
 OpenCode garde son propre modèle par défaut. La configuration générée contient `modelArg: "--model"` : `--model-a`, `--model-b` ou `--summary-model` transmettent la valeur à OpenCode, qui la valide.
 
+## Connexion et modèle utilisé
+
+Une CLI détectée ou une interface qui fonctionne ne garantit pas que son modèle par défaut fonctionne aussi en appel non interactif. `palabre doctor` l’indique pour OpenCode, sans appeler de modèle ni modifier vos réglages.
+
+En cas de refus de connexion reconnu, votre assistant explique la différence possible entre le choix de l’interface et celui de la CLI. Il peut proposer un modèle explicite pour une prochaine demande, avec `--model-a`, `--model-b` ou `--summary-model` selon le besoin. Palabre ne se connecte pas, ne change pas vos réglages et ne renvoie pas la demande automatiquement. Un essai réel consomme du quota et nécessite votre accord.
+
+Un ancien défaut exact `["run", "--pure"]` peut rester dans le fichier : il est remplacé en mémoire à l’exécution. La commande confirmée `palabre config --sync-agents` permet de l’aligner ; les arguments personnalisés restent préservés.
+
 ## Configuration typique
 
 Extrait du bloc `agents` :
@@ -64,6 +72,12 @@ OpenCode s'exécute dans son **environnement habituel** : ses plugins, serveurs 
 Certains modèles d'OpenCode répondent en plusieurs minutes. Sans `timeoutMs` dans la configuration, Palabre attend jusqu'à 15 minutes ; une valeur que vous avez fixée est conservée. Pendant l'attente, Palabre indique chaque minute qu'il attend toujours : cela ne dit rien de l'avancement du modèle.
 
 Si le délai est dépassé, Palabre cesse d’attendre, indique si l’arrêt local est confirmé et ne renvoie jamais la demande. Avec les arguments par défaut, il demande seulement l’arrêt de son client OpenCode, sans arrêter votre application ou son service. Votre assistant peut alors conserver une référence de la demande. Avec cette référence, votre assistant peut relire plus tard la réponse de cette demande précise, sans la renvoyer, si la même configuration approuvée est toujours en place. Il vous dit simplement si la réponse est prête, encore en cours ou introuvable : vous n'avez ni identifiant à recopier ni commande à lancer. Une réponse retrouvée se vérifie comme toute réponse d'agent.
+
+## Réponse conservée mais non lisible
+
+Une réponse peut exister dans OpenCode alors que Palabre ne reconnaît pas sa forme. Votre assistant distingue alors ce qui a été reçu, conservé ou refusé ; il ne renvoie pas automatiquement la demande. Les réponses déjà validées dans Ask restent dans l’export même si la synthèse est indisponible.
+
+Les contrôles de compatibilité et leurs limites sont consignés dans le [bilan de la version](https://github.com/JuReyms/Palabre/blob/main/docs/release-0.22.1-qualification.md). Une vérification sur fichiers simulés ne garantit pas tous les parcours d’une version d’OpenCode.
 
 ## Utilisation
 

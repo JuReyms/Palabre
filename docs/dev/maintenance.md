@@ -53,6 +53,8 @@ Les releases sont gerees via des tags Git. Trois workflows GitHub Actions sont e
 
 ### Preparer et publier une release
 
+La préparation de 0.22.1 a son [bilan de qualification](../release-0.22.1-qualification.md), avec les contrôles du paquet, les simulations du parcours débutant et les campagnes réelles effectuées et leurs limites.
+
 Pour la préparation de 0.21.0, consulter le [bilan de qualification](../release-0.21.0-qualification.md) : il sépare les révisions testées, les limites et les contrôles restant avant publication.
 
 La préparation de 0.22.0 « Bunny » a son [bilan distinct](../release-0.22.0-qualification.md). Un nom d'affichage facultatif se déclare dans la section exacte de la version du changelog : `<!-- release-name: Bunny -->`. Le workflow utilise alors `Palabre v0.22.0 — Bunny` comme titre GitHub, sans changer le tag, SemVer ni le canal npm. Sans marqueur dans cette section, le titre reste le tag ; un nom mal formé, ambigu ou contenant des caractères de contrôle est refusé avant publication. Les noms d'autres versions et d'Unreleased ne sont jamais repris.

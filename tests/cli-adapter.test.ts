@@ -541,3 +541,28 @@ async function writeFakeCli(name: string, source: string): Promise<string> {
   await writeFile(filePath, source, "utf8");
   return filePath;
 }
+
+
+test("OpenCode auth : diagnostic borné après exit non nul, sans confondre alias ou texte libre", async () => {
+  for (const language of ["fr", "en"] as const) {
+    for (const explicit of [false, true]) {
+      const stdout = explicit ? "" : "Upstream request failed: Invalid credential";
+      const stderr = explicit ? JSON.stringify({type:"error",error:{code:"provider.auth"}}) : "";
+      const script = "process.stdin.resume();process.stdin.on('end',()=>{process.stdout.write("+JSON.stringify(stdout)+");process.stderr.write("+JSON.stringify(stderr)+");process.exit(1)})";
+      const adapter = new CliAdapter("atelier", cliConfig({args:["-e",script,"--"], ...(explicit ? {model:"provider/chosen"} : {})}), {output:"opencode-json"});
+      await assert.rejects(adapter.generate(basePrompt({language})), error => {
+        assert.ok(error instanceof AdapterError);
+        assert.equal(error.kind,"non-zero-exit");
+        assert.match(error.message, language === "fr" ? /OpenCode refuse l’accès/ : /OpenCode refused access/);
+        assert.match(error.message, language === "fr" ? /Aucun.*renvoi automatique/ : /[Nn]o automatic resend/);
+        assert.equal(/CLI.*(?:différer|differ)/.test(error.message), !explicit);
+        return true;
+      });
+    }
+  }
+  for (const [runtime,text] of [[undefined,"Invalid credential"],[{output:"opencode-json"},"Advice: mention Invalid credential in your report"]] as const) {
+    const script="process.stdout.write("+JSON.stringify(text)+");process.exit(1)";
+    const adapter=new CliAdapter("opencode",cliConfig({args:["-e",script]}),runtime);
+    await assert.rejects(adapter.generate(basePrompt()), error => error instanceof AdapterError && error.kind==="non-zero-exit" && !error.message.includes("OpenCode refuse"));
+  }
+});

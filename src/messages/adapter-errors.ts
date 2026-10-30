@@ -11,6 +11,8 @@ export interface AdapterErrorMessages {
   unsupportedModel(adapterName: string, detail: string): string;
   /** OpenCode 2 refuse l'ancien argument `--pure` : migration exacte ou retrait manuel, sans neutralisation promise. */
   openCodePureRemoved(adapterName: string): string;
+  /** Refus OpenCode reconnu après exit non nul, sans connexion, sélection ou renvoi automatique. */
+  openCodeAuthRefused(defaultModel: boolean): string;
   /** JSON Antigravity inconnu, erroné ou sans réponse : aucun repli texte. */
   invalidAntigravityJson(adapterName: string): string;
   /**
@@ -90,13 +92,16 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
       `${name} n'a pas répondu dans le délai prévu (${frDuration(timeoutMs)}). Palabre a cessé d'attendre et a demandé l'arrêt du programme local (${localExit === "confirmed" ? "arrêt local confirmé" : "arrêt local non confirmé"}). Palabre ne sait pas si le travail continue chez l'outil ; rien n'a été renvoyé, et ce délai ne prouve pas un échec du modèle.`
       + (command ? ` Pour lire plus tard la réponse de cette demande précise, sans la renvoyer : ${command}`
         : recoverable ? " Aucune référence de lecture sûre n'est disponible : la réponse ne peut pas être retrouvée automatiquement ; vérifiez dans l'outil avant tout nouvel envoi." : ""),
-    invalidOpenCodeJson: (name) => `${name} : sortie JSON OpenCode non reconnue (attendu : opencode run --format json, version qualifiée 2.0.32). Aucun repli texte ; rien n'a été renvoyé.`,
+    invalidOpenCodeJson: (name) => `${name} : sortie JSON OpenCode non reconnue (attendu : événements structurés de opencode run --format json). Aucun repli texte ; rien n'a été renvoyé.`,
     invalidAntigravityJson: (name) => `${name} : réponse JSON Antigravity invalide, en erreur ou vide. Vérifie la version avec agy --help et les arguments --output-format json --print ; seul un objet avec status SUCCESS et response non vide est accepté. Aucun repli texte ou PTY.`,
     invalidResponseFormat: (name) => `${name} : responseFormat invalide pour cet adapter. Configure "text" ou "antigravity-json" avec "type": "cli", ou retire responseFormat pour conserver ton transport.`,
     suggestionPrefix: "Suggestion",
     hint: (kind) => frHints[kind],
     usageLimit: (adapterName, detail) => `${adapterName} a atteint une limite d'utilisation: ${detail}`,
     unsupportedModel: (adapterName, detail) => `${adapterName} ne peut pas utiliser ce modèle: ${detail}`,
+    openCodeAuthRefused: defaultModel => defaultModel
+      ? "OpenCode refuse l’accès au fournisseur ou au modèle. Aucun modèle explicite pour cet appel : le défaut de la CLI peut différer du choix dans l’interface. Vérifie la connexion du fournisseur et le modèle de la prochaine demande (--model-a, --model-b ou --summary-model selon l’appel). Aucun renvoi automatique."
+      : "OpenCode refuse l’accès au fournisseur ou au modèle choisi pour cet appel. Vérifie la connexion correspondante et que ce modèle est accessible. Aucun autre modèle choisi ni renvoi automatique.",
     openCodePureRemoved: (adapterName) =>
       `${adapterName} : OpenCode 2 n'accepte plus l'option --pure. Retire-la toi-même des arguments ("args") personnalisés de cet agent dans ta configuration : Palabre ne modifie jamais des arguments personnalisés (seul l'ancien défaut exact ["run", "--pure"] est remplacé automatiquement par ["run"]). OpenCode garde alors son environnement habituel : ses plugins, serveurs MCP et permissions configurés restent actifs.`,
     unsafeWindowsShellPrompt: (adapterName) =>
@@ -123,13 +128,16 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
       `${name} did not reply within the planned time (${enDuration(timeoutMs)}). Palabre stopped waiting and requested that the local program stop (${localExit === "confirmed" ? "local stop confirmed" : "local stop not confirmed"}). Palabre does not know whether the work continues in the tool; nothing was resent, and this delay does not prove the model failed.`
       + (command ? ` To read this exact request's reply later, without resending it: ${command}`
         : recoverable ? " No safe reading reference is available: the reply cannot be found automatically; check in the tool before any new send." : ""),
-    invalidOpenCodeJson: (name) => `${name}: unrecognized OpenCode JSON output (expected: opencode run --format json, qualified version 2.0.32). No text fallback; nothing was resent.`,
+    invalidOpenCodeJson: (name) => `${name}: unrecognized OpenCode JSON output (expected: structured events from opencode run --format json). No text fallback; nothing was resent.`,
     invalidAntigravityJson: (name) => `${name}: invalid, failed or empty Antigravity JSON response. Check the version with agy --help and the --output-format json --print arguments; only an object with status SUCCESS and a nonempty response is accepted. No text or PTY fallback.`,
     invalidResponseFormat: (name) => `${name}: invalid responseFormat for this adapter. Configure "text" or "antigravity-json" with "type": "cli", or remove responseFormat to keep your transport.`,
     suggestionPrefix: "Suggestion",
     hint: (kind) => enHints[kind],
     usageLimit: (adapterName, detail) => `${adapterName} hit a usage limit: ${detail}`,
     unsupportedModel: (adapterName, detail) => `${adapterName} cannot use this model: ${detail}`,
+    openCodeAuthRefused: defaultModel => defaultModel
+      ? "OpenCode refused access to the provider or model. No explicit model was selected for this call: the CLI default may differ from the interface selection. Check the provider sign-in and the model for the next request (--model-a, --model-b or --summary-model as appropriate). No automatic resend."
+      : "OpenCode refused access to the provider or model selected for this call. Check the corresponding sign-in and model access. No other model selected and no automatic resend.",
     openCodePureRemoved: (adapterName) =>
       `${adapterName}: OpenCode 2 no longer accepts the --pure option. Remove it yourself from this agent's custom arguments ("args") in your configuration: Palabre never changes custom arguments (only the exact old default ["run", "--pure"] is replaced automatically with ["run"]). OpenCode then keeps its usual environment: its configured plugins, MCP servers and permissions stay active.`,
     unsafeWindowsShellPrompt: (adapterName) =>

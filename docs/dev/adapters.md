@@ -2,6 +2,10 @@
 
 Référence de développement extraite d’`AGENTS.md`. Lire [les règles communes](../../AGENTS.md) et ce document avant de modifier un adapter, les shims, les limites d'exécution ou la sélection des modèles. Les chemins de code entre backticks sont relatifs à la racine du dépôt. Les qualifications datées décrivent un essai, pas une garantie pour toutes les versions.
 
+## Diagnostic de connexion OpenCode (#261)
+
+Sur le profil batch qualifié OpenCode, un exit non nul avec la ligne `Upstream request failed: Invalid credential` (ou `Invalid credential`), ou un événement JSON `type: error` portant `provider.auth`/ce message, reçoit une action localisée. Les priorités quota/modèle non supporté restent inchangées. Le kind demeure `non-zero-exit` : aucun nouveau champ machine ni succès sur sortie partielle. Sans modèle explicite, expliquer la différence possible entre défaut CLI et choix d’interface ; sinon expliquer le refus du modèle demandé. Aucun modèle déduit, changé ou retenté. Alias reconnus par le profil, pas par leur nom ; une CLI générique ou une mention libre ne reçoit pas ce diagnostic spécifique.
+
 ## Adapter CLI actuel
 
 `src/adapters/cli.ts` est volontairement minimal. Il sert d'abord les modes batch des CLIs :
@@ -89,7 +93,13 @@ Attente et lecture tardive. `cliRuntimeProfile` (registre) donne 15 min à toute
 
 Sortie `run` et export sont validés strictement : session unique, identifiants cohérents, dernier message annoncé, `idle` et `info.outcome` `succeeded`, `finish: stop`, `time.completed`, sans erreur. Seuls les messages `system` d'instructions sont tolérés. Tests : `tests/agent-wait-recovery.test.ts`, sur des CLIs simulées.
 
+Compatibilité ciblée des projections 2.2.3 : le code officiel [reconcile / projectedPartID](https://github.com/anomalyco/opencode/blob/v2.2.3/packages/cli/src/run/noninteractive.ts) reconstruit parfois des événements absents du flux live. Le lecteur accepte les IDs projetés seulement s’ils sont liés au même message, au type exact et, pour un outil, au même appel. Les ordinaux texte/raisonnement sont canoniques et sûrs. Un message connu ne redevient pas dernier après réconciliation. L’observateur et le lecteur partagent le même état d’ordre et de blocs, sans conserver le texte dans l’observateur.
+
+Refus conservateurs : mélange de textes live/projetés du même message (le rang live ne prouve pas l’ordinal), trou ou doublon projeté, nouveau message uniquement projeté après d’autres messages live. Un bloc vide absent avant text-1 peut donc être refusé aussi. Les blocs entièrement projetés restent acceptés dans l’ordre 0,1,... ; un step_finish projeté du même message peut compléter un texte live. Ces cas ont des tests simulés issus des sources officielles ; ils ne constituent pas une qualification réelle complète 2.2.3 et ne prouvent pas la cause du flux historique perdu.
+
 Qualification Windows du 29 octobre 2026, OpenCode 2.0.32 : DeepSeek gratuit a lu un fichier de sonde et rendu le texte final attendu via `step_start`, `tool_use`, `step_finish`, `text`. Dans `tool_use`, `part.id` est l'identifiant opaque de l'appel d'outil et `part.partID` celui de la part (`prt_…`) ; les autres événements utilisent `part.id` pour la part. Une consultation antérieure terminée a aussi été relue par `result` avec correspondance exacte du prompt et du texte final, sans nouvel envoi ni appel de modèle. Cela ne qualifie pas les autres versions ou plateformes.
+
+Qualification complémentaire Windows du 30 octobre 2026, OpenCode 2.2.3 : treize réponses batch avec opencode-go/deepseek-v4.1-flash, participants Débat/Ask et synthèses, correspondent exactement à leurs exports natifs terminés. La revue distincte DeepSeek Pro utilise le même transport. Les cas Codex bloqués par quota, un échec Antigravity et un faux négatif du smoke pour le diagnostic stderr d’attente restent distingués dans le [bilan 0.22.1](../release-0.22.1-qualification.md). Cette observation ne lève pas les refus conservateurs ci-dessus et ne qualifie pas Relay sur copie.
 
 `maxOutputBytes` protege le CLI contre les agents qui produisent une sortie enorme ou partent en boucle. Par defaut, les adapters CLI et PTY coupent a 50 Mio et levent `AdapterError("output-too-large")`. Le budget couvre stdout et stderr cumules : les deux flux sont bufferises en memoire par Palabre, et le flux PTY les fusionne de toute facon. C'est une protection memoire du process, pas seulement une limite sur la taille de la reponse.
 
