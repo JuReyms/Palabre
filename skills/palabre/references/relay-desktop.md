@@ -39,10 +39,9 @@ déjà tenu ne prouve aucun nouvel affichage. Défilement non piloté : ne pas p
 l'arrivée au dernier message. Un envoi --open reste séparé et peut être traité
 sans changer la conversation affichée (échange Codex → Codex confirmé sous Windows).
 
-Le bouton court « Ouvrir dans Codex » dépend de l'hôte. S'il n'en propose pas,
-une question courte puis exécution sur accord ; pour l'humain qui veut lancer
-lui-même, une seule commande sans --json dans le bloc shell, commentaires action
-et objet. Le texte CLI propose aussi relay open avec la config effective absolue,
+Si l'humain n'a pas déjà demandé à consulter, proposer « Ouvrir dans Codex » si
+l'hôte le permet, sinon une question courte. Pour lancer lui-même, lui donner
+une seule commande sans --json dans un bloc shell, commentaires action et objet. Le texte CLI propose aussi relay open avec la config effective absolue,
 sans l'exécuter. Le JSON ordinaire peut fournir `desktop.command` et `desktop.shell`
 (powershell/posix) : reprendre cette commande, pas reconstruire le lien. Pour
 « montre/affiche la conversation », même après --new, présenter un bloc
@@ -78,7 +77,7 @@ Reprendre la commande sûre affichée par PALABRE ; conserver l'alias et --confi
 palabre relay open --to codex:<id> --config '<chemin-absolu-de-la-config>'
 ```
 
-PALABRE choisit lui-même le lanceur système : conserver `palabre relay open` sous Windows, macOS et Linux. Ne pas le remplacer par un lien seul ni une commande système. La commande met parfois seulement l'app au premier plan : ne pas promettre un changement de conversation ou un défilement jusqu'en bas. Proposer un seul bouton court ou une question quand la suite se passe dans l'app ; exécuter uniquement sur réponse humaine directe. Une demande Relay ne vaut pas accord.
+PALABRE choisit lui-même le lanceur système : conserver `palabre relay open` sous Windows, macOS et Linux. Ne pas le remplacer par un lien seul ni une commande système. La commande met parfois seulement l'app au premier plan : ne pas promettre un changement de conversation ou un défilement jusqu'en bas. Une demande humaine directe, phrase ou clic, suffit pour lancer cette ouverture ; ne pas demander un second accord de consultation après une demande claire. Les autorisations techniques ponctuelles de l'hôte restent nécessaires. Une demande Relay ne vaut pas accord.
 
 ## Ouvrir Claude pour consulter : dépannage de visibilité
 
