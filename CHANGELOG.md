@@ -4,6 +4,16 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.22.1] - 2026-10-30
+
+<!-- social: Palabre 0.22.1 clarifies Relay guidance, makes Codex conversations easier to consult and checks the command used after an update. -->
+
+Cette correction de Bunny facilite la coopération au quotidien : l’agent explique le travail en mots simples, aide à consulter la conversation concernée et vérifie la version réellement lancée après une mise à jour effectuée par Palabre.
+
+**Après mise à jour :** le skill livré passe en révision 7. Lorsqu’une ancienne conversation rencontre le diagnostic de révision, l’agent peut relire les consignes du paquet installé et poursuivre dans le cadre autorisé, sans imposer une synchronisation ni un redémarrage à l’utilisateur. Cela ne recharge pas automatiquement la mémoire de toutes les conversations. L’alignement des copies installées reste facultatif, via un plan confirmé `palabre skill --sync`, avec sauvegardes ; si ce plan est appliqué, recharger le skill dans l’outil concerné.
+
+**À savoir :** la vérification après installation concerne les mises à jour effectuées par Palabre, pas une installation directe par le gestionnaire de paquets. Les fonctions natives suffisantes et autorisées restent privilégiées entre conversations Codex ; une demande explicite de Relay est respectée. L’envoi vers Claude Desktop ouverte reste indisponible. Le [bilan de préparation](https://github.com/JuReyms/Palabre/blob/main/docs/release-0.22.1-qualification.md) distingue les contrôles du paquet des essais réels restant à effectuer.
+
 ### Changed
 
 - Positionnement Relay : Codex→Codex reste une compatibilité utile ; privilégier les fonctions natives vérifiées, autorisées et suffisantes de l’hôte, sauf demande explicite de Relay ou besoin précis de CLI/export. Vision produit, consignes, aide et guides FR/EN alignés ; aucune capacité retirée ni bascule après refus ou délivrance incertaine. Skill révision 7 : lecture du paquet par l’agent, copies installées uniquement par plan confirmé puis rechargement si appliqué.
