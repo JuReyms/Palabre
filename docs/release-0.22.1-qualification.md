@@ -4,16 +4,16 @@ Bilan du 30 octobre 2026. Cette préparation ne prouve ni publication npm, ni cr
 
 ## Périmètre
 
-Base : `cfa1d23`, après fusion des PR [#257](https://github.com/JuReyms/Palabre/pull/257), [#258](https://github.com/JuReyms/Palabre/pull/258) et [#259](https://github.com/JuReyms/Palabre/pull/259). Le candidat prépare uniquement la version du paquet, les notes datées et ce bilan ; aucune nouvelle modification du runtime ou des permissions.
+Base : `cfa1d23`, après fusion des PR [#257](https://github.com/JuReyms/Palabre/pull/257), [#258](https://github.com/JuReyms/Palabre/pull/258) et [#259](https://github.com/JuReyms/Palabre/pull/259). Le premier candidat préparait la version du paquet et les notes. Le candidat final reprend aussi le correctif YAML de la PR [#262](https://github.com/JuReyms/Palabre/pull/262) et le premier lot de diagnostics #261 décrit ci-dessous, sans modification des permissions ni des transports Relay.
 
 - #256 : aide à consulter la conversation Codex concernée, commande structurée facultative en JSON et vocabulaire courant.
 - #165, premier lot : vérifier la version réellement lancée après une mise à jour effectuée par Palabre ; erreur claire avant la synchronisation du skill en cas d’écart ou de sonde non concluante.
 - #202 et critères regroupés de #209 : coopération utile proposée avec des outils disponibles, relecture par un outil distinct, respect des préférences humaines et absence de consultation superflue.
 - Codex → Codex reste une compatibilité utile ; parcours natif vérifié, autorisé et suffisant privilégié, demande explicite de Relay respectée. Aucun contournement de refus ou renvoi après réception incertaine.
 
-Le skill livré reste en révision 7. Aucune copie installée n’est modifiée depuis cette branche. Mission, review et write restent gelés ; l’envoi vers Claude Desktop ouverte n’est pas ajouté. Le titre prévu est `v0.22.1`, stable sous npm `latest`, sans nouveau nom d’affichage.
+Le skill livré passe en révision 8 avec les consignes de diagnostic #261 ; la correction YAML seule ne nécessitait pas de bump. Le premier candidat testé ci-dessous avait la révision 7. Aucune copie installée n’est modifiée depuis cette branche. Mission, review et write restent gelés ; l’envoi vers Claude Desktop ouverte n’est pas ajouté. Le titre prévu est `v0.22.1`, stable sous npm `latest`, sans nouveau nom d’affichage.
 
-## Contrôles du candidat
+## Contrôles du premier candidat (941c299)
 
 Sur Windows, Node 24.19.0 et pnpm 10.18.3 :
 
@@ -56,6 +56,18 @@ Les **18 demandes OpenCode** correspondantes ont été relues via leur export na
 Relay : commande `pnpm smoke:real-relay`, avec `TERM=xterm-256color` limité au processus. Claude demandé avec `haiku` a annoncé `claude-sonnet-5-5` à la création et à la reprise ; ne pas confondre modèle demandé et observé. Codex avait `gpt-6.1-terra` enregistré dans sa conversation de test ; le résultat de reprise n’annonce pas de modèle observé. Le test Claude attaché utilise un processus non interactif dont l’arrêt est confirmé, pas son TUI ni Desktop. Les journaux MCP Codex restent un indice, sans garantie universelle d’absence d’exposition.
 
 Seules les données et approbations temporaires prévues par les essais ont été créées. Conversations, identifiants, messages, exports et captures restent locaux. Ces campagnes qualifient leurs parcours et contrats, sans certifier la justesse de chaque avis, le parcours d’un débutant dans son application ou une installation npm globale réelle.
+
+## Ajouts #261 et #262 après les premières campagnes
+
+Le correctif de #262 charge avec PyYAML strict ; le garde-fou et son test couvrent aussi une tabulation après deux-points. Les consignes d’exécution ne changent pas pour ce seul correctif.
+
+#261, premier lot : doctor indique connexion et modèle OpenCode non vérifiés sans appel modèle. Le profil batch qualifié ajoute une explication à un refus d’accès reconnu après exit non nul, sans changer le kind ni choisir un modèle. Les renderers console distinguent les réponses Ask exportées de la synthèse manquante, y compris après reprise depuis un checkpoint. L’erreur, le code de sortie et les contrats NDJSON restent conservés.
+
+La suite complète finale passe : **1 312 réussis, 6 ignorés, 0 échec**, sur 1 318 tests, vrai profil inchangé. Les types et le validateur du skill passent. Les 66 contrôles ciblés initiaux sont réussis. La revue indépendante a trouvé un compteur de réponses conservées oublié à la reprise ; il a été corrigé dans les deux renderers. Les 12 tests d’intégration de session passent ensuite, avec reprise depuis une réponse sur deux et reprise de synthèse seule, sans rejeu des réponses. Le paquet final a été reconstruit et extrait : 158 entrées, version 0.22.1, skill 8, YAML strict valide et sept références. Les sondes ancienne révision 4 / actuelle 8 passent, sur profil fictif inchangé ; 78 guides FR/EN et deux changelogs sont générés.
+
+L’autotest doctor consommant du quota, l’inférence de modèle depuis des formats non qualifiés, la reprise depuis un simple export et l’enrichissement de la version Git restent hors du lot. La migration mémoire de l’ancien défaut exact --pure et sa persistance par synchronisation confirmée sont déjà disponibles ; aucun réglage utilisateur n’est réécrit ici. #261 reste ouverte pour ces suites et l’essai utilisateur.
+
+OpenCode et Vibe ont été mis à jour après les premières campagnes : 2.2.3 et 3.0.4 remplacent 2.0.32 et 2.16.0 dans l’environnement. Les résultats sur 941c299 restent datés ; ils ne prouvent pas seuls la compatibilité de ces nouvelles versions. La validation finale doit distinguer les nouveaux essais des anciens, sans republier les traces privées.
 
 ## Vérifications restantes avant publication
 

@@ -2,6 +2,10 @@
 
 Référence de développement extraite d’`AGENTS.md`. Lire [les règles communes](../../AGENTS.md) et ce document avant de modifier un adapter, les shims, les limites d'exécution ou la sélection des modèles. Les chemins de code entre backticks sont relatifs à la racine du dépôt. Les qualifications datées décrivent un essai, pas une garantie pour toutes les versions.
 
+## Diagnostic de connexion OpenCode (#261)
+
+Sur le profil batch qualifié OpenCode, un exit non nul avec la ligne `Upstream request failed: Invalid credential` (ou `Invalid credential`), ou un événement JSON `type: error` portant `provider.auth`/ce message, reçoit une action localisée. Les priorités quota/modèle non supporté restent inchangées. Le kind demeure `non-zero-exit` : aucun nouveau champ machine ni succès sur sortie partielle. Sans modèle explicite, expliquer la différence possible entre défaut CLI et choix d’interface ; sinon expliquer le refus du modèle demandé. Aucun modèle déduit, changé ou retenté. Alias reconnus par le profil, pas par leur nom ; une CLI générique ou une mention libre ne reçoit pas ce diagnostic spécifique.
+
 ## Adapter CLI actuel
 
 `src/adapters/cli.ts` est volontairement minimal. Il sert d'abord les modes batch des CLIs :

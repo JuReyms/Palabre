@@ -1,5 +1,7 @@
+/** @file Messages FR/EN du rendu humain, sans modifier les événements machine. */
 import type { Language } from "../types.js";
 
+/** Contrat des libellés humains ; données libres assainies par les renderers. */
 export interface RendererMessages {
   subject(topic: string): string;
   agents(pair: string): string;
@@ -16,6 +18,8 @@ export interface RendererMessages {
   thinking(agent: string, role: string): string;
   summaryTitle: string;
   exported(path: string): string;
+  /** Bilan Ask après export réussi ; ne transforme pas l’échec de synthèse en succès. */
+  askSummaryUnavailable(received: number, total: number, agent: string): string;
   noInjectedFiles: string;
   /** Résumé du contexte injecté : compte + chemins (tronqués à 3, reste en `+N`). */
   injectedFiles(count: number, paths: string[]): string;
@@ -28,6 +32,7 @@ function summarizePaths(paths: string[]): string {
   return `${shown.join(", ")}${extra > 0 ? ` (+${extra})` : ""}`;
 }
 
+/** Dictionnaires humains ; le bilan ne prétend à un export qu’après son écriture. */
 export const rendererMessages: Record<Language, RendererMessages> = {
   fr: {
     subject: (topic) => `Sujet: ${topic}`,
@@ -45,6 +50,7 @@ export const rendererMessages: Record<Language, RendererMessages> = {
     thinking: (agent, role) => `${agent} (${role}) reflechit`,
     summaryTitle: "Synthese",
     exported: (path) => `Palabre exporte: ${path}`,
+    askSummaryUnavailable: (received, total, agent) => `${received}/${total} réponse${received > 1 ? "s" : ""} reçue${received > 1 ? "s" : ""} et exportée${received > 1 ? "s" : ""} ; synthèse indisponible (${agent}).`,
     noInjectedFiles: "aucun fichier injecté",
     injectedFiles: (count, paths) => `${count} fichier${count > 1 ? "s" : ""} injecté${count > 1 ? "s" : ""} : ${summarizePaths(paths)}`
   },
@@ -64,6 +70,7 @@ export const rendererMessages: Record<Language, RendererMessages> = {
     thinking: (agent, role) => `${agent} (${role}) is thinking`,
     summaryTitle: "Summary",
     exported: (path) => `Palabre exported: ${path}`,
+    askSummaryUnavailable: (received, total, agent) => `${received}/${total} response${received > 1 ? "s" : ""} received and exported; summary unavailable (${agent}).`,
     noInjectedFiles: "no injected files",
     injectedFiles: (count, paths) => `${count} injected file${count > 1 ? "s" : ""}: ${summarizePaths(paths)}`
   }

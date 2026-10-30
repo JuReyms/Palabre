@@ -115,6 +115,8 @@ Une config de projet doit être approuvée (empreinte SHA-256). En TTY, Palabre 
 
 ## Dépannage
 
+OpenCode : doctor ne vérifie ni la connexion ni le modèle par un appel réel. Un refus d’accès reconnu explique que le modèle par défaut CLI peut différer de l’interface. Lire le diagnostic, proposer si utile un modèle explicite pour une prochaine demande dans le cadre humain ; aucune connexion, modification de configuration ou relance automatique. En Ask, si seule la synthèse échoue, distinguer les réponses exportées de la synthèse indisponible ; ne pas annoncer un succès global. Une reprise de synthèse exige un checkpoint existant et l’accord prévu, pas le seul export.
+
 Antigravity utilise par défaut `cli` avec `--output-format json --print` et `responseFormat: "antigravity-json"` : seul le texte d'un objet `status: "SUCCESS"` non vide est accepté. Format inconnu, tronqué ou en erreur : arrêt, aucun repli texte/PTY. L'ancien défaut PTY exact est migré en mémoire ; `config --sync-agents` le persiste sur demande humaine. Réglages personnalisés conservés, à adapter avec l'utilisateur si nécessaire. Le transport JSON ne limite pas les permissions. Sonde Windows 1.4.9 uniquement ; pas une cible Relay.
 
 - **Agent non détecté** → vérifier qu'il fonctionne seul dans le terminal, puis proposer `palabre config --sync-agents`.

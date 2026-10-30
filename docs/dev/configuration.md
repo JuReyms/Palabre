@@ -50,6 +50,8 @@ Le wizard affiche une commande equivalente avant execution. Cette sortie est int
 
 Le skill apprend à l'agent à relire le paquet et les références utiles, puis poursuivre dans le cadre autorisé sans sync/restart demandé à l'humain ; conserver les consignes humaines et personnalisations compatibles. Une lecture n'élargit aucun droit. Révision déclarative seulement : le CLI ne voit ni mémoire du modèle ni rechargement natif des hôtes. Aucun registre ni suivi des conversations. Les anciens skills sans amorçage doivent rencontrer le diagnostic ou être relus ; une ancienne CLI sans ce protocole exige de consulter son aide, sans supposer la capacité ni déclencher une mise à jour implicite. Fichiers personnalisés et synchronisation disque restent régis par le plan confirmé ci-dessous. Tests sur profils fictifs.
 
+Doctor (#261) signale explicitement connexion et modèle OpenCode non vérifiés, y compris pour un alias reconnu par sa commande. Ce constat local ne lance aucun sous-programme OpenCode ni appel modèle, ne répare et ne persiste rien. Une CLI détectée ne prouve pas que le modèle par défaut non interactif correspond au choix de l’interface.
+
 ### Synchronisation des copies installées
 
 `src/skillSync.ts` compare les fichiers livrés sous `skills/palabre` à côté du module de la CLI exécutée, jamais avec le cwd, une branche Git ou GitHub. `doctorArrival.ts` conserve les chemins détectés par #176 et expose leur comparaison (CRLF/LF normalisés) ; un écart est « ancien ou personnalisé », pas une preuve de version ancienne. Aucun réseau ni écriture pour cette comparaison. Le JSON `{ ok, output }` de doctor reste inchangé.

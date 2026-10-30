@@ -11,6 +11,8 @@ export interface AdapterErrorMessages {
   unsupportedModel(adapterName: string, detail: string): string;
   /** OpenCode 2 refuse l'ancien argument `--pure` : migration exacte ou retrait manuel, sans neutralisation promise. */
   openCodePureRemoved(adapterName: string): string;
+  /** Refus OpenCode reconnu après exit non nul, sans connexion, sélection ou renvoi automatique. */
+  openCodeAuthRefused(defaultModel: boolean): string;
   /** JSON Antigravity inconnu, erroné ou sans réponse : aucun repli texte. */
   invalidAntigravityJson(adapterName: string): string;
   /**
@@ -97,6 +99,9 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
     hint: (kind) => frHints[kind],
     usageLimit: (adapterName, detail) => `${adapterName} a atteint une limite d'utilisation: ${detail}`,
     unsupportedModel: (adapterName, detail) => `${adapterName} ne peut pas utiliser ce modèle: ${detail}`,
+    openCodeAuthRefused: defaultModel => defaultModel
+      ? "OpenCode refuse l’accès au fournisseur ou au modèle. Aucun modèle explicite pour cet appel : le défaut de la CLI peut différer du choix dans l’interface. Vérifie la connexion du fournisseur et le modèle de la prochaine demande (--model-a, --model-b ou --summary-model selon l’appel). Aucun renvoi automatique."
+      : "OpenCode refuse l’accès au fournisseur ou au modèle choisi pour cet appel. Vérifie la connexion correspondante et que ce modèle est accessible. Aucun autre modèle choisi ni renvoi automatique.",
     openCodePureRemoved: (adapterName) =>
       `${adapterName} : OpenCode 2 n'accepte plus l'option --pure. Retire-la toi-même des arguments ("args") personnalisés de cet agent dans ta configuration : Palabre ne modifie jamais des arguments personnalisés (seul l'ancien défaut exact ["run", "--pure"] est remplacé automatiquement par ["run"]). OpenCode garde alors son environnement habituel : ses plugins, serveurs MCP et permissions configurés restent actifs.`,
     unsafeWindowsShellPrompt: (adapterName) =>
@@ -130,6 +135,9 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
     hint: (kind) => enHints[kind],
     usageLimit: (adapterName, detail) => `${adapterName} hit a usage limit: ${detail}`,
     unsupportedModel: (adapterName, detail) => `${adapterName} cannot use this model: ${detail}`,
+    openCodeAuthRefused: defaultModel => defaultModel
+      ? "OpenCode refused access to the provider or model. No explicit model was selected for this call: the CLI default may differ from the interface selection. Check the provider sign-in and the model for the next request (--model-a, --model-b or --summary-model as appropriate). No automatic resend."
+      : "OpenCode refused access to the provider or model selected for this call. Check the corresponding sign-in and model access. No other model selected and no automatic resend.",
     openCodePureRemoved: (adapterName) =>
       `${adapterName}: OpenCode 2 no longer accepts the --pure option. Remove it yourself from this agent's custom arguments ("args") in your configuration: Palabre never changes custom arguments (only the exact old default ["run", "--pure"] is replaced automatically with ["run"]). OpenCode then keeps its usual environment: its configured plugins, MCP servers and permissions stay active.`,
     unsafeWindowsShellPrompt: (adapterName) =>

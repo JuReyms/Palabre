@@ -156,6 +156,7 @@ test("profil fictif complet : ordre d'arrivée, CLI déconnectée, gemini, skill
     assert.match(result.output, /palabre skill --install/);
     assert.match(result.output, /Get-Command pnpm -All/);
     assert.doesNotMatch(result.output, /secret|NEVER_CALL_MODEL/);
+    assert.match(result.output, language === "fr" ? /laboratoire.*connexion et modèle OpenCode non vérifiés/ : /laboratoire.*OpenCode sign-in and model not verified/);
     assert.equal(await readFile(CONFIG_TRUST_PATH, "utf8"), before);
     assert.deepEqual(Object.keys(result).sort(), ["ok", "output"]);
     if (language === "fr") console.log(result.output.split("\n").filter(line => /Configuration approuvée|PowerShell :|chosen : CLI|gemini : agent|Skill PALABRE non trouvé|pnpm : plusieurs/.test(line)).join("\n"));

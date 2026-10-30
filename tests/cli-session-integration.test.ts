@@ -1,3 +1,4 @@
+/** @file Sessions CLI isolées : réponses, erreurs, exports et reprises sans appel d’agent réel. */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -428,4 +429,75 @@ test("CLI resume rejects an unchanged but untrusted checkpoint configuration", a
   const result = await run(process.execPath, [entry, "resume", "untrusted-session", "--terminal", "--yes"], dir);
   assert.equal(result.code, 1);
   assert.match(result.stderr, /no longer trusted/);
+});
+
+
+test("Ask terminal : réponses exportées distinguées de la synthèse échouée, sans reprise implicite", async () => {
+  for (const language of ["fr","en"]) {
+    for (const renderer of ["plain","pretty","ndjson"]) {
+      const dir=await mkdtemp(path.join(os.tmpdir(),"ask-partial-"));
+      const count=path.join(dir,"calls.txt");
+      const outputDir=path.join(dir,"out");
+      const configPath=path.join(dir,"palabre.config.json");
+      const fail="const fs=require('fs');process.stdin.resume();process.stdin.on('end',()=>{fs.appendFileSync("+JSON.stringify(count)+",'s');process.stderr.write('summary denied');process.exit(1)})";
+      await writeFile(configPath,JSON.stringify({language,outputDir,defaults:{askSummaryAgent:"summary"},agents:{
+        answer:{...countingAgent("Valid answer.",count),role:"reviewer"},
+        summary:{type:"cli",command:process.execPath,args:["-e",fail],role:"summarizer"}
+      }}));
+      const entry=path.resolve(".tmp/test-dist/src/index.js");
+      const result=await run(process.execPath,[entry,"ask","--agents","answer","--config",configPath,"--trust-config","--renderer",renderer,"--language",language,"--subject","A preserved answer"],dir);
+      assert.equal(result.code,1);
+      assert.equal(await readFile(count,"utf8"),"xs","une réponse et une synthèse, sans renvoi");
+      const [file]=await readdir(outputDir);
+      assert.ok(file?.endsWith(".ask.md"));
+      const exported=await readFile(path.join(outputDir,file!),"utf8");
+      assert.match(exported,/Valid answer\./);
+      assert.match(exported,/## Interruption/);
+      if(renderer==="ndjson") {
+        const events=result.stdout.trim().split(/\r?\n/).map(line=>JSON.parse(line));
+        assert.equal(events.filter(e=>e.type==="ask-response").length,1);
+        assert.equal(events.filter(e=>e.type==="error"&&e.phase==="summary").length,1);
+        assert.equal(events.filter(e=>e.type==="done").length,1);
+        assert.ok(events.every(e=>e.type!=="notice"),"aucun bilan humain ajouté au protocole");
+      } else {
+        assert.match(result.stdout,language==="fr" ? /1\/1 réponse reçue et exportée ; synthèse indisponible \(summary\)/ : /1\/1 response received and exported; summary unavailable \(summary\)/);
+        assert.match(result.stderr,/summary denied/);
+      }
+    }
+  }
+});
+
+test("Ask repris : compter les réponses conservées après échec de synthèse, sans les rejouer", async () => {
+  for (const renderer of ["plain","pretty"]) {
+    const dir=await mkdtemp(path.join(os.tmpdir(),"ask-resume-count-"));
+    const configPath=path.join(dir,"palabre.config.json");
+    const firstCount=path.join(dir,"first-count");
+    const secondCount=path.join(dir,"second-count");
+    const summaryCount=path.join(dir,"summary-count");
+    const marker=path.join(dir,"second-ready");
+    const fail="const fs=require('fs');process.stdin.resume();process.stdin.on('end',()=>{fs.appendFileSync("+JSON.stringify(summaryCount)+",'s');process.stderr.write('summary denied');process.exit(1)})";
+    await writeFile(configPath,JSON.stringify({language:"en",outputDir:path.join(dir,"out"),defaults:{askSummaryAgent:"summary"},agents:{
+      first:{...countingAgent("First valid answer.",firstCount),role:"reviewer"},
+      second:{...gatedAgent("Second valid answer.",marker,secondCount),role:"critic"},
+      summary:{type:"cli",command:process.execPath,args:["-e",fail],role:"summarizer"}
+    }}));
+    const entry=path.resolve(".tmp/test-dist/src/index.js");
+    const initial=await run(process.execPath,[entry,"ask","--agents","first","second","--config",configPath,"--trust-config","--checkpoint","--renderer",renderer,"--subject","Preserve two answers"],dir);
+    assert.equal(initial.code,1);
+    assert.doesNotMatch(initial.stdout,/received and exported; summary unavailable/);
+    const [checkpoint]=await readdir(path.join(dir,".palabre","sessions"));
+    const id=checkpoint!.replace(/\.json$/,"");
+    await writeFile(marker,"ready");
+    for(let attempt=0;attempt<2;attempt++) {
+      const resumed=await run(process.execPath,[entry,"resume",id,"--yes","--renderer",renderer],dir);
+      assert.equal(resumed.code,1,resumed.stderr);
+      assert.match(resumed.stdout,/2\/2 responses received and exported; summary unavailable \(summary\)/);
+      assert.equal(await readFile(firstCount,"utf8"),"x");
+      assert.equal(await readFile(secondCount,"utf8"),"xx");
+      assert.equal(await readFile(summaryCount,"utf8"),"s".repeat(attempt+1));
+      const saved=JSON.parse(await readFile(path.join(dir,".palabre","sessions",checkpoint!),"utf8"));
+      assert.equal(saved.transcript.length,2);
+      assert.equal(saved.nextPhase,"summary");
+    }
+  }
 });

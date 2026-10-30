@@ -51,7 +51,7 @@ test("frontmatter : validateur et runtime concordent sur BOM, LF/CRLF et clôtur
 test("la description reste un scalaire YAML valide pour les hôtes stricts", t => {
   const f = fixture(t);
   const before = readFileSync(f.file, "utf8");
-  for (const broken of ["Palabre : Relay", "Palabre #Relay", "- Palabre"]) {
+  for (const broken of ["Palabre : Relay", "Palabre:\tRelay", "Palabre #Relay", "- Palabre"]) {
     writeFileSync(f.file, before.replace(/^description: /m, `description: ${broken} `));
     assert.match(f.run().stderr, /plain YAML scalar/, broken);
   }
@@ -92,10 +92,10 @@ test("une nouvelle référence non déclarée ne passe pas silencieusement", t =
 test("un bump de révision exige des recettes cohérentes et un entier sûr", t => {
   const f = fixture(t);
   const before = readFileSync(f.file, "utf8");
-  writeFileSync(f.file, before.replace('revision: "7"', 'revision: "8"'));
+  writeFileSync(f.file, before.replace('revision: "8"', 'revision: "9"'));
   assert.match(f.run().stderr, /recipes must declare metadata.revision/);
-  writeFileSync(f.file, before.replace('revision: "7"', 'revision: "8"').replaceAll("--skill-revision 7", "--skill-revision 8"));
+  writeFileSync(f.file, before.replace('revision: "8"', 'revision: "9"').replaceAll("--skill-revision 8", "--skill-revision 9"));
   assert.equal(f.run().status, 0);
-  writeFileSync(f.file, before.replace('revision: "7"', 'revision: "9007199254740992"'));
+  writeFileSync(f.file, before.replace('revision: "8"', 'revision: "9007199254740992"'));
   assert.match(f.run().stderr, /positive safe metadata.revision/);
 });

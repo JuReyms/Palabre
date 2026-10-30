@@ -35,3 +35,5 @@ Agents run one after another; their durations add up. The [summary](/en/usage/su
 Options: `--ask-role critic` (temporary shared role, like `/roles critic`), `--files`, `--context`, `--checkpoint`. Equivalent: `palabre run --mode ask --agents codex claude -s "Subject"`. Persistent default: `palabre config --mode ask --ask-agents codex claude opencode`.
 
 On failure, PALABRE attempts a partial export. With `--checkpoint`, `palabre resume <session-id>` resumes the next agent that has not answered, then the remaining agents and summary; no replay of accepted answers.
+
+If only the summary fails, valid answers remain in the export. Terminal output states how many answers were received and exported, then names the unavailable summary. The exit status remains a failure; no answer or summary is automatically resent. With a checkpoint created at startup, resume can run the summary alone after confirmation; an export alone is not enough.

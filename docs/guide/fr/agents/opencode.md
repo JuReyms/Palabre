@@ -40,6 +40,14 @@ OpenCode peut utiliser des providers gratuits, payants ou locaux selon votre con
 
 OpenCode garde son propre modèle par défaut. La configuration générée contient `modelArg: "--model"` : `--model-a`, `--model-b` ou `--summary-model` transmettent la valeur à OpenCode, qui la valide.
 
+## Connexion et modèle utilisé
+
+Une CLI détectée ou une interface qui fonctionne ne garantit pas que son modèle par défaut fonctionne aussi en appel non interactif. `palabre doctor` l’indique pour OpenCode, sans appeler de modèle ni modifier vos réglages.
+
+En cas de refus de connexion reconnu, votre assistant explique la différence possible entre le choix de l’interface et celui de la CLI. Il peut proposer un modèle explicite pour une prochaine demande, avec `--model-a`, `--model-b` ou `--summary-model` selon le besoin. Palabre ne se connecte pas, ne change pas vos réglages et ne renvoie pas la demande automatiquement. Un essai réel consomme du quota et nécessite votre accord.
+
+Un ancien défaut exact `["run", "--pure"]` peut rester dans le fichier : il est remplacé en mémoire à l’exécution. La commande confirmée `palabre config --sync-agents` permet de l’aligner ; les arguments personnalisés restent préservés.
+
 ## Configuration typique
 
 Extrait du bloc `agents` :

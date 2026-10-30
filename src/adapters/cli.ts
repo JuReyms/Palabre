@@ -267,7 +267,8 @@ export class CliAdapter implements AgentAdapter {
             code,
             decodeCliBytes(stdoutChunks),
             decodeCliBytes(stderrChunks),
-            errorMessages
+            errorMessages,
+            this.runtime?.output === "opencode-json" ? !this.config.model : undefined
           ));
           return;
         }
@@ -480,13 +481,16 @@ function normalizeForWindowsStatus(line: string): string {
 /**
  * Construit une `AdapterError` typée depuis un exit code non nul.
  * Élève en `usage-limit` si le stderr contient un signal de quota/rate-limit connu.
+ * Profil OpenCode qualifié seulement : ajoute une action sur un refus auth reconnu, sans changer
+ * le kind non-zero-exit, interpréter une réponse réussie, choisir un modèle ou renvoyer.
  */
 function createCliExitError(
   adapterName: string,
   exitCode: number,
   stdout: string,
   stderr: string,
-  messages: AdapterErrorMessages
+  messages: AdapterErrorMessages,
+  openCodeDefaultModel?: boolean
 ): AdapterError {
   const cleanedStderr = cleanCliOutput(stderr);
   const cleanedStdout = cleanCliOutput(stdout);
@@ -496,16 +500,37 @@ function createCliExitError(
       ? messages.stdoutDiagnostic(summarizeCliDiagnostic(cleanedStdout, messages))
       : messages.noStderrCaptured;
 
-  return createKnownCliError(adapterName, exitCode, cleanedStderr, messages)
-    ?? new AdapterError(
+  const known = createKnownCliError(adapterName, exitCode, cleanedStderr, messages);
+  if (known) return known;
+  const authHint = openCodeDefaultModel !== undefined && isOpenCodeAuthRefusal(cleanedStdout, cleanedStderr)
+    ? messages.openCodeAuthRefused(openCodeDefaultModel) : "";
+  return new AdapterError(
       "non-zero-exit",
       adapterName,
-      `${adapterName} exited with code ${exitCode}: ${diagnostic}`,
+      `${adapterName} exited with code ${exitCode}: ${diagnostic}${authHint ? ` ${authHint}` : ""}`,
       {
         exitCode,
         stderr: cleanedStderr
       }
     );
+}
+
+/** Accepte les erreurs terminales observées, jamais une mention libre dans un prompt ou une réponse. */
+function isOpenCodeAuthRefusal(stdout: string, stderr: string): boolean {
+  const text = /^(?:Upstream request failed:\s*)?Invalid credentials?[.!]?$/i;
+  return [stdout, stderr].some(output => output.split(/\r?\n/).some(line => {
+    const clean = stripLogPrefix(line).trim();
+    if (text.test(clean)) return true;
+    try {
+      const value: unknown = JSON.parse(clean);
+      if (!value || typeof value !== "object" || !("type" in value) || value.type !== "error") return false;
+      const error = (value as { error?: unknown }).error;
+      if (!error || typeof error !== "object") return false;
+      const record = error as Record<string, unknown>;
+      return [record.code, record.type, record.name].includes("provider.auth")
+        || (typeof record.message === "string" && text.test(record.message.trim()));
+    } catch { return false; }
+  }));
 }
 
 function createKnownCliError(adapterName: string, exitCode: number | undefined, stderr: string, messages: AdapterErrorMessages): AdapterError | undefined {

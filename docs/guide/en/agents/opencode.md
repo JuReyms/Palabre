@@ -40,6 +40,14 @@ OpenCode can use free, paid, or local providers depending on your configuration.
 
 OpenCode retains its own default model. Generated configuration includes `modelArg: "--model"`: `--model-a`, `--model-b` or `--summary-model` pass the value to OpenCode, which validates it.
 
+## Sign-in and selected model
+
+A detected CLI or working interface does not prove that the default model also works in a noninteractive call. `palabre doctor` states this for OpenCode, without calling a model or changing settings.
+
+For a recognized sign-in refusal, your assistant explains that the interface and CLI may select different models. It can propose an explicit model for a future request using `--model-a`, `--model-b` or `--summary-model` as appropriate. Palabre does not sign in, change settings or automatically resend the request. A real test consumes quota and requires approval.
+
+The exact old default `["run", "--pure"]` may remain in the file: it is replaced in memory at runtime. The confirmed `palabre config --sync-agents` command can align it; customized arguments remain preserved.
+
 ## Typical configuration
 
 Excerpt from the `agents` block:
