@@ -423,7 +423,9 @@ Limites :
   arrière-plan, une conversation Codex créée, ou reprise et retrouvée, donne son lien
   codex://threads/<id>, cliquable dans un terminal, et la commande pour l'ouvrir soi-même
   (palabre relay open --to <agent>:<id> --config <chemin-absolu>). La config effective est conservée,
-  même implicite. Commande PowerShell sous Windows (pas Git Bash/cmd.exe), shell POSIX sous macOS/Linux.
+  même implicite. JSON ordinaire : desktop.command et desktop.shell (powershell/posix), facultatifs.
+  Reprendre la commande dans un bloc shell pour la consulter dans Desktop, jamais le lien seul
+  dans Claude Code Desktop. Aucun lancement automatique. PowerShell sous Windows, POSIX sous macOS/Linux.
   Un agent ne la lance que sur demande directe du propriétaire. Ouvrir n'envoie
   rien et n'autorise aucun envoi : vérifier séparément avec relay --check --open avant un envoi autorisé.
   Pour Claude, la sortie texte donne aussi la commande --desktop --resume <id> de la même CLI,
@@ -1086,7 +1088,9 @@ Limits:
   conversation that was created, or resumed and found, shows its codex://threads/<id> link,
   clickable in a terminal, and the command to open it yourself
   (palabre relay open --to <agent>:<id> --config <absolute-path>). The effective config is preserved,
-  even when implicit. Use PowerShell on Windows (not Git Bash/cmd.exe), a POSIX shell on macOS/Linux.
+  even when implicit. Ordinary JSON may provide desktop.command and desktop.shell (powershell/posix).
+  Present that command in a shell block for Desktop viewing, rather than a bare link in Claude
+  Code Desktop. No automatic launch. Use PowerShell on Windows and POSIX on macOS/Linux.
   An agent runs it only at the owner's direct request. Opening sends nothing
   and grants no permission to send: check separately with relay --check --open before an authorized send.
   For Claude, text output also shows the same CLI's --desktop --resume <id> command without

@@ -43,7 +43,17 @@ Le bouton court « Ouvrir dans Codex » dépend de l'hôte. S'il n'en propose pa
 une question courte puis exécution sur accord ; pour l'humain qui veut lancer
 lui-même, une seule commande sans --json dans le bloc shell, commentaires action
 et objet. Le texte CLI propose aussi relay open avec la config effective absolue,
-sans l'exécuter ; aucun champ JSON/export ajouté. Sous Windows, cette suggestion
+sans l'exécuter. Le JSON ordinaire peut fournir `desktop.command` et `desktop.shell`
+(powershell/posix) : reprendre cette commande, pas reconstruire le lien. Pour
+« montre/affiche la conversation », même après --new, présenter un bloc
+`powershell` sous Windows ou `bash` sur Mac/Linux. Dans le retour #256
+(Claude Code Desktop, onglet Code, macOS), le lien Markdown ne se cliquait pas ;
+le bloc shell proposait Run. Ce constat ne garantit pas ce bouton dans tous les hôtes.
+Une demande humaine directe autorise déjà l'ouverture ; ne pas imposer un clic
+supplémentaire si l'agent peut l'exécuter avec les autorisations de l'hôte. Sans
+demande, proposer la consultation sans l'imposer après chaque échange. Une suggestion
+n'est ni un accord ni une preuve de succès ; son absence ne justifie jamais de rejouer
+le Relay ou de deviner une autre configuration. Export inchangé. Sous Windows, cette suggestion
 est une commande PowerShell, pas Git Bash ni cmd.exe ; sous macOS/Linux, shell POSIX.
 Chemin non représentable sans
 altération : ne pas deviner une autre config, demander une commande au propriétaire.
