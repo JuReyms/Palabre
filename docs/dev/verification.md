@@ -34,10 +34,12 @@ pnpm build
 Avant de publier une version CLI ou extension, lancer en plus le smoke test reel des presets depuis le repo CLI apres `pnpm build` :
 
 ```bash
-pnpm smoke:real-presets -- --mode both --keep-going
+pnpm smoke:real-presets --mode both --keep-going
 ```
 
 Ce script compile `scripts/smoke_real_presets.ts`, lit `palabre presets --json`, lance les 10 paires CLI prioritaires actives avec de vrais agents, puis verifie les contrats NDJSON `debate` et `ask`, les syntheses, les exports `.debate.md` / `.ask.md`, les messages agents non vides et l'absence de bruit connu comme les sorties `taskkill` Windows. Il est volontairement hors `pnpm test`, car il peut consommer des quotas Codex/Claude/Antigravity/OpenCode/Mistral Vibe et depend de l'authentification locale.
+
+Avec pnpm, transmettre ces options directement : un séparateur `--` supplémentaire est transmis au script et refusé avant tout appel d'agent. Ce refus de parsing n'est pas un scénario réel exécuté.
 
 Options utiles :
 

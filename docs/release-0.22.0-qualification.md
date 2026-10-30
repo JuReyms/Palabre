@@ -23,7 +23,7 @@ Contrôles locaux du candidat sous Windows, Node 24.19.0 et pnpm 10.18.3 :
 
 La première passe avait démarré avant la création de ce bilan : son lien n'existait pas encore. Elle a aussi rencontré une échéance de deux secondes dans le test du shim PowerShell fictif, déjà observée sous charge sur la base intégrée. Le contrôle des liens a ensuite réussi et la suite complète finale a passé sans changement du code de l'adapter ni assouplissement du délai du test.
 
-Ces contrôles n'appellent aucun modèle réel. Les tests passent par le lanceur isolé avec surveillance du vrai profil personnel. La CI doit encore être verte sur le commit final avant toute fusion ; un résultat local ne la remplace pas.
+Ces contrôles n'appellent aucun modèle réel. Les tests passent par le lanceur isolé avec surveillance du vrai profil personnel. La [CI de `f5070c6`](https://github.com/JuReyms/Palabre/actions/runs/41019039600) a réussi sur Linux et macOS. Les ajouts documentaires de qualification doivent également obtenir une CI verte avant toute fusion.
 
 ## Essais réels ciblés déjà effectués
 
@@ -37,14 +37,26 @@ OpenCode garde son environnement habituel, plugins, MCP et permissions compris ;
 
 Les campagnes complètes de [0.21.0](release-0.21.0-qualification.md) sont des preuves historiques sur d'autres révisions : elles ne remplacent pas les campagnes finales de 0.22.0, dont les adapters et le parcours Relay ont évolué.
 
-## Qualification réelle restant avant publication
+## Campagnes réelles du 30 octobre
 
-Le [protocole de vérification](dev/verification.md) demande, après build et avec accord humain explicite :
+Le mainteneur a explicitement autorisé les deux campagnes, y compris leurs quotas, historiques, configuration temporaire de confiance et MCP. Exécution après build sur **`f5070c6`**, paquet 0.22.0. Environnement Windows : Node 24.19.0, pnpm 10.18.3, Codex CLI 0.163.0, Claude Code 2.1.312, OpenCode 2.0.32, Antigravity 1.4.11 et Vibe 2.16.0.
 
-1. `pnpm smoke:real-presets -- --mode both --keep-going` : dix paires CLI en Débat et Ask, avec synthèses et exports contrôlés ; outils connectés et quotas réels.
-2. `pnpm smoke:real-relay` : conversations jetables Claude et Codex, contexte, identité, délivrance, refus de cibles attachées et contrôles MCP. Les conversations restent dans leurs historiques ; une configuration temporaire entre dans le registre de confiance et la reprise témoin lance les MCP de l'utilisateur.
+| Campagne | Résultat | Portée |
+| --- | --- | --- |
+| Presets, deux tours, Débat et Ask, synthèses actives, poursuite après échec | **6 réussis, 14 échoués, aucun ignoré**, 419,1 s | Les vingt scénarios ont été exécutés et leurs vingt exports lus. Les six Débats sans OpenCode ont réussi. Les quatre autres Débats et les dix Ask ont rencontré le même message OpenCode `Invalid credential` : comme participant, ou comme agent de synthèse Ask choisi dans la configuration. Aucun résultat vide ou partiel n'a été validé comme succès. |
+| Relay, nouvelles conversations jetables Claude et Codex | **22/22 vérifications réussies** | Réponses et contexte conservés, identité et délivrance correctes, arrière-plan explicite, exports lus, refus des cibles attachées avec historiques inchangés, contrôle d'outils Claude et comparaison des journaux MCP Codex. |
 
-Ces campagnes n'ont pas été lancées pour ce candidat. La version n'est pas prête à taguer tant que cette qualification n'est pas terminée et examinée. Aucun résultat incertain ne doit provoquer un renvoi automatique ; une reprise éventuelle doit porter sur de nouvelles demandes explicitement autorisées.
+Commandes effectivement utilisées : `pnpm smoke:real-presets --mode both --keep-going`, puis `pnpm smoke:real-relay`, avec `TERM=xterm-256color` limité au processus Relay. Un premier lancement des presets avec un séparateur `--` supplémentaire s'était arrêté au parsing avant tout appel d'agent ; il ne compte pas dans les vingt scénarios. La commande copiable du protocole est corrigée, sans changement des scripts ou du code produit.
+
+Les modèles habituels ont été conservés pendant ces campagnes. La relecture sans génération de l'unique session OpenCode correspondant à la première synthèse Ask échouée a montré une erreur `provider.auth`, HTTP 401, sur **`opencode-go/iceman-contributor-free`**. Aucun modèle n'avait été explicitement choisi par Palabre ; les modèles gratuits utilisés lors des anciens essais ne sont donc pas ceux de cette demande. La cause du refus chez le fournisseur n'est pas établie. Aucune connexion, clé ou configuration de l'outil n'a été modifiée et aucune demande échouée n'a été renvoyée.
+
+Relay demandait `haiku` pour créer Claude, mais Claude a annoncé `claude-sonnet-5-5`, également observé à la reprise. Codex a enregistré `gpt-6.1-sol`. Modèles demandés, enregistrés et observés restent distingués. Le scénario Claude attaché porte sur un processus non interactif, pas sur son TUI ni Desktop ; son arrêt a été confirmé. Les journaux MCP Codex restent un indice de neutralisation, pas une preuve universelle d'absence d'exposition.
+
+La configuration globale Palabre est restée identique en contenu et date de modification. Seules les données et approbations temporaires prévues par le smoke Relay ont été créées. Conversations de test, exports et traces privées restent locaux ; aucun identifiant ou message n'est publié dans ce bilan.
+
+## Qualification restant avant publication
+
+**La qualification des presets n'est pas acquise.** Il reste à obtenir des résultats réussis avec un modèle OpenCode utilisable, après choix explicite du mainteneur ou remise en état de sa connexion par l'humain. Une nouvelle campagne doit créer de nouvelles demandes et conserver les quatorze échecs ci-dessus ; elle ne constitue pas un renvoi automatique. La version reste en préparation et n'est pas prête à taguer.
 
 Le test débutant sur CoolMaster et l'essai utilisateur Mac sur npm 0.21.0 restent des travaux distincts, sans résultat annoncé. Les fiches correspondantes ne qualifient pas Bunny. Le pilote OpenCode sur copie, Chat et les interfaces Desktop ne sont pas couverts exhaustivement par les deux campagnes ci-dessus.
 
