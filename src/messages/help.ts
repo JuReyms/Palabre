@@ -250,6 +250,8 @@ Options :
 Transmet un message à une conversation précise et renvoie sa réponse ; PALABRE choisit le mode.
 Avec --open, dépose le message dans une conversation Codex ouverte et attend sa réponse.
 Avec --copy, demande un avis dans une copie OpenCode (pilote Windows, CLI 2.0.32).
+Codex→Codex : les fonctions natives vérifiées et autorisées de l’hôte peuvent suffire.
+Relay reste disponible sur demande ou pour son parcours CLI et ses exports.
 
 Utilisation :
   palabre relay --to <agent>:<session> "<message>"
@@ -920,6 +922,8 @@ Flags:
 Sends one message to a specific conversation and returns its reply; PALABRE chooses the mode.
 With --open, queues the message into an open Codex conversation and waits for its reply.
 With --copy, requests advice in an OpenCode copy (Windows pilot, CLI 2.0.32).
+Codex→Codex: verified, authorized native host functions may be enough.
+Relay remains available on request or for its CLI workflow and exports.
 
 Usage:
   palabre relay --to <agent>:<session> "<message>"

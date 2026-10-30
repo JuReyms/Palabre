@@ -37,6 +37,16 @@ Exemple : l’utilisateur prépare une modification avec Codex, Claude la relit,
 
 La visibilité en direct est un objectif du parcours, pas une garantie sur toutes les interfaces. En particulier, ne pas présenter l’envoi dans une conversation Claude Desktop ouverte comme acquis. Les capacités effectivement prises en charge restent décrites dans les guides [Relay français](guide/fr/usage/relay.md) et [anglais](guide/en/usage/relay.md), par outil et parcours.
 
+## Coopération native et valeur de Relay
+
+**Décision du propriétaire, 30 octobre 2026.** Codex → Codex reste une compatibilité utile, sans devenir un argument central de Relay. Son intérêt se mesure au gain pour l’utilisateur ; la coopération entre outils différents, le parcours CLI et les traces d’échange sont des raisons concrètes de choisir Relay.
+
+Quand l’hôte fournit un envoi vers la conversation désignée et la lecture de sa réponse, privilégier ce parcours natif s’il est vérifié, autorisé pour cette cible et suffisant pour la tâche. Relay reste disponible sur demande explicite, pour une qualification de Palabre ou pour un besoin précis de CLI/export. Ne pas l’imposer comme préalable à toute coopération dans Codex.
+
+Cette règle ne promet aucune capacité native dans toutes les versions, applications ou interfaces : l’agent vérifie les outils réellement disponibles et les permissions requises. Le choix intervient avant l’envoi. Une demande explicite de Relay reste respectée ; un refus de permission ou une délivrance incertaine n’autorise aucun contournement ou renvoi par l’autre parcours. Ne pas attribuer les garanties, statuts ou exports de Relay à un échange natif.
+
+Deux modèles utilisés dans Codex restent des perspectives d’un même outil ; leur différence ne constitue pas à elle seule un croisement d’outils. Cette décision concerne le parcours de coopération de Relay ; Débat, Ask et Chat gardent leurs usages propres.
+
 ## Contexte, quotas et vérification croisée
 
 - **Même projet, conversations distinctes.** Partager les fichiers ne partage pas automatiquement la mémoire. Le chef de mission transmet l’objectif, les décisions et le contexte utile ; les agents conservent leurs conversations propres. Ne pas promettre une mémoire commune sans mécanisme explicite.

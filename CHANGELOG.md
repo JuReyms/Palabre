@@ -4,10 +4,14 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Changed
+
+- Positionnement Relay : Codex→Codex reste une compatibilité utile ; privilégier les fonctions natives vérifiées, autorisées et suffisantes de l’hôte, sauf demande explicite de Relay ou besoin précis de CLI/export. Vision produit, consignes, aide et guides FR/EN alignés ; aucune capacité retirée ni bascule après refus ou délivrance incertaine. Skill révision 7 : lecture du paquet par l’agent, copies installées uniquement par plan confirmé puis rechargement si appliqué.
+
 ### Fixed
 
 - Update (#165, premier lot) : après installation, vérification unique et bornée de la version réellement lancée par la première commande Palabre du PATH. Une ancienne version prioritaire ou une sonde non concluante donne une action claire sans succès global, rafraîchissement du skill ni réinstallation automatique ; aperçus et skill seul inchangés. Contrôle limité à cet environnement, hors mises à jour directes du gestionnaire.
-- Accompagnement (#202, avec les critères de #209) : vérifier les équipiers avant de les proposer, choisir un relecteur distinct de l’auteur, expliquer une seule fois bénéfice/coût et avancer seul pour une tâche simple ou sans équipier. Skill révision 6 : lecture du paquet par l’agent ; fichiers installés uniquement par plan confirmé, puis rechargement si appliqué. Scénarios de compréhension distincts d’un essai utilisateur réel.
+- Accompagnement (#202, avec les critères de #209) : vérifier les équipiers avant de les proposer, choisir un relecteur distinct de l’auteur, expliquer une seule fois bénéfice/coût et avancer seul pour une tâche simple ou sans équipier. Skill révision 7 : lecture du paquet par l’agent ; fichiers installés uniquement par plan confirmé, puis rechargement si appliqué. Scénarios de compréhension distincts d’un essai utilisateur réel.
 
 - Relay (#256) : le résultat JSON ordinaire peut fournir une commande sûre pour consulter une conversation Codex créée ou retrouvée (`desktop.command`, `desktop.shell` facultatifs, v1). Même cible/config et quoting que le texte ; aucun lancement, droit, envoi ou affichage déduit. Exports et parcours gelés inchangés. Le skill cite directement « voir/afficher la conversation », propose un bloc shell plutôt qu'un lien seul dans Claude Code Desktop et distingue consultation et envoi.
 - Accompagnement : parler du travail et de ses conséquences (« continuer dans la conversation Codex déjà utilisée »), sans faire choisir --open ou d'autres options aux débutants. Les commandes et le dépannage restent précis ; préférences humaines et autorisations de l'hôte conservées, pas de nouvelle question de mode dans un cadre déjà autorisé. La lecture des consignes du paquet reste distincte des copies installées, remplacées uniquement par plan confirmé puis rechargées si ce plan est appliqué.

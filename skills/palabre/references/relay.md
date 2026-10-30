@@ -4,6 +4,14 @@ Lire cette référence avant un premier Relay. Procédures conditionnelles : `re
 
 `palabre relay` crée une conversation avec --new, ou reprend une cible exacte : Claude Code fermée, ou Codex selon la préférence et le verrou. Un message, une réponse, aucun aller-retour automatique. Le retour va à l'appelant, pas dans sa conversation d'origine.
 
+## Choisir entre fonctions natives et Relay
+
+Codex→Codex est une compatibilité utile de Relay, pas son argument central. Avant tout envoi, préférer les fonctions natives réellement disponibles de l’hôte si elles permettent de joindre la conversation exacte et de récupérer sa réponse, avec les autorisations humaines nécessaires et le cadre demandé. Ne pas lancer Palabre ou son inventaire uniquement pour un échange natif qui suffit.
+
+Respecter une demande explicite de Palabre/Relay, une qualification du produit ou un besoin précis de CLI/export. Si le natif est absent ou insuffisant, Relay reste une possibilité dans ses propres permissions. Ne pas attribuer au natif les garanties ou exports Relay ; ne jamais changer de parcours pour contourner un refus ou rejouer un message après délivrance incertaine. Une différence de modèle dans Codex ne suffit pas à présenter la relecture comme venant d’un autre outil.
+
+Pour un appel Palabre, nommer la tâche `Palabre <mode> : <objet>` si l’hôte le permet. Ne pas étiqueter un échange natif comme un Relay exécuté.
+
 ## Avant de lancer
 
 Récupération des consignes : `--skill-revision <révision réellement lue>` peut accompagner `relay --check --json`, jamais un envoi. Si `skill.status` vaut `unverified` ou `reload-required`, lire `palabre skill --read --json` et ses références utiles avant de préparer la tâche. Pas de synchronisation disque ni question à l'humain pour cette lecture ; mêmes permissions et cadre humain. Une délivrance inconnue reste inconnue : aucune lecture de skill n'autorise un renvoi. Une ancienne CLI sans ce protocole demande de consulter son aide ; `cli.md` précise ce cas.
