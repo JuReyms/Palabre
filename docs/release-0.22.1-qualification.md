@@ -40,10 +40,27 @@ Un autre agent interne a lu le skill du paquet extrait et les références utile
 
 Ces réponses sont cohérentes avec les critères. Cette relecture interne est distincte d’un croisement d’outils et d’un test utilisateur réel. Le [protocole général](skill-cooperation-evaluation.md) conserve les observations Claude du lot précédent et leurs limites.
 
+## Campagnes réelles du 30 octobre
+
+Les deux campagnes ont ensuite été explicitement autorisées par le mainteneur, y compris quotas, conversations de test, approbation de configuration temporaire et contrôle MCP. Exécution sur **`941c299`**, après build, paquet **0.22.1**. Versions Windows : Node 24.19.0, pnpm 10.18.3, Codex CLI 0.163.0, Claude Code 2.1.312, OpenCode 2.0.32, Antigravity 1.4.11 et Vibe 2.16.0.
+
+| Campagne | Résultat | Portée |
+| --- | --- | --- |
+| Presets Débat et Ask | **20/20 réussis, aucun échec ni cas ignoré**, 646.7 s | Dix paires prioritaires, deux tours de Débat, deux réponses indépendantes Ask et synthèses actives. Les vingt captures NDJSON et vingt exports ont été relus : réponses/synthèses présentes, aucune erreur, sorties réussies et contrôles officiels conservés. |
+| Relay | **22/22 vérifications réussies** | Sessions jetables Claude/Codex, contexte conservé, délivrance et identité, arrière-plan explicite, refus des cibles attachées avec historiques inchangés, outils Claude annoncés et comparaison des journaux MCP Codex. Les deux exports de réponse ont été lus. |
+
+Presets : un lanceur local reprend le smoke compilé officiel sans filtrer les vingt cas ni modifier son analyse NDJSON. Il ajoute le modèle explicite `opencode/deepseek-v4.1-flash-free` aux participants OpenCode et aux synthèses Ask configurées sur OpenCode, capture les sorties et vérifie l’empreinte de la configuration avant chaque appel. Options : `--mode both --keep-going`, synthèses conservées, sujet inédit de qualification. La comparaison indépendante a confirmé ces seules adaptations. Aucun changement de code produit ni de script versionné.
+
+Les **18 demandes OpenCode** correspondantes ont été relues via leur export natif, sans génération : sujet de qualification vérifié, résultat `succeeded` et modèle **`opencode/deepseek-v4.1-flash-free`** enregistré dans les réponses. La configuration globale Palabre est restée identique en contenu et date de modification ; le choix de modèle ne vaut que pour ces demandes.
+
+Relay : commande `pnpm smoke:real-relay`, avec `TERM=xterm-256color` limité au processus. Claude demandé avec `haiku` a annoncé `claude-sonnet-5-5` à la création et à la reprise ; ne pas confondre modèle demandé et observé. Codex avait `gpt-6.1-terra` enregistré dans sa conversation de test ; le résultat de reprise n’annonce pas de modèle observé. Le test Claude attaché utilise un processus non interactif dont l’arrêt est confirmé, pas son TUI ni Desktop. Les journaux MCP Codex restent un indice, sans garantie universelle d’absence d’exposition.
+
+Seules les données et approbations temporaires prévues par les essais ont été créées. Conversations, identifiants, messages, exports et captures restent locaux. Ces campagnes qualifient leurs parcours et contrats, sans certifier la justesse de chaque avis, le parcours d’un débutant dans son application ou une installation npm globale réelle.
+
 ## Vérifications restantes avant publication
 
 - Obtenir une CI verte et finaliser la revue du commit final de la PR de version.
-- Effectuer les campagnes réelles presets Débat/Ask et Relay sur le candidat, avec accord humain pour leurs effets : quotas, conversations, configuration temporaire de confiance et MCP. Le [protocole](dev/verification.md) décrit les commandes et les garanties conditionnelles. Elles n’ont pas été exécutées pendant cette préparation. Les résultats de [0.22.0](release-0.22.0-qualification.md) restent historiques et ne qualifient pas automatiquement ce candidat.
+- Les deux campagnes réelles du candidat sont terminées avec les résultats ci-dessus. Le [protocole](dev/verification.md) conserve leurs garanties conditionnelles ; les résultats de [0.22.0](release-0.22.0-qualification.md) restent des preuves historiques distinctes.
 - Les shims réels Yarn/Bun Windows, une installation globale npm et le parcours dans une ancienne conversation Desktop ne sont pas qualifiés par les processus fictifs. Le retour humain Mac et le test débutant CoolMaster restent distincts, sans résultat annoncé.
 - #165 et #202 restent partielles ; #256 attend la publication effective du correctif. #136 et #193 ne sont pas incluses dans ce lot.
 

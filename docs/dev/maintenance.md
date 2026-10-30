@@ -53,7 +53,7 @@ Les releases sont gerees via des tags Git. Trois workflows GitHub Actions sont e
 
 ### Preparer et publier une release
 
-La préparation de 0.22.1 a son [bilan de qualification](../release-0.22.1-qualification.md), avec les contrôles du paquet, les simulations du parcours débutant et les campagnes réelles restant à effectuer.
+La préparation de 0.22.1 a son [bilan de qualification](../release-0.22.1-qualification.md), avec les contrôles du paquet, les simulations du parcours débutant et les campagnes réelles effectuées et leurs limites.
 
 Pour la préparation de 0.21.0, consulter le [bilan de qualification](../release-0.21.0-qualification.md) : il sépare les révisions testées, les limites et les contrôles restant avant publication.
 
