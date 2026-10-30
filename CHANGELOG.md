@@ -20,7 +20,7 @@ Cette correction de Bunny facilite la coopération au quotidien : l’agent expl
 
 ### Fixed
 
-- Lecture OpenCode : prise en charge ciblée des identifiants de compléments projetés par la CLI 2.2.3, vérifiés dans les sources officielles et des tests simulés. Message/type/appel d’outil liés, ordre des messages préservé ; textes mixtes ambigus et trous d’ordinal refusés, sans repli ni renvoi. La qualification réelle 2.2.3 reste distincte et incomplète.
+- Lecture OpenCode : prise en charge ciblée des identifiants de compléments projetés par la CLI 2.2.3, vérifiés dans les sources officielles et des tests simulés. Message/type/appel d’outil liés, ordre des messages préservé ; textes mixtes ambigus et trous d’ordinal refusés, sans repli ni renvoi. Parcours batch 2.2.3 observés avec OpenCode Go : réponses, synthèses et exports natifs vérifiés ; les paires bloquées par quota et les refus conservateurs restent détaillés dans le bilan.
 
 - Skill (#262) : description de découverte compatible avec un lecteur YAML strict ; le validateur refuse aussi les séparateurs ambigus, y compris une tabulation après deux-points. Consignes de sécurité conservées.
 - OpenCode / Ask (#261, premier lot) : doctor indique connexion et modèle non vérifiés sans appel réel ; un refus d’accès reconnu sur le profil qualifié explique le choix CLI/interface sans changer de modèle. Si seule la synthèse Ask échoue, le terminal distingue les réponses reçues et exportées de la synthèse indisponible, en conservant l’erreur et le code de sortie. Aucun renvoi automatique ; tests, aide, guides FR/EN et skill alignés.
