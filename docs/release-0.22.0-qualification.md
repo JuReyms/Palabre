@@ -54,9 +54,21 @@ Relay demandait `haiku` pour créer Claude, mais Claude a annoncé `claude-sonne
 
 La configuration globale Palabre est restée identique en contenu et date de modification. Seules les données et approbations temporaires prévues par le smoke Relay ont été créées. Conversations de test, exports et traces privées restent locaux ; aucun identifiant ou message n'est publié dans ce bilan.
 
-## Qualification restant avant publication
+### Reprise ciblée avec DeepSeek Free
 
-**La qualification des presets n'est pas acquise.** Il reste à obtenir des résultats réussis avec un modèle OpenCode utilisable, après choix explicite du mainteneur ou remise en état de sa connexion par l'humain. Une nouvelle campagne doit créer de nouvelles demandes et conserver les quatorze échecs ci-dessus ; elle ne constitue pas un renvoi automatique. La version reste en préparation et n'est pas prête à taguer.
+Le mainteneur a ensuite autorisé explicitement de nouveaux essais avec `opencode/deepseek-v4.1-flash-free`, sans modifier les réglages habituels. Ils ont été exécutés sur `f57e752`, dont le runtime, les scripts et le paquet sont identiques à `f5070c6` ; seuls les documents de qualification avaient changé. Les versions des outils sont restées celles indiquées ci-dessus.
+
+**14 scénarios réussis sur 14, aucun échec ni cas ignoré**, en 582,9 s : les dix Ask et les quatre Débats comportant OpenCode. Les six Débats déjà réussis sans OpenCode ni synthèse OpenCode n'ont pas été rejoués. Les quatorze demandes ont un nouveau sujet de qualification et de nouvelles conversations ; aucun message échoué n'a été renvoyé.
+
+Un lanceur local reprend le smoke compilé officiel : filtre des quatorze cas, ajout de `--model-a` ou `--model-b` pour le participant OpenCode et de `--summary-model` pour ses synthèses Ask, puis capture locale des sorties. Les critères NDJSON, compteurs de réponses, synthèses, exports, délais et refus des sorties invalides sont conservés. La comparaison indépendante confirme que la fonction d'analyse est identique. Aucun code produit ni script versionné n'a changé.
+
+Les quatorze exports ont été contrôlés avec leurs captures : deux réponses et une synthèse non vides par scénario, sortie CLI réussie et aucun événement d'erreur. La relecture sans génération des dix-huit demandes OpenCode correspondantes confirme un résultat `succeeded` et le modèle **`opencode/deepseek-v4.1-flash-free`** réellement utilisé. La configuration globale Palabre est restée identique en contenu et date de modification ; aucun réglage ni connexion d'outil n'a été modifié par l'agent. Le choix de modèle n'est passé que par les options de ces demandes.
+
+Cette réussite conserve les quatorze refus d'authentification de la première campagne. Elle qualifie ce parcours avec DeepSeek Free ; elle n'établit ni la cause du refus de `iceman-contributor-free`, ni son rétablissement.
+
+## État de la qualification avant publication
+
+Les vingt scénarios presets prévus ont désormais chacun un résultat réussi : six Débats dans la première campagne et quatorze cas lors de la reprise ciblée autorisée. **La couverture est acquise en deux séquences, avec un choix de modèle et un sujet différents ; ce n'est pas une campagne unique 20/20 à environnement constant.** Relay a réussi ses 22 vérifications sur le même runtime. Ces résultats et leurs limites doivent être examinés avant l'accord de fusion, puis de tag et publication ; aucune de ces actions n'est effectuée par cette qualification.
 
 Le test débutant sur CoolMaster et l'essai utilisateur Mac sur npm 0.21.0 restent des travaux distincts, sans résultat annoncé. Les fiches correspondantes ne qualifient pas Bunny. Le pilote OpenCode sur copie, Chat et les interfaces Desktop ne sont pas couverts exhaustivement par les deux campagnes ci-dessus.
 
