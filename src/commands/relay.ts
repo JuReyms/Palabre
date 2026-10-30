@@ -30,7 +30,8 @@
  * fabriquée : fork OpenCode vérifié, environnement habituel, preuves conservées même après erreur.
  * Son --model facultatif vérifie une sélection sur la copie avant prompt, jamais sur la source.
  * Les suggestions Codex utilisent `relay open`, sans envoi et avec la config effective absolue ;
- * cette métadonnée de présentation ne fait pas partie du résultat JSON ni de l'export.
+ * le résultat ordinaire fournit aussi une suggestion JSON facultative `desktop` (#256), jamais
+ * exécutée ici. Les parcours gelés et les exports restent inchangés.
  * `relay recent` consulte seulement les en-têtes des exports du dossier configuré ; résultat
  * distinct, sans choix, ouverture, envoi ou modification du contrat d'échange ci-dessous.
  *
@@ -184,6 +185,12 @@ export interface RelayResultV1 {
    * échange. Jamais une délivrance, un export `.relay.md` ni un succès ; `exportPath` reste `null`.
    */
   handoff?: RelayHandoffReport;
+  /**
+   * #256 : suggestion de consultation Codex, sans lancement ni accord déduit. Absente si la cible
+   * ou la config ne sont pas établies/représentables ; jamais une preuve de réussite ou d'affichage.
+   * `posix` se présente dans un bloc shell bash, `powershell` dans un bloc PowerShell.
+   */
+  desktop?: { command: string; shell: "powershell" | "posix" };
   durationMs: number;
   /**
    * Mode de l'échange, émis à chaque résultat (#190). Ajout facultatif du contrat v1 : les
@@ -218,7 +225,7 @@ interface RelayContext {
   messageCopy?: "saved" | "disabled" | "failed";
   /** CLI Claude déjà résolue, pour afficher une ouverture sans la lancer ni changer d'installation. */
   desktopExecutable?: ExternalExecutable;
-  /** Config effective absolue, réservée à la commande de consultation proposée en texte. */
+  /** Config effective absolue pour la suggestion de consultation, sans champ de chemin séparé. */
   desktopConfigPath?: string;
   copy?: CopyReport;
   language?: "fr" | "en";
@@ -353,7 +360,7 @@ export async function executeRelay(rawArgs: string[], options: { signal?: AbortS
   return (await executeRelayWithMessages(rawArgs, options)).result;
 }
 
-/** Préserve langue et contexte de consultation privés, sans enrichir le résultat public. */
+/** Préserve langue/contexte ; ajoute la seule suggestion de consultation ordinaire, sans nouvelle IO. */
 async function executeRelayWithMessages(rawArgs: string[], options: { signal?: AbortSignal; header?: MissionEnvelopeHeader; approvedWrite?: WriteRequest; onOpenReply?: RelayContext["onOpenReply"] } = {}): Promise<{ result: RelayResultV1; messages: Messages; targetLocated: boolean; desktopExecutable?: ExternalExecutable; desktopCwd?: string; desktopConfigPath?: string; messageCopy?: RelayContext["messageCopy"] }> {
   const context: RelayContext = {
     signal: options.signal,
@@ -392,6 +399,12 @@ async function executeRelayWithMessages(rawArgs: string[], options: { signal?: A
         detail: error instanceof Error ? error.message : String(error)
       });
     }
+  }
+  // Suggestions seulement : aucune ouverture, nouvelle sonde ou modification des parcours gelés.
+  if (!options.header && !options.approvedWrite && !rawArgs.some(arg =>
+    ["--check", "--task", "--write", "--copy", "--follow", "--then-follow"].includes(arg))) {
+    const command = codexDesktopOpenCommand(result, context.targetLocated === true, context.desktopConfigPath);
+    if (command) result.desktop = { command, shell: process.platform === "win32" ? "powershell" : "posix" };
   }
   if (result.check) result.skill = inspectSkillRuntime(context.skillRevision, context.language ?? "fr");
   return { result, messages: context.messages, targetLocated: context.targetLocated === true, desktopExecutable: context.desktopExecutable, desktopCwd: context.cwd, desktopConfigPath: context.desktopConfigPath, messageCopy: context.messageCopy };
@@ -1401,8 +1414,8 @@ export function applyReviewCancellation(result: RelayResultV1, interrupted: bool
  * (#190) dont l'historique a été trouvé (`targetLocated`), quelle que soit l'issue ensuite. Jamais
  * pour Claude, ni en mode `open`/`follow` (la conversation est déjà dans l'app), ni pour une reprise
  * arrêtée avant la localisation (argument, CLI absente, cible introuvable, annulation précoce) : un
- * statut ne prouve pas à lui seul l'existence de la conversation. Aucun champ JSON n'est ajouté : une
- * intégration construit le même lien depuis `to.session`.
+ * statut ne prouve pas à lui seul l'existence de la conversation. Le lien brut reste absent du JSON ;
+ * la suggestion `desktop` ordinaire réutilise cette preuve sans lancer l'application.
  */
 export function relayDesktopLink(result: RelayResultV1, targetLocated: boolean): string | undefined {
   if (result.mode !== "background" || !result.to?.session || result.to.provider !== "codex") return undefined;

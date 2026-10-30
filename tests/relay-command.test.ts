@@ -363,6 +363,7 @@ test("mission CLI : en-tête compact conservé avec lancements refusés, répons
   // Issue 171 : l'étape a reçu sa réponse, la mission reste prête pour la suivante.
   assert.equal(step.code, 0); assert.equal(step.json.mission.status, "ready");
   const result = step.json.mission.steps[0].result;
+  assert.equal(result.desktop, undefined, "aucune suggestion ajoutée au parcours Mission gelé");
   assert.equal(result.status, "replied"); assert.equal(result.delivery.status, "replied");
   assert.equal(result.reply, "La livraison est prévue le 12 mars."); assert.equal(result.readAccess.status, "partial");
   const calls = step.calls.filter(c => c.argv[0] === "exec");
@@ -585,7 +586,7 @@ describe("palabre relay : réponse", () => {
     assert.equal(result.json.reply, "FAKE-OK");
     assert.equal(result.json.exportPath, null);
     // Mode arrière-plan : aucun champ propre à B1 ; modeSource explicite sa résolution (#190).
-    assert.deepEqual(Object.keys(result.json).sort(), ["delivery", "durationMs", "error", "exitCode", "exportPath", "from", "identity", "mode", "modeSource", "observedModels", "reply", "status", "to", "type", "v"]);
+    assert.deepEqual(Object.keys(result.json).sort(), ["delivery", "desktop", "durationMs", "error", "exitCode", "exportPath", "from", "identity", "mode", "modeSource", "observedModels", "reply", "status", "to", "type", "v"]);
     assert.equal(result.json.mode, "background");
     assert.deepEqual(result.calls.map((call) => call.argv.slice(0, 2)), [["mcp", "list"], ["exec", "resume"]]);
     const resume = result.calls[1]!.argv;
@@ -877,12 +878,12 @@ describe("relay.view (#190)", () => {
       const port = (server.address() as { port: number }).port;
       for (const view of [undefined, "auto", "background"] as const) {
         const world = makeWorld(); if (view) setting(world, view);
-        const declared = view === undefined ? [] : ["--skill-revision", view === "auto" ? "999" : "4"];
+        const declared = view === undefined ? [] : ["--skill-revision", view === "auto" ? "999" : "5"];
         const r = await palabre(world, ["agents", "--json", "--trust-config", ...declared], { OLLAMA_HOST: `http://127.0.0.1:${port}` });
         assert.equal(r.code, 0, r.stderr); assert.equal(r.json.defaults.relayView, view ?? "background");
         assert.equal(r.json.v, 1); assert.equal(r.calls.length, 0);
         assert.equal(r.json.skill.status, view === undefined ? "unverified" : view === "auto" ? "reload-required" : "current");
-        assert.equal(r.json.skill.revision, 4);
+        assert.equal(r.json.skill.revision, 5);
         assert.ok(path.isAbsolute(r.json.skill.entrypoint));
         assert.ok(r.json.skill.references["relay.md"].endsWith(path.join("references", "relay.md")));
         assert.equal(r.json.skill.instructions, undefined);
@@ -1313,11 +1314,13 @@ describe('Relay : création et expéditeur facultatif', () => {
     assert.ok(created.stderr.includes('Mode: background — no visible window; PALABRE requests read-only access.'));
     // Sortie non TTY : aucune séquence OSC 8.
     assert.ok(!created.stderr.includes('\u001b]8;;'));
-    const resumed = await relay(makeWorld(), ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--json']);
+    const jsonWorld = makeWorld();
+    const resumed = await relay(jsonWorld, ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--json']);
     assert.equal(resumed.code, 0, resumed.stdout + resumed.stderr);
     assert.equal(resumed.json.mode, 'background');
     assert.ok(!JSON.stringify(resumed.json).includes('codex://'), 'aucun champ JSON de lien');
-    assert.ok(!JSON.stringify(resumed.json).includes('desktopConfigPath'), 'métadonnée de présentation privée');
+    assert.ok(!JSON.stringify(resumed.json).includes('desktopConfigPath'), 'aucun champ de chemin séparé');
+    assert.deepEqual(resumed.json.desktop, { command: `palabre relay open --to codex:${CODEX_SESSION} --config ${quotedConfig(jsonWorld.workspace)}`, shell: process.platform === 'win32' ? 'powershell' : 'posix' });
     assert.match(readFileSync(resumed.json.exportPath, 'utf8'), new RegExp(`\\| Lien Codex Desktop \\| codex://threads/${CODEX_SESSION} \\|`));
     const resumedWorld = makeWorld();
     const text = await relay(resumedWorld, ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--no-export']);
@@ -1348,6 +1351,29 @@ describe('Relay : création et expéditeur facultatif', () => {
     assert.ok(r.calls.every(c => c.cwd === w.workspace));
     assert.deepEqual(r.calls.map(c => c.argv[0]), ['mcp', 'exec'], 'aucune ouverture en affichant la suggestion');
     assert.doesNotMatch(r.stderr, /explorer\.exe|xdg-open/);
+  });
+
+  test('#256 : JSON Codex, identité reçue même en échec, aucun lancement Desktop', async () => {
+    for (const mode of ['normal', 'created-fail']) {
+      const w = makeWorld('source avec espaces');
+      const r = await relay(w, ['--new', '--background', '--to', 'codex', 'Question', '--trust-config', '--json'], mode === 'normal' ? {} : { FAKE_CODEX_MODE: mode });
+      assert.equal(r.json.created, true);
+      assert.equal(r.code, mode === 'normal' ? 0 : 2);
+      const config = path.join(w.workspace, 'palabre.config.json');
+      assert.deepEqual(r.json.desktop, { command: `palabre relay open --to codex:${NEW_IDS.codex} --config '${config}'`, shell: process.platform === 'win32' ? 'powershell' : 'posix' });
+      assert.deepEqual(r.calls.map(c => c.argv[0]), ['mcp', 'exec']);
+      assert.equal(r.stderr, '');
+    }
+    for (const args of [
+      ['--new', '--to', 'claude', 'Question', '--trust-config', '--json'],
+      ['--to', 'codex:0199bbbb-bbbb-7bbb-8bbb-bbbbbbbbbbbb', 'Question', '--trust-config', '--json'],
+      ['--check', '--to', `codex:${CODEX_SESSION}`, '--json']
+    ]) {
+      const w = makeWorld();
+      if (args.includes('--check')) await trustConfig(path.join(w.workspace, 'palabre.config.json'));
+      const r = await relay(w, args);
+      assert.equal(r.json.desktop, undefined);
+    }
   });
 
   test('ouverture Claude fr/en : création/reprise exactes, même CLI et aucun lancement Desktop', async () => {

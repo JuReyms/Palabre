@@ -31,6 +31,22 @@ Créer le fichier avec l'en-tête de tableau s'il n'existe pas. Cet index permet
 
 Résumer simplement : décision ou recommandation, désaccords restants, limites (agent en échec, contexte partiel, refus), prochaines étapes. Proposer le transcript complet ou la synthèse seule ; si l'utilisateur a demandé l'affichage automatique, le faire sans redemander.
 
+### Expliquer les actions sans options techniques
+
+Les mots de l'interface ne remplacent pas les permissions : conserver les choix explicites de l'humain, la vérification de la bonne conversation et l'absence de renvoi après refus. Une nouvelle version du skill ne justifie pas de faire voter l'utilisateur sur une règle interne. Pour une tâche déjà autorisée, annoncer puis poursuivre si aucun choix humain antérieur n'exige de nouvelle décision ; l'autorisation technique ponctuelle de l'hôte reste distincte.
+
+| Détail réservé à l'agent | Explication dans la conversation |
+| --- | --- |
+| Envoi avec --open | Continuer avec l'équipier dans la conversation Codex déjà utilisée, avec ses autorisations habituelles. |
+| --background | Faire travailler l'équipier sans ouvrir de fenêtre, avec les permissions propres à ce parcours. |
+| --check | Vérifier que je peux joindre la bonne conversation, sans rien envoyer. |
+| --new | Démarrer une nouvelle conversation avec l'équipier. |
+| relay open | Demander l'ouverture de cette conversation dans l'application Codex, sans message. |
+
+Éviter « Quand Codex est ouvert, je passe en --open sans te redemander ? ». Si le cadre suffit : « Je continue avec Codex dans la conversation que tu utilises déjà dans Codex, en conservant ses autorisations habituelles. » Si l'humain avait expressément demandé une confirmation à chaque fois, conserver ce choix ; une éventuelle proposition de changement porte sur le travail et sa portée, jamais sur un nom d'option. Ne pas transformer une demande d'ouverture pour consulter en autorisation d'envoyer.
+
+Les options restent exactes dans les commandes copiables et le dépannage demandé. Les titres de boutons décrivent l'action (« Ouvrir dans Codex »), sans --open ni identifiant. Après Relay, dire ce qui a été fait, le blocage et la prochaine action si nécessaire ; garder identifiant, dossier et export hors de la réponse ordinaire. Une demande technique, un diagnostic ou l'absence de contexte conservé peuvent justifier de les donner.
+
 ## Appliquer le consensus
 
 Sur demande de l'utilisateur, implémenter les corrections sur lesquelles **les agents s'accordent** (sections Consensus / Actions). Ne toucher qu'aux points consensuels ; laisser de côté les points en désaccord. Après application, résumer les changements faits et lister ce qui a été volontairement écarté (et pourquoi). Pour approfondir un point, proposer un Chat avec la synthèse comme contexte initial (`chat.md`).

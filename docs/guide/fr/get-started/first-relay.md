@@ -37,6 +37,14 @@ Votre agent vous rend compte dans la conversation de départ :
 - **la réception, distincte du résultat** : une réponse reçue ne prouve pas que l'avis est juste ni que la tâche est réussie. L'agent sépare ce qui est arrivé, ce que l'équipier conclut et les éléments qui l'appuient. Une réponse peut aussi être un refus ;
 - **la trace** : un fichier `.relay.md` dans le dossier des [exports](/fr/usage/exports) (`.palabre/` par défaut). Demandez « Montre-moi l'export de cet échange » pour le consulter.
 
+### Consulter la conversation dans Codex
+
+Si vous souhaitez la voir dans l'application, dites simplement :
+
+> Montre-moi la conversation de l'équipier dans Codex.
+
+Votre agent peut lancer son ouverture après cette demande, avec les autorisations nécessaires de son application. Si Claude Code Desktop vous présente une commande avec un bouton **Run**, cliquez pour la lancer : le lien seul peut ne pas être cliquable dans cette interface. L'agent prépare la commande `palabre relay open` ; vous n'avez ni identifiant à retrouver ni option à choisir. Cette ouverture n'envoie aucun message et ne rend pas la conversation inscriptible.
+
 ## 3. Continuer avec le même équipier
 
 > Continue avec le même équipier : détaille le risque principal et propose une vérification simple, sans modifier de fichier.

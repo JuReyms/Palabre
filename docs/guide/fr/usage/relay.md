@@ -710,6 +710,8 @@ Le statut `read-unavailable` reste dans le contrat v1 et est émis lorsqu'une r�
 
 ## Sortie JSON
 
+Pour une conversation Codex créée ou retrouvée en arrière-plan, le résultat ordinaire peut aussi fournir `desktop: { command, shell }`. `command` est la suggestion `palabre relay open` avec la même cible, le même alias et la configuration effective absolue. `shell` vaut `powershell` sous Windows, `posix` sous macOS/Linux : l'agent la présente dans un bloc PowerShell ou bash. Elle n'est ni exécutée ni autorisée par sa présence, ne prouve aucun affichage et peut être absente si le chemin n'est pas représentable sans altération. Pas d'ajout aux exports, vérifications, suivis, copies, Mission, review ou write. Les consommateurs tolèrent ce champ facultatif du JSON v1 sans le confondre avec une réussite.
+
 Le nonce en bas reste un marqueur dans le message utilisateur ; la corrélation `--open` compare toujours exactement le texte envoyé au texte observé.
 
 ```json

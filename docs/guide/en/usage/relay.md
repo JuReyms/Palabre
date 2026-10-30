@@ -706,6 +706,8 @@ The `read-unavailable` status stays in the v1 contract and is emitted when a rep
 
 ## JSON output
 
+For a Codex conversation created or located in background, an ordinary result may also provide `desktop: { command, shell }`. `command` is the `palabre relay open` suggestion with the same target, alias and absolute effective configuration. `shell` is `powershell` on Windows or `posix` on macOS/Linux: the agent presents a PowerShell or bash block. Its presence neither executes nor authorizes it and proves no display. It may be absent when the path cannot be represented faithfully. Exports, checks, follow-ups, copies, Mission, review and write are unchanged. Consumers tolerate this optional JSON v1 field without treating it as success.
+
 The nonce at the bottom remains a marker in the user message; `--open` correlation still compares the sent and observed text exactly.
 
 ```json

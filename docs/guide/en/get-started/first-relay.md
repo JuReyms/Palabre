@@ -37,6 +37,14 @@ Your agent reports back in the original conversation:
 - **receipt, separate from the result**: receiving a reply does not prove the opinion is right or the task succeeded. The agent separates what arrived, what the teammate concludes and the evidence supporting it. A reply can also be a refusal;
 - **the record**: a `.relay.md` file in the [exports](/en/usage/exports) folder (`.palabre/` by default). Ask "Show me the export of this exchange" to read it.
 
+### View the conversation in Codex
+
+To view it in the app, simply say:
+
+> Show me the teammate's conversation in Codex.
+
+After this request, your agent may launch it with the permissions required by its host. If Claude Code Desktop presents a command with a **Run** button, click it: the link alone may not be clickable in that interface. The agent prepares `palabre relay open`; you do not need to find an identifier or choose a technical option. Opening sends no message and does not make the conversation writable.
+
 ## 3. Continue with the same teammate
 
 > Continue with the same teammate: detail the main risk and suggest a simple check, without changing files.

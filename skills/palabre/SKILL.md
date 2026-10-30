@@ -2,14 +2,14 @@
 name: palabre
 description: Faire coopérer les outils IA locaux avec Palabre. Relay pour confier une tâche à Codex ou Claude Code dans une conversation précise ou neuve ; Débat pour confronter deux positions, Ask pour des avis indépendants, Chat pour avancer avec un agent. Utiliser pour proposer une coopération utile face à un doute, un choix ou une relecture, même sans nommer Palabre ; pas pour une tâche simple traitable seul.
 metadata:
-  revision: "4"
+  revision: "5"
 ---
 
 # Palabre : coopérer, croiser les avis, décider
 
 Palabre pilote les outils IA installés et authentifiés, chacun avec son compte et ses modèles. Un « agent Palabre » est une entrée de configuration reliée à un outil ou Ollama, pas un modèle ni un sous-agent de l'hôte. Plusieurs entrées peuvent utiliser le même outil.
 
-Avant une tâche, `palabre agents --json --skill-revision 4` vérifie agents/consignes. Si `skill.status` n'est pas `current`, lire `palabre skill --read --json` et les références utiles aux chemins rendus ; retenir la révision après lecture, jamais la copier pour faire passer le contrôle. Poursuivre la tâche autorisée sans sync/redémarrage demandé. Ancienne CLI ou inventaire indisponible : `references/cli.md`. Ne pas substituer une installation au chemin configuré ; présence ne prouve ni connexion ni capacité. Nommer la tâche `Palabre <mode> : <objet>` si possible.
+Avant une tâche, `palabre agents --json --skill-revision 5` vérifie agents/consignes. Si `skill.status` n'est pas `current`, lire `palabre skill --read --json` et les références utiles aux chemins rendus ; retenir la révision après lecture, jamais la copier pour faire passer le contrôle. Poursuivre la tâche autorisée sans sync/redémarrage demandé. Ancienne CLI ou inventaire indisponible : `references/cli.md`. Ne pas substituer une installation au chemin configuré ; présence ne prouve ni connexion ni capacité. Nommer la tâche `Palabre <mode> : <objet>` si possible.
 
 ## Choisir le parcours
 
@@ -45,18 +45,18 @@ Adapter les noms aux agents disponibles ; `--from` est déclaratif et facultatif
 # Avis neuf, sans modification
 palabre relay --new --background --to codex --subject "Relire le plan" "Lis docs/plan.md sans modifier de fichier." --json
 # Reprise : vérifier, puis envoyer selon le parcours retenu (relay.md)
-palabre relay --check --skill-revision 4 --to codex:<id> --json
+palabre relay --check --skill-revision 5 --to codex:<id> --json
 # Avant un envoi autorisé dans une conversation Codex ouverte : rien envoyé
-palabre relay --check --skill-revision 4 --open --to codex:<id> --json
+palabre relay --check --skill-revision 5 --open --to codex:<id> --json
 ```
 
-Conserver la même configuration de l'échange (`--config` absolu quand nécessaire) et vérifier la délivrance avant toute nouvelle tentative après échec. Envoi ouvert, ouverture et suivi : charger `references/relay-desktop.md`. `palabre relay open` concerne **Codex seulement**, conserve alias et `--config` effectif absolu, n'envoie rien et ne prouve pas l'affichage. Avec les versions vérifiées, une conversation créée par --new reste en lecture seule même ouverte dans Desktop.
+Garder la même config et vérifier la délivrance après échec. Pour **voir/afficher/consulter la conversation dans Codex**, après une création aussi : lire `references/relay-desktop.md` et proposer `desktop.command` du JSON, ou `palabre relay open --to <alias>:<id> --config '<config-absolue>'`. Bloc `powershell` sous Windows, `bash` sur Mac/Linux ; jamais un lien `codex://` seul ni un lanceur système. Ouvrir seulement sur demande humaine directe, sans nouveau clic imposé si déjà demandé ; aucun envoi ni affichage garanti. Envoi ouvert/suivi : même référence. Créée par --new, la conversation reste en lecture seule avec les versions vérifiées.
 
 ## Déléguer dans un lot autorisé
 
 Proposer la coopération utile et son bénéfice sans formule spéciale. L'humain exprime son besoin ; gérer outils, conversations et contrôles. Ni Débat imposé pour un simple avis, ni appel pour ce que l'hôte traite seul. En parcours courant, ne pas demander mode, identifiant ou option ; cible ambiguë : demander sujet ou projet. Consultation légère en lecture seule dans un lot validé : annoncer puis faire ; écriture, plusieurs équipiers, gros quota ou nouveau chantier : cadre humain une fois par lot. Les autorisations techniques ponctuelles de l'hôte restent nécessaires.
 
-Petits lots et contrôles proportionnés ; une relecture indépendante revient à un autre agent que l'auteur. Transmettre le contexte utile, pas tout l'historique ; nommer les fichiers lisibles plutôt que les recopier. Gabarits dans `references/relay.md` : objectif, liens, à faire, interdit, preuves, format ; réponse **Fait · Vérifié · Bloqué · Prochaine action · Décision attendue**, lignes séparées par une ligne vide. Ne pas ajouter un second en-tête PALABRE.
+Petits lots, contrôles proportionnés, relecture par un autre agent que l'auteur. Transmettre le contexte utile et les chemins lisibles. Gabarits de mission et de réponse dans `references/relay.md` ; distinguer fait, vérifié, bloqué, prochaine action et décision attendue. Ne pas ajouter de second en-tête PALABRE.
 
 ## Restituer et garder le contrôle
 
@@ -66,7 +66,7 @@ Lire l'export annoncé (`done.outputPath`, `exportPath`), sauf parcours sans exp
 
 Message Relay exact demandé : lire le bloc complet, enveloppe comprise, dans `exportPath` (`references/relay.md`). Jamais une reformulation ou une enveloppe reconstruite ; sans ce bloc, annoncer la limite, sans renvoyer le message.
 
-Expliquer l'action et son pourquoi en mots simples, pas seulement l'erreur ; blocage réel : ce qui manque et la prochaine action, sans supposer d'accord. Après Relay : ce que l'équipier a fait, ce qui bloque, le mode effectif et la prochaine action humaine si nécessaire. Garder identifiant, dossier et export sans les afficher par défaut ; les donner sur demande, pour diagnostiquer un échec ou si l'hôte ne garde pas le contexte. Un échec est annoncé avant l'avis ; aucun succès de tâche déduit d'une simple réponse reçue. OpenCode : dire « consultation sur copie », garder les identifiants pour soi hors demande/diagnostic.
+Expliquer l'action et son pourquoi, le résultat et les limites, sans jargon : « continuer dans la conversation Codex déjà utilisée », pas « passer en --open ». Options et identifiants restent dans les commandes, demandes techniques ou diagnostics ; pas dans les questions/boutons ordinaires. Respecter les choix humains, poursuivre un cadre déjà autorisé sans nouvelle question de mode. Échec avant l'avis, aucun succès déduit de la seule réponse. Garder dossier/export pour soi, sauf demande, diagnostic ou contexte perdu. OpenCode : « consultation sur copie ». Exemples : `references/outputs.md`.
 
 Fichiers et contexte partent vers les outils choisis et leurs services : prévenir pour un contenu sensible ; Ollama local peut éviter un envoi distant mais ne lit pas lui-même le workspace. Installation, connexion, approbation de config (`--trust-config`), téléchargement de modèle et suppression restent des décisions humaines.
 

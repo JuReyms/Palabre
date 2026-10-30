@@ -4,6 +4,11 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Fixed
+
+- Relay (#256) : le résultat JSON ordinaire peut fournir une commande sûre pour consulter une conversation Codex créée ou retrouvée (`desktop.command`, `desktop.shell` facultatifs, v1). Même cible/config et quoting que le texte ; aucun lancement, droit, envoi ou affichage déduit. Exports et parcours gelés inchangés. Le skill cite directement « voir/afficher la conversation », propose un bloc shell plutôt qu'un lien seul dans Claude Code Desktop et distingue consultation et envoi.
+- Accompagnement : parler du travail et de ses conséquences (« continuer dans la conversation Codex déjà utilisée »), sans faire choisir --open ou d'autres options aux débutants. Les commandes et le dépannage restent précis ; préférences humaines et autorisations de l'hôte conservées, pas de nouvelle question de mode dans un cadre déjà autorisé. Skill révision 5 : lecture des consignes du paquet par l'agent ; copies installées uniquement par plan confirmé distinct, puis rechargement si ce plan est appliqué.
+
 ## [0.22.0] - 2026-10-30
 
 <!-- release-name: Bunny -->
