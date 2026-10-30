@@ -48,6 +48,15 @@ test("frontmatter : validateur et runtime concordent sur BOM, LF/CRLF et clôtur
   }
 });
 
+test("la description reste un scalaire YAML valide pour les hôtes stricts", t => {
+  const f = fixture(t);
+  const before = readFileSync(f.file, "utf8");
+  for (const broken of ["Palabre : Relay", "Palabre #Relay", "- Palabre"]) {
+    writeFileSync(f.file, before.replace(/^description: /m, `description: ${broken} `));
+    assert.match(f.run().stderr, /plain YAML scalar/, broken);
+  }
+});
+
 test("un paragraphe énorme ne contourne pas le budget grâce à une seule ligne", t => {
   const f = fixture(t);
   writeFileSync(f.file, readFileSync(f.file, "utf8") + "\n" + "x".repeat(1_201) + "\n");

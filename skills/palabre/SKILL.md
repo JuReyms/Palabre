@@ -1,6 +1,6 @@
 ---
 name: palabre
-description: Coopérer entre outils IA avec Palabre : Relay pour confier une tâche à une conversation précise ou neuve ; Débat pour confronter deux positions, Ask pour des avis indépendants, Chat pour avancer. Proposer une coopération utile face à un doute, un choix ou une relecture, même sans nommer Palabre ; pas pour une tâche simple.
+description: Coopérer entre outils IA avec Palabre. Relay pour confier une tâche à une conversation précise ou neuve ; Débat pour confronter deux positions, Ask pour des avis indépendants, Chat pour avancer. Proposer une coopération utile face à un doute, un choix ou une relecture, même sans nommer Palabre ; pas pour une tâche simple.
 metadata:
   revision: "7"
 ---
