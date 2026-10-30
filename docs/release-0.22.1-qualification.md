@@ -69,10 +69,22 @@ L’autotest doctor consommant du quota, l’inférence de modèle depuis des fo
 
 OpenCode et Vibe ont été mis à jour après les premières campagnes : 2.2.3 et 3.0.4 remplacent 2.0.32 et 2.16.0 dans l’environnement. Les résultats sur 941c299 restent datés ; ils ne prouvent pas seuls la compatibilité de ces nouvelles versions. La validation finale doit distinguer les nouveaux essais des anciens, sans republier les traces privées.
 
+## Nouvelle qualification interrompue (OpenCode 2.2.3 / Vibe 3.0.4)
+
+Nouveaux essais autorisés sur **fa4c577**, après intégration de #261/#262. La nouvelle campagne conserve les vingt cas prévus, les synthèses et le modèle DeepSeek Free explicite, avec un sujet distinct. Elle a été arrêtée pour éviter des appels inutiles après les erreurs : **cinq scénarios capturés, trois réussis et deux échoués**, exports relus. Un autre scénario avait commencé sans capture finale ; il n’est pas validé. Les autres cas ne sont pas comptés comme exécutés.
+
+- Les trois Débats codex/claude, codex/antigravity et claude/antigravity réussissent.
+- Ask codex/claude conserve ses deux réponses mais refuse la lecture de la synthèse OpenCode avec un diagnostic de sortie JSON non reconnue. L’export natif de la demande précise montre une réponse DeepSeek terminée ; la cause exacte du refus de lecture Palabre reste à établir. Cette observation ne prouve pas une incompatibilité générale d’OpenCode 2.2.3.
+- Ask codex/antigravity échoue sur la réponse Antigravity vide ou non conforme au contrat JSON, avec une seule réponse conservée. La cause n’est pas établie ; aucun repli texte/PTY ni renvoi automatique.
+
+Une sonde technique distincte DeepSeek Free, destinée à capturer le flux exact, reçoit ensuite **provider.free-limit, HTTP 429**. Le mainteneur autorise alors tout autre modèle gratuit disposant de quota : GLM 5.3 Flash Free reçoit également **429** avec la même échéance indicative, puis Beam Free du fournisseur OpenCode Go reçoit **provider.auth, HTTP 401**. Les trois sondes sont des demandes distinctes, sans rejeu des messages précédents. Aucun modèle payant, changement de connexion ou de réglage ; aucun modèle gratuit utilisable confirmé parmi ces pistes. Les réponses privées, identifiants et flux bruts restent locaux.
+
+Le lanceur possédé de cette campagne est arrêté, sans fermer OpenCode ni son service. Les réponses déjà produites sont relues sans nouvelle génération. La qualification sur les outils mis à jour reste **incomplète** : ne pas transformer les 20/20 de la première campagne en réussite du candidat final, ni annoncer une correction du lecteur sans flux probant. Aucun nouvel essai programmé à une heure de remise à disposition.
+
 ## Vérifications restantes avant publication
 
 - Obtenir une CI verte et finaliser la revue du commit final de la PR de version.
-- Les deux campagnes réelles du candidat sont terminées avec les résultats ci-dessus. Le [protocole](dev/verification.md) conserve leurs garanties conditionnelles ; les résultats de [0.22.0](release-0.22.0-qualification.md) restent des preuves historiques distinctes.
+- Les premières campagnes 20/20 et 22/22 restent datées sur 941c299. Terminer la nouvelle qualification du candidat final et examiner les refus de lecture/sortie ci-dessus ; le [protocole](dev/verification.md) conserve les garanties conditionnelles. Les résultats de [0.22.0](release-0.22.0-qualification.md) restent des preuves historiques distinctes.
 - Les shims réels Yarn/Bun Windows, une installation globale npm et le parcours dans une ancienne conversation Desktop ne sont pas qualifiés par les processus fictifs. Le retour humain Mac et le test débutant CoolMaster restent distincts, sans résultat annoncé.
 - #165 et #202 restent partielles ; #256 attend la publication effective du correctif. #136 et #193 ne sont pas incluses dans ce lot.
 
