@@ -36,6 +36,12 @@ For a simple code review or fix from Claude Code to Codex, the [official OpenAI 
 
 **Retained features, outside the default path:** `--write` is experimental and frozen; Mission and `--task review` are frozen. Their documentation remains below; only security fixes are accepted, with no scope expansion.
 
+## Between two Codex conversations
+
+Relay remains compatible with this workflow. If your application already provides the functions needed to delegate a task to a specific Codex conversation and read its reply, those functions may be enough. Your assistant then prefers that path after checking available functions and permissions. These capabilities depend on the application and version.
+
+You can explicitly request Relay, particularly for its exchange records or CLI workflow. Its main cooperation value remains connecting different tools through supported paths. The assistant does not switch paths to bypass a refusal or resend a message whose receipt is uncertain.
+
 ## Keep track of exchanges
 
 Tell your lead agent: “Keep the same reference for this topic and number the exchanges.” The reference can be a PR, an issue or a short topic: **➡️ PR #240 · Exchange 3**. The reply keeps that number and starts with a simple **Result**: what is done, what remains and who acts next. The header already shows the direction; there is no need to repeat it.

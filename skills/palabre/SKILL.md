@@ -1,15 +1,15 @@
 ---
 name: palabre
-description: Faire coopérer les outils IA locaux avec Palabre. Relay pour confier une tâche à Codex ou Claude Code dans une conversation précise ou neuve ; Débat pour confronter deux positions, Ask pour des avis indépendants, Chat pour avancer avec un agent. Utiliser pour proposer une coopération utile face à un doute, un choix ou une relecture, même sans nommer Palabre ; pas pour une tâche simple traitable seul.
+description: Coopérer entre outils IA avec Palabre : Relay pour confier une tâche à une conversation précise ou neuve ; Débat pour confronter deux positions, Ask pour des avis indépendants, Chat pour avancer. Proposer une coopération utile face à un doute, un choix ou une relecture, même sans nommer Palabre ; pas pour une tâche simple.
 metadata:
-  revision: "6"
+  revision: "7"
 ---
 
 # Palabre : coopérer, croiser les avis, décider
 
 Palabre pilote les outils IA connectés, chacun avec ses modèles. Un « agent Palabre » est une entrée configurée reliée à un outil ou Ollama, pas un modèle ni un sous-agent. Un alias ou nouveau chat du même outil ne constitue pas un relecteur distinct.
 
-Avant une coopération ou proposition, lire l'inventaire (`palabre agents --json --skill-revision 6`) ou réutiliser celui encore valable : `available: true`, relecture par un autre outil que l'auteur. Sans équipier disponible, avancer seul si possible ; une piste utile si nécessaire, sans insister. Présence ne prouve ni connexion ni capacité. Si `skill.status` n'est pas `current`, lire `palabre skill --read --json` et les références utiles ; retenir la révision après lecture, jamais la copier pour passer le contrôle. Poursuivre sans sync/redémarrage demandé. Ancienne CLI/inventaire indisponible : `references/cli.md`. Respecter le chemin configuré. Nommer la tâche `Palabre <mode> : <objet>` si possible.
+Pour une coopération via Palabre, lire l’inventaire (`palabre agents --json --skill-revision 7`) ou réutiliser celui encore valable : `available: true`, relecture par un autre outil que l'auteur. Sans équipier disponible, avancer seul si possible ; une piste utile si nécessaire, sans insister. Présence ne prouve ni connexion ni capacité. Si `skill.status` n'est pas `current`, lire `palabre skill --read --json` et les références utiles ; retenir la révision après lecture, jamais la copier pour passer le contrôle. Poursuivre sans sync/redémarrage demandé. Ancienne CLI/inventaire indisponible : `references/cli.md`. Respecter le chemin configuré. Tâche : `Palabre <mode> : <objet>`.
 
 ## Choisir le parcours
 
@@ -20,7 +20,7 @@ Avant une coopération ou proposition, lire l'inventaire (`palabre agents --json
 | Recueillir 1 à 4 avis indépendants, puis les comparer | **Ask** | `references/cli.md` |
 | Avancer avec un interlocuteur et consulter ponctuellement un autre | **Chat** | `references/chat.md` |
 
-Une tâche explicitement confiée à Codex/Claude Code via Palabre relève de Relay, même pour un seul avis.
+Codex→Codex : préférer le natif vérifié et autorisé s’il suffit ; Relay sur demande ou besoin précis de CLI/export. Aucun basculement après refus ou délivrance incertaine. Tâche Codex/Claude via Palabre : Relay, même pour un avis.
 
 Les rôles orientent **Débat, Ask et Chat**, pas les droits, le modèle ni Relay. « Chef de mission » et « équipier » décrivent Relay, pas ces rôles. Détails : `references/cli.md`.
 
@@ -45,9 +45,9 @@ Noms de l’inventaire ; `--from` déclaratif et facultatif. Omettre les options
 # Avis neuf, sans modification
 palabre relay --new --background --to codex --subject "Relire le plan" "Lis docs/plan.md sans modifier de fichier." --json
 # Reprise : vérifier, puis envoyer selon le parcours retenu (relay.md)
-palabre relay --check --skill-revision 6 --to codex:<id> --json
+palabre relay --check --skill-revision 7 --to codex:<id> --json
 # Avant un envoi autorisé dans une conversation Codex ouverte : rien envoyé
-palabre relay --check --skill-revision 6 --open --to codex:<id> --json
+palabre relay --check --skill-revision 7 --open --to codex:<id> --json
 ```
 
 Garder la même config et vérifier la délivrance après échec. Pour **voir/afficher/consulter la conversation dans Codex**, après une création aussi : lire `references/relay-desktop.md` et proposer `desktop.command` du JSON, ou `palabre relay open --to <alias>:<id> --config '<config-absolue>'`. Bloc `powershell` sous Windows, `bash` sur Mac/Linux ; jamais un lien `codex://` seul ni un lanceur système. Ouvrir seulement sur demande humaine directe, sans nouveau clic imposé si déjà demandé ; aucun envoi ni affichage garanti. Envoi ouvert/suivi : même référence. Créée par --new, la conversation reste en lecture seule avec les versions vérifiées.

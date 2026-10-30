@@ -36,6 +36,12 @@ Pour une simple relecture ou correction de code depuis Claude Code vers Codex, l
 
 **Fonctions conservées, hors parcours par défaut :** `--write` est expérimental et gelé ; Mission et `--task review` sont gelés. Leur documentation est conservée ci-dessous ; seuls les correctifs de sécurité sont acceptés, sans extension de périmètre.
 
+## Entre deux conversations Codex
+
+Relay reste compatible avec ce parcours. Si votre application dispose déjà des fonctions nécessaires pour confier une tâche à une conversation Codex précise et en lire la réponse, elles peuvent suffire. Votre assistant privilégie alors ce parcours, après vérification des fonctions et des autorisations disponibles. Ces capacités dépendent de l’application et de sa version.
+
+Vous pouvez demander explicitement Relay, notamment pour ses traces d’échange ou un usage depuis la CLI. Sa valeur principale pour la coopération reste de relier des outils différents, selon les parcours pris en charge. L’assistant ne change pas de parcours pour contourner un refus ou renvoyer un message dont la réception est incertaine.
+
 ## Garder le fil des échanges
 
 Demandez à votre chef de mission : « Garde le même repère pour ce sujet et numérote les échanges. » Le repère peut être une PR, une issue ou un nom court : **➡️ PR #240 · Échange 3**. La réponse reprend le même numéro et commence par un **Résultat** simple : ce qui est fait, ce qui reste et qui agit ensuite. Le sens de l'échange figure déjà dans l'en-tête ; inutile de le répéter.
