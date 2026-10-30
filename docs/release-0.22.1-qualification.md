@@ -79,6 +79,8 @@ Nouveaux essais autorisés sur **fa4c577**, après intégration de #261/#262. La
 
 Une sonde technique distincte DeepSeek Free, destinée à capturer le flux exact, reçoit ensuite **provider.free-limit, HTTP 429**. Le mainteneur autorise alors tout autre modèle gratuit disposant de quota : GLM 5.3 Flash Free reçoit également **429** avec la même échéance indicative, puis Beam Free du fournisseur OpenCode Go reçoit **provider.auth, HTTP 401**. Les trois sondes sont des demandes distinctes, sans rejeu des messages précédents. Aucun modèle payant, changement de connexion ou de réglage ; aucun modèle gratuit utilisable confirmé parmi ces pistes. Les réponses privées, identifiants et flux bruts restent locaux.
 
+Vérifications complémentaires autorisées : les cinq autres modèles gratuits du fournisseur opencode présents au catalogue (Beam, Flint 40B, MiMo 2.6 Flash, Nemotron 3.5 Lightning et Super VL) reçoivent eux aussi provider.free-limit / 429. Les sept modèles gratuits de ce fournisseur testés sont donc limités dans cet environnement ; Beam Free côté OpenCode Go reste refusé pour authentification. Aucun modèle gratuit utilisable n’est confirmé parmi ces essais.
+
 Le lanceur possédé de cette campagne est arrêté, sans fermer OpenCode ni son service. Les réponses déjà produites sont relues sans nouvelle génération. La qualification sur les outils mis à jour reste **incomplète** : ne pas transformer les 20/20 de la première campagne en réussite du candidat final, ni annoncer une correction du lecteur sans flux probant. Aucun nouvel essai programmé à une heure de remise à disposition.
 
 ## Vérifications restantes avant publication
