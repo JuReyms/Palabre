@@ -74,3 +74,11 @@ pnpm link --global
 ```
 
 Pour une installation package, le plan execute la syntaxe native du gestionnaire detecte, avec la version npm resolue (par exemple `pnpm add --global palabre@0.16.1` ou `npm install --global palabre@0.16.1`). Si npm est indisponible ou si la version executee est deja courante, Palabre ne modifie pas l'installation package. Une mise a jour peut toucher le reseau, le store global et le lien global : garder l'action explicite et ne jamais construire une ligne de shell non structuree.
+
+### Vérification après installation (#165, premier lot)
+
+Après les étapes de mutation CLI seulement, `applyUpdate` vérifie une fois la version réellement renvoyée par le premier emplacement PATH (`src/updateVerification.ts`), avant tout rafraîchissement de copies du skill. Résolution fraîche sans cache : aucun saut vers une installation suivante. Sous Windows : natif ou shim npm/pnpm strictement reconnu, lancé directement sans shell ; wrapper inconnu = non vérifié. Sonde `--version` seule : 15 s, 32 Kio cumulés, délai de nettoyage 1 s, exit 0 et version complète exigés ; sorties partielles, erreur, arrêt ou retour forcé refusés. Aucun texte brut de processus affiché.
+
+Cible npm : version épinglée du plan ; checkout source : manifeste du paquet relu après build (lecture bornée à 32 Kio). Écart ou vérification impossible : erreur localisée avec version attendue/observée quand connues et action exacte ; aucune réussite globale, aucun remplacement du skill ni réinstallation automatique. Une erreur ultérieure du skill reste distincte après vérification réussie. Pas de sonde sur check/dry-run, refus, CLI inchangée ou skill seul. Cela décrit le PATH de cet environnement, pas les alias/caches de tous les terminaux, ni une preuve de révision Git. Les mises à jour directes par un gestionnaire ne passent pas par ce contrôle. Le diagnostic de toutes les étapes et la mémorisation éventuelle du canal restent hors de ce lot.
+
+Qualification de ce lot : faux exécutables/profils, pas d’installation globale. Shims npm/pnpm reconnus éprouvés sous Windows ; shims réels Yarn/Bun Windows non qualifiés, un wrapper inconnu reste non vérifié. Voir le [bilan des scénarios et limites](../skill-cooperation-evaluation.md).

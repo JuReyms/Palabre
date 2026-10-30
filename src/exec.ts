@@ -22,17 +22,18 @@ export function executableExtensions(command: string): string[] {
     .concat(".ps1", "");
 }
 
-/** Résout une commande dans PATH une seule fois par environnement PATH/PATHEXT. */
+/** Résout dans PATH avec cache par défaut ; `fresh` relit les emplacements après une installation. */
 export function resolveExecutablePath(
   command: string,
-  extensions: readonly string[] = executableExtensions(command)
+  extensions: readonly string[] = executableExtensions(command),
+  options: { fresh?: boolean } = {}
 ): string | undefined {
   if (path.isAbsolute(command) || command.includes("\\") || command.includes("/")) {
     return existsSync(command) ? command : undefined;
   }
 
   const key = [command, extensions.join(";"), process.env.PATH ?? "", process.env.PATHEXT ?? ""].join("\u0000");
-  if (executableCache.has(key)) {
+  if (!options.fresh && executableCache.has(key)) {
     return executableCache.get(key);
   }
 
@@ -49,6 +50,7 @@ export function resolveExecutablePath(
     }
   }
 
+  if (options.fresh) executableCache.delete(key);
   return undefined;
 }
 

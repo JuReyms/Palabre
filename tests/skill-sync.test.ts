@@ -14,6 +14,9 @@ import { formatSkillPlan } from "../src/messages/skillSync.js";
 import { runUpdateCommand } from "../src/commands/update.js";
 import type { CommandFlags } from "../src/commands/shared.js";
 
+/** Version du faux paquet installé ; la sonde réelle est couverte séparément. */
+const verifiedUpdate = async () => ({ status: "verified" as const, expectedVersion: "0.19.0", actualVersion: "0.19.0" });
+
 const names = ["SKILL.md", "agents/openai.yaml", "references/chat.md", "references/cli.md", "references/outputs.md", "references/relay.md", "references/relay-desktop.md", "references/relay-opencode.md", "references/relay-frozen.md"];
 function skill(directory: string, text = "new\nline\n"): void {
   for (const name of names) { const file = path.join(directory, name); mkdirSync(path.dirname(file), { recursive: true }); writeFileSync(file, text); }
@@ -113,7 +116,7 @@ test("update disponible : copie illisible ignorée et intacte, avertissement aff
   let installs = 0;
   await runUpdateCommand({ yes: true, language: "fr" }, {
     getInfo: async () => info, write: report => { reports.push(report); },
-    apply: (plan, messages) => applyUpdate(plan, messages, { run: async () => {
+    apply: (plan, messages) => applyUpdate(plan, messages, { verify: verifiedUpdate, run: async () => {
       installs++;
       writeFileSync(path.join(projectRoot, "package.json"), JSON.stringify({ name: "palabre", version: "0.19.0" }));
       skill(options.source, "updated package");
@@ -132,7 +135,7 @@ test("source illisible : copies non vérifiées intactes sans bloquer le process
   skill(target, "custom");
   const info: UpdateInfo = { version: "0.18.0", latestVersion: "0.19.0", channel: "npm-global", sourceCheckout: false, projectRoot: path.dirname(path.dirname(options.source)), steps: createUpdatePlan("npm-global", "0.19.0"), skills: planSkillSync({ ...options, source: path.join(options.source, "absent") }) };
   let installs = 0;
-  await applyUpdate(info, createTranslator("fr"), { run: async () => { installs++; } });
+  await applyUpdate(info, createTranslator("fr"), { verify: verifiedUpdate, run: async () => { installs++; } });
   assert.equal(installs, 1);
   assert.equal(readFileSync(path.join(target, "SKILL.md"), "utf8"), "custom");
   assert.equal(existsSync(info.skills!.backupRoot), false);
@@ -144,7 +147,7 @@ test("CLI mise à jour puis skill incomplet : erreur limitée au skill avec la c
     skill(target, "custom");
     const projectRoot = path.dirname(path.dirname(options.source));
     const info: UpdateInfo = { version: "0.18.0", latestVersion: "0.19.0", channel: "npm-global", sourceCheckout: false, projectRoot, steps: createUpdatePlan("npm-global", "0.19.0"), skills: planSkillSync(options) };
-    await assert.rejects(applyUpdate(info, createTranslator(language), { run: async () => {
+    await assert.rejects(applyUpdate(info, createTranslator(language), { verify: verifiedUpdate, run: async () => {
       writeFileSync(path.join(projectRoot, "package.json"), JSON.stringify({ name: "palabre", version: "0.19.0" }));
       rmSync(path.join(options.source, "references", "relay.md"));
     } }), error => {
@@ -175,7 +178,7 @@ test("update recharge le skill du nouveau paquet après le processus d'installat
   const stableRoot = path.join(root, "global", "palabre");
   const info: UpdateInfo = { version: "0.18.0", latestVersion: "0.19.0", channel: "pnpm-global", sourceCheckout: false, projectRoot: path.dirname(path.dirname(options.source)), steps: createUpdatePlan("pnpm-global", "0.19.0"), skills: planSkillSync(options), skillPackageRoot: stableRoot };
   const calls: string[] = [];
-  await applyUpdate(info, createTranslator("fr"), { run: async step => {
+  await applyUpdate(info, createTranslator("fr"), { verify: verifiedUpdate, run: async step => {
     calls.push(step.command);
     skill(path.join(stableRoot, "skills", "palabre"), "next version");
     writeFileSync(path.join(stableRoot, "package.json"), JSON.stringify({ name: "palabre", version: "0.19.0" }));
@@ -192,7 +195,7 @@ test("CLI à jour ou npm indisponible : skill différent proposé sans lancer le
   assert.equal(canApplyUpdate(info), true);
   assert.match(formatUpdateInstructions(info, createTranslator("fr")), /custom|personnalis|différent/);
   assert.equal(readFileSync(path.join(target, "SKILL.md"), "utf8"), "custom");
-  await applyUpdate(info, createTranslator("en"), { run: async () => { throw Error("must not run"); } });
+  await applyUpdate(info, createTranslator("en"), { verify: async () => { throw Error("must not probe"); }, run: async () => { throw Error("must not run"); } });
   assert.equal(readFileSync(path.join(target, "SKILL.md"), "utf8"), "new\nline\n");
 });
 
@@ -200,9 +203,9 @@ test("plan modifié ou installation échouée : aucun skill remplacé", async t 
   const { options, target } = fixture(t);
   skill(target, "custom");
   const info: UpdateInfo = { version: "0.18.0", latestVersion: "0.19.0", channel: "npm-global", sourceCheckout: false, projectRoot: path.dirname(path.dirname(options.source)), steps: createUpdatePlan("npm-global", "0.19.0"), skills: planSkillSync(options) };
-  await assert.rejects(applyUpdate(info, createTranslator("fr"), { run: async () => { throw Error("package failed"); } }), /package failed/);
+  await assert.rejects(applyUpdate(info, createTranslator("fr"), { verify: async () => { throw Error("must not probe"); }, run: async () => { throw Error("package failed"); } }), /package failed/);
   writeFileSync(path.join(target, "SKILL.md"), "edited");
-  await assert.rejects(applyUpdate(info, createTranslator("fr"), { run: async () => { throw Error("must not run"); } }), /modifiée depuis le plan/);
+  await assert.rejects(applyUpdate(info, createTranslator("fr"), { verify: async () => { throw Error("must not probe"); }, run: async () => { throw Error("must not run"); } }), /modifiée depuis le plan/);
   assert.equal(readFileSync(path.join(target, "SKILL.md"), "utf8"), "edited");
 });
 
@@ -290,4 +293,43 @@ test("commande skill : absence de confirmation, check, dry-run et options invali
   assert.match(mixed.stdout, /AVERTISSEMENT|WARNING/);
   assert.ok(lstatSync(path.join(target, "linked")).isSymbolicLink());
   assert.equal(readFileSync(path.join(other, "SKILL.md"), "utf8"), readFileSync(path.join(target, "SKILL.md"), "utf8"));
+});
+
+test("update : ancienne version prioritaire ou sonde inconnue, aucun skill remplacé ni succès annoncé", async t => {
+  for (const language of ["fr", "en"] as const) {
+    for (const status of ["mismatch", "unverified"] as const) {
+      const { options, target } = fixture(t); skill(target, "custom");
+      const info: UpdateInfo = { version: "0.18.0", latestVersion: "0.19.0", channel: "npm-global", sourceCheckout: false, projectRoot: path.dirname(path.dirname(options.source)), steps: createUpdatePlan("npm-global", "0.19.0"), skills: planSkillSync(options) };
+      let installs = 0, probes = 0; const reports: string[] = [];
+      await assert.rejects(runUpdateCommand({ yes: true, language }, {
+        getInfo: async () => info, write: report => { reports.push(report); },
+        apply: (plan, messages) => applyUpdate(plan, messages, {
+          run: async () => { installs++; skill(options.source, "updated"); },
+          verify: async () => { probes++; assert.equal(readFileSync(path.join(target, "SKILL.md"), "utf8"), "custom"); return { status, expectedVersion: "0.19.0", ...(status === "mismatch" ? { actualVersion: "0.18.0" } : {}), command: "fixture\u001b[31m\ncommand" }; }
+        })
+      }), error => {
+        assert.ok(error instanceof Error);
+        assert.match(error.message, language === "fr" ? /version exécutée.*pas confirmée/ : /executed.*not confirmed/);
+        assert.match(error.message, /palabre --version/); assert.match(error.message, process.platform === "win32" ? /Get-Command palabre -All/ : /type -a palabre/);
+        assert.match(error.message, /palabre skill --sync/);
+        assert.doesNotMatch(error.message, /\u001b/); assert.doesNotMatch(error.message, /Seul le rafraîchissement|Only the skill refresh/);
+        return true;
+      });
+      assert.equal(installs, 1); assert.equal(probes, 1);
+      assert.ok(!reports.includes(createTranslator(language).update.updateComplete));
+      assert.equal(readFileSync(path.join(target, "SKILL.md"), "utf8"), "custom");
+      assert.equal(existsSync(info.skills!.backupRoot), false);
+    }
+  }
+});
+
+test("diagnostic post-update : chemin lisible fr/en, contrôles assainis sans doubles barres", () => {
+  const command = "C:\\Users\\fictif\\palabre.ps1";
+  for (const language of ["fr", "en"] as const) {
+    const text = createTranslator(language).update.versionNotVerified({ status: "mismatch", expectedVersion: "0.22.1", actualVersion: "0.22.0", command });
+    assert.ok(text.includes(command)); assert.ok(!text.includes(JSON.stringify(command)));
+    assert.match(text, /palabre skill --sync/);
+    const locate = process.platform === "win32" ? "Get-Command palabre -All | Select-Object Source" : "type -a palabre";
+    assert.ok(text.split("\n").includes(locate), "commande de diagnostic seule, sans ponctuation ajoutée");
+  }
 });

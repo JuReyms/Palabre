@@ -1,4 +1,5 @@
 /** @file Détection sûre des installations Palabre et plans de mise à jour structurés. */
+import { verifyUpdatedCommand, type UpdateVerification } from "./updateVerification.js";
 import { spawn } from "node:child_process";
 import { access, realpath, readFile } from "node:fs/promises";
 import os from "node:os";
@@ -171,11 +172,14 @@ export function formatUpdateInstructions(info: UpdateInfo, messages: Messages): 
 
 /**
  * Exécute le plan déjà validé. Chaque processus reçoit des arguments structurés ; Windows
- * privilégie un binaire natif ou le shim PowerShell sans passer par `cmd.exe`.
+ * privilégie un binaire natif ou le shim PowerShell sans passer par `cmd.exe`. Après installation,
+ * vérifie une fois la commande effectivement résolue avant tout rafraîchissement du skill.
  */
 export async function applyUpdate(info: UpdateInfo, messages: Messages, options: {
   /** Faux processus pour tester le remplacement du paquet sans installer quoi que ce soit. */
   run?: (step: UpdateStep, cwd: string, messages: Messages) => Promise<void>;
+  /** Sonde remplaçable pour les profils fictifs ; jamais une option CLI. */
+  verify?: (info: UpdateInfo) => Promise<UpdateVerification>;
 } = {}): Promise<void> {
   if (!canApplyUpdate(info)) {
     throw new Error(messages.update.automaticUnavailable);
@@ -188,6 +192,9 @@ export async function applyUpdate(info: UpdateInfo, messages: Messages, options:
     if (updatingCli) {
       for (const step of info.steps) await (options.run ?? runStep)(step, info.projectRoot, messages);
       cliUpdated = true;
+      const verification = await (options.verify ?? verifyUpdatedCommand)(info);
+      if (verification.status !== "verified") throw new UpdateVerificationError(messages.update.versionNotVerified(verification));
+      console.log(messages.update.versionVerified(verification.actualVersion!));
     }
     if (info.skills?.copies.some(copy => copy.state !== "unreadable")) {
       const packageRoot = info.skillPackageRoot ?? info.projectRoot;
@@ -200,6 +207,7 @@ export async function applyUpdate(info: UpdateInfo, messages: Messages, options:
       console.log(messages.update.skillReload);
     }
   } catch (error) {
+    if (error instanceof UpdateVerificationError) throw error;
     if (cliUpdated) {
       const detail = error instanceof SkillSyncError && error.kind !== "source" ? `\n${messages.update.skillFailure(error)}` : "";
       throw Error(messages.update.skillAfterCliFailure + detail);
@@ -208,6 +216,9 @@ export async function applyUpdate(info: UpdateInfo, messages: Messages, options:
     throw error;
   }
 }
+
+/** Échec de vérification après installation : distinct du rafraîchissement du skill, sans réparation. */
+class UpdateVerificationError extends Error {}
 
 /** Alias historique conservé pour les consommateurs qui appellent le workflow checkout directement. */
 export async function applySourceUpdate(info: UpdateInfo, messages: Messages): Promise<void> {
