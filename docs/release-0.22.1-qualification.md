@@ -93,6 +93,20 @@ La première relecture interne et celle de Claude Sonnet 5.5 ont été distingu�
 
 L’inventaire des fournisseurs réellement configurés dans OpenCode ne déclare ici que opencode et opencode-go, sans autre connexion Claude ou ChatGPT disponible. Aucun compte n’a été connecté ni réglage changé. La qualification réelle finale reste à terminer avec un modèle disponible et autorisé ; utiliser Claude directement pour la revue ne remplace pas ce test de transport OpenCode.
 
+## Campagne complémentaire hors OpenCode (927260d)
+
+Neuf nouvelles sessions réelles ont été exécutées dans le cadre autorisé, avec un sujet distinct : **9/9 réussies, aucun échec ni cas ignoré**, 335,0 s. Six Ask des paires codex/claude, codex/antigravity, claude/antigravity, codex/vibe, vibe/claude et antigravity/vibe, ainsi que les trois Débats comportant Vibe. Deux réponses par session et une synthèse valide ; neuf captures NDJSON et neuf exports relus intégralement. Le nouveau succès Ask avec Antigravity n’explique pas l’ancien échec de sortie vide, qui reste consigné.
+
+Le lanceur local conserve l’analyse et les critères du smoke officiel. Les six synthèses Ask choisissent explicitement Claude uniquement pour ces appels ; les Débats gardent la synthèse Antigravity. Modèles habituels, aucun override de modèle ni modification de configuration : empreinte et date de modification globales identiques. La relecture des captures confirme les agents de synthèse et l’absence d’OpenCode dans ces appels.
+
+Vibe est en 3.0.4 ; versions relues après ces essais : Claude Code 2.1.314, Codex CLI 0.163.0, Antigravity 1.4.11. Les trois autres Débats hors OpenCode restent datés sur fa4c577 ; il s’agit d’une couverture en plusieurs séquences et avec une synthèse Ask différente de la campagne initiale. Ces neuf réussites ne valident pas les paires ni le lecteur OpenCode 2.2.3. Les identifiants, demandes et traces restent locaux.
+
+## Relay actualisé avec Claude Code 2.1.314 (927260d)
+
+Après constat de la mise à jour Claude, la campagne Relay autorisée a été exécutée de nouveau sur le runtime du correctif : **22/22 vérifications réussies**. Versions relevées par le smoke : Claude Code 2.1.314, Codex CLI 0.163.0, Node 24.19.0 sous Windows. Modèle Claude demandé et observé à la création/reprise : claude-sonnet-5-5 ; Codex conserve son modèle configuré, gpt-6.1-terra enregistré sans modèle observé annoncé dans la reprise.
+
+Contexte, délivrance/identité, arrière-plan explicite et les deux exports de réponse ont été vérifiés. Les refus des cibles attachées conservent leurs historiques ; Claude reste un processus non interactif dont l’arrêt est confirmé, sans qualification de son TUI/Desktop. Les outils annoncés sont Read/Glob/Grep, sans MCP annoncé ; la comparaison MCP Codex reste un indice par journaux. La configuration globale Palabre reste identique en contenu et date de modification. Seules les données et approbations temporaires prévues par ce smoke sont ajoutées ; aucune trace ou identité privée n’est publiée.
+
 ## Vérifications restantes avant publication
 
 - Obtenir une CI verte et finaliser la revue du commit final de la PR de version.
