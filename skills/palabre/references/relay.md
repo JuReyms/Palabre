@@ -164,6 +164,8 @@ Lire le corps exact, le compte, la destination et la visibilité rendus dans `pr
 
 Un PID retourné, un contrôle TTY accepté ou une entrée affirmative dans une trace ne prouve ni fenêtre visible ni saisie humaine. Ne pas annoncer ces éléments comme une validation du propriétaire. Si son intervention n’est pas établie, garder la qualification humaine ouverte, sans nouvel envoi ni fenêtre lancée pour fabriquer une preuve.
 
+Un « je confirme » dans la conversation ne remplace pas cette étape : rappeler simplement que l’humain lance la commande lui-même. Sans terminal interactif qu’il peut utiliser, rester à l’aperçu et expliquer ce blocage. Si la publication est techniquement confirmée mais l’intervention humaine non établie, rendre le lien en précisant ces deux faits ; ne pas présenter le commentaire comme une validation du propriétaire.
+
 À l’invite, Ctrl+C annule ; Ctrl+D ou fin d’entrée refuse sans envoi ni réservation. Après réservation, même un refus HTTP ou une annulation peut bloquer la même demande : conserver la trace et vérifier avec le mainteneur, sans la déplacer ni modifier le bilan pour rejouer.
 
 Le JSON distinct `relay-publication-result` donne `publication` : `not-attempted`, `published` ou `unknown`, et `attempted` pour cet appel seulement. Succès confirmé : restituer le résultat ou résumé avec `commentUrl`. La trace privée garde le commentaire choisi ; aucun modèle lancé. Sans GitHub ou demande de publication, continuer la coopération normale.

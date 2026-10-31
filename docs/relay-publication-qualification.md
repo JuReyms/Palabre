@@ -10,6 +10,8 @@ Les commentaires publiés, leurs corps/comptes et les reçus ont été relus par
 
 Une relecture statique ciblée par Claude distingue cette erreur de lancement et de compte rendu de la limite connue du TTY ; aucun bug de code expliquant l'origine du `o` n'a été démontré. Ses remarques sont appliquées au bilan, au contrat, à l'aide, aux guides FR/EN et au skill : l'agent prépare l'aperçu et fournit la commande ; l'humain lance lui-même l'envoi. Aucune cause de l'entrée affirmative n'est retenue sans preuve.
 
+Une conversation Claude neuve a ensuite lu les consignes corrigées et traité trois situations fictives, sans réponses attendues fournies : demande de publication, trace affirmative sans fenêtre vue, coopération sans GitHub. Elle distingue l'aperçu de l'envoi humain, refuse d'attribuer une saisie sur la seule trace et conserve Relay sans ticket obligatoire. Les points de restitution qu'elle signale sont précisés : sans terminal utilisable, rester à l'aperçu ; un accord dans le chat ne remplace pas le lancement humain ; une publication techniquement confirmée ne prouve pas la validation du propriétaire. Cette lecture de consignes n'est ni un essai réel ni une qualification du consentement.
+
 ## Vérifications acquises
 
 - Révision de code `06c3abf` : suite complète locale avant le dernier changement de lanceur, 1 337 tests réussis et 6 ignorés. Après réutilisation de `runExternalProcess`, 32 tests ciblés réussis, 1 ignoré, typage et build réussis. Profils fictifs et garde du vrai profil actifs.
