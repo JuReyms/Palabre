@@ -9,7 +9,7 @@ const texts = {
     invalid: "Requête invalide. Utilisez palabre relay publish --help. Aucun commentaire envoyé.",
     body: "Bilan invalide ou illisible : fichier texte UTF-8 non vide, 60 Kio au plus, sans contrôles ni caractères invisibles. Préparez un bilan séparé des exports/transcripts Palabre. Aucun commentaire envoyé.",
     unavailable: "GitHub ou la cible est inaccessible ou non vérifiable. Vérifiez la connexion de gh et le lien exact. Aucun commentaire envoyé.",
-    confirmation: "La publication exige une confirmation au clavier après aperçu dans un terminal visible (entrée et stderr TTY). Présentez cette commande à l'humain ; ne confirmez jamais à sa place. --dry-run affiche seulement l'aperçu.",
+    confirmation: "Pour publier, lancez vous-même cette commande dans votre terminal, lisez l'aperçu puis confirmez au clavier. L'agent prépare l'aperçu et fournit la commande sans lancer l'envoi. La CLI exige une entrée et une sortie d'erreur interactives (TTY), sans vérifier la présence d'une fenêtre ou d'un humain. --dry-run affiche seulement l'aperçu.",
     declined: "Publication refusée. Aucun commentaire envoyé.",
     changed: "Le bilan, le compte GitHub ou la cible a changé depuis l'aperçu. Rien envoyé ; relisez le nouvel aperçu avant une nouvelle demande.",
     receipt: "La trace locale ne peut pas être réservée. Aucun commentaire envoyé.",
@@ -23,6 +23,8 @@ const texts = {
 Publie un seul commentaire de conversation sur une issue ou PR github.com existante.
 --dry-run lit GitHub et affiche le corps exact sans écrire de trace ni publier.
 Sans --dry-run : aperçu, compte et visibilité, puis confirmation humaine au clavier.
+L'humain lance lui-même l'envoi dans son terminal ; l'agent prépare l'aperçu et fournit la commande.
+Le contrôle entrée/stderr TTY ne détecte ni fenêtre visible ni auteur humain.
 À l'invite : Ctrl+C annule ; Ctrl+D ou fin d'entrée refuse, sans envoi ni réservation.
 --from est un nom d'agent déclaré sans identifiant de conversation ; --participant le nomme pour ce travail.
 --commit est facultatif, réservé à une PR dont la tête doit correspondre au SHA indiqué.
@@ -41,7 +43,7 @@ Pas de --yes, --trust-config, --config, création de ticket, revue inline ou cha
     invalid: "Invalid request. Use palabre relay publish --help. No comment sent.",
     body: "Invalid or unreadable report: a nonblank UTF-8 text file, at most 60 KiB, without controls or invisible characters. Prepare a report separate from Palabre exports/transcripts. No comment sent.",
     unavailable: "GitHub or the target is unavailable or unverified. Check gh authentication and the exact link. No comment sent.",
-    confirmation: "Publishing requires keyboard confirmation after preview in a visible terminal (stdin and stderr TTY). Present this command to the human; never confirm on their behalf. --dry-run only shows the preview.",
+    confirmation: "To publish, run this command yourself in your terminal, read the preview, then confirm by keyboard. The agent prepares the preview and supplies the command without starting publication. The CLI requires interactive stdin and stderr (TTY), without checking for a visible window or a human. --dry-run only shows the preview.",
     declined: "Publication declined. No comment sent.",
     changed: "The report, GitHub account or target changed after preview. Nothing sent; read the new preview before making a new request.",
     receipt: "The local receipt cannot be reserved. No comment sent.",
@@ -55,6 +57,8 @@ Pas de --yes, --trust-config, --config, création de ticket, revue inline ou cha
 Publishes one conversation comment on an existing github.com issue or PR.
 --dry-run reads GitHub and shows the exact body without writing a receipt or publishing.
 Without --dry-run: preview, account and visibility, then human keyboard confirmation.
+The human starts publication in their own terminal; the agent prepares the preview and supplies the command.
+The stdin/stderr TTY check detects neither a visible window nor a human author.
 At the prompt: Ctrl+C cancels; Ctrl+D or end of input declines, without sending or reserving.
 --from is a declared agent name without a conversation identifier; --participant names it for this work.
 --commit is optional and requires a PR whose head matches the supplied SHA.

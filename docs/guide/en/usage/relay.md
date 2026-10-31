@@ -64,7 +64,7 @@ To see the exact comment, publishing account and destination without writing or 
 palabre relay publish --to https://github.com/owner/repo/pull/42 --from codex --participant Atlas --message-file report.md --dry-run --json
 ```
 
-To publish, run the same command in a visible terminal without `--dry-run` (and without `--json` for human output). Palabre shows the GitHub account, link, public/private visibility and full comment; you confirm by keyboard. The lead can prepare this command, but never confirms on your behalf or in a hidden terminal. This first version offers no global repository authorization. Existing `gh` access is required; no agent is launched.
+To publish, open your terminal and run the same command yourself without `--dry-run` (and without `--json` for human output). Palabre shows the GitHub account, link, public/private visibility and full comment; you confirm by keyboard. The lead prepares the preview and supplies the command; it does not start publication in another window or subprocess or confirm on your behalf. The technical terminal check (stdin and stderr TTY) proves neither a visible window nor human presence. This first version offers no global repository authorization. Existing `gh` access is required; no agent is launched.
 
 At the prompt, Ctrl+C cancels; Ctrl+D or end of input declines. These actions send nothing and create no reservation. After reservation, even an HTTP refusal may leave the request blocked: keep the receipt and check the evidence with the maintainer, without changing the report to replay it.
 
