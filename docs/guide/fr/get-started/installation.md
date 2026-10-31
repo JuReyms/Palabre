@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Installer Palabre depuis npm, vérifier la commande et préparer les agents IA utilisés par les débats et demandes Ask.
+description: Installer Palabre depuis npm, vérifier la commande et préparer les outils IA pour Relay, Débat, Ask et Chat.
 seo:
   title: Installer depuis npm et brancher vos agents IA
   description: Installer Palabre globalement avec npm, vérifier la commande et connecter Claude Code, Codex, OpenCode ou Ollama avant le premier débat.
@@ -41,6 +41,46 @@ Vérifiez ensuite que la commande est disponible :
 palabre --version
 palabre --help
 ```
+
+## Tester une préversion annoncée
+
+Une préversion permet d’essayer les changements avant une version stable. Vérifiez d’abord le numéro annoncé dans les [releases GitHub](https://github.com/JuReyms/Palabre/releases). Le canal `next` peut encore désigner une ancienne préversion ; un candidat préparé dans une PR n’est pas nécessairement publié.
+
+Utilisez le même gestionnaire que pour votre installation initiale afin de ne pas créer une deuxième installation qui masquerait la première. Après publication de `0.23.0-beta.1`, choisissez ce numéro explicitement :
+
+Avec pnpm :
+
+```powershell
+pnpm add --global palabre@0.23.0-beta.1
+palabre --version
+```
+
+Ou avec npm :
+
+```powershell
+npm install --global palabre@0.23.0-beta.1
+palabre --version
+```
+
+La publication d’un bilan Relay est expérimentale : la confirmation personnelle dans un terminal visible n’est pas encore qualifiée. L’agent prépare l’aperçu ; vous lancez vous-même la commande d’envoi. Consultez les limites dans le [guide Relay](/fr/usage/relay#publier-un-bilan-choisi).
+
+Pour revenir à la version stable publiée :
+
+Avec pnpm :
+
+```powershell
+pnpm add --global palabre@latest
+palabre --version
+```
+
+Ou avec npm :
+
+```powershell
+npm install --global palabre@latest
+palabre --version
+```
+
+Ces commandes d’installation ne synchronisent pas automatiquement toutes les copies du skill. Une synchronisation se fait par un plan `palabre skill --sync` confirmé depuis le paquet installé ; rechargez ensuite les consignes dans l’outil concerné.
 
 ## Installer depuis le dépôt source
 

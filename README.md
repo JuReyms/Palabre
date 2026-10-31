@@ -112,6 +112,8 @@ palabre
 
 The first interactive launch creates the global configuration if needed and detects installed tools. Use `palabre doctor` for diagnostics.
 
+**Prerelease testing:** choose an exact version announced in the [GitHub releases](https://github.com/JuReyms/Palabre/releases); `next` may still point to an older prerelease. See [installation and return to stable](https://github.com/JuReyms/Palabre/blob/main/docs/guide/en/get-started/installation.md). Selected-report publication remains experimental: its human confirmation workflow is not yet qualified.
+
 #### From your assistant — desktop app or CLI
 
 Install the skill for the assistant you use, then reload it in that assistant:
@@ -148,7 +150,7 @@ Relay messages grant no extra permissions. **Background is the default** for Cod
 
 ### Keep a record of your exchanges
 
-For selected Relay outcomes, the lead can prepare an attributed report for an existing GitHub issue or PR. `palabre relay publish` shows the exact comment, publishing account and visibility, then requires your keyboard confirmation in a visible terminal. It returns the confirmed comment link; intermediate exchanges stay in Relay. [Report publication](https://palab.re/en/usage/relay).
+For selected Relay outcomes, the lead can prepare an attributed report for an existing GitHub issue or PR. `palabre relay publish` shows the exact comment, publishing account and visibility; you start publication yourself in your terminal and confirm by keyboard. It returns the confirmed comment link; intermediate exchanges stay in Relay. This workflow is experimental: its human confirmation remains unqualified. [Report publication](https://palab.re/en/usage/relay).
 
 Palabre saves exchanges as Markdown files in `.palabre/` by default: `.relay.md`, `.debate.md`, `.ask.md` and `.chat.md`. Debate and Ask also include a summary when enabled. Read them again, keep them with your project or share them after checking for sensitive information. [Export details](https://palab.re/en/usage/exports).
 
@@ -253,6 +255,8 @@ Codex et Claude Code peuvent aussi coordonner les échanges Relay.
 
 ### Installer et essayer
 
+**Tester une préversion :** choisissez un numéro exact annoncé dans les [releases GitHub](https://github.com/JuReyms/Palabre/releases) ; `next` peut encore pointer vers une ancienne préversion. Voir [l’installation et le retour à la stable](https://github.com/JuReyms/Palabre/blob/main/docs/guide/fr/get-started/installation.md). La publication d’un bilan choisi reste expérimentale : son parcours de confirmation humaine n’est pas encore qualifié.
+
 Pour les commandes ci-dessous : Node.js 20+ et pnpm — [autres gestionnaires de paquets](https://palab.re/fr/get-started/installation). Il faut aussi un outil IA installé et connecté (ou un modèle Ollama local configuré). Un Débat demande deux agents configurés. Les abonnements, coûts et quotas propres à vos outils continuent de s'appliquer.
 
 ```powershell
@@ -298,7 +302,7 @@ Un message Relay n'accorde aucun droit supplémentaire. **L'arrière-plan est le
 
 ### Garder une trace des échanges
 
-Pour les résultats Relay utiles au projet, le chef de mission peut préparer un bilan attribué destiné à une issue ou PR existante. `palabre relay publish` présente le commentaire exact, le compte et la visibilité, puis exige votre confirmation au clavier dans un terminal visible. Le lien confirmé revient dans la restitution ; les échanges intermédiaires restent dans Relay. [Publication d’un bilan](https://palab.re/fr/usage/relay).
+Pour les résultats Relay utiles au projet, le chef de mission peut préparer un bilan attribué destiné à une issue ou PR existante. `palabre relay publish` présente le commentaire exact, le compte et la visibilité ; vous lancez vous-même l’envoi dans votre terminal et confirmez au clavier. Le lien confirmé revient dans la restitution ; les échanges intermédiaires restent dans Relay. Ce parcours est expérimental : sa confirmation humaine reste non qualifiée. [Publication d’un bilan](https://palab.re/fr/usage/relay).
 
 Palabre enregistre les échanges dans des fichiers Markdown, dans `.palabre/` par défaut : `.relay.md`, `.debate.md`, `.ask.md` et `.chat.md`. Débat et Ask y ajoutent leur synthèse lorsqu'elle est activée. Vous pouvez les relire, les conserver avec votre projet ou les partager après avoir vérifié les informations sensibles. [Détail des exports](https://palab.re/fr/usage/exports).
 
