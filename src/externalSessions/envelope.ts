@@ -8,6 +8,7 @@
 import { randomBytes } from "node:crypto";
 import type { RelayMessages } from "../messages/relay.js";
 import type { InvalidRequestReason, SenderRef, SessionRef } from "./types.js";
+import type { RelayWorkContext } from "./relayWork.js";
 
 /** Taille maximale de l'enveloppe de coordination, en octets UTF-8 (hors contexte PR). */
 export const MAX_RELAY_MESSAGE_BYTES = 64 * 1024;
@@ -22,6 +23,10 @@ export interface RelayExchange { reference: string; number: number }
 
 /** Entrées déjà validées par la commande Relay ou le contrôleur Mission. */
 export interface RelayEnvelopeInput {
+  /** Contexte facultatif validé par l'appelant, jamais une autorité GitHub. */
+  work?: RelayWorkContext;
+  /** Consigne courte par défaut ; désactivée pour les parcours gelés ou explicitement. */
+  replyFormat?: boolean;
   from: SenderRef | null;
   to: { agent: string; sessionId?: string };
   nonce: string;
@@ -126,10 +131,14 @@ function buildRelayEnvelope(input: RelayEnvelopeInput, messages: RelayMessages, 
     ...(input.exchange ? [messages.exchangeLine(inline(input.exchange.reference), input.exchange.number), "", "---", ""] : []),
     messages.envelopeWarning, "", "---", "",
     ...(input.subject !== undefined ? [messages.subjectLine(inline(input.subject)), ""] : []),
+    ...(input.work?.github ? [`**${messages.work.github} :** ${input.work.github.url}`, ""] : []),
+    ...(input.work?.participant ? [`**${messages.work.participant} :** ${inline(input.work.participant)} (${to})`, ""] : []),
     input.message, "", "---", "", `#### ${messages.agentSection}`, "", messages.envelopeProvenance,
     messages.envelopeSession(input.from?.sessionId, input.nonce), "", messages.envelopeNotice,
     open ? messages.openPermissions : messages.envelopePermissions, "",
     ...(input.exchange ? [messages.exchangeReplyHint(inline(input.exchange.reference), input.exchange.number), ""] : []),
+    ...(input.work ? [messages.work.notice, ""] : []),
+    ...(!input.header && input.replyFormat !== false ? [messages.work.replyFormat, ""] : []),
     messages.envelopeReplyHint].join("\n");
 }
 

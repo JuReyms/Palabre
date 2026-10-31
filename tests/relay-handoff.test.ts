@@ -63,7 +63,8 @@ describe("envoi ordinaire vers une conversation Claude déjà utilisée (#250)",
   test("FR : refus actionnable, corps exact conservé NON ENVOYÉ, export et délivrance inchangés", async (t) => {
     const w = await world(t);
     const message = "Passation ``` piégée\r\n```` encore\r\nAccents : é à ç — 🙂\r\n# Titre imité\r\n";
-    const result = await send(w, ["--subject", "Revue `#250`", "--reference", "PR #250", "--exchange", "2"], message);
+    const result = await send(w, ["--subject", "Revue `#250`", "--reference", "PR #250", "--exchange", "2",
+      "--github", "https://github.com/owner/repo/pull/250", "--participant", "Atlas"], message);
     assert.equal(result.status, "target-busy");
     assert.equal(result.exitCode, 3);
     assert.deepEqual(result.delivery, { status: "not-delivered", persisted: false, inActiveBranch: false });
@@ -90,6 +91,8 @@ describe("envoi ordinaire vers une conversation Claude déjà utilisée (#250)",
     assert.deepEqual(metadata.from, { agent: "codex", session: FROM_SESSION });
     assert.equal(metadata.subject, "Revue `#250`");
     assert.deepEqual(metadata.exchange, { reference: "PR #250", number: 2 });
+    assert.deepEqual(result.work, { github: { url: "https://github.com/owner/repo/pull/250", repository: "owner/repo", kind: "pull-request", number: 250 }, participant: "Atlas" });
+    assert.deepEqual(metadata.work, result.work);
     if (process.platform !== "win32") assert.equal(statSync(file).mode & 0o777, 0o600);
     const text = renderRelayText(result, createTranslator("fr"));
     assert.equal(text.stdout, "");

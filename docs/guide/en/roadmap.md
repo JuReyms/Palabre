@@ -10,15 +10,16 @@ This page gives an overview of the planned evolution of Palabre. It helps users 
 
 ## Product direction
 
-Palabre helps you **make better decisions before acting**. It is a harness for orchestrated collective intelligence: it lets your chosen AI tools exchange views, organizes disagreement, and makes decisions explicit.
+Palabre helps you **make better decisions and get work done** by making your chosen AI tools cooperate. Different viewpoints can expose errors, omissions or another approach; agreement between agents still needs evidence and checks. You keep control of decisions, budget and tool choices.
 
-Future improvements belong to one shared session rather than a growing set of separate modes:
+The four modes address complementary needs:
 
-- **Consult**: talk with one agent, request several opinions, or run a debate;
-- **Decide**: synthesize, explore a conclusion further, prepare or review a plan;
-- **Act**: prepare an action and, only after explicit confirmation, delegate it to an appropriate tool.
+- **Relay**: delegate analysis, coding or review through supported paths, exchange messages directly and retrieve results;
+- **Ask**: gather independent opinions;
+- **Debate**: compare arguments and make tradeoffs explicit;
+- **Chat**: work with one interlocutor and consult another agent.
 
-Acting is optional and remains under the user's control. Palabre is not intended to replace coding assistants or specialized tools: its role is to clarify a decision and provide a clean path to the next step when you choose it.
+Relay keeps a lead controlled by the user and optional GitHub tracking for each piece of work. Useful results may be recorded on an issue or PR within authorized work; intermediate exchanges and work without GitHub stay simple. Each tool retains its subscriptions, models, quotas and permissions; savings or correction of errors are never guaranteed.
 
 ## Available today
 
@@ -26,8 +27,8 @@ PALABRE offers four modes: **Debate**, **Relay**, **Ask** and **Chat**, with you
 
 - Contradictory Debate, independent Ask (1–4 agents) and Chat with an explicit second opinion; after Debate/Ask, Chat continues from subject and summary.
 - Relay to closed Codex or Claude Code; `--open` to open Codex on Windows, macOS, or Linux (pilot, `python3` required on POSIX), with its own tools and permissions, without guaranteed immediate display.
-- GitHub COMMENT review on a repository authorized through `palabre relay allow-repo`; PALABRE header, optional subject, JSON and `.relay.md` export.
-- Relay's Mission option: read-only steps within a scope and budget agreed with you.
+- Short, proportionate Relay reporting; optional declared GitHub link and participant in messages and local records, without GitHub access or publication.
+- Historical Mission, GitHub COMMENT review and `--write` paths: frozen, outside the default workflow; security fixes only.
 - Local/global configuration, conservative agent discovery/synchronization, presets and CLI-selected models.
 - [TUI](/en/usage/tui), agent skill and VS Code extension.
 - `--files` / `--context`, previews, Debate/Ask summaries and Markdown exports; Debate/Ask/Chat history.
@@ -37,10 +38,11 @@ PALABRE offers four modes: **Debate**, **Relay**, **Ask** and **Chat**, with you
 
 ## Upcoming improvements
 
-1. **Relay to OpenCode, in the CLI and Desktop**: another viewpoint with free or local models ([#136](https://github.com/JuReyms/Palabre/issues/136)).
-2. **Quotas**: display each agent's remaining quota and offer choices to the human ([#41](https://github.com/JuReyms/Palabre/issues/41)).
-3. **Codex reading on Windows**: provide a solution to the refused command launches reported by `readAccess` ([#128](https://github.com/JuReyms/Palabre/issues/128)).
-4. **OpenAI-compatible local agents** (llama.cpp, LM Studio…) for Debate, Ask and Chat ([#120](https://github.com/JuReyms/Palabre/issues/120)).
+1. **Useful results on GitHub**: prepare and publish a selected, attributed report with suitable preview and authorization. Publishing Ask/Debate summaries has its own scope ([#122](https://github.com/JuReyms/Palabre/issues/122)).
+2. **Work continuity**: retrieve a result after interruption without resending the request; qualify remaining ambiguous cases separately ([#146](https://github.com/JuReyms/Palabre/issues/146)).
+3. **OpenCode**: extend qualification of the copy pilot before adding CLI/Desktop paths ([#136](https://github.com/JuReyms/Palabre/issues/136)).
+4. **Budget and diagnostics**: dated provider information or explicit estimates, without automatic switching ([#41](https://github.com/JuReyms/Palabre/issues/41)).
+5. **OpenAI-compatible local agents** (llama.cpp, LM Studio…) for Debate, Ask and Chat ([#120](https://github.com/JuReyms/Palabre/issues/120)).
 
 ## Under exploration
 

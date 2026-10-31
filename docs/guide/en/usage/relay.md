@@ -36,6 +36,24 @@ For a simple code review or fix from Claude Code to Codex, the [official OpenAI 
 
 **Retained features, outside the default path:** `--write` is experimental and frozen; Mission and `--task review` are frozen. Their documentation remains below; only security fixes are accepted, with no scope expansion.
 
+## Work method and optional GitHub tracking
+
+Your lead can delegate analysis, coding or review through a path with the required permissions. It provides the objective, scope, expected result and useful checks. Replies return directly to the lead, which coordinates the next steps and reports the result or a summary with useful links.
+
+Default reply guidance stays short: result, checks and evidence, limitations or blockers, and useful next steps. Irrelevant sections are omitted. `--no-reply-format` removes this guidance for one send; the received reply remains unchanged and Palabre never derives task success from its prose. Frozen paths keep their own instructions.
+
+For work tracked on GitHub, explicitly attach a repository, issue or PR with `--github`. `--participant` gives the recipient a stable name for this work, useful when several conversations use the same tool. Without it, the configured alias remains the usual label. Fictional example, after selecting and checking the target conversation:
+
+```powershell
+palabre relay --to claude:<target-session> --github https://github.com/owner/repo/issues/42 --participant Atlas --subject "Analyze the problem" "Read src/example.ts without modifying files. Identify the cause and suggest a check." --json
+```
+
+Accepted links are `https://github.com/owner/repo`, `/issues/42` or `/pull/42`, without query or fragment. A name is one line, at most 64 characters, with no surrounding whitespace, controls or Unicode formatting. These options apply to ordinary sends, including creation, open Codex and the OpenCode copy pilot; checks, follow-only calls and frozen features refuse them.
+
+The JSON v1 `work.github` link and `work.participant` name are preserved in the envelope, export and `relay recent`. They are historical declarations: no GitHub access, existence check, publication or permission. Participants, GitHub accounts and conversation identities are separate; a signature never proves human approval. Local identifiers and history are not intended for public comments.
+
+An issue holds the problem and its tracking, a PR the changes, and a comment a significant result or decision. The lead prepares an attributed report within authorized work; intermediate exchanges remain direct. Publishing reports through Palabre is a separate future lot. Without a link, conversation and exports suffice: no ticket is required and no tracking is detected from Git. The link belongs to the current work, never every topic of a conversation.
+
 ## Between two Codex conversations
 
 Relay remains compatible with this workflow. If your application already provides the functions needed to delegate a task to a specific Codex conversation and read its reply, those functions may be enough. Your assistant then prefers that path after checking available functions and permissions. These capabilities depend on the application and version.

@@ -8,6 +8,7 @@ Palabre fait coopérer les outils IA choisis par l’utilisateur, aide à croise
 
 - **Palabre** est le produit global ; sa promesse n’impose pas le même fonctionnement à tous les modes.
 - **Relay** fait communiquer et travailler des conversations précises. Chef de mission, coéquipier et conversations reliées décrivent ce parcours, pas tout Palabre.
+- Relay : délégation de codage, analyse ou relecture selon le parcours ; retour au chef de mission. Suivi GitHub facultatif par travail, résultats utiles seulement ; rattachement et participant déclarés sans publication ni autorité. Méthode et attribution : [vision produit](docs/product-vision.md#une-méthode-légère-et-un-suivi-github-facultatif), contrat dans [Relay](docs/dev/relay.md).
 - Codex → Codex reste une compatibilité utile de Relay, sans argument central. Privilégier un parcours natif vérifié, autorisé et suffisant ; respecter une demande explicite de Relay. Détails : [vision produit](docs/product-vision.md#coopération-native-et-valeur-de-relay).
 - **Débat** confronte les arguments de deux agents ; **Ask** recueille des avis indépendants ; **Chat** permet d’échanger avec un agent et d’en consulter un autre.
 - Avant de rédiger README, guide, site ou skill, préciser le niveau : produit ou mode nommé. Relay peut être mis en avant sans devenir la définition de Palabre. Ne pas employer « mode Palabre » comme synonyme de Relay ou Débat.

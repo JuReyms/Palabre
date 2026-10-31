@@ -6,6 +6,7 @@ import { createTranslator } from "./i18n.js";
 import { parseAgentName, parseSessionRef, validateRelaySubject } from "./externalSessions/envelope.js";
 import { isOpenCodeSessionId, parseOpenCodeRef } from "./externalSessions/opencodeCopy.js";
 import { RELAY_EXIT_CODES } from "./externalSessions/outcome.js";
+import { parseRelayGitHub, validRelayParticipant, type RelayWorkContext } from "./externalSessions/relayWork.js";
 import type { DeliveryStatus, ExternalProvider, RelayStatus } from "./externalSessions/types.js";
 
 /** Bornes de travail indépendantes de la taille des messages/réponses exportés. */
@@ -13,6 +14,8 @@ export const RELAY_RECENT_BOUNDS = { directoryEntries: 5000, headerFiles: 200, h
 
 /** Métadonnées déclarées dans un export, jamais une preuve d'identité, d'état ou de droits actuels. */
 export interface RecentRelayEntry {
+  /** Rattachement et participant historiques déclarés, jamais une autorisation de reprise. */
+  work?: RelayWorkContext;
   fileName: string;
   date: string;
   subject: string | null;
@@ -90,6 +93,10 @@ export function parseRecentRelayHeader(header: string, fileName: string): Recent
   }
   const result: RecentRelayEntry = { fileName, date, subject, agent: to.agent, to, provider, mode: mode as RecentRelayEntry["mode"],
     status: status as RelayStatus, delivery: delivery as DeliveryStatus };
+  const githubValue = fields.get(messages.relay.work.github), participant = fields.get(messages.relay.work.participant);
+  const github = githubValue === undefined ? undefined : parseRelayGitHub(githubValue);
+  if ((githubValue !== undefined && !github) || (participant !== undefined && !validRelayParticipant(participant))) return undefined;
+  if (github || participant !== undefined) result.work = { ...(github ? { github } : {}), ...(participant === undefined ? {} : { participant }) };
   if (provider === "opencode") {
     const copy = messages.relay.copy;
     const source = fields.get(copy.source), retained = fields.get(copy.copy), verified = fields.get(copy.verified);

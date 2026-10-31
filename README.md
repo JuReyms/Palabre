@@ -18,6 +18,8 @@
 
 Palabre offers several ways to work with your usual AI tools: cooperate, examine a proposal or inform a decision. Choose the mode that fits your need; you stay in control.
 
+Bring different viewpoints into the work, use the tools and subscriptions that fit your budget, and keep your freedom to choose providers. Agreement between agents still needs evidence and checks.
+
 Palabre calls the AI assistants you bring into the work **agents**, for example through Codex, Claude Code, OpenCode or a local model with Ollama. **Models** are the AI engines those tools use.
 
 ### Your data, your tools
@@ -65,6 +67,8 @@ For example, from Codex:
 > Use Palabre to ask Claude Code to review these changes without modifying files. Explain its findings and any disagreements.
 
 Relay can create a new conversation or continue one you choose. Each send is explicit; it does not start an autonomous conversation loop. The [Palabre skill](https://palab.re/en/get-started/skill) gives your assistant instructions for using Palabre and reporting back to you.
+
+The lead can delegate coding, analysis or review through a path with the required permissions. An optional GitHub link and participant name keep the work identifiable in local records. Issues, PRs and comments can hold useful outcomes within authorized work; attaching the link publishes nothing. Work without GitHub keeps the same direct exchanges. [Tracking and attribution](https://palab.re/en/usage/relay#work-method-and-optional-github-tracking).
 
 Each tool keeps its own conversation and quotas. The request must carry the useful context; Relay does not automatically share their memories. Cross-checking can help catch errors, but agreement between tools is not proof of correctness.
 
@@ -162,6 +166,8 @@ For agents: operating instructions in [`skills/palabre/SKILL.md`](./skills/palab
 
 Palabre propose plusieurs façons de travailler avec vos outils IA habituels : coopérer, examiner une proposition ou éclairer une décision. Choisissez le mode adapté ; vous gardez la main.
 
+Croisez les regards, utilisez les outils et abonnements adaptés à votre budget et gardez votre liberté de choix des fournisseurs. Un accord entre agents demande toujours des preuves et des vérifications.
+
 Palabre appelle **agents** les assistants IA que vous faites participer, par exemple via Codex, Claude Code, OpenCode ou un modèle local avec Ollama. Les **modèles** sont les moteurs IA de ces outils.
 
 ### Vos données, vos outils
@@ -209,6 +215,8 @@ Par exemple, depuis Codex :
 > Avec Palabre, demande à Claude Code de relire ces changements sans modifier de fichier. Explique-moi ses remarques et les éventuels désaccords.
 
 Relay peut créer une nouvelle conversation ou poursuivre celle que vous choisissez. Chaque envoi est explicite ; il ne déclenche pas de boucle autonome entre les conversations. Le [skill Palabre](https://palab.re/fr/get-started/skill) donne à votre assistant les consignes pour utiliser Palabre et vous rendre compte du résultat.
+
+Le chef de mission peut déléguer du codage, une analyse ou une relecture dans un parcours ayant les permissions nécessaires. Un lien GitHub et un nom de participant facultatifs gardent le travail identifiable dans les traces locales. Issues, PR et commentaires peuvent conserver les résultats utiles dans un cadre autorisé ; rattacher le lien ne publie rien. Sans GitHub, les échanges directs restent les mêmes. [Suivi et attribution](https://palab.re/fr/usage/relay).
 
 Chaque outil garde sa conversation et ses quotas. Le contexte utile doit accompagner la demande ; Relay ne partage pas automatiquement leurs mémoires. Croiser les regards peut aider à repérer des erreurs, mais un accord entre outils ne prouve pas qu'une proposition est correcte.
 

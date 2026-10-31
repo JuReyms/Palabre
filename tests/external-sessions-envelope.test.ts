@@ -106,7 +106,8 @@ describe("nonce et enveloppe", () => {
         assert.equal(lines[16], messages.envelopeSession(SESSION, "PR-0123456789abcdef"));
         assert.equal(lines[17], ""); assert.equal(lines[18], messages.envelopeNotice);
         assert.equal(lines[19], build === buildOpenEnvelope ? messages.openPermissions : messages.envelopePermissions);
-        assert.equal(lines[20], ""); assert.equal(lines[21], messages.envelopeReplyHint);
+        assert.equal(lines[20], ""); assert.equal(lines[21], messages.work.replyFormat);
+        assert.equal(lines[22], ""); assert.equal(lines[23], messages.envelopeReplyHint);
         assert.ok(envelope.indexOf("PR-0123456789abcdef") > envelope.indexOf("Ligne 2"));
         assert.equal(envelope.split("PR-0123456789abcdef").length, 2);
         assert.ok(envelope.endsWith(messages.envelopeReplyHint));

@@ -200,7 +200,8 @@ test("commande Windows : copie et export FR/EN sous auto/background ; refus avan
       } }));
       await trustConfig(config);
       const args = ["relay", "--copy", "--to", `laboratoire:${sourceId}`, "--dir", w.cwd, "--config", config, "--language", language,
-        "--model", "fake/other#high", "--reference", "Avis OpenCode", "--exchange", "4", "Lis le projet sans le modifier."];
+        "--model", "fake/other#high", "--reference", "Avis OpenCode", "--exchange", "4",
+        "--github", "https://github.com/owner/repo/issues/42", "--participant", "Atlas", "Lis le projet sans le modifier."];
       const r = await executeRelay(args);
       assert.equal(r.status, "replied", JSON.stringify(r)); assert.equal(r.mode, "copy"); assert.equal(r.to?.session, copyId);
       assert.equal(r.modeSource, "explicit");
@@ -226,6 +227,9 @@ test("commande Windows : copie et export FR/EN sous auto/background ; refus avan
       const envelope = stored.copy.context.find((m: { type: string; text?: string }) => m.type === "user" && m.text?.includes("PALABRE")).text;
       assert.deepEqual(r.exchange, { reference: "Avis OpenCode", number: 4 });
       assert.ok(envelope.includes(createTranslator(language).relay.exchangeLine("Avis OpenCode", 4)));
+      assert.deepEqual(r.work, { github: { url: "https://github.com/owner/repo/issues/42", repository: "owner/repo", kind: "issue", number: 42 }, participant: "Atlas" });
+      assert.ok(envelope.includes(r.work!.github!.url));
+      assert.ok(envelope.includes("Atlas (laboratoire)"));
       assert.ok(exported.includes(`\x60\x60\x60text\n${envelope}\n\x60\x60\x60\n`), "même enveloppe dans la copie et l'export, sans reconstruction");
       const count = w.readCalls().length;
       for (const conflict of ["--new", "--open", "--background", "--check", "--follow", "--then-follow", "--write", "--task", "--pr"]) {

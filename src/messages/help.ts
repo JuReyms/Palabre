@@ -279,6 +279,11 @@ Options :
   Omettez --from et --dir s'ils n'ont pas de valeur ; une chaîne vide est refusée.
   --message-file <chemin>     lit le message dans un fichier (64 Kio au plus)
   --subject <objet>           objet facultatif : une ligne non vide, 200 caractères au plus, sans contrôle
+  --github <url>              suivi facultatif : dépôt, issue ou PR github.com ; aucun accès ni publication
+  --participant <nom>         nom déclaré du destinataire pour ce travail (64 caractères, une ligne)
+  --no-reply-format           retire la consigne courte de restitution, sans changer la réponse reçue
+  Ces options concernent les envois ordinaires seulement (dont --new, --open et --copy).
+  Sans --github, aucun suivi n'est déduit du dépôt. Nom et lien n'accordent aucun droit.
   --reference <repère>        PR, issue ou nom court stable (mêmes limites que --subject)
   --exchange <numéro>         avec --reference : entier de 1 à 999999, choisi par le chef de mission
   Même repère dans la réponse ; aucun compteur automatique ni réussite de tâche certifiée.
@@ -952,6 +957,11 @@ Flags:
   Omit --from and --dir when they have no value; empty strings are rejected.
   --message-file <path>       reads the message from a file (64 KiB at most)
   --subject <subject>         optional subject: one nonblank line, at most 200 characters, no controls
+  --github <url>              optional tracking: github.com repository, issue or PR; no access or publication
+  --participant <name>        declared recipient name for this work (64 characters, one line)
+  --no-reply-format           omits the short reply guidance; never rewrites the received reply
+  These options are for ordinary sends only (including --new, --open and --copy).
+  Without --github, no tracking is inferred from Git. The name and link grant no permission.
   --reference <label>         PR, issue or stable short topic (same limits as --subject)
   --exchange <number>         with --reference: integer from 1 to 999999, assigned by the lead
   Same reference in the reply; no automatic counter or certified task success.

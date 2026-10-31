@@ -138,6 +138,16 @@ Conduite à tenir :
 2. Dire à l'humain, en une phrase, où valider : « Codex attend ton autorisation dans sa fenêtre ; valide-la toi-même, puis dis-moi de continuer. » Avec `--open`, la demande est dans la fenêtre Desktop ou le terminal de l'équipier. En Relay fermé, l'appel est en lecture seule et sans approbation possible : rapporter le blocage et laisser l'humain choisir la suite.
 3. Après sa validation, toute relance est une nouvelle demande explicite du chef de mission, jamais un renvoi automatique. Vérifier d'abord `delivery.status` : un message `persisted-no-reply` ou `unknown` est peut-être déjà dans la conversation, ne pas le renvoyer.
 
+## Suivi GitHub facultatif et attribution
+
+Rattacher seulement le travail désigné à un dépôt, une issue ou une PR avec `--github https://github.com/proprietaire/depot/issues/42`. Sans rattachement humain, ne rien déduire du remote Git et ne pas imposer de ticket. Une conversation peut servir à plusieurs travaux. Réutiliser le lien connu pour ce travail seulement, sans nouvelle question s'il est déjà clair.
+
+`--participant Atlas` nomme le destinataire pour ce travail (une ligne, 64 caractères maximum, sans espaces aux extrémités ni contrôle/formatage Unicode). Garder un nom stable si plusieurs conversations du même outil participent ; l’alias suffit sinon. Aucun UUID, nonce, chemin privé ou historique dans cette attribution destinée à être reprise dans un bilan. Un nouveau nom ne constitue ni un autre outil ni un relecteur indépendant.
+
+Le lien accepte un dépôt github.com, `/issues/<numéro>` ou `/pull/<numéro>`, sans query ni fragment ; existence et accès ne sont pas vérifiés. JSON v1 : `work.github` contient `url`, `repository`, `kind` et éventuellement `number` ; `work.participant` contient le nom déclaré. L’enveloppe, l’export, la passation locale et `relay recent` conservent ce contexte. Options réservées aux envois ordinaires, dont --new, --open et --copy ; refus sur --check, --follow et parcours gelés.
+
+Les résultats reviennent directement au chef de mission, qui coordonne les corrections et restitue le résultat ou un résumé avec les liens utiles. GitHub conserve les éléments significatifs dans un cadre de publication autorisé : tâche, changements, vérifications, blocage ou décision. Ne pas publier chaque échange. Ces options ne publient rien ; ne pas utiliser les fonctions gelées pour le compléter. Compte GitHub, participant déclaré et conversation sont distincts : signature ou commentaire sous le compte humain ne prouvent jamais son accord.
+
 ## Méthode de travail
 
 Le chef de mission propose la délégation de lui-même : quand un travail se découpe (relecture, recherche, lot indépendant, vérification), il n'attend pas que l'humain y pense. Petite délégation attendue, comme une relecture ou une recherche en lecture seule, dans un travail déjà validé : il l'annonce en une ligne (qui fait quoi), puis la fait. Délégation qui engage, comme une écriture, plusieurs équipiers, un quota important ou un nouveau chantier : il pose une question claire, une seule fois pour tout le lot, et la réponse vaut pour la suite de ce lot. Pas de demande répétée dans ce cadre, sauf préférence humaine explicite à respecter (par exemple confirmer chaque consultation). Une question simple reste traitée par l'hôte seul. Déléguer n'élargit aucun droit.
@@ -146,9 +156,9 @@ Un lot produit un résultat concret, assez petit pour être relu rapidement. Pou
 
 Limiter le coût de coordination et les quotas : regrouper les demandes et les corrections, réutiliser les vérifications encore valides, les relancer si un changement ou un doute le justifie. Transmettre le contexte utile et les preuves sans recopier tout l'historique. Pendant un tour reçu par Relay, aucune question à l'humain : décisions et blocages vont dans la réponse finale. Tout texte à valider accompagne la demande de décision, dans la même question hors d'un tour relayé, dans la réponse finale pendant ce tour.
 
-L'objet (`--subject`) est une phrase humaine qui dit ce qui se passe. Ne pas fabriquer l'en-tête ou le pied agent : PALABRE les ajoute. Le corps suit le gabarit de demande ci-dessous ; la réponse commence par les cinq lignes pour l'humain, puis donne les preuves et le détail au chef de mission. Dans les deux gabarits, sépare chaque ligne par une ligne vide, pour la lisibilité. N'utilise pas deux espaces en fin de ligne. Ces gabarits sont des consignes pour les agents, pas un format analysé par la CLI. Les preuves de transport restent le statut, la délivrance et l'export ; une réponse arrivée ne prouve pas une tâche réussie.
+L'objet (`--subject`) dit ce qui se passe. Ne pas fabriquer l'en-tête ou le pied agent : PALABRE les ajoute. Préciser objectif, périmètre, résultat attendu, contexte et preuves utiles. La CLI ajoute une consigne courte de restitution aux envois ordinaires : résultat, vérifications et preuves, limites/blocages, suite utile et décision attendue si nécessaire. Ne pas la recopier dans chaque message. Une question simple appelle une réponse simple ; omettre les rubriques sans objet. `--no-reply-format` retire la consigne pour cet appel. Aucune analyse de la prose ni réécriture de la réponse ; les garanties de transport et les limites d'enveloppe restent inchangées.
 
-Avec un repère, la réponse commence par le même **➡️ sujet · Échange N**, puis **📄 Résultat :** en mots simples (conclusion, limites, qui agit ensuite), avant les cinq lignes et les preuves. Ne pas répéter la direction ni ajouter un second en-tête PALABRE. Ce résultat est le constat de l'équipier, non un verdict certifié ou une autorisation ; ne jamais déduire une tâche réussie du statut `replied`. Sans repère, le gabarit existant reste utilisable.
+Avec un repère, la réponse commence par le même **➡️ sujet · Échange N**, puis **📄 Résultat :** en mots simples (conclusion, limites, qui agit ensuite), avec les preuves pertinentes. Ne pas répéter la direction ni ajouter un second en-tête PALABRE. Ce résultat est le constat de l'équipier, non un verdict certifié ou une autorisation ; ne jamais déduire une tâche réussie du statut `replied`. Le gabarit détaillé ci-dessous reste un exemple pour les tâches qui le justifient.
 
 ### Gabarit de demande (exemple fictif)
 
@@ -165,7 +175,7 @@ Objet à passer à `--subject` : « Relire le plan du projet fictif Orion avant 
 
 **Preuves attendues :** fichier et lignes pour chaque constat ; distinguer ce qui a été vérifié de ce qui reste incertain.
 
-**Format de réponse :** Fait · Vérifié · Bloqué · Prochaine action · Décision attendue, puis les preuves pour le chef de mission. Joindre le texte exact de toute formulation à valider.
+Joindre le texte exact de toute formulation à valider.
 ```
 
 ### Gabarit de réponse (exemple fictif)

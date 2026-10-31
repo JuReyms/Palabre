@@ -3,9 +3,12 @@ import type { DeliveryStatus, InvalidRequestReason, ReadAccessDiagnostic, RelayS
 import type { Language } from "../types.js";
 import { relayCopyText } from "./relayCopy.js";
 import { relayClaudeText } from "./relayClaude.js";
+import { relayWorkText } from "./relayWork.js";
 
 /** Textes du relay ; la langue suit `--language`, `PALABRE_LANGUAGE` puis la config. */
 export interface RelayMessages {
+  /** Contexte déclaré et consigne de restitution, sans effet sur les permissions ou le verdict. */
+  work: ReturnType<typeof relayWorkText>;
   /** Refus Claude ordinaire et passation, localisés avec le reste du dictionnaire. */
   claude: ReturnType<typeof relayClaudeText>;
   /** Consultation OpenCode sur copie, distincte des garanties des reprises UUID. */
@@ -284,6 +287,7 @@ const enInvalid: Record<InvalidRequestReason, string> = {
 
 export const relayMessages: Record<Language, RelayMessages> = {
   fr: {
+    work: relayWorkText("fr"),
     claude: relayClaudeText("fr"),
     copy: relayCopyText("fr"),
     usageLimit: retry => "Codex a atteint sa limite d'usage. " + (retry === undefined
@@ -460,6 +464,7 @@ Le propriétaire l'ouvre lui-même ou le demande à son agent ; un agent ne l'ou
     }
   },
   en: {
+    work: relayWorkText("en"),
     claude: relayClaudeText("en"),
     copy: relayCopyText("en"),
     usageLimit: retry => "Codex has reached its usage limit. " + (retry === undefined

@@ -132,6 +132,64 @@ function palabre(world: World, argv: string[], env: Record<string, string> = {})
 const toClaude = ["--from", FROM, "--to", `claude:${CLAUDE_SESSION}`];
 const toCodex = ["--from", `claude:${CLAUDE_SESSION}`, "--to", `codex:${CODEX_SESSION}`];
 
+test("travail Relay FR/EN : contexte dans le transport, JSON, export et inventaire ; aucun appel GitHub", async () => {
+  for (const language of ["fr", "en"] as const) {
+    const w = makeWorld();
+    const r = await relay(w, [...toClaude, "Relis le plan", "--github", "https://github.com/owner/repo/issues/12", "--participant", "Atlas",
+      "--language", language, "--trust-config", "--json"]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.calls.length, 1);
+    assert.deepEqual(r.json.work, { github: { url: "https://github.com/owner/repo/issues/12", repository: "owner/repo", kind: "issue", number: 12 }, participant: "Atlas" });
+    assert.ok(r.calls[0]!.stdin.includes(relayMessages[language].work.notice));
+    assert.ok(r.calls[0]!.stdin.includes(relayMessages[language].work.replyFormat));
+    const md = readFileSync(r.json.exportPath, "utf8");
+    assert.ok(md.includes(r.calls[0]!.stdin));
+    const recent = await palabre(w, ["relay", "recent", "--json"]);
+    assert.equal(recent.code, 0, recent.stderr);
+    assert.deepEqual(recent.json.entries[0].work, r.json.work);
+    assert.equal(recent.calls.length, 1, "la consultation ne lance aucun agent supplémentaire");
+  }
+});
+
+test("sans suivi GitHub : nom facultatif et réponse libre ; aucune métadonnée inventée", async () => {
+  const r = await relay(makeWorld(), [...toClaude, "Question simple", "--no-reply-format", "--trust-config", "--json"]);
+  assert.equal(r.code, 0, r.stderr); assert.equal(r.json.work, undefined);
+  assert.equal(r.calls[0]!.stdin.includes(relayMessages.fr.work.replyFormat), false);
+  const named = await relay(makeWorld(), [...toClaude, "Question", "--participant", "Atlas", "--trust-config", "--json"]);
+  assert.deepEqual(named.json.work, { participant: "Atlas" });
+});
+
+test("contexte invalide ou hors périmètre : aucun lancement, export ou approbation", async () => {
+  for (const extra of [["--github", "https://github.com/o/r?token=x"], ["--participant", "x\ny"],
+    ["--github", "https://github.com/o/r", "--task", "review"], ["--participant", "Atlas", "--write", "--new"],
+    ["--no-reply-format", "--task", "review"], ["--github", "https://github.com/o/r", "--github", "https://github.com/o/s"]]) {
+    const w = makeWorld();
+    const r = await relay(w, [...toClaude, "Q", ...extra, "--trust-config", "--json"]);
+    assert.equal(r.code, 8, JSON.stringify(extra)); assert.equal(r.json.delivery.status, "not-delivered");
+    assert.deepEqual(r.calls, []); assert.equal(r.json.exportPath, null);
+    assert.equal(existsSync(path.join(w.home, ".palabre", "trusted-configs.json")), false);
+  }
+  for (const mode of [["--check"], ["--open", "--follow"]]) {
+    const r = await relay(makeWorld(), ["--to", `codex:${CODEX_SESSION}`, ...mode, "--participant", "Atlas", "--json"]);
+    assert.equal(r.code, 8); assert.deepEqual(r.calls, []);
+  }
+});
+
+test("contexte dans une nouvelle conversation et dans la file Codex, sans nouvel envoi", async () => {
+  const w = makeWorld();
+  const created = await relay(w, ["--new", "--to", "claude", "Q", "--github", "https://github.com/o/r", "--trust-config", "--json"]);
+  assert.equal(created.code, 0, created.stderr); assert.equal(created.json.created, true);
+  assert.equal(created.json.work.github.kind, "repository");
+  if (process.platform !== "win32") return;
+  const opened = makeWorld(), release = holdCodexLock(opened);
+  try {
+    const r = await relay(opened, [...toCodex, "--open", "Q", "--github", "https://github.com/o/r/pull/1", "--participant", "Atlas", "--trust-config", "--json"]);
+    assert.equal(r.code, 0, r.stderr); assert.equal(r.calls.length, 1);
+    assert.ok(r.calls[0]!.argv[4]!.includes("https://github.com/o/r/pull/1"));
+    assert.equal(r.json.work.participant, "Atlas");
+  } finally { release(); }
+});
+
 test("repère Relay FR/EN : transport, JSON et export gardent la même référence", async () => {
   for (const language of ["fr", "en"] as const) {
     const w = makeWorld();
@@ -878,12 +936,12 @@ describe("relay.view (#190)", () => {
       const port = (server.address() as { port: number }).port;
       for (const view of [undefined, "auto", "background"] as const) {
         const world = makeWorld(); if (view) setting(world, view);
-        const declared = view === undefined ? [] : ["--skill-revision", view === "auto" ? "999" : "8"];
+        const declared = view === undefined ? [] : ["--skill-revision", view === "auto" ? "999" : "9"];
         const r = await palabre(world, ["agents", "--json", "--trust-config", ...declared], { OLLAMA_HOST: `http://127.0.0.1:${port}` });
         assert.equal(r.code, 0, r.stderr); assert.equal(r.json.defaults.relayView, view ?? "background");
         assert.equal(r.json.v, 1); assert.equal(r.calls.length, 0);
         assert.equal(r.json.skill.status, view === undefined ? "unverified" : view === "auto" ? "reload-required" : "current");
-        assert.equal(r.json.skill.revision, 8);
+        assert.equal(r.json.skill.revision, 9);
         assert.ok(path.isAbsolute(r.json.skill.entrypoint));
         assert.ok(r.json.skill.references["relay.md"].endsWith(path.join("references", "relay.md")));
         assert.equal(r.json.skill.instructions, undefined);

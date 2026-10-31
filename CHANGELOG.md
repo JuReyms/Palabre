@@ -4,6 +4,16 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+### Added
+
+- Relay ordinaire : rattachement GitHub facultatif (`--github`) et nom déclaré du destinataire (`--participant`), conservés dans l’enveloppe, le JSON v1, les exports, les passations locales et `relay recent`. Aucun accès ni publication GitHub.
+
+### Changed
+
+- Restitution Relay proportionnée ajoutée à l’enveloppe ordinaire ; `--no-reply-format` la retire pour un appel. Réponse brute, délivrance, permissions et fonctions gelées inchangées.
+- Vision et guides FR/EN alignés sur la coopération pour décider et travailler, la liberté de choix et de budget, et un suivi GitHub facultatif des résultats utiles.
+- Consignes du skill révisées : ne plus recopier systématiquement le format de réponse, garder le rattachement au travail et attribuer les contributions. Les copies installées se synchronisent seulement par un plan `palabre skill --sync` ou `palabre update` confirmé, depuis le paquet installé ; recharger les consignes après synchronisation.
+
 ## [0.22.1] - 2026-10-30
 
 <!-- social: Palabre 0.22.1 clarifies Relay guidance, makes Codex conversations easier to consult and checks the command used after an update. -->
