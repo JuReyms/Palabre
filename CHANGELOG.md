@@ -12,7 +12,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Changed
 
-- Consignes de publication du skill révision 11 : bilan choisi, attribution déclarée, aperçu, validation par l’humain dans son terminal, annulation/refus à l’invite, retour du lien et arrêt sans rejeu sur incertitude. Copies installées seulement par plan `palabre skill --sync` ou `palabre update` confirmé depuis le paquet installé, puis rechargement des consignes.
+- Consignes de publication du skill révision 12 : bilan choisi, attribution déclarée, aperçu préparé par l’agent, commande d’envoi lancée par l’humain dans son terminal, annulation/refus à l’invite, retour du lien et arrêt sans rejeu sur incertitude. Un PID, un TTY ou une réponse dans une trace ne prouve pas une validation humaine. Copies installées seulement par plan `palabre skill --sync` ou `palabre update` confirmé depuis le paquet installé, puis rechargement des consignes.
 
 - Restitution Relay proportionnée ajoutée à l’enveloppe ordinaire ; `--no-reply-format` la retire pour un appel. Réponse brute, délivrance, permissions et fonctions gelées inchangées.
 - Vision et guides FR/EN alignés sur la coopération pour décider et travailler, la liberté de choix et de budget, et un suivi GitHub facultatif des résultats utiles.
@@ -20,6 +20,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Fixed
 
+- Qualification de publication Relay : retrait des affirmations non établies sur la fenêtre PowerShell et la saisie humaine ; aide et guides distinguent le contrôle TTY de la présence effective d’un utilisateur. Publications techniques vérifiées conservées, parcours humain non qualifié.
 - Publication Relay : la fin d’entrée à l’invite ne laisse plus la confirmation en attente ; Ctrl+C rend une annulation structurée, Ctrl+D ou EOF un refus, sans envoi ni réservation.
 
 ## [0.22.1] - 2026-10-30

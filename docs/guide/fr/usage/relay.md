@@ -64,7 +64,7 @@ Pour voir le commentaire exact, son compte de publication et sa destination, san
 palabre relay publish --to https://github.com/proprietaire/depot/pull/42 --from codex --participant Atlas --message-file bilan.md --dry-run --json
 ```
 
-Pour publier, lancez la même commande dans un terminal visible sans `--dry-run` (et sans `--json` si vous préférez la sortie humaine). Palabre affiche le compte GitHub, le lien, la visibilité publique ou privée et le commentaire entier ; vous confirmez au clavier. Le chef de mission peut préparer cette commande, mais ne confirme jamais à votre place ni dans un terminal caché. Cette première version ne propose aucune autorisation globale par dépôt. Les accès existants de `gh` restent nécessaires ; aucun agent n’est lancé.
+Pour publier, ouvrez votre terminal et lancez vous-même la même commande sans `--dry-run` (et sans `--json` si vous préférez la sortie humaine). Palabre affiche le compte GitHub, le lien, la visibilité publique ou privée et le commentaire entier ; vous confirmez au clavier. Le chef de mission prépare l’aperçu et vous fournit la commande ; il ne lance pas l’envoi dans une autre fenêtre ou un sous-processus et ne confirme jamais à votre place. Le contrôle technique du terminal (entrée et stderr TTY) ne prouve ni fenêtre visible ni présence humaine. Cette première version ne propose aucune autorisation globale par dépôt. Les accès existants de `gh` restent nécessaires ; aucun agent n’est lancé.
 
 À l’invite, Ctrl+C annule ; Ctrl+D ou une fin d’entrée refuse. Ces gestes n’envoient rien et ne créent aucune réservation. Après réservation, même un refus HTTP peut laisser la demande bloquée : conservez la trace et vérifiez les éléments avec le mainteneur, sans modifier le bilan pour rejouer.
 
