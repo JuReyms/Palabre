@@ -1,6 +1,6 @@
 # Qualification de la publication d'un bilan Relay
 
-État au 31 octobre 2026 : aperçu réel vérifié, publication réelle **non qualifiée**. Ce document complète le [contrat de publication](relay-publication-contract.md) ; il ne qualifie ni Mission, ni `--task review`, ni `--write`.
+État au 31 octobre 2026 : aperçu réel, publication nominale sur une issue publique et retour historique sans doublon vérifiés sous Windows. Les autres scénarios réels ci-dessous restent à qualifier. Ce document complète le [contrat de publication](relay-publication-contract.md) ; il ne qualifie ni Mission, ni `--task review`, ni `--write`.
 
 ## Vérifications acquises
 
@@ -20,9 +20,23 @@ Typage, build, validation du skill et génération documentaire réussis après 
 
 La gestion conservatrice après réservation est maintenue et explicitée dans l'aide, les guides et le skill : pas de réouverture d'une demande sur la seule interprétation d'un message d'erreur HTTP. La comparaison exacte de la casse du lien peut aussi refuser un lien non canonique ; elle n'est pas assouplie dans ce correctif.
 
+## Essai nominal réel sur issue publique
+
+31 octobre 2026, code `33974e4`, Windows build 26200, PowerShell 7.6.5, Node.js 24.19.0 et GitHub CLI 2.88.0. La CI de cette révision est verte : suite complète Linux, contrôles macOS décrits plus haut. Ces contrôles ne remplacent pas l'essai GitHub réel.
+
+Après accord explicite pour un seul commentaire fictif, le propriétaire a désigné l'[issue de test #265](https://github.com/JuReyms/Palabre/issues/265). Elle était ouverte, non verrouillée, sans commentaire. Un fichier séparé contient le bilan du protocole ci-dessous, sans historique ni identifiant privé. L'aperçu réel a montré le compte `JuReyms`, la visibilité publique et le corps exact.
+
+La commande compilée a été lancée dans un terminal PowerShell visible, avec entrée et stderr TTY. L'aperçu a été affiché et une réponse `o` a été enregistrée à l'invite ; aucune réponse n'a été saisie par l'agent. Résultat : `published`, code 0, `publication: published`, `attempted: true`, trace sauvegardée. Le [commentaire confirmé](https://github.com/JuReyms/Palabre/issues/265#issuecomment-6544665367) est conservé.
+
+Une lecture indépendante de l'API GitHub après l'appel confirme l'ID et l'URL du commentaire, son compte et ID de compte, son corps exact comparé au fichier choisi et au reçu local `published`. L'issue contient un seul commentaire. Sous Windows, les modes POSIX demandés ne constituent pas une qualification des ACL du fichier.
+
+La même commande, le même bilan et le même profil ont ensuite été utilisés dans un terminal visible : `already-published`, code 0, `publication: published`, `attempted: false`, même URL, sans nouvelle confirmation. Une nouvelle lecture de GitHub confirme exactement un commentaire et l'issue toujours ouverte. Aucun second commentaire, suppression de trace, changement de profil ou de corps pour contourner la réservation. Reçu et transcriptions de terminal restent locaux ; seuls le bilan choisi et son lien sont publics.
+
+Cette preuve couvre une issue publique et ce compte sous ces versions Windows. Elle ne qualifie pas encore une publication sur PR, une cible privée, les gestes de refus/annulation dans un vrai terminal, une dérive pendant l'attente, une panne réseau réelle ou d'autres plateformes. Les protections correspondantes gardent leurs tests fictifs et leurs limites.
+
 ## Préparer les essais humains
 
-L'humain désigne une issue et une PR jetables, et autorise explicitement les deux commentaires de qualification. Une issue de travail n'est pas une cible de test implicite. Aucun changement de politique, connexion, profil ou configuration n'est nécessaire ; les droits GitHub existants s'appliquent. L'agent prépare les fichiers et aperçus, mais ne confirme jamais au clavier et n'efface aucun reçu.
+Pour chaque nouveau commentaire réel, l'humain désigne la cible jetable et autorise explicitement cet essai. Couvrir aussi une PR exige une autre cible et un accord distinct ; l'essai autorisé sur #265 n'autorise pas un second commentaire ailleurs. Une issue de travail n'est pas une cible de test implicite. Aucun changement de politique, connexion, profil ou configuration n'est nécessaire ; les droits GitHub existants s'appliquent. L'agent prépare les fichiers et aperçus, mais ne confirme jamais au clavier et n'efface aucun reçu.
 
 Depuis le checkout compilé, préparer un fichier séparé `bilan-qualification.md` avec ce seul contenu public :
 
@@ -48,16 +62,16 @@ node dist/index.js relay publish --to <cible-jetable> --from codex --participant
 
 L'humain lit à nouveau l'aperçu puis choisit lui-même sa réponse. Ne jamais injecter une réponse avec un pipe, un pseudo-terminal caché ou un outil d'automatisation. Conserver les reçus et commentaires, sans nettoyage automatique.
 
-## Scénarios minimaux à compléter
+## Scénarios et couverture
 
-| Scénario | Action humaine | Résultat et preuve attendus |
-| --- | --- | --- |
-| Refus | Répondre non au premier aperçu interactif | `declined`, code 8, `attempted: false` ; aucun nouveau commentaire ni réservation. |
-| Fin d'entrée | À des aperçus frais, utiliser Ctrl+C, puis Ctrl+D ou fermer l'entrée | Ctrl+C : `cancelled`/130 ; Ctrl+D ou EOF : `declined`/8. JSON complet, `attempted: false`, aucun nouveau commentaire ni réservation. |
-| Source modifiée | Après affichage de l'aperçu et avant toute réponse, modifier le bilan choisi puis confirmer | `changed`, code 2, `attempted: false` ; aucun nouveau commentaire. Repréparer et relire le bilan avant un autre essai explicite. |
-| Issue | Confirmer le bilan relu sur l'issue jetable | `published`, code 0, `attempted: true`, reçu sauvegardé et URL du commentaire ; comparer le compte et le corps directement dans GitHub. |
-| Même demande | Après le succès, relancer la commande identique sur cette issue, depuis le même profil et terminal visible | `already-published`, `attempted: false`, même URL ; aucun second commentaire. Le reçu reste conservé. |
-| PR | Confirmer le bilan relu sur la PR jetable | Même vérification du succès et du compte ; commentaire de conversation, aucune revue inline, aucun changement d'état de la PR. |
+| Scénario | Action humaine | Résultat et preuve attendus | État réel |
+| --- | --- | --- | --- |
+| Refus | Répondre non au premier aperçu interactif | `declined`, code 8, `attempted: false` ; aucun nouveau commentaire ni réservation. | À exécuter |
+| Fin d'entrée | À des aperçus frais, utiliser Ctrl+C, puis Ctrl+D ou fermer l'entrée | Ctrl+C : `cancelled`/130 ; Ctrl+D ou EOF : `declined`/8. JSON complet, `attempted: false`, aucun nouveau commentaire ni réservation. | À exécuter |
+| Source modifiée | Après affichage de l'aperçu et avant toute réponse, modifier le bilan choisi puis confirmer | `changed`, code 2, `attempted: false` ; aucun nouveau commentaire. Repréparer et relire le bilan avant un autre essai explicite. | À exécuter |
+| Issue | Confirmer le bilan relu sur l'issue jetable | `published`, code 0, `attempted: true`, reçu sauvegardé et URL du commentaire ; comparer le compte et le corps directement dans GitHub. | Réussi sur #265 |
+| Même demande | Après le succès, relancer la commande identique sur cette issue, depuis le même profil et terminal visible | `already-published`, `attempted: false`, même URL ; aucun second commentaire. Le reçu reste conservé. | Réussi sur #265 |
+| PR | Confirmer le bilan relu sur la PR jetable | Même vérification du succès et du compte ; commentaire de conversation, aucune revue inline, aucun changement d'état de la PR. | À exécuter |
 
 Pour qualifier `--commit`, l'ajouter à l'essai PR avec les 40 caractères de sa tête relevée explicitement. Ce marqueur ne certifie pas que le code a été relu. Une tête différente doit refuser sans publication ; ne pas pousser un commit de test sur une PR de travail pour provoquer cette dérive.
 
@@ -71,4 +85,4 @@ En cas d'issue `uncertain`, de réservation préexistante ou de trace illisible 
 
 Ajouter ici, après chaque essai admis : date, révision, plateforme, versions, scénario, statut/code, vérification indépendante du commentaire et limites. Les preuves publiques se limitent au bilan choisi et aux liens autorisés ; aucun transcript, identifiant de conversation, nonce, chemin personnel ou jeton. Conserver les détails diagnostiques nécessaires localement.
 
-Ces essais restent à exécuter avec l'humain avant de qualifier la publication réelle. Ils ne remplacent pas les contrôles de release décrits dans [la maintenance](dev/maintenance.md).
+Les scénarios marqués « À exécuter » restent à qualifier avec l'humain avant d'étendre les garanties réelles au-delà du parcours nominal sur issue publique. Aucun de ces essais ne remplace les contrôles de release décrits dans [la maintenance](dev/maintenance.md).
