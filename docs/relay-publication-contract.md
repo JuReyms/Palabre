@@ -4,7 +4,7 @@ Lot distinct du contexte de travail et des fonctions Mission, `--task review` et
 
 ## Parcours et autorité
 
-Le chef de mission choisit un bilan utile, attribue les contributions et prépare un fichier séparé. Il peut afficher l’aperçu avec `palabre relay publish --dry-run`. Pour publier, l’humain lance la commande dans un terminal visible, lit compte, destination, visibilité et corps exact, puis confirme au clavier. L’agent ne confirme jamais à sa place, y compris avec un terminal caché.
+Le chef de mission choisit un bilan utile, attribue les contributions et prépare un fichier séparé. Il peut afficher l’aperçu avec `palabre relay publish --dry-run`. Pour publier, l’humain lance la commande dans un terminal visible, lit compte, destination, visibilité et corps exact, puis confirme au clavier. Une fin d’entrée ou Ctrl+D refuse ; Ctrl+C ou un signal d’annulation rend `cancelled`/130. Ces sorties à l’invite ne créent aucune réservation. L’agent ne confirme jamais à sa place, y compris avec un terminal caché.
 
 Cette première version n’ajoute aucune politique globale et ne réutilise pas `relay.allowedTasks` ou `relay.reviewRepositories`. Pas de `--yes`, `--trust-config`, `--config`, accord transmis par un autre agent ou approbation déduite d’un commentaire. Une intention de publier dans la conversation n’est pas assimilée à la confirmation clavier. Le contrôle TTY reste un contrôle opérateur, pas une authentification contre un processus disposant déjà des droits de l’utilisateur.
 
@@ -35,6 +35,8 @@ Un seul appel de publication `gh api repos/<repo>/issues/<numéro>/comments --me
 
 La trace finale remplace atomiquement la réservation seulement si elle est encore intacte. Une interruption conserve `reserved` ; deux appels concurrents ne peuvent réserver la même demande. Une réservation incertaine ou corrompue bloque le rejeu. Ne pas l’effacer, la déplacer, changer de profil ou altérer le bilan pour contourner ce refus. Une trace locale `published` valide permet de restituer le lien sans nouvel envoi, sans promettre que le commentaire existe encore actuellement.
 
+Limite volontaire de cette première version : après réservation, un refus HTTP ou un processus non démarré reste bloquant, car le transport ne qualifie pas les refus distants comme une preuve réutilisable d’absence de publication. Une annulation entre réservation et appel peut rendre `cancelled`/130 et `attempted: false` tout en conservant cette réservation ; l’appel suivant rend alors `uncertain` sans envoi. L’absence de tentative dans l’appel courant n’autorise pas à effacer la trace. Il n’existe pas encore de commande de résolution de ces réservations : vérifier les éléments avec le mainteneur, conserver la trace et arrêter, sans modifier le bilan pour rejouer.
+
 Un accusé confirmé reste prioritaire sur une annulation ou une erreur ultérieure de trace : URL et succès de publication conservés, avertissement de trace si nécessaire. L’annulation avant appel rend `not-attempted` ; pendant appel, elle laisse `unknown` sauf accusé confirmé. Aucun retrait du commentaire promis. Le garde-fou est local au profil et à la demande exacte, pas une garantie universelle d’effet exactement une fois.
 
 ## JSON, sortie humaine et vérification
@@ -43,6 +45,6 @@ JSON distinct v1 `type: relay-publication-result` : `status`, `exitCode`, `publi
 
 Codes : 0 aperçu ou publication confirmée/historique ; 8 arguments, absence de confirmation ou refus humain ; 2 cible/source modifiée, indisponibilité, trace impossible ou issue incertaine ; 130 annulation avant appel. Aperçu et confirmation d’envoi sur stderr, JSON unique sur stdout. Le mode texte d’aperçu rend le corps exact sur stdout ; tous les textes humains sont assainis.
 
-Tests via `scripts/test.mjs` sur profils et API fictifs : absence d’écriture en aperçu, identité/dérives, accord/refus/TTY, POST unique, accusés contradictoires, concurrence, crash simulé, trace volumineuse/corrompue/modifiée, annulation et succès conservé. Aucune publication réelle pour ces tests. Une qualification réelle sur une cible jetable désignée exige un accord humain distinct avant release ; ne jamais tester en créant un commentaire sur une issue de travail par défaut.
+Tests via `scripts/test.mjs` sur profils et API fictifs : absence d’écriture en aperçu, identité/dérives, accord/refus/TTY, POST unique, accusés contradictoires, concurrence, crash simulé, trace volumineuse/corrompue/modifiée, annulation et succès conservé. Aucune publication réelle pour ces tests. Une qualification réelle sur une cible jetable désignée exige un accord humain distinct avant release ; ne jamais tester en créant un commentaire sur une issue de travail par défaut. Le [bilan et protocole de qualification](relay-publication-qualification.md) sépare les preuves acquises des essais humains restant à exécuter.
 
 Sources du contrat distant : [commentaires de conversation](https://docs.github.com/en/rest/issues/comments#create-an-issue-comment), [issues](https://docs.github.com/en/rest/issues/issues#get-an-issue), [PR](https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request). Les comportements des versions externes restent à qualifier.

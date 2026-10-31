@@ -1,11 +1,13 @@
 /** @file Publication sur profils/serveurs fictifs : aperçu, accord opérateur, races et absence de rejeu. */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { getEventListeners } from "node:events";
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { after, test } from "node:test";
 import os from "node:os";
 import path from "node:path";
-import { executeRelayPublish, MAX_PUBLICATION_BODY_BYTES, type PublicationTerminal } from "../src/commands/relayPublish.js";
+import { PassThrough } from "node:stream";
+import { confirmPublication, executeRelayPublish, MAX_PUBLICATION_BODY_BYTES, type PublicationTerminal } from "../src/commands/relayPublish.js";
 import { runPublicationGitHub, type PublicationGitHubRun } from "../src/githubPublication.js";
 import type { ExternalProcessResult, ExternalProcessSpec } from "../src/externalSessions/process.js";
 import { relayPublishText } from "../src/messages/relayPublish.js";
@@ -73,6 +75,38 @@ test("accord refusé ou terminal caché : aucun envoi ni trace ; pas de politiqu
   const hidden = await w.execute();
   assert.equal(hidden.result.status, "confirmation-required"); assert.deepEqual(w.calls, []);
   assert.equal(w.confirmations, 1);
+});
+
+test("vraie invite sur streams fictifs : EOF/Ctrl+D refusent, Ctrl+C/signal annulent sans POST ni réservation", { timeout: 5000 }, async () => {
+  for (const key of ["n\r", "\u0003", "\u0004", "eof", "signal"]) {
+    const w = world(), controller = new AbortController();
+    const input = Object.assign(new PassThrough(), { isTTY: true, setRawMode: () => input });
+    const output = Object.assign(new PassThrough(), { isTTY: true });
+    output.on("data", () => {});
+    w.terminal.confirm = (prompt, signal) => {
+      const result = confirmPublication(prompt, signal, input, output);
+      if (key === "eof") input.end();
+      else if (key === "signal") controller.abort();
+      else input.write(key);
+      return result;
+    };
+    try {
+      const { result } = await w.execute([], { signal: controller.signal });
+      const cancelled = key === "\u0003" || key === "signal";
+      assert.equal(result.status, cancelled ? "cancelled" : "declined", key);
+      assert.equal(result.exitCode, cancelled ? 130 : 8, key);
+      assert.equal(result.publication, "not-attempted"); assert.equal(result.attempted, false);
+      assert.equal(w.posted, 0); assert.deepEqual(readdirSync(w.home), ["bilan.md"]);
+      assert.equal(input.listenerCount("keypress"), 0); assert.equal(getEventListeners(controller.signal, "abort").length, 0);
+    } finally { input.destroy(); output.destroy(); }
+  }
+  const input = new PassThrough(), output = new PassThrough(); output.on("data", () => {});
+  try {
+    const agreed = confirmPublication("Faux accord de test : ", undefined, input, output);
+    input.write("oui\n"); assert.equal(await agreed, true);
+    const cancelled = new AbortController(); cancelled.abort();
+    await assert.rejects(confirmPublication("Faux accord de test : ", cancelled.signal, input, output), { name: "AbortError" });
+  } finally { input.destroy(); output.destroy(); }
 });
 
 test("publication issue et PR, ouverte ou fermée : POST unique, accusé complet, trace et aucun doublon", async () => {

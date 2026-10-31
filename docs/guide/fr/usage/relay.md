@@ -66,6 +66,8 @@ palabre relay publish --to https://github.com/proprietaire/depot/pull/42 --from 
 
 Pour publier, lancez la même commande dans un terminal visible sans `--dry-run` (et sans `--json` si vous préférez la sortie humaine). Palabre affiche le compte GitHub, le lien, la visibilité publique ou privée et le commentaire entier ; vous confirmez au clavier. Le chef de mission peut préparer cette commande, mais ne confirme jamais à votre place ni dans un terminal caché. Cette première version ne propose aucune autorisation globale par dépôt. Les accès existants de `gh` restent nécessaires ; aucun agent n’est lancé.
 
+À l’invite, Ctrl+C annule ; Ctrl+D ou une fin d’entrée refuse. Ces gestes n’envoient rien et ne créent aucune réservation. Après réservation, même un refus HTTP peut laisser la demande bloquée : conservez la trace et vérifiez les éléments avec le mainteneur, sans modifier le bilan pour rejouer.
+
 `--from` est un nom d’agent déclaré, sans UUID ; `--participant` donne son nom pour ce travail, ou reprend l’alias par défaut. Le compte authentifié qui publie est affiché séparément : la signature n’authentifie pas l’agent. `--commit <sha40>` permet de rattacher le bilan à la tête exacte d’une PR ; une dérive depuis l’aperçu arrête la publication. Le fichier est du texte UTF-8 non vide de 60 Kio maximum ; les retours CRLF sont normalisés en LF avant aperçu. Les exports Palabre complets sont refusés.
 
 Le JSON `relay-publication-result` est distinct du résultat d’un échange. `publication` indique `not-attempted`, `published` ou `unknown` ; recevoir un commentaire ne prouve pas la réussite de la tâche. Le lien confirmé est rendu au chef de mission pour sa restitution.

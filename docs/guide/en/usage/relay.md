@@ -66,6 +66,8 @@ palabre relay publish --to https://github.com/owner/repo/pull/42 --from codex --
 
 To publish, run the same command in a visible terminal without `--dry-run` (and without `--json` for human output). Palabre shows the GitHub account, link, public/private visibility and full comment; you confirm by keyboard. The lead can prepare this command, but never confirms on your behalf or in a hidden terminal. This first version offers no global repository authorization. Existing `gh` access is required; no agent is launched.
 
+At the prompt, Ctrl+C cancels; Ctrl+D or end of input declines. These actions send nothing and create no reservation. After reservation, even an HTTP refusal may leave the request blocked: keep the receipt and check the evidence with the maintainer, without changing the report to replay it.
+
 `--from` is a declared agent name without UUID; `--participant` names it for this work, defaulting to the alias. The authenticated publisher is shown separately: the signature does not authenticate the agent. `--commit <sha40>` ties the report to the exact head of a PR; a change after preview stops publication. The file must be nonblank UTF-8 text of at most 60 KiB; CRLF is normalized to LF before preview. Complete Palabre exports are refused.
 
 The `relay-publication-result` JSON is separate from an exchange result. `publication` is `not-attempted`, `published` or `unknown`; a published comment does not prove task success. The confirmed link returns to the lead for its report to you.

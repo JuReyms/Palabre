@@ -23,12 +23,14 @@ const texts = {
 Publie un seul commentaire de conversation sur une issue ou PR github.com existante.
 --dry-run lit GitHub et affiche le corps exact sans écrire de trace ni publier.
 Sans --dry-run : aperçu, compte et visibilité, puis confirmation humaine au clavier.
+À l'invite : Ctrl+C annule ; Ctrl+D ou fin d'entrée refuse, sans envoi ni réservation.
 --from est un nom d'agent déclaré sans identifiant de conversation ; --participant le nomme pour ce travail.
 --commit est facultatif, réservé à une PR dont la tête doit correspondre au SHA indiqué.
 Le bilan est un fichier choisi séparé : pas d'export ou de transcript complet.
 Les retours CRLF sont normalisés en LF avant aperçu et envoi ; le reste du corps est conservé.
 JSON v1 distinct : relay-publication-result. Aucun agent lancé ni configuration approuvée/modifiée.
 Un seul POST ; une tentative incertaine n'est jamais renvoyée. La réservation reste locale.
+Après réservation, un refus HTTP ou une annulation peut bloquer une nouvelle demande identique ; garder la trace.
 Ne jamais utiliser cette commande pour contourner une revue refusée ou une limitation d'accès.
 Pas de --yes, --trust-config, --config, création de ticket, revue inline ou changement d'état.`
   },
@@ -53,12 +55,14 @@ Pas de --yes, --trust-config, --config, création de ticket, revue inline ou cha
 Publishes one conversation comment on an existing github.com issue or PR.
 --dry-run reads GitHub and shows the exact body without writing a receipt or publishing.
 Without --dry-run: preview, account and visibility, then human keyboard confirmation.
+At the prompt: Ctrl+C cancels; Ctrl+D or end of input declines, without sending or reserving.
 --from is a declared agent name without a conversation identifier; --participant names it for this work.
 --commit is optional and requires a PR whose head matches the supplied SHA.
 Choose a separate report file, never a complete export or transcript.
 CRLF is normalized to LF before preview and sending; the rest of the body is preserved.
 Separate JSON v1: relay-publication-result. No agent launch or configuration approval/change.
 One POST only; uncertain attempts are never resent. The reservation stays local.
+After reservation, an HTTP refusal or cancellation may block the same request; keep the receipt.
 Never use this command to bypass a refused review or an access limitation.
 No --yes, --trust-config, --config, ticket creation, inline review or state change.`
   }

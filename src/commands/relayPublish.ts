@@ -62,12 +62,38 @@ export interface RelayPublicationDeps {
 const terminal: PublicationTerminal = {
   get interactive() { return Boolean(stdin.isTTY && stderr.isTTY); },
   print: value => stderr.write(`${sanitizeTerminalText(value)}\n`),
-  confirm: async (prompt, signal) => {
-    const reader = createInterface({ input: stdin, output: stderr });
-    try { return ["o", "oui", "y", "yes"].includes((await reader.question(sanitizeTerminalText(prompt), { signal })).trim().toLowerCase()); }
-    finally { reader.close(); }
-  }
+  confirm: confirmPublication
 };
+
+/**
+ * Confirmation clavier : EOF/Ctrl+D refusent, Ctrl+C ou le signal annulent. Fermer readline
+ * ne règle pas toujours question() : son propre signal garantit la fin et le nettoyage.
+ * Les streams injectables servent aux tests inertes, jamais à confirmer pour l'humain.
+ */
+export async function confirmPublication(prompt: string, signal?: AbortSignal,
+  input: NodeJS.ReadableStream = stdin, output: NodeJS.WritableStream = stderr): Promise<boolean> {
+  const reader = createInterface({ input, output });
+  const controller = new AbortController();
+  let closed = false, interrupted = false;
+  const abort = () => controller.abort();
+  const close = () => { closed = true; abort(); };
+  const interrupt = () => { interrupted = true; abort(); };
+  reader.once("close", close);
+  reader.once("SIGINT", interrupt);
+  signal?.addEventListener("abort", abort, { once: true });
+  if (signal?.aborted) abort();
+  try {
+    return ["o", "oui", "y", "yes"].includes((await reader.question(sanitizeTerminalText(prompt), { signal: controller.signal })).trim().toLowerCase());
+  } catch (error) {
+    if (closed && !interrupted && !signal?.aborted) return false;
+    throw error;
+  } finally {
+    signal?.removeEventListener("abort", abort);
+    reader.removeListener("close", close);
+    reader.removeListener("SIGINT", interrupt);
+    reader.close();
+  }
+}
 
 interface PublicationArgs {
   target: PublicationTarget;
@@ -177,7 +203,13 @@ export async function executeRelayPublish(tokens: readonly string[], overrides: 
       result.publication = "unknown"; return finish("uncertain", 2, "uncertain");
     }
     deps.terminal.print(renderPublicationPreview(result.preview, language));
-    if (!(await deps.terminal.confirm(relayPublishText(language).confirm, deps.signal))) return stop() ?? finish("declined", 8, "declined");
+    let confirmed: boolean;
+    try { confirmed = await deps.terminal.confirm(relayPublishText(language).confirm, deps.signal); }
+    catch (error) {
+      if (deps.signal?.aborted || (error instanceof Error && error.name === "AbortError")) return finish("cancelled", 130, "cancelled");
+      throw error;
+    }
+    if (!confirmed) return stop() ?? finish("declined", 8, "declined");
     if (stop()) return stop()!;
     const after = await readPublicationSnapshot(args.target, deps.run, deps.signal);
     if (stop()) return stop()!;
