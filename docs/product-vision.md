@@ -4,6 +4,8 @@
 
 > Mieux travailler et se corriger entre outils, tout en gardant l’humain dans la boucle.
 
+Formulation développée, précisée avec le propriétaire le 31 octobre 2026 : **Palabre aide chacun à faire travailler ensemble ses outils IA pour croiser les regards, se corriger et avancer, en gardant la maîtrise de ses décisions, de son budget et de ses choix d’outils.**
+
 Palabre est le produit global : il facilite la coopération entre les outils IA choisis par l’utilisateur, les avis croisés et l’aide à la décision. Il rend les échanges et les arbitrages plus simples à suivre et peut préparer une action sous contrôle humain. Il ne remplace pas les outils IA existants : sa valeur doit se mesurer à ce qu’il épargne à l’utilisateur en manipulations, pertes de fil et vérifications de coordination.
 
 ## Produit et modes : deux niveaux distincts
@@ -33,7 +35,17 @@ Ces modes partagent les intentions de consultation, décision et action sous con
 
 L’utilisateur échange dans son outil habituel avec un **chef de mission** qui coordonne le travail. Un **coéquipier**, dans un autre outil, reçoit une tâche ou une demande de relecture. L’humain garde la main et peut consulter les conversations pour comprendre les échanges, les résultats et les désaccords. Ces termes décrivent la coordination Relay, pas les rôles configurables de Débat, Ask et Chat.
 
-Exemple : l’utilisateur prépare une modification avec Codex, Claude la relit, puis Codex corrige et vérifie à partir de cette relecture. Chaque étape est une demande explicite, pas une boucle automatique. La priorité est de rendre ce parcours utile, visible et facile à reprendre, avant d’ajouter de nouvelles fonctions.
+Exemple : l’utilisateur demande une correction à son chef de mission. Celui-ci peut confier une analyse, du codage ou une relecture à un coéquipier, selon les permissions du parcours. Les résultats reviennent directement au chef de mission, qui coordonne les corrections et restitue le résultat ou un résumé à l’utilisateur. Chaque étape reste dans le cadre humain autorisé, sans boucle automatique.
+
+### Une méthode légère et un suivi GitHub facultatif
+
+Une délégation précise l’objectif, le périmètre et le résultat attendu, avec le contexte utile et les vérifications demandées. Le retour distingue travail réalisé, vérifications et preuves, limites ou blocages, puis suite utile. La forme reste proportionnée : une question simple appelle une réponse simple. Le chef de mission garde la responsabilité de la restitution et attribue les contributions sans déduire une réussite du seul statut de transport.
+
+Le suivi GitHub se rattache au **travail en cours**, pas à toute la conversation ni à une installation. Une issue peut porter le problème et son suivi, une PR les changements et leur revue, un commentaire un bilan, une vérification, un blocage ou une décision. Les échanges intermédiaires restent possibles directement par Relay ; tous n’ont pas vocation à être publiés. Sans rattachement désigné, la conversation et les exports suffisent. La présence d’un dépôt Git ne choisit jamais ce suivi à la place de l’utilisateur.
+
+Le premier lot porte le lien explicite et le nom déclaré du participant dans l’enveloppe et les traces locales. Il ne contacte pas GitHub, ne publie rien et n’autorise aucune publication. La publication d’un bilan choisi est un lot ultérieur, distinct des parcours Mission/review/write gelés.
+
+L’attribution distingue le compte GitHub qui publie, le participant déclaré et l’intervention concernée. Un nom stable peut distinguer deux conversations utilisant le même outil ; il ne constitue ni une identité authentifiée ni un relecteur indépendant. Les identifiants privés de conversation, nonces et historiques restent locaux. Un commentaire sous le compte de l’utilisateur ne prouve pas que l’humain a donné un accord.
 
 La visibilité en direct est un objectif du parcours, pas une garantie sur toutes les interfaces. En particulier, ne pas présenter l’envoi dans une conversation Claude Desktop ouverte comme acquis. Les capacités effectivement prises en charge restent décrites dans les guides [Relay français](guide/fr/usage/relay.md) et [anglais](guide/en/usage/relay.md), par outil et parcours.
 
@@ -51,6 +63,7 @@ Deux modèles utilisés dans Codex restent des perspectives d’un même outil ;
 
 - **Même projet, conversations distinctes.** Partager les fichiers ne partage pas automatiquement la mémoire. Le chef de mission transmet l’objectif, les décisions et le contexte utile ; les agents conservent leurs conversations propres. Ne pas promettre une mémoire commune sans mécanisme explicite.
 - **Plusieurs outils, quotas distincts.** Répartir les tâches permet d’utiliser les outils et abonnements déjà disponibles. Les échanges consomment aussi du temps et des quotas : ni fusion des quotas, ni économie garantie, ni bascule automatique au premier épuisement.
+- **Liberté de choix et de budget.** L’utilisateur peut composer avec plusieurs offres accessibles, découvrir différents environnements et modèles et changer un outil sans abandonner sa méthode de travail. Ne pas imposer une offre coûteuse ni multiplier les consultations sans bénéfice attendu ; les prix et disponibilités appartiennent aux fournisseurs.
 - **Mieux se corriger, pas garantir la vérité.** Les agents peuvent repérer les erreurs des autres, mais aussi se tromper ensemble. Préserver les avis indépendants quand ils sont utiles, expliciter les désaccords et demander des preuves et vérifications. Un accord entre modèles ne prouve pas que la proposition est correcte.
 
 ## Expérience utilisateur

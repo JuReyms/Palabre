@@ -199,6 +199,8 @@ function formatAgentsForHeader(options: DebateOptions): string {
 
 /** Données d'un export `.relay.md` (voir docs/dev/relay.md, section "Relay externe"). */
 export interface RelayExport {
+  /** Contexte de travail déclaré ; aucun droit ou état distant déduit des métadonnées. */
+  work?: import("./externalSessions/relayWork.js").RelayWorkContext;
   /** Source et copie distinctes, même après erreur ou absence de réponse. */
   copy?: import("./externalSessions/copyRelay.js").CopyReport;
   /** Suite séparée de --then-follow ; aucune nouvelle délivrance ni autorisation. */
@@ -306,6 +308,8 @@ export function renderRelayMarkdown(report: RelayExport, messages: Messages, met
     ...(report.retryAfter !== undefined ? [[labels.retryAfter, String(report.retryAfter)]] : []),
     ...(report.subject !== undefined ? [[labels.subject, report.subject]] : []),
     ...(report.exchange ? [[labels.marker, report.exchange.reference], [labels.exchange, String(report.exchange.number)]] : []),
+    ...(report.work?.github ? [[messages.relay.work.github, report.work.github.url]] : []),
+    ...(report.work?.participant ? [[messages.relay.work.participant, report.work.participant]] : []),
     ...(report.cli ? [[labels.cliPath, report.cli.path], [labels.cliVersion, report.cli.version ?? labels.unknown]] : []),
     ...(report.task ? [
       [labels.task, report.task.name], [labels.pullRequest, report.task.pr], [labels.commit, report.task.headSha ?? labels.unknown],

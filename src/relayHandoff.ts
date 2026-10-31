@@ -12,6 +12,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { RelayExchange } from "./externalSessions/envelope.js";
+import type { RelayWorkContext } from "./externalSessions/relayWork.js";
 
 /** Champ facultatif `handoff` du JSON Relay v1 : état de la copie locale, jamais une délivrance. */
 export type RelayHandoffReport =
@@ -20,6 +21,8 @@ export type RelayHandoffReport =
 
 /** Données déjà validées d'un envoi refusé avant échange. */
 export interface RelayHandoff {
+  /** Rattachement et participant déclarés, conservés sans les transformer en instruction. */
+  work?: RelayWorkContext;
   createdAt: string;
   from: { agent: string; session?: string } | null;
   to: { agent: string; session: string };
@@ -59,7 +62,8 @@ export function renderRelayHandoff(handoff: RelayHandoff, labels: RelayHandoffLa
     from: handoff.from,
     to: { agent: handoff.to.agent, session: handoff.to.session, provider: "claude" },
     ...(handoff.subject !== undefined ? { subject: handoff.subject } : {}),
-    ...(handoff.exchange ? { exchange: handoff.exchange } : {})
+    ...(handoff.exchange ? { exchange: handoff.exchange } : {}),
+    ...(handoff.work ? { work: handoff.work } : {})
   }, null, 2);
   const metadataFence = markdownFence(metadata);
   const fence = markdownFence(handoff.message);

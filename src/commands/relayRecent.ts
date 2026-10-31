@@ -101,6 +101,8 @@ export function renderRelayRecent(result: RelayRecentResult, language: Language,
     const date = new Date(entry.date).toLocaleString(language === "fr" ? "fr-FR" : "en-GB", { timeZoneName: "short" });
     lines.push("", `${date} | ${entry.provider} (${entry.agent}) | ${entry.mode ?? text.unknownMode} | ${entry.status} / ${entry.delivery}`,
       entry.subject ?? text.noSubject, entry.fileName);
+    if (entry.work?.github) lines.push(entry.work.github.url);
+    if (entry.work?.participant) lines.push(entry.work.participant);
     if (entry.copy) lines.push(text.copy, `source: ${entry.copy.source} | copy: ${entry.copy.session ?? text.unknownSession}`);
     else lines.push(entry.to?.session ? `${entry.agent}:${entry.to.session}` : text.unknownSession);
   }

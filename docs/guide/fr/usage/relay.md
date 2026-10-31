@@ -36,6 +36,24 @@ Pour une simple relecture ou correction de code depuis Claude Code vers Codex, l
 
 **Fonctions conservées, hors parcours par défaut :** `--write` est expérimental et gelé ; Mission et `--task review` sont gelés. Leur documentation est conservée ci-dessous ; seuls les correctifs de sécurité sont acceptés, sans extension de périmètre.
 
+## Méthode de travail et suivi GitHub facultatif
+
+Votre chef de mission peut déléguer une analyse, du codage ou une relecture selon les permissions du parcours. Il transmet l’objectif, le périmètre, le résultat attendu et les vérifications utiles. Les réponses lui reviennent directement ; il coordonne la suite et vous restitue le résultat ou un résumé avec les liens utiles.
+
+La consigne de réponse ajoutée par défaut reste légère : résultat, vérifications avec preuves, limites ou blocages et suite utile. Les rubriques sans objet sont omises. `--no-reply-format` retire cette consigne pour un envoi ; la réponse reçue reste brute et Palabre n’en déduit aucun verdict de tâche. Les parcours gelés gardent leur propre cadre.
+
+Pour un travail suivi dans GitHub, indiquez explicitement un dépôt, une issue ou une PR avec `--github`. `--participant` donne au destinataire un nom stable pour ce travail, utile pour distinguer plusieurs conversations utilisant le même outil. Sans nom, l’alias configuré reste le repère habituel. Exemple fictif, après choix et vérification de la conversation cible :
+
+```powershell
+palabre relay --to claude:<session-cible> --github https://github.com/proprietaire/depot/issues/42 --participant Atlas --subject "Analyser le problème" "Lis src/exemple.ts sans modifier les fichiers. Identifie la cause et propose une vérification." --json
+```
+
+Le lien accepte uniquement `https://github.com/proprietaire/depot`, `/issues/42` ou `/pull/42`, sans paramètre ni fragment. Le nom tient sur une ligne, sans espaces aux extrémités, avec 64 caractères maximum et sans contrôle ni formatage Unicode. Ces options sont admises en envoi ordinaire, y compris création, Codex ouvert et copie OpenCode ; elles sont refusées avec vérification, suivi sans envoi et fonctions gelées.
+
+Le rattachement est conservé dans `work.github`, le nom dans `work.participant`, dans le JSON v1, l’enveloppe, l’export et `relay recent`. Ce sont des déclarations historiques : aucun accès GitHub, aucune existence vérifiée, aucune publication ou autorisation. Les participants, comptes GitHub et identités de conversation restent distincts ; une signature ne prouve pas un accord humain. Les identifiants locaux et historiques ne sont pas destinés à un commentaire public.
+
+Une issue porte le problème et son suivi, une PR les changements, un commentaire un résultat significatif ou une décision. Le chef de mission prépare une restitution attribuée dans le cadre autorisé ; les échanges intermédiaires restent directs. La publication de bilans par Palabre sera un lot distinct. Sans rattachement, conversation et exports suffisent : aucun ticket n’est imposé et aucun suivi n’est détecté depuis Git. Le rattachement concerne le travail en cours, jamais tous les sujets d’une conversation.
+
 ## Entre deux conversations Codex
 
 Relay reste compatible avec ce parcours. Si votre application dispose déjà des fonctions nécessaires pour confier une tâche à une conversation Codex précise et en lire la réponse, elles peuvent suffire. Votre assistant privilégie alors ce parcours, après vérification des fonctions et des autorisations disponibles. Ces capacités dépendent de l’application et de sa version.

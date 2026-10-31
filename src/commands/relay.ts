@@ -34,6 +34,9 @@
  * exécutée ici. Les parcours gelés et les exports restent inchangés.
  * `relay recent` consulte seulement les en-têtes des exports du dossier configuré ; résultat
  * distinct, sans choix, ouverture, envoi ou modification du contrat d'échange ci-dessous.
+ * Le contexte de travail facultatif (`--github`, `--participant`) est validé avant IO, transmis
+ * et conservé dans les traces locales ; il ne contacte pas GitHub et ne confère aucune autorité.
+ * La consigne de réponse courte des envois ordinaires reste désactivable et non interprétée.
  *
  * #250 : une cible Claude attachée (`target-busy`) reçoit un refus en mots simples et un
  * `error.hint` facultatif, pour l'envoi ordinaire et `--check` seulement. Un envoi ordinaire ainsi
@@ -96,6 +99,7 @@ import { runRelayOpenCommand } from "./relayOpen.js";
 import { runRelayRecentCommand } from "./relayRecent.js";
 import { saveRelayHandoff, type RelayHandoffReport } from "../relayHandoff.js";
 import { inspectSkillRuntime, type SkillRuntimeInfo } from "../skillRuntime.js";
+import { parseRelayGitHub, validRelayParticipant, type RelayWorkContext } from "../externalSessions/relayWork.js";
 
 /** Timeout par défaut et bornes de `--timeout`, en secondes. */
 export const DEFAULT_RELAY_TIMEOUT_SECONDS = 600;
@@ -103,9 +107,9 @@ export const MIN_RELAY_TIMEOUT_SECONDS = 10;
 export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 
 /** Options de `palabre relay` qui attendent une valeur. */
-const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "then-follow", "config", "language", "task", "pr", "subject", "dir", "reference", "exchange", "model", "skill-revision"]);
+const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "then-follow", "config", "language", "task", "pr", "subject", "dir", "reference", "exchange", "model", "skill-revision", "github", "participant"]);
 /** Options de `palabre relay` sans valeur. */
-const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "background", "new", "write", "follow", "check", "copy"]);
+const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "background", "new", "write", "follow", "check", "copy", "no-reply-format"]);
 /** Alias acceptés, comme pour les autres commandes. */
 const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
 
@@ -133,6 +137,8 @@ export interface RelayCheckReport {
  * NDJSON : un ajout optionnel ne change pas `v`.
  */
 export interface RelayResultV1 {
+  /** Suivi GitHub et nom du destinataire déclarés, sans publication ni identité authentifiée. */
+  work?: RelayWorkContext;
   /** Précontrôle seulement : révision déclarative du skill, sans effet sur issue/délivrance/droits. */
   skill?: SkillRuntimeInfo;
   /** Relevé indicatif lu après un envoi ouvert vers Codex ; pas un quota attribué à ce seul tour. */
@@ -221,6 +227,10 @@ export interface RelayResultV1 {
 
 /** État partagé avec le gestionnaire d'erreur interne, pour qualifier la délivrance. */
 interface RelayContext {
+  /** Contexte local de ce travail uniquement ; aucun héritage depuis Git ou la configuration. */
+  work?: RelayWorkContext;
+  /** Ne concerne que l'enveloppe ; aucune interprétation automatique de la réponse. */
+  replyFormat?: boolean;
   /** Présentation privée : jamais ajoutée au contrat JSON v1. */
   messageCopy?: "saved" | "disabled" | "failed";
   /** CLI Claude déjà résolue, pour afficher une ouverture sans la lancer ni changer d'installation. */
@@ -414,6 +424,17 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (context.signal?.aborted) throw new RelayRefusal({ status: "cancelled" });
   const { messages } = context;
   const { flags, positionals } = parseRelayTokens(rawArgs.slice(1), messages);
+  if (flags.github !== undefined || flags.participant !== undefined || flags["no-reply-format"] !== undefined) {
+    if (flags.check || flags.follow || context.header || flags.task !== undefined || flags.write) {
+      throw invalid("invalid-arguments", messages.relay.work.conflict);
+    }
+    const github = flags.github === undefined ? undefined : parseRelayGitHub(String(flags.github));
+    if (flags.github !== undefined && !github) throw invalid("invalid-arguments", messages.relay.work.githubInvalid);
+    const participant = flags.participant === undefined ? undefined : String(flags.participant);
+    if (participant !== undefined && !validRelayParticipant(participant)) throw invalid("invalid-arguments", messages.relay.work.participantInvalid);
+    if (github || participant !== undefined) context.work = { ...(github ? { github } : {}), ...(participant === undefined ? {} : { participant }) };
+  }
+  context.replyFormat = !flags["no-reply-format"] && !flags.task && !flags.write && !context.header;
   if (flags["skill-revision"] !== undefined && !flags.check) throw invalid("invalid-arguments");
   context.skillRevision = optionalString(flags["skill-revision"]);
   if (flags.model !== undefined) {
@@ -554,7 +575,8 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   }
   if (defaultReviewMessage) message = context.messages.relay.defaultReviewMessage;
   const nonce = createNonce();
-  const envelopeInput = { from: context.from, to: to.value, nonce, message, subject: context.subject, exchange: context.exchange, header: context.header };
+  const envelopeInput = { from: context.from, to: to.value, nonce, message, subject: context.subject, exchange: context.exchange,
+    header: context.header, work: context.work, replyFormat: context.replyFormat };
   const frame = flags.copy ? { ...context.messages.relay, envelopePermissions: relayCopyText(context.language ?? "fr").permissions } : flags.write ? {
     ...context.messages.relay, envelopePermissions: relayWriteText(context.language ?? "fr").envelopePermissions
   } : context.messages.relay;
@@ -943,7 +965,7 @@ async function relayCopy(context: RelayContext, input: {
     const copied = await runCopyRelay({ source: input.source, cwd: context.cwd!, timeoutMs: input.timeoutMs, signal: controller.signal, model: input.model,
       envelope: id => {
         envelope = buildEnvelope({ from: context.from, to: { agent: input.agent, sessionId: id }, message: input.message,
-          nonce: input.nonce, subject: context.subject, exchange: context.exchange }, { ...context.messages.relay, envelopePermissions: text.permissions });
+          nonce: input.nonce, subject: context.subject, exchange: context.exchange, work: context.work, replyFormat: context.replyFormat }, { ...context.messages.relay, envelopePermissions: text.permissions });
         return envelope;
       }
     }, { transport: new OpenCodeCopyTransport(input.executable, context.cwd!, input.timeoutMs) });
@@ -1182,6 +1204,7 @@ function buildResult(
     ...(context.write ? { write: context.write } : {}),
     ...(context.subject !== undefined ? { subject: context.subject } : {}),
     ...(context.exchange ? { exchange: context.exchange } : {}),
+    ...(context.work ? { work: context.work } : {}),
     ...(context.task ? { task: context.task } : {}),
     ...(context.cli ? { cli: context.cli } : {}),
     ...(context.remedy ? { remedy: context.remedy } : {}),
@@ -1233,6 +1256,7 @@ async function keepHandoff(context: RelayContext, pending: NonNullable<RelayCont
     to: pending.to,
     ...(context.subject !== undefined ? { subject: context.subject } : {}),
     ...(context.exchange ? { exchange: context.exchange } : {}),
+    ...(context.work ? { work: context.work } : {}),
     message: pending.message
   }, context.messages.relay.claude.file);
 }
@@ -1269,6 +1293,7 @@ async function exportRelay(
       startedAt: new Date(input.startedAt).toISOString(),
       ...(result.subject !== undefined ? { subject: result.subject } : {}),
       ...(result.exchange ? { exchange: result.exchange } : {}),
+      ...(result.work ? { work: result.work } : {}),
       message: input.message,
       ...(input.envelope !== undefined ? { envelope: input.envelope } : {}),
       reply: result.reply,

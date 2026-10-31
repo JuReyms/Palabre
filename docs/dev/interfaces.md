@@ -48,6 +48,8 @@ Ces formes courtes suivent le mode effectif, `--mode` puis `defaults.mode`, exac
 
 ## Aide CLI
 
+Relay ordinaire : aide FR/EN pour `--github`, `--participant`, `--no-reply-format`. Le champ optionnel v1 `work` porte un rattachement et un participant déclarés ; exports et `relay recent` le conservent. Aucun accès GitHub ni publication. Une intégration ne déduit ni identité humaine ni autorisation de ces champs ; détails dans le [contrat du contexte de travail](../relay-work-contract.md).
+
 `palabre result --reference <référence> --json` consulte une demande OpenCode batch exacte, sans envoi. Un seul objet `agent-result` v1 porte `status`, `exitCode`, `agent`, `session`, `sent: false`, `error` et, uniquement pour `replied`, `reply`. Codes : 0 réponse, 2 en cours/échec déclaré/illisible, 3 non-correspondance, 7 commande absente, 8 requête invalide, 130 annulation. La référence opaque reste locale ; elle contient l'identité de configuration et la corrélation, jamais le prompt. Les erreurs batch `timeout` gardent leur sens et ajoutent seulement des détails facultatifs : `waitedMs`, `stopRequested`, `localExit`, `remoteWork`, `resent`, `recovery`. Les indications d'attente sont assainies sur stderr, pas dans stdout JSON/NDJSON.
 
 Le champ JSON facultatif `skill` dans agents/check est un diagnostic de révision déclarée, indépendant du résultat métier. Pas de notice humaine répétée lorsque les révisions concordent. `skill --read --json` fournit un seul objet v1 sans habillage terminal ; seules les instructions du paquet sont lues, aucune cible CLI n'est lancée. Le texte ne remplace pas l'autorité humaine ni les garde-fous de l'hôte. Voir [le contrat de lecture du paquet](configuration.md#consignes-relues-dans-la-conversation).
