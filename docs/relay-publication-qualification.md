@@ -1,6 +1,6 @@
 # Qualification de la publication d'un bilan Relay
 
-État au 31 octobre 2026 : aperçu réel, publication nominale sur une issue publique et retour historique sans doublon vérifiés sous Windows. Les autres scénarios réels ci-dessous restent à qualifier. Ce document complète le [contrat de publication](relay-publication-contract.md) ; il ne qualifie ni Mission, ni `--task review`, ni `--write`.
+État au 31 octobre 2026 : aperçus réels, publications nominales sur issue et PR publiques, et retour historique sans doublon sur l'issue vérifiés sous Windows. Les autres scénarios réels ci-dessous restent à qualifier. Ce document complète le [contrat de publication](relay-publication-contract.md) ; il ne qualifie ni Mission, ni `--task review`, ni `--write`.
 
 ## Vérifications acquises
 
@@ -33,6 +33,16 @@ Une lecture indépendante de l'API GitHub après l'appel confirme l'ID et l'URL 
 La même commande, le même bilan et le même profil ont ensuite été utilisés dans un terminal visible : `already-published`, code 0, `publication: published`, `attempted: false`, même URL, sans nouvelle confirmation. Une nouvelle lecture de GitHub confirme exactement un commentaire et l'issue toujours ouverte. Aucun second commentaire, suppression de trace, changement de profil ou de corps pour contourner la réservation. Reçu et transcriptions de terminal restent locaux ; seuls le bilan choisi et son lien sont publics.
 
 Cette preuve couvre une issue publique et ce compte sous ces versions Windows. Elle ne qualifie pas encore une publication sur PR, une cible privée, les gestes de refus/annulation dans un vrai terminal, une dérive pendant l'attente, une panne réseau réelle ou d'autres plateformes. Les protections correspondantes gardent leurs tests fictifs et leurs limites.
+
+## Essai nominal réel sur PR publique
+
+31 octobre 2026, même environnement et même code produit compilé. Le raccord de branche `5fd5eb8` à `main`, après le squash de #263, ne change aucun fichier par rapport à `806b6c8` : arbres Git identiques avant/après, CI verte. Le propriétaire a demandé la préparation d'une PR de qualification dédiée : [#266](https://github.com/JuReyms/Palabre/pull/266), en brouillon, avec un document témoin uniquement. Aucune fusion ou fermeture de cette PR de test n'est prévue par l'essai.
+
+L'aperçu a été vérifié avec `--commit 7f95456f9551079604781e912c2a46c93c8ffa12`, tête exacte de la PR, et le même bilan fictif séparé. Un terminal visible a ensuite présenté une séquence guidée. Sa première étape attendait un refus, mais une réponse `o` a été enregistrée à l'invite : la commande a publié le commentaire autorisé. Le code 0 ne correspondant pas au code 8 attendu pour cette étape, le script s'est arrêté avant tout autre essai. Ce résultat qualifie la publication nominale, **pas le refus**. Aucun geste n'a été saisi par l'agent ; aucune nouvelle tentative ou fenêtre n'a été lancée après l'interruption.
+
+Résultat de la commande : `published`, code 0, `publication: published`, `attempted: true`, trace sauvegardée. Une lecture indépendante de l'API et du reçu `published` confirme le compte et son ID, le corps exact avec son commit, l'URL et l'unicité du [commentaire de conversation](https://github.com/JuReyms/Palabre/pull/266#issuecomment-6544927359). La PR reste ouverte en brouillon, à la même tête ; aucun commentaire inline ou revue créé.
+
+Les essais de refus, Ctrl+C, Ctrl+D, dérive pendant l'attente et retour historique sur cette PR n'ont pas été réalisés dans le terminal. La fermeture de fenêtres après coup ne vaut pas preuve d'annulation de l'invite. Les tests fictifs correspondants restent valides, sans être présentés comme une qualification du terminal réel.
 
 ## Préparer les essais humains
 
@@ -71,7 +81,7 @@ L'humain lit à nouveau l'aperçu puis choisit lui-même sa réponse. Ne jamais 
 | Source modifiée | Après affichage de l'aperçu et avant toute réponse, modifier le bilan choisi puis confirmer | `changed`, code 2, `attempted: false` ; aucun nouveau commentaire. Repréparer et relire le bilan avant un autre essai explicite. | À exécuter |
 | Issue | Confirmer le bilan relu sur l'issue jetable | `published`, code 0, `attempted: true`, reçu sauvegardé et URL du commentaire ; comparer le compte et le corps directement dans GitHub. | Réussi sur #265 |
 | Même demande | Après le succès, relancer la commande identique sur cette issue, depuis le même profil et terminal visible | `already-published`, `attempted: false`, même URL ; aucun second commentaire. Le reçu reste conservé. | Réussi sur #265 |
-| PR | Confirmer le bilan relu sur la PR jetable | Même vérification du succès et du compte ; commentaire de conversation, aucune revue inline, aucun changement d'état de la PR. | À exécuter |
+| PR | Confirmer le bilan relu sur la PR jetable | Même vérification du succès et du compte ; commentaire de conversation, aucune revue inline, aucun changement d'état de la PR. | Réussi sur #266, avec `--commit` |
 
 Pour qualifier `--commit`, l'ajouter à l'essai PR avec les 40 caractères de sa tête relevée explicitement. Ce marqueur ne certifie pas que le code a été relu. Une tête différente doit refuser sans publication ; ne pas pousser un commit de test sur une PR de travail pour provoquer cette dérive.
 
@@ -85,4 +95,4 @@ En cas d'issue `uncertain`, de réservation préexistante ou de trace illisible 
 
 Ajouter ici, après chaque essai admis : date, révision, plateforme, versions, scénario, statut/code, vérification indépendante du commentaire et limites. Les preuves publiques se limitent au bilan choisi et aux liens autorisés ; aucun transcript, identifiant de conversation, nonce, chemin personnel ou jeton. Conserver les détails diagnostiques nécessaires localement.
 
-Les scénarios marqués « À exécuter » restent à qualifier avec l'humain avant d'étendre les garanties réelles au-delà du parcours nominal sur issue publique. Aucun de ces essais ne remplace les contrôles de release décrits dans [la maintenance](dev/maintenance.md).
+Les scénarios marqués « À exécuter » restent à qualifier avec l'humain avant d'étendre les garanties réelles au-delà des parcours nominaux sur issue et PR publiques sous Windows. Aucun de ces essais ne remplace les contrôles de release décrits dans [la maintenance](dev/maintenance.md).
