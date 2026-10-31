@@ -23,7 +23,7 @@ Résultats isolés observés sur ce checkout ; les campagnes réelles sont déta
 
 | Contrôle | Résultat |
 | --- | --- |
-| Typage, suite complète isolée, build | Réussis ; 1 339 tests réussis, 6 ignorés, aucun échec ; garde du vrai profil inchangé |
+| Typage, suite complète isolée, build | Réussis ; préparation initiale : 1 339 tests réussis et 6 ignorés ; lot de qualification Relay : 1 346 réussis et 6 ignorés ; aucun échec, garde du vrai profil inchangé |
 | Métadonnées de release : version/tag/canal | Huit tests réussis ; candidat résolu en `next`, `prerelease: true`, `makeLatest: false`, titre `v0.23.0-beta.1` |
 | Validation du skill et génération documentaire FR/EN | Réussies ; révision 12 et sept références conservées |
 | Paquet `.tgz`, inventaire et extraction | Réussis ; 164 entrées, fichiers attendus présents, aucun transcript, reçu, historique ou fichier de test empaqueté |
@@ -91,15 +91,36 @@ Résultat : **14 scénarios réussis, aucun échec ni scénario ignoré**, en 37
 
 La couverture cumulée réussie porte donc sur les vingt scénarios distincts prévus : six Débats du premier passage, puis quatre Débats et dix Ask avec OpenCode Go explicite. Ce n'est pas un passage unique de vingt succès avec les modèles par défaut. Le premier passage et ses quatorze échecs restent conservés ; le fonctionnement OpenCode sans remplacement explicite de modèle n'est pas requalifié par cette reprise.
 
-Le précontrôle et les contrôles de Codex après chacun des deux passages constatent un contenu SHA-256 et une date de modification identiques pour la configuration Palabre globale. Codex n'a exécuté aucune synchronisation de copie installée du skill ni nettoyage des historiques, approbations temporaires, exports ou passations produits par les essais. Sa lecture de l'état Git confirme que le rapport est le seul fichier versionné modifié après les campagnes ; ce rapport n'entre pas dans l'archive npm contrôlée ci-dessus.
+Le précontrôle et les contrôles de Codex après chacun des deux passages constatent un contenu SHA-256 et une date de modification identiques pour la configuration Palabre globale. Codex n'a exécuté aucune synchronisation de copie installée du skill ni nettoyage des historiques, approbations temporaires, exports ou passations produits par les essais. Le lot suivant modifie seulement les scripts de qualification, leurs tests, le protocole de développement et ce bilan ; ces fichiers ne sont pas inclus dans l'archive npm contrôlée ci-dessus.
 
 Claude a d'abord relu le bilan par Relay en arrière-plan et recoupé les comptes et le tableau avec l'audit des presets, la trace Relay, le résumé MCP expurgé et le contrôle final de configuration. Ses remarques ont fait préciser les six échecs Ask en synthèse et les quatre en participation, la mesure d'historique avant seule et l'auteur des vérifications complémentaires.
 
 Après le choix Go, Claude a aussi rapproché l'audit combiné, les quatorze succès du log de reprise, le décompte des erreurs de son audit et les empreintes enregistrées dans le précontrôle et le contrôle final. Il ne relève aucun blocage rédactionnel, confirme la distinction entre les deux passages et constate que ses remarques précédentes sont traitées. Il n'a exécuté aucun essai, ni lu les contenus des quatorze réponses, les exports, les scripts ou la capture MCP personnelle. Versions des outils, sonde, lecture Git et des exports, contrôle direct du fichier de configuration et absence de persistance du modèle restent des constats de Codex ; la relecture ne certifie pas la campagne et n'autorise aucune publication.
 
+### Correctifs des contrôles Relay et reprise ciblée Codex : 9/9
+
+Après accord du propriétaire pour fiabiliser les contrôles restants, le lot corrige le script et ses critères testables, sans changement du runtime produit. Le lecteur exige désormais un compteur MCP natif exploitable, positif chez le témoin et nul dans le Relay ; il écarte seulement les clés de fonctionnalités identifiées et conserve toute autre mention de serveur. Un compteur manquant, inconnu ou contradictoire ne valide rien. Les journaux bruts restent privés et peuvent contenir des métadonnées personnelles.
+
+Le PTY reçoit `TERM=xterm-256color`. Le réglage de confiance forcée du précédent script est supprimé : le dossier jetable sous le checkout utilise la confiance existante du projet, sans réponse à une invite ni modification de politique. La cible Codex est neuve et vérifiée détachée avant le lancement. Le nettoyage en `finally` concerne uniquement le processus lancé, y compris si sa vivacité est indéterminée ; la sortie du PTY et la mort du PID doivent ensuite être constatées.
+
+Claude relit les trois fichiers TypeScript et la partie utile du protocole avant l'essai réel. Il ne relève pas de faux vert dans le critère MCP, mais fait corriger le cas de nettoyage à vivacité indéterminée. Ce correctif et la distinction entre résultat ciblé et campagne complète sont appliqués. La suite complète isolée réussit avec 1 346 tests réussis et six ignorés. Après les derniers durcissements et cette relecture, les 24 tests ciblés sont recompilés et réussissent de nouveau, avec garde du vrai profil inchangé. Typage, build et compilation autonome du script réussissent ; la commande réelle recompile le script final avant exécution.
+
+La commande officielle `pnpm smoke:real-relay --codex-checks` se termine avec le code 0 et **9/9 vérifications ciblées Codex réussies**, sur Codex CLI `0.163.0`, Node `24.19.0`, Windows 11. Le modèle enregistré de la session est `gpt-6.1-sol`, choisi par la configuration de l'outil.
+
+| Groupe | Résultat |
+| --- | --- |
+| Liste MCP, création et localisation de la nouvelle session | 3/3 réussis |
+| Témoin et neutralisation MCP | 2/2 réussis ; témoin : compteur 3 ; Relay : compteur 0, aucune mention inexpliquée, réponse et identité attendues |
+| Codex attaché : sonde, refus, historique | 3/3 réussis ; verrou tenu, `target-busy` / code 3 / `not-delivered`, arrière-plan explicite ; un fichier et 43 lignes avant comme après |
+| Nettoyage du PTY possédé | 1/1 réussi ; sortie observée, PID mort, aucune erreur relevée |
+
+Ce passage couvre les quatre contrôles précédemment manquants et ajoute la vérification d'arrêt Codex. Il ne rejoue ni les conversations fermées ni Claude attaché et ne transforme pas l'ancienne campagne 18/22 en une nouvelle campagne complète réussie. Le critère MCP reste un indice de journaux, sans garantie universelle sur les outils exposés ; la mesure d'historique porte sur les nombres de fichiers et de lignes. Codex compare de nouveau le fichier de configuration Palabre globale : contenu et date inchangés. Il recalcule aussi le SHA-256 de l'archive locale, identique à celui indiqué plus haut. Les fichiers de configuration et de confiance propres à Codex n'ont pas été comparés avant/après ; le script ne leur accorde pas de confiance forcée. L'arrêt du PTY n'est pas une validation humaine du parcours de publication.
+
+Claude vérifie ensuite la correction de nettoyage, les neuf contrôles du résumé expurgé et du log, ainsi que la portée du bilan. Il ne relève aucun blocage restant et fait préciser les limites de comparaison de configuration et d'archive. Il ne lit ni la trace brute ni le diff complet, ne recalcule pas les empreintes et n'exécute aucun test : ce recoupement ne certifie pas l'essai.
+
 ## Avant une publication
 
-Les presets sont couverts dans le périmètre des deux passages décrit ci-dessus, avec le choix OpenCode Go demandé par le propriétaire. Relay reste à 18/22 : examiner le critère MCP et le lancement du terminal de qualification Codex, puis compléter les contrôles manquants dans un périmètre humain autorisé. La campagne ne modifie pas ces critères pour les rendre artificiellement verts. Aucun réglage de confidentialité ni de sécurité ne doit être élargi pour obtenir un résultat vert.
+Les presets sont couverts dans le périmètre des deux passages décrit ci-dessus, avec le choix OpenCode Go demandé par le propriétaire. Les quatre contrôles Relay manquants sont couverts par la reprise Codex ciblée, distincte de la campagne initiale conservée. Le TUI Codex ne reçoit aucune option accordant une approbation ou une confiance forcée ; les approbations Palabre temporaires restent celles annoncées et autorisées pour la campagne. Seul le fichier de configuration Palabre globale a fait l'objet d'une comparaison avant/après. Vérifier la CI sur la tête finale ; les limites de versions, de modèles et de parcours restent celles indiquées ici.
 
 Pour le parcours humain de publication, une vérification éventuelle doit partir d'un terminal effectivement utilisé par le propriétaire et d'une cible explicitement désignée. Ne pas reprendre un ancien envoi ni présenter un PID, un TTY ou une trace comme un accord humain. Cette qualification reste ouverte, même pour une préversion.
 
