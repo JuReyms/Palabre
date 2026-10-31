@@ -19,7 +19,7 @@ L'agent prépare le bilan et l'aperçu, puis fournit la commande ; l'humain lanc
 
 ## Vérifications de ce candidat
 
-Résultats observés sur ce checkout, sans campagne réelle d'agent :
+Résultats isolés observés sur ce checkout ; les campagnes réelles sont détaillées séparément ci-dessous :
 
 | Contrôle | Résultat |
 | --- | --- |
@@ -39,9 +39,55 @@ Claude a relu version, canal, passages de préversion, installation FR/EN, skill
 
 Le premier essai de lancement de la suite complète n'a pas exécuté cette suite, son répertoire de journal étant absent. Après création de ce répertoire, le passage complet ci-dessus réussit ; aucune erreur de préparation n'est comptée comme un test réussi.
 
+## Campagnes réelles autorisées le 31 octobre 2026
+
+Le propriétaire a autorisé les deux campagnes après présentation de leurs effets : quotas, historiques réels, approbations de configurations temporaires et lancement possible des MCP par le témoin Codex. Elles utilisent le build du candidat, sous Windows 11, Node `24.19.0`, Claude Code `2.1.316`, Codex CLI `0.163.0`, OpenCode `2.2.3`, Antigravity CLI `1.4.12` et Mistral Vibe `3.0.4`. Les qualifications datées de [0.22.1](release-0.22.1-qualification.md) restent historiques ; elles ne remplacent pas ces résultats. Identifiants, chemins personnels, exports et journaux bruts restent locaux.
+
+### Relay : 18 contrôles réussis sur 22
+
+La commande officielle `pnpm smoke:real-relay` se termine avec le code 1. Conversations jetables fermées : Claude et Codex répondent avec le contexte attendu, la délivrance et l'identité attendues, en arrière-plan explicite. Codex a relu leurs deux exports séparément des critères du script, qui ne compte que la présence de l'export Claude. Claude annonce seulement `Read`, `Glob`, `Grep` et aucun MCP. Le scénario Claude attaché non interactif établit son processus propre, refuse l'envoi avec `target-busy` / code 3 / `not-delivered`, puis constate l'historique inchangé avant arrêt confirmé du processus lancé. Le refus conserve aussi une passation locale `.handoff.md`, sans l'envoyer.
+
+Quatre contrôles restent en échec :
+
+- **Indice MCP Codex :** le témoin sans neutralisation est exploitable, mais la recherche de noms dans stderr trouve encore `computer_use` pendant l'échange neutralisé. La réponse et l'identité sont correctes ; cela ne suffit pas à valider le contrôle MCP.
+- **Trois contrôles Codex attaché :** l'écran attend `Continue anyway? [y/N]` après l'avertissement `TERM=dumb`. L'attachement n'est pas établi et aucun message Relay n'est envoyé. La trace contient une mesure avant (un fichier, 53 lignes), sans mesure après : l'historique inchangé n'est pas établi. Le refus d'une cible Codex réellement attachée n'est donc pas qualifié par ce passage.
+
+L'instantané Codex précède le nettoyage et note un PTY encore actif. Le script demande ensuite l'arrêt du seul arbre de processus qu'il a lancé, sans consigner de confirmation d'arrêt comparable au scénario Claude. Une inspection ultérieure en lecture seule par Codex ne trouve aucun processus dont la ligne de commande nomme la session jetable exacte ; cette observation ne prouve pas l'arrêt universel de tous les descendants.
+
+Un diagnostic distinct, avec une nouvelle demande sur la même cible jetable Codex fermée et les mêmes protections, conserve stdout/stderr bruts. Il répond correctement, avec la même identité et un code 0. Codex constate dans cette capture une seule occurrence de `computer_use`, dans `feature.computer_use` parmi les métadonnées de fonctionnalités ; les journaux déclarent `mcp_server_count=0` et `mcp_servers=""`. Cette observation indique un faux positif possible du critère textuel. Elle ne reconstitue pas le stderr perdu du premier échange, ne transforme pas ses résultats en 22/22 et ne prouve pas une absence universelle d'exposition aux outils.
+
+Le modèle Claude demandé à la création est l'alias `haiku`, mais le modèle observé à la création puis à la reprise est `claude-sonnet-5-5`. La cause de cette résolution n'est pas établie. Le témoin sans cadre opérateur répond aussi ; il ne démontre ni la nécessité ni l'absence d'effet de ce cadre.
+
+### Presets : 6 scénarios réussis, 14 en échec, aucun ignoré
+
+Les dix paires CLI prioritaires sont lancées dans les deux modes Débat et Ask, deux tours pour Débat, avec les synthèses configurées : Antigravity pour Débat et OpenCode pour Ask. Aucun modèle n'est imposé par Palabre. Ollama et les directions inversées ne sont pas inclus. Le passage complet dure 429 secondes et se termine avec le code 1.
+
+Le lanceur local reprend le script officiel et ses critères sans modification ; son seul ajout conserve les sorties brutes des sous-processus dans un dossier privé avant analyse. Le premier appel de compilation n'a trouvé aucun `tsc` et n'a lancé aucun agent ; après ajout des outils de développement du dépôt au PATH du processus, la compilation puis la campagne démarrent.
+
+| Paire | Débat | Ask |
+| --- | --- | --- |
+| Codex / Claude | Réussi | Deux réponses reçues ; synthèse OpenCode refusée |
+| Codex / Antigravity | Réussi | Deux réponses reçues ; synthèse OpenCode refusée |
+| Claude / Antigravity | Réussi | Deux réponses reçues ; synthèse OpenCode refusée |
+| OpenCode / Antigravity | Refus OpenCode comme participant | Refus OpenCode avant réception de deux réponses |
+| Codex / OpenCode | Refus OpenCode comme participant | Refus OpenCode avant réception de deux réponses |
+| Claude / OpenCode | Refus OpenCode comme participant | Refus OpenCode avant réception de deux réponses |
+| Codex / Vibe | Réussi | Deux réponses reçues ; synthèse OpenCode refusée |
+| Vibe / Claude | Réussi | Deux réponses reçues ; synthèse OpenCode refusée |
+| OpenCode / Vibe | Refus OpenCode comme participant | Refus OpenCode avant réception de deux réponses |
+| Antigravity / Vibe | Réussi | Deux réponses reçues ; synthèse OpenCode refusée |
+
+Les quatorze échecs contiennent le même diagnostic amont : le modèle Go choisi par l'outil utilise les données des requêtes pour l'entraînement, ce qui est refusé par les réglages de confidentialité actuels du workspace OpenCode. Aucun réglage n'est modifié ni modèle remplacé pour contourner ce refus. Six Ask échouent à la synthèse OpenCode après réception des deux réponses ; les quatre autres échouent d'abord sur OpenCode comme participant. Les sorties partielles ne sont pas comptées comme des succès.
+
+Les vingt exports annoncés ont été lus et leurs messages rapprochés des événements NDJSON capturés. Même un échec peut produire un export : sa présence ne valide pas une session. Les six Débats réussis satisfont les critères du smoke : NDJSON v1, événements et messages attendus, synthèse, export et absence du bruit interdit. Ce sujet simple vérifie ces contrats, pas la justesse de chaque affirmation ni la qualité d'une relecture contradictoire.
+
+Le précontrôle et le contrôle final de Codex constatent un contenu SHA-256 et une date de modification identiques pour la configuration Palabre globale. Codex n'a exécuté aucune synchronisation de copie installée du skill ni nettoyage des historiques, approbations temporaires, exports ou passations produits par les essais. Sa lecture de l'état Git confirme que le rapport est le seul fichier versionné modifié après les campagnes ; ce rapport n'entre pas dans l'archive npm contrôlée ci-dessus.
+
+Claude a relu le bilan par Relay en arrière-plan et recoupé les comptes et le tableau avec l'audit des presets, la trace Relay, le résumé MCP expurgé et le contrôle final de configuration. Ses remarques ont fait préciser les six échecs Ask en synthèse et les quatre en participation, la mesure d'historique avant seule et l'auteur des vérifications complémentaires. Il n'a relancé aucun essai, ni lu les exports, le log presets, les scripts ou la capture MCP personnelle ; durée, versions OpenCode/Antigravity/Vibe, vérifications Git, lecture des exports et comparaison de configuration restent des constats de Codex. Cette relecture ne certifie pas la campagne et n'autorise aucune publication.
+
 ## Avant une publication
 
-Le [protocole de vérification](dev/verification.md) demande des campagnes réelles presets et Relay avant publication. Elles sont séparées des tests isolés et exigent un accord humain pour leurs quotas, historiques, éventuels MCP et approbations temporaires. Elles ne sont pas lancées par cette préparation. Les qualifications datées de [0.22.1](release-0.22.1-qualification.md) restent historiques ; elles ne deviennent pas une campagne de ce candidat.
+Les campagnes réelles sont terminées mais ne sont pas vertes. Choisir un modèle OpenCode compatible avec les choix de confidentialité du propriétaire, examiner le critère MCP et le lancement du terminal de qualification Codex, puis compléter les contrôles manquants dans un périmètre humain autorisé. Ces décisions ne sont pas prises par cette campagne. Aucun réglage de confidentialité ni de sécurité ne doit être élargi pour obtenir un résultat vert.
 
 Pour le parcours humain de publication, une vérification éventuelle doit partir d'un terminal effectivement utilisé par le propriétaire et d'une cible explicitement désignée. Ne pas reprendre un ancien envoi ni présenter un PID, un TTY ou une trace comme un accord humain. Cette qualification reste ouverte, même pour une préversion.
 
