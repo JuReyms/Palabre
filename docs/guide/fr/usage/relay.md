@@ -52,7 +52,29 @@ Le lien accepte uniquement `https://github.com/proprietaire/depot`, `/issues/42`
 
 Le rattachement est conservé dans `work.github`, le nom dans `work.participant`, dans le JSON v1, l’enveloppe, l’export et `relay recent`. Ce sont des déclarations historiques : aucun accès GitHub, aucune existence vérifiée, aucune publication ou autorisation. Les participants, comptes GitHub et identités de conversation restent distincts ; une signature ne prouve pas un accord humain. Les identifiants locaux et historiques ne sont pas destinés à un commentaire public.
 
-Une issue porte le problème et son suivi, une PR les changements, un commentaire un résultat significatif ou une décision. Le chef de mission prépare une restitution attribuée dans le cadre autorisé ; les échanges intermédiaires restent directs. La publication de bilans par Palabre sera un lot distinct. Sans rattachement, conversation et exports suffisent : aucun ticket n’est imposé et aucun suivi n’est détecté depuis Git. Le rattachement concerne le travail en cours, jamais tous les sujets d’une conversation.
+Une issue porte le problème et son suivi, une PR les changements, un commentaire un résultat significatif ou une décision. Le chef de mission prépare une restitution attribuée dans le cadre autorisé ; les échanges intermédiaires restent directs. La publication utilise la commande distincte décrite ci-dessous. Sans rattachement, conversation et exports suffisent : aucun ticket n’est imposé et aucun suivi n’est détecté depuis Git. Le rattachement concerne le travail en cours, jamais tous les sujets d’une conversation.
+
+## Publier un bilan choisi
+
+Demandez au chef de mission de préparer un bilan utile pour l’issue ou la PR concernée : travail réalisé, preuves de vérification, limites et suite attendue. Il conserve les contributions attribuées et vous montre le commentaire choisi. Les échanges intermédiaires restent dans Relay ; le bilan est un fichier séparé, sans historique privé ni identifiant de conversation.
+
+Pour voir le commentaire exact, son compte de publication et sa destination, sans écrire ni publier :
+
+```powershell
+palabre relay publish --to https://github.com/proprietaire/depot/pull/42 --from codex --participant Atlas --message-file bilan.md --dry-run --json
+```
+
+Pour publier, lancez la même commande dans un terminal visible sans `--dry-run` (et sans `--json` si vous préférez la sortie humaine). Palabre affiche le compte GitHub, le lien, la visibilité publique ou privée et le commentaire entier ; vous confirmez au clavier. Le chef de mission peut préparer cette commande, mais ne confirme jamais à votre place ni dans un terminal caché. Cette première version ne propose aucune autorisation globale par dépôt. Les accès existants de `gh` restent nécessaires ; aucun agent n’est lancé.
+
+À l’invite, Ctrl+C annule ; Ctrl+D ou une fin d’entrée refuse. Ces gestes n’envoient rien et ne créent aucune réservation. Après réservation, même un refus HTTP peut laisser la demande bloquée : conservez la trace et vérifiez les éléments avec le mainteneur, sans modifier le bilan pour rejouer.
+
+`--from` est un nom d’agent déclaré, sans UUID ; `--participant` donne son nom pour ce travail, ou reprend l’alias par défaut. Le compte authentifié qui publie est affiché séparément : la signature n’authentifie pas l’agent. `--commit <sha40>` permet de rattacher le bilan à la tête exacte d’une PR ; une dérive depuis l’aperçu arrête la publication. Le fichier est du texte UTF-8 non vide de 60 Kio maximum ; les retours CRLF sont normalisés en LF avant aperçu. Les exports Palabre complets sont refusés.
+
+Le JSON `relay-publication-result` est distinct du résultat d’un échange. `publication` indique `not-attempted`, `published` ou `unknown` ; recevoir un commentaire ne prouve pas la réussite de la tâche. Le lien confirmé est rendu au chef de mission pour sa restitution.
+
+Une trace privée conserve le commentaire choisi et sa tentative sous `~/.palabre/relay-publications/`. Après une issue incertaine, ne renvoyez pas et n’effacez pas la trace pour rejouer : vérifiez GitHub et la trace indiquée. Un commentaire déjà confirmé est rendu sans nouvel envoi. Aucun commentaire n’est retiré en cas d’annulation. Cette protection locale ne garantit pas un effet unique dans tous les environnements. Détails : `palabre relay publish --help`.
+
+Cette commande ne crée ni ticket, PR ou revue inline et ne change aucun état. Elle ne reprend pas la politique des fonctions gelées et ne doit jamais contourner une revue refusée ou une limitation d’accès.
 
 ## Entre deux conversations Codex
 

@@ -6,13 +6,21 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Added
 
+- `palabre relay publish` : aperçu et publication explicite d’un bilan attribué sur une issue ou PR existante. Compte, visibilité, cible, identifiants GitHub et tête de PR revérifiés ; confirmation au clavier en terminal visible, JSON distinct v1, trace locale exclusive et aucun renvoi après incertitude. Aucun modèle lancé ni politique globale ajoutée.
+
 - Relay ordinaire : rattachement GitHub facultatif (`--github`) et nom déclaré du destinataire (`--participant`), conservés dans l’enveloppe, le JSON v1, les exports, les passations locales et `relay recent`. Aucun accès ni publication GitHub.
 
 ### Changed
 
+- Consignes de publication du skill révision 11 : bilan choisi, attribution déclarée, aperçu, validation par l’humain dans son terminal, annulation/refus à l’invite, retour du lien et arrêt sans rejeu sur incertitude. Copies installées seulement par plan `palabre skill --sync` ou `palabre update` confirmé depuis le paquet installé, puis rechargement des consignes.
+
 - Restitution Relay proportionnée ajoutée à l’enveloppe ordinaire ; `--no-reply-format` la retire pour un appel. Réponse brute, délivrance, permissions et fonctions gelées inchangées.
 - Vision et guides FR/EN alignés sur la coopération pour décider et travailler, la liberté de choix et de budget, et un suivi GitHub facultatif des résultats utiles.
 - Consignes du skill révisées : ne plus recopier systématiquement le format de réponse, garder le rattachement au travail et attribuer les contributions. Les copies installées se synchronisent seulement par un plan `palabre skill --sync` ou `palabre update` confirmé, depuis le paquet installé ; recharger les consignes après synchronisation.
+
+### Fixed
+
+- Publication Relay : la fin d’entrée à l’invite ne laisse plus la confirmation en attente ; Ctrl+C rend une annulation structurée, Ctrl+D ou EOF un refus, sans envoi ni réservation.
 
 ## [0.22.1] - 2026-10-30
 

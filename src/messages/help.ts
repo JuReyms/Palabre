@@ -263,6 +263,8 @@ Utilisation :
   palabre relay run-write <WR-id> --json # un seul appel après accord
   palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <chemin>
   palabre relay allow-repo proprietaire/depot [--config <chemin>]
+  palabre relay publish --to <url-issue-ou-PR> --from <agent> --message-file <bilan.md> [--dry-run]
+  Publication distincte : aperçu exact puis confirmation humaine ; détails avec relay publish --help.
   palabre relay allow-repo 'proprietaire/*' [--config <chemin>]
   palabre relay --open --from <agent>:<session> --to <agent-codex>:<session> "<message>"
   palabre relay --open --follow --to <agent-codex>:<session>   # suite d'un tour lancé depuis l'app
@@ -941,6 +943,8 @@ Usage:
   palabre relay run-write <WR-id> --json # one call after approval
   palabre relay --from <agent>:<session> --to <agent>:<session> --message-file <path>
   palabre relay allow-repo owner/repository [--config <path>]
+  palabre relay publish --to <issue-or-PR-url> --from <agent> --message-file <report.md> [--dry-run]
+  Separate publication: exact preview then human confirmation; details with relay publish --help.
   palabre relay allow-repo 'owner/*' [--config <path>]
   palabre relay --open --from <agent>:<session> --to <codex-agent>:<session> "<message>"
   palabre relay --open --follow --to <codex-agent>:<session>   # follow a turn started in the app

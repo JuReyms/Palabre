@@ -52,7 +52,29 @@ Accepted links are `https://github.com/owner/repo`, `/issues/42` or `/pull/42`, 
 
 The JSON v1 `work.github` link and `work.participant` name are preserved in the envelope, export and `relay recent`. They are historical declarations: no GitHub access, existence check, publication or permission. Participants, GitHub accounts and conversation identities are separate; a signature never proves human approval. Local identifiers and history are not intended for public comments.
 
-An issue holds the problem and its tracking, a PR the changes, and a comment a significant result or decision. The lead prepares an attributed report within authorized work; intermediate exchanges remain direct. Publishing reports through Palabre is a separate future lot. Without a link, conversation and exports suffice: no ticket is required and no tracking is detected from Git. The link belongs to the current work, never every topic of a conversation.
+An issue holds the problem and its tracking, a PR the changes, and a comment a significant result or decision. The lead prepares an attributed report within authorized work; intermediate exchanges remain direct. Publishing uses the separate command below. Without a link, conversation and exports suffice: no ticket is required and no tracking is detected from Git. The link belongs to the current work, never every topic of a conversation.
+
+## Publish a selected report
+
+Ask the lead to prepare a useful report for the issue or PR: work completed, verification evidence, limitations and next steps. It keeps contributions attributed and shows you the selected comment. Intermediate exchanges stay in Relay; the report is a separate file without private history or conversation identifiers.
+
+To see the exact comment, publishing account and destination without writing or publishing:
+
+```powershell
+palabre relay publish --to https://github.com/owner/repo/pull/42 --from codex --participant Atlas --message-file report.md --dry-run --json
+```
+
+To publish, run the same command in a visible terminal without `--dry-run` (and without `--json` for human output). Palabre shows the GitHub account, link, public/private visibility and full comment; you confirm by keyboard. The lead can prepare this command, but never confirms on your behalf or in a hidden terminal. This first version offers no global repository authorization. Existing `gh` access is required; no agent is launched.
+
+At the prompt, Ctrl+C cancels; Ctrl+D or end of input declines. These actions send nothing and create no reservation. After reservation, even an HTTP refusal may leave the request blocked: keep the receipt and check the evidence with the maintainer, without changing the report to replay it.
+
+`--from` is a declared agent name without UUID; `--participant` names it for this work, defaulting to the alias. The authenticated publisher is shown separately: the signature does not authenticate the agent. `--commit <sha40>` ties the report to the exact head of a PR; a change after preview stops publication. The file must be nonblank UTF-8 text of at most 60 KiB; CRLF is normalized to LF before preview. Complete Palabre exports are refused.
+
+The `relay-publication-result` JSON is separate from an exchange result. `publication` is `not-attempted`, `published` or `unknown`; a published comment does not prove task success. The confirmed link returns to the lead for its report to you.
+
+A private receipt keeps the chosen comment and attempt under `~/.palabre/relay-publications/`. After an uncertain outcome, never resend or delete the receipt to replay: check GitHub and the reported receipt. A previously confirmed comment returns without another send. Cancellation never removes a comment. This local protection does not guarantee exactly one effect across all environments. Details: `palabre relay publish --help`.
+
+This command creates no ticket, PR or inline review and changes no state. It does not reuse frozen-feature policy and must never bypass a refused review or an access limitation.
 
 ## Between two Codex conversations
 

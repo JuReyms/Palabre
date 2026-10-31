@@ -8,6 +8,8 @@ Les parcours Mission, `--task review` et `--write` restent gelés : correctifs d
 
 ## Relay externe
 
+Publication d’un bilan choisi : [contrat dédié](../relay-publication-contract.md). `relay publish` est une sous-commande distincte : aperçu exact, compte/visibilité/cible revérifiés, confirmation humaine clavier, réservation locale exclusive et un seul appel de publication. Aucune politique globale ou permission de revue réutilisée. JSON `relay-publication-result` distinct de `relay-result` ; aucun modèle lancé. Ne jamais l’utiliser pour contourner une revue refusée ou un diagnostic d’accès.
+
 Méthode, suivi GitHub facultatif et attribution : [contrat du contexte de travail](../relay-work-contract.md). `--github`, `--participant` et `--no-reply-format` concernent seulement les envois ordinaires ; `work?` est un ajout facultatif v1 dans résultats et traces. Validation locale avant IO ; aucune publication, détection Git ou autorité déduite. La consigne de restitution courte reste proportionnée et ne change jamais le verdict de transport. Fonctions gelées inchangées.
 
 Trace du message ordinaire (#210) : `RelayExport.envelope?` est le même texte fourni à stdin, `codex queue` ou à l'envoi dans la copie OpenCode ; jamais reconstruit après coup. Export seulement après tentative, y compris délivrance inconnue. Le bloc « Message Relay complet (enveloppe comprise) » précède le corps/réponse non fiable : un bloc Markdown mal fermé ne peut pas le masquer. Délimiteur plus long que tous les backticks du texte ; aucune normalisation Windows sur la copie exacte, pour préserver Unicode, CRLF et `:**`. Corps historique inchangé ; aucun nouveau champ JSON v1.

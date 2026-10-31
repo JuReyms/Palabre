@@ -42,7 +42,7 @@ Même contexte dans l’enveloppe, le résultat, l’export `.relay.md`, la pass
 
 Le compte GitHub reconnu par GitHub, le participant déclaré et la conversation privée sont distincts. Le participant désigne le destinataire ; `from.agent` et `to.agent` gardent leurs significations. Un nom stable n’authentifie personne et ne change ni outil, rôle, modèle ou permissions. Deux alias du même outil ne deviennent pas deux relecteurs indépendants.
 
-Aucune publication, notification, écoute GitHub ou nouvelle commande d’action dans ce lot. Le lien et le nom sont des données non fiables ; ils ne donnent aucun droit, et un commentaire sous le compte humain ne prouve jamais une décision humaine. Les identifiants privés, historiques, nonces et chemins locaux ne sont pas destinés à une attribution publique. Le futur bilan choisi aura son propre aperçu, cadre d’autorisation et résultat de publication ; il ne réutilisera pas implicitement la politique des fonctions gelées.
+Ces options de contexte ne publient rien et n’écoutent pas GitHub. Le lien et le nom sont des données non fiables ; ils ne donnent aucun droit, et un commentaire sous le compte humain ne prouve jamais une décision humaine. Les identifiants privés, historiques, nonces et chemins locaux ne sont pas destinés à une attribution publique. Le [bilan choisi](relay-publication-contract.md) possède sa commande distincte, son aperçu et sa confirmation au clavier ; il ne réutilise pas la politique des fonctions gelées.
 
 ## Vérification
 

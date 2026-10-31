@@ -148,6 +148,8 @@ Relay messages grant no extra permissions. **Background is the default** for Cod
 
 ### Keep a record of your exchanges
 
+For selected Relay outcomes, the lead can prepare an attributed report for an existing GitHub issue or PR. `palabre relay publish` shows the exact comment, publishing account and visibility, then requires your keyboard confirmation in a visible terminal. It returns the confirmed comment link; intermediate exchanges stay in Relay. [Report publication](https://palab.re/en/usage/relay).
+
 Palabre saves exchanges as Markdown files in `.palabre/` by default: `.relay.md`, `.debate.md`, `.ask.md` and `.chat.md`. Debate and Ask also include a summary when enabled. Read them again, keep them with your project or share them after checking for sensitive information. [Export details](https://palab.re/en/usage/exports).
 
 ### Documentation and integrations
@@ -295,6 +297,8 @@ palabre codex-claude --mode debate "Critique ce plan" -t 4 --files docs/plan.md
 Un message Relay n'accorde aucun droit supplémentaire. **L'arrière-plan est le défaut** pour Codex/Claude, avec des outils limités et une conversation fermée requise. Si la conversation Codex est ouverte, votre agent explique le choix : garder l'arrière-plan, ou y envoyer la demande avec ses outils et permissions actuelles, **y compris l'écriture si elle est autorisée**. Vous pouvez choisir pour cet échange, ou confirmer **Privilégier la conversation ouverte** comme réglage habituel (valeur technique `auto`) ; une conversation fermée part alors en arrière-plan. Les réglages explicites existants sont conservés. Si la délivrance est incertaine, Palabre ne renvoie pas le message automatiquement.
 
 ### Garder une trace des échanges
+
+Pour les résultats Relay utiles au projet, le chef de mission peut préparer un bilan attribué destiné à une issue ou PR existante. `palabre relay publish` présente le commentaire exact, le compte et la visibilité, puis exige votre confirmation au clavier dans un terminal visible. Le lien confirmé revient dans la restitution ; les échanges intermédiaires restent dans Relay. [Publication d’un bilan](https://palab.re/fr/usage/relay).
 
 Palabre enregistre les échanges dans des fichiers Markdown, dans `.palabre/` par défaut : `.relay.md`, `.debate.md`, `.ask.md` et `.chat.md`. Débat et Ask y ajoutent leur synthèse lorsqu'elle est activée. Vous pouvez les relire, les conserver avec votre projet ou les partager après avoir vérifié les informations sensibles. [Détail des exports](https://palab.re/fr/usage/exports).
 
