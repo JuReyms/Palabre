@@ -148,6 +148,24 @@ Le lien accepte un dépôt github.com, `/issues/<numéro>` ou `/pull/<numéro>`,
 
 Les résultats reviennent directement au chef de mission, qui coordonne les corrections et restitue le résultat ou un résumé avec les liens utiles. GitHub conserve les éléments significatifs dans un cadre de publication autorisé : tâche, changements, vérifications, blocage ou décision. Ne pas publier chaque échange. Ces options ne publient rien ; ne pas utiliser les fonctions gelées pour le compléter. Compte GitHub, participant déclaré et conversation sont distincts : signature ou commentaire sous le compte humain ne prouvent jamais son accord.
 
+## Publier un bilan choisi
+
+Sur demande humaine de publication, préparer un bilan utile avec contributions attribuées, vérifications, limites et suite ; pas chaque échange. Utiliser un fichier texte séparé, sans UUID de conversation, nonce, historique privé ou chemin personnel à publier. Les fichiers d’exports Palabre complets sont refusés. Ne jamais utiliser cette commande pour contourner une revue refusée ou une limitation d’accès.
+
+L’aperçu ne publie rien :
+
+```powershell
+palabre relay publish --to https://github.com/proprietaire/depot/pull/42 --from codex --participant Atlas --message-file bilan.md --dry-run --json
+```
+
+`--from` est le nom déclaré du rédacteur, sans session ; `--participant` le nomme pour ce travail (alias par défaut). Le compte GitHub qui publiera est affiché séparément. Nommer les contributions des autres équipiers dans le bilan sans signer à leur place ni transformer leur constat en preuve certifiée. `--commit <sha40>` ne s’ajoute que pour une tête de PR exacte ; ne pas prétendre avoir examiné une révision seulement parce qu’elle est courante.
+
+Lire le corps exact, le compte, la destination et la visibilité rendus dans `preview`. Les CRLF sont normalisés en LF avant aperçu et envoi. Montrer le bilan à l’humain et présenter la commande sans `--dry-run`, à exécuter dans son terminal visible ; il lit puis confirme au clavier. L’agent ne confirme jamais, ne saisit pas oui dans un terminal caché et n’ajoute aucune option d’approbation. Aucun `--yes`, `--config` ou `--trust-config` accepté ; aucune politique globale à modifier. Pendant un tour reçu par Relay, retourner le bilan au chef de mission plutôt que lancer une interaction humaine.
+
+Le JSON distinct `relay-publication-result` donne `publication` : `not-attempted`, `published` ou `unknown`, et `attempted` pour cet appel seulement. Succès confirmé : restituer le résultat ou résumé avec `commentUrl`. La trace privée garde le commentaire choisi ; aucun modèle lancé. Sans GitHub ou demande de publication, continuer la coopération normale.
+
+`uncertain`, réservation antérieure ou trace corrompue : arrêter et demander une vérification de GitHub et de la trace indiquée. Aucun renvoi, effacement/déplacement de réservation, changement de profil, de signature ou de corps pour rejouer. `already-published` rend le lien historique sans nouvel envoi. Si la trace échoue après accusé confirmé, garder le lien et annoncer cette limite ; ne pas republier. Ce contrôle est local et opérateur, pas une authentification de l’humain ni une garantie universelle d’effet unique.
+
 ## Méthode de travail
 
 Le chef de mission propose la délégation de lui-même : quand un travail se découpe (relecture, recherche, lot indépendant, vérification), il n'attend pas que l'humain y pense. Petite délégation attendue, comme une relecture ou une recherche en lecture seule, dans un travail déjà validé : il l'annonce en une ligne (qui fait quoi), puis la fait. Délégation qui engage, comme une écriture, plusieurs équipiers, un quota important ou un nouveau chantier : il pose une question claire, une seule fois pour tout le lot, et la réponse vaut pour la suite de ce lot. Pas de demande répétée dans ce cadre, sauf préférence humaine explicite à respecter (par exemple confirmer chaque consultation). Une question simple reste traitée par l'hôte seul. Déléguer n'élargit aucun droit.

@@ -28,6 +28,7 @@ PALABRE offers four modes: **Debate**, **Relay**, **Ask** and **Chat**, with you
 - Contradictory Debate, independent Ask (1–4 agents) and Chat with an explicit second opinion; after Debate/Ask, Chat continues from subject and summary.
 - Relay to closed Codex or Claude Code; `--open` to open Codex on Windows, macOS, or Linux (pilot, `python3` required on POSIX), with its own tools and permissions, without guaranteed immediate display.
 - Short, proportionate Relay reporting; optional declared GitHub link and participant in messages and local records, without GitHub access or publication.
+- Separate publication of a selected Relay report on an existing issue or PR: exact preview, account/visibility, human keyboard confirmation, attributed comment and confirmed link; no global policy added.
 - Historical Mission, GitHub COMMENT review and `--write` paths: frozen, outside the default workflow; security fixes only.
 - Local/global configuration, conservative agent discovery/synchronization, presets and CLI-selected models.
 - [TUI](/en/usage/tui), agent skill and VS Code extension.
@@ -38,7 +39,7 @@ PALABRE offers four modes: **Debate**, **Relay**, **Ask** and **Chat**, with you
 
 ## Upcoming improvements
 
-1. **Useful results on GitHub**: prepare and publish a selected, attributed report with suitable preview and authorization. Publishing Ask/Debate summaries has its own scope ([#122](https://github.com/JuReyms/Palabre/issues/122)).
+1. **Summaries on GitHub**: explore explicitly selecting an Ask/Debate summary for the same publication core, without publishing the complete export ([#122](https://github.com/JuReyms/Palabre/issues/122)).
 2. **Work continuity**: retrieve a result after interruption without resending the request; qualify remaining ambiguous cases separately ([#146](https://github.com/JuReyms/Palabre/issues/146)).
 3. **OpenCode**: extend qualification of the copy pilot before adding CLI/Desktop paths ([#136](https://github.com/JuReyms/Palabre/issues/136)).
 4. **Budget and diagnostics**: dated provider information or explicit estimates, without automatic switching ([#41](https://github.com/JuReyms/Palabre/issues/41)).

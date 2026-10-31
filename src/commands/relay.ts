@@ -34,6 +34,8 @@
  * exécutée ici. Les parcours gelés et les exports restent inchangés.
  * `relay recent` consulte seulement les en-têtes des exports du dossier configuré ; résultat
  * distinct, sans choix, ouverture, envoi ou modification du contrat d'échange ci-dessous.
+ * `relay publish` publie un bilan choisi par un parcours distinct : aperçu exact, accord clavier,
+ * trace locale exclusive ; il n'exécute aucun échange ni ne réutilise la politique des tâches gelées.
  * Le contexte de travail facultatif (`--github`, `--participant`) est validé avant IO, transmis
  * et conservé dans les traces locales ; il ne contacte pas GitHub et ne confère aucune autorité.
  * La consigne de réponse courte des envois ordinaires reste désactivable et non interprétée.
@@ -100,6 +102,7 @@ import { runRelayRecentCommand } from "./relayRecent.js";
 import { saveRelayHandoff, type RelayHandoffReport } from "../relayHandoff.js";
 import { inspectSkillRuntime, type SkillRuntimeInfo } from "../skillRuntime.js";
 import { parseRelayGitHub, validRelayParticipant, type RelayWorkContext } from "../externalSessions/relayWork.js";
+import { runRelayPublishCommand } from "./relayPublish.js";
 
 /** Timeout par défaut et bornes de `--timeout`, en secondes. */
 export const DEFAULT_RELAY_TIMEOUT_SECONDS = 600;
@@ -323,10 +326,6 @@ function startupLanguage(rawArgs: readonly string[]): "fr" | "en" {
 /** Point d'entrée de `palabre relay`. `rawArgs` commence par `relay`. */
 export async function runRelayCommand(rawArgs: string[]): Promise<void> {
   const messages = startupMessages(rawArgs);
-  if (rawArgs.includes("--help") || rawArgs.includes("-h")) {
-    console.log(messages.help.renderCommand("relay"));
-    return;
-  }
   // Routage seulement : ne pas confondre la valeur d'un --to/--from avec une sous-commande.
   let actionIndex = -1;
   for (let i = 1; i < rawArgs.length; i++) {
@@ -334,6 +333,20 @@ export async function runRelayCommand(rawArgs: string[]): Promise<void> {
     if (!token.startsWith("-")) { actionIndex = i; break; }
     if ((RELAY_VALUE_FLAGS.has(token.slice(2)) || token === "--lang" || token === "--limit")
       && rawArgs[i + 1] !== undefined && !rawArgs[i + 1]!.startsWith("-")) i++;
+  }
+  // Les options globales peuvent précéder relay/publish. Un message ordinaire littéral
+  // « publish » après --to/--from reste un message, jamais une commande de publication.
+  const publicationPrefix = rawArgs.slice(1, actionIndex);
+  const globalPublicationPrefix = publicationPrefix.every((token, index) =>
+    ["--json", "--dry-run", "--help", "-h", "--language", "--lang", "--config"].includes(token)
+    || ["--language", "--lang", "--config"].includes(publicationPrefix[index - 1] ?? ""));
+  if (actionIndex > 0 && rawArgs[actionIndex] === "publish" && globalPublicationPrefix) {
+    await runRelayPublishCommand([...publicationPrefix, ...rawArgs.slice(actionIndex + 1)]);
+    return;
+  }
+  if (rawArgs.includes("--help") || rawArgs.includes("-h")) {
+    console.log(messages.help.renderCommand("relay"));
+    return;
   }
   if (actionIndex > 0 && rawArgs[actionIndex] === "recent") {
     await runRelayRecentCommand(["relay", "recent", ...rawArgs.slice(1, actionIndex), ...rawArgs.slice(actionIndex + 1)]);

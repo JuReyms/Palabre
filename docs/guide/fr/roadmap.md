@@ -28,6 +28,7 @@ PALABRE propose quatre modes : **Débat**, **Relay**, **Ask** et **Chat**, avec 
 - Débat contradictoire, Ask indépendant (1 à 4 agents) et Chat avec second avis explicite ; après Débat/Ask, Chat reprend le sujet et la synthèse.
 - Relay vers Codex ou Claude Code fermé ; `--open` vers Codex ouvert sous Windows, macOS ou Linux (pilote, `python3` requis sur POSIX), avec ses propres outils et permissions, sans affichage immédiat garanti.
 - Restitution Relay légère et proportionnée ; lien GitHub et participant déclarés facultatifs dans les messages et traces locales, sans accès ni publication GitHub.
+- Publication distincte d’un bilan Relay choisi sur une issue ou PR existante : aperçu exact, compte/visibilité, confirmation humaine clavier, commentaire attribué et lien confirmé ; aucune politique globale ajoutée.
 - Parcours historiques Mission, revue GitHub COMMENT et `--write` : gelés, hors parcours par défaut ; correctifs de sécurité seulement.
 - Configuration locale/globale, détection et synchronisation prudente des agents, presets et modèles choisis par les CLI.
 - [Interface TUI](/fr/usage/tui), skill pour agents et extension VS Code.
@@ -38,7 +39,7 @@ PALABRE propose quatre modes : **Débat**, **Relay**, **Ask** et **Chat**, avec 
 
 ## Prochaines améliorations
 
-1. **Résultats utiles dans GitHub** : préparer et publier un bilan choisi et attribué, avec aperçu et autorisation adaptés. La publication de synthèses Ask/Débat a son périmètre propre ([#122](https://github.com/JuReyms/Palabre/issues/122)).
+1. **Synthèses dans GitHub** : étudier la sélection explicite d’une synthèse Ask/Débat pour le même socle de publication, sans publier l’export complet ([#122](https://github.com/JuReyms/Palabre/issues/122)).
 2. **Continuité du travail** : retrouver un résultat après interruption sans renvoyer la demande ; qualifier séparément les cas restant ambigus ([#146](https://github.com/JuReyms/Palabre/issues/146)).
 3. **OpenCode** : étendre la qualification du pilote sur copie, avant tout nouveau parcours CLI/Desktop ([#136](https://github.com/JuReyms/Palabre/issues/136)).
 4. **Budget et diagnostics** : informations fournisseur datées ou estimations explicites, sans bascule automatique ([#41](https://github.com/JuReyms/Palabre/issues/41)).
