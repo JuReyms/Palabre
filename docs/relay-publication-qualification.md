@@ -1,6 +1,12 @@
 # Qualification de la publication d'un bilan Relay
 
-État au 31 octobre 2026 : aperçus réels, publications nominales sur issue et PR publiques, et retour historique sans doublon sur l'issue vérifiés sous Windows. Les autres scénarios réels ci-dessous restent à qualifier. Ce document complète le [contrat de publication](relay-publication-contract.md) ; il ne qualifie ni Mission, ni `--task review`, ni `--write`.
+État corrigé au 31 octobre 2026 : aperçus, publications techniques sur issue et PR publiques, et retour historique sans doublon sur l'issue observés sous Windows. **La visibilité de la fenêtre et la confirmation humaine au clavier ne sont pas qualifiées.** Ce document complète le [contrat de publication](relay-publication-contract.md) ; il ne qualifie ni Mission, ni `--task review`, ni `--write`.
+
+## Rectification de la preuve de validation humaine
+
+Le propriétaire indique ne pas avoir eu de fenêtre PowerShell. Les affirmations antérieures de ce bilan sur un terminal visible et une confirmation humaine sont retirées. Le lancement d'un processus par `Start-Process`, l'acceptation du contrôle TTY et sa transcription ne prouvent pas qu'une fenêtre était visible pour l'utilisateur. Une entrée `o` apparaît dans les journaux, mais son auteur et son mode de saisie ne sont pas établis ; elle ne doit pas être attribuée à l'humain.
+
+Les commentaires publiés, leurs corps/comptes et les reçus ont été vérifiés indépendamment : ces preuves techniques restent acquises. Elles ne valident pas le parcours de consentement exigé par le contrat. Aucun nouvel essai, renvoi, ouverture de fenêtre, suppression de commentaire ou de reçu n'est entrepris pour corriger ce constat.
 
 ## Vérifications acquises
 
@@ -20,25 +26,25 @@ Typage, build, validation du skill et génération documentaire réussis après 
 
 La gestion conservatrice après réservation est maintenue et explicitée dans l'aide, les guides et le skill : pas de réouverture d'une demande sur la seule interprétation d'un message d'erreur HTTP. La comparaison exacte de la casse du lien peut aussi refuser un lien non canonique ; elle n'est pas assouplie dans ce correctif.
 
-## Essai nominal réel sur issue publique
+## Publication technique observée sur issue publique
 
 31 octobre 2026, code `33974e4`, Windows build 26200, PowerShell 7.6.5, Node.js 24.19.0 et GitHub CLI 2.88.0. La CI de cette révision est verte : suite complète Linux, contrôles macOS décrits plus haut. Ces contrôles ne remplacent pas l'essai GitHub réel.
 
 Après accord explicite pour un seul commentaire fictif, le propriétaire a désigné l'[issue de test #265](https://github.com/JuReyms/Palabre/issues/265). Elle était ouverte, non verrouillée, sans commentaire. Un fichier séparé contient le bilan du protocole ci-dessous, sans historique ni identifiant privé. L'aperçu réel a montré le compte `JuReyms`, la visibilité publique et le corps exact.
 
-La commande compilée a été lancée dans un terminal PowerShell visible, avec entrée et stderr TTY. L'aperçu a été affiché et une réponse `o` a été enregistrée à l'invite ; aucune réponse n'a été saisie par l'agent. Résultat : `published`, code 0, `publication: published`, `attempted: true`, trace sauvegardée. Le [commentaire confirmé](https://github.com/JuReyms/Palabre/issues/265#issuecomment-6544665367) est conservé.
+La commande compilée a été lancée dans un processus PowerShell préparé pour l'essai ; le contrôle TTY de la CLI a été accepté. La transcription contient l'aperçu et une entrée `o`, sans établir une fenêtre visible pour l'utilisateur ni l'origine humaine de cette entrée. Résultat technique : `published`, code 0, `publication: published`, `attempted: true`, trace sauvegardée. Le [commentaire publié](https://github.com/JuReyms/Palabre/issues/265#issuecomment-6544665367) est conservé.
 
 Une lecture indépendante de l'API GitHub après l'appel confirme l'ID et l'URL du commentaire, son compte et ID de compte, son corps exact comparé au fichier choisi et au reçu local `published`. L'issue contient un seul commentaire. Sous Windows, les modes POSIX demandés ne constituent pas une qualification des ACL du fichier.
 
-La même commande, le même bilan et le même profil ont ensuite été utilisés dans un terminal visible : `already-published`, code 0, `publication: published`, `attempted: false`, même URL, sans nouvelle confirmation. Une nouvelle lecture de GitHub confirme exactement un commentaire et l'issue toujours ouverte. Aucun second commentaire, suppression de trace, changement de profil ou de corps pour contourner la réservation. Reçu et transcriptions de terminal restent locaux ; seuls le bilan choisi et son lien sont publics.
+La même commande, le même bilan et le même profil ont ensuite été utilisés dans un autre processus PowerShell : `already-published`, code 0, `publication: published`, `attempted: false`, même URL, sans nouvelle invite enregistrée. La visibilité de ce processus n'est pas établie non plus. Une nouvelle lecture de GitHub confirme exactement un commentaire et l'issue toujours ouverte. Aucun second commentaire, suppression de trace, changement de profil ou de corps pour contourner la réservation. Reçu et transcriptions restent locaux ; seuls le bilan choisi et son lien sont publics.
 
-Cette preuve couvre une issue publique et ce compte sous ces versions Windows. Elle ne qualifie pas encore une publication sur PR, une cible privée, les gestes de refus/annulation dans un vrai terminal, une dérive pendant l'attente, une panne réseau réelle ou d'autres plateformes. Les protections correspondantes gardent leurs tests fictifs et leurs limites.
+Cette preuve technique concerne une issue publique et ce compte sous ces versions Windows. Elle ne qualifie ni la visibilité de l'interface, ni la validation humaine, ni une cible privée, les gestes de refus/annulation dans un vrai terminal, une dérive pendant l'attente, une panne réseau réelle ou d'autres plateformes. Les protections correspondantes gardent leurs tests fictifs et leurs limites.
 
-## Essai nominal réel sur PR publique
+## Publication technique observée sur PR publique
 
 31 octobre 2026, même environnement et même code produit compilé. Le raccord de branche `5fd5eb8` à `main`, après le squash de #263, ne change aucun fichier par rapport à `806b6c8` : arbres Git identiques avant/après, CI verte. Le propriétaire a demandé la préparation d'une PR de qualification dédiée : [#266](https://github.com/JuReyms/Palabre/pull/266), en brouillon, avec un document témoin uniquement. Aucune fusion ou fermeture de cette PR de test n'est prévue par l'essai.
 
-L'aperçu a été vérifié avec `--commit 7f95456f9551079604781e912c2a46c93c8ffa12`, tête exacte de la PR, et le même bilan fictif séparé. Un terminal visible a ensuite présenté une séquence guidée. Sa première étape attendait un refus, mais une réponse `o` a été enregistrée à l'invite : la commande a publié le commentaire autorisé. Le code 0 ne correspondant pas au code 8 attendu pour cette étape, le script s'est arrêté avant tout autre essai. Ce résultat qualifie la publication nominale, **pas le refus**. Aucun geste n'a été saisi par l'agent ; aucune nouvelle tentative ou fenêtre n'a été lancée après l'interruption.
+L'aperçu a été vérifié avec `--commit 7f95456f9551079604781e912c2a46c93c8ffa12`, tête exacte de la PR, et le même bilan fictif séparé. Un processus PowerShell a ensuite lancé la séquence guidée, sans preuve qu'une fenêtre était visible pour l'utilisateur. Sa première étape attendait un refus, mais une entrée `o` d'origine non établie a été enregistrée à l'invite : la commande a publié le commentaire fictif. Le code 0 ne correspondant pas au code 8 attendu pour cette étape, le script s'est arrêté avant tout autre essai. Ce résultat établit la publication technique ; **la validation humaine et le refus ne sont pas qualifiés**. Aucune nouvelle tentative ou fenêtre n'a été lancée après l'interruption.
 
 Résultat de la commande : `published`, code 0, `publication: published`, `attempted: true`, trace sauvegardée. Une lecture indépendante de l'API et du reçu `published` confirme le compte et son ID, le corps exact avec son commit, l'URL et l'unicité du [commentaire de conversation](https://github.com/JuReyms/Palabre/pull/266#issuecomment-6544927359). La PR reste ouverte en brouillon, à la même tête ; aucun commentaire inline ou revue créé.
 
@@ -79,9 +85,9 @@ L'humain lit à nouveau l'aperçu puis choisit lui-même sa réponse. Ne jamais 
 | Refus | Répondre non au premier aperçu interactif | `declined`, code 8, `attempted: false` ; aucun nouveau commentaire ni réservation. | À exécuter |
 | Fin d'entrée | À des aperçus frais, utiliser Ctrl+C, puis Ctrl+D ou fermer l'entrée | Ctrl+C : `cancelled`/130 ; Ctrl+D ou EOF : `declined`/8. JSON complet, `attempted: false`, aucun nouveau commentaire ni réservation. | À exécuter |
 | Source modifiée | Après affichage de l'aperçu et avant toute réponse, modifier le bilan choisi puis confirmer | `changed`, code 2, `attempted: false` ; aucun nouveau commentaire. Repréparer et relire le bilan avant un autre essai explicite. | À exécuter |
-| Issue | Confirmer le bilan relu sur l'issue jetable | `published`, code 0, `attempted: true`, reçu sauvegardé et URL du commentaire ; comparer le compte et le corps directement dans GitHub. | Réussi sur #265 |
-| Même demande | Après le succès, relancer la commande identique sur cette issue, depuis le même profil et terminal visible | `already-published`, `attempted: false`, même URL ; aucun second commentaire. Le reçu reste conservé. | Réussi sur #265 |
-| PR | Confirmer le bilan relu sur la PR jetable | Même vérification du succès et du compte ; commentaire de conversation, aucune revue inline, aucun changement d'état de la PR. | Réussi sur #266, avec `--commit` |
+| Issue | Confirmer le bilan relu sur l'issue jetable | `published`, code 0, `attempted: true`, reçu sauvegardé et URL du commentaire ; comparer le compte et le corps directement dans GitHub. | Publication technique sur #265 ; validation humaine non qualifiée |
+| Même demande | Après le succès, relancer la commande identique sur cette issue, depuis le même profil et terminal visible | `already-published`, `attempted: false`, même URL ; aucun second commentaire. Le reçu reste conservé. | Retour historique observé sur #265 ; visibilité non établie |
+| PR | Confirmer le bilan relu sur la PR jetable | Même vérification du succès et du compte ; commentaire de conversation, aucune revue inline, aucun changement d'état de la PR. | Publication technique sur #266 avec `--commit` ; validation humaine non qualifiée |
 
 Pour qualifier `--commit`, l'ajouter à l'essai PR avec les 40 caractères de sa tête relevée explicitement. Ce marqueur ne certifie pas que le code a été relu. Une tête différente doit refuser sans publication ; ne pas pousser un commit de test sur une PR de travail pour provoquer cette dérive.
 
@@ -95,4 +101,4 @@ En cas d'issue `uncertain`, de réservation préexistante ou de trace illisible 
 
 Ajouter ici, après chaque essai admis : date, révision, plateforme, versions, scénario, statut/code, vérification indépendante du commentaire et limites. Les preuves publiques se limitent au bilan choisi et aux liens autorisés ; aucun transcript, identifiant de conversation, nonce, chemin personnel ou jeton. Conserver les détails diagnostiques nécessaires localement.
 
-Les scénarios marqués « À exécuter » restent à qualifier avec l'humain avant d'étendre les garanties réelles au-delà des parcours nominaux sur issue et PR publiques sous Windows. Aucun de ces essais ne remplace les contrôles de release décrits dans [la maintenance](dev/maintenance.md).
+Le parcours humain complet reste à qualifier avant de le présenter comme vérifié : présence de la fenêtre constatée par l'utilisateur, aperçu effectivement lu et confirmation personnelle au clavier. Les scénarios marqués « À exécuter » restent également ouverts. Les reçus existants sont conservés ; aucun rejeu pour refaire ces preuves. Un éventuel nouvel essai nécessite une cible et un accord humain distincts. Aucun de ces essais ne remplace les contrôles de release décrits dans [la maintenance](dev/maintenance.md).
