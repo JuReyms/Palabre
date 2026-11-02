@@ -54,7 +54,7 @@ Debate, Ask and Chat start new exchanges; unlike Relay, they do not pick up your
 
 ### Relay mode: cooperate from your usual conversation
 
-Talk to your usual tool, the lead. It sends a task to a teammate — a review, a fix, an analysis — and brings the result back, without you copying messages between windows. This lead/teammate workflow belongs to **Relay**.
+Talk to your usual tool, the lead. It sends a task to a teammate — write a module, review code, fix a bug, analyze a problem — and brings the result back, without you copying messages between windows. This lead/teammate workflow belongs to **Relay**.
 
 ```text
 You → Your tool (lead) → Palabre Relay → Teammate
@@ -204,7 +204,7 @@ Débat, Ask et Chat lancent de nouveaux échanges ; contrairement à Relay, ils 
 
 ### Mode Relay : coopérer depuis votre conversation habituelle
 
-Échangez avec votre outil habituel, le chef de mission. Il confie une tâche à un équipier — une relecture, une correction, une analyse — et vous rapporte le résultat, sans copier vous-même les messages entre les fenêtres. Ce parcours chef de mission/équipier est propre au **mode Relay**.
+Échangez avec votre outil habituel, le chef de mission. Il confie une tâche à un équipier — écrire un module, une relecture, une correction, une analyse — et vous rapporte le résultat, sans copier vous-même les messages entre les fenêtres. Ce parcours chef de mission/équipier est propre au **mode Relay**.
 
 ```text
 Vous → Votre outil (chef de mission) → Palabre Relay → Équipier
