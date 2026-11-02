@@ -393,6 +393,9 @@ describe("échange avec une CLI Codex simulée", () => {
     if (located.status !== "found") throw new Error("cible introuvable");
     const result = await exchange(home.adapter, { command: path.join(root, "absent-codex.exe"), prefixArgs: [] }, located.target, "x", { timeoutMs: 5_000 });
     assert.deepEqual(exchangeOutcome(result), { outcome: { status: "command-not-found", exitCode: 7 }, launched: false });
+    assert.ok(result.refusal);
+    assert.equal(result.preparationProcess?.started, false);
+    assert.equal(result.preparationProcess?.launchFailure, "command-not-found");
   });
 
   test("dossier de travail disparu avant la liste MCP : invalid-working-directory, aucune reprise", async () => {

@@ -8,6 +8,7 @@
  *                        read-partial, read-uninterpretable, read-reply-first, hang ;
  *   FAKE_CODEX_MCP       sortie brute de `codex mcp list --json` (défaut `[]`, peut être invalide) ;
  *   FAKE_CODEX_MCP_EXIT  code de sortie non nul simulé pour `codex mcp list` ;
+ *   FAKE_CODEX_MCP_SECRET sortie fictive sensible de la liste MCP en échec ;
  *   FAKE_CODEX_ROLLOUT   rollout de la cible, où le message reçu est ajouté (modes qui jouent un tour) ;
  *   FAKE_CODEX_MARKER    fichier où chaque invocation ajoute une ligne JSON { argv, cwd, stdin, envKeys }.
  *   FAKE_CODEX_QUEUE     comportement de `queue` (relay --open) : reply (accusé, puis tour complet
@@ -50,6 +51,10 @@ process.stdin.on("end", () => {
   }
   if (argv[0] === "mcp" && argv[1] === "list") {
     if (process.env.FAKE_CODEX_MCP_EXIT) {
+      if (process.env.FAKE_CODEX_MCP_SECRET) {
+        process.stdout.write(process.env.FAKE_CODEX_MCP_SECRET);
+        process.stderr.write(process.env.FAKE_CODEX_MCP_SECRET);
+      }
       process.stderr.write("Error loading config.toml: simulated\n");
       process.exitCode = Number(process.env.FAKE_CODEX_MCP_EXIT);
       return;
@@ -104,6 +109,12 @@ process.stdin.on("end", () => {
       { type: "event_msg", payload: { type: "task_complete", turn_id: "next-app", last_agent_message: "FAKE-SUITE été 🐈" } }
     );
     fs.appendFileSync(process.env.FAKE_CODEX_ROLLOUT, rows.map((row) => JSON.stringify(row)).join("\n") + "\n");
+    return;
+  }
+  if (mode === "diagnostic-fail") {
+    process.stdout.write("faux-secret-stdout\u001b[31m");
+    process.stderr.write("faux-secret-stderr\u001b[31m");
+    process.exitCode = 5;
     return;
   }
   if (creating) {

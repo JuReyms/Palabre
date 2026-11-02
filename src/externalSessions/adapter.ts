@@ -103,10 +103,12 @@ export interface ExternalSessionAdapter {
 /**
  * Résultat d'un échange :
  * - `refusal` : l'étape préalable a refusé, aucune reprise n'a été lancée ;
+ *   `preparationProcess` est le dernier processus préalable, s'il y en a eu un. Ses flux restent
+ *   internes et ne constituent ni une réponse ni une preuve de délivrance ;
  * - sinon `process`, et `verdict` si la reprise a réellement démarré.
  */
 export type ExchangeResult =
-  | { refusal: PreLaunchRefusal; detail: string; preparation?: undefined; process?: undefined; verdict?: undefined }
+  | { refusal: PreLaunchRefusal; detail: string; preparationProcess?: ExternalProcessResult; preparation?: undefined; process?: undefined; verdict?: undefined }
   | { refusal?: undefined; preparation: string[]; process: ExternalProcessResult; verdict?: ProviderVerdict };
 
 /** Bornes de l'étape préalable : une liste de configuration, jamais un tour de conversation. */
@@ -148,8 +150,12 @@ export async function exchange(
 
   let preparation: string[] = [];
   if (adapter.prepare) {
-    const prepared = await adapter.prepare(target, (args, limits) => launch(args, "", limits));
-    if (prepared.status === "refused") return { refusal: prepared.refusal, detail: prepared.detail };
+    let preparationProcess: ExternalProcessResult | undefined;
+    const prepared = await adapter.prepare(target, async (args, limits) => {
+      preparationProcess = await launch(args, "", limits);
+      return preparationProcess;
+    });
+    if (prepared.status === "refused") return { refusal: prepared.refusal, detail: prepared.detail, preparationProcess };
     preparation = prepared.args;
   }
   const creating = options.onCreatedSession !== undefined;

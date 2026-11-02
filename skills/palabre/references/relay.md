@@ -88,6 +88,10 @@ Avec `--open`, `delivery.inActiveBranch` vaut actuellement `"unknown"`, y compri
 
 Issues fréquentes : `target-busy` (cible ouverte, code 3 ; pour Claude, « déjà utilisée par Claude » = processus attaché, sans preuve d'affichage ni de génération en cours : suivre `error.hint`, répondre à une demande reçue dans le même tour, sinon passation via l'humain ou nouveau `--check` puis décision ; `handoff` signale un fichier local `.handoff.md` NON ENVOYÉ, qui n'informe pas Claude et ne se renvoie jamais), `target-state-unknown` (état invérifiable, code 3 ; sur macOS/Linux, vérifier `python3 --version`), `session-not-found` (code 6), `invalid-request` avec `error.reason` (code 8), `cli-failure` (code 2), `timeout` (code 4). Palabre ne renvoie jamais automatiquement.
 
+En arrière-plan ordinaire, `error.diagnostic?` peut fournir des faits de préparation ou d'exécution sans sortie brute ; son `exitCode` est celui de la CLI cible, distinct du code Palabre. Le texte et l'export reprennent ces faits. Ils ne prouvent pas la délivrance : vérifier `delivery.status` avant toute suite.
+
+En préparation, `started: true` et `exitCode: 0` ne prouvent pas la réussite du contrôle : une liste MCP non conforme reste rejetée et le statut Relay reste en échec.
+
 ## Export
 
 Par défaut, `.relay.md` dans `outputDir` : expéditeur, cible, identifiants de conversation, message, réponse ou erreur, délivrance. `exportPath` vaut `null` avec `--no-export`. Ne pas recopier les identifiants de conversation dans un contenu public sans l'accord de l'utilisateur.
