@@ -9,6 +9,7 @@
  *   FAKE_CODEX_MCP       sortie brute de `codex mcp list --json` (défaut `[]`, peut être invalide) ;
  *   FAKE_CODEX_MCP_EXIT  code de sortie non nul simulé pour `codex mcp list` ;
  *   FAKE_CODEX_MCP_SECRET sortie fictive sensible de la liste MCP en échec ;
+ *   FAKE_CODEX_STDERR    stderr écrit par le mode `stderr-fail` (code 1, sans aucun événement) ;
  *   FAKE_CODEX_ROLLOUT   rollout de la cible, où le message reçu est ajouté (modes qui jouent un tour) ;
  *   FAKE_CODEX_MARKER    fichier où chaque invocation ajoute une ligne JSON { argv, cwd, stdin, envKeys }.
  *   FAKE_CODEX_QUEUE     comportement de `queue` (relay --open) : reply (accusé, puis tour complet
@@ -115,6 +116,11 @@ process.stdin.on("end", () => {
     process.stdout.write("faux-secret-stdout\u001b[31m");
     process.stderr.write("faux-secret-stderr\u001b[31m");
     process.exitCode = 5;
+    return;
+  }
+  if (mode === "stderr-fail") {
+    process.stderr.write(process.env.FAKE_CODEX_STDERR ?? "");
+    process.exitCode = 1;
     return;
   }
   if (creating) {

@@ -1,5 +1,6 @@
 /** @file Messages FR/EN de `palabre relay` : enveloppe transmise à la cible, issues, délivrance et export. */
 import type { DeliveryStatus, InvalidRequestReason, ReadAccessDiagnostic, RelayStatus } from "../externalSessions/types.js";
+import type { StderrHint } from "../externalSessions/stderrHint.js";
 import type { Language } from "../types.js";
 import { relayCopyText } from "./relayCopy.js";
 import { relayClaudeText } from "./relayClaude.js";
@@ -131,6 +132,8 @@ export interface RelayMessages {
   delivery(status: DeliveryStatus): string;
   replied(agent: string): string;
   failed(status: RelayStatus): string;
+  /** Indice fermé tiré du stderr d'un échec ; le texte exact n'est pas conservé. */
+  stderrHint(hint: StderrHint): string;
   exportWritten(file: string): string;
   /** Copie du texte soumis au transport, distincte de la preuve de délivrance. */
   messageCopy: {
@@ -399,6 +402,11 @@ Le propriétaire l'ouvre lui-même ou le demande à son agent ; un agent ne l'ou
     })[status],
     replied: (agent) => `Relay : réponse reçue de ${agent}.`,
     failed: (status) => `Relay en échec (${status}).`,
+    stderrHint: (hint) => `Indice (non établi) tiré du texte d'erreur de la CLI cible, non conservé : ${{
+      "access-denied": "accès refusé par le système (droits ou sandbox de l'environnement qui lance la CLI)",
+      network: "erreur réseau (connexion, DNS ou requête HTTP)",
+      panic: "arrêt brutal de la CLI (panic)"
+    }[hint]}.`,
     exportWritten: (file) => `Export : ${file}`,
     messageCopy: {
       saved: (file, subject) => `Message Relay${subject === undefined ? " (sans objet)" : ` « ${subject} »`} — texte exact, enveloppe comprise : ${file}`,
@@ -576,6 +584,11 @@ The owner opens it or asks their agent to; an agent never opens it on its own in
     })[status],
     replied: (agent) => `Relay: reply received from ${agent}.`,
     failed: (status) => `Relay failed (${status}).`,
+    stderrHint: (hint) => `Hint (not established) from the target CLI's error text, which is not kept: ${{
+      "access-denied": "access denied by the system (permissions or sandbox of the environment launching the CLI)",
+      network: "network error (connection, DNS or HTTP request)",
+      panic: "abrupt CLI crash (panic)"
+    }[hint]}.`,
     exportWritten: (file) => `Export: ${file}`,
     messageCopy: {
       saved: (file, subject) => `Relay message${subject === undefined ? " (no subject)" : ` “${subject}”`} — exact text, including envelope: ${file}`,

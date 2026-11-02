@@ -21,6 +21,7 @@ import { relayMessages } from "../messages/relay.js";
 import type { ExternalSessionAdapter, LocateResult, ProviderVerdict } from "./adapter.js";
 import { isSessionId } from "./envelope.js";
 import { isUsableDirectory, pidLiveness, type ExternalProcessResult } from "./process.js";
+import { classifyStderr, type StderrHint } from "./stderrHint.js";
 import type {
   AttachedProcess,
   DeliveryEvidence,
@@ -305,6 +306,11 @@ export class ClaudeSessionAdapter implements ExternalSessionAdapter {
     const id = event && ((event.type === "system" && event.subtype === "init") || event.type === "result")
       ? asString(event.session_id) : undefined;
     return id && isSessionId(id) ? id.toLowerCase() : undefined;
+  }
+
+  /** Indice fermé du stderr, mêmes motifs système que Codex. */
+  stderrHint(run: ExternalProcessResult): StderrHint | undefined {
+    return classifyStderr(run.stderr);
   }
 
   /**

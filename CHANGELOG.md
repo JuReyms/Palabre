@@ -12,6 +12,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 - Relay ordinaire en arrière-plan : champ facultatif v1 `error.diagnostic` en cas d’échec de préparation ou d’exécution (phase, démarrage, code de lancement connu, code de sortie de la CLI cible, signal, arrêt, retour forcé), repris dans le texte et l’export, sans stdout/stderr, chemin ni commande. Statuts, codes Palabre et délivrance inchangés ; consignes du skill révision 13.
 
+- Relay ordinaire en arrière-plan : indice facultatif v1 `error.diagnostic.stderrHint` (`access-denied`, `network`, `panic`) tiré du texte d’erreur de la CLI cible par des motifs système précis, avec une ligne « Indice (non établi) » dans le texte et l’export. Le texte d’erreur n’est pas conservé ; sans correspondance, aucun indice. Statuts, codes et délivrance inchangés ; consignes du skill révision 14.
+
 ### Changed
 
 - Consignes de publication du skill révision 12 : bilan choisi, attribution déclarée, aperçu préparé par l’agent, commande d’envoi lancée par l’humain dans son terminal, annulation/refus à l’invite, retour du lien et arrêt sans rejeu sur incertitude. Un PID, un TTY ou une réponse dans une trace ne prouve pas une validation humaine. Copies installées seulement par plan `palabre skill --sync` ou `palabre update` confirmé depuis le paquet installé, puis rechargement des consignes.

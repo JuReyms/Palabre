@@ -741,7 +741,7 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     // Ces faits ne modifient ni l'issue ni la délivrance et excluent les flux bruts.
     if (result.error && !context.approvedWrite && !review && !context.header) {
       const run = exchanged.refusal ? exchanged.preparationProcess : exchanged.process;
-      if (run) result.error.diagnostic = relayProcessDiagnostic(exchanged.refusal ? "preparation" : "execution", run);
+      if (run) result.error.diagnostic = relayProcessDiagnostic(exchanged.refusal ? "preparation" : "execution", run, adapter.stderrHint?.(run));
     }
     if (context.approvedWrite) {
       result.write = await writeReport(context.approvedWrite, exchanged.process?.stdout ?? "");
@@ -1319,7 +1319,7 @@ async function exportRelay(
       ...(input.envelope !== undefined ? { envelope: input.envelope } : {}),
       reply: result.reply,
       ...(result.nextTurn ? { nextTurn: result.nextTurn } : {}),
-      error: result.error ? result.error.message + (result.error.diagnostic ? `\n${messages.relay.open.diagnostic(JSON.stringify(result.error.diagnostic))}` : "") : undefined,
+      error: result.error ? [result.error.message, ...diagnosticLines(result.error.diagnostic, messages)].join("\n") : undefined,
       ...(result.retryAfter !== undefined ? { retryAfter: result.retryAfter } : {}),
       ...(result.readAccess ? { readAccess: result.readAccess } : {}),
       ...(result.task ? { task: result.task } : {}),
@@ -1491,6 +1491,15 @@ export function claudeDesktopOpenCommand(result: RelayResultV1, targetLocated: b
     : `(cd -- ${quote(cwd)} && ${command})`;
 }
 
+/** Lignes humaines du diagnostic de processus, identiques en texte et dans l'export. */
+function diagnosticLines(diagnostic: RelayProcessDiagnostic | undefined, messages: Messages): string[] {
+  if (!diagnostic) return [];
+  return [
+    messages.relay.open.diagnostic(JSON.stringify(diagnostic)),
+    ...(diagnostic.stderrHint ? [messages.relay.stderrHint(diagnostic.stderrHint)] : [])
+  ];
+}
+
 /**
  * Même réponse en texte qu'en JSON, y compris après une publication refusée ou interrompue.
  * `messageCopy` vient du parcours d'envoi, jamais déduit d'un ancien `exportPath` seul.
@@ -1527,7 +1536,7 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
   } else {
     lines.push(`${messages.relay.failed(result.status)} ${result.error?.message ?? ""}`.trim());
     if (result.error?.hint) lines.push(result.error.hint);
-    if (result.error?.diagnostic) lines.push(messages.relay.open.diagnostic(JSON.stringify(result.error.diagnostic)));
+    lines.push(...diagnosticLines(result.error?.diagnostic, messages));
     // Le suivi et la vérification n'envoient rien : une consigne de renvoi n'aurait pas de sens.
     if (result.check) lines.push(messages.relay.check.nothingSent);
     else if (result.mode !== "follow" && !claudeBusy && !codexBusy) lines.push(messages.relay.delivery(result.delivery.status));
