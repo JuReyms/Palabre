@@ -88,6 +88,7 @@ import type {
 import { createTranslator, resolveLanguage } from "../i18n.js";
 import type { Messages } from "../messages/index.js";
 import { writeRelayMarkdown } from "../output.js";
+import { relayProcessDiagnostic, type RelayProcessDiagnostic } from "../externalSessions/diagnostic.js";
 import { optionalString } from "./shared.js";
 import { runRelayAllowRepo, reviewAuthorizationCommand } from "./relayAllowRepo.js";
 import { createInterface } from "node:readline/promises";
@@ -186,8 +187,10 @@ export interface RelayResultV1 {
   /**
    * `hint?` (#250, ajout facultatif v1) : conseil humain, sans commande à exécuter automatiquement ;
    * présent aujourd'hui pour une conversation Claude déjà utilisée (envoi ordinaire, `--check`).
+   * `diagnostic?` : faits de processus bornés pour un échec d'envoi ordinaire en arrière-plan ;
+   * aucune sortie brute, et aucune conséquence sur l'issue ou la délivrance.
    */
-  error: { kind: RelayStatus; message: string; reason?: InvalidRequestReason; hint?: string } | null;
+  error: { kind: RelayStatus; message: string; reason?: InvalidRequestReason; hint?: string; diagnostic?: RelayProcessDiagnostic } | null;
   exportPath: string | null;
   /**
    * #250 (ajout facultatif v1) : passation locale d'un envoi ordinaire vers Claude refusé avant
@@ -735,6 +738,11 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
       identity: exchanged.verdict?.interpretation.identity ?? null,
       observedModels: exchanged.verdict?.interpretation.observedModels ?? []
     });
+    // Ces faits ne modifient ni l'issue ni la délivrance et excluent les flux bruts.
+    if (result.error && !context.approvedWrite && !review && !context.header) {
+      const run = exchanged.refusal ? exchanged.preparationProcess : exchanged.process;
+      if (run) result.error.diagnostic = relayProcessDiagnostic(exchanged.refusal ? "preparation" : "execution", run);
+    }
     if (context.approvedWrite) {
       result.write = await writeReport(context.approvedWrite, exchanged.process?.stdout ?? "");
       context.write = result.write;
@@ -1311,7 +1319,7 @@ async function exportRelay(
       ...(input.envelope !== undefined ? { envelope: input.envelope } : {}),
       reply: result.reply,
       ...(result.nextTurn ? { nextTurn: result.nextTurn } : {}),
-      error: result.error?.message,
+      error: result.error ? result.error.message + (result.error.diagnostic ? `\n${messages.relay.open.diagnostic(JSON.stringify(result.error.diagnostic))}` : "") : undefined,
       ...(result.retryAfter !== undefined ? { retryAfter: result.retryAfter } : {}),
       ...(result.readAccess ? { readAccess: result.readAccess } : {}),
       ...(result.task ? { task: result.task } : {}),
@@ -1519,6 +1527,7 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
   } else {
     lines.push(`${messages.relay.failed(result.status)} ${result.error?.message ?? ""}`.trim());
     if (result.error?.hint) lines.push(result.error.hint);
+    if (result.error?.diagnostic) lines.push(messages.relay.open.diagnostic(JSON.stringify(result.error.diagnostic)));
     // Le suivi et la vérification n'envoient rien : une consigne de renvoi n'aurait pas de sens.
     if (result.check) lines.push(messages.relay.check.nothingSent);
     else if (result.mode !== "follow" && !claudeBusy && !codexBusy) lines.push(messages.relay.delivery(result.delivery.status));

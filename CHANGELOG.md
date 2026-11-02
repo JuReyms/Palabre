@@ -10,6 +10,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 - Relay ordinaire : rattachement GitHub facultatif (`--github`) et nom déclaré du destinataire (`--participant`), conservés dans l’enveloppe, le JSON v1, les exports, les passations locales et `relay recent`. Aucun accès ni publication GitHub.
 
+- Relay ordinaire en arrière-plan : champ facultatif v1 `error.diagnostic` en cas d’échec de préparation ou d’exécution (phase, démarrage, code de lancement connu, code de sortie de la CLI cible, signal, arrêt, retour forcé), repris dans le texte et l’export, sans stdout/stderr, chemin ni commande. Statuts, codes Palabre et délivrance inchangés ; consignes du skill révision 13.
+
 ### Changed
 
 - Consignes de publication du skill révision 12 : bilan choisi, attribution déclarée, aperçu préparé par l’agent, commande d’envoi lancée par l’humain dans son terminal, annulation/refus à l’invite, retour du lien et arrêt sans rejeu sur incertitude. Un PID, un TTY ou une réponse dans une trace ne prouve pas une validation humaine. Copies installées seulement par plan `palabre skill --sync` ou `palabre update` confirmé depuis le paquet installé, puis rechargement des consignes.

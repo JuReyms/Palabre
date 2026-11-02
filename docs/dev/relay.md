@@ -4,6 +4,10 @@ Référence de développement extraite d’`AGENTS.md`. Lire [les règles commun
 
 Référence produit Relay : [cahier des charges, direction B](../relay-cahier-des-charges.md). Les permissions restent celles du parcours ; ne jamais présenter Relay comme lecture seule en général.
 
+En arrière-plan ordinaire, un échec de préparation ou d'exécution peut ajouter `error.diagnostic` au JSON v1 : `phase` (`preparation` ou `execution`), `started`, `exitCode` (code de la CLI cible, ou null), `signal`, `forcedReturn` et éventuellement `launchFailure`, `launchErrorCode`, `stopReason`. Les codes d'erreur de lancement et les noms de signaux sont limités à une liste connue ; une valeur inconnue devient `UNKNOWN`. Le code de sortie numérique du processus est conservé tel quel. Les mêmes faits figurent dans le rendu humain et l'export. Aucun stdout, stderr, chemin, commande ou message externe n'est repris dans ce diagnostic. Il ne change ni l'issue ni la délivrance. Les consommateurs ignorent les champs inconnus.
+
+Pour la préparation, `started: true` et `exitCode: 0` ne prouvent pas que le contrôle a réussi : la liste MCP, par exemple, doit aussi être conforme. Si elle est rejetée, le statut Relay reste en échec.
+
 Les parcours Mission, `--task review` et `--write` restent gelés : correctifs de sécurité seulement. La consultation ordinaire par Relay n'utilise pas ces parcours.
 
 ## Relay externe

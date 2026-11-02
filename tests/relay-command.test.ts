@@ -410,6 +410,17 @@ test("mission CLI : création, une étape Relay factice, status après reprise e
   assert.equal(refused.code, 8); assert.equal(refused.json.error.kind, "stopped"); assert.equal(refused.calls.length, 1);
 });
 
+test("mission : un échec d'étape ne reçoit pas le nouveau diagnostic Relay ordinaire", async () => {
+  const w = makeWorld();
+  assert.equal((await palabre(w, ["config", "--trust-config", "--json"])).code, 0);
+  const start = await palabre(w, ["mission", "start", "--from", FROM, "--to", `claude:${CLAUDE_SESSION}`,
+    "--criteria", "Réponse claire", "Analyse en lecture seule", "--json"]);
+  assert.equal(start.code, 0);
+  const step = await palabre(w, ["mission", "step", start.json.mission.id, "Analyse", "--json"], { FAKE_CLAUDE_MODE: "persisted-fail" });
+  assert.equal(step.json.mission.steps[0].result.status, "cli-failure");
+  assert.equal(step.json.mission.steps[0].result.error.diagnostic, undefined);
+});
+
 test("mission CLI : en-tête compact conservé avec lancements refusés, réponse et diagnostic gardés", async () => {
   const w = makeWorld();
   assert.equal((await palabre(w, ["config", "--trust-config", "--json"])).code, 0);
@@ -936,12 +947,12 @@ describe("relay.view (#190)", () => {
       const port = (server.address() as { port: number }).port;
       for (const view of [undefined, "auto", "background"] as const) {
         const world = makeWorld(); if (view) setting(world, view);
-        const declared = view === undefined ? [] : ["--skill-revision", view === "auto" ? "999" : "12"];
+        const declared = view === undefined ? [] : ["--skill-revision", view === "auto" ? "999" : "13"];
         const r = await palabre(world, ["agents", "--json", "--trust-config", ...declared], { OLLAMA_HOST: `http://127.0.0.1:${port}` });
         assert.equal(r.code, 0, r.stderr); assert.equal(r.json.defaults.relayView, view ?? "background");
         assert.equal(r.json.v, 1); assert.equal(r.calls.length, 0);
         assert.equal(r.json.skill.status, view === undefined ? "unverified" : view === "auto" ? "reload-required" : "current");
-        assert.equal(r.json.skill.revision, 12);
+        assert.equal(r.json.skill.revision, 13);
         assert.ok(path.isAbsolute(r.json.skill.entrypoint));
         assert.ok(r.json.skill.references["relay.md"].endsWith(path.join("references", "relay.md")));
         assert.equal(r.json.skill.instructions, undefined);
@@ -1311,6 +1322,7 @@ describe('Relay : création et expéditeur facultatif', () => {
       const w = makeWorld(), other = path.join(w.base, 'autre-projet'); mkdirSync(other);
       const r = await relay(w, ['--new', '--to', provider, '--dir', other, '--from', 'claude', 'Question', '--trust-config', '--json']);
       assert.equal(r.code, 0, r.stdout + r.stderr); assert.equal(r.json.cwd, other);
+      assert.equal(r.json.error, null);
       assert.deepEqual(r.json.from, { agent: 'claude' });
       assert.ok(r.calls.every(c => c.cwd === other));
       assert.ok(readFileSync(r.json.exportPath, 'utf8').includes('| Expéditeur | claude |'));
@@ -1321,10 +1333,14 @@ describe('Relay : création et expéditeur facultatif', () => {
       const env: Record<string, string> = provider === 'claude' ? { FAKE_CLAUDE_MODE: 'persisted-fail' } : { FAKE_CODEX_MODE: 'created-fail' };
       const r = await relay(w, ['--new', '--to', provider, 'Question', '--trust-config', '--json'], env);
       assert.equal(r.code, 2); assert.equal(r.json.created, true);
+      assert.equal(r.json.error.diagnostic.phase, 'execution');
+      assert.equal(r.json.error.diagnostic.started, true);
+      assert.notEqual(r.json.error.diagnostic.exitCode, 0);
       assert.equal(r.json.to.session, NEW_IDS[provider]); assert.equal(r.json.reply, undefined);
       assert.equal(r.json.delivery.status, 'persisted-no-reply');
       assert.equal(r.calls.filter(c => provider === 'claude' ? c.argv.includes('-p') : c.argv[0] === 'exec').length, 1);
       const md = readFileSync(r.json.exportPath, 'utf8'); assert.ok(md.includes(NEW_IDS[provider]));
+      assert.ok(md.includes(JSON.stringify(r.json.error.diagnostic)));
       const text = await relay(makeWorld(), ['--new', '--to', provider, 'Question', '--trust-config', '--no-export'], env);
       assert.equal(text.code, 2); assert.match(text.stderr, /Pour continuer.*palabre relay --to/);
       assert.match(text.stderr, /premier échange a échoué/); assert.equal(text.stdout, '');
@@ -1517,6 +1533,42 @@ describe('Relay : création et expéditeur facultatif', () => {
     const r = await relay(w, ['--new', '--to', 'codex', 'Question', '--trust-config', '--json'], { FAKE_CODEX_MCP: '[{}]' });
     assert.equal(r.json.status, 'neutralization-failed'); assert.equal(r.json.to.session, null);
     assert.equal(r.json.created, false); assert.equal(r.calls.length, 1);
+    assert.deepEqual(r.json.error.diagnostic, { phase: 'preparation', started: true, exitCode: 0, signal: null, forcedReturn: false });
+    assert.equal(r.json.delivery.status, 'not-delivered');
+    assert.ok(readFileSync(r.json.exportPath, 'utf8').includes(JSON.stringify(r.json.error.diagnostic)));
+  });
+
+  test('échec de préparation : faits bornés sans fuite de sortie', async () => {
+    const w = makeWorld();
+    const secret = 'faux-secret-mcp-\u001b[31m';
+    const r = await relay(w, ['--new', '--to', 'codex', 'Question', '--trust-config', '--json'], { FAKE_CODEX_MCP_EXIT: '5', FAKE_CODEX_MCP_SECRET: secret });
+    assert.equal(r.code, 3);
+    assert.equal(r.json.error.diagnostic.phase, 'preparation');
+    assert.equal(r.json.error.diagnostic.exitCode, 5);
+    assert.equal(r.json.delivery.status, 'not-delivered');
+    assert.doesNotMatch(r.stdout + r.stderr, /faux-secret|\u001b/);
+    const md = readFileSync(r.json.exportPath, 'utf8');
+    assert.ok(md.includes(JSON.stringify(r.json.error.diagnostic)));
+    assert.doesNotMatch(md, /faux-secret|\u001b/);
+  });
+
+  test('exécution : code cible distinct, pas de fuite et délivrance inchangée', async () => {
+    for (const language of ['fr', 'en']) {
+      const args = ['--new', '--to', 'codex', 'Question', '--trust-config', '--language', language];
+      const r = await relay(makeWorld(), [...args, '--json'], { FAKE_CODEX_MODE: 'diagnostic-fail' });
+      assert.equal(r.code, 2); assert.equal(r.json.exitCode, 2);
+      assert.equal(r.json.status, 'cli-failure'); assert.equal(r.json.delivery.status, 'unknown');
+      assert.equal(r.json.created, false); assert.equal(r.json.error.diagnostic.exitCode, 5);
+      assert.equal(r.json.error.diagnostic.phase, 'execution');
+      assert.deepEqual(JSON.parse(r.stdout), r.json);
+      const md = readFileSync(r.json.exportPath, 'utf8');
+      assert.ok(md.includes(JSON.stringify(r.json.error.diagnostic)));
+      assert.doesNotMatch(r.stdout + r.stderr + md, /faux-secret|\u001b/);
+      const text = await relay(makeWorld(), [...args, '--no-export'], { FAKE_CODEX_MODE: 'diagnostic-fail' });
+      assert.equal(text.code, 2); assert.equal(text.stdout, '');
+      assert.ok(text.stderr.includes(JSON.stringify(r.json.error.diagnostic)));
+      assert.doesNotMatch(text.stderr, /faux-secret|\u001b/);
+    }
   });
 });
 
