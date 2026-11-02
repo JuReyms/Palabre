@@ -15,6 +15,7 @@ import type { CodexHistoryRefusal } from "./codexHistory.js";
 import { launchOutcome, refusalOutcome, type PreLaunchRefusal } from "./outcome.js";
 import { utf8ChildProcessEnv } from "../adapters/cli-shared.js";
 import { runExternalProcess, type ExternalProcessResult } from "./process.js";
+import type { StderrHint } from "./stderrHint.js";
 import type {
   CertainRefusal,
   DeliveryEvidence,
@@ -98,6 +99,11 @@ export interface ExternalSessionAdapter {
   interpret(run: ExternalProcessResult, target: ExternalTarget): ProviderVerdict;
   /** Cherche le nonce dans l'historique de la cible ; ne lève jamais. */
   findNonce(target: ExternalTarget, nonce: string): DeliveryEvidence;
+  /**
+   * Indice fermé tiré du stderr d'un processus en échec (préparation ou exécution), ou rien.
+   * Facultatif ; jamais une cause établie, sans effet sur l'issue ni la délivrance.
+   */
+  stderrHint?(run: ExternalProcessResult): StderrHint | undefined;
 }
 
 /**

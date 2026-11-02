@@ -307,6 +307,7 @@ Options :
   --json                      sortie JSON v1 pour les intégrations
                               En cas d'échec en arrière-plan ordinaire, diagnostic sans sortie brute ;
                               le code cible est séparé du code Palabre et ne détermine pas la délivrance.
+                              Indice possible (accès refusé, réseau, panic) : piste, pas cause établie.
   --no-export                 n'écrit ni l'export .relay.md ni la passation .handoff.md
   --config <chemin>           chemin de config explicite
   --trust-config              approuve la config résolue (aucune question n'est posée)
@@ -989,6 +990,7 @@ Flags:
   --json                      JSON v1 output for integrations
                               On ordinary background failure, process facts exclude raw output;
                               the target exit code is separate from Palabre's and does not determine delivery.
+                              Possible hint (access denied, network, panic): a lead, not an established cause.
   --no-export                 writes neither the .relay.md export nor the .handoff.md handoff
   --config <path>             explicit config path
   --trust-config              trusts the resolved config (no question is asked)

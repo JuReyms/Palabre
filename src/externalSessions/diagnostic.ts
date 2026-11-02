@@ -3,8 +3,12 @@
  * Aucun flux, argument, chemin ou message externe n'est conservé ici.
  */
 import type { ExternalProcessResult, LaunchFailure, StopReason } from "./process.js";
+import { STDERR_HINTS, type StderrHint } from "./stderrHint.js";
 
-/** Faits facultatifs v1 ; la préparation ne prouve pas l'envoi du message. */
+/**
+ * Faits facultatifs v1 ; la préparation ne prouve pas l'envoi du message. `stderrHint?` est un
+ * indice fermé fourni par l'adapter, absent sans correspondance ; jamais une cause établie.
+ */
 export interface RelayProcessDiagnostic {
   phase: "preparation" | "execution";
   started: boolean;
@@ -14,14 +18,19 @@ export interface RelayProcessDiagnostic {
   signal: string | null;
   stopReason?: StopReason;
   forcedReturn: boolean;
+  stderrHint?: StderrHint;
 }
 
-/** Copie uniquement les valeurs autorisées, sans sortie brute du processus. */
-export function relayProcessDiagnostic(phase: RelayProcessDiagnostic["phase"], run: ExternalProcessResult): RelayProcessDiagnostic {
+/**
+ * Copie uniquement les valeurs autorisées, sans sortie brute du processus. Un indice hors de la
+ * liste fermée est ignoré, même s'il vient d'un adapter.
+ */
+export function relayProcessDiagnostic(phase: RelayProcessDiagnostic["phase"], run: ExternalProcessResult, hint?: StderrHint): RelayProcessDiagnostic {
   const code = run.launchErrorCode;
   const launchErrorCode = code === "ENOENT" || code === "EACCES" || code === "EPERM" || code === "EINVAL" ? code : code ? "UNKNOWN" : undefined;
   const signal = run.signal ? (["SIGTERM", "SIGKILL", "SIGINT", "SIGHUP", "SIGQUIT", "SIGABRT", "SIGSEGV"].includes(run.signal) ? run.signal : "UNKNOWN") : null;
   return { phase, started: run.started, ...(run.launchFailure ? { launchFailure: run.launchFailure } : {}),
     ...(launchErrorCode ? { launchErrorCode } : {}), exitCode: run.exitCode, signal,
-    ...(run.stopReason ? { stopReason: run.stopReason } : {}), forcedReturn: run.forcedReturn };
+    ...(run.stopReason ? { stopReason: run.stopReason } : {}), forcedReturn: run.forcedReturn,
+    ...(hint && STDERR_HINTS.includes(hint) ? { stderrHint: hint } : {}) };
 }

@@ -947,12 +947,12 @@ describe("relay.view (#190)", () => {
       const port = (server.address() as { port: number }).port;
       for (const view of [undefined, "auto", "background"] as const) {
         const world = makeWorld(); if (view) setting(world, view);
-        const declared = view === undefined ? [] : ["--skill-revision", view === "auto" ? "999" : "13"];
+        const declared = view === undefined ? [] : ["--skill-revision", view === "auto" ? "999" : "14"];
         const r = await palabre(world, ["agents", "--json", "--trust-config", ...declared], { OLLAMA_HOST: `http://127.0.0.1:${port}` });
         assert.equal(r.code, 0, r.stderr); assert.equal(r.json.defaults.relayView, view ?? "background");
         assert.equal(r.json.v, 1); assert.equal(r.calls.length, 0);
         assert.equal(r.json.skill.status, view === undefined ? "unverified" : view === "auto" ? "reload-required" : "current");
-        assert.equal(r.json.skill.revision, 13);
+        assert.equal(r.json.skill.revision, 14);
         assert.ok(path.isAbsolute(r.json.skill.entrypoint));
         assert.ok(r.json.skill.references["relay.md"].endsWith(path.join("references", "relay.md")));
         assert.equal(r.json.skill.instructions, undefined);
@@ -1569,6 +1569,38 @@ describe('Relay : création et expéditeur facultatif', () => {
       assert.ok(text.stderr.includes(JSON.stringify(r.json.error.diagnostic)));
       assert.doesNotMatch(text.stderr, /faux-secret|\u001b/);
     }
+  });
+
+  test('indice stderr : liste fermée en JSON, texte et export, sans texte brut ni effet sur la délivrance', async () => {
+    // Forme observée lors de l'essai OpenBot du 2 novembre 2026 (#270), chemin fictif.
+    const accessDenied = 'WARNING: failed to clean up stale arg0 temp dirs: Accès refusé. (os error 5)\n'
+      + 'WARNING: proceeding, even though we could not create PATH aliases: Accès refusé. (os error 5) at path "C:\\\\faux-secret\\\\arg0"\n'
+      + 'Error: failed to initialize in-process app-server client: Accès refusé. (os error 5)\n';
+    // Avertissements d'accès, mais erreur terminale réseau : l'erreur terminale l'emporte.
+    const network = 'WARNING: could not create PATH aliases: Access is denied. (os error 5)\n'
+      + 'Error: error sending request for url (https://exemple.invalid/?token=faux-secret)\n';
+    for (const [stderr, hint] of [[accessDenied, 'access-denied'], [network, 'network']] as const) {
+      for (const language of ['fr', 'en']) {
+        const env = { FAKE_CODEX_MODE: 'stderr-fail', FAKE_CODEX_STDERR: stderr };
+        const args = ['--new', '--to', 'codex', 'Question', '--trust-config', '--language', language];
+        const r = await relay(makeWorld(), [...args, '--json'], env);
+        assert.equal(r.code, 2); assert.equal(r.json.status, 'cli-failure');
+        assert.equal(r.json.delivery.status, 'unknown'); assert.equal(r.json.created, false);
+        assert.deepEqual(r.json.error.diagnostic, { phase: 'execution', started: true, exitCode: 1, signal: null, forcedReturn: false, stderrHint: hint });
+        const md = readFileSync(r.json.exportPath, 'utf8');
+        const line = language === 'fr' ? /Indice \(non établi\)[^\n]*non conservé/ : /Hint \(not established\)[^\n]*not kept/;
+        assert.match(md, line);
+        assert.doesNotMatch(r.stdout + r.stderr + md, /faux-secret|app-server|arg0|exemple\.invalid/);
+        const text = await relay(makeWorld(), [...args, '--no-export'], env);
+        assert.match(text.stderr, line);
+        assert.doesNotMatch(text.stderr, /faux-secret|app-server|arg0|exemple\.invalid/);
+      }
+    }
+    const none = await relay(makeWorld(), ['--new', '--to', 'codex', 'Question', '--trust-config', '--json'],
+      { FAKE_CODEX_MODE: 'stderr-fail', FAKE_CODEX_STDERR: 'Error: authentication configuration missing\n' });
+    assert.equal(none.json.status, 'cli-failure');
+    assert.equal('stderrHint' in none.json.error.diagnostic, false);
+    assert.doesNotMatch(none.stdout, /Indice|Hint \(/);
   });
 });
 

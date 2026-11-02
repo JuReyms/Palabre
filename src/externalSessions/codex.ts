@@ -28,6 +28,7 @@ import { historyRefusalDetail, resolveCodexHistory, type CodexSegment } from "./
 import { codexWindowsEnvironment } from "./codexWindowsEnvironment.js";
 import type { PreLaunchRefusal } from "./outcome.js";
 import { isUsableDirectory, type ExternalProcessResult } from "./process.js";
+import { classifyStderr, type StderrHint } from "./stderrHint.js";
 import type { DeliveryEvidence, ExchangeInterpretation, ExternalTarget, SessionIdentity, SessionRef, TargetProbe } from "./types.js";
 
 /** Options injectables ; les valeurs par défaut lisent l'installation de l'utilisateur. */
@@ -458,6 +459,11 @@ export class CodexSessionAdapter implements ExternalSessionAdapter {
     const event = parseJsonLines(line)[0];
     const id = event?.type === "thread.started" ? asString(event.thread_id) : undefined;
     return id && isSessionId(id) ? id.toLowerCase() : undefined;
+  }
+
+  /** Indice fermé du stderr ; observé réellement : `os error 5` sous la sandbox d'un hôte (#270). */
+  stderrHint(run: ExternalProcessResult): StderrHint | undefined {
+    return classifyStderr(run.stderr);
   }
 
   /**
