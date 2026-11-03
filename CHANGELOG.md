@@ -4,6 +4,14 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ## [Unreleased]
 
+## [0.23.0-beta.1] - 2026-10-31
+
+Préversion destinée à essayer la coopération Relay et le suivi GitHub facultatif des résultats utiles. Elle conserve les échanges directs entre outils et ne crée pas de nouveau système de tickets.
+
+**Publication expérimentale :** les commentaires et traces techniques ont été vérifiés, mais la fenêtre visible et la confirmation personnelle au clavier restent non qualifiées. L’agent prépare le bilan et l’aperçu ; l’humain lance lui-même l’envoi. Un PID, un TTY ou une entrée affirmative dans une trace ne prouve pas sa validation. Voir le [bilan de préparation](https://github.com/JuReyms/Palabre/blob/main/docs/release-0.23.0-beta.1-qualification.md).
+
+**Après installation :** le skill livré est en révision 12. La lecture du paquet ne synchronise aucune copie installée. Une synchronisation reste un plan humain confirmé depuis le paquet installé, avec sauvegardes ; si elle est appliquée, recharger ensuite les consignes dans l’outil concerné.
+
 ### Added
 
 - `palabre relay publish` : aperçu et publication explicite d’un bilan attribué sur une issue ou PR existante. Compte, visibilité, cible, identifiants GitHub et tête de PR revérifiés ; confirmation au clavier en terminal visible, JSON distinct v1, trace locale exclusive et aucun renvoi après incertitude. Aucun modèle lancé ni politique globale ajoutée.
@@ -18,11 +26,11 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Changed
 
-- Consignes de publication du skill révision 12 : bilan choisi, attribution déclarée, aperçu préparé par l’agent, commande d’envoi lancée par l’humain dans son terminal, annulation/refus à l’invite, retour du lien et arrêt sans rejeu sur incertitude. Un PID, un TTY ou une réponse dans une trace ne prouve pas une validation humaine. Copies installées seulement par plan `palabre skill --sync` ou `palabre update` confirmé depuis le paquet installé, puis rechargement des consignes.
+- Consignes de publication du skill révision 12 : bilan choisi, attribution déclarée, aperçu préparé par l’agent, commande d’envoi lancée par l’humain dans son terminal, annulation/refus à l’invite, retour du lien et arrêt sans rejeu sur incertitude. Un PID, un TTY ou une réponse dans une trace ne prouve pas une validation humaine.
 
 - Restitution Relay proportionnée ajoutée à l’enveloppe ordinaire ; `--no-reply-format` la retire pour un appel. Réponse brute, délivrance, permissions et fonctions gelées inchangées.
 - Vision et guides FR/EN alignés sur la coopération pour décider et travailler, la liberté de choix et de budget, et un suivi GitHub facultatif des résultats utiles.
-- Consignes du skill révisées : ne plus recopier systématiquement le format de réponse, garder le rattachement au travail et attribuer les contributions. Les copies installées se synchronisent seulement par un plan `palabre skill --sync` ou `palabre update` confirmé, depuis le paquet installé ; recharger les consignes après synchronisation.
+- Consignes du skill révisées : ne plus recopier systématiquement le format de réponse, garder le rattachement au travail et attribuer les contributions.
 
 ### Fixed
 

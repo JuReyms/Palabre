@@ -58,7 +58,7 @@ pnpm smoke:real-relay
 `scripts/smoke_real_relay.ts` crée deux sessions **jetables**, une Claude Code et une Codex, dans un dossier temporaire, puis vérifie :
 - la réponse d'une cible fermée, avec contexte conservé, délivrance, identité, export et arrière-plan explicite ;
 - le refus d'une cible attachée : `target-busy`, code 3, `not-delivered`, et historique inchangé (nombre de fichiers et de lignes, segments Codex compris). Codex reste un TUI dans un pseudo-terminal. Claude devient un **processus non interactif**, avec stdin ouvert sans aucun octet envoyé, pas un TUI ni Desktop. Pour Claude, une sonde refaite après la mesure d'historique exige le PID vivant lancé par le smoke, absent de la sonde préalable ; une entrée étrangère ou préexistante ne suffit pas. Sans attachement établi, processus actif et historique non vide, aucun appel n'est lancé. La sonde réduit la course sans rendre sonde et appel atomiques ;
-- la neutralisation MCP de Codex (journaux d'une reprise témoin comparés à ceux du relay) ;
+- la neutralisation MCP de Codex (compteur natif positif chez le témoin puis nul dans le relay, sans mention inexpliquée de serveur) ;
 - l'outillage de Claude annoncé par `system/init` ;
 - les versions des CLIs.
 
@@ -72,6 +72,20 @@ Effets de bord, tous sur des données jetables :
 - la reprise témoin démarre les serveurs MCP de l'utilisateur.
 
 La trace, avec les identifiants de session, est écrite dans `.tmp/relay-smoke/`.
+
+Reprise ciblée des contrôles Codex après une campagne complète conservée :
+
+```powershell
+pnpm smoke:real-relay --codex-checks
+```
+
+Ce passage crée une nouvelle session Codex jetable, vérifie sa localisation, le témoin MCP, la neutralisation, le refus attaché et l'arrêt du processus possédé. Il ne lance aucun tour Claude, ne rejoue pas les scénarios fermés déjà réussis et ne représente pas une nouvelle campagne complète. Les versions et la résolution des deux CLIs restent sondées. Les anciens résultats ne sont jamais effacés.
+
+Le compteur `mcp_server_count` de l'événement natif `codex_otel.trace_safe` / `codex.conversation_starts` (format observé en 0.163.0) est obligatoire : positif chez le témoin avec mention d'un serveur, nul dans le Relay, avec réponse et identité attendues. Compteur absent, malformé ou contradictoire : contrôle non qualifié. Seules les clés `feature.<serveur>` booléennes d'un objet `feedback_tags/tags_json` valide sont exclues de la recherche des noms ; une autre mention, y compris une erreur de démarrage, reste bloquante. Les journaux sont un indice de neutralisation, pas une preuve universelle d'absence d'exposition. Leurs sorties brutes restent dans la trace privée et peuvent contenir des métadonnées personnelles : ne jamais les joindre à une issue ou PR.
+
+Codex utilise un dossier jetable sous `.tmp/relay-smoke/<date>/codex` du checkout, dont les consignes de dépôt peuvent être héritées. Le PTY reçoit explicitement `TERM=xterm-256color` ; aucun réglage `trust_level` n'est ajouté et aucune invite de confiance n'est confirmée par le script. Si la confiance existante ne permet pas le démarrage, le scénario reste bloqué. Avant un appel, cible attachée, PID propre vivant et historique non vide mesuré sont nécessaires. La sonde Codex ne fournit pas le PID propriétaire du verrou : le scénario exige donc une session neuve et une cible détachée avant lancement.
+
+Le nettoyage est en `finally`, sur erreur et annulation aussi : Ctrl+C puis, si nécessaire, arrêt du seul arbre lancé, y compris si sa vivacité reste indéterminée. Sortie du PTY et mort du PID doivent être observées ; sinon le contrôle échoue. Cela ne démontre ni fermeture universelle de descendants détachés ni intervention humaine dans un terminal visible.
 
 Tous les appels du smoke imposent `--background` : avec la préférence `relay.view: auto`, une conversation Codex attachée serait jointe en mode ouvert et recevrait le message censé être refusé. Les décisions (arguments, précondition d'attachement, verdicts, empreinte d'historique) vivent dans `scripts/smoke_relay_plan.ts` et sont testées hors ligne par `tests/smoke-relay-plan.test.ts`, sans agent réel. Les scripts `smoke:real-*` compilent un fichier isolé avec `tsc --ignoreConfig` : TypeScript 7 refuse sinon de compiler des fichiers nommés quand un `tsconfig.json` est présent (`TS5112`).
 

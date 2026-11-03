@@ -11,13 +11,82 @@ import { describe, test, type TestContext } from "node:test";
 import { executeRelay } from "../src/commands/relay.js";
 import { trustConfig } from "../src/configTrust.js";
 import { CodexSessionAdapter } from "../src/externalSessions/codex.js";
-import { CLAUDE_ATTACHED_LABEL, blockedSmokeStartup, claudeAttachedArgs, claudeRefusalPrecondition,
-  historyFootprint, ownedClaudeAttachment, refusalChecks, refusalPrecondition, smokeProcessStopCheck,
+import { CLAUDE_ATTACHED_LABEL, blockedSmokeStartup, claudeAttachedArgs, claudeRefusalPrecondition, codexAttachedArgs, codexMcpLogEvidence, codexPtyEnv,
+  historyFootprint, ownedClaudeAttachment, refusalChecks, refusalPrecondition, smokeProcessStopCheck, smokePtyStopCheck, shouldStopSmokePty,
   smokeRelayArgs } from "../scripts/smoke_relay_plan.js";
 
 const CODEX = "0199aaaa-bbbb-7ccc-8ddd-eeeeeeeeeeee";
 const CLAUDE = "44444444-4444-4444-8444-444444444444";
 const exe = (name: string) => (process.platform === "win32" ? `${name}.exe` : name);
+
+describe("smoke Codex : journaux MCP et terminal sans confiance forcée", () => {
+  const watched = ["computer_use", "node_repl", "codex_apps"];
+  const counter = (value: string) => `INFO codex_otel.trace_safe: event.name="codex.conversation_starts" mcp_server_count=${value} app.version=0.163.0`;
+  const features = 'INFO feedback_tags: model="test" tags_json={"feature.computer_use":"true","feature.node_repl":"false"}';
+
+  test("métadonnées de fonctionnalités et compteur nul : aucune annonce de serveur", () => {
+    assert.deepEqual(codexMcpLogEvidence(`${counter("0")}\n${features}`, watched), {
+      serverCount: 0, invalidTelemetry: false, unexplainedMentions: []
+    });
+  });
+
+  test("serveur annoncé, erreur de démarrage ou mention étrangère aux tags restent visibles", () => {
+    for (const text of ['INFO mcp: starting computer_use', 'ERROR node_repl: failed to connect', 'INFO codex_apps: ready']) {
+      const result = codexMcpLogEvidence(`${counter("0")}\n${features}\n${text}`, watched);
+      assert.equal(result.unexplainedMentions.length, 1);
+    }
+    assert.equal(codexMcpLogEvidence(`${counter("2")}\nINFO mcp: starting computer_use`, watched).serverCount, 2);
+  });
+
+  test("absence de compteur, prose ou autre événement : aucune preuve de zéro serveur", () => {
+    for (const text of ["", features, 'mcp_server_count=0', 'INFO other: event.name="codex.conversation_starts" mcp_server_count=0',
+      'INFO codex_otel.trace_safe: event.name="other" mcp_server_count=0']) {
+      assert.equal(codexMcpLogEvidence(text, watched).serverCount, undefined);
+    }
+  });
+
+  test("compteurs malformés, multiples, contradictoires ou hors limites : échec conservateur", () => {
+    for (const value of ["-1", "0.0", "00", "unknown", '"0"', "9007199254740992", "0 mcp_server_count=0", "0 mcp_server_count =1"]) {
+      const result = codexMcpLogEvidence(counter(value), watched);
+      assert.equal(result.serverCount, undefined, value);
+      assert.equal(result.invalidTelemetry, true, value);
+    }
+    for (const text of [counter("0") + "\n" + counter("1"), counter("0") + "\n" + counter("unknown")]) {
+      assert.equal(codexMcpLogEvidence(text, watched).serverCount, undefined);
+    }
+  });
+
+  test("tags inconnus ou malformés ne masquent jamais un nom de serveur", () => {
+    for (const text of ['INFO feedback_tags: tags_json={"feature.computer_use":"unknown"}',
+      'INFO feedback_tags: tags_json={"server":"computer_use"}',
+      'INFO feedback_tags: tags_json={"feature.computer_use":"true"',
+      '{"feature.computer_use":"true"}']) {
+      assert.deepEqual(codexMcpLogEvidence(`${counter("0")}\n${text}`, watched).unexplainedMentions, ["computer_use"]);
+    }
+  });
+
+  test("terminal déclaré xterm, source inchangée et aucune approbation dans les arguments", () => {
+    const original = { TERM: "dumb", HOME: "profil-fictif" };
+    assert.deepEqual(codexPtyEnv(original), { ...original, TERM: "xterm-256color" });
+    assert.equal(original.TERM, "dumb");
+    const args = codexAttachedArgs(CODEX, ["--disable", "plugins", "--disable", "apps"]);
+    assert.deepEqual(args, ["resume", CODEX, "-s", "read-only", "--disable", "plugins", "--disable", "apps",
+      "--disable", "memories", "--disable", "hooks", "--no-alt-screen", "-c", "check_for_update_on_startup=false"]);
+    assert.doesNotMatch(args.join(" "), /trust|bypass|dangerously|approval_policy/);
+  });
+
+  test("nettoyage du PTY : sortie observée et PID mort, jamais simple demande d'arrêt", () => {
+    assert.equal(smokePtyStopCheck("Codex", { exited: true, liveness: "dead" }).ok, true);
+    for (const state of [{ exited: false, liveness: "dead" }, { exited: true, liveness: "alive" },
+      { exited: true, liveness: "unverifiable" }, { exited: true, liveness: "dead", failure: "annulation" }]) {
+      assert.equal(smokePtyStopCheck("Codex", state).ok, false);
+    }
+    assert.equal(shouldStopSmokePty({ exited: false, liveness: "unverifiable" }), true);
+    assert.equal(shouldStopSmokePty({ exited: false, liveness: "alive" }), true);
+    assert.equal(shouldStopSmokePty({ exited: false, liveness: "dead" }), false);
+    assert.equal(shouldStopSmokePty({ exited: true, liveness: "alive" }), false);
+  });
+});
 
 describe("smoke Claude attaché : processus non interactif possédé", () => {
   const owner = { pid: 42, exited: false, preexistingPids: [11] };
@@ -87,7 +156,8 @@ describe("smoke Relay : arguments des appels", () => {
 
 describe("smoke Relay : précondition du scénario de refus", () => {
   test("envoi seulement si la cible est attachée", () => {
-    assert.deepEqual(refusalPrecondition({ attachment: "attached" }), { send: true });
+    assert.deepEqual(refusalPrecondition({ attachment: "attached" }, { history: { files: 1, lines: 3 } }), { send: true });
+    assert.equal(refusalPrecondition({ attachment: "attached" }).send, false);
     for (const probe of [{ attachment: "detached" }, { attachment: "unknown" }, undefined]) {
       const decision = refusalPrecondition(probe);
       assert.equal(decision.send, false, JSON.stringify(probe));
@@ -102,7 +172,8 @@ describe("smoke Relay : précondition du scénario de refus", () => {
     assert.match(exited.send ? "" : exited.reason, /TUI terminé/);
     const empty = refusalPrecondition(attached, { ptyExited: false, history: { files: 0, lines: 0 } });
     assert.equal(empty.send, false);
-    assert.match(empty.send ? "" : empty.reason, /historique introuvable/);
+    assert.match(empty.send ? "" : empty.reason, /historique non mesuré ou vide/);
+    assert.equal(refusalPrecondition(attached, { history: { files: 1, lines: 0 } }).send, false);
     assert.deepEqual(refusalPrecondition(attached, { ptyExited: false, history: { files: 1, lines: 3 } }), { send: true });
   });
 });
