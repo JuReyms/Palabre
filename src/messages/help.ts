@@ -308,6 +308,10 @@ Options :
                               En cas d'échec en arrière-plan ordinaire, diagnostic sans sortie brute ;
                               le code cible est séparé du code Palabre et ne détermine pas la délivrance.
                               Indice possible (accès refusé, réseau, panic) : piste, pas cause établie.
+  --save-error-excerpt        arrière-plan ordinaire avec export : en cas d'échec, garde un extrait privé
+                              du texte d'erreur de la CLI cible (40 lignes, 8 Kio, masquage partiel)
+                              dans <sortie>/palabre-error-….error.txt ; le JSON n'en donne que l'emplacement.
+                              Texte non fiable, pouvant recopier des informations locales : ne pas publier.
   --no-export                 n'écrit ni l'export .relay.md ni la passation .handoff.md
   --config <chemin>           chemin de config explicite
   --trust-config              approuve la config résolue (aucune question n'est posée)
@@ -991,6 +995,10 @@ Flags:
                               On ordinary background failure, process facts exclude raw output;
                               the target exit code is separate from Palabre's and does not determine delivery.
                               Possible hint (access denied, network, panic): a lead, not an established cause.
+  --save-error-excerpt        ordinary background send with export: on failure, keeps a private excerpt
+                              of the target CLI's error text (40 lines, 8 KiB, partial masking)
+                              in <output>/palabre-error-….error.txt; JSON only gives its location.
+                              Untrusted text that may copy local information: do not publish.
   --no-export                 writes neither the .relay.md export nor the .handoff.md handoff
   --config <path>             explicit config path
   --trust-config              trusts the resolved config (no question is asked)

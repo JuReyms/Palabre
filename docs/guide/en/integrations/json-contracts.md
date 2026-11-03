@@ -19,6 +19,8 @@ These commands write one JSON document to stdout and exit without starting an AI
 
 For an ordinary background send, optional `error.diagnostic` can describe preparation or execution: process start, target CLI exit code, signal and any requested stop. The same facts appear in text and in the export, without raw CLI output. They do not change delivery; the target code is distinct from the root `exitCode`. `error.diagnostic.stderrHint?` can add a hint derived from the CLI's error text, without that text: `access-denied` (access denied by the system), `network` (network error) or `panic` (abrupt crash). It is a lead, not an established cause; its absence does not mean "no problem".
 
+With `--save-error-excerpt` (ordinary background sends with an export only), a failure that launched the target CLI adds `errorExcerpt`: `saved` with `path`, `empty` (no error text) or `failed` (write impossible). The `.error.txt` file, under the output directory, keeps the last 40 lines of the error text (8 KiB at most), after masking the home directory, known tokens, e-mail addresses and identifiers. JSON and the export only give its location. Masking is partial and the CLI may have copied local information: it is untrusted text, to read only when needed and not to publish as is. Outcome and delivery do not change.
+
 During preparation, `started: true` and `exitCode: 0` do not prove the check succeeded: for example, the MCP list must also be valid. If it is rejected, Relay still reports a failure status.
 
 ## Consumption rules

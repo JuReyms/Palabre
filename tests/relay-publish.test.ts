@@ -232,8 +232,10 @@ test("requêtes et corps invalides : aucun accès GitHub ou profil", async () =>
   }
   writeFileSync(w.file, Buffer.from([0xc3, 0x28]));
   assert.equal((await w.execute(["--dry-run"])).result.status, "invalid-request");
-  const raw = path.join(w.home, "full.relay.md"); writeFileSync(raw, "private history");
-  assert.equal((await executeRelayPublish(["--to", w.to, "--from", "codex", "--message-file", raw, "--dry-run"], { run: w.run, home: w.home })).result.status, "invalid-request");
+  for (const name of ["full.relay.md", "palabre-error-x.error.txt", "PALABRE-ERROR-X.ERROR.TXT"]) {
+    const raw = path.join(w.home, name); writeFileSync(raw, "private history");
+    assert.equal((await executeRelayPublish(["--to", w.to, "--from", "codex", "--message-file", raw, "--dry-run"], { run: w.run, home: w.home })).result.status, "invalid-request");
+  }
   assert.deepEqual(w.calls, []);
 });
 

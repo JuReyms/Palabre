@@ -89,6 +89,7 @@ import { createTranslator, resolveLanguage } from "../i18n.js";
 import type { Messages } from "../messages/index.js";
 import { writeRelayMarkdown } from "../output.js";
 import { relayProcessDiagnostic, type RelayProcessDiagnostic } from "../externalSessions/diagnostic.js";
+import { saveRelayErrorExcerpt, type RelayErrorExcerptReport } from "../externalSessions/errorExcerpt.js";
 import { optionalString } from "./shared.js";
 import { runRelayAllowRepo, reviewAuthorizationCommand } from "./relayAllowRepo.js";
 import { createInterface } from "node:readline/promises";
@@ -113,7 +114,7 @@ export const MAX_RELAY_TIMEOUT_SECONDS = 3600;
 /** Options de `palabre relay` qui attendent une valeur. */
 const RELAY_VALUE_FLAGS = new Set(["from", "to", "message-file", "timeout", "then-follow", "config", "language", "task", "pr", "subject", "dir", "reference", "exchange", "model", "skill-revision", "github", "participant"]);
 /** Options de `palabre relay` sans valeur. */
-const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "background", "new", "write", "follow", "check", "copy", "no-reply-format"]);
+const RELAY_BOOLEAN_FLAGS = new Set(["json", "no-export", "trust-config", "help", "open", "background", "new", "write", "follow", "check", "copy", "no-reply-format", "save-error-excerpt"]);
 /** Alias acceptés, comme pour les autres commandes. */
 const RELAY_FLAG_ALIASES: Record<string, string> = { lang: "language" };
 
@@ -197,6 +198,13 @@ export interface RelayResultV1 {
    * échange. Jamais une délivrance, un export `.relay.md` ni un succès ; `exportPath` reste `null`.
    */
   handoff?: RelayHandoffReport;
+  /**
+   * #270 lot B (ajout facultatif v1) : extrait privé du stderr, seulement avec
+   * `--save-error-excerpt`, après un échec d'envoi ordinaire en arrière-plan ayant lancé une CLI.
+   * Emplacement seulement, jamais le texte ; hors de `error.diagnostic`, dont le contrat exclut
+   * chemins et messages. Sans effet sur l'issue, le code ou la délivrance.
+   */
+  errorExcerpt?: RelayErrorExcerptReport;
   /**
    * #256 : suggestion de consultation Codex, sans lancement ni accord déduit. Absente si la cible
    * ou la config ne sont pas établies/représentables ; jamais une preuve de réussite ou d'affichage.
@@ -440,6 +448,11 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   if (context.signal?.aborted) throw new RelayRefusal({ status: "cancelled" });
   const { messages } = context;
   const { flags, positionals } = parseRelayTokens(rawArgs.slice(1), messages);
+  // #270 lot B : envoi ordinaire en arrière-plan seulement, refusé avant tout lancement ailleurs.
+  if (flags["save-error-excerpt"] && (flags.open || flags.copy || flags.check || flags.follow || flags["then-follow"] !== undefined
+    || flags["no-export"] || flags.task !== undefined || flags.pr !== undefined || flags.write || context.header)) {
+    throw invalid("invalid-arguments", messages.relay.errorExcerpt.conflict);
+  }
   if (flags.github !== undefined || flags.participant !== undefined || flags["no-reply-format"] !== undefined) {
     if (flags.check || flags.follow || context.header || flags.task !== undefined || flags.write) {
       throw invalid("invalid-arguments", messages.relay.work.conflict);
@@ -643,6 +656,8 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
   context.modeSource = mode.modeSource;
   context.open = mode.mode === "open";
   if (mode.refusal) throw new RelayRefusal({ status: mode.refusal });
+  // Mode automatique résolu en ouvert : refus, sans basculer en arrière-plan.
+  if (flags["save-error-excerpt"] && context.open) throw invalid("invalid-arguments", context.messages.relay.errorExcerpt.openResolved);
   if (context.thenFollowMs !== undefined && (!context.open || provider !== "codex")) throw invalid("invalid-arguments", context.messages.relayThenFollow.conflict);
   if (context.check) return relayCheck(context, { to: to.value, provider, configPath, explicitBackground: flags.background === true });
   const coordination = context.open ? buildOpenEnvelope(envelopeInput, frame) : buildEnvelope(envelopeInput, frame);
@@ -742,6 +757,10 @@ async function relay(rawArgs: string[], context: RelayContext): Promise<RelayRes
     if (result.error && !context.approvedWrite && !review && !context.header) {
       const run = exchanged.refusal ? exchanged.preparationProcess : exchanged.process;
       if (run) result.error.diagnostic = relayProcessDiagnostic(exchanged.refusal ? "preparation" : "execution", run, adapter.stderrHint?.(run));
+      if (run && flags["save-error-excerpt"]) {
+        result.errorExcerpt = await saveRelayErrorExcerpt(resolveOutputDir(config.outputDir), run.stderr,
+          { phase: result.error.diagnostic!.phase, exitCode: result.error.diagnostic!.exitCode }, context.messages.relay.errorExcerpt.file);
+      }
     }
     if (context.approvedWrite) {
       result.write = await writeReport(context.approvedWrite, exchanged.process?.stdout ?? "");
@@ -1319,7 +1338,7 @@ async function exportRelay(
       ...(input.envelope !== undefined ? { envelope: input.envelope } : {}),
       reply: result.reply,
       ...(result.nextTurn ? { nextTurn: result.nextTurn } : {}),
-      error: result.error ? [result.error.message, ...diagnosticLines(result.error.diagnostic, messages)].join("\n") : undefined,
+      error: result.error ? [result.error.message, ...diagnosticLines(result.error.diagnostic, messages, result.errorExcerpt)].join("\n") : undefined,
       ...(result.retryAfter !== undefined ? { retryAfter: result.retryAfter } : {}),
       ...(result.readAccess ? { readAccess: result.readAccess } : {}),
       ...(result.task ? { task: result.task } : {}),
@@ -1491,12 +1510,16 @@ export function claudeDesktopOpenCommand(result: RelayResultV1, targetLocated: b
     : `(cd -- ${quote(cwd)} && ${command})`;
 }
 
-/** Lignes humaines du diagnostic de processus, identiques en texte et dans l'export. */
-function diagnosticLines(diagnostic: RelayProcessDiagnostic | undefined, messages: Messages): string[] {
+/**
+ * Lignes humaines du diagnostic de processus, identiques en texte et dans l'export. L'extrait
+ * privé n'y apparaît que par son emplacement ; l'indice ne dit « non conservé » que sans extrait.
+ */
+function diagnosticLines(diagnostic: RelayProcessDiagnostic | undefined, messages: Messages, excerpt?: RelayErrorExcerptReport): string[] {
   if (!diagnostic) return [];
   return [
     messages.relay.open.diagnostic(JSON.stringify(diagnostic)),
-    ...(diagnostic.stderrHint ? [messages.relay.stderrHint(diagnostic.stderrHint)] : [])
+    ...(diagnostic.stderrHint ? [messages.relay.stderrHint(diagnostic.stderrHint, excerpt?.status === "saved")] : []),
+    ...(excerpt ? [excerpt.status === "saved" ? messages.relay.errorExcerpt.saved(excerpt.path) : messages.relay.errorExcerpt[excerpt.status]] : [])
   ];
 }
 
@@ -1536,7 +1559,7 @@ export function renderRelayText(result: RelayResultV1, messages: Messages, optio
   } else {
     lines.push(`${messages.relay.failed(result.status)} ${result.error?.message ?? ""}`.trim());
     if (result.error?.hint) lines.push(result.error.hint);
-    lines.push(...diagnosticLines(result.error?.diagnostic, messages));
+    lines.push(...diagnosticLines(result.error?.diagnostic, messages, result.errorExcerpt));
     // Le suivi et la vérification n'envoient rien : une consigne de renvoi n'aurait pas de sens.
     if (result.check) lines.push(messages.relay.check.nothingSent);
     else if (result.mode !== "follow" && !claudeBusy && !codexBusy) lines.push(messages.relay.delivery(result.delivery.status));

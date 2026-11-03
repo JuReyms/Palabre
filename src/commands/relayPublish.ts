@@ -132,9 +132,13 @@ function parsePublicationArgs(tokens: readonly string[]): PublicationArgs | unde
     dryRun: flags.has("--dry-run"), ...(typeof commitValue === "string" ? { commit: commitValue.toLowerCase() } : {}) };
 }
 
-/** Un bilan choisi, pas un export entier. CRLF devient LF avant l'aperçu ; aucun contrôle n'est masqué. */
+/**
+ * Un bilan choisi, pas un export entier. CRLF devient LF avant l'aperçu ; aucun contrôle n'est masqué.
+ * Exports, passations et extraits d'erreur privés (#270) sont refusés comme fichier source direct,
+ * d'après leur nom seulement : ce n'est pas un détecteur de secrets.
+ */
 async function readReport(file: string): Promise<string> {
-  if (/\.(relay|handoff|ask|debate|chat)\.md$/i.test(file)) throw new Error("report-required");
+  if (/\.(relay|handoff|ask|debate|chat)\.md$|\.error\.txt$/i.test(file)) throw new Error("report-required");
   const body = (await readPublicationText(file, MAX_PUBLICATION_BODY_BYTES)).replace(/\r\n/g, "\n");
   if (!body.trim() || /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(body.replace(/[\n\t]/g, ""))) throw new Error("invalid-report");
   return body;

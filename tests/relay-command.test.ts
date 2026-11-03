@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
-import { appendFileSync, chmodSync, closeSync, constants, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, closeSync, constants, existsSync, mkdirSync, mkdtempSync, openSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
@@ -947,12 +947,12 @@ describe("relay.view (#190)", () => {
       const port = (server.address() as { port: number }).port;
       for (const view of [undefined, "auto", "background"] as const) {
         const world = makeWorld(); if (view) setting(world, view);
-        const declared = view === undefined ? [] : ["--skill-revision", view === "auto" ? "999" : "14"];
+        const declared = view === undefined ? [] : ["--skill-revision", view === "auto" ? "999" : "15"];
         const r = await palabre(world, ["agents", "--json", "--trust-config", ...declared], { OLLAMA_HOST: `http://127.0.0.1:${port}` });
         assert.equal(r.code, 0, r.stderr); assert.equal(r.json.defaults.relayView, view ?? "background");
         assert.equal(r.json.v, 1); assert.equal(r.calls.length, 0);
         assert.equal(r.json.skill.status, view === undefined ? "unverified" : view === "auto" ? "reload-required" : "current");
-        assert.equal(r.json.skill.revision, 14);
+        assert.equal(r.json.skill.revision, 15);
         assert.ok(path.isAbsolute(r.json.skill.entrypoint));
         assert.ok(r.json.skill.references["relay.md"].endsWith(path.join("references", "relay.md")));
         assert.equal(r.json.skill.instructions, undefined);
@@ -984,6 +984,10 @@ describe("relay.view (#190)", () => {
       assert.equal(r.calls.length, 1); assert.equal(r.calls[0]!.argv[0], "queue");
       assert.ok(r.calls[0]!.argv[4]!.includes(relayMessages.fr.openPermissions));
       assert.match(readFileSync(r.json.exportPath, "utf8"), /\| modeSource \| auto \|/);
+      // #270 lot B : l'extrait privé exige l'arrière-plan ; auto résolu en ouvert refuse, sans basculer.
+      const excerpt = await relay(world, [...toCodex, "Bonjour", "--trust-config", "--json", "--save-error-excerpt"]);
+      assert.equal(excerpt.json.status, "invalid-request"); assert.equal(excerpt.calls.length, 1, "aucun nouveau lancement");
+      assert.ok(excerpt.json.error.message.endsWith(relayMessages.fr.errorExcerpt.openResolved));
     } finally { release(); }
   });
 
@@ -1601,6 +1605,68 @@ describe('Relay : création et expéditeur facultatif', () => {
     assert.equal(none.json.status, 'cli-failure');
     assert.equal('stderrHint' in none.json.error.diagnostic, false);
     assert.doesNotMatch(none.stdout, /Indice|Hint \(/);
+  });
+
+  test('extrait privé sur demande : fichier masqué, emplacement seul en JSON, refus hors arrière-plan', async () => {
+    const errorFiles = (w: World) => {
+      try { return readdirSync(path.join(w.workspace, '.palabre')).filter((name) => name.endsWith('.error.txt')); } catch { return []; }
+    };
+    for (const language of ['fr', 'en']) {
+      const w = makeWorld();
+      const stderr = `WARNING: proceeding: Accès refusé. (os error 5) at path "${path.join(w.home, '.codex', 'tmp', 'arg0')}"\n`
+        + 'Error: failed to initialize in-process app-server client: Accès refusé. (os error 5) token=faux-secret-stderr\n';
+      const env = { FAKE_CODEX_MODE: 'stderr-fail', FAKE_CODEX_STDERR: stderr };
+      const args = ['--new', '--to', 'codex', 'Question', '--trust-config', '--language', language, '--save-error-excerpt'];
+      const r = await relay(w, [...args, '--json'], env);
+      assert.equal(r.code, 2); assert.equal(r.json.status, 'cli-failure'); assert.equal(r.json.delivery.status, 'unknown');
+      assert.deepEqual(r.json.error.diagnostic, { phase: 'execution', started: true, exitCode: 1, signal: null, forcedReturn: false, stderrHint: 'access-denied' });
+      assert.equal(r.json.errorExcerpt.status, 'saved');
+      assert.equal(path.dirname(r.json.errorExcerpt.path), path.join(w.workspace, '.palabre'));
+      const excerpt = readFileSync(r.json.errorExcerpt.path, 'utf8');
+      assert.match(excerpt, /phase=execution exitCode=1\n---\n/);
+      assert.ok(excerpt.includes('app-server client: Accès refusé. (os error 5) token=[***]'));
+      assert.ok(excerpt.includes(`"${path.join('~', '.codex', 'tmp', 'arg0')}"`));
+      assert.doesNotMatch(excerpt, /faux-secret/);
+      assert.ok(!excerpt.includes(w.home));
+      assert.doesNotMatch(excerpt, /Question|nonce|PALABRE/);
+      // JSON et export : emplacement seulement, jamais le texte du stderr.
+      const md = readFileSync(r.json.exportPath, 'utf8');
+      assert.ok(md.includes(r.json.errorExcerpt.path));
+      assert.match(md, language === 'fr' ? /conservé dans l'extrait privé/ : /kept in the private excerpt/);
+      assert.doesNotMatch(r.stdout + r.stderr + md, /app-server|arg0|faux-secret/);
+      const text = await relay(w, args, env);
+      assert.equal(text.code, 2);
+      assert.match(text.stderr, language === 'fr' ? /Extrait d'erreur privé enregistré : / : /Private error excerpt saved: /);
+      assert.doesNotMatch(text.stderr, /app-server|arg0|faux-secret/);
+      assert.equal(errorFiles(w).length, 2, 'un nouveau fichier par échec, sans écrasement');
+    }
+    // Sans l'option : ni champ ni fichier ; l'indice reste « non conservé ».
+    const plain = makeWorld();
+    const without = await relay(plain, ['--new', '--to', 'codex', 'Question', '--trust-config', '--json'],
+      { FAKE_CODEX_MODE: 'stderr-fail', FAKE_CODEX_STDERR: 'Error: Accès refusé. (os error 5)\n' });
+    assert.equal(without.json.status, 'cli-failure'); assert.equal('errorExcerpt' in without.json, false);
+    assert.equal(errorFiles(plain).length, 0);
+    // stderr vide : `empty`, aucun fichier.
+    const quiet = makeWorld();
+    const empty = await relay(quiet, ['--new', '--to', 'codex', 'Question', '--trust-config', '--json', '--save-error-excerpt'],
+      { FAKE_CODEX_MODE: 'stderr-fail', FAKE_CODEX_STDERR: '' });
+    assert.equal(empty.json.status, 'cli-failure'); assert.deepEqual(empty.json.errorExcerpt, { status: 'empty' });
+    assert.equal(errorFiles(quiet).length, 0);
+    // Réussite : rien n'est écrit.
+    const fine = makeWorld();
+    const ok = await relay(fine, ['--new', '--to', 'codex', 'Question', '--trust-config', '--json', '--save-error-excerpt']);
+    assert.equal(ok.json.status, 'replied'); assert.equal('errorExcerpt' in ok.json, false);
+    assert.equal(errorFiles(fine).length, 0);
+    // Combinaisons refusées avant tout lancement.
+    for (const extra of [['--no-export'], ['--open'], ['--check'], ['--follow', '--open'], ['--copy', '--dir', '.'], ['--task', 'review', '--pr', 'o/r#1'], ['--write']]) {
+      const w = makeWorld();
+      const refused = await relay(w, ['--to', `codex:${CODEX_SESSION}`, 'Question', '--trust-config', '--json', '--save-error-excerpt', ...extra],
+        { FAKE_CODEX_MODE: 'stderr-fail', FAKE_CODEX_STDERR: 'Error: x\n' });
+      assert.equal(refused.json.status, 'invalid-request', extra.join(' '));
+      assert.match(refused.json.error.message, /--save-error-excerpt/);
+      assert.equal(existsSync(w.marker), false, `aucun lancement avec ${extra.join(' ')}`);
+      assert.equal(errorFiles(w).length, 0);
+    }
   });
 });
 
