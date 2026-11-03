@@ -14,6 +14,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 - Relay ordinaire en arrière-plan : indice facultatif v1 `error.diagnostic.stderrHint` (`access-denied`, `network`, `panic`) tiré du texte d’erreur de la CLI cible par des motifs système précis, avec une ligne « Indice (non établi) » dans le texte et l’export. Le texte d’erreur n’est pas conservé ; sans correspondance, aucun indice. Statuts, codes et délivrance inchangés ; consignes du skill révision 14.
 
+- Relay ordinaire en arrière-plan : option `--save-error-excerpt`, seulement sur demande. Après un échec ayant lancé la CLI cible, elle garde un extrait privé du texte d’erreur (40 lignes, 8 Kio, masquage partiel du dossier personnel, de jetons connus, d’e-mails et d’identifiants) dans un fichier `.error.txt` exclusif du dossier de sortie. Le JSON v1 n’en donne que l’état et l’emplacement (`errorExcerpt`, hors `error.diagnostic`), jamais le texte. Refusée avec `--open`, `--copy`, `--check`, `--follow`, `--no-export` et les parcours gelés, ou si le mode automatique se résout en ouvert. Le fichier peut contenir des copies d’informations locales ; `relay publish` le refuse comme fichier source. Statuts, codes et délivrance inchangés ; consignes du skill révision 15.
+
 ### Changed
 
 - Consignes de publication du skill révision 12 : bilan choisi, attribution déclarée, aperçu préparé par l’agent, commande d’envoi lancée par l’humain dans son terminal, annulation/refus à l’invite, retour du lien et arrêt sans rejeu sur incertitude. Un PID, un TTY ou une réponse dans une trace ne prouve pas une validation humaine. Copies installées seulement par plan `palabre skill --sync` ou `palabre update` confirmé depuis le paquet installé, puis rechargement des consignes.

@@ -19,6 +19,8 @@ Les catalogues ci-dessous écrivent un document JSON sur stdout sans lancer de s
 
 En arrière-plan ordinaire, `error.diagnostic?` peut préciser la préparation ou l'exécution : lancement, code de sortie de la CLI cible, signal et arrêt éventuel. Ces faits apparaissent aussi dans le texte et l'export, sans sortie brute de la CLI. Ils ne changent pas la délivrance ; le code cible est distinct de `exitCode` à la racine. `error.diagnostic.stderrHint?` peut ajouter un indice tiré du texte d'erreur de la CLI, sans ce texte : `access-denied` (accès refusé par le système), `network` (erreur réseau) ou `panic` (arrêt brutal). C'est une piste, pas une cause établie ; son absence ne signifie pas « aucun problème ».
 
+Avec `--save-error-excerpt` (arrière-plan ordinaire avec export seulement), un échec qui a lancé la CLI cible ajoute `errorExcerpt` : `saved` avec `path`, `empty` (aucun texte d'erreur) ou `failed` (écriture impossible). Le fichier `.error.txt`, sous le dossier de sortie, garde les 40 dernières lignes du texte d'erreur (8 Kio au plus), après masquage du dossier personnel, de jetons connus, d'e-mails et d'identifiants. Le JSON et l'export n'en donnent que l'emplacement. Le masquage est partiel et la CLI peut avoir recopié des informations locales : c'est un texte non fiable, à lire seulement si besoin et à ne pas publier tel quel. L'issue et la délivrance ne changent pas.
+
 En préparation, `started: true` et `exitCode: 0` ne suffisent pas à prouver la réussite du contrôle : par exemple, la liste MCP doit aussi être conforme. Si elle est rejetée, le statut Relay reste en échec.
 
 ## Règles de consommation

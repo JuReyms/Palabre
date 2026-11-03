@@ -92,10 +92,10 @@ test("une nouvelle référence non déclarée ne passe pas silencieusement", t =
 test("un bump de révision exige des recettes cohérentes et un entier sûr", t => {
   const f = fixture(t);
   const before = readFileSync(f.file, "utf8");
-  writeFileSync(f.file, before.replace('revision: "14"', 'revision: "15"'));
+  writeFileSync(f.file, before.replace('revision: "15"', 'revision: "16"'));
   assert.match(f.run().stderr, /recipes must declare metadata.revision/);
-  writeFileSync(f.file, before.replace('revision: "14"', 'revision: "15"').replaceAll("--skill-revision 14", "--skill-revision 15"));
+  writeFileSync(f.file, before.replace('revision: "15"', 'revision: "16"').replaceAll("--skill-revision 15", "--skill-revision 16"));
   assert.equal(f.run().status, 0);
-  writeFileSync(f.file, before.replace('revision: "14"', 'revision: "9007199254740992"'));
+  writeFileSync(f.file, before.replace('revision: "15"', 'revision: "9007199254740992"'));
   assert.match(f.run().stderr, /positive safe metadata.revision/);
 });
