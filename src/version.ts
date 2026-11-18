@@ -2,6 +2,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { readBoundedJson } from "./http.js";
 
 /** Lit la version depuis `package.json` adjacent au bundle compilé. */
 export async function getPackageVersion(): Promise<string> {
@@ -34,7 +35,7 @@ export function compareSemver(left: string, right: string): number {
   return 0;
 }
 
-/** Lit la dernière version publiée sur npm. Retourne `undefined` hors ligne ou si le registre ne répond pas. */
+/** Lit la dernière version publiée sur npm avec un plafond de 1 Mio. Retourne `undefined` si la lecture échoue. */
 export async function getLatestPackageVersion(timeoutMs = 1_500): Promise<string | undefined> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -51,7 +52,7 @@ export async function getLatestPackageVersion(timeoutMs = 1_500): Promise<string
       return undefined;
     }
 
-    const data = await response.json() as { version?: unknown };
+    const data = await readBoundedJson<{ version?: unknown }>(response, 1024 * 1024);
     return typeof data.version === "string" ? data.version : undefined;
   } catch {
     return undefined;

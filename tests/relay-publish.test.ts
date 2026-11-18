@@ -252,8 +252,8 @@ test("CLI : routage dédié, aide, JSON unique et refus non interactif sans mod�
     const json = JSON.parse(r.stdout); assert.equal(json.type, "relay-publication-result");
     assert.equal(json.publication, "not-attempted"); assert.equal(json.attempted, false);
   }
-  for (const prefix of [["--json"], ["--json", "--language", "en"]]) {
-    const r = spawnSync(process.execPath, [cli, ...prefix, "relay", "publish", ...w.args.slice(0, -2)], { encoding: "utf8", cwd: w.home });
+  for (const prefix of [["--json", "relay"], ["--json", "--language", "en", "relay"], ["relay", "--json"]]) {
+    const r = spawnSync(process.execPath, [cli, ...prefix, "publish", ...w.args.slice(0, -2)], { encoding: "utf8", cwd: w.home });
     const value = JSON.parse(r.stdout);
     assert.equal(value.type, "relay-publication-result"); assert.equal(value.publication, "not-attempted");
     assert.equal(value.status, "confirmation-required");

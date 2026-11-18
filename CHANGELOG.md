@@ -26,6 +26,9 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Fixed
 
+- Les options globales placées avant une sous-commande Relay conservent son routage. `relay open` suit le parcours d’ouverture sans envoyer de message.
+- La vérification de version npm plafonne à 1 Mio la réponse acceptée et revient au comportement hors ligne si elle dépasse cette taille.
+
 - Qualification de publication Relay : retrait des affirmations non établies sur la fenêtre PowerShell et la saisie humaine ; aide et guides distinguent le contrôle TTY de la présence effective d’un utilisateur. Publications techniques vérifiées conservées, parcours humain non qualifié.
 - Publication Relay : la fin d’entrée à l’invite ne laisse plus la confirmation en attente ; Ctrl+C rend une annulation structurée, Ctrl+D ou EOF un refus, sans envoi ni réservation.
 
