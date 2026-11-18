@@ -1,6 +1,6 @@
 # Qualifications MCP et PTY de l’audit run 1
 
-Ces contrôles complètent les correctifs livrés dans les [PR #276](https://github.com/JuReyms/Palabre/pull/276) et [#277](https://github.com/JuReyms/Palabre/pull/277). Ils utilisent la vraie CLI Codex et le vrai pseudo-terminal Windows, avec des entrées de test. Ils se lancent manuellement depuis la racine de Palabre, après `pnpm build`. Pour le test Codex, obtenir l’accord du mainteneur avant le lancement et choisir le chemin exact de la CLI à qualifier.
+Ces contrôles complètent les correctifs livrés dans les [PR #276](https://github.com/JuReyms/Palabre/pull/276) et [#277](https://github.com/JuReyms/Palabre/pull/277). Ils utilisent la vraie CLI Codex et le vrai pseudo-terminal Windows, avec des entrées de test. Lancer les commandes depuis la racine de Palabre. Pour le test Codex, obtenir l’accord du mainteneur avant le lancement et choisir le chemin exact de la CLI à qualifier.
 
 ## MCP sur un profil jetable
 
@@ -32,8 +32,25 @@ node scripts/qualify_pty_native.mjs
 
 L’adapter PTY de Palabre lance un petit programme Node local dans ConPTY. Le programme écrit les arguments reçus sous `.tmp/qualify-pty-*`. Le script en attend deux. Le premier est un texte avec espaces terminé par un antislash. Le second est le prompt complet, avec accents, guillemets ordinaires, antislashs devant des guillemets, retours à la ligne et esperluette. La comparaison est exacte. L’essai ne lance aucun modèle.
 
-**Observé le 18 novembre 2026 avec Node.js 24.22.2 et `node-pty` 1.1.0.** Le prompt complet a été reçu intact dans un seul argument. L’autre argument a conservé son antislash final. Le résultat couvre le lancement natif de `node.exe`. Les wrappers `.cmd` et `.bat` restent à qualifier côté PTY.
+**Observé le 18 novembre 2026 avec Node.js 24.22.2 et `node-pty` 1.1.0.** Le prompt complet a été reçu intact dans un seul argument. L’autre argument a conservé son antislash final. Le résultat couvre le lancement natif de `node.exe`.
+
+## Fichiers batch .cmd et .bat dans le PTY
+
+Les mêmes trois scénarios sont testés sous Windows pour chaque extension, avec des fichiers témoins et un enfant Node local.
+
+| Configuration | Résultat observé |
+| --- | --- |
+| Shim npm `.ps1` reconnu à côté du fichier batch, prompt en argument | Node reçoit les arguments et le prompt exacts. Le fichier batch, qui sortirait avec une erreur s’il était lancé, est contourné. |
+| Fichier batch seul, prompt en argument | Palabre refuse avant de lancer le fichier. Le témoin de démarrage reste absent. |
+| Fichier batch seul, prompt sur l’entrée standard | Le fichier lance le témoin Node et lui passe un argument fixe. Le témoin reçoit le prompt complet sur stdin, avec le retour chariot ajouté par l’adapter. |
+
+```powershell
+pnpm build:test
+node scripts/test.mjs .tmp/test-dist/tests/npm-shim-launch.test.js .tmp/test-dist/tests/cli-pty-security.test.js
+```
+
+**Observé le 18 novembre 2026 avec Node.js 24.22.2 et `node-pty` 1.1.0.** Les six scénarios ont reproduit ces résultats. Le cas stdin couvre les wrappers témoins et leur lecture en mode brut. Les shims PowerShell non reconnus restent hors de cette qualification.
 
 ## Traces locales
 
-Chaque script affiche un bilan JSON et le chemin relatif du dossier de preuve. Les journaux et historiques restent sous `.tmp/`, ignoré par Git. Les identifiants de conversation et les traces brutes restent locaux.
+Les scripts manuels affichent un bilan JSON et le chemin relatif du dossier de preuve. Leurs journaux et historiques restent sous `.tmp/`, ignoré par Git. Les identifiants de conversation et les traces brutes restent locaux. Le harnais des cas batch lance les témoins dans des dossiers temporaires et les nettoie à la fin.

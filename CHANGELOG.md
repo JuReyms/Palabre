@@ -29,7 +29,7 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 - Les options globales placées avant une sous-commande Relay conservent son routage. `relay open` suit le parcours d’ouverture sans envoyer de message.
 - La vérification de version npm plafonne à 1 Mio la réponse acceptée et revient au comportement hors ligne si elle dépasse cette taille.
 - Les exports Débat, Ask, Chat et Relay sont publiés d’un seul bloc et refusent les collisions de chemin.
-- Sous Windows, la mise à jour refuse les shims inconnus. Les adapters refusent les fichiers batch en lancement direct et les alias WindowsApps en PTY.
+- Sous Windows, la mise à jour refuse les shims inconnus. L’adapter CLI refuse les fichiers `.cmd` et `.bat` avec `shell: false`. L’adapter PTY refuse les alias WindowsApps et limite le repli sur un fichier batch seul aux prompts sur l’entrée standard.
 - Les passations vers Chat délimitent la sortie des agents. L’aperçu du prompt et les notices TUI neutralisent les contrôles terminaux.
 - L’historique ne lit que l’en-tête des exports. Le chargement de contexte compte les octets réellement lus dans ses plafonds.
 - `relay allow-repo` revérifie la confiance après confirmation. Les modèles Codex historiques commençant par un tiret sont écartés, les URL Ollama sont normalisées à l’écriture et Git ignore les exports privés.

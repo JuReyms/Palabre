@@ -13,6 +13,7 @@ import { CliPtyAdapter } from "../src/adapters/cli-pty.js";
 import { resolveExternalExecutable } from "../src/externalSessions/resolve.js";
 import { directNpmShimLaunch, parseNpmPowerShellShim, parsePnpmPowerShellShim, pnpmShimLaunch, withShimNodePath } from "../src/npmShim.js";
 import type { AgentPrompt } from "../src/types.js";
+import { fakePtyStdinCli } from "./fixtures/pty-stdin.js";
 import { npmPowerShellShim } from "./fixtures/external-sessions/npm-shim.js";
 import { pnpmPowerShellShim } from "./fixtures/pnpm-shim.js";
 
@@ -31,14 +32,6 @@ const TOPIC = "Une réponse française : été.\nDeuxième ligne « citée ».";
 /** Fausse CLI : écrit argv, stdin et NODE_PATH en JSON dans `capture.json`, puis répond « ok ». */
 function fakeCli(capture: string): string {
   return `const done=(input)=>{require('fs').writeFileSync(${JSON.stringify(capture)},JSON.stringify({argv:process.argv.slice(2),stdin:input,nodePath:process.env.NODE_PATH??null}));process.stdout.write('ok');process.exit(0)};if(process.stdin.isTTY){done('')}else{let input='';process.stdin.on('data',c=>input+=c);process.stdin.on('end',()=>done(input))}`;
-}
-
-/**
- * Fausse CLI pour un prompt écrit dans le pseudo-terminal : lecture en mode brut, puis capture
- * après 800 ms sans nouvelle donnée (le terminal n'a pas de fin d'entrée).
- */
-function fakePtyStdinCli(capture: string): string {
-  return `let input='',idle;const done=()=>{require('fs').writeFileSync(${JSON.stringify(capture)},JSON.stringify({argv:process.argv.slice(2),stdin:input,nodePath:process.env.NODE_PATH??null}));process.stdout.write('ok');process.exit(0)};if(process.stdin.isTTY)process.stdin.setRawMode(true);process.stdin.setEncoding('utf8');process.stdin.on('data',c=>{input+=c;clearTimeout(idle);idle=setTimeout(done,800)});`;
 }
 
 /**
