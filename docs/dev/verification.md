@@ -91,7 +91,7 @@ Quand un changement touche Ollama, verifier que l'erreur est lisible si Ollama n
 
 Les anciens essais locaux sont conservés dans [les qualifications historiques](../archive/development-qualifications.md) ; ils ne certifient pas les versions courantes.
 
-Les [qualifications MCP et PTY de l’audit run 1](audit-run1-qualification.md) donnent le protocole reproductible sur Windows et le périmètre effectivement vérifié.
+Les [qualifications MCP et PTY de l’audit run 1](../audit-run1-qualification.md) donnent le protocole reproductible sur Windows et le périmètre effectivement vérifié.
 
 ## Scénarios de compréhension du skill
 

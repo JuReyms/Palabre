@@ -11,7 +11,7 @@ pnpm build
 node scripts/qualify_codex_mcp.mjs 'C:\chemin\vers\codex.exe'
 ```
 
-Le script crée un profil Codex et un projet jetables sous `.tmp/qualify-mcp-*`. Il réutilise le [serveur MCP témoin](../../scripts/prototypes/relay/mcp-witness.cjs) dans les deux couches. Il configure un serveur d’inférence simulé sur `127.0.0.1` qui renvoie une réponse fixe. L’essai n’utilise ni compte ni quota de modèle.
+Le script crée un profil Codex et un projet jetables sous `.tmp/qualify-mcp-*`. Il réutilise le [serveur MCP témoin](../scripts/prototypes/relay/mcp-witness.cjs) dans les deux couches. Il configure un serveur d’inférence simulé sur `127.0.0.1` qui renvoie une réponse fixe. L’essai n’utilise ni compte ni quota de modèle.
 
 1. L’inventaire doit retrouver exactement les deux connecteurs attendus sans les démarrer. Le script vérifie aussi leur commande, leurs arguments et l’absence de paramètres d’environnement ajoutés. Un écart arrête le scénario avant tout tour.
 2. Le tour de contrôle démarre les deux témoins et présente leurs deux outils au serveur simulé. Ce contrôle valide les deux moyens de mesure.
