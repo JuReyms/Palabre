@@ -385,7 +385,7 @@ test("setOllamaBaseUrl updates every configured Ollama agent", () => {
     role: "reviewer"
   };
 
-  const count = setOllamaBaseUrl(config, "http://gpu-box:11434");
+  const count = setOllamaBaseUrl(config, " gpu-box/ ");
 
   assert.equal(count, 2);
   assert.equal(
@@ -396,6 +396,9 @@ test("setOllamaBaseUrl updates every configured Ollama agent", () => {
     config.agents["ollama-reviewer"]?.type === "ollama" ? config.agents["ollama-reviewer"].baseUrl : undefined,
     "http://gpu-box:11434"
   );
+  const before = JSON.stringify(config);
+  assert.throws(() => setOllamaBaseUrl(config, "file:///etc/hosts"));
+  assert.equal(JSON.stringify(config), before);
 });
 
 test("assertRunnableConfig rejects configs without a usable agents block", () => {

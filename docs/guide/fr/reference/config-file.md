@@ -51,7 +51,7 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 | Champ | Type | Description |
 |-------|------|-------------|
 | `language` | `fr` ou `en` | Langue de Palabre et des prompts envoyés aux agents. Peut être forcée ponctuellement avec `--language` ou `PALABRE_LANGUAGE`. |
-| `outputDir` | string | Dossier des exports `.debate.md`, `.relay.md`, `.ask.md`, `.chat.md` ; défaut `.palabre`, `.` traité comme `.palabre`. |
+| `outputDir` | string | Dossier des exports `.debate.md`, `.relay.md`, `.ask.md`, `.chat.md`. Son système de fichiers doit prendre en charge les liens physiques. Le défaut est `.palabre`, et `.` est traité comme `.palabre`. |
 
 ## `defaults`
 
@@ -75,7 +75,7 @@ Pour une explication progressive, commencez par [Configuration](/fr/configuratio
 | `args` | string[] | Arguments transmis. |
 | `promptMode` | `stdin` ou `argument` | Manière de transmettre le prompt. |
 | `responseFormat` | `text` ou `antigravity-json` | Adapter `cli` seulement ; texte par défaut. JSON Antigravity : extrait uniquement `response` si `status` vaut `SUCCESS`, sans repli. |
-| `shell` | boolean | Active la résolution prudente des wrappers Windows ; les natifs et shims reconnus restent lancés sans shell. Ignoré par Relay. |
+| `shell` | boolean | Active la résolution des wrappers Windows. Les natifs et shims reconnus sont lancés directement. Avec `false`, la commande CLI refuse les fichiers `.cmd` et `.bat`. Ignoré par Relay. |
 | `role` | string | Rôle de l'agent. |
 | `tier` | `primary` / `local` | Classe de l’agent ; sans effet sur la consigne de rôle. |
 | `model` | string | Modèle par défaut optionnel. |

@@ -38,10 +38,12 @@ function configArgument(configPath: string): string {
   const quoted = process.platform === "win32" ? `'${file.replaceAll("'", "''")}'` : `'${file.replaceAll("'", "'\\''")}'`;
   return `--config ${quoted}`;
 }
+/** Commande à présenter à l'humain pour autoriser ce seul dépôt dans la configuration désignée. */
 export function reviewAuthorizationCommand(repository: string, configPath: string): string {
   return `palabre relay allow-repo ${repository} ${configArgument(configPath)}`;
 }
 
+/** Attend la confirmation humaine, puis revérifie le contenu et la confiance avant l'écriture. */
 export async function runRelayAllowRepo(tokens: readonly string[], io: AllowRepoIo = terminal): Promise<void> {
   const flags: Record<string, string> = {};
   const values: string[] = [];
@@ -75,7 +77,7 @@ export async function runRelayAllowRepo(tokens: readonly string[], io: AllowRepo
   if (repository.endsWith("/*")) io.print(text.ownerWarning(repository.slice(0, -2)));
   io.print(text.trustNotice);
   if (!(await io.confirm(text.confirm))) throw new Error(text.declined);
-  if (await readFile(file, "utf8") !== original) throw new Error(text.changed(file));
+  if (await readFile(file, "utf8") !== original || !(await io.isTrusted(file))) throw new Error(text.changed(file));
   config.relay = { ...policy, allowedTasks: ["review"], reviewRepositories: [...new Set([...policy.reviewRepositories, repository])] };
   const updated = `${JSON.stringify(config, null, 2)}\n`;
   try {

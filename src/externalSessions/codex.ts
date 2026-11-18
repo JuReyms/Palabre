@@ -82,8 +82,8 @@ const NEUTRALIZATION_BASE = ["--disable", "plugins", "--disable", "apps"] as con
 /** Clé TOML nue : seule forme acceptée pour composer `mcp_servers.<nom>.enabled=false`. */
 const BARE_TOML_KEY = /^[A-Za-z0-9_-]+$/;
 
-/** Modèle repris tel quel : texte court, sans caractère de contrôle. */
-const RECORDED_MODEL = /^[^\u0000-\u001f\u007f]{1,200}$/;
+/** Modèle repris tel quel : texte court, sans caractère de contrôle ni tiret initial. */
+const RECORDED_MODEL = /^(?!-)[^\u0000-\u001f\u007f]{1,200}$/;
 
 /**
  * Valide strictement la sortie de `codex mcp list --json` : un tableau d'objets, chacun avec un

@@ -1,12 +1,35 @@
+/** @file Contenu et publication exclusive des exports Markdown. */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { writeChatMarkdown } from "../src/chatOutput.js";
 import { createTranslator } from "../src/i18n.js";
 import { renderDebateMarkdown, writeDebateMarkdown } from "../src/output.js";
+import { createTextFileAtomically } from "../src/atomicFile.js";
 import type { DebateOptions } from "../src/types.js";
+
+test("publication atomique : un seul writer gagne et les fichiers existants sont préservés", async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "palabre-export-exclusive-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const file = path.join(root, "export.md");
+  for (const filename of ["existing.md", "export.md"]) {
+    const target = path.join(root, filename);
+    if (filename !== "export.md") await writeFile(target, "original");
+    const results = await Promise.allSettled([
+      createTextFileAtomically(target, "first"),
+      createTextFileAtomically(target, "second")
+    ]);
+    assert.equal(results.filter(result => result.status === "fulfilled").length, filename === "export.md" ? 1 : 0);
+    for (const result of results) {
+      if (result.status === "rejected") assert.equal(result.reason.code, "EEXIST");
+    }
+    const contents = await readFile(target, "utf8");
+    assert.equal(contents, filename === "existing.md" ? "original" : results[0]!.status === "fulfilled" ? "first" : "second");
+  }
+  assert.deepEqual((await readdir(root)).sort(), ["existing.md", path.basename(file)]);
+});
 
 function baseOptions(overrides: Partial<DebateOptions> = {}): DebateOptions {
   return {

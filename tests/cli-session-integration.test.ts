@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -46,6 +46,27 @@ function failingAgent() {
     shell: false
   };
 }
+
+test("--show-prompt neutralise les contrôles du fichier de contexte sans lancer d'agent", async t => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "palabre-preview-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const configPath = path.join(dir, "palabre.config.json");
+  const contextPath = path.join(dir, "context.txt");
+  const marker = path.join(dir, "agent-called");
+  const agent = countingAgent("réponse", marker);
+  await writeFile(configPath, JSON.stringify({
+    language: "en", defaults: { agentA: "first", agentB: "second" },
+    agents: { first: { ...agent, role: "architect" }, second: { ...agent, role: "critic" } }
+  }));
+  await writeFile(contextPath, "visible first\u001b]52;c;clipboard-marker\u0007\nvisible second");
+  const entry = path.resolve(".tmp", "test-dist", "src", "index.js");
+  const result = await run(process.execPath, [entry, "run", "--config", configPath, "--trust-config",
+    "--show-prompt", "--no-summary", "--files", contextPath, "-s", "Preview"], dir);
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /visible first\r?\nvisible second/);
+  assert.doesNotMatch(result.stdout, /clipboard-marker|\u001b\]52/);
+  await assert.rejects(readFile(marker), { code: "ENOENT" });
+});
 
 function countingAgent(response: string, countPath: string) {
   const script = [

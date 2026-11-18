@@ -64,6 +64,8 @@ Chaque copie physique remplacée est sauvegardée en entier dans `~/.palabre/ski
 
 `palabre update` detecte le canal de l'installation en cours : checkout Git, package global npm, pnpm, Yarn ou Bun. La detection compare le package execute aux racines globales interrogees localement ; une provenance ambigue reste `unknown` et ne declenche jamais une mutation.
 
+Sous Windows, les sondes de racines globales et les étapes du plan utilisent la première entrée trouvée dans le PATH. Elles lancent directement les binaires natifs et les shims npm/pnpm reconnus. Un wrapper inconnu ne fournit aucune racine et bloque l’application du plan avant la première étape.
+
 La commande par defaut affiche le diagnostic et demande une confirmation unique en TTY avant toute ecriture. `--check` et `--dry-run` restent sans effet de bord ; `--yes` applique le plan sans confirmation. `--apply` est conserve comme alias compatible de `--yes`. En non-interactif, une application exige `--yes` (ou `--apply`). L'ecran TUI `/update` presente exactement le meme plan et une action explicite `Mettre a jour maintenant`.
 
 Depuis un checkout git, le plan execute :

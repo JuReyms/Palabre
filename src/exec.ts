@@ -66,6 +66,11 @@ export function resolveNativeWindowsExecutable(command: string): string | undefi
   return resolveExecutablePath(command, [".exe", ".com"]);
 }
 
+/** Identifie le dossier des alias d'exécution WindowsApps pour les transports qui les refusent. */
+export function isWindowsAppsExecutionAlias(command: string): boolean {
+  return /[\\/]windowsapps[\\/]/i.test(command);
+}
+
 /** Résout un hôte Windows PowerShell absolu, même si le PATH appelant est réduit. */
 export function resolvePowerShellExecutable(): string | undefined {
   const fromPath = resolveExecutablePath("powershell.exe", [""]);

@@ -6,7 +6,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
-import { resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePowerShellShim } from "../exec.js";
+import { isWindowsAppsExecutionAlias, resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePowerShellShim } from "../exec.js";
 import { directNpmShimLaunch, withShimNodePath } from "../npmShim.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
@@ -356,7 +356,7 @@ function decodeCliBytes(chunks: readonly Buffer[]): string {
  * `cmd.exe`. Ordre sous Windows : exécutable natif ; shim npm ou pnpm reconnu, lancé via Node et le
  * script du paquet (avec le `NODE_PATH` du shim pnpm) ; autre shim PowerShell (modifié, forme
  * inconnue), lancé par PowerShell ; sinon wrapper shell, sûr seulement avec le prompt sur stdin et
- * un identifiant de modèle sans métacaractère.
+ * un identifiant de modèle sans métacaractère. En mode direct, refuse les fichiers batch.
  */
 function resolveWindowsSpawnSafety(
   command: string,
@@ -366,6 +366,9 @@ function resolveWindowsSpawnSafety(
   adapterName: string,
   messages: AdapterErrorMessages
 ): { command: string; shell: boolean; argsPrefix: string[]; nodePath?: string } {
+  if (process.platform === "win32" && !shell && /\.(cmd|bat)[. ]*$/i.test(command)) {
+    throw new AdapterError("spawn-failed", adapterName, messages.windowsBatchNeedsShell(adapterName), { command });
+  }
   if (process.platform !== "win32" || !shell) {
     return { command, shell, argsPrefix: [] };
   }
@@ -412,11 +415,6 @@ function resolveWindowsSpawnSafety(
   }
 
   return { command, shell: true, argsPrefix: [] };
-}
-
-/** Les alias WindowsApps ne sont pas des exécutables fiables pour child_process. */
-function isWindowsAppsExecutionAlias(command: string): boolean {
-  return command.toLowerCase().includes("\\windowsapps\\");
 }
 
 /** Retire les séquences ANSI et les espaces en tête/fin. */
