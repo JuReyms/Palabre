@@ -1,29 +1,58 @@
-/** @file Refus des commandes PTY Windows non prises en charge, sans lancer de processus. */
+/** @file Refus et repli stdin de l'adapter PTY Windows, avec des fichiers témoins inoffensifs. */
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { CliPtyAdapter } from "../src/adapters/cli-pty.js";
 import { AdapterError } from "../src/errors.js";
+import { formatAgentPrompt } from "../src/prompt.js";
 import type { AgentPrompt } from "../src/types.js";
 import { npmPowerShellShim } from "./fixtures/external-sessions/npm-shim.js";
+import { fakePtyStdinCli } from "./fixtures/pty-stdin.js";
 
-test("CliPtyAdapter rejects argument prompts through unresolved Windows wrappers", { skip: process.platform !== "win32" }, async () => {
-  const adapter = new CliPtyAdapter("mock-pty", {
-    type: "cli-pty",
-    command: "missing-wrapper.cmd",
-    promptMode: "argument",
-    role: "reviewer"
+for (const extension of ["cmd", "bat"]) {
+  test(`CliPtyAdapter refuse un prompt en argument pour un .${extension} seul`, { skip: process.platform !== "win32" }, async t => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "palabre-pty-batch-"));
+    t.after(() => rm(dir, { recursive: true, force: true }));
+    const command = path.join(dir, `witness.${extension}`);
+    const marker = path.join(dir, "started.txt");
+    await writeFile(command, '@echo off\r\n> "%~dp0started.txt" echo started\r\nexit /b 0\r\n');
+    const adapter = new CliPtyAdapter("mock-pty", {
+      type: "cli-pty", command, promptMode: "argument", role: "reviewer", timeoutMs: 5_000,
+    });
+    await assert.rejects(adapter.generate(prompt()), (error) =>
+      error instanceof AdapterError && error.kind === "spawn-failed" && error.details?.promptMode === "argument");
+    await assert.rejects(readFile(marker), { code: "ENOENT" });
   });
 
-  await assert.rejects(
-    adapter.generate(prompt()),
-    (error) => error instanceof AdapterError
-      && error.kind === "spawn-failed"
-      && error.details?.promptMode === "argument"
-  );
-});
+  test(`CliPtyAdapter transmet le prompt sur stdin via un .${extension} seul`, { skip: process.platform !== "win32" }, async t => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "palabre-pty-batch-"));
+    t.after(() => rm(dir, { recursive: true, force: true }));
+    const command = path.join(dir, `witness.${extension}`);
+    const capture = path.join(dir, "capture.json");
+    const node = process.execPath.replaceAll("%", "%%");
+    await writeFile(path.join(dir, "witness.cjs"), fakePtyStdinCli(capture));
+    await writeFile(command, [
+      "@echo off",
+      "setlocal DisableDelayedExpansion",
+      `"${node}" "%~dp0witness.cjs" "argument fixe"`,
+      "exit /b %errorlevel%",
+      "",
+    ].join("\r\n"));
+    const input = prompt();
+    const adapter = new CliPtyAdapter("mock-pty", {
+      type: "cli-pty", command, promptMode: "stdin", role: "reviewer", timeoutMs: 15_000,
+    });
+
+    const response = await adapter.generate(input);
+    const seen = JSON.parse(await readFile(capture, "utf8"));
+
+    assert.ok(response.content.includes("ok"));
+    assert.deepEqual(seen.argv, ["argument fixe"]);
+    assert.equal(seen.stdin, `${formatAgentPrompt(input)}\r`);
+  });
+}
 
 test("CliPtyAdapter refuse un alias WindowsApps même en repli stdin", { skip: process.platform !== "win32" }, async t => {
   const root = await mkdtemp(path.join(os.tmpdir(), "palabre-pty-alias-"));
@@ -54,7 +83,7 @@ test("CliPtyAdapter refuse un alias WindowsApps même en repli stdin", { skip: p
 
 function prompt(): AgentPrompt {
   return {
-    topic: "Sujet & echo INJECTED",
+    topic: "Sujet français de qualification",
     turn: 1,
     totalTurns: 1,
     selfName: "mock-pty",
