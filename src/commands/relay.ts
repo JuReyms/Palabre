@@ -334,33 +334,41 @@ function startupLanguage(rawArgs: readonly string[]): "fr" | "en" {
   }
 }
 
+/** Replace la sous-commande devant les options globales. `recent` accepte aussi son préfixe historique `--limit`. */
+function normalizeRelaySubcommand(rawArgs: string[]): string[] {
+  let index = 1;
+  let hasLimit = false;
+  for (; index < rawArgs.length; index++) {
+    const token = rawArgs[index];
+    if (token === "--json" || token === "--dry-run" || token === "--help" || token === "-h") continue;
+    if (token !== "--language" && token !== "--lang" && token !== "--config" && token !== "--limit") break;
+    const value = rawArgs[index + 1];
+    if (value === undefined || value.startsWith("-")) return rawArgs;
+    if (token === "--limit") hasLimit = true;
+    index++;
+  }
+  const action = rawArgs[index];
+  if (hasLimit && action !== "recent") return rawArgs;
+  if (index === 1 || !action || !["publish", "recent", "approve-write", "run-write", "open", "allow-repo"].includes(action)) {
+    return rawArgs;
+  }
+  return ["relay", action, ...rawArgs.slice(1, index), ...rawArgs.slice(index + 1)];
+}
+
 /** Point d'entrée de `palabre relay`. `rawArgs` commence par `relay`. */
 export async function runRelayCommand(rawArgs: string[]): Promise<void> {
+  rawArgs = normalizeRelaySubcommand(rawArgs);
   const messages = startupMessages(rawArgs);
-  // Routage seulement : ne pas confondre la valeur d'un --to/--from avec une sous-commande.
-  let actionIndex = -1;
-  for (let i = 1; i < rawArgs.length; i++) {
-    const token = rawArgs[i]!;
-    if (!token.startsWith("-")) { actionIndex = i; break; }
-    if ((RELAY_VALUE_FLAGS.has(token.slice(2)) || token === "--lang" || token === "--limit")
-      && rawArgs[i + 1] !== undefined && !rawArgs[i + 1]!.startsWith("-")) i++;
-  }
-  // Les options globales peuvent précéder relay/publish. Un message ordinaire littéral
-  // « publish » après --to/--from reste un message, jamais une commande de publication.
-  const publicationPrefix = rawArgs.slice(1, actionIndex);
-  const globalPublicationPrefix = publicationPrefix.every((token, index) =>
-    ["--json", "--dry-run", "--help", "-h", "--language", "--lang", "--config"].includes(token)
-    || ["--language", "--lang", "--config"].includes(publicationPrefix[index - 1] ?? ""));
-  if (actionIndex > 0 && rawArgs[actionIndex] === "publish" && globalPublicationPrefix) {
-    await runRelayPublishCommand([...publicationPrefix, ...rawArgs.slice(actionIndex + 1)]);
+  if (rawArgs[1] === "publish") {
+    await runRelayPublishCommand(rawArgs.slice(2));
     return;
   }
   if (rawArgs.includes("--help") || rawArgs.includes("-h")) {
     console.log(messages.help.renderCommand("relay"));
     return;
   }
-  if (actionIndex > 0 && rawArgs[actionIndex] === "recent") {
-    await runRelayRecentCommand(["relay", "recent", ...rawArgs.slice(1, actionIndex), ...rawArgs.slice(actionIndex + 1)]);
+  if (rawArgs[1] === "recent") {
+    await runRelayRecentCommand(rawArgs);
     return;
   }
   if (rawArgs[1] === "approve-write" || rawArgs[1] === "run-write") {

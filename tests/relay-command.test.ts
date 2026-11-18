@@ -132,6 +132,34 @@ function palabre(world: World, argv: string[], env: Record<string, string> = {})
 const toClaude = ["--from", FROM, "--to", `claude:${CLAUDE_SESSION}`];
 const toCodex = ["--from", `claude:${CLAUDE_SESSION}`, "--to", `codex:${CODEX_SESSION}`];
 
+test("relay open : options globales ou finales, résultat d'ouverture sans échange", async () => {
+  const w = makeWorld();
+  const config = path.join(w.workspace, "palabre.config.json");
+  await trustConfig(config, path.join(w.home, ".palabre", "trusted-configs.json"));
+  const target = ["--to", "codex:11111111-1111-4111-8111-111111111111"];
+  for (const args of [
+    ["--json", "--config", config, "relay", "open", ...target],
+    ["relay", "--json", "open", ...target],
+    ["relay", "open", ...target, "--json"]
+  ]) {
+    const r = await palabre(w, args);
+    assert.equal(r.code, 6, r.stderr);
+    assert.equal(r.json.type, "relay-open-result");
+    assert.equal(r.json.status, "session-not-found");
+    assert.equal(r.json.messageSent, false);
+    assert.equal(r.json.launcher.attempted, false);
+    assert.deepEqual(r.calls, []);
+  }
+});
+
+test("open après --to reste un message vers la CLI fictive", async () => {
+  const r = await relay(makeWorld(), ["--json", ...toClaude, "open", "--trust-config"]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(r.json.delivery.status, "replied");
+  assert.equal(r.calls.length, 1);
+  assert.match(r.calls[0]!.stdin, /^open$/m);
+});
+
 test("travail Relay FR/EN : contexte dans le transport, JSON, export et inventaire ; aucun appel GitHub", async () => {
   for (const language of ["fr", "en"] as const) {
     const w = makeWorld();
@@ -144,7 +172,7 @@ test("travail Relay FR/EN : contexte dans le transport, JSON, export et inventai
     assert.ok(r.calls[0]!.stdin.includes(relayMessages[language].work.replyFormat));
     const md = readFileSync(r.json.exportPath, "utf8");
     assert.ok(md.includes(r.calls[0]!.stdin));
-    const recent = await palabre(w, ["relay", "recent", "--json"]);
+    const recent = await palabre(w, ["--limit", "1", "relay", "recent", "--json"]);
     assert.equal(recent.code, 0, recent.stderr);
     assert.deepEqual(recent.json.entries[0].work, r.json.work);
     assert.equal(recent.calls.length, 1, "la consultation ne lance aucun agent supplémentaire");
@@ -274,6 +302,14 @@ test("approve-write : une demande existante ne permet pas de confirmer en termin
   assert.equal(existsSync(path.join(directory, "approval.json")), false); assert.equal(r.calls.length, 0);
   const yes = await palabre(w, ["relay", "approve-write", id, "--yes"]);
   assert.equal(yes.code, 8); assert.equal(existsSync(path.join(directory, "approval.json")), false);
+  for (const tail of [[id], []]) {
+    const prefixed = await palabre(w, ["--json", "relay", "approve-write", ...tail]);
+    assert.equal(prefixed.code, 8, prefixed.stderr);
+    assert.equal(prefixed.json.error.reason, "write-approval-invalid");
+    assert.match(prefixed.json.error.message, /invalid-request/);
+    assert.deepEqual(prefixed.calls, []);
+    assert.equal(existsSync(path.join(directory, "approval.json")), false);
+  }
 });
 
 test("Codex se replie après des lancements refusés : issue conservée, diagnostic visible, aucun renvoi", async () => {

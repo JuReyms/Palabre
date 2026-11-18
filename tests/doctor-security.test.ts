@@ -1,3 +1,4 @@
+/** @file Diagnostics doctor sur profil fictif, avec réseau et découverte simulés. */
 import assert from "node:assert/strict";
 import { mkdir, writeFile, mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
@@ -24,6 +25,21 @@ test("doctor décrit le chemin configuré, présent ou absent, sans lui substitu
       assert.match(line, exists ? /fichier configuré présent|configured file exists/ : /introuvable ou inaccessible|missing or inaccessible/);
     }
   }
+});
+
+test("doctor signale une vérification npm indisponible si la réponse dépasse le plafond", async t => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "palabre-doctor-version-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const config = path.join(dir, "absent.json");
+  const cli = { available: false, command: "absent" };
+  const discovery: ToolDiscovery = { codex: cli, claude: cli, antigravity: cli, opencode: cli, vibe: cli,
+    ollama: { available: false, commandAvailable: false, baseUrl: "http://localhost:11434", models: [] } };
+  const fetch = t.mock.method(globalThis, "fetch", async () =>
+    new Response(JSON.stringify({ version: "99.0.0", ignored: "a".repeat(1024 * 1024) })));
+  const result = await runDoctor(config, true, "en", { discovery });
+  assert.equal(fetch.mock.callCount(), 1);
+  assert.match(result.output, /npm check unavailable/);
+  assert.doesNotMatch(result.output, /99\.0\.0/);
 });
 
 test("doctor inspects an untrusted project config without contacting its Ollama URLs", async () => {
