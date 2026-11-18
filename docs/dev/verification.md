@@ -91,6 +91,8 @@ Quand un changement touche Ollama, verifier que l'erreur est lisible si Ollama n
 
 Les anciens essais locaux sont conservés dans [les qualifications historiques](../archive/development-qualifications.md) ; ils ne certifient pas les versions courantes.
 
+Les [qualifications MCP et PTY de l’audit run 1](audit-run1-qualification.md) donnent le protocole reproductible sur Windows et le périmètre effectivement vérifié.
+
 ## Scénarios de compréhension du skill
 
 Le [protocole léger de coopération](../skill-cooperation-evaluation.md) décrit six scénarios débutants (#202), une évaluation indépendante sans réponses attendues fournies et ses limites. Il conserve aussi la portée des contrôles post-update du lot #165 ; ne pas confondre simulations de consignes, processus fictifs et usage réel.
