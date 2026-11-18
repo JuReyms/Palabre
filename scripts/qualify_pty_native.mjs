@@ -22,13 +22,15 @@ await writeFile(witness, [
 ].join("\n"), { flag: "wx" });
 
 const prompt = {
-  topic: 'Café "bleu clair" & thé',
+  topic: 'Café "bleu clair" & note \\"citée\\"',
   turn: 1, totalTurns: 1, selfName: "local", peerName: "peer", selfRole: "reviewer",
   session: { startedAt: "2026-11-18T00:00:00Z", localDate: "2026-11-18", timeZone: "Europe/Paris", cwd: dir },
   files: [], transcript: [], language: "fr",
 };
+// Le prompt a un pied fixe. Cet argument séparé vérifie l'antislash final après des espaces.
+const trailingBackslash = "témoin avec espaces\\";
 const adapter = new CliPtyAdapter("local", {
-  type: "cli-pty", command: process.execPath, args: [witness, evidence],
+  type: "cli-pty", command: process.execPath, args: [witness, evidence, trailingBackslash],
   promptMode: "argument", role: "reviewer", timeoutMs: 8_000,
 });
 const cwd = process.cwd();
@@ -37,13 +39,14 @@ try {
   const reply = await adapter.generate(prompt);
   const received = JSON.parse(await readFile(evidence, "utf8"));
   const expected = formatAgentPrompt(prompt);
-  assert.equal(received.length, 1);
-  assert.equal(received[0], expected);
+  assert.deepEqual(received, [trailingBackslash, expected]);
   assert.match(reply.content, /PTY_OK/);
   console.log(JSON.stringify({
     node: process.version,
     nodePty: JSON.parse(await readFile(path.join(repo, "node_modules", "node-pty", "package.json"), "utf8")).version,
     arguments: received.length,
+    promptArguments: 1,
+    trailingBackslashPreserved: true,
     exactMatch: true,
     bytes: Buffer.byteLength(expected),
     evidence: path.relative(repo, evidence),

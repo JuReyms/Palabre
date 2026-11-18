@@ -15,9 +15,9 @@ Le script crée un profil Codex et un projet jetables sous `.tmp/qualify-mcp-*`.
 
 1. L’inventaire doit retrouver exactement les deux connecteurs attendus sans les démarrer. Le script vérifie aussi leur commande, leurs arguments et l’absence de paramètres d’environnement ajoutés. Un écart arrête le scénario avant tout tour.
 2. Le tour de contrôle démarre les deux témoins et présente leurs deux outils au serveur simulé. Ce contrôle valide les deux moyens de mesure.
-3. La CLI reprend la même conversation avec les arguments de neutralisation générés par Palabre. Le tour doit se terminer, sans nouveau démarrage de témoin et avec zéro outil témoin dans la requête.
+3. La CLI reprend la même conversation avec les arguments de neutralisation générés par Palabre. La requête doit contenir la réponse du tour de contrôle comme ancien message de l’assistant. Le tour doit se terminer sans nouveau démarrage de témoin et avec zéro outil témoin.
 
-**Observé le 18 novembre 2026 avec Codex CLI 0.163.0.** Les deux témoins figuraient dans l’inventaire. Les deux tours se sont terminés et la reprise a conservé la même conversation. Le contrôle a observé deux démarrages et deux outils. La reprise n’a déclenché aucun nouveau démarrage et n’a exposé aucun outil témoin.
+**Observé le 18 novembre 2026 avec Codex CLI 0.163.0.** Les deux témoins figuraient dans l’inventaire. Les deux tours se sont terminés. La reprise a conservé la même conversation et sa requête contenait la réponse du premier tour. Le contrôle a observé deux démarrages et deux outils. La reprise n’a déclenché aucun nouveau démarrage et n’a exposé aucun outil témoin.
 
 La mesure couvre les couches profil et projet. Une couche administrée reste à qualifier avec une politique réellement appliquée dans un environnement de test dédié. Le script appelle Codex avec les arguments de reprise de Palabre et mesure la neutralisation à ce niveau.
 
@@ -30,9 +30,9 @@ pnpm build
 node scripts/qualify_pty_native.mjs
 ```
 
-L’adapter PTY de Palabre lance un petit programme Node local dans ConPTY. Le programme écrit les arguments reçus sous `.tmp/qualify-pty-*`. Le script compare ce tableau au prompt généré et exige exactement un argument identique, avec ses accents, espaces, guillemets, retours à la ligne et esperluette. L’essai ne lance aucun modèle.
+L’adapter PTY de Palabre lance un petit programme Node local dans ConPTY. Le programme écrit les arguments reçus sous `.tmp/qualify-pty-*`. Le script en attend deux. Le premier est un texte avec espaces terminé par un antislash. Le second est le prompt complet, avec accents, guillemets ordinaires, antislashs devant des guillemets, retours à la ligne et esperluette. La comparaison est exacte. L’essai ne lance aucun modèle.
 
-**Observé le 18 novembre 2026 avec Node.js 24.22.2 et `node-pty` 1.1.0.** Le prompt complet a été reçu intact dans un seul argument et le programme s’est terminé normalement. Le résultat couvre l’exécutable natif. Les wrappers `.cmd` et `.bat` restent à qualifier côté PTY.
+**Observé le 18 novembre 2026 avec Node.js 24.22.2 et `node-pty` 1.1.0.** Le prompt complet a été reçu intact dans un seul argument. L’autre argument a conservé son antislash final. Le résultat couvre le lancement natif de `node.exe`. Les wrappers `.cmd` et `.bat` restent à qualifier côté PTY.
 
 ## Traces locales
 

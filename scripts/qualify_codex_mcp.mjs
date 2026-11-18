@@ -50,13 +50,14 @@ const witnessConfig = (name, layer) => [
   "",
 ].join("\n");
 
-const witnessToolCounts = [];
+const baselineReply = "OK QUALIFICATION CONTROLE";
+const requests = [];
 const endpoint = createServer((request, response) => {
   if (request.method !== "POST" || request.url !== "/v1/responses") {
     response.writeHead(404).end();
     return;
   }
-  serveResponse(request, response, witnessToolCounts).catch(() => {
+  serveResponse(request, response).catch(() => {
     if (response.headersSent) response.destroy();
     else response.writeHead(400).end();
   });
@@ -113,15 +114,18 @@ try {
   // Le contrôle positif établit que le journal et le compteur d'outils voient les deux couches.
   const session = await runTurn("baseline", codexCreateArgs(mcpNeutralizationArgs([])));
   assert.deepEqual(await witnessStarts(), ["project", "user"]);
-  assert.deepEqual(witnessToolCounts, [2]);
+  const baselineRequest = { witnessTools: 2, hasBaselineReply: false };
+  assert.deepEqual(requests, [baselineRequest], "Le tour de contrôle doit être neuf et exposer les deux outils.");
 
   const resumed = await runTurn("neutralized", codexResumeArgs(session, mcpNeutralizationArgs(names)));
   assert.ok(resumed === session, "La reprise ne correspond pas à la conversation témoin.");
   assert.deepEqual(await witnessStarts(), ["project", "user"], "Un témoin a redémarré pendant la reprise.");
-  assert.deepEqual(witnessToolCounts, [2, 0]);
+  assert.deepEqual(requests, [baselineRequest, { witnessTools: 0, hasBaselineReply: true }],
+    "La reprise doit transmettre la réponse du contrôle dans son historique et exposer zéro outil témoin.");
   console.log(JSON.stringify({
     version, listed: expected, baselineStarts: 2, resumeStarts: 0,
-    witnessToolCounts, sameSession: true, provider: "loopback", evidence: path.relative(repo, root),
+    witnessToolCounts: requests.map(request => request.witnessTools),
+    sameSession: true, historyReloaded: true, provider: "loopback", evidence: path.relative(repo, root),
   }));
 } finally {
   endpoint.closeAllConnections();
@@ -159,8 +163,8 @@ async function witnessStarts() {
     .filter(event => event.event === "start").map(event => event.label).sort();
 }
 
-/** Retourne une réponse fixe via SSE. Ne conserve que le nombre d'outils témoins. */
-async function serveResponse(request, response, counts) {
+/** Répond via SSE et mesure les outils et la présence du message assistant du contrôle. */
+async function serveResponse(request, response) {
   request.setEncoding("utf8");
   let body = "";
   for await (const chunk of request) {
@@ -171,13 +175,21 @@ async function serveResponse(request, response, counts) {
     }
   }
   const incoming = JSON.parse(body);
-  counts.push(incoming.tools?.filter(tool => JSON.stringify(tool).includes("witness_ping")).length ?? 0);
+  const hasBaselineReply = Array.isArray(incoming.input) && incoming.input.some(item =>
+    item?.type === "message" && item.role === "assistant" && Array.isArray(item.content)
+    && item.content.some(part => part?.type === "output_text" && part.text === baselineReply));
+  requests.push({
+    witnessTools: incoming.tools?.filter(tool => JSON.stringify(tool).includes("witness_ping")).length ?? 0,
+    hasBaselineReply,
+  });
+  const sequence = requests.length;
+  const reply = sequence === 1 ? baselineReply : "OK QUALIFICATION REPRISE";
   const item = {
-    type: "message", id: `msg_qualification_${counts.length}`, role: "assistant", status: "completed",
-    content: [{ type: "output_text", text: "OK QUALIFICATION", annotations: [] }],
+    type: "message", id: `msg_qualification_${sequence}`, role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: reply, annotations: [] }],
   };
   const completed = {
-    id: `resp_qualification_${counts.length}`, object: "response", status: "completed",
+    id: `resp_qualification_${sequence}`, object: "response", status: "completed",
     model: incoming.model, output: [item],
     usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2, input_tokens_details: { cached_tokens: 0 }, output_tokens_details: { reasoning_tokens: 0 } },
   };
