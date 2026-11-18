@@ -124,3 +124,4 @@ Antigravity utilise par défaut `cli` avec `--output-format json --print` et `re
 - **Modèle Ollama absent** → proposer `--pull-models` ou `palabre config --sync-ollama-model`.
 - **Débat trop court / consensus prématuré** → augmenter `-t` ou ajouter `--no-early-stop`.
 - **Diagnostic complet** → `palabre doctor --terminal`.
+- **Wrapper de mise à jour refusé sous Windows** → signaler le premier emplacement du gestionnaire dans le PATH. L'utilisateur peut choisir un exécutable natif ou un shim npm/pnpm reconnu.

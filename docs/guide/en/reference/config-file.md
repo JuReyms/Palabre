@@ -51,7 +51,7 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 | Field | Type | Description |
 |-------|------|-------------|
 | `language` | `fr` or `en` | Palabre and agent prompt language. Can be overridden for one command with `--language` or `PALABRE_LANGUAGE`. |
-| `outputDir` | string | Export folder for `.debate.md`, `.relay.md`, `.ask.md`, `.chat.md`; default `.palabre`, `.` treated as `.palabre`. |
+| `outputDir` | string | Export folder for `.debate.md`, `.relay.md`, `.ask.md`, `.chat.md`. Its filesystem must support hard links. Defaults to `.palabre`, and `.` is treated as `.palabre`. |
 
 ## `defaults`
 
@@ -75,7 +75,7 @@ For a step-by-step explanation, start with [Configuration](/en/configuration/ove
 | `args` | string[] | Arguments passed. |
 | `promptMode` | `stdin` or `argument` | How the prompt is passed. |
 | `responseFormat` | `text` or `antigravity-json` | `cli` adapter only; text by default. Antigravity JSON extracts only `response` when `status` is `SUCCESS`, without fallback. |
-| `shell` | boolean | Runs through the system shell. Generated configuration only enables it for selected Windows wrappers. |
+| `shell` | boolean | Enables Windows wrapper resolution. Native executables and recognized shims launch directly. With `false`, the CLI rejects `.cmd` and `.bat` commands. Ignored by Relay. |
 | `role` | string | Agent role. |
 | `tier` | `primary` / `local` | Agent class; no effect on its role instruction. |
 | `model` | string | Optional default model. |

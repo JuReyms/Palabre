@@ -1,6 +1,7 @@
+/** @file Lecture et limites de l'historique sur de vrais fichiers locaux jetables. */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { listHistoryEntries } from "../src/history.js";
@@ -44,6 +45,15 @@ test("listHistoryEntries returns an empty list when the export directory is miss
   const entries = await listHistoryEntries(path.join(os.tmpdir(), "missing-palabre-history"));
 
   assert.deepEqual(entries, []);
+});
+
+test("l'historique ne reparcourt aucune métadonnée au-delà du budget d'octets", async t => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "palabre-history-borne-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  await writeFile(path.join(dir, "palabre-example.debate.md"),
+    `| Subject | initial |\n\n${"é".repeat(6_000)}\n\n| Subject | beyond cap |\n`);
+  const [entry] = await listHistoryEntries(dir);
+  assert.equal(entry?.topic, "initial");
 });
 
 test("resolveHistoryLimit applies a bounded integration limit", () => {

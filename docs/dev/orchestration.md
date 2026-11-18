@@ -117,6 +117,8 @@ Comportement `--files` :
 - fichiers binaires refuses avec erreur.
 - dossiers refuses avec erreur.
 
+Les deux modes de contexte bornent la lecture à 64 Kio plus un octet par fichier et comptent les octets effectivement lus ou présentés en UTF-8, selon la plus grande taille. Le checkpoint conserve l'empreinte du texte chargé et la reprise la vérifie après relecture.
+
 Comportement `--context` :
 
 - Accepte des fichiers et dossiers.

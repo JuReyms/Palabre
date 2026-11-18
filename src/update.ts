@@ -6,7 +6,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Messages } from "./messages/index.js";
-import { resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePowerShellShim } from "./exec.js";
+import { isWindowsAppsExecutionAlias, resolveExecutablePath } from "./exec.js";
+import { directNpmShimLaunch, withShimNodePath } from "./npmShim.js";
 import { getLatestPackageVersion, compareSemver } from "./version.js";
 import { applySkillSync, assertSkillPlanUnchanged, planSkillSync, SkillSyncError, type SkillSyncPlan } from "./skillSync.js";
 
@@ -172,7 +173,7 @@ export function formatUpdateInstructions(info: UpdateInfo, messages: Messages): 
 
 /**
  * Exécute le plan déjà validé. Chaque processus reçoit des arguments structurés ; Windows
- * privilégie un binaire natif ou le shim PowerShell sans passer par `cmd.exe`. Après installation,
+ * exige un binaire natif ou un shim npm/pnpm reconnu, lancé directement. Après installation,
  * vérifie une fois la commande effectivement résolue avant tout rafraîchissement du skill.
  */
 export async function applyUpdate(info: UpdateInfo, messages: Messages, options: {
@@ -190,7 +191,16 @@ export async function applyUpdate(info: UpdateInfo, messages: Messages, options:
     if (info.skills) assertSkillPlanUnchanged(info.skills);
     const updatingCli = updatesCli(info);
     if (updatingCli) {
-      for (const step of info.steps) await (options.run ?? runStep)(step, info.projectRoot, messages);
+      if (options.run) {
+        for (const step of info.steps) await options.run(step, info.projectRoot, messages);
+      } else {
+        const resolvedSteps = info.steps.map(step => {
+          const invocation = resolveUpdateInvocation(step.command, step.args);
+          if (!invocation) throw new Error(messages.update.unsupportedExecutable(step.command));
+          return { step, invocation };
+        });
+        for (const { step, invocation } of resolvedSteps) await runStep(step, invocation, info.projectRoot, messages);
+      }
       cliUpdated = true;
       const verification = await (options.verify ?? verifyUpdatedCommand)(info);
       if (verification.status !== "verified") throw new UpdateVerificationError(messages.update.versionNotVerified(verification));
@@ -245,10 +255,12 @@ async function discoverGlobalInstallRoots(): Promise<GlobalInstallRoots> {
 }
 
 async function captureCommand(command: string, args: string[]): Promise<string | undefined> {
+  const invocation = resolveUpdateInvocation(command, args);
+  if (!invocation) return undefined;
   return new Promise((resolve) => {
-    const invocation = resolveInvocation(command, args);
     const child = spawn(invocation.command, invocation.args, {
       shell: false,
+      env: invocation.env,
       stdio: ["ignore", "pipe", "ignore"],
       windowsHide: true
     });
@@ -279,12 +291,12 @@ async function canonicalPath(targetPath: string): Promise<string | undefined> {
   }
 }
 
-function runStep(step: UpdateStep, cwd: string, messages: Messages): Promise<void> {
+function runStep(step: UpdateStep, invocation: UpdateInvocation, cwd: string, messages: Messages): Promise<void> {
   return new Promise((resolve, reject) => {
-    const invocation = resolveInvocation(step.command, step.args);
     const child = spawn(invocation.command, invocation.args, {
       cwd,
       shell: false,
+      env: invocation.env,
       stdio: "inherit",
       windowsHide: true
     });
@@ -300,22 +312,26 @@ function runStep(step: UpdateStep, cwd: string, messages: Messages): Promise<voi
   });
 }
 
-function resolveInvocation(command: string, args: string[]): UpdateStep {
+/** Commande de mise à jour résolue pour spawn, avec le NODE_PATH d'un éventuel shim pnpm. */
+export interface UpdateInvocation extends UpdateStep {
+  env?: NodeJS.ProcessEnv;
+}
+
+/** Sous Windows, résout la première entrée PATH sans exécuter ni contourner un wrapper inconnu. */
+export function resolveUpdateInvocation(command: string, args: string[]): UpdateInvocation | undefined {
   if (process.platform !== "win32") return { command, args };
-
-  const nativeExecutable = resolveNativeWindowsExecutable(command);
-  if (nativeExecutable) return { command: nativeExecutable, args };
-
-  const shim = resolvePowerShellShim(command);
-  const powerShell = shim ? resolvePowerShellExecutable() : undefined;
-  if (shim && powerShell) {
-    return {
-      command: powerShell,
-      args: ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", shim, ...args]
-    };
-  }
-
-  return { command, args };
+  const first = resolveExecutablePath(command, [".exe", ".com", ".ps1", ".cmd", ".bat", ""], { fresh: true });
+  if (!first) return undefined;
+  const entry = path.resolve(first);
+  if (isWindowsAppsExecutionAlias(entry)) return undefined;
+  if (/\.(exe|com)$/i.test(entry)) return { command: entry, args };
+  const shim = directNpmShimLaunch(entry);
+  if (!shim || isWindowsAppsExecutionAlias(shim.command)) return undefined;
+  return {
+    command: shim.command,
+    args: [...shim.prefixArgs, ...args],
+    ...(shim.nodePath !== undefined && { env: withShimNodePath(process.env, shim.nodePath) })
+  };
 }
 
 function normalizePath(value: string): string {

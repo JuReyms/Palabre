@@ -1,10 +1,11 @@
 /** @file Export Markdown d'une conversation chat Palabre. */
-import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ChatTermination, DebateMessage, SessionContext } from "./types.js";
 import type { Messages } from "./messages/index.js";
 import { getPackageVersion } from "./version.js";
+import { createTextFileAtomically } from "./atomicFile.js";
 
+/** Crée l'export Chat complet sous un nouveau chemin et retourne son chemin absolu. */
 export async function writeChatMarkdown(outputDir: string, topic: string, transcript: DebateMessage[], session: SessionContext, termination: ChatTermination, messages: Messages): Promise<string> {
   const safeDate = new Date().toISOString().replace(/[:.]/g, "-");
   const slug = (topic || "chat").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64) || "chat";
@@ -38,8 +39,7 @@ export async function writeChatMarkdown(outputDir: string, topic: string, transc
   for (const message of transcript) {
     lines.push(`### ${escapeHeading(message.agent)} (${escapeHeading(message.role)})`, "", normalizeMarkdownForWindowsPreview(message.content.trim()), "");
   }
-  await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, `${lines.join("\n")}\n`, "utf8");
+  await createTextFileAtomically(filePath, `${lines.join("\n")}\n`);
   return filePath;
 }
 

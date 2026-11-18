@@ -16,6 +16,8 @@ export interface UpdateMessages {
   versionVerified(version: string): string;
   versionNotVerified(result: UpdateVerification): string;
   stepFailed(command: string, args: string, exitCode: string): string;
+  /** Exécutable de mise à jour manquant ou refusé par le résolveur Windows. */
+  unsupportedExecutable(command: string): string;
   skillPlan(plan: SkillSyncPlan, afterUpdate: boolean): string;
   skillFailure(error: SkillSyncError): string;
   skillBackup(directory: string): string;
@@ -49,6 +51,7 @@ export const updateMessages: Record<Language, UpdateMessages> = {
     skillReload: "L'agent peut relire les consignes du paquet avec palabre skill --read --json avant sa prochaine tâche, sans synchronisation ni redémarrage supplémentaire de votre part.",
     skillAfterCliFailure: "La CLI a été mise à jour avec succès. Seul le rafraîchissement du skill a échoué : relancez Palabre, puis palabre skill --sync pour examiner un nouveau plan. Les copies illisibles restent intactes.",
     stepFailed: (command, args, exitCode) => `${command} ${args} a echoue avec le code ${exitCode}.`,
+    unsupportedExecutable: command => `Impossible de résoudre « ${command} » pour la mise à jour. Vérifie le premier emplacement dans le PATH : utilise un exécutable natif ou un shim npm/pnpm reconnu.`,
     instructions: (options) => formatInstructions("fr", options)
   },
   en: {
@@ -66,6 +69,7 @@ export const updateMessages: Record<Language, UpdateMessages> = {
     skillReload: "The agent can reread the package's instructions with palabre skill --read --json before its next task, without asking you to synchronize or restart again.",
     skillAfterCliFailure: "The CLI was updated successfully. Only the skill refresh failed: restart Palabre, then run palabre skill --sync to inspect a new plan. Unreadable copies remain untouched.",
     stepFailed: (command, args, exitCode) => `${command} ${args} failed with exit code ${exitCode}.`,
+    unsupportedExecutable: command => `Could not resolve “${command}” for the update. Check the first PATH match: use a native executable or a recognized npm/pnpm shim.`,
     instructions: (options) => formatInstructions("en", options)
   }
 };

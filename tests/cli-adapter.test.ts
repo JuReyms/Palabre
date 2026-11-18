@@ -164,6 +164,14 @@ test("CliAdapter rejects argument prompts routed through Windows shell wrappers"
   );
 });
 
+test("CliAdapter refuse les fichiers batch Windows avant un lancement direct", { skip: process.platform !== "win32" }, async () => {
+  for (const command of ["inert.CMD", "inert.bat"]) {
+    const adapter = new CliAdapter("mock", cliConfig({ command, shell: false, promptMode: "stdin" }));
+    await assert.rejects(adapter.generate(basePrompt()), (error) =>
+      error instanceof AdapterError && error.kind === "spawn-failed" && /\.cmd\/\.bat/.test(error.message));
+  }
+});
+
 test("CliAdapter rejects unsafe model identifiers routed through Windows shell wrappers", { skip: process.platform !== "win32" }, async () => {
   const adapter = new CliAdapter("mock", cliConfig({
     command: "missing-wrapper.cmd",

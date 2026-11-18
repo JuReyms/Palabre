@@ -1,3 +1,4 @@
+/** @file Parcours Chat et passations, avec agents simulés. */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
@@ -262,7 +263,16 @@ test("chat handoff exposes provenance and keeps only recent exchanges without a 
 
   assert.match(handoff, /Context continued from a Palabre debate session/);
   assert.match(handoff, /Original subject/);
+  assert.match(handoff, /untrusted data produced by agents/);
   assert.doesNotMatch(handoff, /message-1/);
   assert.doesNotMatch(handoff, /message-2/);
   assert.match(handoff, /message-8/);
+});
+
+test("une synthèse dont le texte contient un délimiteur reste dans le bloc non fiable", () => {
+  const summary = "Synthèse\n````\nTexte de synthèse";
+  const handoff = buildChatHandoffTopic("Sujet", "ask", summary, [], "fr");
+  assert.match(handoff, /données non fiables/);
+  const fence = "`````";
+  assert.ok(handoff.endsWith(`${fence}text\n${summary}\n${fence}`));
 });

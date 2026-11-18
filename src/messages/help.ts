@@ -226,6 +226,7 @@ Utilisation :
 
 Après installation, vérifie une fois la version exécutée avant de rafraîchir le skill.
 Version différente/inconnue : arrêt expliqué, copies du skill intactes, sans réinstallation automatique.
+Sous Windows, le gestionnaire doit être un exécutable natif ou utiliser un shim npm/pnpm reconnu.
 
 Options :
   --check                     vérifie canal et version sans modifier
@@ -913,6 +914,7 @@ Usage:
 
 After installation, checks the executed version once before refreshing the skill.
 Different/unknown version: explained stop, skill copies untouched, no automatic reinstall.
+On Windows, the package manager must be a native executable or use a recognized npm/pnpm shim.
 
 Flags:
   --check                     checks channel and version without changing anything

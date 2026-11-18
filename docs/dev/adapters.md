@@ -36,6 +36,8 @@ shell, refuse pour un prompt en argument. Avec Windows PowerShell 5.1, le shim r
 PowerShell garde ces limites. CLI et PTY partagent la resolution PATH mise en cache dans
 `src/exec.ts`.
 
+En lancement direct (`shell: false`), l'adapter CLI refuse les commandes Windows `.cmd` et `.bat` avant spawn. Le PTY écarte les alias WindowsApps dans l'ensemble de sa résolution, y compris pour les interpréteurs de shims.
+
 Shims pnpm (#109), dans `src/npmShim.ts` :
 - modele `PNPM_SHIM_TEMPLATE` releve sur pnpm 10 (paquets globaux et `pnpm link --global`), copie
   conforme exigee ; seuls varient la valeur Windows de `NODE_PATH`, sa valeur POSIX et le script ;

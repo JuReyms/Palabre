@@ -153,6 +153,14 @@ describe("CodexSessionAdapter.locate", () => {
     assert.equal(located.evidence.length, 1);
   });
 
+  test("un identifiant de modèle enregistré commençant par un tiret est écarté", () => {
+    const { adapter } = makeHome({ rollout: (cwd) => [meta(cwd), context("-model")] });
+    const located = adapter.locate({ agent: "codex", sessionId: SESSION });
+    assert.ok(located.status === "found");
+    assert.equal(located.target.model, undefined);
+    assert.equal(located.evidence.length, 1);
+  });
+
   test("absent, ambigu, incohérent ou identifiant non conforme : session-not-found", () => {
     const { adapter, home } = makeHome();
     assert.equal(adapter.locate({ agent: "codex", sessionId: OTHER }).status, "session-not-found");

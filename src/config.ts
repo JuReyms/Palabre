@@ -6,6 +6,7 @@ import { applyDetectedCommands, detectedAgentNames, normalizeCommandName } from 
 import { refreshTrustedConfig } from "./configTrust.js";
 import { validateRelayPolicy } from "./externalSessions/review.js";
 import { writeTextFileAtomically } from "./atomicFile.js";
+import { normalizeOllamaBaseUrl } from "./ollamaUrl.js";
 import type { CliAgentConfig, PalabreConfig } from "./types.js";
 import type { ToolDiscovery } from "./discovery.js";
 import type { Messages } from "./messages/index.js";
@@ -481,12 +482,13 @@ export function setOllamaModel(config: PalabreConfig, model: string): OllamaMode
   };
 }
 
-/** Met à jour l'adresse persistante de tous les agents Ollama configurés. */
+/** Normalise l'adresse avant de la mettre à jour pour tous les agents Ollama configurés. */
 export function setOllamaBaseUrl(config: PalabreConfig, baseUrl: string): number {
+  const normalized = normalizeOllamaBaseUrl(baseUrl);
   const agents = Object.values(config.agents).filter((agent) => agent.type === "ollama");
 
   for (const agent of agents) {
-    agent.baseUrl = baseUrl;
+    agent.baseUrl = normalized;
   }
 
   return agents.length;

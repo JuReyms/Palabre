@@ -284,6 +284,7 @@ test("renderTuiHelp renders slash commands", () => {
 
 test("renderTuiUpdate renders a dedicated update card inside the TUI", () => {
   const output: string[] = [];
+  const version = "0.8.0\u001b]52;c;clipboard-marker\u0007";
   const originalWrite = process.stdout.write;
   process.stdout.write = ((chunk: string | Uint8Array) => {
     output.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
@@ -293,11 +294,11 @@ test("renderTuiUpdate renders a dedicated update card inside the TUI", () => {
   try {
     const info: UpdateInfo = {
       version: "0.7.0",
-      latestVersion: "0.8.0",
+      latestVersion: version,
       projectRoot: "C:\\repo\\Palabre",
       sourceCheckout: false,
       channel: "pnpm-global",
-      steps: [{ command: "pnpm", args: ["add", "--global", "palabre@0.8.0"] }],
+      steps: [{ command: "pnpm", args: ["add", "--global", `palabre@${version}`] }],
       skills: { source: "/package/skills/palabre", backupRoot: "/profile/backups", copies: [{ directory: "/profile/skill-cible", state: "different", fingerprint: "fixture" }] }
     };
     renderTuiUpdate(info, createTranslator("en"));
@@ -313,6 +314,7 @@ test("renderTuiUpdate renders a dedicated update card inside the TUI", () => {
   assert.match(text, /Channel\s+.*global pnpm/);
   assert.match(text, /pnpm add --global palabre@0\.8\.0/);
   assert.match(text, /releases\/tag\/v0\.8\.0/);
+  assert.doesNotMatch(text, /clipboard-marker|\u001b\]52/);
   assert.match(text, /skill-cible/);
   assert.match(text, /profile\/backups/);
   assert.match(text, /backing up existing copies/);

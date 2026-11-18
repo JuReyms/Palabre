@@ -1094,7 +1094,7 @@ function assertKnownAgent(config: PalabreConfig, agentName: string, fieldName: s
   }
 }
 /**
- * Affiche un aperçu du prompt du premier tour sans appeler aucun agent (flag `--show-prompt`).
+ * Affiche un aperçu du premier tour en neutralisant les contrôles terminaux, sans appeler d'agent.
  * @param config - Config chargée.
  * @param options - Options du débat résolues.
  */
@@ -1123,13 +1123,13 @@ function printPromptPreview(config: PalabreConfig, options: DebateOptions, langu
   });
 
   console.log(messages.preview.title);
-  console.log(messages.preview.agent(previewAgent, previewRole));
-  console.log(messages.preview.peer(peerName));
+  console.log(sanitizeTerminalText(messages.preview.agent(previewAgent, previewRole)));
+  console.log(sanitizeTerminalText(messages.preview.peer(peerName)));
   console.log(messages.preview.pullModels(options.pullModels));
-  console.log(messages.preview.summary(options.summaryEnabled ? options.summaryAgent : messages.preview.disabled));
+  console.log(sanitizeTerminalText(messages.preview.summary(options.summaryEnabled ? options.summaryAgent : messages.preview.disabled)));
   console.log(messages.preview.interfaceLanguage(language));
   console.log("");
-  console.log(prompt);
+  console.log(sanitizeTerminalText(prompt));
   console.log("");
   console.log(options.mode === "ask" ? messages.preview.askNote : messages.preview.note);
 }

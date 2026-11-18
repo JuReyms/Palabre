@@ -1,5 +1,4 @@
 /** @file Exports Markdown : `.debate.md`/`.ask.md` (transcript, métadonnées, synthèse finale) et `.relay.md` (relay vers une session externe). */
-import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createTranslator } from "./i18n.js";
 import type { Messages } from "./messages/index.js";
@@ -8,6 +7,7 @@ import type { DebateFailure, DebateMessage, DebateOptions, DebateSummary } from 
 import { getPackageVersion } from "./version.js";
 import { relayWriteText } from "./messages/relayWrite.js";
 import type { ThenFollowReport } from "./externalSessions/openRelay.js";
+import { createTextFileAtomically } from "./atomicFile.js";
 
 interface ReportMetadata {
   palabreVersion: string;
@@ -15,7 +15,7 @@ interface ReportMetadata {
 
 /**
  * Écrit le débat au format Markdown dans `outputDir`.
- * Crée le répertoire si absent. Retourne le chemin absolu du fichier créé.
+ * Crée le répertoire si absent. Retourne le chemin absolu de l'export créé sans écrasement.
  */
 export async function writeDebateMarkdown(
   outputDir: string,
@@ -31,9 +31,8 @@ export async function writeDebateMarkdown(
   const fileName = `palabre-${slugifyTopic(options.topic, extension === "ask" ? "ask" : "debat")}-${safeDate}.${extension}.md`;
   const filePath = path.resolve(outputDir, fileName);
 
-  await mkdir(path.dirname(filePath), { recursive: true });
   const metadata = { palabreVersion: await getPackageVersion() };
-  await writeFile(filePath, renderDebateMarkdown(options, debateMessages, summary, stopReason, messages, failure, metadata), "utf8");
+  await createTextFileAtomically(filePath, renderDebateMarkdown(options, debateMessages, summary, stopReason, messages, failure, metadata));
 
   return filePath;
 }
@@ -257,14 +256,13 @@ export interface RelayExport {
 
 /**
  * Écrit l'export `.relay.md` dans `outputDir`, créé au besoin. Le fichier contient les
- * identifiants de session de l'expéditeur et de la cible. Retourne le chemin absolu.
+ * identifiants de session de l'expéditeur et de la cible. Retourne le chemin absolu créé sans écrasement.
  */
 export async function writeRelayMarkdown(outputDir: string, report: RelayExport, messages: Messages): Promise<string> {
   const safeDate = new Date().toISOString().replace(/[:.]/g, "-");
   const fileName = `palabre-relay-${slugifyTopic(report.to.agent, "relay")}-${safeDate}.relay.md`;
   const filePath = path.resolve(outputDir, fileName);
-  await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, renderRelayMarkdown(report, messages, { palabreVersion: await getPackageVersion() }), "utf8");
+  await createTextFileAtomically(filePath, renderRelayMarkdown(report, messages, { palabreVersion: await getPackageVersion() }));
   return filePath;
 }
 

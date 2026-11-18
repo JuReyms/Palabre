@@ -1,5 +1,6 @@
 /** @file Liste les exports Markdown récents en reparsant leur table de métadonnées, pour `palabre history` et la TUI. */
-import { readdir, readFile, stat } from "node:fs/promises";
+import { constants } from "node:fs";
+import { open, readdir } from "node:fs/promises";
 import path from "node:path";
 
 /** Entrée d'historique reconstruite à partir d'un fichier `.debate.md`/`.ask.md`. */
@@ -42,14 +43,16 @@ export async function listHistoryEntries(outputDir: string, limit = 10): Promise
     .slice(0, limit);
 }
 
-/** Lit et parse un fichier d'export. Retourne `undefined` sur toute erreur filesystem/parsing plutôt que de lever. */
+/** Lit seulement l'en-tête d'un export régulier. Ignore les fichiers illisibles ou invalides. */
 async function readHistoryFile(filePath: string): Promise<HistoryEntry | undefined> {
+  let file;
   try {
-    const [metadata, raw] = await Promise.all([
-      stat(filePath),
-      readFile(filePath, "utf8")
-    ]);
-    const header = raw.slice(0, maxHeaderBytes);
+    file = await open(filePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
+    const metadata = await file.stat();
+    if (!metadata.isFile()) return undefined;
+    const buffer = Buffer.alloc(maxHeaderBytes);
+    const { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
+    const header = buffer.subarray(0, bytesRead).toString("utf8");
     const table = parseMetadataTable(header);
     const fileName = path.basename(filePath);
     const mode = fileName.endsWith(".ask.md") ? "ask" : fileName.endsWith(".chat.md") ? "chat" : "debate";
@@ -66,6 +69,8 @@ async function readHistoryFile(filePath: string): Promise<HistoryEntry | undefin
     };
   } catch {
     return undefined;
+  } finally {
+    await file?.close().catch(() => undefined);
   }
 }
 

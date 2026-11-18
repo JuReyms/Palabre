@@ -58,7 +58,7 @@ export function renderTuiHome(config: PalabreConfig, _configPath: string, messag
   const summary = activeSummaryAgentForMode(config, mode as PalabreMode, activeAgentNames, messages);
   const version = state.version ?? "0.0.0";
   const updateLines = state.latestVersion
-    ? [accent(messages.tui.updateAvailable(version, state.latestVersion))]
+    ? [accent(sanitizeTerminalText(messages.tui.updateAvailable(version, state.latestVersion)))]
     : [];
   const separator = ` ${dim("·")} `;
   const sessionDetails = [[
@@ -115,12 +115,13 @@ export function renderTuiUpdate(info: UpdateInfo, messages: Messages): void {
 
   const width = surfaceWidth();
   const separator = ` ${dim("·")} `;
+  const latestVersion = info.latestVersion && sanitizeTerminalText(info.latestVersion);
   const versionDetails = info.channel === "source"
     ? [`${accent(messages.tui.updateSourceVersion)}${separator}${info.version}`]
     : info.latestVersion
     ? packItems([
         `${accent(messages.tui.updateInstalledVersion)}${separator}${info.version}`,
-        `${accent(messages.tui.updateAvailableVersion)}${separator}${info.latestVersion}`
+        `${accent(messages.tui.updateAvailableVersion)}${separator}${latestVersion}`
       ], width - 4, separator)
     : [`${accent(messages.tui.updateInstalledVersion)}${separator}${info.version}`];
   const channel = `${accent(messages.tui.updateChannel)}${separator}${messages.tui.updateChannelValue(info.channel)}`;
@@ -135,13 +136,14 @@ export function renderTuiUpdate(info: UpdateInfo, messages: Messages): void {
           : messages.tui.updateCurrentStatus;
   const updatingCli = updatesCli(info);
   const actionLines = updatingCli && info.steps.length > 0
-    ? info.steps.map((step, index) => index === 0
-      ? `${accent(messages.tui.updateAction)}${separator}${formatUpdateStep(step)}`
-      : `  ${formatUpdateStep(step)}`)
+    ? info.steps.map((step, index) => {
+      const command = sanitizeTerminalText(formatUpdateStep(step));
+      return index === 0 ? `${accent(messages.tui.updateAction)}${separator}${command}` : `  ${command}`;
+    })
     : [];
   const notes = info.channel === "source" || !info.latestVersion
     ? undefined
-    : `${accent(messages.tui.updateNotes)}${separator}${terminalLink(`v${info.latestVersion}`, `https://github.com/JuReyms/Palabre/releases/tag/v${info.latestVersion}`)}`;
+    : `${accent(messages.tui.updateNotes)}${separator}${terminalLink(`v${latestVersion}`, `https://github.com/JuReyms/Palabre/releases/tag/v${latestVersion}`)}`;
   process.stdout.write([
     "",
     ...padBlock([brandHeader(messages.tui.updateTitle)]),

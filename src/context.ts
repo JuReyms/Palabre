@@ -1,5 +1,6 @@
 /** @file Chargement du contexte projet : `--files` strict et `--context` tolérant avec règles `.gitignore` simplifiées. */
-import { readdir, readFile, stat } from "node:fs/promises";
+import { constants } from "node:fs";
+import { open, readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import type { ProjectFileContext } from "./types.js";
 import { createTranslator } from "./i18n.js";
@@ -103,13 +104,19 @@ async function addExplicitFiles(paths: string[], cwd: string, state: LoadState):
       throw new Error(state.messages.context.explicitTooLarge(inputPath, fileStat.size, MAX_FILE_BYTES));
     }
 
-    const content = await readFile(absolutePath, "utf8");
+    const bytes = await readContextBytes(absolutePath);
+    if (!bytes) throw new Error(state.messages.context.explicitMustBeFile(inputPath));
+    const content = bytes.toString("utf8");
+    const sizeBytes = Math.max(bytes.length, Buffer.byteLength(content));
+    if (sizeBytes > MAX_FILE_BYTES) {
+      throw new Error(state.messages.context.explicitTooLarge(inputPath, sizeBytes, MAX_FILE_BYTES));
+    }
 
     if (content.includes("\u0000")) {
       throw new Error(state.messages.context.explicitBinary(inputPath));
     }
 
-    addFileToState(cwd, state, absolutePath, content, fileStat.size, "explicit");
+    addFileToState(cwd, state, absolutePath, content, sizeBytes, "explicit");
   }
 }
 
@@ -185,14 +192,42 @@ async function addContextFile(absolutePath: string, cwd: string, state: LoadStat
     return;
   }
 
-  const content = await readFile(absolutePath, "utf8");
+  const bytes = await readContextBytes(absolutePath);
+  if (!bytes) {
+    state.warnings.push(state.messages.context.ignoredNotFileOrDirectory(relativePath));
+    return;
+  }
+  const content = bytes.toString("utf8");
+  const sizeBytes = Math.max(bytes.length, Buffer.byteLength(content));
+  if (sizeBytes > MAX_FILE_BYTES) {
+    state.warnings.push(state.messages.context.ignoredTooLarge(relativePath, sizeBytes));
+    return;
+  }
 
   if (content.includes("\u0000")) {
     state.warnings.push(state.messages.context.ignoredBinary(relativePath));
     return;
   }
 
-  addFileToState(cwd, state, absolutePath, content, fileStat.size, "context");
+  addFileToState(cwd, state, absolutePath, content, sizeBytes, "context");
+}
+
+/** Lit au plus le plafond du fichier plus un octet, même si le fichier grandit après `stat`. */
+async function readContextBytes(filePath: string): Promise<Buffer | undefined> {
+  const file = await open(filePath, constants.O_RDONLY | (constants.O_NONBLOCK ?? 0));
+  try {
+    if (!(await file.stat()).isFile()) return undefined;
+    const buffer = Buffer.alloc(MAX_FILE_BYTES + 1);
+    let length = 0;
+    while (length < buffer.length) {
+      const { bytesRead } = await file.read(buffer, length, buffer.length - length, length);
+      if (bytesRead === 0) break;
+      length += bytesRead;
+    }
+    return buffer.subarray(0, length);
+  } finally {
+    await file.close();
+  }
 }
 
 function addFileToState(

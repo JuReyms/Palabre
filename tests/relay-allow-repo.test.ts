@@ -1,3 +1,4 @@
+/** @file Confirmation humaine et contrôle de confiance de relay allow-repo sur profils fictifs. */
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, writeFile, rm } from "node:fs/promises";
 import os from "node:os";
@@ -76,6 +77,15 @@ test("configuration changée pendant la question : rien écrasé ni approuvé", 
   w.io.confirm = async () => { await writeFile(w.file, foreign); return true; };
   await assert.rejects(runRelayAllowRepo(["owner/repo", "--config", w.file], w.io), /modifiée pendant/);
   assert.equal(await readFile(w.file, "utf8"), foreign); assert.equal(await isConfigTrusted(w.file, w.trust), false);
+});
+
+test("confiance retirée pendant la question : aucun octet modifié et aucun nouvel accord", async () => {
+  const w = await world();
+  w.io.confirm = async () => { await rm(w.trust); return true; };
+  w.io.trust = async () => assert.fail("la confiance retirée ne doit pas être rétablie");
+  await assert.rejects(runRelayAllowRepo(["owner/repo", "--config", w.file], w.io), /modifiée pendant/);
+  assert.equal(await readFile(w.file, "utf8"), w.before);
+  assert.equal(await isConfigTrusted(w.file, w.trust), false);
 });
 
 test("configuration altérée avant la commande : aucune question, instruction séparée d'approbation", async () => {

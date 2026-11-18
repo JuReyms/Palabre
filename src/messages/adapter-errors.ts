@@ -28,6 +28,10 @@ export interface AdapterErrorMessages {
   unsafeWindowsShellPrompt(adapterName: string): string;
   /** Refus d'un identifiant de modèle contenant des métacaractères de shell Windows. */
   unsafeWindowsShellModel(adapterName: string): string;
+  /** Refus .cmd/.bat avant lancement direct avec shell:false. */
+  windowsBatchNeedsShell(adapterName: string): string;
+  /** Refus d'un alias WindowsApps comme commande finale du PTY. */
+  windowsPtyAlias(adapterName: string): string;
   /** Réponse Ollama dépassant le budget mémoire configuré. */
   ollamaOutputTooLarge(adapterName: string, maxBytes: number): string;
   /** Repli du résumé d'erreur CLI quand le process n'a rien écrit sur stderr. */
@@ -108,6 +112,10 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
       `${adapterName} ne peut pas transmettre un prompt en sécurité via ce wrapper shell Windows. Configure un exécutable natif, un shim PowerShell .ps1 ou, si la CLI le supporte, promptMode "stdin".`,
     unsafeWindowsShellModel: (adapterName) =>
       `${adapterName} ne peut pas transmettre cet identifiant de modèle en sécurité via un wrapper shell Windows.`,
+    windowsBatchNeedsShell: (name) =>
+      `${name} : lancement direct du fichier .cmd/.bat refusé. Configure le chemin d'un exécutable natif, ou active shell pour utiliser le parcours Windows des shims.`,
+    windowsPtyAlias: (name) =>
+      `${name} : le pseudo-terminal ne peut pas lancer cet alias WindowsApps. Configure le chemin d'un exécutable natif ou un shim pris en charge.`,
     ollamaOutputTooLarge: (adapterName, maxBytes) =>
       `${adapterName} a reçu plus de ${maxBytes} octets depuis Ollama.`,
     noStderrCaptured: "aucun stderr capturé.",
@@ -144,6 +152,10 @@ export const adapterErrorMessages: Record<Language, AdapterErrorMessages> = {
       `${adapterName} cannot safely pass a prompt through this Windows shell wrapper. Configure a native executable, a PowerShell .ps1 shim, or promptMode "stdin" if the CLI supports it.`,
     unsafeWindowsShellModel: (adapterName) =>
       `${adapterName} cannot safely pass this model identifier through a Windows shell wrapper.`,
+    windowsBatchNeedsShell: (name) =>
+      `${name}: direct launch of a .cmd/.bat file was refused. Set a native executable path or enable shell to use Windows shim resolution.`,
+    windowsPtyAlias: (name) =>
+      `${name}: the pseudo-terminal cannot launch this WindowsApps alias. Set a native executable path or a supported shim.`,
     ollamaOutputTooLarge: (adapterName, maxBytes) =>
       `${adapterName} received more than ${maxBytes} bytes from Ollama.`,
     noStderrCaptured: "no stderr captured.",

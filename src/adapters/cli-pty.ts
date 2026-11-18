@@ -1,7 +1,7 @@
 /** @file Adapter pseudo-terminal (`node-pty`) pour les CLIs personnalisées qui exigent une vraie console ; aucun décodage JSON. */
 import { AdapterError, cancelledError } from "../errors.js";
 import { createTranslator } from "../i18n.js";
-import { resolveExecutablePath, resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePowerShellShim } from "../exec.js";
+import { isWindowsAppsExecutionAlias, resolveExecutablePath, resolveNativeWindowsExecutable, resolvePowerShellExecutable, resolvePowerShellShim } from "../exec.js";
 import { directNpmShimLaunch, withShimNodePath } from "../npmShim.js";
 import { formatAgentPrompt } from "../prompt.js";
 import type { AdapterErrorMessages } from "../messages/adapter-errors.js";
@@ -186,7 +186,7 @@ export class CliPtyAdapter implements AgentAdapter {
 }
 
 /**
- * Résout un lancement PTY sûr. Sous Windows, préfère un binaire natif, puis un shim npm ou pnpm
+ * Résout un lancement PTY sûr. Sous Windows, préfère un binaire natif hors alias WindowsApps, puis un shim npm ou pnpm
  * reconnu lancé via Node et le script du paquet (avec le `NODE_PATH` du shim pnpm), puis un autre
  * shim PowerShell (modifié, forme inconnue) ; refuse les arguments non fiables si seul un wrapper
  * interprété reste disponible.
@@ -203,13 +203,16 @@ function resolvePtyLaunch(
   }
 
   const native = resolveNativeWindowsExecutable(command);
-  if (native) {
+  if (native && !isWindowsAppsExecutionAlias(native)) {
     return { command: native, argsPrefix: [] };
   }
 
   // Shim npm ou pnpm reconnu : Node et le script du paquet, sans PowerShell (#98, #109).
   const npmShim = directNpmShimLaunch(command);
   if (npmShim) {
+    if (isWindowsAppsExecutionAlias(npmShim.command)) {
+      throw new AdapterError("spawn-failed", adapterName, messages.windowsPtyAlias(adapterName), { command });
+    }
     return { command: npmShim.command, argsPrefix: npmShim.prefixArgs, ...(npmShim.nodePath !== undefined && { nodePath: npmShim.nodePath }) };
   }
 
@@ -217,6 +220,9 @@ function resolvePtyLaunch(
   const shim = resolvePowerShellShim(command);
   const powerShellExecutable = shim ? resolvePowerShellExecutable() : undefined;
   if (shim && powerShellExecutable) {
+    if (isWindowsAppsExecutionAlias(powerShellExecutable)) {
+      throw new AdapterError("spawn-failed", adapterName, messages.windowsPtyAlias(adapterName), { command });
+    }
     return {
       command: powerShellExecutable,
       argsPrefix: ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", shim]
@@ -237,7 +243,11 @@ function resolvePtyLaunch(
     });
   }
 
-  return { command: resolveExecutablePath(command) ?? command, argsPrefix: [] };
+  const fallback = resolveExecutablePath(command) ?? command;
+  if (isWindowsAppsExecutionAlias(fallback)) {
+    throw new AdapterError("spawn-failed", adapterName, messages.windowsPtyAlias(adapterName), { command });
+  }
+  return { command: fallback, argsPrefix: [] };
 }
 
 /**
