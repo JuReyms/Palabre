@@ -13,7 +13,7 @@ function fixture(t: TestContext) {
   const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), "palabre-skill-runtime-")));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   mkdirSync(path.join(root, "references"));
-  for (const name of ["relay", "relay-desktop", "relay-opencode", "relay-frozen", "chat", "cli", "outputs"]) writeFileSync(path.join(root, "references", `${name}.md`), `# ${name}\n`);
+  for (const name of ["relay", "relay-desktop", "relay-opencode", "relay-frozen", "chat", "cli", "outputs", "direct-openbot"]) writeFileSync(path.join(root, "references", `${name}.md`), `# ${name}\n`);
   const file = path.join(root, "SKILL.md");
   const content = '---\nname: palabre\ndescription: Fixture\nmetadata:\n  revision: "2"\n---\n\nConsignes fictives 🧪.\n';
   writeFileSync(file, content);
@@ -43,7 +43,7 @@ test("lecture complète Unicode/CRLF et chemins des références du paquet", t =
     const result = inspectSkillRuntime("1", "en", { source: f.root, includeInstructions: true });
     assert.equal(result.status, "reload-required");
     assert.equal(result.instructions, readFileSync(f.file, "utf8"), "BOM et fins de ligne restitués sans perte");
-    assert.equal(Object.keys(result.references!).length, 7);
+    assert.equal(Object.keys(result.references!).length, 8);
     assert.match(result.message!, /^Before preparing/);
   }
 });
@@ -83,14 +83,15 @@ test("skill --read : paquet exécuté, sans config/trust/copie installée ni con
   writeFileSync(path.join(f.root, "palabre.config.json"), "invalide");
   const cli = fileURLToPath(new URL("../src/index.js", import.meta.url));
   const before = readdirSync(f.root).sort();
-  for (const declared of [[], ["--skill-revision", "999"], ["--skill-revision", "15"]]) {
+  for (const declared of [[], ["--skill-revision", "999"], ["--skill-revision", "16"]]) {
     const child = spawnSync(process.execPath, [cli, "skill", "--read", "--json", ...declared], { cwd: f.root, encoding: "utf8" });
     assert.equal(child.status, 0, child.stderr);
     const result = JSON.parse(child.stdout);
     assert.equal(result.kind, "skill-runtime");
     assert.equal(result.v, 1);
-    assert.equal(result.revision, 15);
-    assert.equal(result.status, declared.at(-1) === "15" ? "current" : declared.length ? "reload-required" : "unverified");
+    assert.equal(result.revision, 16);
+    assert.equal(result.status, declared.at(-1) === "16" ? "current" : declared.length ? "reload-required" : "unverified");
+    assert.equal(result.references["direct-openbot.md"], path.join(path.dirname(result.entrypoint), "references", "direct-openbot.md"));
     assert.equal(result.instructions, readFileSync(result.entrypoint, "utf8"));
     assert.ok(!result.instructions.includes("IMPOSTEUR CWD"));
     assert.equal(child.stderr, "");

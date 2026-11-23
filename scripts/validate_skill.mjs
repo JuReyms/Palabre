@@ -12,7 +12,8 @@ const references = [
   "references/relay-desktop.md",
   "references/relay-opencode.md",
   "references/relay-frozen.md",
-  "references/outputs.md"
+  "references/outputs.md",
+  "references/direct-openbot.md"
 ];
 const requiredFiles = ["SKILL.md", "agents/openai.yaml", ...references];
 // Limites du standard agentskills.io pour la description, et budget de concision du point d'entrée :
