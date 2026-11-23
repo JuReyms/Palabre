@@ -9,7 +9,8 @@ import { BUNDLED_SKILL_ROOT } from "./skillSync.js";
 import { skillRuntimeMessages } from "./messages/skillRuntime.js";
 import type { Language } from "./types.js";
 
-const REFERENCES = ["relay.md", "relay-desktop.md", "relay-opencode.md", "relay-frozen.md", "chat.md", "cli.md", "outputs.md"];
+/** Références livrées et exposées aux hôtes qui relisent le skill du paquet. */
+const REFERENCES = ["relay.md", "relay-desktop.md", "relay-opencode.md", "relay-frozen.md", "chat.md", "cli.md", "outputs.md", "direct-openbot.md"];
 const MAX_SKILL_BYTES = 64 * 1024;
 
 /** Métadonnée optionnelle v1 : current signifie accord de révisions déclarées, pas chargement prouvé. */

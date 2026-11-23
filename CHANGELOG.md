@@ -6,6 +6,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Added
 
+- Skill révision 16 : recette Palabre Direct pour joindre un agent OpenBot depuis Codex ou Claude Code avec la CLI native d'OpenBot. Elle décrit le suivi du reçu et le format commun des messages.
+
 - `palabre relay publish` : aperçu et publication explicite d’un bilan attribué sur une issue ou PR existante. Compte, visibilité, cible, identifiants GitHub et tête de PR revérifiés ; confirmation au clavier en terminal visible, JSON distinct v1, trace locale exclusive et aucun renvoi après incertitude. Aucun modèle lancé ni politique globale ajoutée.
 
 - Relay ordinaire : rattachement GitHub facultatif (`--github`) et nom déclaré du destinataire (`--participant`), conservés dans l’enveloppe, le JSON v1, les exports, les passations locales et `relay recent`. Aucun accès ni publication GitHub.
