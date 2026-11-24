@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Install Palabre from npm, verify the command, and prepare the AI agents used by debates and Ask requests.
+description: Install Palabre from npm, verify the command, and prepare AI tools for Relay, Debate, Ask, and Chat.
 seo:
   title: Install from npm and set up your AI agents
   description: Install Palabre globally with npm, verify the command, and connect Claude Code, Codex, OpenCode, or Ollama before your first debate.
@@ -41,6 +41,46 @@ Then verify that the command is available:
 palabre --version
 palabre --help
 ```
+
+## Test an announced prerelease
+
+A prerelease lets you try changes before a stable version. First check the exact version announced in the [GitHub releases](https://github.com/JuReyms/Palabre/releases). The `next` channel may still point to an older prerelease; a candidate prepared in a PR is not necessarily published.
+
+Use the same package manager as your initial installation to avoid creating a second installation that masks the first. After `0.23.0-beta.1` is published, select that version explicitly:
+
+With pnpm:
+
+```powershell
+pnpm add --global palabre@0.23.0-beta.1
+palabre --version
+```
+
+Or with npm:
+
+```powershell
+npm install --global palabre@0.23.0-beta.1
+palabre --version
+```
+
+Publishing a selected Relay report is experimental: personal confirmation in a visible terminal is not yet qualified. The agent prepares the preview; you run the publication command yourself. See the limits in the [Relay guide](/en/usage/relay#publish-a-selected-report).
+
+To return to the published stable version:
+
+With pnpm:
+
+```powershell
+pnpm add --global palabre@latest
+palabre --version
+```
+
+Or with npm:
+
+```powershell
+npm install --global palabre@latest
+palabre --version
+```
+
+These package-manager commands do not automatically synchronize every installed skill copy. Synchronization uses a confirmed `palabre skill --sync` plan from the installed package; reload the instructions in your tool afterwards.
 
 ## Install from the source repository
 

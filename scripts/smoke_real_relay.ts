@@ -1,8 +1,11 @@
 /**
  * @file Smoke réel de `palabre relay` (lot A5, issue #96), hors `pnpm test`.
  *
- * Lance de vrais agents Claude Code et Codex sur des sessions **jetables**, créées dans un dossier
- * temporaire dédié. Aucune session de travail n'est lue, reprise ni modifiée. Prérequis : `pnpm build`.
+ * Lance de vrais agents Claude Code et Codex sur des sessions **jetables**. Codex travaille sous
+ * `.tmp/relay-smoke/` du checkout, avec sa confiance existante, jamais forcée ; Claude utilise un
+ * dossier temporaire dédié. Aucune session de travail n'est reprise. Prérequis : `pnpm build`.
+ * `--codex-checks` crée seulement une session Codex et qualifie ses MCP et son refus attaché ;
+ * les autres scénarios ne sont ni rejoués ni annoncés comme réussis par ce passage ciblé.
  *
  * Cas vérifiés :
  * 1. relay vers une conversation fermée, Claude puis Codex : réponse, contexte conservé (nom de
@@ -11,8 +14,8 @@
  *    Codex : TUI ouvert dans un pseudo-terminal) : refus
  *    `target-busy`, code 3, historique inchangé (fichiers et lignes, segments Codex compris). Le
  *    message n'est envoyé que si la sonde établit l'attachement ;
- * 3. neutralisation MCP Codex : liste stricte dans le dossier de la cible, puis comparaison des
- *    journaux (`RUST_LOG=info`) entre une reprise témoin non neutralisée et l'échange du relay ;
+ * 3. neutralisation MCP Codex : liste stricte, compteur natif positif chez le témoin puis nul dans
+ *    le relay, sans mention inexpliquée de serveur (`RUST_LOG=info`) ;
  *    côté Claude, outils et serveurs MCP annoncés par `system/init` pendant l'échange du relay ;
  * 4. versions des CLIs.
  *
@@ -21,13 +24,13 @@
  * temporaire ; `--trust-config` enregistre l'approbation de la config temporaire dans
  * `~/.palabre/trusted-configs.json` ; la reprise témoin démarre les serveurs MCP de l'utilisateur.
  *
- * La trace complète (identifiants de session compris) est écrite dans `.tmp/relay-smoke/`, ignoré
- * par git. La sortie console ne contient aucun identifiant.
+ * La trace complète (identifiants et journaux MCP pouvant contenir des données de compte) reste
+ * dans `.tmp/relay-smoke/`, ignoré par git. Ne pas la publier. La console ne contient aucun identifiant.
  *
  * Tous les appels imposent `--background` (`smoke_relay_plan.ts`) : avec `relay.view: auto`, une
  * Codex attachée serait jointe en mode ouvert et recevrait le message censé être refusé.
  *
- * Usage : pnpm build && pnpm smoke:real-relay
+ * Usage : pnpm build, puis pnpm smoke:real-relay [--codex-checks].
  */
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
@@ -35,8 +38,8 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { spawn as spawnPty, type IPty } from "node-pty";
-import { CLAUDE_ATTACHED_LABEL, blockedSmokeStartup, claudeAttachedArgs, claudeRefusalPrecondition,
-  historyFootprint, ownedClaudeAttachment, refusalChecks, refusalPrecondition, smokeProcessStopCheck,
+import { CLAUDE_ATTACHED_LABEL, blockedSmokeStartup, claudeAttachedArgs, claudeRefusalPrecondition, codexAttachedArgs, codexMcpLogEvidence, codexPtyEnv,
+  historyFootprint, ownedClaudeAttachment, refusalChecks, refusalPrecondition, smokeProcessStopCheck, smokePtyStopCheck, shouldStopSmokePty,
   smokeRelayArgs, type HistoryFootprint, type SmokeProcessOwner } from "./smoke_relay_plan.js";
 
 const repo = process.cwd();
@@ -45,6 +48,12 @@ const stamp = new Date().toISOString().replace(/[:.]/g, "-");
 const root = path.join(os.tmpdir(), `palabre-relay-smoke-${stamp}`);
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const code = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+const cliArgs = process.argv.slice(2);
+if (cliArgs.length > 1 || (cliArgs.length === 1 && cliArgs[0] !== "--codex-checks")) {
+  console.error("Usage : pnpm smoke:real-relay [--codex-checks]");
+  process.exit(2);
+}
+const codexOnly = cliArgs[0] === "--codex-checks";
 
 interface Check {
   name: string;
@@ -53,7 +62,7 @@ interface Check {
 }
 
 const checks: Check[] = [];
-const trace: Record<string, unknown> = { stamp, root };
+const trace: Record<string, unknown> = { stamp, root, selection: codexOnly ? "codex-checks" : "full" };
 
 function check(name: string, ok: boolean, detail: string): void {
   checks.push({ name, ok, detail });
@@ -77,11 +86,6 @@ function palabre(args: string[], signal?: AbortSignal): Promise<{ code: number |
   });
 }
 
-/** Serveurs mentionnés dans les journaux d'une reprise Codex : indice de démarrage, pas preuve d'exposition. */
-function mentioned(stderr: string, names: string[]): string[] {
-  return names.filter((name) => new RegExp(`\\b${name.replace(/[-]/g, "\\-")}\\b`).test(stderr));
-}
-
 const strip = (text: string) => text.replace(/\x1b\][^\x07\x1b]*(\x07|\x1b\\)/g, "").replace(/\x1b\[[0-9;?<>=]*[ -/]*[@-~]/g, "");
 
 async function main(): Promise<void> {
@@ -99,7 +103,8 @@ async function main(): Promise<void> {
   // installée) ; par défaut, `claude` résolu dans le PATH comme le ferait la config.
   const claudeCommand = process.env.PALABRE_SMOKE_CLAUDE_COMMAND || "claude";
   const wsClaude = path.join(root, "claude");
-  const wsCodex = path.join(root, "codex");
+  // Respecter la confiance déjà choisie pour le workspace ; ne jamais la forcer sur un dossier temporaire.
+  const wsCodex = path.join(repo, ".tmp", "relay-smoke", stamp, "codex");
   mkdirSync(wsClaude, { recursive: true });
   mkdirSync(wsCodex, { recursive: true });
   const configPath = path.join(root, "palabre.config.json");
@@ -145,11 +150,11 @@ async function main(): Promise<void> {
   const codexCode = code("BASALTE");
   const fact = (name: string) => `Contexte pour la suite : le projet de test de cette conversation s'appelle ${name}. Réponds uniquement : OK.`;
   const parse = (stdout: string) => stdout.split(/\r?\n/).map((line: string) => { try { return JSON.parse(line); } catch { return undefined; } }).filter(Boolean);
-  const createdClaude = await launch(claudeExe, [
+  const createdClaude = codexOnly ? undefined : await launch(claudeExe, [
     "-p", "--output-format", "stream-json", "--verbose", "--model", claudeModel, "--permission-mode", "plan",
     "--tools", "Read,Glob,Grep", "--strict-mcp-config", "--settings", JSON.stringify({ disableAllHooks: true })
   ], wsClaude, fact(claudeCode), 240_000);
-  const claudeEvents = parse(createdClaude.stdout);
+  const claudeEvents = parse(createdClaude?.stdout ?? "");
   const claudeResult = claudeEvents.find((event: any) => event?.type === "result");
   const claudeSession = claudeResult?.is_error === false ? claudeResult.session_id as string : undefined;
   const createdCodex = await launch(codexExe, [
@@ -165,23 +170,24 @@ async function main(): Promise<void> {
     claude: claudeEvents.filter((event: any) => event?.type === "assistant").map((event: any) => event.message?.model),
     codexErrors: codexEvents.filter((event: any) => event?.type === "error" || event?.type === "turn.failed").map((event: any) => JSON.stringify(event).slice(0, 300))
   };
-  if (!claudeSession || !codexSession) {
+  if ((!codexOnly && !claudeSession) || !codexSession) {
     trace.creation = { claude: createdClaude, codex: createdCodex };
     throw new Error(`création d'une session jetable impossible : Claude ${claudeSession ? "ok" : "échec"}, Codex ${codexSession ? "ok" : `échec ${(trace.creationModels as any).codexErrors.join(" ")}`}`);
   }
-  check("sessions jetables créées", true, `Claude (--model ${claudeModel}) et Codex (${codexModel ? `-m ${codexModel}` : "modèle de la config"}), réponses valides`);
+  check("sessions jetables créées", true, `${codexOnly ? "Codex seul" : `Claude (--model ${claudeModel}) et Codex`} (${codexModel ? `-m ${codexModel}` : "modèle de la config"}), réponses valides`);
 
   // Même cadre opérateur que la commande avec une config en français (D22).
   const claudeAdapter = new ClaudeSessionAdapter({ operatorFrame: relayMessages.fr.operatorFrame });
   const codexAdapter = new CodexSessionAdapter();
-  const claudeLocated = claudeAdapter.locate({ agent: "claude", sessionId: claudeSession });
+  const claudeLocated = claudeSession ? claudeAdapter.locate({ agent: "claude", sessionId: claudeSession }) : undefined;
   const codexLocated = codexAdapter.locate({ agent: "codex", sessionId: codexSession });
-  if (claudeLocated.status !== "found" || codexLocated.status !== "found") throw new Error("session jetable non localisée.");
+  if ((!codexOnly && claudeLocated?.status !== "found") || codexLocated.status !== "found") throw new Error("session jetable non localisée.");
   check("localisation", true, `dossiers d'origine retrouvés ; modèle Codex enregistré : ${codexLocated.target.model ?? "absent"}`);
 
   const relayArgs = (from: string, to: string, message: string) => smokeRelayArgs({ from, to, message, configPath });
   const backgroundMode = (json: any) => json?.mode === "background" && json?.modeSource === "explicit";
 
+  if (!codexOnly) {
   // 1. Conversations fermées : réponse et contexte conservé.
   const toClaude = await palabre(relayArgs(`codex:${codexSession}`, `claude:${claudeSession}`, "Comment s'appelle le projet de test mentionné au début de cette conversation ? Réponds uniquement par son nom."));
   trace.closedClaude = toClaude.json ?? { stdout: toClaude.stdout, stderr: toClaude.stderr };
@@ -242,6 +248,7 @@ async function main(): Promise<void> {
   check("Claude : outils et MCP pendant le relay",
     initValid && writeTools.length === 0 && claudeMcp.length === 0 && claudeOutcome.status === "replied" && claudeExchange.verdict?.interpretation.identity === "same-as-target",
     `init ${init ? "présent" : "absent"} ; outils : ${tools.join(", ") || "aucun"} ; serveurs MCP : ${claudeMcp.length} ; issue ${claudeOutcome.status}`);
+  }
 
   // Codex : reprise témoin sans neutralisation, puis échange du relay, journaux comparés.
   const logEnv = { ...process.env, RUST_LOG: "info" };
@@ -251,69 +258,105 @@ async function main(): Promise<void> {
     ...(codexLocated.target.model ? ["-m", codexLocated.target.model] : []),
     "-c", "sandbox_mode=\"read-only\"", "-c", "approval_policy=\"never\"", codexSession, "-"
   ], wsCodex, "Témoin MCP : n'appelle aucun outil. Réponds uniquement : OK.", 300_000, logEnv);
-  const controlMentions = mentioned(control.stderr, watched);
+  const controlEvidence = codexMcpLogEvidence(control.stderr, watched);
   const controlEvents = String(control.stdout).split(/\r?\n/).map((line: string) => { try { return JSON.parse(line); } catch { return undefined; } });
-  // Témoin exploitable : reprise réussie, et au moins un serveur mentionné. Sans serveur déclaré,
-  // la comparaison n'a pas d'objet et le contrôle échoue explicitement.
-  const controlValid = control.exitCode === 0 && controlEvents.some((event: any) => event?.type === "turn.completed") && controlMentions.length > 0;
+  // Témoin exploitable : reprise réussie, compteur positif et mention hors métadonnées. Absence
+  // de compteur reconnu ou de serveur configuré : échec, jamais une comparaison validée par défaut.
+  const controlValid = mcpNames.length > 0 && control.exitCode === 0 && controlEvents.some((event: any) => event?.type === "turn.completed")
+    && controlEvidence.serverCount !== undefined && controlEvidence.serverCount > 0 && controlEvidence.unexplainedMentions.length > 0;
   const relayed = await exchange(codexAdapter, codexExe.executable, codexLocated.target,
-    buildEnvelope({ from: { agent: "claude", sessionId: claudeSession }, to: { agent: "codex", sessionId: codexSession }, nonce: createNonce(), message: "Réponds uniquement : OK." }, relayMessages.fr),
+    buildEnvelope({ from: { agent: "claude", ...(claudeSession ? { sessionId: claudeSession } : {}) }, to: { agent: "codex", sessionId: codexSession }, nonce: createNonce(), message: "Réponds uniquement : OK." }, relayMessages.fr),
     { timeoutMs: 300_000, env: logEnv });
   const relayedOutcome = exchangeOutcome(relayed).outcome;
-  const relayMentions = mentioned(String(relayed.process?.stderr ?? ""), watched);
-  trace.mcp = { watched, controlValid, controlExit: control.exitCode, controlMentions, relayMentions, relayOutcome: relayedOutcome, relayIdentity: relayed.verdict?.interpretation.identity, relayPreparation: relayed.preparation, relayRefusal: relayed.refusal };
+  const relayEvidence = codexMcpLogEvidence(String(relayed.process?.stderr ?? ""), watched);
+  trace.mcp = { watched, controlValid, controlExit: control.exitCode, controlEvidence, relayEvidence, relayOutcome: relayedOutcome,
+    relayIdentity: relayed.verdict?.interpretation.identity, relayPreparation: relayed.preparation, relayRefusal: relayed.refusal,
+    controlLogs: { stdout: control.stdout, stderr: control.stderr }, relayLogs: { stdout: relayed.process?.stdout, stderr: relayed.process?.stderr } };
   check("Codex : témoin exploitable (sans neutralisation)", controlValid,
-    `reprise témoin exit ${control.exitCode} ; serveurs mentionnés dans ses journaux : ${controlMentions.join(", ") || "aucun"}${mcpNames.length === 0 ? " (aucun serveur déclaré : comparaison sans objet)" : ""}`);
+    `reprise témoin exit ${control.exitCode} ; compteur annoncé ${controlEvidence.serverCount ?? "inconnu"} ; mentions hors fonctionnalités : ${controlEvidence.unexplainedMentions.join(", ") || "aucune"}`);
   check("Codex : MCP neutralisés pendant le relay (indice par journaux)",
-    controlValid && relayedOutcome.status === "replied" && relayed.verdict?.interpretation.identity === "same-as-target" && relayMentions.length === 0,
-    `issue ${relayedOutcome.status}, identité ${relayed.verdict?.interpretation.identity ?? "?"}, réponse ${JSON.stringify(relayed.verdict?.interpretation.reply ?? null)} ; serveurs mentionnés dans les journaux du relay : ${relayMentions.join(", ") || "aucun"}. Les journaux sont un indice, pas une preuve d'absence d'exposition`);
+    controlValid && relayedOutcome.status === "replied" && relayed.verdict?.interpretation.identity === "same-as-target"
+      && relayEvidence.serverCount === 0 && relayEvidence.unexplainedMentions.length === 0,
+    `issue ${relayedOutcome.status}, identité ${relayed.verdict?.interpretation.identity ?? "?"} ; compteur annoncé ${relayEvidence.serverCount ?? "inconnu"} ; mentions inexpliquées : ${relayEvidence.unexplainedMentions.join(", ") || "aucune"}. Indice de journaux, pas preuve universelle d'absence d'exposition`);
 
-  // 2. Conversations attachées : TUI ouvert dans un pseudo-terminal, puis relay refusé. Le message
-  // n'est envoyé que si la sonde établit l'attachement ; l'historique est mesuré sur tous ses fichiers.
+  /**
+   * TUI Codex sur la seule session jetable créée ici. TERM correspond au PTY, sans réponse à une
+   * invite ni confiance forcée. Sonde refaite et PID propre vivant avant l'appel ; sortie plafonnée
+   * à 1 Mio. Le finally arrête uniquement le processus lancé et vérifie sortie et mort du PID.
+   */
   async function attached(label: string, file: string, args: string[], cwd: string, historyFiles: () => string[], adapter: any, target: any, relay: string[]): Promise<void> {
+    if (adapter.probe(target).attachment !== "detached") throw new Error("cible jetable déjà attachée ou indéterminée : aucun TUI lancé");
     let screen = "";
-    const pty: IPty = spawnPty(file, args, { name: "xterm-256color", cols: 140, rows: 50, cwd, env: cleanExternalEnv(process.env) as Record<string, string> });
-    pty.onData((data) => { screen += data; });
+    let outputBytes = 0;
+    let failure: string | undefined;
+    const controller = new AbortController();
+    const interrupt = () => { failure ??= "annulation"; controller.abort(); };
+    const pty: IPty = spawnPty(file, args, { name: "xterm-256color", cols: 140, rows: 50, cwd,
+      env: codexPtyEnv(cleanExternalEnv(process.env)) as Record<string, string> });
+    process.once("SIGINT", interrupt);
+    process.once("SIGTERM", interrupt);
+    pty.onData((data) => {
+      const bytes = Buffer.from(data, "utf8");
+      const available = Math.max(0, 1024 * 1024 - outputBytes);
+      screen += bytes.subarray(0, available).toString("utf8");
+      outputBytes += Math.min(bytes.length, available);
+      if (bytes.length > available) { failure ??= "output-too-large"; controller.abort(); }
+    });
     let ptyExited = false;
     pty.onExit(() => { ptyExited = true; });
     let probe: any;
-    for (let waited = 0; waited < 60_000 && !ptyExited; waited += 1_000) {
-      await sleep(1_000);
-      probe = adapter.probe(target);
-      if (probe.attachment === "attached") break;
-    }
-    await sleep(3_000);
     let before: HistoryFootprint | undefined;
     let after: HistoryFootprint | undefined;
     let result: Awaited<ReturnType<typeof palabre>> | undefined;
     let reason: string | undefined;
+    let stopConfirmed = false;
+    const waitForExit = async (ms: number): Promise<void> => {
+      const deadline = Date.now() + ms;
+      while (!ptyExited && Date.now() < deadline) await sleep(50);
+    };
     try {
-      before = historyFootprint(historyFiles());
-    } catch (error) {
-      reason = `historique illisible (${error instanceof Error ? error.message : String(error)}) : aucun message envoyé`;
+      for (let waited = 0; waited < 60_000 && !ptyExited && !failure; waited += 1_000) {
+        await sleep(1_000);
+        probe = adapter.probe(target);
+        if (probe.attachment === "attached") break;
+      }
+      await sleep(3_000);
+      try { before = historyFootprint(historyFiles()); }
+      catch { reason = "historique illisible : aucun message envoyé"; }
+      if (!reason) {
+        // Sonde et vivacité propres refaites au plus près de l'appel ; jamais le texte de l'écran.
+        probe = adapter.probe(target);
+        const decision = refusalPrecondition(probe, { ptyExited, history: before });
+        if (decision.send && !failure && pidLiveness(pty.pid) === "alive") {
+          result = await palabre(relay, controller.signal);
+          await sleep(2_000);
+          after = historyFootprint(historyFiles());
+        } else reason = failure ? "scénario interrompu : aucun message envoyé"
+          : decision.send || probe?.attachment !== "attached" ? blockedSmokeStartup() : decision.reason;
+      }
+      for (const item of refusalChecks(label, { probe, call: result ? { code: result.code, json: result.json } : undefined, before, after, reason })) check(item.name, item.ok, item.detail);
+    } finally {
+      const exitedBeforeCleanup = ptyExited;
+      // Ctrl+C annule seulement. Aucune réponse de confiance, aucun PID lu dans un registre tiers.
+      if (shouldStopSmokePty({ exited: ptyExited, liveness: pidLiveness(pty.pid) })) {
+        try { pty.write("\x03"); } catch (error) { failure ??= String(error); }
+        await waitForExit(800);
+      }
+      if (shouldStopSmokePty({ exited: ptyExited, liveness: pidLiveness(pty.pid) })) {
+        try { killProcessTree(pty.pid); } catch (error) { failure ??= String(error); }
+      }
+      await waitForExit(3_000);
+      const liveness = pidLiveness(pty.pid);
+      const stopped = smokePtyStopCheck(label, { exited: ptyExited, liveness, failure });
+      stopConfirmed = stopped.ok;
+      check(stopped.name, stopped.ok, stopped.detail);
+      trace[`attached${label}`] = { probe, pid: pty.pid, exitedBeforeCleanup, ptyExited, liveness, stopConfirmed,
+        sent: result !== undefined, reason, failure, result: result ? result.json ?? { stdout: result.stdout, stderr: result.stderr } : null,
+        historyBefore: before, historyAfter: after, screenTail: strip(screen).split(/\r?\n/).filter((line) => line.trim()).slice(-8) };
+      process.removeListener("SIGINT", interrupt);
+      process.removeListener("SIGTERM", interrupt);
     }
-    if (!reason) {
-      // Sonde refaite au plus près de l'appel : la première a pu précéder la fermeture du TUI.
-      probe = adapter.probe(target);
-      const decision = refusalPrecondition(probe, { ptyExited, history: before });
-      if (decision.send) {
-        result = await palabre(relay);
-        await sleep(2_000);
-        after = historyFootprint(historyFiles());
-      } else reason = probe?.attachment !== "attached" ? blockedSmokeStartup() : decision.reason;
-    }
-    trace[`attached${label}`] = { probe, ptyExited, sent: result !== undefined, reason, result: result ? result.json ?? { stdout: result.stdout, stderr: result.stderr } : null,
-      historyBefore: before, historyAfter: after, screenTail: strip(screen).split(/\r?\n/).filter((line) => line.trim()).slice(-8) };
-    for (const item of refusalChecks(label, { probe, call: result ? { code: result.code, json: result.json } : undefined, before, after, reason })) check(item.name, item.ok, item.detail);
-    if (probe?.attachment === "attached" && !ptyExited) {
-      pty.write("\x03");
-      await sleep(800);
-      pty.write("\x03");
-      await sleep(1_500);
-    }
-    // `pty.kill()` lancerait l'agent de liste de console de node-pty, qui échoue une fois le processus terminé.
-    try { killProcessTree(pty.pid); } catch { /* déjà terminé */ }
-    await sleep(2_000);
+    if (!stopConfirmed || controller.signal.aborted) throw new Error("arrêt du TUI non confirmé ou scénario interrompu");
   }
 
   /**
@@ -412,12 +455,10 @@ async function main(): Promise<void> {
     if (!stopConfirmed || controller.signal.aborted) throw new Error("scénario Claude interrompu ou arrêt non confirmé : aucun autre scénario lancé");
   }
 
-  await attachedClaude(claudeSession);
-  const trust = `projects={${JSON.stringify(wsCodex)}={trust_level="trusted"}}`;
-  await attached("Codex", codexExe.executable.command, [...codexExe.executable.prefixArgs, "resume", codexSession, "-s", "read-only", ...neutralization,
-    "--disable", "memories", "--disable", "hooks", "--no-alt-screen", "-c", "check_for_update_on_startup=false", "-c", trust],
+  if (!codexOnly) await attachedClaude(claudeSession!);
+  await attached("Codex", codexExe.executable.command, [...codexExe.executable.prefixArgs, ...codexAttachedArgs(codexSession, neutralization)],
     wsCodex, () => findCodexHistoryFiles(path.join(os.homedir(), ".codex"), codexSession).map((entry: { path: string }) => entry.path), codexAdapter, codexLocated.target,
-    relayArgs(`claude:${claudeSession}`, `codex:${codexSession}`, "Ce message doit être refusé : la conversation est ouverte."));
+    relayArgs(claudeSession ? `claude:${claudeSession}` : "claude", `codex:${codexSession}`, "Ce message doit être refusé : la conversation est ouverte."));
 }
 
 main()
@@ -430,6 +471,6 @@ main()
     const file = path.join(dir, `${stamp}.json`);
     writeFileSync(file, JSON.stringify({ ...trace, checks }, null, 2));
     const failed = checks.filter((item) => !item.ok);
-    console.log(`\n${checks.length - failed.length}/${checks.length} vérifications réussies. Trace locale : ${path.relative(repo, file)}`);
+    console.log(`\n${checks.length - failed.length}/${checks.length} vérifications ${codexOnly ? "ciblées Codex" : "de la campagne complète"} réussies. Trace locale : ${path.relative(repo, file)}`);
     process.exit(failed.length === 0 ? 0 : 1);
   });
