@@ -12,7 +12,7 @@ Pour commencer sans connaître d'identifiant de conversation, suivez [Premier Re
 
 Relay permet à votre agent de confier une tâche à un autre agent (Claude Code, Codex) et de vous rapporter sa réponse, sans copier-coller : dans une nouvelle conversation, ou dans une conversation précise que vous avez déjà eue avec lui. Chacun garde ses propres permissions, et vous décidez de la suite.
 
-Vous choisissez le **chef de mission** : Claude Code ou Codex. Votre agent peut devenir chef de mission dans n'importe quelle conversation, même celle que vous venez d'ouvrir : il faut seulement que PALABRE soit installé sur la machine et que l'agent dispose du skill PALABRE.
+Vous choisissez la conversation de l'agent qui pilote le travail, le **chef de mission**. Les exemples Relay qui suivent partent de Claude Code ou Codex. Pour les suivre, installez Palabre sur le poste et donnez le skill à votre agent. Les parcours avec OpenBot sont décrits plus bas.
 
 Avec le skill, le chef de mission propose de lui-même de déléguer quand un travail se découpe : une relecture, une recherche, un lot indépendant, une vérification. Pour une petite tâche attendue, comme une relecture sans modification dans un travail que vous avez déjà validé, il l'annonce en une ligne puis la fait. Pour une délégation qui engage davantage (écriture, plusieurs équipiers, beaucoup de quota, nouveau chantier), il vous pose une question claire, une seule fois pour tout le lot : il ne vous redemande pas à chaque appel. Un agent ne relit jamais son propre travail. Pour une question simple, il répond seul : chaque appel prend du temps et consomme des quotas. Déléguer ne donne aucun droit supplémentaire à l'équipier.
 
@@ -35,6 +35,27 @@ En mode ouvert (`--open` ou `auto`), la cible conserve ses propres outils et per
 Pour une simple relecture ou correction de code depuis Claude Code vers Codex, le [plugin officiel OpenAI `openai/codex-plugin-cc`](https://github.com/openai/codex-plugin-cc) peut suffire. Relay sert à choisir une conversation précise, à échanger dans les deux sens et à joindre Codex déjà ouvert.
 
 **Fonctions conservées, hors parcours par défaut :** `--write` est expérimental et gelé ; Mission et `--task review` sont gelés. Leur documentation est conservée ci-dessous ; seuls les correctifs de sécurité sont acceptés, sans extension de périmètre.
+
+## Échanger avec OpenBot
+
+**Palabre Direct** est la recette du [skill Palabre](/fr/get-started/skill) pour joindre un agent OpenBot via la CLI d'OpenBot. Demandez par exemple à Codex ou à Claude Code de transmettre une question à votre agent OpenBot. Le skill guide l'envoi vers sa conversation principale, le suivi du reçu et la restitution de la réponse. OpenBot doit tourner sur le poste et vous devez avoir activé **Scripts locaux** pour l'agent concerné. Votre outil peut demander une autorisation pour accéder à la CLI locale.
+
+| Qui lance la demande | Destination | Parcours |
+| --- | --- | --- |
+| Codex | Claude Code | Relay en arrière-plan |
+| Claude Code | Codex | Relay, avec `--open` possible vers un chat déjà ouvert |
+| OpenBot | Codex | Relay, testé avec `--open` vers un chat Codex Desktop |
+| OpenBot | Claude Code | Relay, testé vers une nouvelle conversation en arrière-plan |
+| Codex | OpenBot | Palabre Direct via la CLI d'OpenBot |
+| Claude Code | OpenBot | Palabre Direct via la CLI d'OpenBot |
+
+Les parcours avec OpenBot ont été vérifiés sous Windows. Pour lancer un Relay, OpenBot doit pouvoir exécuter la CLI Palabre avec les autorisations de son environnement.
+
+Pour un envoi autorisé vers un chat Codex ouvert, l'agent vérifie d'abord la cible avec `--check --open`, puis envoie avec `--open`.
+
+L'outil qui lance la demande récupère aussi la réponse. Pour reprendre une conversation Claude Code avec Relay, il faut qu'aucun processus Claude ne l'utilise. Avec `--new`, Relay crée une nouvelle conversation en arrière-plan.
+
+Avec Direct, le message porte un en-tête comme **Palabre Direct · Codex → Agent OpenBot**, un objet et une signature déclarée. L'agent appelant présente ensuite la réponse reçue. Les permissions de l'agent OpenBot s'appliquent à son travail.
 
 ## Méthode de travail et suivi GitHub facultatif
 

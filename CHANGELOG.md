@@ -20,6 +20,8 @@ Toutes les evolutions notables de Palabre CLI sont consignees ici. Format inspir
 
 ### Changed
 
+- Skill révision 17 : sens de communication entre OpenBot, Codex et Claude Code visibles dès le point d'entrée, avec le parcours selon la destination et les conditions pour les conversations ouvertes.
+
 - Consignes de publication du skill révision 12 : bilan choisi, attribution déclarée, aperçu préparé par l’agent, commande d’envoi lancée par l’humain dans son terminal, annulation/refus à l’invite, retour du lien et arrêt sans rejeu sur incertitude. Un PID, un TTY ou une réponse dans une trace ne prouve pas une validation humaine. Copies installées seulement par plan `palabre skill --sync` ou `palabre update` confirmé depuis le paquet installé, puis rechargement des consignes.
 
 - Restitution Relay proportionnée ajoutée à l’enveloppe ordinaire ; `--no-reply-format` la retire pour un appel. Réponse brute, délivrance, permissions et fonctions gelées inchangées.
