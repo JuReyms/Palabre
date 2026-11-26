@@ -12,7 +12,7 @@ Pour commencer sans connaître d'identifiant de conversation, suivez [Premier Re
 
 Relay permet à votre agent de confier une tâche à un autre agent (Claude Code, Codex) et de vous rapporter sa réponse, sans copier-coller : dans une nouvelle conversation, ou dans une conversation précise que vous avez déjà eue avec lui. Chacun garde ses propres permissions, et vous décidez de la suite.
 
-Vous choisissez la conversation qui pilote le travail. Les exemples Relay qui suivent partent de Claude Code ou Codex. Pour les suivre, installez Palabre sur le poste et donnez le skill à votre agent. Les parcours avec OpenBot sont décrits plus bas.
+Vous choisissez la conversation de l'agent qui pilote le travail, le **chef de mission**. Les exemples Relay qui suivent partent de Claude Code ou Codex. Pour les suivre, installez Palabre sur le poste et donnez le skill à votre agent. Les parcours avec OpenBot sont décrits plus bas.
 
 Avec le skill, le chef de mission propose de lui-même de déléguer quand un travail se découpe : une relecture, une recherche, un lot indépendant, une vérification. Pour une petite tâche attendue, comme une relecture sans modification dans un travail que vous avez déjà validé, il l'annonce en une ligne puis la fait. Pour une délégation qui engage davantage (écriture, plusieurs équipiers, beaucoup de quota, nouveau chantier), il vous pose une question claire, une seule fois pour tout le lot : il ne vous redemande pas à chaque appel. Un agent ne relit jamais son propre travail. Pour une question simple, il répond seul : chaque appel prend du temps et consomme des quotas. Déléguer ne donne aucun droit supplémentaire à l'équipier.
 
@@ -51,7 +51,9 @@ Pour une simple relecture ou correction de code depuis Claude Code vers Codex, l
 
 Les parcours avec OpenBot ont été vérifiés sous Windows. Pour lancer un Relay, OpenBot doit pouvoir exécuter la CLI Palabre avec les autorisations de son environnement.
 
-L'outil qui lance la demande récupère aussi la réponse. Pour reprendre une conversation Claude Code avec Relay, il faut qu'aucun processus Claude ne l'utilise. Relay crée une nouvelle conversation en arrière-plan.
+Pour un envoi autorisé vers un chat Codex ouvert, l'agent vérifie d'abord la cible avec `--check --open`, puis envoie avec `--open`.
+
+L'outil qui lance la demande récupère aussi la réponse. Pour reprendre une conversation Claude Code avec Relay, il faut qu'aucun processus Claude ne l'utilise. Avec `--new`, Relay crée une nouvelle conversation en arrière-plan.
 
 Avec Direct, le message porte un en-tête comme **Palabre Direct · Codex → Agent OpenBot**, un objet et une signature déclarée. L'agent appelant présente ensuite la réponse reçue. Les permissions de l'agent OpenBot s'appliquent à son travail.
 

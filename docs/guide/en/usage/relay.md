@@ -12,7 +12,7 @@ To start without a conversation ID, follow [Your first Relay](/en/get-started/fi
 
 Relay lets your agent delegate a task to another agent (Claude Code, Codex) and bring its reply back to you, without copying and pasting: in a new conversation, or in a specific conversation you have already had with it. Each keeps its own permissions, and you decide what happens next.
 
-Choose the conversation that leads the work. The Relay examples below start from Claude Code or Codex. To follow them, install Palabre on the machine and give your agent the skill. The OpenBot workflows are described below.
+Choose the conversation of the agent who leads the work, the **mission lead**. The Relay examples below start from Claude Code or Codex. To follow them, install Palabre on the machine and give your agent the skill. The OpenBot workflows are described below.
 
 With the skill, the mission lead offers to delegate on its own when work can be split: a review, a search, an independent batch, a check. For a small expected task, such as a review without changes in work you have already approved, it announces it in one line and then does it. For delegation that commits more (writing, several teammates, a lot of quota, a new piece of work), it asks you one clear question, once for the whole batch: it does not ask again at every call. An agent never reviews its own work. For a simple question, it answers alone: each call takes time and uses quota. Delegating grants the teammate no additional rights.
 
@@ -51,7 +51,9 @@ For a simple code review or fix from Claude Code to Codex, the [official OpenAI 
 
 The OpenBot workflows were verified on Windows. To start a Relay, OpenBot needs permission to run the Palabre CLI in its environment.
 
-The tool that starts the request also retrieves the reply. Relay can resume an existing Claude Code conversation when no Claude process is using it. Relay creates new conversations in the background.
+For an authorized send to an open Codex conversation, the agent first checks the target with `--check --open`, then sends with `--open`.
+
+The tool that starts the request also retrieves the reply. Relay can resume an existing Claude Code conversation when no Claude process is using it. With `--new`, Relay creates a new background conversation.
 
 A Direct message has a header such as **Palabre Direct · Codex → OpenBot agent**, a subject and a declared signature. The calling agent presents the reply it received. The OpenBot agent works with its own permissions.
 
