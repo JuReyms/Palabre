@@ -10,6 +10,7 @@ import { after, describe, test } from "node:test";
 import { CliAdapter } from "../src/adapters/cli.js";
 import { CliPtyAdapter } from "../src/adapters/cli-pty.js";
 import { directNpmShimLaunch, npmNativeShimLaunch, npmShimLaunch, parseNpmNativePowerShellShim } from "../src/npmShim.js";
+import { formatAgentPrompt } from "../src/prompt.js";
 import type { AgentPrompt } from "../src/types.js";
 import { npmPowerShellShim } from "./fixtures/external-sessions/npm-shim.js";
 
@@ -22,15 +23,16 @@ const SCRIPT = "node_modules/fake-cli/bin/cli.cjs";
 const STRUCTURED_ARGS = ["-c", "sandbox_mode=\"read-only\"", "--settings", "{\"disableAllHooks\":true}", "-"];
 
 /**
- * Dossier de binaires npm jetable : shim `.ps1` au modèle npm, wrapper `.cmd` voisin et fausse CLI
+ * Dossier de binaires npm jetable : shim `.ps1` au modèle npm, wrapper batch voisin et fausse CLI
  * qui écrit ses arguments et son stdin en JSON dans `capture.json`, puis répond « ok ».
  */
-function npmBin(options: { shim?: string; extra?: Record<string, string> } = {}) {
+function npmBin(options: { shim?: string; extra?: Record<string, string>; extension?: "cmd" | "bat" } = {}) {
   const dir = path.join(root, `bin-${++counter}`);
   const capture = path.join(dir, "capture.json");
+  const wrapper = `fake.${options.extension ?? "cmd"}`;
   const files: Record<string, string> = {
     "fake.ps1": options.shim ?? npmPowerShellShim(SCRIPT),
-    "fake.cmd": "@echo off\r\nexit /b 99\r\n",
+    [wrapper]: "@echo off\r\nexit /b 99\r\n",
     // Sous PTY, stdin est un terminal : la fausse CLI n'y lit rien et répond aussitôt.
     [SCRIPT]: `const done=(input)=>{require('fs').writeFileSync(${JSON.stringify(capture)},JSON.stringify({argv:process.argv.slice(2),stdin:input}));process.stdout.write('ok');process.exit(0)};if(process.stdin.isTTY){done('')}else{let input='';process.stdin.on('data',c=>input+=c);process.stdin.on('end',()=>done(input))}`,
     ...options.extra
@@ -39,7 +41,7 @@ function npmBin(options: { shim?: string; extra?: Record<string, string> } = {})
     mkdirSync(path.dirname(path.join(dir, name)), { recursive: true });
     writeFileSync(path.join(dir, name), content);
   }
-  return { dir, command: path.join(dir, "fake.cmd"), capture: () => JSON.parse(readFileSync(capture, "utf8")) as { argv: string[]; stdin: string } };
+  return { dir, command: path.join(dir, wrapper), capture: () => JSON.parse(readFileSync(capture, "utf8")) as { argv: string[]; stdin: string } };
 }
 
 function prompt(topic: string): AgentPrompt {
@@ -84,16 +86,19 @@ describe("adapters Windows : shim npm lancé via Node, sans PowerShell", () => {
     assert.match(seen.argv.at(-1) ?? "", /Sujet "cité" & été/);
   });
 
-  test("PTY, prompt en argument : arguments structurés et prompt préservés", { skip: process.platform !== "win32" }, async () => {
-    const bin = npmBin();
-    const adapter = new CliPtyAdapter("mock-pty", { type: "cli-pty", command: bin.command, args: STRUCTURED_ARGS.slice(0, 4), promptMode: "argument", role: "reviewer", timeoutMs: 15_000 });
+  for (const extension of ["cmd", "bat"] as const) {
+    test(`PTY, .${extension} avec shim npm : arguments et prompt transmis intacts à Node`, { skip: process.platform !== "win32" }, async () => {
+      const bin = npmBin({ extension });
+      const args = STRUCTURED_ARGS.slice(0, 4);
+      const input = prompt('Sujet "cité" & été');
+      const adapter = new CliPtyAdapter("mock-pty", { type: "cli-pty", command: bin.command, args, promptMode: "argument", role: "reviewer", timeoutMs: 15_000 });
 
-    await adapter.generate(prompt("Sujet \"cité\" & été"));
+      const response = await adapter.generate(input);
 
-    const seen = bin.capture();
-    assert.deepEqual(seen.argv.slice(0, 4), STRUCTURED_ARGS.slice(0, 4));
-    assert.match(seen.argv.at(-1) ?? "", /Sujet "cité" & été/);
-  });
+      assert.equal(response.content, "ok");
+      assert.deepEqual(bin.capture().argv, [...args, formatAgentPrompt(input)]);
+    });
+  }
 });
 
 describe("résolution d'un shim npm pour les adapters", () => {
